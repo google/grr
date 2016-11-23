@@ -59,7 +59,7 @@ LABEL_NAME_PREFIX = "robotapi-"
 class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """CreateFlow handler for a robot router.
 
-  This router filters out all the passed parameters, leaving just the essential
+  This handler filters out all the passed parameters, leaving just the essential
   arguments: client id, flow name and the arguments. It then delegates
   the call to a standard ApiCreateFlowHandler.
   """
@@ -94,6 +94,31 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
       fd.AddLabels(LABEL_NAME_PREFIX + self.robot_id)
       return api_flow.ApiFlow().InitFromAff4Object(
           fd, flow_id=flow_id.Basename())
+
+
+class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
+  """CreateFlow handler for cases when similar flow did run recently.
+
+  This handler is used when throttler signals that a similar flow has already
+  executed within min_interval_between_duplicate_flows time. In this case
+  we just return a descriptor of a previously executed flow.
+  """
+
+  args_type = api_flow.ApiCreateFlowArgs
+  result_type = api_flow.ApiFlow
+
+  def __init__(self, flow_urn=None):
+    super(ApiRobotReturnDuplicateFlowHandler, self).__init__()
+
+    if not flow_urn:
+      raise ValueError("flow_urn can't be empty.")
+    self.flow_urn = flow_urn
+
+  def Handle(self, args, token=None):
+    return api_flow.ApiGetFlowHandler().Handle(
+        api_flow.ApiGetFlowArgs(
+            client_id=args.client_id, flow_id=self.flow_urn.Basename()),
+        token=token)
 
 
 class ApiCallRobotRouter(api_call_router.ApiCallRouter):
@@ -208,12 +233,16 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
       raise access_control.UnauthorizedAccess(
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
 
-    throttler.EnforceLimits(
-        args.client_id.ToClientURN(),
-        token.username,
-        args.flow.name,
-        args.flow.args,
-        token=token)
+    try:
+      throttler.EnforceLimits(
+          args.client_id.ToClientURN(),
+          token.username,
+          args.flow.name,
+          args.flow.args,
+          token=token)
+    except throttle.ErrorFlowDuplicate as e:
+      # If a similar flow did run recently, just return it.
+      return ApiRobotReturnDuplicateFlowHandler(flow_urn=e.flow_urn)
 
     return ApiRobotCreateFlowHandler(robot_id=self.params.robot_id)
 

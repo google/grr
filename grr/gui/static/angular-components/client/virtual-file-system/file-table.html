@@ -5,24 +5,24 @@
     <div class="navbar-inner">
       <div class="navbar-form pull-left">
 
-        <button id="refresh-dir" class="btn btn-default"
-                title="Refresh this directory (sync its listing with the client)"
-                ng-disabled="controller.lastRefreshOperationId"
-                ng-click="controller.startVfsRefreshOperation()">
-          <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
-        </button>
+        <div class="btn-group" role="group">
+          <button id="refresh-dir" class="btn btn-default"
+                  title="Refresh this directory (sync its listing with the client)"
+                  ng-disabled="controller.lastRefreshOperationId"
+                  ng-click="controller.startVfsRefreshOperation()">
+            <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
+          </button>
 
-        <grr-recursive-list-button client-id="controller.fileContext.clientId"
-                                   file-path="controller.fileContext.selectedFilePath"
-                                   class="space-right">
-        </grr-recursive-list-button>
+          <grr-recursive-list-button client-id="controller.fileContext.clientId"
+                                     file-path="controller.fileContext.selectedFilePath"
+                                     class="space-right">
+          </grr-recursive-list-button>
+        </div>
 
-        <button name="downloadTimeline" class="btn btn-default space-right"
-                title="Download the timeline for this directory."
-                ng-click="controller.downloadTimeline()">
-          <i class="fa fa-history"></i>
-          <i class="fa fa-arrow-circle-down annotation"></i>
-        </button>
+        <grr-vfs-files-archive-button client-id="controller.fileContext.clientId"
+                                      file-path="controller.fileContext.selectedFilePath"
+                                      class="space-right">
+        </grr-vfs-files-archive-button>
 
         <div class="input-group large">
           <input type="text" class="form-control file-search" placeholder="Filter Items"
@@ -53,12 +53,26 @@
             <input type="radio" name="show-client-details">
             <i class="fa fa-history"></i> Timeline
           </label>
+          <button name="timelineDropdown" class="btn btn-default dropdown-toggle"
+                  data-toggle="dropdown">
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li>
+              <a name="downloadTimeline"
+                 ng-click="controller.downloadTimeline(); $event.preventDefault()"
+                 href="#">
+                Download timeline as CSV
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
     </div>
 
   </div>
+
 
   <grr-breadcrumbs path="controller.fileContext.selectedFilePath"></grr-breadcrumbs>
 

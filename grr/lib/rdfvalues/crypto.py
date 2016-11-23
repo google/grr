@@ -194,8 +194,8 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
       elif common_name and private_key:
         self._value = x509.CertificateSigningRequestBuilder().subject_name(
             x509.Name([
-                x509.NameAttribute(oid.NameOID.COMMON_NAME,
-                                   unicode(common_name))
+                x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
+                    common_name))
             ])).sign(
                 private_key.GetRawPrivateKey(),
                 hashes.SHA256(),
@@ -711,7 +711,6 @@ class HMAC(object):
       hash_algorithm = hashes.SHA256()
     else:
       hash_algorithm = hashes.SHA1()
-
     return hmac.HMAC(self.key, hash_algorithm, backend=openssl.backend)
 
   def Update(self, data):

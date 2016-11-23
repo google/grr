@@ -733,7 +733,7 @@ message UploadPolicy {
       [(sem_type) = {description: "The filename to upload under."}];
 
   optional uint64 expires = 3 [(sem_type) = {
-    type: "RDFDatetimeSeconds",
+    type: "RDFDatetime",
     description: "When this upload expires."
   }];
 };

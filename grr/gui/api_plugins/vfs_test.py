@@ -202,22 +202,6 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertIn(self.file_path, result.items[0].path)
 
 
-class ApiListFilesHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  api_method = "ListFiles"
-  handler = vfs_plugin.ApiListFilesHandler
-
-  def setUp(self):
-    super(ApiListFilesHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    test_lib.ClientFixture(self.client_id, token=self.token, age=42)
-
-  def Run(self):
-    self.Check("GET", "/api/clients/%s/vfs-index/fs/tsk/c/bin" %
-               (self.client_id.Basename()))
-
-
 class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
@@ -275,28 +259,6 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
     self.assertNotEqual(result.content, "Goodbye World")
     self.assertEqual(result.total_size, 13)
-
-
-class ApiGetFileTextHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  api_method = "GetFileText"
-  handler = vfs_plugin.ApiGetFileTextHandler
-
-  def setUp(self):
-    super(ApiGetFileTextHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.file_path = "fs/os/c/Downloads/a.txt"
-    self.CreateFileVersions(self.client_id, self.file_path)
-
-  def Run(self):
-    base_url = "/api/clients/%s/vfs-text/%s" % (self.client_id.Basename(),
-                                                self.file_path)
-    self.Check("GET", base_url)
-    self.Check("GET", base_url + "?offset=3&length=2")
-    self.Check(
-        "GET",
-        base_url + "?timestamp=" + str(self.time_1.AsMicroSecondsFromEpoch()))
 
 
 class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
@@ -403,33 +365,6 @@ class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetFileVersionTimesHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  api_method = "GetFileVersionTimes"
-  handler = vfs_plugin.ApiGetFileVersionTimesHandler
-
-  def setUp(self):
-    super(ApiGetFileVersionTimesHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.file_path = "fs/os/c/Downloads/a.txt"
-    self.CreateFileVersions(self.client_id, self.file_path)
-
-  def Run(self):
-    self.Check("GET", "/api/clients/%s/vfs-version-times/%s" %
-               (self.client_id.Basename(), self.file_path))
-
-
-class ApiListKnownEncodingsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  api_method = "ListKnownEncodings"
-  handler = vfs_plugin.ApiListKnownEncodingsHandler
-
-  def Run(self):
-    self.Check("GET", "/api/reflection/file-encodings")
-
-
 class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
                                            VfsTestMixin):
 
@@ -455,20 +390,6 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
-
-
-class ApiGetFileDownloadCommandHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  api_method = "GetFileDownloadCommand"
-  handler = vfs_plugin.ApiGetFileDownloadCommandHandler
-
-  def Run(self):
-    self.client_id = self.SetupClients(1)[0].Basename()
-    self.file_path = "fs/os/etc"
-    self.Check("GET",
-               "/api/clients/%s/vfs-download-command/%s" % (self.client_id,
-                                                            self.file_path))
 
 
 class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -558,37 +479,6 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(pending_notifications[0].source, str(flow_urn))
 
 
-class ApiCreateVfsRefreshOperationHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiCreateVfsRefreshOperationHandler."""
-
-  api_method = "CreateVfsRefreshOperation"
-  handler = vfs_plugin.ApiCreateVfsRefreshOperationHandler
-
-  def setUp(self):
-    super(ApiCreateVfsRefreshOperationHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    # Choose some directory with pathspec in the ClientFixture.
-    self.file_path = "fs/os/Users/Shared"
-
-  def Run(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
-
-    def ReplaceFlowId():
-      flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"), token=self.token)
-      flow_urn = list(flows_dir_fd.ListChildren())[0]
-      return {flow_urn.Basename(): "W:ABCDEF"}
-
-    url = "/api/clients/%s/vfs-refresh-operations" % self.client_id.Basename()
-    with test_lib.FakeTime(42):
-      self.Check(
-          "POST",
-          url, {"file_path": self.file_path,
-                "max_depth": 1},
-          replace=ReplaceFlowId)
-
-
 class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
                                                 VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
@@ -641,62 +531,6 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-  """Regression test for ApiGetVfsRefreshOperationStateHandler."""
-
-  api_method = "GetVfsRefreshOperationState"
-  handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler
-
-  def setUp(self):
-    super(ApiGetVfsRefreshOperationStateHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-
-  def Run(self):
-    # Create a running mock refresh operation.
-    self.running_flow_urn = self.CreateRecursiveListFlow(self.client_id,
-                                                         self.token)
-
-    # Create a mock refresh operation and complete it.
-    self.finished_flow_urn = self.CreateRecursiveListFlow(self.client_id,
-                                                          self.token)
-    with aff4.FACTORY.Open(
-        self.finished_flow_urn,
-        aff4_type=flow.GRRFlow,
-        mode="rw",
-        token=self.token) as flow_obj:
-      flow_obj.GetRunner().Error("Fake error")
-
-    # Create an arbitrary flow to check on 404s.
-    self.non_refresh_flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
-
-    # Unkonwn flow ids should also cause 404s.
-    self.unknown_flow_id = "F:12345678"
-
-    # Check both operations.
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-refresh-operations/%s" %
-        (self.client_id.Basename(), str(self.running_flow_urn)),
-        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-refresh-operations/%s" %
-        (self.client_id.Basename(), str(self.finished_flow_urn)),
-        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-refresh-operations/%s" %
-        (self.client_id.Basename(), str(self.non_refresh_flow_urn)),
-        replace={self.non_refresh_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-refresh-operations/%s" %
-        (self.client_id.Basename(), self.unknown_flow_id),
-        replace={self.unknown_flow_id: "W:ABCDEF"})
-
-
 class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
@@ -734,33 +568,6 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check returned operation_id to references a MultiGetFile flow.
     flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
     self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "MultiGetFile")
-
-
-class ApiUpdateVfsFileContentHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiUpdateVfsFileContentHandler."""
-
-  api_method = "UpdateVfsFileContent"
-  handler = vfs_plugin.ApiUpdateVfsFileContentHandler
-
-  def setUp(self):
-    super(ApiUpdateVfsFileContentHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.file_path = "fs/os/c/bin/bash"
-
-  def Run(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
-
-    def ReplaceFlowId():
-      flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"), token=self.token)
-      flow_urn = list(flows_dir_fd.ListChildren())[0]
-      return {flow_urn.Basename(): "W:ABCDEF"}
-
-    url = "/api/clients/%s/vfs-update" % self.client_id.Basename()
-    with test_lib.FakeTime(42):
-      self.Check(
-          "POST", url, {"file_path": self.file_path}, replace=ReplaceFlowId)
 
 
 class ApiGetVfsFileContentUpdateStateHandlerTest(
@@ -814,62 +621,6 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     # Our mock flow can't be read, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
       self.handler.Handle(args, token=self.token)
-
-
-class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-  """Regression test for ApiGetVfsFileContentUpdateStateHandler."""
-
-  api_method = "GetVfsFileContentUpdateState"
-  handler = vfs_plugin.ApiGetVfsFileContentUpdateStateHandler
-
-  def setUp(self):
-    super(ApiGetVfsFileContentUpdateStateHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-
-  def Run(self):
-    # Create a running mock refresh operation.
-    self.running_flow_urn = self.CreateMultiGetFileFlow(
-        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
-
-    # Create a mock refresh operation and complete it.
-    self.finished_flow_urn = self.CreateMultiGetFileFlow(
-        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
-    with aff4.FACTORY.Open(
-        self.finished_flow_urn,
-        aff4_type=flow.GRRFlow,
-        mode="rw",
-        token=self.token) as flow_obj:
-      flow_obj.GetRunner().Error("Fake error")
-
-    # Create an arbitrary flow to check on 404s.
-    self.non_update_flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
-
-    # Unkonwn flow ids should also cause 404s.
-    self.unknown_flow_id = "F:12345678"
-
-    # Check both operations.
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                           str(self.running_flow_urn)),
-        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                           str(self.finished_flow_urn)),
-        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-update/%s" %
-        (self.client_id.Basename(), str(self.non_update_flow_urn)),
-        replace={self.non_update_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check(
-        "GET",
-        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                           self.unknown_flow_id),
-        replace={self.unknown_flow_id: "W:ABCDEF"})
 
 
 class VfsTimelineTestMixin(object):
@@ -981,23 +732,6 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
-
-
-class ApiGetVfsTimelineHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTimelineTestMixin):
-  """Regression test for ApiGetVfsTimelineHandler."""
-
-  api_method = "GetVfsTimeline"
-  handler = vfs_plugin.ApiGetVfsTimelineHandler
-
-  def setUp(self):
-    super(ApiGetVfsTimelineHandlerRegressionTest, self).setUp()
-    self.SetupTestTimeline()
-
-  def Run(self):
-    self.Check("GET",
-               "/api/clients/%s/vfs-timeline/%s" % (self.client_id.Basename(),
-                                                    self.folder_path))
 
 
 class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,

@@ -6,7 +6,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiCancelFlowHandlerRegressionTest",
+      "test_class": "ApiCancelFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
     }
   ],
@@ -62,7 +62,7 @@
           "urn": "aff4:/C.1000000000000000"
         }
       },
-      "test_class": "ApiCreateClientApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateClientApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/client/C.1000000000000000"
     }
   ],
@@ -108,78 +108,8 @@
           "urn": "aff4:/cron/CronJob_123456"
         }
       },
-      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/cron-job/CronJob_123456"
-    }
-  ],
-  "ApiCreateCronJobHandler": [
-    {
-      "api_method": "CreateCronJob",
-      "method": "POST",
-      "request_payload": {
-        "description": "Foobar!",
-        "flowArgs": {
-          "@type": "type.googleapis.com/CreateGenericHuntFlowArgs",
-          "huntArgs": {
-            "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
-            "flowRunnerArgs": {
-              "flowName": "FileFinder"
-            }
-          },
-          "huntRunnerArgs": {
-            "clientRuleSet": {
-              "rules": [
-                {
-                  "os": {
-                    "osWindows": true
-                  }
-                }
-              ]
-            },
-            "description": "Foobar! (cron)"
-          }
-        },
-        "flowName": "CreateAndRunGenericHuntFlow",
-        "lifetime": "3600",
-        "periodicity": "604800"
-      },
-      "response": {
-        "allowOverruns": false,
-        "description": "Foobar!",
-        "flowArgs": {
-          "@type": "type.googleapis.com/CreateGenericHuntFlowArgs",
-          "huntArgs": {
-            "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
-            "flowRunnerArgs": {
-              "flowName": "FileFinder"
-            }
-          },
-          "huntRunnerArgs": {
-            "clientRuleSet": {
-              "rules": [
-                {
-                  "os": {
-                    "osWindows": true
-                  }
-                }
-              ]
-            },
-            "description": "Foobar! (cron)",
-            "huntName": "GenericHunt"
-          }
-        },
-        "flowName": "CreateAndRunGenericHuntFlow",
-        "flowRunnerArgs": {
-          "flowName": "CreateAndRunGenericHuntFlow"
-        },
-        "isFailing": false,
-        "lifetime": "3600",
-        "periodicity": "604800",
-        "state": "DISABLED",
-        "urn": "aff4:/cron/CreateAndRunGeneicHuntFlow_1234"
-      },
-      "test_class": "ApiCreateCronJobHandlerRegressionTest",
-      "url": "/api/v2/cron-jobs"
     }
   ],
   "ApiCreateFlowHandler": [
@@ -220,7 +150,7 @@
         "state": "RUNNING",
         "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiCreateFlowHandlerRegressionTest",
+      "test_class": "ApiCreateFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows"
     }
   ],
@@ -270,7 +200,7 @@
           "urn": "aff4:/hunts/H:123456"
         }
       },
-      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/hunt/H:123456"
     }
   ],
@@ -285,7 +215,7 @@
       "response": {
         "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest",
+      "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations"
     }
   ],
@@ -296,7 +226,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiDeleteHuntHandlerRegressionTest",
+      "test_class": "ApiDeleteHuntHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456"
     }
   ],
@@ -307,7 +237,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiForceRunCronJobRegressionTest",
+      "test_class": "ApiForceRunCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/OSBreakDown/actions/force-run"
     }
   ],
@@ -347,7 +277,7 @@
           "urn": "aff4:/C.1000000000000000"
         }
       },
-      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/client/C.1000000000000000/approval:111111"
     },
     {
@@ -385,7 +315,7 @@
           "urn": "aff4:/C.1000000000000001"
         }
       },
-      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/client/C.1000000000000001/approval:222222"
     }
   ],
@@ -414,7 +344,7 @@
         },
         "urn": "aff4:/C.1000000000000000"
       },
-      "test_class": "ApiGetClientHandlerRegressionTest",
+      "test_class": "ApiGetClientHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000"
     }
   ],
@@ -434,8 +364,8 @@
           }
         ]
       },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
-      "url": "/api/v2/clients/C.1000000000000000/load-stats/cpu_percent?start=10000000&end=21000000"
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/load-stats/cpu_percent?end=21000000&start=10000000"
     },
     {
       "api_method": "GetClientLoadStats",
@@ -452,121 +382,8 @@
           }
         ]
       },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
-      "url": "/api/v2/clients/C.1000000000000000/load-stats/io_write_bytes?start=10000000&end=21000000"
-    }
-  ],
-  "ApiGetConfigHandler": [
-    {
-      "api_method": "GetConfig",
-      "method": "GET",
-      "response": {
-        "sections": [
-          {
-            "name": "AdminUI",
-            "options": [
-              {
-                "isInvalid": false,
-                "name": "AdminUI.debug_impersonate_user",
-                "type": "RDFString",
-                "value": {
-                  "@type": "type.googleapis.com/google.protobuf.StringValue",
-                  "value": ""
-                }
-              }
-            ]
-          },
-          {
-            "name": "Config",
-            "options": [
-              {
-                "isInvalid": true,
-                "name": "Config.includes"
-              }
-            ]
-          },
-          {
-            "name": "SectionBar",
-            "options": [
-              {
-                "isInvalid": true,
-                "name": "SectionBar.sample_list_option"
-              },
-              {
-                "isInvalid": false,
-                "name": "SectionBar.sample_string_option",
-                "type": "RDFString",
-                "value": {
-                  "@type": "type.googleapis.com/google.protobuf.StringValue",
-                  "value": "sample"
-                }
-              }
-            ]
-          },
-          {
-            "name": "SectionFoo",
-            "options": [
-              {
-                "isInvalid": false,
-                "name": "SectionFoo.sample_boolean_option",
-                "type": "RDFInteger",
-                "value": {
-                  "@type": "type.googleapis.com/google.protobuf.Int64Value",
-                  "value": "1"
-                }
-              },
-              {
-                "isInvalid": false,
-                "name": "SectionFoo.sample_integer_option",
-                "type": "RDFInteger",
-                "value": {
-                  "@type": "type.googleapis.com/google.protobuf.Int64Value",
-                  "value": "42"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetConfigHandlerRegressionTest",
-      "url": "/api/v2/config"
-    }
-  ],
-  "ApiGetConfigOptionHandler": [
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "isInvalid": false,
-        "name": "SectionFoo.sample_string_option",
-        "type": "RDFString",
-        "value": {
-          "@type": "type.googleapis.com/google.protobuf.StringValue",
-          "value": ""
-        }
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "url": "/api/v2/config/SectionFoo.sample_string_option"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "isRedacted": true,
-        "name": "Mysql.database_password"
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "url": "/api/v2/config/Mysql.database_password"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "isInvalid": true,
-        "name": "NonExistingOption"
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "url": "/api/v2/config/NonExistingOption"
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [
@@ -595,7 +412,7 @@
           "urn": "aff4:/cron/CronJob_123456"
         }
       },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_123456/approval:111111"
     },
     {
@@ -623,7 +440,7 @@
           "urn": "aff4:/cron/CronJob_567890"
         }
       },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_567890/approval:222222"
     }
   ],
@@ -657,7 +474,7 @@
         "state": "RUNNING",
         "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
       },
-      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
+      "test_class": "ApiGetCronJobFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
     }
   ],
@@ -668,7 +485,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user file --path aff4:/C.1000000000000000/fs/os/etc --output ."
       },
-      "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
+      "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
     }
   ],
@@ -680,18 +497,18 @@
         "content": "Goodbye World",
         "totalSize": "13"
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt"
     },
     {
       "api_method": "GetFileText",
       "method": "GET",
       "response": {
-        "content": "db",
+        "content": "dby",
         "totalSize": "13"
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?offset=3&length=2"
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?length=3&offset=3"
     },
     {
       "api_method": "GetFileText",
@@ -700,7 +517,7 @@
         "content": "Hello World",
         "totalSize": "11"
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?timestamp=86400000042"
     }
   ],
@@ -714,7 +531,7 @@
           "86400000000"
         ]
       },
-      "test_class": "ApiGetFileVersionTimesHandlerRegressionTest",
+      "test_class": "ApiGetFileVersionTimesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-version-times/fs/os/c/Downloads/a.txt"
     }
   ],
@@ -752,7 +569,7 @@
         "state": "RUNNING",
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
       },
-      "test_class": "ApiGetFlowHandlerRegressionTest",
+      "test_class": "ApiGetFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/F:ABCDEF12"
     }
   ],
@@ -763,7 +580,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
       },
-      "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
+      "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
     }
   ],
@@ -772,21 +589,21 @@
       "api_method": "GetGrrBinary",
       "method": "GET",
       "response": "I'm a python hack",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/python_hack/test"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
       "response": "I am a binary file",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/executable/windows/test.exe"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "<serialized component>",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "response": "<binary data>",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/component/grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
     }
   ],
@@ -819,7 +636,7 @@
         },
         "username": "api_test_user"
       },
-      "test_class": "ApiGetGrrUserHandlerRegresstionTest",
+      "test_class": "ApiGetGrrUserHandlerRegresstionTest_http_v2",
       "url": "/api/v2/users/me"
     }
   ],
@@ -853,7 +670,7 @@
           "urn": "aff4:/hunts/H:123456"
         }
       },
-      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/hunt/H:123456/approval:111111"
     },
     {
@@ -885,7 +702,7 @@
           "urn": "aff4:/hunts/H:567890"
         }
       },
-      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/hunt/H:567890/approval:222222"
     }
   ],
@@ -987,8 +804,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats"
     },
     {
       "api_method": "GetHuntClientCompletionStats",
@@ -1039,8 +856,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats?size=4"
     },
     {
       "api_method": "GetHuntClientCompletionStats",
@@ -1139,8 +956,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats?size=1000"
     }
   ],
   "ApiGetHuntHandler": [
@@ -1199,7 +1016,7 @@
         "totalNetUsage": "1000000",
         "urn": "aff4:/hunts/H:123456"
       },
-      "test_class": "ApiGetHuntHandlerRegressionTest",
+      "test_class": "ApiGetHuntHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456"
     }
   ],
@@ -1210,7 +1027,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/hunts/H:123456/Results --output ."
       },
-      "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
+      "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/results/export-command"
     }
   ],
@@ -1437,7 +1254,7 @@
           ]
         }
       },
-      "test_class": "ApiGetHuntStatsHandlerRegressionTest",
+      "test_class": "ApiGetHuntStatsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/stats"
     }
   ],
@@ -1450,7 +1267,7 @@
         "ip": "192.168.100.42",
         "status": "INTERNAL"
       },
-      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest",
+      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/last-ip"
     }
   ],
@@ -1461,7 +1278,7 @@
       "response": {
         "count": "2"
       },
-      "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest",
+      "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending/count"
     }
   ],
@@ -1484,7 +1301,7 @@
           "object"
         ]
       },
-      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v2",
       "url": "/api/v2/reflection/rdfvalue/Duration"
     },
     {
@@ -1648,7 +1465,7 @@
           "object"
         ]
       },
-      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v2",
       "url": "/api/v2/reflection/rdfvalue/ApiFlow"
     }
   ],
@@ -1693,8 +1510,8 @@
           "type": "SERVER"
         }
       },
-      "test_class": "ApiGetReportRegressionTest",
-      "url": "/api/v2/stats/reports/BarReportPlugin?start_time=1355443200000000&duration=4d"
+      "test_class": "ApiGetReportRegressionTest_http_v2",
+      "url": "/api/v2/stats/reports/BarReportPlugin?duration=345600&start_time=1355443200000000"
     }
   ],
   "ApiGetRobotGetFilesOperationStateHandler": [
@@ -1705,7 +1522,7 @@
         "resultCount": "1",
         "state": "RUNNING"
       },
-      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/robot-actions/get-files/aff4:/C.1000000000000000/flows/F:ABCDEF12"
     }
   ],
@@ -2196,8 +2013,8 @@
         "metricName": "sample_counter",
         "start": "42000000"
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metrics/sample_counter?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -2681,8 +2498,8 @@
         "metricName": "sample_counter",
         "start": "42000000"
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000&rate=1m"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metrics/sample_counter?end=3600000000&rate=60&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -2734,8 +2551,8 @@
         "metricName": "sample_gauge_value",
         "start": "42000000"
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metrics/sample_gauge_value?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metrics/sample_gauge_value?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -3223,8 +3040,8 @@
         "metricName": "sample_event",
         "start": "42000000"
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metrics/sample_event?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -3712,8 +3529,8 @@
         "metricName": "sample_event",
         "start": "42000000"
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metrics/sample_event?distribution_handling_mode=dh_count&end=3600000000&start=42000000"
     }
   ],
   "ApiGetVfsFileContentUpdateStateHandler": [
@@ -3723,7 +3540,7 @@
       "response": {
         "state": "RUNNING"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3732,7 +3549,7 @@
       "response": {
         "state": "FINISHED"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3741,7 +3558,7 @@
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3750,7 +3567,7 @@
       "response": {
         "message": "Operation with id W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     }
   ],
@@ -3761,7 +3578,7 @@
       "response": {
         "state": "RUNNING"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3770,7 +3587,7 @@
       "response": {
         "state": "FINISHED"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3779,7 +3596,7 @@
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -3788,7 +3605,7 @@
       "response": {
         "message": "Operation with id W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
     }
   ],
@@ -3825,7 +3642,7 @@
           }
         ]
       },
-      "test_class": "ApiGetVfsTimelineHandlerRegressionTest",
+      "test_class": "ApiGetVfsTimelineHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-timeline/fs/os/Users/Shared"
     }
   ],
@@ -3865,7 +3682,7 @@
           "urn": "aff4:/C.1000000000000000"
         }
       },
-      "test_class": "ApiGrantClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantClientApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/requestor/approvals/client/C.1000000000000000/approval:111111/actions/grant"
     }
   ],
@@ -3895,7 +3712,7 @@
           "urn": "aff4:/cron/CronJob_123456"
         }
       },
-      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/requestor/approvals/cron-job/CronJob_123456/approval:111111/actions/grant"
     }
   ],
@@ -3929,7 +3746,7 @@
           "urn": "aff4:/hunts/H:123456"
         }
       },
-      "test_class": "ApiGrantHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/requestor/approvals/hunt/H:123456/approval:111111/actions/grant"
     }
   ],
@@ -3964,25 +3781,18 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications"
     },
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
+      "request_payload": {
+        "count": "1",
+        "offset": "1"
+      },
       "response": {
         "items": [
-          {
-            "isPending": false,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": "44000000"
-          },
           {
             "isPending": false,
             "message": "Host-0: <some message>",
@@ -3997,12 +3807,15 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
-      "url": "/api/v2/users/me/notifications?offset=1&count=1"
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/me/notifications"
     },
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
+      "request_payload": {
+        "filter": "other"
+      },
       "response": {
         "items": [
           {
@@ -4015,23 +3828,12 @@
               "type": "DISCOVERY"
             },
             "timestamp": "44000000"
-          },
-          {
-            "isPending": false,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "clientId": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": "42000000"
           }
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
-      "url": "/api/v2/users/me/notifications?filter=other"
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/me/notifications"
     }
   ],
   "ApiListArtifactsHandler": [
@@ -4081,7 +3883,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListArtifacstHandlerRegressionTest",
+      "test_class": "ApiListArtifacstHandlerRegressionTest_http_v2",
       "url": "/api/v2/artifacts"
     }
   ],
@@ -4099,7 +3901,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/action-requests"
     },
     {
@@ -4135,7 +3937,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/action-requests?fetch_responses=1"
     }
   ],
@@ -4211,7 +4013,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/client"
     },
     {
@@ -4253,8 +4055,8 @@
           }
         ]
       },
-      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
-      "url": "/api/v2/users/me/approvals/client/C.1000000000000000"
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/me/approvals/client?client_id=C.1000000000000000"
     }
   ],
   "ApiListClientCrashesHandler": [
@@ -4276,7 +4078,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/crashes"
     },
     {
@@ -4297,7 +4099,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/crashes?count=1"
     },
     {
@@ -4306,8 +4108,8 @@
       "response": {
         "totalCount": "1"
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
-      "url": "/api/v2/clients/C.1000000000000000/crashes?offset=1&count=1"
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/crashes?count=1&offset=1"
     }
   ],
   "ApiListClientsLabelsHandler": [
@@ -4324,7 +4126,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientsLabelsHandlerRegressionTest",
+      "test_class": "ApiListClientsLabelsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/labels"
     }
   ],
@@ -4352,7 +4154,7 @@
           }
         ]
       },
-      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
+      "test_class": "ApiListCronJobFlowsHandlerRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows"
     }
   ],
@@ -4414,7 +4216,7 @@
         ],
         "totalCount": "3"
       },
-      "test_class": "ApiListCronJobsHandlerRegressionTest",
+      "test_class": "ApiListCronJobsHandlerRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs"
     }
   ],
@@ -4442,8 +4244,8 @@
           }
         ]
       },
-      "test_class": "ApiListFilesHandlerRegressionTest",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-index/fs/tsk/c/bin"
+      "test_class": "ApiListFilesHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin"
     }
   ],
   "ApiListFlowDescriptorsHandler": [
@@ -4500,7 +4302,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/flows/descriptors"
     },
     {
@@ -4542,7 +4344,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/flows/descriptors?flow_type=client"
     },
     {
@@ -4566,7 +4368,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/flows/descriptors?flow_type=global"
     }
   ],
@@ -4591,7 +4393,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log"
     },
     {
@@ -4608,7 +4410,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1"
     },
     {
@@ -4625,7 +4427,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1&offset=1"
     }
   ],
@@ -4676,7 +4478,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowRequestsHandlerRegressionTest",
+      "test_class": "ApiListFlowRequestsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/requests"
     }
   ],
@@ -4711,7 +4513,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListFlowResultsHandlerRegressionTest",
+      "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results"
     }
   ],
@@ -4755,7 +4557,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowsHandlerRegressionTest",
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows"
     }
   ],
@@ -4785,7 +4587,7 @@
           }
         ]
       },
-      "test_class": "ApiListGrrBinariesHandlerRegressionTest",
+      "test_class": "ApiListGrrBinariesHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries"
     }
   ],
@@ -4823,7 +4625,7 @@
           }
         ]
       },
-      "test_class": "ApiListHuntApprovalsHandlerRegressionTest",
+      "test_class": "ApiListHuntApprovalsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/hunt"
     }
   ],
@@ -4929,7 +4731,7 @@
         ],
         "totalCount": "5"
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/clients/started"
     },
     {
@@ -5024,7 +4826,7 @@
         ],
         "totalCount": "4"
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/clients/outstanding"
     },
     {
@@ -5044,7 +4846,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/clients/completed"
     }
   ],
@@ -5067,7 +4869,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/crashes"
     },
     {
@@ -5088,7 +4890,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/crashes?count=1"
     },
     {
@@ -5097,8 +4899,8 @@
       "response": {
         "totalCount": "1"
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/crashes?offset=1&count=1"
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/crashes?count=1&offset=1"
     }
   ],
   "ApiListHuntErrorsHandler": [
@@ -5119,7 +4921,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/errors"
     },
     {
@@ -5134,7 +4936,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/errors?count=1"
     },
     {
@@ -5150,8 +4952,8 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/errors?offset=1&count=1"
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/errors?count=1&offset=1"
     }
   ],
   "ApiListHuntLogsHandler": [
@@ -5173,7 +4975,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/log"
     },
     {
@@ -5189,7 +4991,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/log?count=1"
     },
     {
@@ -5205,8 +5007,8 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
-      "url": "/api/v2/hunts/H:123456/log?offset=1&count=1"
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/log?count=1&offset=1"
     }
   ],
   "ApiListHuntResultsHandler": [
@@ -5234,7 +5036,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/results"
     },
     {
@@ -5253,7 +5055,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/results?count=1"
     },
     {
@@ -5272,8 +5074,8 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
-      "url": "/api/v2/hunts/H:123456/results?offset=1&count=1"
+      "test_class": "ApiListHuntResultsRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/results?count=1&offset=1"
     },
     {
       "api_method": "ListHuntResults",
@@ -5291,7 +5093,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/results?filter=foo"
     }
   ],
@@ -5332,7 +5134,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts"
     },
     {
@@ -5357,7 +5159,7 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1"
     },
     {
@@ -5382,8 +5184,8 @@
         ],
         "totalCount": "2"
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
-      "url": "/api/v2/hunts?offset=1&count=1"
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=1&offset=1"
     }
   ],
   "ApiListKbFieldsHandler": [
@@ -5434,7 +5236,7 @@
           "users.userprofile"
         ]
       },
-      "test_class": "ApiListKbFieldsHandlerTest",
+      "test_class": "ApiListKbFieldsHandlerTest_http_v2",
       "url": "/api/v2/clients/kb-fields"
     }
   ],
@@ -5498,7 +5300,7 @@
           "ZLIB_CODEC"
         ]
       },
-      "test_class": "ApiListKnownEncodingsHandlerRegressionTest",
+      "test_class": "ApiListKnownEncodingsHandlerRegressionTest_http_v2",
       "url": "/api/v2/reflection/file-encodings"
     }
   ],
@@ -5522,7 +5324,7 @@
           }
         ]
       },
-      "test_class": "ApiListOutputPluginDescriptorsHandlerTest",
+      "test_class": "ApiListOutputPluginDescriptorsHandlerTest_http_v2",
       "url": "/api/v2/output-plugins/all"
     }
   ],
@@ -5549,7 +5351,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending/global"
     }
   ],
@@ -5583,7 +5385,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending"
     },
     {
@@ -5604,7 +5406,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending?timestamp=43000000"
     }
   ],
@@ -5634,7 +5436,7 @@
           }
         ]
       },
-      "test_class": "ApiListReportsHandlerRegressionTest",
+      "test_class": "ApiListReportsHandlerRegressionTest_http_v2",
       "url": "/api/v2/stats/reports"
     }
   ],
@@ -5664,8 +5466,8 @@
           }
         ]
       },
-      "test_class": "ApiListStatsStoreMetricsMetadataHandlerRegressionTest",
-      "url": "/api/v2/stats/store/WORKER/metadata"
+      "test_class": "ApiListStatsStoreMetricsMetadataHandlerRegressionTest_http_v2",
+      "url": "/api/v2/stats/store/worker/metadata"
     }
   ],
   "ApiModifyCronJobHandler": [
@@ -5690,7 +5492,7 @@
         "state": "ENABLED",
         "urn": "aff4:/cron/OSBreakDown"
       },
-      "test_class": "ApiModifyCronJobRegressionTest",
+      "test_class": "ApiModifyCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/OSBreakDown"
     },
     {
@@ -5714,8 +5516,134 @@
         "state": "DISABLED",
         "urn": "aff4:/cron/GRRVersionBreakDown"
       },
-      "test_class": "ApiModifyCronJobRegressionTest",
+      "test_class": "ApiModifyCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/GRRVersionBreakDown"
+    }
+  ],
+  "ApiModifyHuntHandler": [
+    {
+      "api_method": "ModifyHunt",
+      "method": "PATCH",
+      "request_payload": {
+        "clientLimit": "142"
+      },
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "142",
+        "clientRate": "0",
+        "clientRuleSet": {
+          "rules": [
+            {
+              "regex": {
+                "attributeName": "GRR client",
+                "attributeRegex": "GRR"
+              },
+              "ruleType": "REGEX"
+            }
+          ]
+        },
+        "completedClientsCount": "0",
+        "created": "42000000",
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": "1209642000000",
+        "flowArgs": {
+          "@type": "type.googleapis.com/GetFileArgs",
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flowName": "GetFile",
+        "huntRunnerArgs": {
+          "clientLimit": "142",
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "description": "the hunt",
+          "huntName": "GenericHunt"
+        },
+        "isRobot": false,
+        "name": "GenericHunt",
+        "remainingClientsCount": "0",
+        "state": "PAUSED",
+        "totalCpuUsage": 0.0,
+        "totalNetUsage": "0",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiModifyHuntHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456"
+    },
+    {
+      "api_method": "ModifyHunt",
+      "method": "PATCH",
+      "request_payload": {
+        "state": "STOPPED"
+      },
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "142",
+        "clientRate": "0",
+        "clientRuleSet": {
+          "rules": [
+            {
+              "regex": {
+                "attributeName": "GRR client",
+                "attributeRegex": "GRR"
+              },
+              "ruleType": "REGEX"
+            }
+          ]
+        },
+        "completedClientsCount": "0",
+        "created": "42000000",
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": "1209642000000",
+        "flowArgs": {
+          "@type": "type.googleapis.com/GetFileArgs",
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flowName": "GetFile",
+        "huntRunnerArgs": {
+          "clientLimit": "142",
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "description": "the hunt",
+          "huntName": "GenericHunt"
+        },
+        "isRobot": false,
+        "name": "GenericHunt",
+        "remainingClientsCount": "0",
+        "state": "STOPPED",
+        "totalCpuUsage": 0.0,
+        "totalNetUsage": "0",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiModifyHuntHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456"
     }
   ],
   "ApiSearchClientsHandler": [
@@ -5746,7 +5674,7 @@
           }
         ]
       },
-      "test_class": "ApiSearchClientsHandlerRegressionTest",
+      "test_class": "ApiSearchClientsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients?query=C.1000000000000000"
     }
   ],
@@ -5763,7 +5691,7 @@
       "response": {
         "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest",
+      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest_http_v2",
       "url": "/api/v2/robot-actions/get-files"
     }
   ],
@@ -5777,7 +5705,7 @@
       "response": {
         "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest",
+      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update"
     }
   ]

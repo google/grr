@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""This module contains tests for output plugins-related API handlers."""
+"""This module contains regression tests for output plugins API handlers."""
 
 
 
-from grr.gui import api_test_lib
+from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import output_plugin as output_plugin_plugin
 from grr.lib import flags
 from grr.lib import instant_output_plugin
@@ -15,7 +15,7 @@ from grr.lib.output_plugins import email_plugin
 
 
 class ApiListOutputPluginDescriptorsHandlerTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
+    api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiOutputPluginsListHandler."""
 
   api_method = "ListOutputPluginDescriptors"
@@ -27,7 +27,7 @@ class ApiListOutputPluginDescriptorsHandlerTest(
     }), (instant_output_plugin.InstantOutputPlugin, "classes", {
         "CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin
     })):
-      self.Check("GET", "/api/output-plugins/all")
+      self.Check("ListOutputPluginDescriptors")
 
 
 def main(argv):

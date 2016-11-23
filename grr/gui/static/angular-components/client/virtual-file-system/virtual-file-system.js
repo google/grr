@@ -16,6 +16,7 @@ goog.require('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
 goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective');
 goog.require('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
+goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective');
 goog.require('grrUi.core.module');
 goog.require('grrUi.semantic.module');
 
@@ -66,6 +67,9 @@ grrUi.client.virtualFileSystem.module.directive(
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective.directive_name,
     grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective);
+grrUi.client.virtualFileSystem.module.directive(
+    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective.directive_name,
+    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective);
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective.directive_name,
     grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective);

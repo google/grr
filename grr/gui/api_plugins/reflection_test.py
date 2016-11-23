@@ -15,18 +15,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class ApiGetRDFValueDescriptorHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetRDFValueDescriptorHandler."""
-
-  api_method = "GetRDFValueDescriptor"
-  handler = reflection_plugin.ApiGetRDFValueDescriptorHandler
-
-  def Run(self):
-    self.Check("GET", "/api/reflection/rdfvalue/Duration")
-    self.Check("GET", "/api/reflection/rdfvalue/ApiFlow")
-
-
 class ApiGetRDFValueDescriptorHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetRDFValueDescriptorHandler."""
 

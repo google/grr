@@ -4,7 +4,6 @@
 
 
 import os
-import pdb
 import StringIO
 import tarfile
 import zipfile
@@ -30,11 +29,9 @@ from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.hunts import implementation
-from grr.lib.hunts import process_results
 from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base as rdf_test_base
@@ -228,144 +225,6 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
             description_contains="bar", active_within="1d", offset=3),
         token=self.token)
     self.assertEqual(len(result.items), 0)
-
-
-class ApiListHuntsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHunts"
-  handler = hunt_plugin.ApiListHuntsHandler
-
-  def Run(self):
-    replace = {}
-    for i in range(0, 2):
-      with test_lib.FakeTime((1 + i) * 1000):
-        with self.CreateHunt(description="hunt_%d" % i) as hunt_obj:
-          if i % 2:
-            hunt_obj.Stop()
-
-          replace[hunt_obj.urn.Basename()] = "H:00000%d" % i
-
-    self.Check("GET", "/api/hunts", replace=replace)
-    self.Check("GET", "/api/hunts?count=1", replace=replace)
-    self.Check("GET", "/api/hunts?offset=1&count=1", replace=replace)
-
-
-class ApiListHuntResultsRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-
-  api_method = "ListHuntResults"
-  handler = hunt_plugin.ApiListHuntResultsHandler
-
-  def Run(self):
-    hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
-    results_urn = hunt_urn.Add("Results")
-
-    with aff4.FACTORY.Create(
-        results_urn,
-        aff4_type=hunt_results.HuntResultCollection,
-        token=self.token) as results:
-
-      result = rdf_flows.GrrMessage(
-          payload=rdfvalue.RDFString("blah1"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
-      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
-
-      result = rdf_flows.GrrMessage(
-          payload=rdfvalue.RDFString("blah2-foo"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
-      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
-
-    self.Check("GET", "/api/hunts/H:123456/results")
-    self.Check("GET", "/api/hunts/H:123456/results?count=1")
-    self.Check("GET", "/api/hunts/H:123456/results?offset=1&count=1")
-    self.Check("GET", "/api/hunts/H:123456/results?filter=foo")
-
-
-class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
-                                      standard_test.StandardHuntTestMixin):
-
-  api_method = "GetHunt"
-  handler = hunt_plugin.ApiGetHuntHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-        hunt_urn = hunt_obj.urn
-
-        hunt_stats = hunt_obj.context.usage_stats
-        hunt_stats.user_cpu_stats.sum = 5000
-        hunt_stats.network_bytes_sent_stats.sum = 1000000
-
-    self.Check(
-        "GET",
-        "/api/hunts/" + hunt_urn.Basename(),
-        replace={hunt_urn.Basename(): "H:123456"})
-
-
-class ApiListHuntLogsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntLogs"
-  handler = hunt_plugin.ApiListHuntLogsHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-
-        with test_lib.FakeTime(52):
-          hunt_obj.Log("Sample message: foo.")
-
-        with test_lib.FakeTime(55):
-          hunt_obj.Log("Sample message: bar.")
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/log" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check(
-        "GET",
-        "/api/hunts/%s/log?count=1" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check(
-        "GET", ("/api/hunts/%s/log?offset=1&count=1" % hunt_obj.urn.Basename()),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-
-
-class ApiListHuntErrorsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntErrors"
-  handler = hunt_plugin.ApiListHuntErrorsHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-
-        with test_lib.FakeTime(52):
-          hunt_obj.LogClientError(
-              rdf_client.ClientURN("C.0000111122223333"), "Error foo.")
-
-        with test_lib.FakeTime(55):
-          hunt_obj.LogClientError(
-              rdf_client.ClientURN("C.1111222233334444"), "Error bar.",
-              "<some backtrace>")
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/errors" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check(
-        "GET",
-        "/api/hunts/%s/errors?count=1" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check(
-        "GET",
-        ("/api/hunts/%s/errors?offset=1&count=1" % hunt_obj.urn.Basename()),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -618,95 +477,6 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                      results[0].payload.stat_entry.st_size)
 
 
-class ApiListHuntCrashesHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntCrashes"
-  handler = hunt_plugin.ApiListHuntCrashesHandler
-
-  def Run(self):
-    client_ids = self.SetupClients(1)
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
-                                                              self.token))
-                         for client_id in client_ids])
-
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-        hunt_obj.Run()
-
-    with test_lib.FakeTime(45):
-      self.AssignTasksToClients(client_ids)
-      test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
-
-    crashes = aff4.FACTORY.Open(
-        hunt_obj.urn.Add("crashes"), mode="r", token=self.token)
-    crash = list(crashes)[0]
-    session_id = crash.session_id.Basename()
-    replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/crashes" % hunt_obj.urn.Basename(),
-        replace=replace)
-    self.Check(
-        "GET",
-        "/api/hunts/%s/crashes?count=1" % hunt_obj.urn.Basename(),
-        replace=replace)
-    self.Check(
-        "GET",
-        ("/api/hunts/%s/crashes?offset=1&count=1" % hunt_obj.urn.Basename()),
-        replace=replace)
-
-
-class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "GetHuntClientCompletionStats"
-  handler = hunt_plugin.ApiGetHuntClientCompletionStatsHandler
-
-  def Run(self):
-    client_ids = self.SetupClients(10)
-    client_mock = test_lib.SampleHuntMock()
-
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-        hunt_obj.Run()
-
-    time_offset = 0
-    for client_id in client_ids:
-      with test_lib.FakeTime(45 + time_offset):
-        self.AssignTasksToClients([client_id])
-        test_lib.TestHuntHelper(client_mock, [client_id], False, self.token)
-        time_offset += 10
-
-    replace = {hunt_obj.urn.Basename(): "H:123456"}
-    base_url = ("/api/hunts/%s/client-completion-stats"
-                "?strip_type_info=1" % hunt_obj.urn.Basename())
-    self.Check("GET", base_url, replace=replace)
-    self.Check("GET", base_url + "&size=4", replace=replace)
-    self.Check("GET", base_url + "&size=1000", replace=replace)
-
-
-class ApiGetHuntResultsExportCommandHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "GetHuntResultsExportCommand"
-  handler = hunt_plugin.ApiGetHuntResultsExportCommandHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(description="the hunt") as hunt_obj:
-        pass
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/results/export-command" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
-
-
 class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
   """A dummy output plugin."""
 
@@ -716,37 +486,6 @@ class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
 
   def ProcessResponses(self, responses):
     pass
-
-
-class ApiListHuntOutputPluginsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntOutputPlugins"
-  handler = hunt_plugin.ApiListHuntOutputPluginsHandler
-
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  skip_v2_tests = True
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      with self.CreateHunt(
-          description="the hunt",
-          output_plugins=[
-              output_plugin.OutputPluginDescriptor(
-                  plugin_name=DummyHuntTestOutputPlugin.__name__,
-                  plugin_args=DummyHuntTestOutputPlugin.args_type(
-                      filename_regex="blah!", fetch_binaries=True))
-          ]) as hunt_obj:
-        pass
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/output-plugins" % hunt_obj.urn.Basename(),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(
@@ -830,154 +569,6 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
     self.assertEqual(result.total_count, 5)
     self.assertEqual(len(result.items), 2)
-
-
-class ApiListHuntOutputPluginLogsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntOutputPluginLogs"
-  handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler
-
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  skip_v2_tests = True
-
-  def Run(self):
-    with test_lib.FakeTime(42, increment=1):
-      hunt_urn = self.StartHunt(
-          description="the hunt",
-          output_plugins=[
-              output_plugin.OutputPluginDescriptor(
-                  plugin_name=DummyHuntTestOutputPlugin.__name__,
-                  plugin_args=DummyHuntTestOutputPlugin.args_type(
-                      filename_regex="blah!", fetch_binaries=True))
-          ])
-
-      self.client_ids = self.SetupClients(2)
-      for index, client_id in enumerate(self.client_ids):
-        self.AssignTasksToClients(client_ids=[client_id])
-        self.RunHunt(failrate=-1)
-        with test_lib.FakeTime(100042 + index * 100):
-          self.ProcessHuntOutputPlugins()
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/output-plugins/"
-        "DummyHuntTestOutputPlugin_0/logs" % hunt_urn.Basename(),
-        replace={hunt_urn.Basename(): "H:123456"})
-
-
-class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntOutputPluginErrors"
-  handler = hunt_plugin.ApiListHuntOutputPluginErrorsHandler
-
-  # ApiOutputPlugin's state is an AttributedDict containing URNs that
-  # are always random. Given that currently their JSON representation
-  # is proto-serialized and then base64-encoded, there's no way
-  # we can replace these URNs with something stable.
-  skip_v2_tests = True
-
-  def Run(self):
-    with test_lib.FakeTime(42, increment=1):
-      hunt_urn = self.StartHunt(
-          description="the hunt",
-          output_plugins=[
-              output_plugin.OutputPluginDescriptor(
-                  plugin_name=standard_test.FailingDummyHuntOutputPlugin.
-                  __name__)
-          ])
-
-      self.client_ids = self.SetupClients(2)
-      for index, client_id in enumerate(self.client_ids):
-        self.AssignTasksToClients(client_ids=[client_id])
-        self.RunHunt(failrate=-1)
-        with test_lib.FakeTime(100042 + index * 100):
-          try:
-            self.ProcessHuntOutputPlugins()
-          except process_results.ResultsProcessingError:
-            if flags.FLAGS.debug:
-              pdb.post_mortem()
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/output-plugins/"
-        "FailingDummyHuntOutputPlugin_0/errors" % hunt_urn.Basename(),
-        replace={hunt_urn.Basename(): "H:123456"})
-
-
-class ApiGetHuntStatsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "GetHuntStats"
-  handler = hunt_plugin.ApiGetHuntStatsHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      hunt_urn = self.StartHunt(description="the hunt")
-
-      self.client_ids = self.SetupClients(1)
-      self.AssignTasksToClients(client_ids=self.client_ids)
-      self.RunHunt()
-
-    # Create replace dictionary.
-    replace = {hunt_urn.Basename(): "H:123456"}
-    with aff4.FACTORY.Open(hunt_urn, mode="r", token=self.token) as hunt:
-      stats = hunt.GetRunner().context.usage_stats
-      for performance in stats.worst_performers:
-        session_id = performance.session_id.Basename()
-        replace[session_id] = "<replaced session value>"
-
-    self.Check(
-        "GET", "/api/hunts/%s/stats" % hunt_urn.Basename(), replace=replace)
-
-
-class ApiListHuntClientsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ListHuntClients"
-  handler = hunt_plugin.ApiListHuntClientsHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      hunt_urn = self.StartHunt(description="the hunt")
-
-      self.client_ids = self.SetupClients(5)
-      self.AssignTasksToClients(client_ids=self.client_ids)
-      # Only running the hunt on a single client, as SampleMock
-      # implementation is non-deterministic in terms of resources
-      # usage that gets reported back to the hunt.
-      self.RunHunt(client_ids=[self.client_ids[-1]], failrate=0)
-
-    # Create replace dictionary.
-    replace = {hunt_urn.Basename(): "H:123456"}
-
-    # Add all sub flows to replace dict.
-    all_flows = hunts.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, self.client_ids, token=self.token)
-
-    for flow_urn in all_flows:
-      replace[flow_urn.Basename()] = "W:123456"
-
-    self.Check(
-        "GET",
-        "/api/hunts/%s/clients/started" % hunt_urn.Basename(),
-        replace=replace)
-    self.Check(
-        "GET",
-        "/api/hunts/%s/clients/outstanding" % hunt_urn.Basename(),
-        replace=replace)
-    self.Check(
-        "GET",
-        "/api/hunts/%s/clients/completed" % hunt_urn.Basename(),
-        replace=replace)
 
 
 class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -1076,37 +667,6 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertNotEqual(after.client_limit, 42)
 
 
-class ApiModifyHuntHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "ModifyHunt"
-  handler = hunt_plugin.ApiModifyHuntHandler
-
-  # ApiHunt.hunt_args.flow_args JSON representation is proto-serialized and
-  # then base64-encoded. Unfortunately flow arguments are not proto-serialized
-  # in a stable fashion, thus making regression tests very flaky.
-  skip_v2_tests = True
-
-  def Run(self):
-    # Check client_limit update.
-    with test_lib.FakeTime(42):
-      hunt = self.CreateHunt(description="the hunt")
-
-    # Create replace dictionary.
-    replace = {hunt.urn.Basename(): "H:123456"}
-
-    with test_lib.FakeTime(43):
-      self.Check(
-          "PATCH",
-          "/api/hunts/%s" % hunt.urn.Basename(), {"client_limit": 142},
-          replace=replace)
-      self.Check(
-          "PATCH",
-          "/api/hunts/%s" % hunt.urn.Basename(), {"state": "STOPPED"},
-          replace=replace)
-
-
 class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                standard_test.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
@@ -1138,23 +698,6 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(aff4.InstantiationError):
       aff4.FACTORY.Open(
           self.hunt_urn, aff4_type=implementation.GRRHunt, token=self.token)
-
-
-class ApiDeleteHuntHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest,
-    standard_test.StandardHuntTestMixin):
-
-  api_method = "DeleteHunt"
-  handler = hunt_plugin.ApiDeleteHuntHandler
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      hunt = self.CreateHunt(description="the hunt")
-
-    # Create replace dictionary.
-    replace = {hunt.urn.Basename(): "H:123456"}
-
-    self.Check("DELETE", "/api/hunts/%s" % hunt.urn.Basename(), replace=replace)
 
 
 class DummyFlowWithSingleReply(flow.GRRFlow):

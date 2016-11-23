@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""This module contains tests for stats API handlers."""
+"""This module contains regression tests for stats API handlers."""
 
 
 
-from grr.gui import api_test_lib
+from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import stats as stats_plugin
 from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks
 
@@ -20,7 +20,7 @@ from grr.lib.aff4_objects import stats_store as aff4_stats_store
 
 
 class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
+    api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListStatsStoreMetricsMetadata"
   handler = stats_plugin.ApiListStatsStoreMetricsMetadataHandler
@@ -43,11 +43,14 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
           token=self.token) as stats_store:
         stats_store.WriteStats(process_id="worker_1", sync=True)
 
-    self.Check("GET", "/api/stats/store/WORKER/metadata")
+    self.Check(
+        "ListStatsStoreMetricsMetadata",
+        args=stats_plugin.ApiListStatsStoreMetricsMetadataArgs(
+            component="WORKER"))
 
 
 class ApiGetStatsStoreMetricHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
+    api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetStatsStoreMetric"
   handler = stats_plugin.ApiGetStatsStoreMetricHandler
@@ -76,43 +79,72 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
               token=self.token) as stats_store:
             stats_store.WriteStats(process_id="worker_1", sync=True)
 
-    self.Check("GET", "/api/stats/store/WORKER/metrics/sample_counter?"
-               "start=42000000&end=3600000000")
-    self.Check("GET", "/api/stats/store/WORKER/metrics/sample_counter?"
-               "start=42000000&end=3600000000&rate=1m")
+    self.Check(
+        "GetStatsStoreMetric",
+        args=stats_plugin.ApiGetStatsStoreMetricArgs(
+            component="WORKER",
+            metric_name="sample_counter",
+            start=42000000,
+            end=3600000000))
+    self.Check(
+        "GetStatsStoreMetric",
+        args=stats_plugin.ApiGetStatsStoreMetricArgs(
+            component="WORKER",
+            metric_name="sample_counter",
+            start=42000000,
+            end=3600000000,
+            rate="1m"))
 
-    self.Check("GET", "/api/stats/store/WORKER/metrics/sample_gauge_value?"
-               "start=42000000&end=3600000000")
+    self.Check(
+        "GetStatsStoreMetric",
+        args=stats_plugin.ApiGetStatsStoreMetricArgs(
+            component="WORKER",
+            metric_name="sample_gauge_value",
+            start=42000000,
+            end=3600000000))
 
-    self.Check("GET", "/api/stats/store/WORKER/metrics/sample_event?"
-               "start=42000000&end=3600000000")
-    self.Check("GET", "/api/stats/store/WORKER/metrics/sample_event?"
-               "start=42000000&end=3600000000&"
-               "distribution_handling_mode=DH_COUNT")
+    self.Check(
+        "GetStatsStoreMetric",
+        args=stats_plugin.ApiGetStatsStoreMetricArgs(
+            component="WORKER",
+            metric_name="sample_event",
+            start=42000000,
+            end=3600000000))
+    self.Check(
+        "GetStatsStoreMetric",
+        args=stats_plugin.ApiGetStatsStoreMetricArgs(
+            component="WORKER",
+            metric_name="sample_event",
+            start=42000000,
+            end=3600000000,
+            distribution_handling_mode="DH_COUNT"))
 
 
 class ApiListReportsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
+    api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListReports"
   handler = stats_plugin.ApiListReportsHandler
 
   def Run(self):
     with report_plugins_test_mocks.MockedReportPlugins():
-      self.Check("GET", "/api/stats/reports")
+      self.Check("ListReports")
 
 
-class ApiGetReportRegressionTest(api_test_lib.ApiCallHandlerRegressionTest):
+class ApiGetReportRegressionTest(api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetReport"
   handler = stats_plugin.ApiGetReportHandler
 
   def Run(self):
     with report_plugins_test_mocks.MockedReportPlugins():
-      self.Check("GET",
-                 "/api/stats/reports/BarReportPlugin?start_time=%s&duration=4d"
-                 % rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")
-                 .AsMicroSecondsFromEpoch())
+      self.Check(
+          "GetReport",
+          args=stats_plugin.ApiGetReportArgs(
+              name="BarReportPlugin",
+              start_time=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")
+              .AsMicroSecondsFromEpoch(),
+              duration="4d"))
 
 
 def main(argv):

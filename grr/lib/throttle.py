@@ -17,6 +17,13 @@ class ErrorDailyFlowRequestLimitExceeded(Error):
 class ErrorFlowDuplicate(Error):
   """The same exact flow has run recently on this client."""
 
+  def __init__(self, message, flow_urn=None):
+    super(ErrorFlowDuplicate, self).__init__(message)
+
+    if not flow_urn:
+      raise ValueError("flow_urn has to be specified.")
+    self.flow_urn = flow_urn
+
 
 class FlowThrottler(object):
   """Checks for excessive or repetitive flow requests."""
@@ -79,9 +86,10 @@ class FlowThrottler(object):
           if flow_obj.args == flow_args or (
               isinstance(flow_obj.args, flow.EmptyFlowArgs) and
               flow_args is None):
-            raise ErrorFlowDuplicate("Identical %s already run on %s at %s" %
-                                     (flow_name, client_id,
-                                      flow_context.create_time))
+            raise ErrorFlowDuplicate(
+                "Identical %s already run on %s at %s" %
+                (flow_name, client_id, flow_context.create_time),
+                flow_urn=flow_obj.urn)
 
       # Filter for flows started by user within the 1 day window.
       if flow_context.creator == user and flow_context.create_time > earlier:

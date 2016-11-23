@@ -6,7 +6,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiCancelFlowHandlerRegressionTest",
+      "test_class": "ApiCancelFlowHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
     }
   ],
@@ -161,7 +161,7 @@
           }
         }
       },
-      "test_class": "ApiCreateClientApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateClientApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -318,7 +318,7 @@
           }
         }
       },
-      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -516,7 +516,7 @@
           }
         }
       },
-      "test_class": "ApiCreateCronJobHandlerRegressionTest",
+      "test_class": "ApiCreateCronJobHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
         "description": "Foobar!",
@@ -571,7 +571,6 @@
           "name": "ListProcesses",
           "runner_args": {
             "notify_to_user": false,
-            "output_plugins": [],
             "priority": "HIGH_PRIORITY"
           }
         }
@@ -659,7 +658,7 @@
           }
         }
       },
-      "test_class": "ApiCreateFlowHandlerRegressionTest",
+      "test_class": "ApiCreateFlowHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "args": {
           "fetch_binaries": true,
@@ -816,7 +815,7 @@
           }
         }
       },
-      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -861,7 +860,7 @@
       "response": {
         "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest",
+      "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"
     }
   ],
@@ -872,7 +871,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiDeleteHuntHandlerRegressionTest",
+      "test_class": "ApiDeleteHuntHandlerRegressionTest_http_v1",
       "url": "/api/hunts/H:123456"
     }
   ],
@@ -883,7 +882,7 @@
       "response": {
         "status": "OK"
       },
-      "test_class": "ApiForceRunCronJobRegressionTest",
+      "test_class": "ApiForceRunCronJobRegressionTest_http_v1",
       "url": "/api/cron-jobs/OSBreakDown/actions/force-run"
     }
   ],
@@ -1015,7 +1014,7 @@
           }
         }
       },
-      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -1181,7 +1180,7 @@
           }
         }
       },
-      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -1313,7 +1312,7 @@
           "users": []
         }
       },
-      "test_class": "ApiGetClientHandlerRegressionTest",
+      "test_class": "ApiGetClientHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "agent_info": {
           "client_name": "GRR Monitor"
@@ -1357,8 +1356,8 @@
           ]
         ]
       },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/load-stats/cpu_percent?start=10000000&end=21000000"
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v1",
+      "url": "/api/clients/C.1000000000000000/load-stats/cpu_percent?end=21000000&start=10000000"
     },
     {
       "api_method": "GetClientLoadStats",
@@ -1375,283 +1374,8 @@
           ]
         ]
       },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/load-stats/io_write_bytes?start=10000000&end=21000000"
-    }
-  ],
-  "ApiGetConfigHandler": [
-    {
-      "api_method": "GetConfig",
-      "method": "GET",
-      "response": {
-        "sections": [
-          {
-            "age": 0,
-            "type": "ApiConfigSection",
-            "value": {
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "AdminUI"
-              },
-              "options": [
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "AdminUI.debug_impersonate_user"
-                    },
-                    "type": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "RDFString"
-                    },
-                    "value": {
-                      "age": 0,
-                      "type": "RDFString",
-                      "value": ""
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiConfigSection",
-            "value": {
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Config"
-              },
-              "options": [
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": true
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Config.includes"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiConfigSection",
-            "value": {
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "SectionBar"
-              },
-              "options": [
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": true
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "SectionBar.sample_list_option"
-                    }
-                  }
-                },
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "SectionBar.sample_string_option"
-                    },
-                    "type": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "RDFString"
-                    },
-                    "value": {
-                      "age": 0,
-                      "type": "RDFString",
-                      "value": "sample"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiConfigSection",
-            "value": {
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "SectionFoo"
-              },
-              "options": [
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "SectionFoo.sample_boolean_option"
-                    },
-                    "type": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "RDFInteger"
-                    },
-                    "value": {
-                      "age": 0,
-                      "type": "RDFInteger",
-                      "value": 1
-                    }
-                  }
-                },
-                {
-                  "age": 0,
-                  "type": "ApiConfigOption",
-                  "value": {
-                    "is_invalid": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "SectionFoo.sample_integer_option"
-                    },
-                    "type": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "RDFInteger"
-                    },
-                    "value": {
-                      "age": 0,
-                      "type": "RDFInteger",
-                      "value": 42
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetConfigHandlerRegressionTest",
-      "type_stripped_response": {
-        "sections": [
-          {
-            "name": "AdminUI",
-            "options": [
-              ""
-            ]
-          },
-          {
-            "name": "Config",
-            "options": [
-              {
-                "is_invalid": true,
-                "name": "Config.includes"
-              }
-            ]
-          },
-          {
-            "name": "SectionBar",
-            "options": [
-              {
-                "is_invalid": true,
-                "name": "SectionBar.sample_list_option"
-              },
-              "sample"
-            ]
-          },
-          {
-            "name": "SectionFoo",
-            "options": [
-              1,
-              42
-            ]
-          }
-        ]
-      },
-      "url": "/api/config"
-    }
-  ],
-  "ApiGetConfigOptionHandler": [
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "is_invalid": false,
-        "name": "SectionFoo.sample_string_option",
-        "type": "RDFString",
-        "value": {
-          "age": 0,
-          "type": "RDFString",
-          "value": ""
-        }
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "type_stripped_response": "",
-      "url": "/api/config/SectionFoo.sample_string_option"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "is_redacted": true,
-        "name": "Mysql.database_password"
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "url": "/api/config/Mysql.database_password"
-    },
-    {
-      "api_method": "GetConfigOption",
-      "method": "GET",
-      "response": {
-        "is_invalid": true,
-        "name": "NonExistingOption"
-      },
-      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
-      "url": "/api/config/NonExistingOption"
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v1",
+      "url": "/api/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [
@@ -1745,7 +1469,7 @@
           }
         }
       },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -1861,7 +1585,7 @@
           }
         }
       },
-      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -2000,7 +1724,7 @@
           }
         }
       },
-      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
+      "test_class": "ApiGetCronJobFlowHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "args": {},
         "context": {
@@ -2035,7 +1759,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user file --path aff4:/C.1000000000000000/fs/os/etc --output ."
       },
-      "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
+      "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
     }
   ],
@@ -2047,18 +1771,18 @@
         "content": "Goodbye World",
         "total_size": 13
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt"
     },
     {
       "api_method": "GetFileText",
       "method": "GET",
       "response": {
-        "content": "db",
+        "content": "dby",
         "total_size": 13
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?offset=3&length=2"
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v1",
+      "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?length=3&offset=3"
     },
     {
       "api_method": "GetFileText",
@@ -2067,7 +1791,7 @@
         "content": "Hello World",
         "total_size": 11
       },
-      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "test_class": "ApiGetFileTextHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?timestamp=86400000042"
     }
   ],
@@ -2089,7 +1813,7 @@
           }
         ]
       },
-      "test_class": "ApiGetFileVersionTimesHandlerRegressionTest",
+      "test_class": "ApiGetFileVersionTimesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "times": [
           172800000000,
@@ -2227,7 +1951,7 @@
           }
         }
       },
-      "test_class": "ApiGetFlowHandlerRegressionTest",
+      "test_class": "ApiGetFlowHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "args": {},
         "context": {
@@ -2266,7 +1990,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
       },
-      "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
+      "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
     }
   ],
@@ -2275,21 +1999,21 @@
       "api_method": "GetGrrBinary",
       "method": "GET",
       "response": "I'm a python hack",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/python_hack/test"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
       "response": "I am a binary file",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/executable/windows/test.exe"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "<serialized component>",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "response": "<binary data>",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/component/grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
     }
   ],
@@ -2410,7 +2134,7 @@
           }
         }
       },
-      "test_class": "ApiGetGrrUserHandlerRegresstionTest",
+      "test_class": "ApiGetGrrUserHandlerRegresstionTest_http_v1",
       "type_stripped_response": {
         "interface_traits": {
           "artifact_manager_nav_item_enabled": true,
@@ -2550,7 +2274,7 @@
           }
         }
       },
-      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user"
@@ -2690,7 +2414,7 @@
           }
         }
       },
-      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -2819,8 +2543,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v1",
+      "url": "/api/hunts/H:123456/client-completion-stats"
     },
     {
       "api_method": "GetHuntClientCompletionStats",
@@ -2871,8 +2595,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v1",
+      "url": "/api/hunts/H:123456/client-completion-stats?size=4"
     },
     {
       "api_method": "GetHuntClientCompletionStats",
@@ -2971,8 +2695,8 @@
           }
         ]
       },
-      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v1",
+      "url": "/api/hunts/H:123456/client-completion-stats?size=1000"
     }
   ],
   "ApiGetHuntHandler": [
@@ -3178,7 +2902,7 @@
           }
         }
       },
-      "test_class": "ApiGetHuntHandlerRegressionTest",
+      "test_class": "ApiGetHuntHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 100,
@@ -3240,7 +2964,7 @@
       "response": {
         "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/hunts/H:123456/Results --output ."
       },
-      "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
+      "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest_http_v1",
       "url": "/api/hunts/H:123456/results/export-command"
     }
   ],
@@ -4035,7 +3759,7 @@
           }
         }
       },
-      "test_class": "ApiGetHuntStatsHandlerRegressionTest",
+      "test_class": "ApiGetHuntStatsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "stats": {
           "network_bytes_sent_stats": {
@@ -4267,7 +3991,7 @@
         "ip": "192.168.100.42",
         "status": "INTERNAL"
       },
-      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest",
+      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/last-ip"
     }
   ],
@@ -4278,7 +4002,7 @@
       "response": {
         "count": 2
       },
-      "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest",
+      "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest_http_v1",
       "url": "/api/users/me/notifications/pending/count"
     }
   ],
@@ -4302,7 +4026,7 @@
         ],
         "name": "Duration"
       },
-      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "default": 0,
         "doc": "Duration value stored in seconds internally.",
@@ -4487,7 +4211,7 @@
         ],
         "name": "ApiFlow"
       },
-      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "default": {},
         "doc": "ApiFlow is used when rendering responses.\n\n  ApiFlow is meant to be more lightweight than automatically generated AFF4\n  representation. It's also meant to contain only the information needed by\n  the UI and and to not expose implementation defails.\n  ",
@@ -4775,7 +4499,7 @@
           }
         }
       },
-      "test_class": "ApiGetReportRegressionTest",
+      "test_class": "ApiGetReportRegressionTest_http_v1",
       "type_stripped_response": {
         "data": {
           "representation_type": "STACK_CHART",
@@ -4813,7 +4537,7 @@
           "type": "SERVER"
         }
       },
-      "url": "/api/stats/reports/BarReportPlugin?start_time=1355443200000000&duration=4d"
+      "url": "/api/stats/reports/BarReportPlugin?duration=345600&start_time=1355443200000000"
     }
   ],
   "ApiGetRobotGetFilesOperationStateHandler": [
@@ -4824,7 +4548,7 @@
         "result_count": 1,
         "state": "RUNNING"
       },
-      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest_http_v1",
       "url": "/api/robot-actions/get-files/aff4:/C.1000000000000000/flows/F:ABCDEF12"
     }
   ],
@@ -5315,8 +5039,8 @@
         "metric_name": "sample_counter",
         "start": 42000000
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v1",
+      "url": "/api/stats/store/worker/metrics/sample_counter?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -5800,8 +5524,8 @@
         "metric_name": "sample_counter",
         "start": 42000000
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000&rate=1m"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v1",
+      "url": "/api/stats/store/worker/metrics/sample_counter?end=3600000000&rate=60&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -5853,8 +5577,8 @@
         "metric_name": "sample_gauge_value",
         "start": 42000000
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/stats/store/WORKER/metrics/sample_gauge_value?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v1",
+      "url": "/api/stats/store/worker/metrics/sample_gauge_value?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -6342,8 +6066,8 @@
         "metric_name": "sample_event",
         "start": 42000000
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v1",
+      "url": "/api/stats/store/worker/metrics/sample_event?end=3600000000&start=42000000"
     },
     {
       "api_method": "GetStatsStoreMetric",
@@ -6831,8 +6555,8 @@
         "metric_name": "sample_event",
         "start": 42000000
       },
-      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
-      "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest_http_v1",
+      "url": "/api/stats/store/worker/metrics/sample_event?distribution_handling_mode=dh_count&end=3600000000&start=42000000"
     }
   ],
   "ApiGetVfsFileContentUpdateStateHandler": [
@@ -6842,7 +6566,7 @@
       "response": {
         "state": "RUNNING"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6851,7 +6575,7 @@
       "response": {
         "state": "FINISHED"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6860,7 +6584,7 @@
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6869,7 +6593,7 @@
       "response": {
         "message": "Operation with id W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     }
   ],
@@ -6880,7 +6604,7 @@
       "response": {
         "state": "RUNNING"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6889,7 +6613,7 @@
       "response": {
         "state": "FINISHED"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6898,7 +6622,7 @@
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
@@ -6907,7 +6631,7 @@
       "response": {
         "message": "Operation with id W:ABCDEF not found"
       },
-      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
     }
   ],
@@ -7024,7 +6748,7 @@
           }
         ]
       },
-      "test_class": "ApiGetVfsTimelineHandlerRegressionTest",
+      "test_class": "ApiGetVfsTimelineHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -7185,7 +6909,7 @@
           }
         }
       },
-      "test_class": "ApiGrantClientApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantClientApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -7316,7 +7040,7 @@
           }
         }
       },
-      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -7454,7 +7178,7 @@
           }
         }
       },
-      "test_class": "ApiGrantHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiGrantHuntApprovalHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "approvers": [
           "api_test_user",
@@ -7580,7 +7304,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -7613,51 +7337,12 @@
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
+      "request_payload": {
+        "count": 1,
+        "offset": 1
+      },
       "response": {
         "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ApiClientId",
-                        "value": "C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          },
           {
             "age": 0,
             "type": "ApiNotification",
@@ -7704,20 +7389,9 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
-          {
-            "is_pending": false,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 44000000
-          },
           {
             "is_pending": false,
             "message": "Host-0: <some message>",
@@ -7732,11 +7406,14 @@
         ],
         "total_count": 2
       },
-      "url": "/api/users/me/notifications?offset=1&count=1"
+      "url": "/api/users/me/notifications"
     },
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
+      "request_payload": {
+        "filter": "other"
+      },
       "response": {
         "items": [
           {
@@ -7781,54 +7458,11 @@
                 "value": 44000000
               }
             }
-          },
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ApiClientId",
-                        "value": "C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              }
-            }
           }
         ],
         "total_count": 2
       },
-      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -7841,22 +7475,11 @@
               "type": "DISCOVERY"
             },
             "timestamp": 44000000
-          },
-          {
-            "is_pending": false,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "client_id": "C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 42000000
           }
         ],
         "total_count": 2
       },
-      "url": "/api/users/me/notifications?filter=other"
+      "url": "/api/users/me/notifications"
     }
   ],
   "ApiListArtifactsHandler": [
@@ -7962,7 +7585,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListArtifacstHandlerRegressionTest",
+      "test_class": "ApiListArtifacstHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8039,7 +7662,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8179,7 +7802,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8471,7 +8094,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8681,7 +8304,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8722,7 +8345,7 @@
           }
         ]
       },
-      "url": "/api/users/me/approvals/client/C.1000000000000000"
+      "url": "/api/users/me/approvals/client?client_id=C.1000000000000000"
     }
   ],
   "ApiListClientCrashesHandler": [
@@ -8776,7 +8399,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8844,7 +8467,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8869,8 +8492,8 @@
         "items": [],
         "total_count": 1
       },
-      "test_class": "ApiListClientCrashesHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/crashes?offset=1&count=1"
+      "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v1",
+      "url": "/api/clients/C.1000000000000000/crashes?count=1&offset=1"
     }
   ],
   "ApiListClientsLabelsHandler": [
@@ -8903,7 +8526,7 @@
           }
         ]
       },
-      "test_class": "ApiListClientsLabelsHandlerRegressionTest",
+      "test_class": "ApiListClientsLabelsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -8988,7 +8611,7 @@
           }
         ]
       },
-      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
+      "test_class": "ApiListCronJobFlowsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9211,7 +8834,7 @@
         ],
         "total_count": 3
       },
-      "test_class": "ApiListCronJobsHandlerRegressionTest",
+      "test_class": "ApiListCronJobsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9343,7 +8966,7 @@
           }
         ]
       },
-      "test_class": "ApiListFilesHandlerRegressionTest",
+      "test_class": "ApiListFilesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9364,7 +8987,7 @@
           }
         ]
       },
-      "url": "/api/clients/C.1000000000000000/vfs-index/fs/tsk/c/bin"
+      "url": "/api/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin"
     }
   ],
   "ApiListFlowDescriptorsHandler": [
@@ -9532,7 +9155,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9696,7 +9319,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9787,7 +9410,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9868,7 +9491,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9922,7 +9545,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -9970,7 +9593,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10026,7 +9649,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListFlowOutputPluginErrorsHandlerRegressionTest",
+      "test_class": "ApiListFlowOutputPluginErrorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10095,7 +9718,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListFlowOutputPluginLogsHandlerRegressionTest",
+      "test_class": "ApiListFlowOutputPluginLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10221,7 +9844,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowOutputPluginsHandlerRegressionTest",
+      "test_class": "ApiListFlowOutputPluginsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10440,7 +10063,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowRequestsHandlerRegressionTest",
+      "test_class": "ApiListFlowRequestsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10591,7 +10214,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListFlowResultsHandlerRegressionTest",
+      "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10755,7 +10378,7 @@
           }
         ]
       },
-      "test_class": "ApiListFlowsHandlerRegressionTest",
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -10879,7 +10502,7 @@
           }
         ]
       },
-      "test_class": "ApiListGrrBinariesHandlerRegressionTest",
+      "test_class": "ApiListGrrBinariesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -11020,7 +10643,7 @@
           }
         ]
       },
-      "test_class": "ApiListHuntApprovalsHandlerRegressionTest",
+      "test_class": "ApiListHuntApprovalsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -11441,7 +11064,7 @@
         ],
         "total_count": 5
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -11890,7 +11513,7 @@
         ],
         "total_count": 4
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12027,7 +11650,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12096,7 +11719,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12164,7 +11787,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12189,8 +11812,8 @@
         "items": [],
         "total_count": 1
       },
-      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/crashes?offset=1&count=1"
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v1",
+      "url": "/api/hunts/H:123456/crashes?count=1&offset=1"
     }
   ],
   "ApiListHuntErrorsHandler": [
@@ -12239,7 +11862,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12280,7 +11903,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12321,7 +11944,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12332,7 +11955,7 @@
         ],
         "total_count": 2
       },
-      "url": "/api/hunts/H:123456/errors?offset=1&count=1"
+      "url": "/api/hunts/H:123456/errors?count=1&offset=1"
     }
   ],
   "ApiListHuntLogsHandler": [
@@ -12386,7 +12009,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12433,7 +12056,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12475,7 +12098,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12486,7 +12109,7 @@
         ],
         "total_count": 2
       },
-      "url": "/api/hunts/H:123456/log?offset=1&count=1"
+      "url": "/api/hunts/H:123456/log?count=1&offset=1"
     }
   ],
   "ApiListHuntOutputPluginErrorsHandler": [
@@ -12562,7 +12185,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntOutputPluginErrorsHandlerRegressionTest",
+      "test_class": "ApiListHuntOutputPluginErrorsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12682,7 +12305,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntOutputPluginLogsHandlerRegressionTest",
+      "test_class": "ApiListHuntOutputPluginLogsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12808,7 +12431,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListHuntOutputPluginsHandlerRegressionTest",
+      "test_class": "ApiListHuntOutputPluginsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12890,7 +12513,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12937,7 +12560,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12979,7 +12602,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -12990,7 +12613,7 @@
         ],
         "total_count": 2
       },
-      "url": "/api/hunts/H:123456/results?offset=1&count=1"
+      "url": "/api/hunts/H:123456/results?count=1&offset=1"
     },
     {
       "api_method": "ListHuntResults",
@@ -13021,7 +12644,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntResultsRegressionTest",
+      "test_class": "ApiListHuntResultsRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -13176,7 +12799,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -13286,7 +12909,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -13382,7 +13005,7 @@
         ],
         "total_count": 2
       },
-      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -13402,7 +13025,7 @@
         ],
         "total_count": 2
       },
-      "url": "/api/hunts?offset=1&count=1"
+      "url": "/api/hunts?count=1&offset=1"
     }
   ],
   "ApiListKbFieldsHandler": [
@@ -13613,7 +13236,7 @@
           }
         ]
       },
-      "test_class": "ApiListKbFieldsHandlerTest",
+      "test_class": "ApiListKbFieldsHandlerTest_http_v1",
       "type_stripped_response": {
         "items": [
           "code_page",
@@ -13929,7 +13552,7 @@
           }
         ]
       },
-      "test_class": "ApiListKnownEncodingsHandlerRegressionTest",
+      "test_class": "ApiListKnownEncodingsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "encodings": [
           "BASE64_CODEC",
@@ -14009,7 +13632,7 @@
           }
         ]
       },
-      "test_class": "ApiListOutputPluginDescriptorsHandlerTest",
+      "test_class": "ApiListOutputPluginDescriptorsHandlerTest_http_v1",
       "url": "/api/output-plugins/all"
     }
   ],
@@ -14088,7 +13711,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -14205,7 +13828,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -14284,7 +13907,7 @@
           }
         ]
       },
-      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -14385,7 +14008,7 @@
           }
         ]
       },
-      "test_class": "ApiListReportsHandlerRegressionTest",
+      "test_class": "ApiListReportsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "reports": [
           {
@@ -14497,7 +14120,7 @@
           }
         ]
       },
-      "test_class": "ApiListStatsStoreMetricsMetadataHandlerRegressionTest",
+      "test_class": "ApiListStatsStoreMetricsMetadataHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -14520,7 +14143,7 @@
           }
         ]
       },
-      "url": "/api/stats/store/WORKER/metadata"
+      "url": "/api/stats/store/worker/metadata"
     }
   ],
   "ApiModifyCronJobHandler": [
@@ -14587,7 +14210,7 @@
           }
         }
       },
-      "test_class": "ApiModifyCronJobRegressionTest",
+      "test_class": "ApiModifyCronJobRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
         "description": "",
@@ -14666,7 +14289,7 @@
           }
         }
       },
-      "test_class": "ApiModifyCronJobRegressionTest",
+      "test_class": "ApiModifyCronJobRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
         "description": "",
@@ -14894,7 +14517,7 @@
           }
         }
       },
-      "test_class": "ApiModifyHuntHandlerRegressionTest",
+      "test_class": "ApiModifyHuntHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 142,
@@ -15159,7 +14782,7 @@
           }
         }
       },
-      "test_class": "ApiModifyHuntHandlerRegressionTest",
+      "test_class": "ApiModifyHuntHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 142,
@@ -15306,7 +14929,7 @@
           }
         ]
       },
-      "test_class": "ApiSearchClientsHandlerRegressionTest",
+      "test_class": "ApiSearchClientsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -15350,7 +14973,7 @@
       "response": {
         "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest",
+      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest_http_v1",
       "url": "/api/robot-actions/get-files"
     }
   ],
@@ -15364,7 +14987,7 @@
       "response": {
         "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest",
+      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-update"
     }
   ]

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """HTTP API connector implementation."""
 
+import collections
 import itertools
 import json
 import urlparse
@@ -15,6 +16,8 @@ from google.protobuf import json_format
 from google.protobuf import symbol_database
 
 import logging
+
+from grr.client.components.rekall_support import rekall_pb2
 
 from grr.gui.api_client import connector
 from grr.gui.api_client import errors
@@ -86,6 +89,7 @@ class HttpConnector(connector.Connector):
     db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
     db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
     db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)
+    db.RegisterFileDescriptor(rekall_pb2.DESCRIPTOR)
 
     proto = api_pb2.ApiListApiMethodsResult()
     json_format.Parse(json_str, proto)
@@ -114,12 +118,21 @@ class HttpConnector(connector.Connector):
       self.csrf_token = self._GetCSRFToken()
       self._FetchRoutingMap()
 
+  def _CoerceValueToQueryStringType(self, field, value):
+    if isinstance(value, bool):
+      value = int(value)
+    elif field.enum_type:
+      value = field.enum_type.values_by_number[value].name.lower()
+
+    return value
+
   def _GetMethodUrlAndPathParamsNames(self, handler_name, args):
     path_params = {}
     if args:
       for field, value in args.ListFields():
         if self.handlers_map.is_endpoint_expecting(handler_name, field.name):
-          path_params[field.name] = value
+          path_params[field.name] = self._CoerceValueToQueryStringType(field,
+                                                                       value)
 
     url = self.urls.build(handler_name, path_params, force_external=True)
 
@@ -137,10 +150,12 @@ class HttpConnector(connector.Connector):
     if not args:
       return {}
 
-    result = {}
-    for field, value in args.ListFields():
-      if field not in exclude_names:
-        result[field.name] = value
+    # Using OrderedDict guarantess stable order of query parameters in the
+    # generated URLs.
+    result = collections.OrderedDict()
+    for field, value in sorted(args.ListFields(), key=lambda f: f[0].name):
+      if field.name not in exclude_names:
+        result[field.name] = self._CoerceValueToQueryStringType(field, value)
 
     return result
 
@@ -177,9 +192,10 @@ class HttpConnector(connector.Connector):
     else:
       raise errors.UnknownError(message)
 
-  def BuildRequest(self, method_descriptor, args):
+  def BuildRequest(self, method_name, args):
+    self._InitializeIfNeeded()
     method, url, path_params_names = self._GetMethodUrlAndPathParamsNames(
-        method_descriptor.name, args)
+        method_name, args)
 
     if method == "GET":
       body = None
@@ -208,7 +224,7 @@ class HttpConnector(connector.Connector):
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
-    request = self.BuildRequest(method_descriptor, args)
+    request = self.BuildRequest(method_descriptor.name, args)
     prepped_request = request.prepare()
 
     session = requests.Session()
@@ -267,7 +283,7 @@ class HttpConnector(connector.Connector):
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
-    request = self.BuildRequest(method_descriptor, args)
+    request = self.BuildRequest(method_descriptor.name, args)
     prepped_request = request.prepare()
 
     session = requests.Session()

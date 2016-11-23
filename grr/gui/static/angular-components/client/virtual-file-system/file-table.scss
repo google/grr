@@ -2,3 +2,7 @@ grr-file-table .fa-download {
   color: $color-dim-grey;
   opacity: .9;
 }
+
+grr-file-table .navbar button.dropdown-toggle {
+  height: 32px;
+}

@@ -88,7 +88,7 @@ setup_args = dict(
         "portpicker==1.1.1",
         "python-crontab==2.0.1",
         "rekall-core~=1.6.0",
-        "Werkzeug==0.11.3",
+        "Werkzeug==0.11.10",
         "wsgiref==0.1.2",
     ],
     extras_require={

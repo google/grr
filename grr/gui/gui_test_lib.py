@@ -33,6 +33,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
@@ -41,6 +42,52 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
+
+# A increasing sequence of times.
+TIME_0 = test_lib.FIXTURE_TIME
+TIME_1 = TIME_0 + rdfvalue.Duration("1d")
+TIME_2 = TIME_1 + rdfvalue.Duration("1d")
+
+
+def DateString(t):
+  return t.Format("%Y-%m-%d")
+
+
+def DateTimeString(t):
+  return t.Format("%Y-%m-%d %H:%M:%S")
+
+
+def CreateFileVersions(token):
+  """Add new versions for a file."""
+  # This file already exists in the fixture at TIME_0, we write a
+  # later version.
+  CreateFileVersion(
+      "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+      "Hello World",
+      timestamp=TIME_1,
+      token=token)
+  CreateFileVersion(
+      "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+      "Goodbye World",
+      timestamp=TIME_2,
+      token=token)
+
+
+def CreateFileVersion(path, content, timestamp, token=None):
+  """Add a new version for a file."""
+  with test_lib.FakeTime(timestamp):
+    with aff4.FACTORY.Create(
+        path, aff4_type=aff4_grr.VFSFile, mode="w", token=token) as fd:
+      fd.Write(content)
+      fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+
+
+def CreateFolder(path, timestamp, token=None):
+  """Creates a VFS folder."""
+  with test_lib.FakeTime(timestamp):
+    with aff4.FACTORY.Create(
+        path, aff4_type=aff4_standard.VFSDirectory, mode="w", token=token) as _:
+      pass
 
 
 def SeleniumAction(f):

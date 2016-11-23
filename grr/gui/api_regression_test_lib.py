@@ -1,0 +1,262 @@
+#!/usr/bin/env python
+"""Base test classes for API handlers tests."""
+
+
+
+import abc
+import json
+import os
+import re
+import socket
+import sys
+
+
+import logging
+
+from grr.gui import api_auth_manager
+# This import guarantees that all API-related RDF types will get imported
+# (as they're all references by api_call_router).
+# pylint: disable=unused-import
+from grr.gui import api_call_router
+# pylint: enable=unused-import
+from grr.gui import api_regression_http
+from grr.gui import webauth
+from grr.lib import flags
+from grr.lib import registry
+from grr.lib import startup
+from grr.lib import test_lib
+from grr.lib import utils
+
+flags.DEFINE_string(
+    "generate", "",
+    "Generate golden regression data for tests using a given connection type.")
+
+
+class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
+  """Automatica test classes generation through a metaclass."""
+
+  connection_mixins = {}
+
+  @classmethod
+  def RegisterConnectionMixin(cls, mixin):
+    cls.connection_mixins[mixin.connection_type] = mixin
+
+  def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
+    registry.MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    # We have to skip ApiRegressionTest itself and also the classes
+    # that get dynamically generated below (as they will inherit from
+    # cls).
+    if (cls.__name__ == "ApiRegressionTest" or
+        issubclass(cls, test_lib.GRRBaseTest)):
+      return
+
+    for mixin in ApiRegressionTestMetaclass.connection_mixins.values():
+      if (mixin.skip_legacy_dynamic_proto_tests and
+          getattr(cls, "uses_legacy_dynamic_protos", False)):
+        continue
+
+      cls_name = "%s_%s" % (name, mixin.connection_type)
+      test_cls = type(cls_name, (mixin, cls, test_lib.GRRBaseTest), {})
+      module = sys.modules[cls.__module__]
+      setattr(module, cls_name, test_cls)
+
+
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV1RegressionTestMixin)
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV2RegressionTestMixin)
+
+
+class ApiRegressionTest(object):
+  """Base class for API handlers regression tests.
+
+  Regression tests are supposed to implement a single abstract Run() method.
+
+  In the Run() implementation they're supposed to set up necessary environment
+  and do a number of Check() calls. Every Check() call fetches a particular URL
+  and keeps the data. Then, if this test class is used as part of a test suite,
+  generated data will be compared with ones in the api regression data file and
+  exception will be raised if they're different.
+
+  Alternatively, if this class is used in
+  api_handlers_regression_data_generate.py, then generated data will be
+  aggregated with data from other test classes and printed to the stdout.
+
+  """
+
+  __metaclass__ = ApiRegressionTestMetaclass
+
+  # Name of the ApiCallRouter's method that's tested in this class.
+  api_method = None
+  # Handler class that's used to handle the requests.
+  handler = None
+
+  # TODO(user): gpylint claims "Use of super on an old style class", but
+  # this class is obviously not an old-style class.
+  # pylint: disable=super-on-old-class
+  def __init__(self, *args, **kwargs):
+    super(ApiRegressionTest, self).__init__(*args, **kwargs)
+
+    self.token.username = "api_test_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+
+  # TODO(user): gpylint claims "Use of super on an old style class", but
+  # this class is obviously not an old-style class.
+  # pylint: disable=super-on-old-class
+  def setUp(self):  # pylint: disable=invalid-name
+    """Set up test method."""
+    super(ApiRegressionTest, self).setUp()
+
+    if not self.__class__.api_method:
+      raise ValueError("%s.api_method has to be set." % self.__class__.__name__)
+
+    if not self.__class__.handler:
+      raise ValueError("%s.handler has to be set." % self.__class__.__name__)
+
+    self.checks = []
+
+    self.syscalls_stubber = utils.MultiStubber(
+        (socket, "gethostname", lambda: "test.host"),
+        (os, "getpid", lambda: 42))
+    self.syscalls_stubber.Start()
+
+    self.token.username = "api_test_user"
+
+    startup.TestInit()
+    # Force creation of new APIAuthorizationManager.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
+
+  # TODO(user): gpylint claims "Use of super on an old style class", but
+  # this class is obviously not an old-style class.
+  def tearDown(self):  # pylint: disable=invalid-name
+    """Tear down test method."""
+    super(ApiRegressionTest, self).tearDown()
+    self.syscalls_stubber.Stop()
+
+  def _Replace(self, content, replace=None):
+    """Applies replace function to a given content."""
+
+    # replace the values of all tracebacks by <traceback content>
+    regex = re.compile(r'"traceBack": "Traceback[^"\\]*(?:\\.[^"\\]*)*"',
+                       re.DOTALL)
+    content = regex.sub('"traceBack": "<traceback content>"', content)
+
+    if replace:
+      if hasattr(replace, "__call__"):
+        replace = replace()
+
+      # We reverse sort replacements by length to avoid cases when
+      # replacements include each other and therefore order
+      # of replacements affects the result.
+      for substr in sorted(replace, key=len, reverse=True):
+        repl = replace[substr]
+
+        if hasattr(substr, "sub"):  # regex
+          content = substr.sub(repl, content)
+        else:
+          content = content.replace(substr, repl)
+
+    return content
+
+  def Check(self, method, args=None, replace=None):
+    """Does the regression check."""
+    router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(self.token.username)
+    mdata = router.GetAnnotatedMethods()[method]
+
+    check = self.HandleCheck(
+        mdata, args=args,
+        replace=lambda s: self._Replace(s, replace=replace))
+
+    check["test_class"] = self.__class__.__name__
+    check["api_method"] = method
+
+    self.checks.append(check)
+
+  @abc.abstractmethod
+  def Run(self):
+    """Sets up test envionment and does Check() calls."""
+    pass
+
+  def testForRegression(self):  # pylint: disable=invalid-name
+    """Checks whether there's a regression."""
+    self.maxDiff = 65536  # pylint: disable=invalid-name
+
+    with open(self.output_file_name, "rb") as fd:
+      prev_data = json.load(fd)
+
+    checks = prev_data[self.__class__.handler.__name__]
+    relevant_checks = []
+    for check in checks:
+      if check["test_class"] == self.__class__.__name__:
+        relevant_checks.append(check)
+
+    self.Run()
+    # Make sure that this test has generated some checks.
+    self.assertTrue(self.checks)
+
+    checks_str = json.dumps(
+        self.checks, indent=2, sort_keys=True, separators=(",", ": "))
+    prev_checks_str = json.dumps(
+        relevant_checks, indent=2, sort_keys=True, separators=(",", ": "))
+
+    self.assertMultiLineEqual(prev_checks_str, checks_str)
+
+
+class ApiRegressionGoldenOutputGenerator(object):
+  """Helper class used to generate regression tests golden files."""
+
+  def __init__(self, connection_type):
+    super(ApiRegressionGoldenOutputGenerator, self).__init__()
+
+    self.connection_type = connection_type
+    self.loader = test_lib.GRRTestLoader()
+
+  def _GroupRegressionTestsByHandler(self):
+    result = {}
+    for cls in ApiRegressionTest.classes.values():
+      if issubclass(cls, ApiRegressionTest) and getattr(cls, "HandleCheck",
+                                                        None):
+        result.setdefault(cls.handler, []).append(cls)
+
+    return result
+
+  def Generate(self):
+    """Prints generated 'golden' output to the stdout."""
+
+    sample_data = {}
+
+    tests = self._GroupRegressionTestsByHandler()
+    for handler, test_classes in tests.items():
+      for test_class in sorted(test_classes, key=lambda cls: cls.__name__):
+        if flags.FLAGS.tests and test_class.__name__ not in flags.FLAGS.tests:
+          continue
+
+        if getattr(test_class, "connection_type", "") != self.connection_type:
+          continue
+
+        startup.TestInit()
+        test_class.setUpClass()
+        loaded = self.loader.loadTestsFromTestCase(test_class)
+        for t in loaded:
+          try:
+            t.setUp()
+            t.Run()
+
+            sample_data.setdefault(handler.__name__, []).extend(t.checks)
+          finally:
+            try:
+              t.tearDown()
+            except Exception as e:  # pylint: disable=broad-except
+              logging.exception(e)
+
+    json_sample_data = json.dumps(
+        sample_data, indent=2, sort_keys=True, separators=(",", ": "))
+    print json_sample_data
+
+
+def main(argv=None):
+  if flags.FLAGS.generate:
+    ApiRegressionGoldenOutputGenerator(flags.FLAGS.generate).Generate()
+  else:
+    test_lib.GrrTestProgram(argv=argv)

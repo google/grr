@@ -68,28 +68,11 @@ grrUi.stats.reportDirective.ReportController =
   /** @type {number} */
   this.duration = DEFAULT_DURATION_SECS;
 
-  /** @type {*} */
-  this.labelsList;
-
   /** @type {string} */
   this.clientLabel = DEFAULT_CLIENT_LABEL;
 
-  /** @type {string} */
-  this.modelClientLabel = DEFAULT_CLIENT_LABEL;
-
   this.scope_.$watchGroup(['name', 'startTime', 'duration', 'clientLabel'],
                           this.onParamsChange_.bind(this));
-
-  // TODO(user): Labels selector should be abstracted into a separate
-  //                component. When that's done it should also be reused
-  //                in foreman-label-rule-form-directive.js .
-  this.grrApiService_.get('/clients/labels').then(function(response) {
-    this.labelsList = stripTypeInfo(response['data']['items']);
-  }.bind(this));
-
-  this.scope_.$watch('controller.clientLabel', function() {
-      this.modelClientLabel = this.clientLabel;
-  }.bind(this));
 };
 var ReportController =
     grrUi.stats.reportDirective.ReportController;
@@ -138,7 +121,7 @@ ReportController.prototype.refreshReport = function() {
   // which triggers fetchData_.
   this.scope_['startTime'] = this.startTime;
   this.scope_['duration'] = this.duration;
-  this.scope_['clientLabel'] = this.modelClientLabel;
+  this.scope_['clientLabel'] = this.clientLabel;
 };
 
 /**

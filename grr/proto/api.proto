@@ -2448,6 +2448,10 @@ message ApiCreateVfsRefreshOperationResult {
 }
 
 message ApiGetVfsRefreshOperationStateArgs {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
   optional string operation_id = 1 [(sem_type) = {
       description: "The id of the refresh operation."
     }];
@@ -2481,6 +2485,10 @@ message ApiUpdateVfsFileContentResult {
 }
 
 message ApiGetVfsFileContentUpdateStateArgs {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
   optional string operation_id = 1 [(sem_type) = {
       description: "The id of the update operation."
     }];

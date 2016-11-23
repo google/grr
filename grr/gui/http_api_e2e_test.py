@@ -204,10 +204,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {
-        "x-csrftoken": csrf_token,
-        "x-requested-with": "XMLHttpRequest"
-    }
+    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
     cookies = {"csrftoken": csrf_token}
 
@@ -244,10 +241,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {
-        "x-csrftoken": csrf_token,
-        "x-requested-with": "XMLHttpRequest"
-    }
+    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
     cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
@@ -281,10 +275,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {
-        "x-csrftoken": csrf_token,
-        "x-requested-with": "XMLHttpRequest"
-    }
+    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
     cookies = {"csrftoken": csrf_token}
 
     response = requests.patch(
@@ -496,9 +487,9 @@ users:
         name=file_finder.FileFinder.__name__, args=args)
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
-    with self.assertRaisesRegexp(RuntimeError,
-                                 "Identical FileFinder already run"):
-      client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args)
+    flow_obj_2 = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args)
+    self.assertEqual(flow_obj.flow_id, flow_obj_2.flow_id)
 
 
 def main(argv):

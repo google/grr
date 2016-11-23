@@ -53,10 +53,10 @@ def main(argv=None):
   if flags.basic_auth_username:
     auth = (flags.basic_auth_username, flags.basic_auth_password or "")
 
-  grr_api = api.InitHttp(
+  grrapi = api.InitHttp(
       api_endpoint=flags.api_endpoint, page_size=flags.page_size, auth=auth)
 
-  api_shell_lib.IPShell([sys.argv[0]], user_ns=dict(grr=grr_api))
+  api_shell_lib.IPShell([sys.argv[0]], user_ns=dict(grrapi=grrapi))
 
 
 if __name__ == "__main__":

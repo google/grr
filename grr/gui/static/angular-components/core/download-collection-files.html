@@ -15,7 +15,7 @@
       </button>
       <ul class="dropdown-menu">
        <li>
-         <a ng-click="controller.generateFileArchive(controller.secondaryArchiveExtension)"
+         <a ng-click="controller.generateFileArchive(controller.secondaryArchiveExtension); $event.preventDefault()"
             href="#">
            Generate {$ controller.secondaryArchiveExtension | uppercase $}
          </a>

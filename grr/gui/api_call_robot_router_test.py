@@ -203,7 +203,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
             client_id=self.client_id),
         token=self.token)
 
-  def testOnlyFileFinderAndArtifactCollecotrFlowsAreAllowed(self):
+  def testOnlyFileFinderAndArtifactCollectorFlowsAreAllowed(self):
     router = self._CreateRouter(
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(enabled=True),
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(

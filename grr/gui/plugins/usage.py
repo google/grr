@@ -125,13 +125,12 @@ class UserActivity(StackChart):
       offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
       now = rdfvalue.RDFDatetime.Now()
       for fd in GetAuditLogFiles(offset, now, request.token):
-        for week in range(self.WEEKS):
-          start = now - week * week_duration
-
-          for event in fd.GenerateItems():
+        for event in fd.GenerateItems():
+          for week in xrange(self.WEEKS):
+            start = now - week * week_duration
             if start < event.timestamp < (start + week_duration):
               self.weekly_activity = self.user_activity.setdefault(
-                  event.user, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
+                  event.user, [[x, 0] for x in xrange(-self.WEEKS, 0, 1)])
               self.weekly_activity[-week][1] += 1
 
       self.data = []
@@ -230,42 +229,6 @@ class UserFlows30(UserFlows):
   description = ("Flows launched by GRR users over the last 30 days"
                  " grouped by type.")
   time_offset = rdfvalue.Duration("30d")
-
-
-class ClientActivity(StackChart):
-  """Display client activity by week."""
-  category = "/Server/Clients/Activity"
-  description = ("Number of flows issued against each client over the "
-                 "last few weeks.")
-
-  WEEKS = 10
-
-  def Layout(self, request, response):
-    """Filter the last week of flows."""
-    try:
-      now = rdfvalue.RDFDatetime.Now()
-      week_duration = rdfvalue.Duration("7d")
-      offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
-      self.client_activity = {}
-
-      for fd in GetAuditLogFiles(offset, now, request.token):
-        for week in range(self.WEEKS):
-          start = now - week * week_duration
-          for event in fd.GenerateItems():
-            if start < event.timestamp < (start + week_duration):
-              self.weekly_activity = self.client_activity.setdefault(
-                  event.client, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
-              self.weekly_activity[-week][1] += 1
-
-      self.data = []
-      for client, data in self.client_activity.items():
-        if client:
-          self.data.append(dict(label=str(client), data=data))
-
-    except IOError:
-      pass
-
-    return super(ClientActivity, self).Layout(request, response)
 
 
 class AuditTable(statistics.Report, renderers.TableRenderer):

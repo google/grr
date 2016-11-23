@@ -58,21 +58,6 @@ class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 
-class ApiListArtifacstHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-
-  api_method = "ListArtifacts"
-  handler = artifact_plugin.ApiListArtifactsHandler
-
-  def Run(self):
-    artifact_registry.REGISTRY.ClearSources()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifact.json")
-    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-
-    self.Check("GET", "/api/artifacts")
-
-
 class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):

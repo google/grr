@@ -4,45 +4,40 @@
 from grr.gui.api_client import client
 from grr.gui.api_client import context
 from grr.gui.api_client import hunt
+from grr.gui.api_client import types
 from grr.gui.api_client.connectors import http_connector
-from grr.proto import flows_pb2
 
 
 class GrrApi(object):
   """Root GRR API object."""
 
-  class Types(object):
-    # pylint: disable=invalid-name
-    FlowRunnerArgs = flows_pb2.FlowRunnerArgs
-    HuntRunnerArgs = flows_pb2.HuntRunnerArgs
-    # pylint: enable=invalid-name
-
   def __init__(self, connector=None):
     super(GrrApi, self).__init__()
 
-    self.context = context.GrrApiContext(connector=connector)
+    self._context = context.GrrApiContext(connector=connector)
+    self.types = types.Types(context=self._context)
 
   def Client(self, client_id):
-    return client.ClientRef(client_id=client_id, context=self.context)
+    return client.ClientRef(client_id=client_id, context=self._context)
 
   def SearchClients(self, query=None):
-    return client.SearchClients(query, context=self.context)
+    return client.SearchClients(query, context=self._context)
 
   def Hunt(self, hunt_id):
-    return hunt.HuntRef(hunt_id=hunt_id, context=self.context)
+    return hunt.HuntRef(hunt_id=hunt_id, context=self._context)
 
   def CreateHunt(self, flow_name=None, flow_args=None, hunt_runner_args=None):
     return hunt.CreateHunt(
         flow_name=flow_name,
         flow_args=flow_args,
         hunt_runner_args=hunt_runner_args,
-        context=self.context)
+        context=self._context)
 
   def ListHunts(self):
-    return hunt.ListHunts(context=self.context)
+    return hunt.ListHunts(context=self._context)
 
   def ListHuntApprovals(self):
-    return hunt.ListHuntApprovals(context=self.context)
+    return hunt.ListHuntApprovals(context=self._context)
 
 
 def InitHttp(api_endpoint=None, page_size=None, auth=None):
