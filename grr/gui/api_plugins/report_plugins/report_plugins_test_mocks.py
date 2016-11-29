@@ -1,26 +1,28 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
 
+from grr.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr.gui.api_plugins.report_plugins import report_plugin_base
 from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class FooReportPlugin(report_plugins.ReportPluginBase):
-  TYPE = report_plugins.ApiReportDescriptor.ReportType.CLIENT
+class FooReportPlugin(report_plugin_base.ReportPluginBase):
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.CLIENT
   TITLE = "Foo"
   SUMMARY = "Reports all foos."
 
 
-class BarReportPlugin(report_plugins.ReportPluginBase):
-  TYPE = report_plugins.ApiReportDescriptor.ReportType.SERVER
+class BarReportPlugin(report_plugin_base.ReportPluginBase):
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "Bar Activity"
   SUMMARY = "Reports bars' activity in the given time range."
   REQUIRES_TIME_RANGE = True
 
   def GetReportData(self, get_report_args, token):
-    ret = report_plugins.ApiReportData(
-        representation_type=report_plugins.ApiReportData.RepresentationType.
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
         STACK_CHART)
 
     database = {
@@ -35,10 +37,10 @@ class BarReportPlugin(report_plugins.ReportPluginBase):
     }
 
     ret.stack_chart.data = [
-        report_plugins.ApiReportDataSeries2D(
+        rdf_report_plugins.ApiReportDataSeries2D(
             label="Bar",
             points=[
-                report_plugins.ApiReportDataPoint2D(
+                rdf_report_plugins.ApiReportDataPoint2D(
                     x=x, y=y) for (t, (x, y)) in sorted(database.iteritems())
                 if get_report_args.start_time <= t and t <
                 get_report_args.start_time + get_report_args.duration
@@ -52,7 +54,7 @@ class MockedReportPlugins(object):
   """A context manager that swaps available reports with the mocked reports."""
 
   def __init__(self):
-    self.stubber = utils.Stubber(report_plugins.ReportPluginBase, "classes", {
+    self.stubber = utils.Stubber(report_plugins.REGISTRY, "plugins", {
         "FooReportPlugin": FooReportPlugin,
         "BarReportPlugin": BarReportPlugin
     })

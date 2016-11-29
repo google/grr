@@ -8,8 +8,12 @@ import os
 import traceback
 
 
+import mock
+
+from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
 from grr.gui import runtests_test
+from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import aff4
 from grr.lib import flags
@@ -437,6 +441,38 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         self.token.username, self.GetText,
         "css=table > tbody td.proto_key:contains(\"Creator\") "
         "~ td.proto_value")
+
+  def testDownloadAsPanelNotShownForEmptyHuntResults(self):
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection([])
+
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+
+    self.WaitUntil(self.IsTextPresent, "Value")
+    self.WaitUntilNot(self.IsElementPresent, "css=grr-download-collection-as")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedHuntResults")
+  def testHuntResultsCanBeDownloadedAsCsv(self, mock_method):
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection()
+
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Click("css=grr-download-collection-as button[name='csv-zip']")
+
+    def MockMethodIsCalled():
+      try:
+        mock_method.assert_called_once_with(
+            api_hunt.ApiGetExportedHuntResultsArgs(
+                hunt_id=hunt_urn.Basename(), plugin_name="csv-zip"),
+            token=mock.ANY)
+
+        return True
+      except AssertionError:
+        return False
+
+    self.WaitUntil(MockMethodIsCalled)
 
 
 def main(argv):

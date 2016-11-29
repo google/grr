@@ -13,12 +13,16 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 /**
  * Controller for ClientLabelFormDirective.
  *
+ * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @constructor
  * @ngInject
  */
 grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
-    function(grrApiService) {
+    function($scope, grrApiService) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
@@ -31,8 +35,22 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
   /** @type {string} */
   this.formLabel;
 
+  /** @type {boolean} */
+  this.hideEmptyOption = this.hideEmptyOption || false;
+
+  /** @type {string} */
+  this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
+
   this.grrApiService_.get('/clients/labels').then(function(response) {
     this.labelsList = stripTypeInfo(response['data']['items']);
+
+    this.scope_.$watch('controller.hideEmptyOption', function() {
+      if (!this.clientLabel &&  // Handles all falsey values, including ''.
+          this.hideEmptyOption &&
+          this.labelsList.length > 0) {
+        this.clientLabel = this.labelsList[0]['name'];
+      }
+    }.bind(this));
   }.bind(this));
 };
 var ClientLabelFormController =
@@ -51,7 +69,9 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective = function() {
   return {
     scope: {
       clientLabel: '=',
-      formLabel: '=?'
+      formLabel: '=?',
+      hideEmptyOption: '=?',
+      emptyOptionLabel: '=?'
     },
     bindToController: true,
     restrict: 'E',

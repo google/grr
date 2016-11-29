@@ -2,6 +2,7 @@
 """API handlers for stats."""
 
 from grr.gui import api_call_handler_base
+from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -186,7 +187,7 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token):
     return ApiListReportsResult(reports=[
-        report_plugins.ApiReport(
+        rdf_report_plugins.ApiReport(
             desc=report_cls.GetReportDescriptor(), data=None)
         for report_cls in report_plugins.GetAvailableReportPlugins()
     ])
@@ -200,11 +201,11 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
   """Fetches data for the given report."""
 
   args_type = ApiGetReportArgs
-  result_type = report_plugins.ApiReport
+  result_type = rdf_report_plugins.ApiReport
 
   def Handle(self, args, token):
     report = report_plugins.GetReportByName(args.name)
 
-    return report_plugins.ApiReport(
+    return rdf_report_plugins.ApiReport(
         desc=report.GetReportDescriptor(),
         data=report.GetReportData(args, token))

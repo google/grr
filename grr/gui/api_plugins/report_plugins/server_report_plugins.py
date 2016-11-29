@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 """UI server report handling classes."""
 
-from grr.gui.api_plugins.report_plugins import report_plugins
+from grr.gui.api_plugins.report_plugins import rdf_report_plugins
+from grr.gui.api_plugins.report_plugins import report_plugin_base
 from grr.gui.api_plugins.report_plugins import report_utils
 
 from grr.lib.aff4_objects import users as aff4_users
 
 
-class MostActiveUsersReportPlugin(report_plugins.ReportPluginBase):
+class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
   """Reports client activity by week."""
 
-  TYPE = report_plugins.ApiReportDescriptor.ReportType.SERVER
+  TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "User Breakdown"
   SUMMARY = "Active user actions."
   REQUIRES_TIME_RANGE = True
 
   def GetReportData(self, get_report_args, token):
     """Filter the last week of user actions."""
-    ret = report_plugins.ApiReportData(
-        representation_type=report_plugins.ApiReportData.RepresentationType.
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
         PIE_CHART)
 
     try:
@@ -35,7 +36,7 @@ class MostActiveUsersReportPlugin(report_plugins.ReportPluginBase):
         pass
 
       ret.pie_chart.data = sorted(
-          (report_plugins.ApiReportDataPoint1D(
+          (rdf_report_plugins.ApiReportDataPoint1D(
               x=count, label=user) for user, count in counts.iteritems()
            if user not in aff4_users.GRRUser.SYSTEM_USERS),
           key=lambda series: series.label)

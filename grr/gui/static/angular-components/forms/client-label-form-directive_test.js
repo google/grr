@@ -54,18 +54,18 @@ describe('client label form directive', function() {
         });
   }));
 
-  var renderTestTemplate = function(clientLabel, formLabel) {
+  var renderTestTemplate = function(
+      clientLabel, formLabel, hideEmptyOption, emptyOptionLabel) {
     $rootScope.clientLabel = clientLabel;
-
-    if (angular.isDefined(formLabel)) {
-      $rootScope.formLabel = formLabel;
-    }
+    $rootScope.formLabel = formLabel;
+    $rootScope.hideEmptyOption = hideEmptyOption;
+    $rootScope.emptyOptionLabel = emptyOptionLabel;
 
     var template = '<grr-form-client-label ' +
                        'client-label="clientLabel" ' +
-
-                       (angular.isDefined(formLabel) ?
-                       'form-label="formLabel" ' : '') +
+                       'form-label="formLabel" ' +
+                       'hide-empty-option="hideEmptyOption" ' +
+                       'empty-option-label="emptyOptionLabel" ' +
                    '></grr-form-client-label>';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
@@ -136,6 +136,34 @@ describe('client label form directive', function() {
 
     expect(element.scope().$eval(element.attr('client-label'))).toEqual(
         newSelection);
+  });
+
+  it('hides the empty option if requested', function() {
+    var element = renderTestTemplate('', undefined, /* hideEmptyOption */ true);
+
+    var select = element.find('select');
+    var children = select.children();
+    var options = children.map(function(index) {
+        return children[index].innerText;
+    });
+
+    expect(options).not.toContain(defaultOption);
+  });
+
+  it('displays a given string describing the empty option if requested',
+      function() {
+    var customDefaultOption = 'Custom empty option description';
+    var element = renderTestTemplate(
+        '', undefined, undefined, /* emptyOptionLabel */ customDefaultOption);
+
+    var select = element.find('select');
+    var children = select.children();
+    var options = children.map(function(index) {
+        return children[index].innerText;
+    });
+
+    expect(options).not.toContain(defaultOption);
+    expect(options).toContain(customDefaultOption);
   });
 
 });

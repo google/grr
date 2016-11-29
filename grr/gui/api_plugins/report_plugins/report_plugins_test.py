@@ -2,6 +2,7 @@
 """Tests for report plugins."""
 
 from grr.gui.api_plugins import stats as stats_api
+from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks
 from grr.gui.api_plugins.report_plugins import report_utils
@@ -38,7 +39,7 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
     desc = report_plugins_test_mocks.BarReportPlugin.GetReportDescriptor()
 
     self.assertEqual(desc.type,
-                     report_plugins.ApiReportDescriptor.ReportType.SERVER)
+                     rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER)
     self.assertEqual(desc.title, "Bar Activity")
     self.assertEqual(desc.summary,
                      "Reports bars' activity in the given time range.")
@@ -69,6 +70,9 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
 
     self.assertIn("Fake audit description foo.", audit_events)
     self.assertIn("Fake audit description bar.", audit_events)
+
+
+class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
   def testMostActiveUsersReportPlugin(self):
     with test_lib.FakeTime(
@@ -111,16 +115,16 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
       # pyformat: disable
       self.assertEqual(
           api_report_data,
-          report_plugins.ApiReportData(
-              representation_type=report_plugins.ApiReportData.
+          rdf_report_plugins.ApiReportData(
+              representation_type=rdf_report_plugins.ApiReportData.
               RepresentationType.PIE_CHART,
-              pie_chart=report_plugins.ApiPieChartReportData(
+              pie_chart=rdf_report_plugins.ApiPieChartReportData(
                   data=[
-                      report_plugins.ApiReportDataPoint1D(
+                      rdf_report_plugins.ApiReportDataPoint1D(
                           label="User123",
                           x=11
                       ),
-                      report_plugins.ApiReportDataPoint1D(
+                      rdf_report_plugins.ApiReportDataPoint1D(
                           label="User456",
                           x=1
                       )
@@ -143,10 +147,10 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
 
     self.assertEqual(
         api_report_data,
-        report_plugins.ApiReportData(
-            representation_type=report_plugins.ApiReportData.RepresentationType.
-            PIE_CHART,
-            pie_chart=report_plugins.ApiPieChartReportData(data=[])))
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART,
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[])))
 
 
 def main(argv):

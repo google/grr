@@ -2335,41 +2335,6 @@ def WriteComponent(name="grr-rekall",
     return maintenance_utils.SignComponent(fd.name, token=token)
 
 
-class CanaryModeOverrider(object):
-  """A context to temporarily change the canary mode flag of the user."""
-
-  def __init__(self, token, target_canary_mode=True):
-    self.token = token
-    self.target_canary_mode = target_canary_mode
-
-  def __enter__(self):
-    self.Start()
-
-  def Start(self):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser,
-        mode="rw",
-        token=self.token) as user:
-      # Save original canary mode to reset it later.
-      self.original_canary_mode = user.Get(user.Schema.GUI_SETTINGS).canary_mode
-
-      # Set new canary mode.
-      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.target_canary_mode))
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Stop()
-
-  def Stop(self):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser,
-        mode="w",
-        token=self.token) as user:
-      # Reset canary mode to original value.
-      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.original_canary_mode))
-
-
 def main(argv=None):
   if argv is None:
     argv = sys.argv

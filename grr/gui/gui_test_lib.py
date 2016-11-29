@@ -617,3 +617,32 @@ class SearchClientTestBase(GRRSeleniumTest):
   def CreateSampleHunt(self, description, token=None):
     return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt", description=description, token=token)
+
+
+class CanaryModeOverrider(object):
+  """A context to temporarily change the canary mode flag of the user."""
+
+  def __init__(self, token, target_canary_mode=True):
+    self.token = token
+    self.target_canary_mode = target_canary_mode
+
+  def Start(self):
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type=users.GRRUser,
+        mode="rw",
+        token=self.token) as user:
+      # Save original canary mode to reset it later.
+      self.original_canary_mode = user.Get(user.Schema.GUI_SETTINGS).canary_mode
+
+      # Set new canary mode.
+      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.target_canary_mode))
+
+  def Stop(self):
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type=users.GRRUser,
+        mode="w",
+        token=self.token) as user:
+      # Reset canary mode to original value.
+      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.original_canary_mode))

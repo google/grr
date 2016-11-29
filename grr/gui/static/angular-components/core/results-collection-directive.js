@@ -9,7 +9,6 @@ goog.require('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
 goog.scope(function() {
 
 
-
 /**
  * Controller for ResultsCollectionDirective..
  *
@@ -19,8 +18,12 @@ goog.scope(function() {
  */
 grrUi.core.resultsCollectionDirective.ResultsCollectionController = function(
     $scope) {
+
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @type {boolean} */
+  this.resultsArePresent;
 
   /** @type {boolean} */
   this.resultsAreFiles;
@@ -38,6 +41,10 @@ var ResultsCollectionController =
  * @export
  */
 ResultsCollectionController.prototype.transformItems = function(items) {
+  if (items.length > 0) {
+    this.resultsArePresent = true;
+  }
+
   if (!angular.isDefined(this.resultsAreFiles)) {
     this.resultsAreFiles = false;
     for (var i = 0; i <= items.length > 0; i++) {
@@ -67,6 +74,7 @@ grrUi.core.resultsCollectionDirective.ResultsCollectionDirective = function() {
   return {
     scope: {
       resultsUrl: '=',
+      exportedResultsUrl: '=',
       outputPluginsUrl: '=',
       exportCommandUrl: '=?',
       downloadFilesUrl: '=',

@@ -23,6 +23,9 @@ grrUi.flow.flowResultsDirective.FlowResultsController = function($scope) {
   this.flowResultsUrl;
 
   /** @type {?string} */
+  this.flowExportedResultsUrl;
+
+  /** @type {?string} */
   this.outputPluginsMetadataUrl;
 
   /** @type {?string} */
@@ -52,6 +55,7 @@ FlowResultsController.prototype.onFlowIdOrBasePathChange_ = function(
   if (newValues.every(angular.isDefined)) {
     var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
     this.flowResultsUrl = flowUrl + '/results';
+    this.flowExportedResultsUrl = flowUrl + '/exported-results';
     this.outputPluginsUrl = flowUrl + '/output-plugins';
     this.exportCommandUrl = flowUrl + '/results/export-command';
     this.downloadFilesUrl = flowUrl + '/results/files-archive';

@@ -140,7 +140,10 @@ class Queue(aff4.AFF4Object):
         token=self.token):
       if self.VALUE_ATTRIBUTE not in values:
         # Unlikely case, but could happen if, say, a thread called RefreshClaims
-        # so late that another thread already deleted the record.
+        # so late that another thread already deleted the record. Go ahead and
+        # clean this up.
+        data_store.DB.DeleteAttributes(
+            subject, [self.LOCK_ATTRIBUTE], token=self.token)
         continue
       if self.LOCK_ATTRIBUTE in values:
         timestamp = rdfvalue.RDFDatetime.FromSerializedString(values[

@@ -27,6 +27,9 @@ grrUi.hunt.huntResultsDirective.HuntResultsController = function(
   this.resultsUrl;
 
   /** @export {string} */
+  this.exportedResultsUrl;
+
+  /** @export {string} */
   this.outputPluginsUrl;
 
   /** @export {string} */
@@ -53,6 +56,7 @@ HuntResultsController.prototype.onHuntUrnChange = function(huntUrn) {
   var huntId = components[components.length - 1];
 
   this.resultsUrl = '/hunts/' + huntId + '/results';
+  this.exportedResultsUrl = '/hunts/' + huntId + '/exported-results';
   this.downloadFilesUrl = this.resultsUrl + '/files-archive';
   this.outputPluginsUrl = '/hunts/' + huntId + '/output-plugins';
 };

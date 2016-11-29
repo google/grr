@@ -1,3 +1,9 @@
+<!-- "Download as" buttons -->
+<grr-download-collection-as base-url="exportedResultsUrl"
+                            ng-if="exportedResultsUrl &&
+                                   controller.resultsArePresent">
+</grr-download-collection-as>
+
 <!-- "Download Files" panel -->
 <grr-download-collection-files download-url="downloadFilesUrl"
                                export-command-url="exportCommandUrl"

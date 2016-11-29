@@ -8,6 +8,8 @@
                       for label in controller.labelsList">
     <!-- TODO(user): Implement hidden empty option handling and custom empty
                         option description handling. -->
-    <option value="">-- All clients --</option>
+    <option value="" ng-if="!controller.hideEmptyOption">{{
+      controller.emptyOptionLabel
+    }}</option>
   </select>
 </div>

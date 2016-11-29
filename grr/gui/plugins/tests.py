@@ -25,6 +25,7 @@ from grr.gui.plugins import navigator_view_test
 from grr.gui.plugins import new_hunt_test
 from grr.gui.plugins import notifications_test
 from grr.gui.plugins import rekall_viewer_test
+from grr.gui.plugins import report_test
 from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import server_load_view_test
 from grr.gui.plugins import settings_view_test

@@ -158,6 +158,45 @@ class QueueTest(test_lib.AFF4ObjectTest):
     self.assertEqual(50, len(results))
     self.assertEqual(50, results[0][1])
 
+  def testClaimCleansSpuriousLocks(self):
+    queue_urn = "aff4:/queue_test/testClaimCleansSpuriousLocks"
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+      for i in range(100):
+        queue.Add(rdfvalue.RDFInteger(i))
+
+    data_store.DB.Flush()
+
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
+      results = queue.ClaimRecords()
+    self.assertEqual(100, len(results))
+
+    for subject, _ in results:
+      data_store.DB.DeleteAttributes(
+          subject, [queue.VALUE_ATTRIBUTE], token=self.token)
+    data_store.DB.Flush()
+
+    self.assertEqual(
+        100,
+        sum(1
+            for _ in data_store.DB.ScanAttribute(
+                queue.urn.Add("Records"),
+                queue.LOCK_ATTRIBUTE,
+                token=self.token)))
+
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
+      queue.ClaimRecords()
+    data_store.DB.Flush()
+
+    self.assertEqual(
+        0,
+        sum(1
+            for _ in data_store.DB.ScanAttribute(
+                queue.urn.Add("Records"),
+                queue.LOCK_ATTRIBUTE,
+                token=self.token)))
+
 
 def main(argv):
   # Run the full test suite

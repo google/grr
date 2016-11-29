@@ -887,7 +887,7 @@ class ApiCallRouter(object):
   @Category("Other")
   @Http("GET", "/api/stats/reports/<name>")
   @ArgsType(api_stats.ApiGetReportArgs)
-  @ResultType(api_stats.report_plugins.ApiReport)
+  @ResultType(api_stats.rdf_report_plugins.ApiReport)
   def GetReport(self, args, token=None):
     """Get data of a given report."""
 

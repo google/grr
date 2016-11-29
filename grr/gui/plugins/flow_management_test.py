@@ -4,9 +4,14 @@
 
 import os
 
+
+import mock
+
 from grr.gui import api_call_handler_utils
+from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
 from grr.gui import runtests_test
+from grr.gui.api_plugins import flow as api_flow
 
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -121,7 +126,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="GetFile",
+        flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
@@ -282,7 +287,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="GetFile",
+        flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
@@ -530,7 +535,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         pathtype=rdf_paths.PathSpec.PathType.OS)
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "GetFile",
+          flows_transfer.GetFile.__name__,
           self.action_mock,
           client_id=self.client_id,
           pathspec=pathspec,
@@ -551,7 +556,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         pathtype=rdf_paths.PathSpec.PathType.OS)
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "GetFile",
+          flows_transfer.GetFile.__name__,
           self.action_mock,
           client_id=self.client_id,
           pathspec=pathspec,
@@ -572,7 +577,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="GetFile",
+        flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
@@ -600,7 +605,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="GetFile",
+        flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
@@ -635,7 +640,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="GetFile",
+        flow_name=flows_transfer.GetFile.__name__,
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
@@ -738,6 +743,65 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=create_hunt]:not([disabled])")
+
+  def testDoesNotShowDownloadAsPanelIfCollectionIsEmpty(self):
+    with self.ACLChecksDisabled():
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=RecursiveTestFlow.__name__,
+          client_id=self.client_id,
+          token=self.token)
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
+        pass
+
+    self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
+    self.Click("link=Results")
+
+    self.WaitUntil(self.IsTextPresent, "Value")
+    self.WaitUntilNot(self.IsElementPresent, "grr-download-collection-as")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedFlowResults")
+  def testClickingOnDownloadAsCsvZipStartsDownload(self, mock_method):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    with self.ACLChecksDisabled():
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=flows_transfer.GetFile.__name__,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          token=self.token)
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
+        pass
+
+    self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
+    self.Click("link=Results")
+
+    self.Click("css=grr-download-collection-as button[name='csv-zip']")
+
+    def MockMethodIsCalled():
+      try:
+        mock_method.assert_called_once_with(
+            api_flow.ApiGetExportedFlowResultsArgs(
+                client_id=self.client_id.Basename(),
+                flow_id=flow_urn.Basename(),
+                plugin_name="csv-zip"),
+            token=mock.ANY)
+
+        return True
+      except AssertionError:
+        return False
+
+    self.WaitUntil(MockMethodIsCalled)
 
 
 def main(argv):

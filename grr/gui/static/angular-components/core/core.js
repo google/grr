@@ -14,6 +14,7 @@ goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 goog.require('grrUi.core.dialogService.DialogService');
 goog.require('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
+goog.require('grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
@@ -119,6 +120,11 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.clockDirective.ClockDirective.directive_name,
     grrUi.core.clockDirective.ClockDirective);
+grrUi.core.module.directive(
+    grrUi.core.downloadCollectionAsDirective
+        .DownloadCollectionAsDirective.directive_name,
+    grrUi.core.downloadCollectionAsDirective
+        .DownloadCollectionAsDirective);
 grrUi.core.module.directive(
     grrUi.core.downloadCollectionFilesDirective
         .DownloadCollectionFilesDirective.directive_name,
