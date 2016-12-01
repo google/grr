@@ -1,13 +1,11 @@
 <label class="control-label">{{
   controller.formLabel || 'Client label'
 }}</label>
-<div class="controls">
-  <select class="form-control select-label"
+<div class="controls select-label-controls">
+  <select class="form-control"
           ng-model="controller.clientLabel"
           ng-options="label.name as label.name
                       for label in controller.labelsList">
-    <!-- TODO(user): Implement hidden empty option handling and custom empty
-                        option description handling. -->
     <option value="" ng-if="!controller.hideEmptyOption">{{
       controller.emptyOptionLabel
     }}</option>

@@ -1,8 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.foremanLabelRuleFormDirective');
 goog.provide('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormController');
 goog.provide('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective');
+
 goog.scope(function() {
 
 
@@ -12,24 +12,17 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormController =
-    function($scope, grrReflectionService, grrApiService) {
+    function($scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
-
-  /** @private {Array<Object>} */
-  this.labelsList = [];
-
-  /** @private string **/
+  /** @private string */
   this.defaultLabel_ = "";
 
   this.grrReflectionService_.getRDFValueDescriptor(
@@ -39,14 +32,6 @@ grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormController =
         this.matchModeMetadata = field;
       }
     }.bind(this));
-
-    return this.grrApiService_.get('/clients/labels');
-  }.bind(this)).then(function(response) {
-
-    this.labelsList = response['data']['items'];
-    if (this.labelsList.length > 0) {
-      this.defaultLabel_ = this.labelsList[0]['value']['name']['value'];
-    }
 
     this.scope_.$watch('value.value', function(value) {
       if (angular.isDefined(value)) {

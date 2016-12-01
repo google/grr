@@ -2,7 +2,8 @@
   <label class="control-label">Match mode</label>
   <div class="controls">
     <grr-form-value value="value.value.match_mode"
-                    metadata="controller.matchModeMetadata" />
+                    metadata="controller.matchModeMetadata">
+    </grr-form-value>
   </div>
 </div>
 
@@ -16,19 +17,11 @@
 </div>
 
 <div class="form-group" ng-repeat="label_name in value.value.label_names">
-  <!-- TODO(user): Use grr-form-client-label here -->
-  <label class="control-label">Label name</label>
-  <div class="controls">
-    <select class="form-control select-label" ng-model="label_name.value"
-            ng-options="label.value.name.value as label.value.name.value
-                        for label in controller.labelsList"
-            ng-disabled="!controller.labelsList ||
-                         controller.labelsList.length == 0">
-      <!-- hide the implicit empty option -->
-      <option value="" ng-if="false"></option>
-    </select>
-    <button type="button" class="close remove-label"
-            ng-click="controller.removeLabel($index)"
-            ng-if="value.value.label_names.length > 1">×</button>
-  </div>
+  <grr-form-client-label client-label="label_name.value"
+                         form-label="'Label name'"
+                         hide-empty-option="true">
+  </grr-form-client-label>
+  <button type="button" class="close remove-label"
+          ng-click="controller.removeLabel($index)"
+          ng-disabled="value.value.label_names.length <= 1">×</button>
 </div>

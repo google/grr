@@ -1,12 +1,18 @@
-
 grr-form-label {
-
-  .select-label {
-    display: initial;
-  }
-
   .remove-label {
     padding-left: .2em !important;
     float: initial;
+  }
+
+  .remove-label[disabled='disabled'] {
+    pointer-events: none;
+    opacity: .1;
+  }
+
+  grr-form-client-label {
+    .select-label-controls {
+      float: left;
+      margin-left: 20px;
+    }
   }
 }

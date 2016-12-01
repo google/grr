@@ -170,13 +170,11 @@ class ClientBuilder(BuilderBase):
     with open(os.path.join(self.output_dir, "build.yaml"), "wb") as fd:
       self.WriteBuildYaml(fd)
 
-  def WriteBuildYaml(self, fd):
+  def WriteBuildYaml(self, fd, build_timestamp=True):
     """Write build spec to fd."""
     output = {
         "Client.build_environment":
             rdf_client.Uname.FromCurrentSystem().signature(),
-        "Client.build_time":
-            rdfvalue.RDFDatetime.Now(),
         "Template.build_type":
             config_lib.CONFIG.Get("ClientBuilder.build_type",
                                   context=self.context),
@@ -193,6 +191,11 @@ class ClientBuilder(BuilderBase):
         "Template.arch":
             config_lib.CONFIG.Get("Client.arch", context=self.context)
     }
+
+    if build_timestamp:
+      output["Client.build_time"] = rdfvalue.RDFDatetime.Now()
+    else:
+      self.REQUIRED_BUILD_YAML_KEYS.remove("Client.build_time")
 
     for key, value in output.iteritems():
       output[key] = str(value)
@@ -261,7 +264,7 @@ class ClientRepacker(BuilderBase):
     self.signer = signer
     self.signed_template = False
 
-  def GetClientConfig(self, context, validate=True):
+  def GetClientConfig(self, context, validate=True, deploy_timestamp=True):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
       # Make sure we write the file in yaml format.
@@ -293,7 +296,8 @@ class ClientRepacker(BuilderBase):
 
             new_config.SetRaw(descriptor.name, value)
 
-      new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime.Now()))
+      if deploy_timestamp:
+        new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime.Now()))
       new_config.Write()
 
       if validate:

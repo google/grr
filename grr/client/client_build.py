@@ -14,10 +14,15 @@ import sys
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
+from grr.lib import build
 from grr.lib import builders
 from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
+# pylint: disable=unused-import
+# Required for google_config_validator
+from grr.lib import local
+# pylint: enable=unused-import
 from grr.lib import repacking
 
 
@@ -40,6 +45,16 @@ parser = flags.PARSER
 # Initialize sub parsers and their arguments.
 subparsers = parser.add_subparsers(
     title="subcommands", dest="subparser_name", description="valid subcommands")
+
+# generate config
+parser_generate_config = subparsers.add_parser(
+    "generate_client_config", help="Generate client config.")
+
+parser_generate_config.add_argument(
+    "--client_config_output",
+    help="Filename to write output.",
+    required=True,
+    default=None)
 
 # build arguments.
 parser_build = subparsers.add_parser(
@@ -340,8 +355,29 @@ class MultiTemplateRepacker(object):
       raise
 
 
+def GetClientConfig(filename):
+  """Write client config to filename."""
+  config_lib.SetPlatformArchContext()
+  config_lib.ParseConfigCommandLine()
+  context = list(config_lib.CONFIG.context)
+  context.append("Client Context")
+  deployer = build.ClientRepacker()
+  # Disable timestamping so we can get a reproducible and cachable config file.
+  config_data = deployer.GetClientConfig(
+      context, validate=True, deploy_timestamp=False)
+  builder = build.ClientBuilder()
+  with open(filename, "w") as fd:
+    fd.write(config_data)
+    builder.WriteBuildYaml(fd, build_timestamp=False)
+
+
 def main(_):
   """Launch the appropriate builder."""
+  if flags.FLAGS.subparser_name == "generate_client_config":
+    # We don't need a full init to just build a config.
+    GetClientConfig(flags.FLAGS.client_config_output)
+    return
+
   # We deliberately use flags.FLAGS.context because client_startup.py pollutes
   # config_lib.CONFIG.context with the running system context.
   context = flags.FLAGS.context
