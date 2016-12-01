@@ -1521,7 +1521,7 @@ message ApiGrrUser {
       description: "User UI settings."
     }];
   optional ApiGrrUserInterfaceTraits interface_traits = 3 [(sem_type) = {
-      description: "User's interface traits (what he/she can and can't do "
+      description: "User's interface traits (what they can and can't do "
       "in the UI)."
     }];
 }

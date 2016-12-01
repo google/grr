@@ -13,7 +13,7 @@ from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.tools import export_plugins
 
 DESCRIPTION = "Tool for exporting data from GRR to the outside world."
@@ -56,7 +56,7 @@ def main(unused_argv):
                                "Context applied for all command line tools")
   config_lib.CONFIG.AddContext("ExportTool Context",
                                "Context applied to the export tool.")
-  startup.Init()
+  server_startup.Init()
 
   data_store.default_token = access_control.ACLToken(
       username=flags.FLAGS.username or getpass.getuser(),

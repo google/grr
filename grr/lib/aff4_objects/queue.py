@@ -186,36 +186,41 @@ class Queue(aff4.AFF4Object):
       for subject in ids:
         mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)
 
-  def DeleteRecords(self, ids):
+  @classmethod
+  def DeleteRecords(cls, ids, token):
     """Delete records identified by ids.
 
     Args:
       ids: A list of ids provided by ClaimRecords.
+      token: The database access token to delete with.
 
     Raises:
       LockError: If the queue is not locked.
     """
     data_store.DB.MultiDeleteAttributes(
-        ids, [self.LOCK_ATTRIBUTE, self.VALUE_ATTRIBUTE], token=self.token)
+        ids, [cls.LOCK_ATTRIBUTE, cls.VALUE_ATTRIBUTE], token=token)
 
-  def DeleteRecord(self, record_id):
+  @classmethod
+  def DeleteRecord(cls, record_id, token):
     """Delete a single record."""
-    self.DeleteRecords([record_id])
+    cls.DeleteRecords([record_id], token=token)
 
-  def ReleaseRecords(self, ids):
+  @classmethod
+  def ReleaseRecords(cls, ids, token):
     """Release records identified by subjects.
 
     Releases any claim on the records identified by ids.
 
     Args:
       ids: A list of ids provided by ClaimRecords.
+      token: The database access token to write with.
 
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(
-        ids, [self.LOCK_ATTRIBUTE], token=self.token)
+    data_store.DB.MultiDeleteAttributes(ids, [cls.LOCK_ATTRIBUTE], token=token)
 
-  def ReleaseRecord(self, record_id):
+  @classmethod
+  def ReleaseRecord(cls, record_id, token):
     """Release a single record."""
-    self.ReleaseRecords([record_id])
+    cls.ReleaseRecords([record_id], token=token)

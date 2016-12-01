@@ -63,8 +63,8 @@ from grr.lib import queues as queue_config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rekall_profile_server
-from grr.lib import startup
 from grr.lib import stats
+from grr.lib import testing_startup
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib import worker_mocks
@@ -2175,7 +2175,7 @@ class GrrTestProgram(unittest.TestProgram):
     self.labels = labels
 
     # Set everything up once for all test.
-    startup.TestInit()
+    testing_startup.TestInit()
 
     self.setUp()
     try:

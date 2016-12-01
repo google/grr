@@ -344,10 +344,11 @@ class EndToEndTests(cronjobs.SystemCronFlow):
   @flow.StateHandler()
   def Start(self):
     self.state.hunt_id = None
-    self.state.client_ids = set()
     self.state.client_ids_failures = set()
     self.state.client_ids_result_reported = set()
 
+    # TODO(user): Figure out if this can just be a set. Add a tap test to
+    # meaningfully exercise this code.
     self.state.client_ids = list(base.GetClientTestTargets(token=self.token))
 
     if not self.state.client_ids:
@@ -419,8 +420,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     map(self._CheckForFailures, results)
 
     # Check that all the clients that got the flow reported some results
-    self.state.client_ids_failures.update(self.state.client_ids -
-                                          self.state.client_ids_result_reported)
+    self.state.client_ids_failures.update(
+        set(self.state.client_ids) - self.state.client_ids_result_reported)
 
     if self.state.client_ids_failures:
       raise flow.FlowError("Tests failed on clients: %s. Check hunt %s for "

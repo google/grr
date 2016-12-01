@@ -114,7 +114,7 @@ class WindowsTemplateBuilder(object):
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
     subprocess.check_call([
-        self.VIRTUALENV_PYTHON64, "setup.py", "sdist",
+        self.VIRTUALENV_PYTHON64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs", "--no-make-ui-files",
         "--no-sync-artifacts"
     ])
@@ -124,7 +124,7 @@ class WindowsTemplateBuilder(object):
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
     subprocess.check_call([
-        self.VIRTUALENV_PYTHON64, "setup.py", "sdist",
+        self.VIRTUALENV_PYTHON64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % self.BUILDDIR
     ])
     return glob.glob(os.path.join(self.BUILDDIR,

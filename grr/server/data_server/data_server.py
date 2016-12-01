@@ -21,8 +21,8 @@ import logging
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
+from grr.lib import log
 from grr.lib import registry
-from grr.lib import startup
 from grr.lib import stats
 from grr.lib import utils
 
@@ -107,9 +107,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
         "/servers/sync-all": cls.HandleServerSyncAll
     }
 
-    cls.STREAMING_TABLE = {
-        "/rebalance/copy-file": cls.HandleRebalanceCopyFile,
-    }
+    cls.STREAMING_TABLE = {"/rebalance/copy-file": cls.HandleRebalanceCopyFile,}
 
   @classmethod
   def GetStatistics(cls):
@@ -324,8 +322,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       except (socket.error, socket.timeout):
         # At this point, there is no way to know how much data was actually
         # sent. Therefore, we close the connection and force the client to
-        # reconnect. When the client gets an error, he should assume that
-        # the command was not successful
+        # reconnect. When the client gets an error, it should be assumed
+        # that the command was not successful
         sock.close()
         self.close_connection = 1
         return
@@ -845,16 +843,15 @@ def Start(db,
 def main(unused_argv):
   """Main."""
   # Change the startup sequence in order to set the database path, if needed.
-  startup.AddConfigContext()
+  config_lib.SetPlatformArchContext()
   config_lib.CONFIG.AddContext("DataServer Context",
                                "Context applied when running a data server.")
-
-  startup.ConfigInit()
+  config_lib.ParseConfigCommandLine()
 
   if flags.FLAGS.path:
     config_lib.CONFIG.Set("Datastore.location", flags.FLAGS.path)
 
-  startup.ServerLoggingStartupInit()
+  log.ServerLoggingStartupInit()
   stats.STATS = stats.StatsCollector()
 
   # We avoid starting some hooks because they add unneeded things

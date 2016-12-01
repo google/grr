@@ -14,6 +14,7 @@ import os
 import platform
 import re
 import StringIO
+import struct
 import sys
 
 
@@ -103,6 +104,21 @@ class MissingConfigDefinitionError(Error):
 
 class InvalidContextError(Error):
   """Raised when an invalid context is used."""
+
+
+def SetPlatformArchContext():
+  """Add the running contexts to the config system."""
+
+  # Initialize the running platform context:
+  CONFIG.AddContext("Platform:%s" % platform.system().title())
+
+  pointer_size = struct.calcsize("P")
+  if pointer_size == 4:
+    CONFIG.AddContext("Arch:i386")
+  elif pointer_size == 8:
+    CONFIG.AddContext("Arch:amd64")
+  else:
+    raise Error("Unsupported pointer size: %d" % pointer_size)
 
 
 class ConfigFilter(object):

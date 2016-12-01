@@ -375,8 +375,8 @@ class FrontEndServer(object):
               events.Events.PublishEvent(
                   "ClientCrash", rdf_flows.GrrMessage(msg), token=self.token)
 
-    logging.debug("Received %s messages in %s sec",
-                  len(messages), time.time() - now)
+    logging.debug("Received %s messages from %s in %s sec",
+                  len(messages), client_id, time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""

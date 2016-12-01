@@ -12,12 +12,10 @@ from grr.client import client_plugins
 
 from grr.client import comms
 from grr.client import installer
-# pylint: disable=unused-import
 from grr.client import stdlib
-# pylint: enable=unused-import
+from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
 
 flags.DEFINE_bool("install", False, "Specify this to install the client.")
 
@@ -35,7 +33,7 @@ def main(unused_args):
   config_lib.CONFIG.AddContext(
       "Client Context", "Context applied when we run the client process.")
 
-  startup.ClientInit()
+  client_startup.ClientInit()
 
   if flags.FLAGS.install:
     installer.RunInstaller()

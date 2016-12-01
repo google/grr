@@ -16,7 +16,7 @@ from grr.client import client_plugins
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import utils
 
 from grr.lib.rdfvalues import data_server as rdf_data_server
@@ -604,7 +604,7 @@ def main(unused_argv):
   """Main."""
 
   config_lib.CONFIG.AddContext("DataServer Context")
-  startup.ClientInit()
+  server_startup.Init()
 
   manager = Manager()
   if not manager.Start():

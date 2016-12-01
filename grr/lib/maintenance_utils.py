@@ -192,7 +192,8 @@ def SignComponentContent(component_filename, output_filename):
   Raises:
     RuntimeError: If called for any other OS than windows.
   """
-  component = rdf_client.ClientComponent(open(component_filename, "rb").read())
+  component = rdf_client.ClientComponent.FromSerializedString(
+      open(component_filename, "rb").read())
   EPrint("Opened component %s." % component.summary.name)
 
   if component.build_system.system == "Windows":

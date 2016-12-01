@@ -30,7 +30,7 @@ from grr.lib import flow
 from grr.lib import front_end
 from grr.lib import master
 from grr.lib import rdfvalue
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import uploads
@@ -358,11 +358,11 @@ def main(unused_argv):
   """Main."""
   config_lib.CONFIG.AddContext("HTTPServer Context")
 
-  startup.Init()
+  server_startup.Init()
 
   httpd = CreateServer()
 
-  startup.DropPrivileges()
+  server_startup.DropPrivileges()
 
   try:
     httpd.serve_forever()

@@ -15,10 +15,10 @@ from grr.client import client_plugins
 # pylint: enable=unused-import
 
 from grr.lib import builders
+from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import repacking
-from grr.lib import startup
 
 
 class Error(Exception):
@@ -27,6 +27,7 @@ class Error(Exception):
 
 class ErrorDuringRepacking(Error):
   pass
+
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -341,11 +342,11 @@ class MultiTemplateRepacker(object):
 
 def main(_):
   """Launch the appropriate builder."""
-  # We deliberately use flags.FLAGS.context because startup.py pollutes
+  # We deliberately use flags.FLAGS.context because client_startup.py pollutes
   # config_lib.CONFIG.context with the running system context.
   context = flags.FLAGS.context
   context.append("ClientBuilder Context")
-  startup.ClientInit()
+  client_startup.ClientInit()
 
   # Use basic console output logging so we can see what is happening.
   logger = logging.getLogger()

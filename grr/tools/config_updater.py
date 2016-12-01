@@ -33,7 +33,7 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
 from grr.lib import repacking
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
@@ -583,7 +583,7 @@ server and the admin user interface.\n"""
 
 def AddUsers(token=None):
   # Now initialize with our modified config.
-  startup.Init()
+  server_startup.Init()
 
   print "\nStep 3: Adding Admin User"
   try:
@@ -769,14 +769,14 @@ def main(unused_argv):
   config_lib.CONFIG.AddContext("ConfigUpdater Context")
 
   if flags.FLAGS.subparser_name == "initialize":
-    startup.ConfigInit()
+    config_lib.ParseConfigCommandLine()
     if flags.FLAGS.noprompt:
       InitializeNoPrompt(config_lib.CONFIG, token=token)
     else:
       Initialize(config_lib.CONFIG, token=token)
     return
 
-  startup.Init()
+  server_startup.Init()
 
   try:
     print "Using configuration %s" % config_lib.CONFIG

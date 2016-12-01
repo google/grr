@@ -194,10 +194,29 @@ def AppLogInit():
 
   This log is what will be used whenever someone does a log.LOGGER call. These
   are used for more detailed application or event logs.
+
+  Returns:
+    GrrApplicationLogger object
   """
   logging.debug("Initializing Application Logger.")
+  return GrrApplicationLogger()
+
+
+def ServerLoggingStartupInit():
+  """Initialize the server logging configuration."""
   global LOGGER
-  LOGGER = GrrApplicationLogger()
+  try:
+    # pylint: disable=g-import-not-at-top
+    from grr.lib.local import log as local_log
+    # pylint: enable=g-import-not-at-top
+    logging.debug("Using local LogInit from %s", local_log)
+    local_log.LogInit()
+    logging.debug("Using local AppLogInit from %s", local_log)
+    LOGGER = local_log.AppLogInit()
+  except ImportError:
+    LogInit()
+    LOGGER = AppLogInit()
+
 
 # There is a catch 22 here: We need to start logging right away but we will only
 # configure the logging system once the config is read. Therefore we set up a

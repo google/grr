@@ -14,7 +14,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib.aff4_objects import users as aff4_users
 
 flags.DEFINE_bool("local_client", True,
@@ -41,7 +41,7 @@ def RunEndToEndTests():
   # We are running a test so let the config system know that.
   config_lib.CONFIG.AddContext("Test Context",
                                "Context applied when we run tests.")
-  startup.Init()
+  server_startup.Init()
 
   token = access_control.ACLToken(
       username="GRREndToEndTest", reason="Running end to end client tests.")

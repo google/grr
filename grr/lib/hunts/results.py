@@ -83,10 +83,7 @@ class HuntResultQueue(aff4_queue.Queue):
   @classmethod
   def DeleteNotifications(cls, record_ids, token=None):
     """Delete hunt notifications."""
-    with aff4.FACTORY.Open(
-        RESULT_NOTIFICATION_QUEUE, aff4_type=HuntResultQueue,
-        token=token) as queue:
-      queue.DeleteRecords(record_ids)
+    cls.DeleteRecords(record_ids, token=token)
 
 
 class HuntResultCollection(sequential_collection.GrrMessageCollection):

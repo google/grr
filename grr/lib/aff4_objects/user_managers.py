@@ -436,7 +436,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
       return h.CheckAccess(subject, token)
     except access_control.UnauthorizedAccess:
       raise access_control.UnauthorizedAccess(
-          "User can only access his "
+          "User can only access their "
           "home directory.", subject=subject)
 
   def _CreateWriteAccessHelper(self):
@@ -476,7 +476,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     # aff4:/users directory itself.
     h.Allow("aff4:/users")
 
-    # User is allowed to access anything in his home dir.
+    # User is allowed to access anything in their home dir.
     h.Allow("aff4:/users/*", self._IsHomeDir)
 
     # Administrators are allowed to see current set of foreman rules.
@@ -578,7 +578,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     """
     h = CheckAccessHelper("query")
 
-    # User is allowed to do anything in his home dir.
+    # User is allowed to do anything in their home dir.
     h.Allow("aff4:/users/*", self._IsHomeDir)
 
     # Querying is allowed for aff4:/cron/*, as GUI renders list of current

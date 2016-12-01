@@ -20,7 +20,7 @@ from grr.gui import django_lib
 from grr.gui import http_api
 from grr.gui.api_client.connectors import http_connector
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import testing_startup
 from grr.lib import utils
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
@@ -41,7 +41,7 @@ class HttpApiRegressionTestMixinBase(object):
       port = portpicker.PickUnusedPort()
       logging.info("Picked free AdminUI port %d.", port)
 
-      startup.TestInit()
+      testing_startup.TestInit()
       # Force creation of new APIAuthorizationManager.
       api_auth_manager.APIACLInit.InitApiAuthManager()
 

@@ -133,5 +133,5 @@ message AnalyzeClientMemoryArgs {
   optional string component_version = 6 [(sem_type) = {
       description: "The version of component to use.",
       label: ADVANCED,
-    }, default="1.5.3"];
+    }, default="1.6.0"];
 }

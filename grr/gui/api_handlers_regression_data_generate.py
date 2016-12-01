@@ -14,7 +14,7 @@ from grr.gui import api_test_lib
 from grr.gui import http_api
 
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import testing_startup
 
 flags.DEFINE_integer("api_version", 1,
                      "API version to use when generating tests. "
@@ -47,7 +47,7 @@ def main(unused_argv):
       test_instance = test_class()
 
       # Recreate a new data store each time.
-      startup.TestInit()
+      testing_startup.TestInit()
       try:
         test_instance.setUp()
 

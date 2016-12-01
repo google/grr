@@ -23,8 +23,8 @@ from grr.gui import api_regression_http
 from grr.gui import webauth
 from grr.lib import flags
 from grr.lib import registry
-from grr.lib import startup
 from grr.lib import test_lib
+from grr.lib import testing_startup
 from grr.lib import utils
 
 flags.DEFINE_string(
@@ -123,7 +123,7 @@ class ApiRegressionTest(object):
 
     self.token.username = "api_test_user"
 
-    startup.TestInit()
+    testing_startup.TestInit()
     # Force creation of new APIAuthorizationManager.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
@@ -235,7 +235,7 @@ class ApiRegressionGoldenOutputGenerator(object):
         if getattr(test_class, "connection_type", "") != self.connection_type:
           continue
 
-        startup.TestInit()
+        testing_startup.TestInit()
         test_class.setUpClass()
         loaded = self.loader.loadTestsFromTestCase(test_class)
         for t in loaded:

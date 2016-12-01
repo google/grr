@@ -16,9 +16,9 @@ from grr.client import client_plugins
 
 from grr.client import comms
 from grr.client import vfs
+from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -162,7 +162,7 @@ def main(unused_argv):
   config_lib.CONFIG.AddContext("PoolClient Context",
                                "Context applied when we run the pool client.")
 
-  startup.ClientInit()
+  client_startup.ClientInit()
 
   config_lib.CONFIG.SetWriteBack("/dev/null")
 

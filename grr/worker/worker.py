@@ -13,7 +13,7 @@ from grr.lib import server_plugins
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import worker
 
 
@@ -23,7 +23,7 @@ def main(unused_argv):
                                "Context applied when running a worker.")
 
   # Initialise flows
-  startup.Init()
+  server_startup.Init()
   token = access_control.ACLToken(username="GRRWorker").SetUID()
   worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()

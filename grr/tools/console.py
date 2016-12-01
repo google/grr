@@ -39,7 +39,7 @@ from grr.lib import flow_utils
 from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib import worker
@@ -97,7 +97,7 @@ def main(unused_argv):
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext(
       "Console Context", "Context applied when running the console binary.")
-  startup.Init()
+  server_startup.Init()
 
   # To make the console easier to use, we make a default token which will be
   # used in StartFlow operations.

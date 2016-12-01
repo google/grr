@@ -164,9 +164,9 @@ config_lib.DEFINE_string("Frontend.upload_store", "FileUploadFileStore",
 config_lib.DEFINE_string("FileUploadFileStore.root_dir", "/tmp/",
                          "Where to store files uploaded.")
 
-config_lib.DEFINE_string("Server.initialized", False,
-                         "True once config_updater initialize has been "
-                         "run at least once.")
+config_lib.DEFINE_bool("Server.initialized", False,
+                       "True once config_updater initialize has been "
+                       "run at least once.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")

@@ -198,7 +198,7 @@ class ObjectFilterTest(unittest.TestCase):
           (True, ["name", "boot.ini"]),
           (False, ["name", "^$"]),
           (True, ["attributes", "Archive"]),
-          # One can regexp numbers if he's inclined to
+          # One can regexp numbers if they're inclined
           (True, ["size", 0]),
           # But regexp doesn't work with lists or generators for the moment
           (False, ["imported_dlls.imported_functions", "FindWindow"])

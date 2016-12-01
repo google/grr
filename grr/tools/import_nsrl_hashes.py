@@ -12,7 +12,7 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 from grr.lib import utils
 
 from grr.lib.aff4_objects import filestore
@@ -80,7 +80,7 @@ def ImportFile(store, filename, start):
 
 def main(unused_argv):
   """Main."""
-  startup.Init()
+  server_startup.Init()
 
   filename = flags.FLAGS.filename
   if not os.path.exists(filename):
