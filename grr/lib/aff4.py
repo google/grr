@@ -2274,10 +2274,6 @@ class AttributeExpression(lexer.Expression):
                                 *self.args)
 
 
-class AFF4QueryParser(lexer.SearchParser):
-  expression_cls = AttributeExpression
-
-
 class AFF4Volume(AFF4Object):
   """Volumes contain other objects.
 
@@ -2291,37 +2287,6 @@ class AFF4Volume(AFF4Object):
   class SchemaCls(AFF4Object.SchemaCls):
     CONTAINS = Attribute("aff4:contains", rdfvalue.RDFURN,
                          "An AFF4 object contained in this container.")
-
-  def Query(self, filter_string="", limit=1000, age=NEWEST_TIME):
-    """Lists all direct children of this object.
-
-    The direct children of this object are fetched from the index.
-
-    Args:
-      filter_string: A filter string to be used to filter AFF4 objects.
-      limit: Only fetch up to these many items.
-      age: The age policy for the returned children.
-
-    Returns:
-      A generator over the children.
-    """
-    direct_child_urns = []
-    for entry in data_store.DB.ResolvePrefix(
-        self.urn, "index:dir/", limit=limit, token=self.token):
-      _, filename = entry[0].split("/", 1)
-      direct_child_urns.append(self.urn.Add(filename))
-
-    children = self.OpenChildren(
-        children=direct_child_urns, limit=limit, age=age)
-
-    if filter_string:
-      # Parse the query string.
-      ast = AFF4QueryParser(filter_string).Parse()
-      filter_obj = ast.Compile(AFF4Filter)
-
-      children = filter_obj.Filter(children)
-
-    return children
 
   def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
@@ -2418,32 +2383,7 @@ class AFF4Volume(AFF4Object):
 
 
 class AFF4Root(AFF4Volume):
-  """The root of the VFS.
-
-  This virtual collection contains the entire virtual filesystem, and therefore
-  can be queried across the entire data store.
-  """
-
-  def Query(self, filter_string="", filter_obj=None, subjects=None, limit=100):
-    """Filter the objects contained within this collection."""
-    if filter_obj is None and filter_string:
-      # Parse the query string
-      ast = AFF4QueryParser(filter_string).Parse()
-
-      # Query our own data store
-      filter_obj = ast.Compile(data_store.DB.filter)
-
-    subjects = []
-    result_set = data_store.DB.Query(
-        [], filter_obj, subjects=subjects, limit=limit, token=self.token)
-    for match in result_set:
-      subjects.append(match["subject"][0][0])
-
-    # Open them all at once.
-    result = data_store.ResultSet(FACTORY.MultiOpen(subjects, token=self.token))
-    result.total_count = result_set.total_count
-
-    return result
+  """The root of the VFS."""
 
 
 class AFF4Symlink(AFF4Object):

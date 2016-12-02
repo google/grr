@@ -270,6 +270,7 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     urn = self.state.output_base_urn.Add(name)
     self.state.output_streams[name] = urn
 
+    logging.info("Creating new output stream: %s", urn)
     output_stream = aff4.FACTORY.Create(
         urn, aff4_type=aff4.AFF4UnversionedImage, mode="rw", token=self.token)
     output_stream.Seek(0, 2)

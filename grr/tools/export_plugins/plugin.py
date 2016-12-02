@@ -4,12 +4,14 @@
 
 
 import threading
+import time
 
 import logging
 
 from grr.lib import data_store
 from grr.lib import export
 from grr.lib import output_plugin as output_plugin_lib
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
 from grr.lib import utils
@@ -159,6 +161,7 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
 
     return output_plugin_class(
         source_urn=collection_urn,
+        output_base_urn=rdfvalue.RDFURN("aff4:/export/%s" % time.time()),
         args=output_plugin_args,
         token=data_store.default_token)
 

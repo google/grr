@@ -885,19 +885,6 @@ class MRUFolder(protodict.RDFValueArray):
   rdf_type = MRUFile
 
 
-class AFF4ObjectSummary(structs.RDFProtoStruct):
-  """A summary of an AFF4 object.
-
-  AFF4Collection objects maintain a list of AFF4 objects. To make it easier to
-  filter and search these collections, we need to store a summary of each AFF4
-  object inside the collection (so we do not need to open every object for
-  filtering).
-
-  This summary is maintained in the RDFProto instance.
-  """
-  protobuf = jobs_pb2.AFF4ObjectSummary
-
-
 class ClientCrash(structs.RDFProtoStruct):
   """Details of a client crash."""
   protobuf = jobs_pb2.ClientCrash

@@ -34,10 +34,6 @@ class ComponentObject(aff4.AFF4Object):
                                "The component of the client.")
 
 
-class AFF4CollectionView(rdf_protodict.RDFValueArray):
-  """A view specifies how an AFF4Collection is seen."""
-
-
 class RDFValueCollectionView(rdf_protodict.RDFValueArray):
   """A view specifies how an RDFValueCollection is seen."""
 
@@ -269,65 +265,6 @@ class RDFValueCollection(aff4.AFF4Object):
       raise RuntimeError("Index must be >= 0")
 
 
-class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
-  """A collection of AFF4 objects.
-
-  The AFF4 objects themselves are opened on demand from the data store. The
-  collection simply stores the RDFURNs of all aff4 objects in the collection.
-  """
-
-  _rdf_type = rdf_client.AFF4ObjectSummary
-
-  _behaviours = frozenset(["Collection"])
-
-  class SchemaCls(aff4.AFF4Volume.SchemaCls, RDFValueCollection.SchemaCls):
-    VIEW = aff4.Attribute(
-        "aff4:view",
-        AFF4CollectionView,
-        "The list of attributes which will show up in "
-        "the table.",
-        default="")
-
-  def CreateView(self, attributes):
-    """Given a list of attributes, update our view.
-
-    Args:
-      attributes: is a list of attribute names.
-    """
-    self.Set(self.Schema.VIEW(attributes))
-
-  def Query(self, filter_string="", subjects=None, limit=100):
-    """Filter the objects contained within this collection."""
-    if subjects is None:
-      subjects = set()
-      for obj in self:
-        if len(subjects) < limit:
-          subjects.add(obj.urn)
-        else:
-          break
-
-    else:
-      subjects = set(subjects[:limit])
-
-    if filter_string:
-      # Parse the query string
-      ast = aff4.AFF4QueryParser(filter_string).Parse()
-
-      # Query our own data store
-      filter_obj = ast.Compile(aff4.AFF4Filter)
-
-    # We expect RDFURN objects to be stored in this collection.
-    for subject in aff4.FACTORY.MultiOpen(subjects, token=self.token):
-      if filter_string and not filter_obj.FilterOne(subject):
-        continue
-
-      yield subject
-
-  def ListChildren(self, **_):
-    for aff4object_summary in self:
-      yield aff4object_summary.urn
-
-
 class GRRSignedBlobCollection(RDFValueCollection):
   _rdf_type = rdf_crypto.SignedBlob
 
@@ -555,8 +492,7 @@ class PackedVersionedCollection(RDFValueCollection):
         rdf_value.age = rdfvalue.RDFDatetime.Now()
 
       data_attrs.append(
-          cls.SchemaCls.DATA(
-              rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
+          cls.SchemaCls.DATA(rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
 
     attrs_to_set = {cls.SchemaCls.DATA: data_attrs}
     if cls.IsJournalingEnabled():

@@ -10,12 +10,6 @@ import time
 
 import mock
 
-# pylint: disable=unused-import,g-bad-import-order
-# Import this so that filters classes are initialized (used in Query tests).
-# TODO(user): deprecate Query support.
-from grr.lib.aff4_objects import filters
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -1287,126 +1281,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(flow_obj.session_id, session_ids[0])
 
     self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")
-
-  def testQuery(self):
-    """Test the AFF4Collection object."""
-    # First we create a fixture
-    client_id = "C.%016X" % 0
-    test_lib.ClientFixture(client_id, token=self.token)
-
-    fd = aff4.FACTORY.Open(
-        rdf_client.ClientURN(client_id).Add("/fs/os/c"), token=self.token)
-
-    # Test that we can match a unicode char.
-    matched = list(fd.Query(u"subject matches '中'"))
-    self.assertEqual(len(matched), 1)
-    self.assertEqual(
-        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/"
-        u"fs/os/c/中国新闻网新闻中")
-
-    # Test that we can match special chars.
-    matched = list(fd.Query(ur"subject matches '\]\['"))
-    self.assertEqual(len(matched), 1)
-    self.assertEqual(
-        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/"
-        u"fs/os/c/regex.*?][{}--")
-
-    # Test the OpenChildren function on files that contain regex chars.
-    fd = aff4.FACTORY.Open(
-        rdf_client.ClientURN(client_id).Add(r"/fs/os/c/regex\V.*?]xx[{}--"),
-        token=self.token)
-
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 1)
-    self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
-
-    # Test that OpenChildren works correctly on Unicode names.
-    fd = aff4.FACTORY.Open(
-        rdf_client.ClientURN(client_id).Add("/fs/os/c"), token=self.token)
-
-    children = list(fd.OpenChildren())
-    # All children must have a valid type.
-    for child in children:
-      self.assertNotEqual(child.Get(child.Schema.TYPE), "VFSVolume")
-
-    urns = [utils.SmartUnicode(x.urn) for x in children]
-    self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中" in urns)
-
-    fd = aff4.FACTORY.Open(
-        rdf_client.ClientURN(client_id).Add("/fs/os/c/中国新闻网新闻中"),
-        token=self.token)
-
-    children = list(fd.OpenChildren())
-    self.assertEqual(len(children), 1)
-    child = children[0]
-    self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
-
-    # This tests filtering through the AFF4Filter.
-    fd = aff4.FACTORY.Open(
-        rdf_client.ClientURN(client_id).Add("/fs/os/c/bin %s" % client_id),
-        token=self.token)
-
-    matched = list(
-        fd.Query("subject matches '%s/r?bash'" % utils.EscapeRegex(fd.urn)))
-    self.assertEqual(len(matched), 2)
-
-    matched.sort(key=lambda x: str(x.urn))
-    self.assertEqual(
-        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/fs/os/"
-        u"c/bin C.0000000000000000/bash")
-    self.assertEqual(
-        utils.SmartUnicode(matched[1].urn), u"aff4:/C.0000000000000000/fs/os/"
-        u"c/bin C.0000000000000000/rbash")
-
-  def testQueryWithTimestamp(self):
-    """Tests aff4 querying using timestamps."""
-    # First we create a fixture
-    client_id = "C.%016X" % 0
-    test_lib.ClientFixture(client_id, token=self.token)
-
-    file_url = rdf_client.ClientURN(client_id).Add("/fs/os/c/time/file.txt")
-    for t in [1000, 1500, 2000, 2500]:
-      with test_lib.FakeTime(t):
-        f = aff4.FACTORY.Create(
-            rdfvalue.RDFURN(file_url), aff4_grr.VFSFile, token=self.token)
-        f.write(str(t))
-        f.Close()
-
-    # The following tests occur sometime in the future (time 3000).
-    with test_lib.FakeTime(3000):
-      fd = aff4.FACTORY.Open(
-          rdf_client.ClientURN(client_id).Add("/fs/os/c/time"),
-          token=self.token)
-
-      # Query for all entries.
-      matched = list(fd.Query(u"subject matches 'file'", age=aff4.ALL_TIMES))
-      # A file and a MemoryStream containing the data.
-      self.assertEqual(len(matched), 1)
-      self.assertEqual(matched[0].read(100), "2500")
-
-      # Query for the latest entry.
-      matched = list(fd.Query(u"subject matches 'file'", age=aff4.NEWEST_TIME))
-      self.assertEqual(len(matched), 1)
-      self.assertEqual(matched[0].read(100), "2500")
-
-      # Query for a range 1250-2250.
-      matched = list(
-          fd.Query(
-              u"subject matches 'file'", age=(1250 * 1e6, 2250 * 1e6)))
-      self.assertEqual(len(matched), 1)
-      self.assertEqual(matched[0].read(100), "2000")
-
-      # Query for a range 1750-3250.
-      matched = list(
-          fd.Query(
-              u"subject matches 'file'", age=(1750 * 1e6, 3250 * 1e6)))
-      self.assertEqual(len(matched), 1)
-      self.assertEqual(matched[0].read(100), "2500")
-
-      # Query for a range 1600 and older.
-      matched = list(fd.Query(u"subject matches 'file'", age=(0, 1600 * 1e6)))
-      self.assertEqual(len(matched), 1)
-      self.assertEqual(matched[0].read(100), "1500")
 
   def testMultiOpen(self):
     root_urn = aff4.ROOT_URN.Add("path")

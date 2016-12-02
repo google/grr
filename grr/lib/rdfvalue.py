@@ -181,14 +181,6 @@ class RDFValue(object):
     """Return a list of fields which can be queried from this value."""
     return []
 
-  @staticmethod
-  def ContainsMatch(attribute, filter_implementation, regex):
-    return filter_implementation.GetFilter("PredicateContainsFilter")(attribute,
-                                                                      regex)
-
-  # The operators this type supports in the query language
-  operators = dict(contains=(1, "ContainsMatch"))
-
   def __eq__(self, other):
     return self._value == other
 
@@ -268,16 +260,6 @@ class RDFString(RDFBytes):
   data_store_type = "string"
 
   _value = u""
-
-  @staticmethod
-  def Startswith(attribute, filter_implementation, string):
-    return filter_implementation.GetFilter("PredicateContainsFilter")(
-        attribute, "^" + utils.EscapeRegex(string))
-
-  operators = RDFValue.operators.copy()
-  operators["matches"] = (1, "ContainsMatch")
-  operators["="] = (1, "ContainsMatch")
-  operators["startswith"] = (1, "Startswith")
 
   def format(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.format(*args, **kwargs)
@@ -434,27 +416,6 @@ class RDFInteger(RDFValue):
   def __hash__(self):
     return hash(self._value)
 
-  @staticmethod
-  def LessThan(attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateLessThanFilter")(
-        attribute, long(value))
-
-  @staticmethod
-  def GreaterThan(attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateGreaterThanFilter")(
-        attribute, long(value))
-
-  @staticmethod
-  def Equal(attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateNumericEqualFilter")(
-        attribute, long(value))
-
-  operators = {
-      "<": (1, "LessThan"),
-      ">": (1, "GreaterThan"),
-      "=": (1, "Equal")
-  }
-
 
 class RDFBool(RDFInteger):
   """Boolean value."""
@@ -602,36 +563,6 @@ class RDFDatetime(RDFInteger):
     timestamp = parser.parse(string, default=default)
 
     return calendar.timegm(timestamp.utctimetuple()) * cls.converter
-
-  @classmethod
-  def LessThanEq(cls, attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateLesserEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(
-            value, eoy=True))
-
-  @classmethod
-  def LessThan(cls, attribute, filter_implementation, value):
-    """For dates we want to recognize a variety of values."""
-    return filter_implementation.GetFilter("PredicateLesserEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(value))
-
-  @classmethod
-  def GreaterThanEq(cls, attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateGreaterEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(value))
-
-  @classmethod
-  def GreaterThan(cls, attribute, filter_implementation, value):
-    return filter_implementation.GetFilter("PredicateGreaterEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(
-            value, eoy=True))
-
-  operators = {
-      "<": (1, "LessThan"),
-      ">": (1, "GreaterThan"),
-      "<=": (1, "LessThanEq"),
-      ">=": (1, "GreaterThanEq")
-  }
 
 
 class RDFDatetimeSeconds(RDFDatetime):
@@ -1039,25 +970,6 @@ class RDFURN(RDFValue):
 
 class Subject(RDFURN):
   """A psuedo attribute representing the subject of an AFF4 object."""
-
-  @staticmethod
-  def ContainsMatch(unused_attribute, filter_implementation, regex):
-    return filter_implementation.GetFilter("SubjectContainsFilter")(regex)
-
-  @staticmethod
-  def Startswith(unused_attribute, filter_implementation, string):
-    return filter_implementation.GetFilter("SubjectContainsFilter")(
-        "^" + utils.EscapeRegex(string))
-
-  @staticmethod
-  def HasAttribute(unused_attribute, filter_implementation, string):
-    return filter_implementation.GetFilter("HasPredicateFilter")(string)
-
-  operators = dict(
-      matches=(1, "ContainsMatch"),
-      contains=(1, "ContainsMatch"),
-      startswith=(1, "Startswith"),
-      has=(1, "HasAttribute"))
 
 
 DEFAULT_FLOW_QUEUE = RDFURN("F")

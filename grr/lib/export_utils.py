@@ -249,11 +249,7 @@ def DownloadCollection(coll_path,
       source = grr_message.source
       grr_message = grr_message.payload
 
-    # Collections can contain AFF4ObjectSummary objects which encapsulate
-    # RDFURNs and StatEntrys.
-    if isinstance(grr_message, rdf_client.AFF4ObjectSummary):
-      urn = grr_message.urn
-    elif isinstance(grr_message, rdfvalue.RDFURN):
+    if isinstance(grr_message, rdfvalue.RDFURN):
       urn = grr_message
     elif isinstance(grr_message, rdf_client.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)

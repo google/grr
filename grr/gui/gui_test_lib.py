@@ -28,6 +28,7 @@ from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import client_index
 from grr.lib import data_store
+from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import stats
@@ -39,8 +40,11 @@ from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import tests_pb2
 from grr.server import foreman as rdf_foreman
 
 # A increasing sequence of times.
@@ -162,9 +166,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
 
     acrwac = api_call_router_with_approval_checks
     name = acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.__name__
-    self.config_override = test_lib.ConfigOverrider({
-        "API.DefaultRouter": name
-    })
+    self.config_override = test_lib.ConfigOverrider({"API.DefaultRouter": name})
     self.config_override.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -517,6 +519,20 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
     super(GRRSeleniumTest, self).DoAfterTestCheck()
     self.CheckJavascriptErrors()
 
+  def WaitForNotification(self, user):
+    sleep_time = 0.2
+    iterations = 50
+    for _ in xrange(iterations):
+      try:
+        fd = aff4.FACTORY.Open(user, users.GRRUser, mode="r", token=self.token)
+        pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
+        if pending_notifications:
+          return
+      except IOError:
+        pass
+      time.sleep(sleep_time)
+    self.fail("Notification for user %s never sent." % user)
+
 
 class GRRSeleniumHuntTest(GRRSeleniumTest):
   """Common functionality for hunt gui tests."""
@@ -646,3 +662,63 @@ class CanaryModeOverrider(object):
         token=self.token) as user:
       # Reset canary mode to original value.
       user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.original_canary_mode))
+
+
+class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.RecursiveTestFlowArgs
+
+
+class RecursiveTestFlow(flow.GRRFlow):
+  """A test flow which starts some subflows."""
+  args_type = RecursiveTestFlowArgs
+
+  # If a flow doesn't have a category, it can't be started/terminated by a
+  # non-supervisor user when FullAccessControlManager is used.
+  category = "/Test/"
+
+  @flow.StateHandler()
+  def Start(self):
+    if self.args.depth < 2:
+      for i in range(2):
+        self.Log("Subflow call %d", i)
+        self.CallFlow(
+            RecursiveTestFlow.__name__,
+            depth=self.args.depth + 1,
+            next_state="End")
+
+
+class FlowWithOneLogStatement(flow.GRRFlow):
+  """Flow that logs a single statement."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.Log("I do log.")
+
+
+class FlowWithOneStatEntryResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a StatEntry value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.SendReply(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
+
+
+class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a NetworkConnection value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.SendReply(rdf_client.NetworkConnection(pid=42))
+
+
+class FlowWithOneHashEntryResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a HashEntry value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    hash_result = rdf_crypto.Hash(
+        sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                "e4f06017acdb5").decode("hex"),
+        sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"))
+    self.SendReply(hash_result)

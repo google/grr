@@ -1740,21 +1740,6 @@ message EmbeddedRDFValue {
 }
 
 
-// This is a summary of an AFF4 object. It consists of the most important
-// attributes of some common AFF4 objects. It is used to store a summary in AFF4
-// collections for efficient searching and filtering - without needing to load
-// all this information from the data store.
-message AFF4ObjectSummary {
-  // The TYPE attribute.
-  optional string type = 1;
-  optional string urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of this AFF4 object.",
-    }];
-  optional StatEntry stat = 3;
-}
-
-
 message AuditEvent {
   optional int32 id = 1;
   optional string user = 2;

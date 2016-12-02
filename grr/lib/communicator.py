@@ -32,8 +32,6 @@ class CommunicatorInit(registry.InitHook):
 
     stats.STATS.RegisterCounterMetric(
         "grr_encrypted_cipher_cache", fields=[("type", str)])
-    stats.STATS.RegisterCounterMetric(
-        "grr_cipher_cache", fields=[("type", str)])
 
 
 class Error(stats.CountingExceptionMixin, Exception):
@@ -278,13 +276,13 @@ class Communicator(object):
     """Creates a communicator.
 
     Args:
-       certificate: Our own certificate in string form (as PEM).
-       private_key: Our own private key in string form (as PEM).
+       certificate: Our own certificate.
+       private_key: Our own private key.
     """
-    # A cache of cipher objects.
-    self.cipher_cache = utils.TimeBasedCache(max_age=24 * 3600)
     self.private_key = private_key
     self.certificate = certificate
+    self.server_cipher = None
+    self.server_cipher_age = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
 
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
@@ -303,6 +301,20 @@ class Communicator(object):
         signed_message_list.compression = (
             rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
         signed_message_list.message_list = compressed_data
+
+  def _GetServerCipher(self):
+    """Returns the cipher for self.server_name."""
+
+    if self.server_cipher is not None:
+      expiry = self.server_cipher_age + rdfvalue.Duration("1d")
+      if expiry > rdfvalue.RDFDatetime.Now():
+        return self.server_cipher
+
+    remote_public_key = self._GetRemotePublicKey(self.server_name)
+    self.server_cipher = Cipher(self.common_name, self.private_key,
+                                remote_public_key)
+    self.server_cipher_age = rdfvalue.RDFDatetime.Now()
+    return self.server_cipher
 
   def EncodeMessages(self,
                      message_list,
@@ -338,24 +350,22 @@ class Communicator(object):
     if api_version not in [3]:
       raise RuntimeError("Unsupported api version: %s, expected 3." %
                          api_version)
-
+    # TODO(user): This is actually not great, we have two
+    # communicator classes already, one for the client, one for the
+    # server. This should be different methods, not a single one that
+    # gets passed a destination (server side) or not (client side).
     if destination is None:
       destination = self.server_name
+      # For the client it makes sense to cache the server cipher since
+      # it's the only cipher it ever uses.
+      cipher = self._GetServerCipher()
+    else:
+      remote_public_key = self._GetRemotePublicKey(destination)
+      cipher = Cipher(self.common_name, self.private_key, remote_public_key)
 
     # Make a nonce for this transaction
     if timestamp is None:
       self.timestamp = timestamp = long(time.time() * 1000000)
-
-    # Do we have a cached cipher to talk to this destination?
-    try:
-      cipher = self.cipher_cache.Get(destination)
-      stats.STATS.IncrementCounter("grr_cipher_cache", fields=["hits"])
-    except KeyError:
-      stats.STATS.IncrementCounter("grr_cipher_cache", fields=["misses"])
-      # Make a new one
-      remote_public_key = self._GetRemotePublicKey(destination)
-      cipher = Cipher(self.common_name, self.private_key, remote_public_key)
-      self.cipher_cache.Put(destination, cipher)
 
     signed_message_list = rdf_flows.SignedMessageList(timestamp=timestamp)
     self.EncodeMessageList(message_list, signed_message_list)

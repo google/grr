@@ -621,25 +621,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """
     self._CheckFastPoll(True, config_lib.CONFIG["Client.poll_min"])
 
-  def testCachedRSAOperations(self):
-    """Make sure that expensive RSA operations are cached."""
-    # First time fill the cache.
-    self.SendToServer()
-    self.client_communicator.RunOnce()
-    self.CheckClientQueue()
-
-    metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
-    self.assertGreater(metric_value, 0)
-
-    for _ in range(10):
-      self.SendToServer()
-      self.client_communicator.RunOnce()
-      self.CheckClientQueue()
-
-    # There should not have been any expensive operations any more
-    self.assertEqual(
-        stats.STATS.GetMetricValue("grr_rsa_operations"), metric_value)
-
   def testCorruption(self):
     """Simulate corruption of the http payload."""
 

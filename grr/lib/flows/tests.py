@@ -32,7 +32,6 @@ from grr.lib.flows.general import memory_test
 from grr.lib.flows.general import network_test
 from grr.lib.flows.general import processes_test
 from grr.lib.flows.general import registry_test
-from grr.lib.flows.general import timelines_test
 from grr.lib.flows.general import transfer_test
 from grr.lib.flows.general import webhistory_test
 from grr.lib.flows.general import windows_vsc_test
