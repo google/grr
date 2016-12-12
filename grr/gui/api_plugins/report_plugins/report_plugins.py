@@ -57,3 +57,4 @@ REGISTRY = _Registry()
 # Server report plugins.
 
 REGISTRY.RegisterPlugin(server_report_plugins.MostActiveUsersReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.UserActivityReportPlugin)

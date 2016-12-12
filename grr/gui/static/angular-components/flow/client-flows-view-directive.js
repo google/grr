@@ -29,13 +29,18 @@ grrUi.flow.clientFlowsViewDirective.ClientFlowsViewController = function(
   this.selectedFlowId;
 
   /** @type {string} */
+  this.tab;
+
+  /** @type {string} */
   this.flowApiBasePath;
 
-  this.scope_.$watch('controller.selectedFlowId',
-                     this.onSelectedFlowIdChange_.bind(this));
+  this.scope_.$watchGroup(
+      ['controller.selectedFlowId', 'controller.tab'],
+      this.onSelectionOrTabChange_.bind(this));
 
-  this.grrRoutingService_.uiOnParamsChanged(this.scope_,
-      ['clientId', 'flowId'], this.onParamsChange_.bind(this));
+  this.grrRoutingService_.uiOnParamsChanged(
+      this.scope_, ['clientId', 'flowId', 'tab'],
+      this.onRoutingParamsChange_.bind(this));
 };
 var ClientFlowsViewController =
     grrUi.flow.clientFlowsViewDirective.ClientFlowsViewController;
@@ -44,26 +49,27 @@ var ClientFlowsViewController =
 /**
  * Handles changes to the client id state param.
  *
- * @param {Array} newValues The new values for the watched params.
+ * @param {Array} unused_newValues The new values for the watched params.
  * @param {Object=} opt_stateParams A dictionary of all state params and their values.
  * @private
  */
-ClientFlowsViewController.prototype.onParamsChange_ = function(newValues, opt_stateParams) {
+ClientFlowsViewController.prototype.onRoutingParamsChange_ = function(
+    unused_newValues, opt_stateParams) {
   this.clientId = opt_stateParams['clientId'];
   this.selectedFlowId = opt_stateParams['flowId'];
+  this.tab = opt_stateParams['tab'];
   this.flowApiBasePath = ['clients', this.clientId, 'flows'].join('/');
 };
 
 /**
  * Handles selectedFlowUrn binding changes.
  *
- * @param {?string} newValue New binding value.
  * @private
  */
-ClientFlowsViewController.prototype.onSelectedFlowIdChange_ = function(
-    newValue) {
-  if (angular.isDefined(newValue)) {
-    this.grrRoutingService_.go('client.flows', {flowId: newValue});
+ClientFlowsViewController.prototype.onSelectionOrTabChange_ = function() {
+  if (angular.isDefined(this.selectedFlowId)) {
+    this.grrRoutingService_.go('client.flows',
+                               {flowId: this.selectedFlowId, tab: this.tab});
   }
 };
 

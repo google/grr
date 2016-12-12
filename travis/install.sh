@@ -11,7 +11,7 @@ nodeenv -p --prebuilt
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"
 pip install -e .
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+if [[ "$TRAVIS_OS_NAME" == "linux" || "$TRAVIS_OS_NAME" == "osx" ]]; then
   pip install -e grr/config/grr-response-server/
 fi
 pip install -e grr/config/grr-response-test/

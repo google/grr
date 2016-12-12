@@ -5,6 +5,7 @@
 
 import stat
 
+from grr.client.client_actions import file_finder as file_finder_actions
 from grr.client.client_actions import searching as searching_actions
 from grr.client.client_actions import standard as standard_actions
 from grr.lib import flow
@@ -346,5 +347,51 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   @flow.StateHandler()
   def End(self, responses):
     super(FileFinder, self).End()
+
+    self.Log("Found and processed %d files.", self.state.files_found)
+
+
+class ClientFileFinder(flow.GRRFlow):
+  """A client side file finder flow."""
+
+  friendly_name = "Client Side File Finder"
+  category = "/Filesystem/"
+  args_type = rdf_file_finder.FileFinderArgs
+
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    _ = token
+    return cls.args_type(paths=[r"c:\windows\**\*.exe"])
+
+  @flow.StateHandler()
+  def Start(self):
+    """Issue the find request."""
+    super(ClientFileFinder, self).Start()
+
+    if self.args.pathtype != "OS":
+      raise ValueError("Only supported pathtype is OS.")
+
+    action = self.args.action
+    if action.action_type == "DOWNLOAD":
+      # TODO(user): Support download.
+      raise ValueError("Download not yet supported.")
+
+    self.CallClient(
+        file_finder_actions.FileFinderOS,
+        request=self.args,
+        next_state="StoreResults")
+
+  @flow.StateHandler()
+  def StoreResults(self, responses):
+    if not responses.success:
+      raise flow.FlowError(responses.status)
+
+    self.state.files_found = len(responses)
+    for response in responses:
+      self.SendReply(response)
+
+  @flow.StateHandler()
+  def End(self, responses):
+    super(ClientFileFinder, self).End()
 
     self.Log("Found and processed %d files.", self.state.files_found)

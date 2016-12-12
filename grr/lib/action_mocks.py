@@ -5,6 +5,7 @@ import socket
 
 from grr.client.client_actions import admin
 from grr.client.client_actions import components
+from grr.client.client_actions import file_finder
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
@@ -123,6 +124,13 @@ class FileFinderClientMock(ActionMock):
                                                standard.StatFile,
                                                standard.TransferBuffer, *args,
                                                **kwargs)
+
+
+class ClientFileFinderClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(ClientFileFinderClientMock, self).__init__(file_finder.FileFinderOS,
+                                                     *args, **kwargs)
 
 
 class MultiGetFileClientMock(ActionMock):

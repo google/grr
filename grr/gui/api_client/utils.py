@@ -6,6 +6,14 @@ import itertools
 from google.protobuf import symbol_database
 
 
+class Error(Exception):
+  pass
+
+
+class ProtobufTypeNotFound(Error):
+  pass
+
+
 class ItemsIterator(object):
   """Iterator object with a total_count property."""
 
@@ -110,7 +118,10 @@ def TypeUrlToMessage(type_url):
                      (TYPE_URL_PREFIX, type_url))
 
   full_name = type_url[len(TYPE_URL_PREFIX):]
-  return symbol_database.Default().GetSymbol(full_name)()
+  try:
+    return symbol_database.Default().GetSymbol(full_name)()
+  except KeyError as e:
+    raise ProtobufTypeNotFound(e.message)
 
 
 def CopyProto(proto):
@@ -119,7 +130,20 @@ def CopyProto(proto):
   return new_proto
 
 
+class UnknownProtobuf(object):
+
+  def __init__(self, proto_type, proto_any):
+    super(UnknownProtobuf, self).__init__()
+
+    self.type = proto_type
+    self.original_value = proto_any
+
+
 def UnpackAny(proto_any):
-  proto = TypeUrlToMessage(proto_any.type_url)
+  try:
+    proto = TypeUrlToMessage(proto_any.type_url)
+  except ProtobufTypeNotFound as e:
+    return UnknownProtobuf(e.message, proto_any)
+
   proto_any.Unpack(proto)
   return proto

@@ -152,6 +152,111 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             RepresentationType.PIE_CHART,
             pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[])))
 
+  def testUserActivityReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          "Fake audit description 14 Dec.",
+          "C.123",
+          "User123",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for _ in xrange(10):
+        AddFakeAuditLog(
+            "Fake audit description 22 Dec.",
+            "C.123",
+            "User123",
+            token=self.token)
+
+      AddFakeAuditLog(
+          "Fake audit description 22 Dec.",
+          "C.456",
+          "User456",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/31")):
+      report = server_report_plugins.UserActivityReportPlugin()
+
+      api_report_data = report.GetReportData(
+          stats_api.ApiGetReportArgs(name=report.__class__.__name__),
+          token=self.token)
+
+      # pyformat: disable
+      self.assertEqual(
+          api_report_data,
+          rdf_report_plugins.ApiReportData(
+              representation_type=rdf_report_plugins.ApiReportData.
+              RepresentationType.STACK_CHART,
+              stack_chart=rdf_report_plugins.ApiStackChartReportData(
+                  data=[
+                      rdf_report_plugins.ApiReportDataSeries2D(
+                          label=u"User123",
+                          points=[
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-10, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-9, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-8, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-7, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-6, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-5, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-4, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-3, y=1),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-2, y=10),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-1, y=0)
+                          ]
+                      ),
+                      rdf_report_plugins.ApiReportDataSeries2D(
+                          label=u"User456",
+                          points=[
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-10, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-9, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-8, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-7, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-6, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-5, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-4, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-3, y=0),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-2, y=1),
+                              rdf_report_plugins.ApiReportDataPoint2D(
+                                  x=-1, y=0)
+                          ])])))
+      # pyformat: enable
+
+  def testUserActivityReportPluginWithNoActivityToReport(self):
+    report = server_report_plugins.UserActivityReportPlugin()
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(name=report.__class__.__name__),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[])))
+
 
 def main(argv):
   test_lib.main(argv)

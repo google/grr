@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
+import errno
 import fnmatch
 import functools
 import itertools
@@ -8,6 +9,8 @@ import os
 import platform
 import re
 import stat
+
+import psutil
 
 import logging
 
@@ -35,9 +38,10 @@ class Component(object):
 class RecursiveComponent(Component):
   """A recursive component."""
 
-  def __init__(self, depth, follow_links=False):
+  def __init__(self, depth, follow_links=False, mountpoints_blacklist=None):
     self.depth = depth
     self.follow_links = follow_links
+    self.mountpoints_blacklist = mountpoints_blacklist
 
   def Generate(self, base_path):
     for f in self._Generate(base_path, []):
@@ -47,14 +51,14 @@ class RecursiveComponent(Component):
     """Generates the relative filenames."""
 
     new_base = os.path.join(base_path, *relative_components)
+    if not relative_components:
+      yield new_base
     try:
       filenames = os.listdir(new_base)
     except OSError as e:
-      # Not a file, not a directory, invalid directory.
-      if e.errno in [2, 20, 22]:
-        return
-      else:
-        raise
+      if e.errno == errno.EACCES:  # permission denied.
+        logging.info(e)
+      return
 
     for f in filenames:
       new_components = relative_components + [f]
@@ -65,12 +69,15 @@ class RecursiveComponent(Component):
           filename = os.path.join(base_path, relative_name)
           stat_entry = os.stat(filename)
           if stat.S_ISDIR(stat_entry.st_mode):
+            if filename in self.mountpoints_blacklist:
+              continue
             if (self.follow_links or
                 not stat.S_ISLNK(os.lstat(filename).st_mode)):
               for res in self._Generate(base_path, new_components):
                 yield res
         except OSError as e:
-          logging.info(e)
+          if e.errno not in [errno.ENOENT, errno.ENOTDIR, errno.EINVAL]:
+            logging.info(e)
 
   def __str__(self):
     return "%s:%s" % (self.__class__, self.depth)
@@ -88,11 +95,8 @@ class RegexComponent(Component):
         if self.regex.match(f):
           yield f
     except OSError as e:
-      # Not a file, not a directory, invalid directory.
-      if e.errno in [2, 20, 22]:
-        pass
-      else:
-        raise
+      if e.errno == errno.EACCES:  # permission denied.
+        logging.error(e)
 
   def __str__(self):
     return "%s:%s" % (self.__class__, self.regex)
@@ -132,7 +136,20 @@ class FileFinderOS(actions.ActionPlugin):
     self.follow_links = args.follow_links
     self.process_non_regular_files = args.process_non_regular_files
 
-    # TODO(user): Add xdev support.
+    # Generate a list of mount points where we stop recursive searches.
+    if args.xdev == args.XDev.NEVER:
+      # Never cross device boundaries, stop at all mount points.
+      self.mountpoints_blacklist = set(
+          [p.mountpoint for p in psutil.disk_partitions(all=True)])
+    elif args.xdev == args.XDev.LOCAL:
+      # Descend into file systems on physical devices only.
+      self.mountpoints_blacklist = (
+          set([p.mountpoint for p in psutil.disk_partitions(all=True)]) - set(
+              [p.mountpoint for p in psutil.disk_partitions(all=False)]))
+    elif args.xdev == args.XDev.ALWAYS:
+      # Never stop at any device boundary.
+      self.mountpoints_blacklist = set()
+
     for fname in self.CollectGlobs(args.paths):
       self.Progress()
       self.conditions = self.ParseConditions(args)
@@ -370,7 +387,9 @@ class FileFinderOS(actions.ActionPlugin):
           depth = int(m.group(1))
 
         component = RecursiveComponent(
-            depth=depth, follow_links=self.follow_links)
+            depth=depth,
+            follow_links=self.follow_links,
+            mountpoints_blacklist=self.mountpoints_blacklist)
 
       elif self.GLOB_MAGIC_CHECK.search(path_component):
         component = RegexComponent(fnmatch.translate(path_component))
@@ -513,18 +532,12 @@ class FileFinderOS(actions.ActionPlugin):
         type_enum.CONTENTS_LITERAL_MATCH: 1,
     }
     condition_handlers = {
-        type_enum.MODIFICATION_TIME:
-            self.ModificationTimeCondition,
-        type_enum.ACCESS_TIME:
-            self.AccessTimeCondition,
-        type_enum.INODE_CHANGE_TIME:
-            self.InodeChangeTimeCondition,
-        type_enum.SIZE:
-            self.SizeCondition,
-        type_enum.CONTENTS_REGEX_MATCH:
-            self.ContentsRegexMatchCondition,
-        type_enum.CONTENTS_LITERAL_MATCH:
-            self.ContentsLiteralMatchCondition
+        type_enum.MODIFICATION_TIME: self.ModificationTimeCondition,
+        type_enum.ACCESS_TIME: self.AccessTimeCondition,
+        type_enum.INODE_CHANGE_TIME: self.InodeChangeTimeCondition,
+        type_enum.SIZE: self.SizeCondition,
+        type_enum.CONTENTS_REGEX_MATCH: self.ContentsRegexMatchCondition,
+        type_enum.CONTENTS_LITERAL_MATCH: self.ContentsLiteralMatchCondition
     }
 
     sorted_conditions = sorted(

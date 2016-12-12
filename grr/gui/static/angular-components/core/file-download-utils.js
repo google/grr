@@ -9,14 +9,12 @@ goog.provide('grrUi.core.fileDownloadUtils.vfsRoots');
 goog.scope(function() {
 
 
-var fileDownloadUtils = grrUi.core.fileDownloadUtils;
-
 /**
   * List of VFS roots that are accessible through Browse VFS UI.
   *
   * @const {Array<string>}
   */
-fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
+grrUi.core.fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
 
 /**
   * List of VFS roots that contain files that can be downloaded
@@ -24,7 +22,7 @@ fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
   *
   * @const {Array<string>}
   */
-fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
+grrUi.core.fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
 
 /**
  * Returns AFF4 path of a file that a given value points to.
@@ -34,7 +32,7 @@ fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
  *     if there's none.
  * @export
  */
-fileDownloadUtils.getFileUrnFromValue = function(value) {
+grrUi.core.fileDownloadUtils.getFileUrnFromValue = function(value) {
   if (!value) {
     return null;
   }
@@ -48,10 +46,12 @@ fileDownloadUtils.getFileUrnFromValue = function(value) {
     return value['value']['aff4path']['value'];
 
     case 'FileFinderResult':
-    return value['value']['stat_entry']['value']['aff4path']['value'];
-
+    if (angular.isDefined(value['value']['stat_entry']['value']['aff4path'])) {
+      return value['value']['stat_entry']['value']['aff4path']['value'];
+    }
+    return null;
     case 'ArtifactFilesDownloaderResult':
-    return fileDownloadUtils.getFileUrnFromValue(
+    return grrUi.core.fileDownloadUtils.getFileUrnFromValue(
         value['value']['downloaded_file']);
 
     default:
@@ -60,7 +60,7 @@ fileDownloadUtils.getFileUrnFromValue = function(value) {
 };
 
 
-fileDownloadUtils.makeStatEntryDownloadable_ = function(
+grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_ = function(
     value, downloadUrl, downloadParams) {
   value['value']['aff4path'] = {
     type: '__DownloadableUrn',
@@ -71,21 +71,21 @@ fileDownloadUtils.makeStatEntryDownloadable_ = function(
 };
 
 
-fileDownloadUtils.makeFileFinderResultDownloadable_ = function(
+grrUi.core.fileDownloadUtils.makeFileFinderResultDownloadable_ = function(
     value, downloadUrl, downloadParams) {
-  fileDownloadUtils.makeStatEntryDownloadable_(
+  grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_(
       value['value']['stat_entry'], downloadUrl, downloadParams);
 };
 
 
-fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_ = function(
+grrUi.core.fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_ = function(
     value, downloadUrl, downloadParams) {
-  fileDownloadUtils.makeValueDownloadable(
+  grrUi.core.fileDownloadUtils.makeValueDownloadable(
       value['value']['downloaded_file'], downloadUrl, downloadParams);
 };
 
 
-fileDownloadUtils.makeValueDownloadable = function(
+grrUi.core.fileDownloadUtils.makeValueDownloadable = function(
     value, downloadUrl, downloadParams) {
   if (!value) {
     return false;
@@ -97,17 +97,17 @@ fileDownloadUtils.makeValueDownloadable = function(
 
   switch (value['type']) {
     case 'StatEntry':
-    fileDownloadUtils.makeStatEntryDownloadable_(
+    grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_(
         value, downloadUrl, downloadParams);
     return true;
 
     case 'FileFinderResult':
-    fileDownloadUtils.makeFileFinderResultDownloadable_(
+    grrUi.core.fileDownloadUtils.makeFileFinderResultDownloadable_(
         value, downloadUrl, downloadParams);
     return true;
 
     case 'ArtifactFilesDownloaderResult':
-    fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_(
+    grrUi.core.fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_(
         value, downloadUrl, downloadParams);
     return true;
 

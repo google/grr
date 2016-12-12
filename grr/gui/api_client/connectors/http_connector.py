@@ -2,7 +2,6 @@
 """HTTP API connector implementation."""
 
 import collections
-import itertools
 import json
 import urlparse
 
@@ -46,7 +45,7 @@ class HttpConnector(connector.Connector):
 
     self.api_endpoint = api_endpoint
     self.auth = auth
-    self.page_size = page_size or self.DEFAULT_PAGE_SIZE
+    self._page_size = page_size or self.DEFAULT_PAGE_SIZE
 
     self.csrf_token = None
 
@@ -220,6 +219,10 @@ class HttpConnector(connector.Connector):
         cookies=cookies,
         auth=self.auth)
 
+  @property
+  def page_size(self):
+    return self._page_size
+
   def SendRequest(self, handler_name, args):
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
@@ -242,42 +245,6 @@ class HttpConnector(connector.Connector):
       result = utils.TypeUrlToMessage(default_value.type_url)
       json_format.Parse(json_str, result)
       return result
-
-  def _GeneratePages(self, handler_name, args):
-    offset = args.offset
-
-    while True:
-      args_copy = utils.CopyProto(args)
-      args_copy.offset = offset
-      args_copy.count = self.page_size
-      result = self.SendRequest(handler_name, args_copy)
-
-      yield result
-
-      if not result.items:
-        break
-
-      offset += self.page_size
-
-  def SendIteratorRequest(self, handler_name, args):
-    if not args or not hasattr(args, "count"):
-      result = self.SendRequest(handler_name, args)
-      total_count = getattr(result, "total_count", None)
-      return utils.ItemsIterator(items=result.items, total_count=total_count)
-    else:
-      pages = self._GeneratePages(handler_name, args)
-
-      first_page = pages.next()
-      total_count = getattr(first_page, "total_count", None)
-
-      next_pages_items = itertools.chain.from_iterable(
-          itertools.imap(lambda p: p.items, pages))
-      all_items = itertools.chain(first_page.items, next_pages_items)
-
-      if args.count:
-        all_items = itertools.islice(all_items, args.count)
-
-      return utils.ItemsIterator(items=all_items, total_count=total_count)
 
   def SendStreamingRequest(self, handler_name, args):
     self._InitializeIfNeeded()

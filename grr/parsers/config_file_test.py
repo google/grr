@@ -595,7 +595,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
     server 1.2.3.4 iburst
     server 4.5.6.7 iburst
     server 8.9.10.11 iburst
-    server pool.ntp.org iburst
+    server time.google.com iburst
     server 2001:1234:1234:2::f iburst
 
     # Drift file
@@ -640,7 +640,8 @@ class NtpParserTests(test_lib.GRRBaseTest):
 
     # Check we got all the "servers".
     servers = [
-        "1.2.3.4", "4.5.6.7", "8.9.10.11", "pool.ntp.org", "2001:1234:1234:2::f"
+        "1.2.3.4", "4.5.6.7", "8.9.10.11", "time.google.com",
+        "2001:1234:1234:2::f"
     ]
     self.assertItemsEqual(servers, [r.address for r in results.server])
     # In our test data, they all have "iburst" as an arg. Check that is found.

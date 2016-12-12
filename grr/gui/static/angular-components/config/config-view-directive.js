@@ -5,9 +5,6 @@ goog.provide('grrUi.config.configViewDirective.ConfigViewDirective');
 
 goog.scope(function() {
 
-var directive = grrUi.config.configViewDirective;
-
-
 
 /**
  * Controller for ConfigViewDirective.
@@ -17,7 +14,7 @@ var directive = grrUi.config.configViewDirective;
  * @param {!angular.$http} $http Angular HTTP service.
  * @ngInject
  */
-directive.ConfigViewController = function($scope, $http) {
+grrUi.config.configViewDirective.ConfigViewController = function($scope, $http) {
   $http.get('/api/config').then(function(config) {
     this.items = {};
 
@@ -32,14 +29,14 @@ directive.ConfigViewController = function($scope, $http) {
     }.bind(this));
   }.bind(this));
 };
-var ConfigViewController = directive.ConfigViewController;
+var ConfigViewController = grrUi.config.configViewDirective.ConfigViewController;
 
 
 /**
  * ConfigViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-directive.ConfigViewDirective = function() {
+grrUi.config.configViewDirective.ConfigViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},

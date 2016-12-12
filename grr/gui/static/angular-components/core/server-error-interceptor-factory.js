@@ -7,16 +7,16 @@ goog.scope(function() {
 
 var ERROR_EVENT_NAME = grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 var INTERCEPTED_STATUS_CODES = [500];
-var module = grrUi.core.serverErrorInterceptorFactory;
 
 
 /**
  * Checks if a response needs to be intercepted.
  *
  * @param {{status: number}} response
+ * @return {boolean} Whether interception is needed or not.
  * @private
  */
-module.needsInterception_ = function(response) {
+grrUi.core.serverErrorInterceptorFactory.needsInterception_ = function(response) {
   return INTERCEPTED_STATUS_CODES.indexOf(response.status) !== -1;
 };
 
@@ -27,7 +27,7 @@ module.needsInterception_ = function(response) {
  * @return {{message: string, traceBack: string}} A server error object
  * @private
  */
-module.extractError_ = function(response) {
+grrUi.core.serverErrorInterceptorFactory.extractError_ = function(response) {
   var data = response.data || {};
   return {
     message: data.message || 'Unknown Server Error',
@@ -41,14 +41,15 @@ module.extractError_ = function(response) {
  *
  * @param {!angular.Scope} $rootScope
  * @param {!angular.$q} $q
+ * @return {*} Server error interceptor.
  * @constructor
  * @ngInject
  */
-module.ServerErrorInterceptorFactory = function($rootScope, $q) {
+grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory = function($rootScope, $q) {
   return {
     responseError: function(response) {
-      if(module.needsInterception_(response)) {
-        var error = module.extractError_(response);
+      if(grrUi.core.serverErrorInterceptorFactory.needsInterception_(response)) {
+        var error = grrUi.core.serverErrorInterceptorFactory.extractError_(response);
         $rootScope.$broadcast(ERROR_EVENT_NAME, error);
       }
       return $q.reject(response);
@@ -57,7 +58,7 @@ module.ServerErrorInterceptorFactory = function($rootScope, $q) {
 };
 
 var ServerErrorInterceptorFactory =
-  module.ServerErrorInterceptorFactory;
+  grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory;
 
 
 /**

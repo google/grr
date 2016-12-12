@@ -5,8 +5,6 @@ goog.provide('grrUi.user.userNotificationDialogDirective.UserNotificationDialogD
 
 goog.scope(function() {
 
-var module = grrUi.user.userNotificationDialogDirective;
-
 
 /**
  * Controller for UserNotificationDialogDirective.
@@ -15,7 +13,7 @@ var module = grrUi.user.userNotificationDialogDirective;
  * @constructor
  * @ngInject
  */
-module.UserNotificationDialogController =
+grrUi.user.userNotificationDialogDirective.UserNotificationDialogController =
   function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -24,17 +22,18 @@ module.UserNotificationDialogController =
   this.notificationUrl = 'users/me/notifications';
 };
 
-var UserNotificationDialogController = module.UserNotificationDialogController;
+var UserNotificationDialogController = grrUi.user.userNotificationDialogDirective.UserNotificationDialogController;
 
 
 /**
  * Directive for showing the notification dialog.
  *
+ * @return {angular.Directive} Directive definition object.
  * @constructor
  * @ngInject
  * @export
  */
-module.UserNotificationDialogDirective = function() {
+grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective = function() {
   return {
     scope: {
       close: '&'
@@ -53,7 +52,7 @@ module.UserNotificationDialogDirective = function() {
  * @const
  * @export
  */
-module.UserNotificationDialogDirective.directive_name =
+grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective.directive_name =
   'grrUserNotificationDialog';
 
 

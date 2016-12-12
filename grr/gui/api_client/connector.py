@@ -4,10 +4,11 @@
 
 class Connector(object):
 
-  def SendRequest(self, handler_name, args):
+  @property
+  def page_size(self):
     raise NotImplementedError()
 
-  def SendIteratorRequest(self, handler_name, args):
+  def SendRequest(self, handler_name, args):
     raise NotImplementedError()
 
   def SendStreamingRequest(self, handler_name, args):

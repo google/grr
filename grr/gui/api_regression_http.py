@@ -48,7 +48,7 @@ class HttpApiRegressionTestMixinBase(object):
       trd = django_lib.DjangoThread(port)
       trd.StartAndWaitUntilServing()
 
-      endpoint = ("http://localhost:%s" % port)
+      endpoint = "http://localhost:%d" % port
       HttpApiRegressionTestMixinBase._connector = http_connector.HttpConnector(
           api_endpoint=endpoint)
 

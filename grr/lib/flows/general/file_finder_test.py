@@ -827,6 +827,36 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.read(100), "This file has no ads")
 
 
+class TestClientFileFinderFlow(test_lib.FlowTestsBaseclass):
+  """Test the ClientFileFinder flow."""
+
+  def testClientFileFinder(self):
+    paths = [os.path.join(self.base_path, "**/*.plist")]
+    action = rdf_file_finder.FileFinderAction.Action.STAT
+    for s in test_lib.TestFlowHelper(
+        "ClientFileFinder",
+        action_mocks.ClientFileFinderClientMock(),
+        client_id=self.client_id,
+        paths=paths,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        action=rdf_file_finder.FileFinderAction(action_type=action),
+        process_non_regular_files=True,
+        token=self.token):
+      session_id = s
+
+    collection = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    results = list(collection)
+    self.assertEqual(len(results), 4)
+    relpaths = [
+        os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
+        for p in results
+    ]
+    self.assertListEqual(relpaths, [
+        "History.plist", "History.xml.plist", "test.plist",
+        "parser_test/com.google.code.grr.plist"
+    ])
+
+
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)

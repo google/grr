@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """Tests the client file finder action."""
+
+import collections
 import glob
 import hashlib
 import os
 import shutil
+
+import psutil
 
 from grr.client.client_actions import file_finder as client_file_finder
 from grr.lib import flags
@@ -39,7 +43,12 @@ class FileFinderTest(test_lib.EmptyActionTest):
         for result in raw_results
     ]
 
-  def _RunFileFinder(self, paths, action, conditions=None, follow_links=True):
+  def _RunFileFinder(self,
+                     paths,
+                     action,
+                     conditions=None,
+                     follow_links=True,
+                     **kw):
     return self.RunAction(
         client_file_finder.FileFinderOS,
         arg=rdf_file_finder.FileFinderArgs(
@@ -47,7 +56,8 @@ class FileFinderTest(test_lib.EmptyActionTest):
             action=action,
             conditions=conditions,
             process_non_regular_files=True,
-            follow_links=follow_links))
+            follow_links=follow_links,
+            **kw))
 
   def testFileFinder(self):
     paths = [self.base_path + "/*"]
@@ -197,10 +207,12 @@ class FileFinderTest(test_lib.EmptyActionTest):
                   conditions=None,
                   expected=None,
                   unexpected=None,
-                  base_path=None):
+                  base_path=None,
+                  **kw):
     action = action or self.stat_action
 
-    raw_results = self._RunFileFinder(paths, action, conditions=conditions)
+    raw_results = self._RunFileFinder(
+        paths, action, conditions=conditions, **kw)
     relative_results = self._GetRelativeResults(
         raw_results, base_path=base_path)
 
@@ -540,6 +552,57 @@ class FileFinderTest(test_lib.EmptyActionTest):
         expected=["dpkg.log", "dpkg_false.log"],
         unexpected=["auth.log"],
         base_path=test_dir)
+
+  def testXDEV(self):
+    test_dir = os.path.join(self.temp_dir, "xdev_test")
+    local_dev_dir = os.path.join(test_dir, "local_dev")
+    net_dev_dir = os.path.join(test_dir, "net_dev")
+
+    os.mkdir(test_dir)
+    os.mkdir(local_dev_dir)
+    os.mkdir(net_dev_dir)
+
+    local_file = os.path.join(local_dev_dir, "local_file")
+    net_file = os.path.join(net_dev_dir, "net_file")
+    with open(local_file, "wb") as fd:
+      fd.write("local_data")
+    with open(net_file, "wb") as fd:
+      fd.write("net_data")
+
+    all_mountpoints = [local_dev_dir, net_dev_dir, "/some/other/dir"]
+    local_mountpoints = [local_dev_dir]
+
+    def MyDiskPartitions(all=False):  # pylint: disable=redefined-builtin
+      mp = collections.namedtuple("MountPoint", ["mountpoint"])
+      if all:
+        return [mp(mountpoint=m) for m in all_mountpoints]
+      else:
+        return [mp(mountpoint=m) for m in local_mountpoints]
+
+    with utils.Stubber(psutil, "disk_partitions", MyDiskPartitions):
+      paths = [test_dir + "/**5"]
+      self.RunAndCheck(
+          paths,
+          expected=[
+              "local_dev", "local_dev/local_file", "net_dev", "net_dev/net_file"
+          ],
+          unexpected=[],
+          base_path=test_dir,
+          xdev="ALWAYS")
+
+      self.RunAndCheck(
+          paths,
+          expected=["local_dev", "local_dev/local_file", "net_dev"],
+          unexpected=["net_dev/net_file"],
+          base_path=test_dir,
+          xdev="LOCAL")
+
+      self.RunAndCheck(
+          paths,
+          expected=["local_dev", "net_dev"],
+          unexpected=["local_dev/local_file", "net_dev/net_file"],
+          base_path=test_dir,
+          xdev="NEVER")
 
 
 def main(argv):

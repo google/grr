@@ -1598,7 +1598,7 @@ message FileFinderAction {
   optional FileFinderStatActionOptions stat = 4;
 }
 
-// Next field ID: 9
+// Next field ID: 10
 message FileFinderArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -1634,7 +1634,21 @@ message FileFinderArgs {
   optional bool follow_links = 8 [(sem_type) = {
       description: "Should symbolic links be followed in recursive directory"
       " listings.",
-    }, default = true];
+      label: ADVANCED,
+    }, default = false];
+
+  enum XDev {
+    NEVER = 0 [(description) = "Never cross device boundaries."];
+    ALWAYS = 1 [(description) = "Always cross device boundaries."];
+    LOCAL = 2 [(description) = "Descend into file systems on physical devices "
+               "only."];
+  }
+
+  optional XDev xdev = 9 [(sem_type) = {
+      description: "Behavior when ecountering device boundaries while doing "
+      "recursive searches.",
+      label: ADVANCED,
+    }, default = LOCAL];
 }
 
 // TODO(user): This needs a bit more structure. There should be one

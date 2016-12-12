@@ -16,20 +16,20 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "^1.5.7",
-    "angular-animate": "^1.5.7",
-    "angular-cookies": "^1.5.7",
-    "angular-resource": "^1.5.7",
-    "jquery": "^1.9.1",
-    "font-awesome": "^4.6.3",
-    "jstree": "^3.3.1",
-    "Flot": "flot#^0.8.3",
+    "angular": "1.5.8",
+    "angular-animate": "1.5.8",
+    "angular-cookies": "1.5.8",
+    "angular-resource": "1.5.8",
+    "jquery": "1.12.4",
+    "font-awesome": "4.6.3",
+    "jstree": "3.3.2",
+    "Flot": "flot#0.8.3",
     "jquery-migrate": "https://code.jquery.com/jquery-migrate-1.4.1.js",
-    "moment": "^2.14.1",
-    "bootstrap": "^3.3.6",
+    "moment": "2.14.1",
+    "bootstrap": "3.3.6",
     "angular-bootstrap": "0.14.3",
-    "angular-ui-router": "0.2.13",
-    "jquery-ui": "^1.11.4"
+    "angular-ui-router": "0.2.18",
+    "jquery-ui": "1.11.4"
   },
   "devDependencies": {
     "closure-compiler": "https://dl.google.com/closure-compiler/compiler-20160619.zip",

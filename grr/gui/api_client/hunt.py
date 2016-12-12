@@ -83,7 +83,10 @@ class HuntResult(object):
     self.client = client.ClientRef(
         client_id=utils.UrnStringToClientId(data.client_id), context=context)
     self.timestamp = data.timestamp
-    self.payload = utils.UnpackAny(data.payload)
+
+  @property
+  def payload(self):
+    return utils.UnpackAny(self.data.payload)
 
 
 class HuntBase(object):

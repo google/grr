@@ -13,7 +13,10 @@ class FlowResult(object):
     self.data = data
 
     self.timestamp = data.timestamp
-    self.payload = utils.UnpackAny(data.payload)
+
+  @property
+  def payload(self):
+    return utils.UnpackAny(self.data.payload)
 
 
 class FlowBase(object):

@@ -1148,6 +1148,18 @@ message ApiStackChartReportData {
   repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
       description: "What the report contains."
     }];
+
+  repeated ApiReportTickSpecifier x_ticks = 2 [(sem_type) = {
+      description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
+    }];
+
+  repeated ApiReportTickSpecifier y_ticks = 3 [(sem_type) = {
+      description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
+    }];
+
+  optional float bar_width = 4 [(sem_type) = {
+      description: "Width of the bars displayed on the chart."
+    }];
 }
 
 message ApiPieChartReportData {
@@ -1175,6 +1187,11 @@ message ApiReportDataSeries2D {
 message ApiReportDataPoint2D {
   optional float x = 1;
   optional float y = 2;
+}
+
+message ApiReportTickSpecifier {
+  optional float x = 1;
+  optional string label = 2;
 }
 
 message ApiListReportsResult {

@@ -12,7 +12,6 @@ goog.require('grrUi.core.utils.stripAff4Prefix');
 
 goog.scope(function() {
 
-var module = grrUi.user.userNotificationItemDirective;
 var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
 var getLastPathComponent = grrUi.core.utils.getLastPathComponent;
 var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
@@ -37,7 +36,7 @@ grrUi.user.userNotificationItemDirective.openReference =
     return false;
   }
 };
-var openReference = module.openReference;
+var openReference = grrUi.user.userNotificationItemDirective.openReference;
 
 /**
  * Prepares the notification for displaying.
@@ -54,7 +53,7 @@ grrUi.user.userNotificationItemDirective.annotateApiNotification =
         notification['value']['reference']['value']['type']['value'];
   }
 };
-var annotateApiNotification = module.annotateApiNotification;
+var annotateApiNotification = grrUi.user.userNotificationItemDirective.annotateApiNotification;
 
 /**
  * Creates a link for the notification.
@@ -147,7 +146,7 @@ var getFileIdFromFullPath_ = function(vfsPath) {
  * @constructor
  * @ngInject
  */
-module.UserNotificationItemController =
+grrUi.user.userNotificationItemDirective.UserNotificationItemController =
   function($scope, $window) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -158,7 +157,7 @@ module.UserNotificationItemController =
   this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
 };
 
-var UserNotificationItemController = module.UserNotificationItemController;
+var UserNotificationItemController = grrUi.user.userNotificationItemDirective.UserNotificationItemController;
 
 
 /**
@@ -187,11 +186,12 @@ UserNotificationItemController.prototype.openReference = function() {
 /**
  * Directive for showing a notification.
  *
+ * @return {angular.Directive} Directive definition object.
  * @constructor
  * @ngInject
  * @export
  */
-module.UserNotificationItemDirective = function() {
+grrUi.user.userNotificationItemDirective.UserNotificationItemDirective = function() {
   return {
     scope: {
       notification: '=',
@@ -211,7 +211,7 @@ module.UserNotificationItemDirective = function() {
  * @const
  * @export
  */
-module.UserNotificationItemDirective.directive_name =
+grrUi.user.userNotificationItemDirective.UserNotificationItemDirective.directive_name =
   'grrUserNotificationItem';
 
 

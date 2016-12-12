@@ -199,10 +199,11 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       }
     })
     .state('client.flows', {
-      url: '/flows/:flowId',
+      url: '/flows/:flowId/:tab',
       template: '<grr-client-flows-view />',
       params: {
-        flowId: { value: null, squash: true }
+        flowId: { value: null, squash: true },
+        tab: { value: null, squash: true }
       },
       title: function(params) {
         if (params['flowId']) {

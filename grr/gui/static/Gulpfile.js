@@ -173,7 +173,7 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
             'uselessCode',
             'visibility'
           ],
-          language_in: 'ECMASCRIPT5_STRICT',
+          language_out: 'ECMASCRIPT5_STRICT',
           create_source_map: config.distDir + '/grr-ui.bundle.js.map',
           source_map_format: 'V3'
         }

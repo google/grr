@@ -5,23 +5,31 @@
   </div>
 
   <tabset ng-if="flowId">
-    <tab heading="Flow Information">
-      <grr-flow-overview flow-id="flowId" api-base-path="apiBasePath" />
+    <tab heading="Flow Information"
+         select="controller.activeTab = null">
+      <grr-flow-overview flow-id="flowId" api-base-path="apiBasePath"
+                         ng-if="!controller.activeTab" />
     </tab>
 
-    <tab heading="Requests" select="requestsTabShown = true">
+    <tab heading="Requests"
+         select="controller.activeTab = 'requests'"
+         active="controller['requests']">
       <grr-flow-requests flow-id="flowId" api-base-path="apiBasePath"
-                         ng-if="requestsTabShown" />
+                         ng-if="controller.activeTab === 'requests'" />
     </tab>
 
-    <tab heading="Results" select="resultsTabShown = true">
+    <tab heading="Results"
+         select="controller.activeTab = 'results'"
+         active="controller['results']">
       <grr-flow-results flow-id="flowId" api-base-path="apiBasePath"
-                        ng-if="resultsTabShown" />
+                        ng-if="controller.activeTab === 'results'" />
     </tab>
 
-    <tab heading="Log" select="logTabShown = true">
+    <tab heading="Log"
+         select="controller.activeTab = 'log'"
+         active="controller['log']">
       <grr-flow-log flow-id="flowId" api-base-path="apiBasePath"
-                    ng-if="logTabShown" />
+                    ng-if="controller.activeTab === 'log'" />
     </tab>
   </tabset>
 

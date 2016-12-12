@@ -98,6 +98,25 @@ ChartController.prototype.initStackChart_ = function(stackChartData) {
     };
   }.bind(this));
 
+  // Converts ApiReportTickSpecifier to Flot-supported format.
+  var extractTicks = function(protoTick) {
+    return [protoTick['x'],
+            protoTick['label']];
+  }.bind(this);
+
+  var x_ticks = undefined;
+  var y_ticks = undefined;
+
+  if (angular.isDefined(stackChartData['x_ticks'])) {
+    x_ticks = stackChartData['x_ticks'].map(extractTicks);
+  }
+
+  if (angular.isDefined(stackChartData['y_ticks'])) {
+    y_ticks = stackChartData['y_ticks'].map(extractTicks);
+  }
+
+  var barWidth = stackChartData['bar_width'] || .6;
+
   this.chartElement_.resize(function() {
     this.chartElement_.html('');
 
@@ -106,7 +125,7 @@ ChartController.prototype.initStackChart_ = function(stackChartData) {
         stack: true,
         bars: {
           show: true,
-          barWidth: 0.6
+          barWidth: barWidth
         },
         label: {
           show: true,
@@ -117,6 +136,14 @@ ChartController.prototype.initStackChart_ = function(stackChartData) {
       grid: {
         hoverable: true,
         clickable: true
+      },
+      xaxis: {
+        min: 0,
+        ticks: x_ticks,
+      },
+      yaxis: {
+        min: 0,
+        ticks: y_ticks,
       }
     });
   }.bind(this));

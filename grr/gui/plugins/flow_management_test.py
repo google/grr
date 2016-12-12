@@ -296,6 +296,59 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
+  def testChangingTabUpdatesUrl(self):
+    with self.ACLChecksDisabled():
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    flow_id = flow_urn.Basename()
+    base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id
+
+    self.Open(base_url)
+
+    self.Click("css=li[heading=Requests]")
+    self.WaitUntilEqual(base_url + "/requests", self.GetCurrentUrlPath)
+
+    self.Click("css=li[heading=Results]")
+    self.WaitUntilEqual(base_url + "/results", self.GetCurrentUrlPath)
+
+    self.Click("css=li[heading=Log]")
+    self.WaitUntilEqual(base_url + "/log", self.GetCurrentUrlPath)
+
+    self.Click("css=li[heading='Flow Information']")
+    self.WaitUntilEqual(base_url, self.GetCurrentUrlPath)
+
+  def testDirectLinksToFlowsTabsWorkCorrectly(self):
+    with self.ACLChecksDisabled():
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    flow_id = flow_urn.Basename()
+    base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id
+
+    self.Open(base_url + "/requests")
+    self.WaitUntil(self.IsElementPresent, "css=li.active[heading=Requests]")
+
+    self.Open(base_url + "/results")
+    self.WaitUntil(self.IsElementPresent, "css=li.active[heading=Results]")
+
+    self.Open(base_url + "/log")
+    self.WaitUntil(self.IsElementPresent, "css=li.active[heading=Log]")
+
+    # Check that both clients/.../flows/... and clients/.../flows/.../ URLs
+    # work.
+    self.Open(base_url)
+    self.WaitUntil(self.IsElementPresent,
+                   "css=li.active[heading='Flow Information']")
+
+    self.Open(base_url + "/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=li.active[heading='Flow Information']")
+
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
     flow.GRRFlow.StartFlow(
