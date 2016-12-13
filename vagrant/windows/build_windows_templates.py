@@ -95,14 +95,17 @@ class WindowsTemplateBuilder(object):
     subprocess.check_call([self.PIP64, "install", "--upgrade", "virtualenv"])
     subprocess.check_call([self.PIP32, "install", "--upgrade", "virtualenv"])
 
-    # These can be removed once we support pip 9.
+    # Currently this should do nothing as we will already have a modern pip
+    # installed, but we leave this here so if we get broken by pip again it's
+    # just a simple case of searching for pip>=8.1.1 and adding an upper limit
+    # cap in all those places.
     subprocess.check_call([
         self.VIRTUALENV_PYTHON32, "-m", "pip", "install", "--upgrade",
-        "pip>=8.1.1,<9"
+        "pip>=8.1.1"
     ])
     subprocess.check_call([
         self.VIRTUALENV_PYTHON64, "-m", "pip", "install", "--upgrade",
-        "pip>=8.1.1,<9"
+        "pip>=8.1.1"
     ])
     os.environ["PROTOC"] = self.PROTOC
 

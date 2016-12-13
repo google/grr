@@ -16,8 +16,7 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System
 start /wait msiexec.exe /i "C:\grr_deps\python-2.7.12.amd64.msi" /passive ADDLOCAL="all" REMOVE="pip_feature" TARGETDIR="C:\Python27-x64" ALLUSERS=1 || echo "python no pip failed" && exit /b 1
 start /wait msiexec.exe /i "C:\grr_deps\python-2.7.12.amd64.msi" /passive ADDLOCAL="all" TARGETDIR="C:\Python27-x64" ALLUSERS=1 || echo "python with pip failed" && exit /b 1
 C:\Python27-x64\python.exe --version || echo "64bit python missing" && exit /b 1
-:: TODO: remove this version restriction once we know pip 9 works
-C:\Python27-x64\python.exe -m pip install --upgrade "pip>=8.1.1,<9"
+C:\Python27-x64\python.exe -m pip install --upgrade "pip>=8.1.1"
 C:\Python27-x64\Scripts\pip.exe install --upgrade virtualenv
 C:\Python27-x64\Scripts\virtualenv.exe --version || echo "64bit virtualenv install failed" && exit /b 1
 
@@ -26,8 +25,7 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System
 start /wait msiexec.exe /i "C:\grr_deps\python-2.7.12.msi" /passive ADDLOCAL="all" REMOVE="pip_feature" TARGETDIR="C:\Python27" ALLUSERS=1
 start /wait msiexec.exe /i "C:\grr_deps\python-2.7.12.msi" /passive ADDLOCAL="all" TARGETDIR="C:\Python27" ALLUSERS=1
 C:\Python27\python.exe --version || echo "32bit python install failed" && exit /b 1
-:: TODO: remove this version restriction once we know pip 9 works
-C:\Python27\python.exe -m pip install --upgrade "pip>=8.1.1,<9"
+C:\Python27\python.exe -m pip install --upgrade "pip>=8.1.1"
 C:\Python27\Scripts\pip.exe install --upgrade virtualenv
 C:\Python27\Scripts\virtualenv.exe --version || echo "32bit virtualenv install failed" && exit /b 1
 

@@ -65,5 +65,5 @@ override_dh_strip:
 #  You'll also need to modify .dockerignore to remove the lines that exclude the
 #  python package names and tarballs.
 override_dh_virtualenv:
-	dh_virtualenv --extra-pip-arg '-f' --extra-pip-arg 'https://storage.googleapis.com/releases.grr-response.com/index.html' --python python2.7 --preinstall 'setuptools>20' --preinstall 'pip>=8.1.1,<9' --preinstall 'wheel' --preinstall 'grr-response-templates' --preinstall 'grr-response-server'
+	dh_virtualenv --extra-pip-arg '-f' --extra-pip-arg 'https://storage.googleapis.com/releases.grr-response.com/index.html' --python python2.7 --preinstall 'setuptools>20' --preinstall 'pip>=8.1.1' --preinstall 'wheel' --preinstall 'grr-response-templates' --preinstall 'grr-response-server'
 
