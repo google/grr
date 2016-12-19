@@ -285,7 +285,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
         "GetHuntResultsExportCommand",
         args=hunt_plugin.ApiGetHuntResultsExportCommandArgs(
             hunt_id=hunt_obj.urn.Basename()),
-        replace={hunt_obj.urn.Basename(): "H:123456"})
+        replace={hunt_obj.urn.Basename()[2:]: "123456"})
 
 
 class ApiListHuntOutputPluginsHandlerRegressionTest(

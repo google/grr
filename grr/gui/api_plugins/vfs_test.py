@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 
 
@@ -632,7 +633,7 @@ class VfsTimelineTestMixin(object):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Choose some directory with pathspec in the ClientFixture.
-    self.folder_path = "fs/os/Users/Shared"
+    self.folder_path = "fs/os/Users/中国新闻网新闻中/Shared"
     self.file_path = self.folder_path + "/a.txt"
 
     file_urn = self.client_id.Add(self.file_path)

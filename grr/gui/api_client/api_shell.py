@@ -19,11 +19,11 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
 
     self.add_argument(
         "api_endpoint", type=str, help="API endpoint specified as host[:port]")
+
     self.add_argument(
         "--page_size",
         type=int,
-        help="Page size used when paging through collections "
-        "of items.")
+        help="Page size used when paging through collections of items.")
     self.add_argument(
         "--basic_auth_username",
         type=str,
@@ -39,11 +39,28 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
         dest="debug",
         action="store_true",
         help="Enable debug logging.")
+    self.add_argument(
+        "--exec_code",
+        type=str,
+        help="If present, no console is started but the code given "
+        "in the flag is run instead (comparable to the -c option "
+        "of IPython). The code will be able to use a predefined "
+        "global 'grrapi' object.")
+    self.add_argument(
+        "--exec_file",
+        type=str,
+        help="If present, no console is started but the code given "
+        "in command file is supplied as input instead. The code "
+        "will be able to use a predefined global 'grrapi' "
+        "object.")
 
 
 def main(argv=None):
+  if not argv:
+    argv = sys.argv[1:]
+
   arg_parser = GrrApiShellArgParser()
-  flags = arg_parser.parse_args(args=argv or [])
+  flags = arg_parser.parse_args(args=argv)
 
   logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stderr))
   if flags.debug:
@@ -56,7 +73,17 @@ def main(argv=None):
   grrapi = api.InitHttp(
       api_endpoint=flags.api_endpoint, page_size=flags.page_size, auth=auth)
 
-  api_shell_lib.IPShell([sys.argv[0]], user_ns=dict(grrapi=grrapi))
+  if flags.exec_code and flags.exec_file:
+    print "--exec_code --exec_file flags can't be supplied together"
+    sys.exit(1)
+  elif flags.exec_code:
+    # pylint: disable=exec-used
+    exec (flags.exec_code, dict(grrapi=grrapi))
+    # pylint: enable=exec-used
+  elif flags.exec_file:
+    execfile(flags.exec_file, dict(grrapi=grrapi))
+  else:
+    api_shell_lib.IPShell([sys.argv[0]], user_ns=dict(grrapi=grrapi))
 
 
 if __name__ == "__main__":

@@ -11,6 +11,8 @@ config_lib.CONFIG.DEFINE_context("Platform:Windows")
 # Client architectures.
 config_lib.CONFIG.DEFINE_context("Arch:amd64")
 config_lib.CONFIG.DEFINE_context("Arch:i386")
+config_lib.CONFIG.DEFINE_context("Arch:ppc64le")
+config_lib.CONFIG.DEFINE_context("Arch:aarch64")
 
 # Global system install context - set when GRR is installed globally on the
 # system.

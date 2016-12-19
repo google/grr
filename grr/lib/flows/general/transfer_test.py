@@ -7,12 +7,15 @@ import os
 import platform
 import unittest
 
+from grr.client import vfs
 from grr.client.client_actions import standard as standard_actions
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -23,8 +26,11 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 class ClientMock(object):
 
-  def __init__(self, mbr_data):
+  BUFFER_SIZE = 1024 * 1024
+
+  def __init__(self, mbr_data=None, client_id=None):
     self.mbr = mbr_data
+    self.client_id = client_id
 
   def ReadBuffer(self, args):
     return_data = self.mbr[args.offset:args.offset + args.length]
@@ -32,6 +38,32 @@ class ClientMock(object):
         rdf_client.BufferReference(
             data=return_data, offset=args.offset, length=len(return_data))
     ]
+
+  def UploadFile(self, args):
+    """Just copy the file into the filestore."""
+    # Must be absolute path rooted at /.
+    in_filename = os.path.join(os.path.sep, args.pathspec.CollapsePath())
+    file_fd = vfs.VFSOpen(args.pathspec)
+
+    # NOTE: For testing we always use the FileUploadFileStore.
+    root_dir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
+    output_file = os.path.join(root_dir,
+                               self.client_id.Path().lstrip(os.path.sep), "fs",
+                               "os", in_filename.lstrip(os.path.sep))
+
+    try:
+      os.makedirs(os.path.dirname(output_file))
+    except (IOError, OSError):
+      pass
+
+    with open(output_file, "wb") as outfd:
+      while 1:
+        data = file_fd.read(self.BUFFER_SIZE)
+        if not data:
+          break
+        outfd.write(data)
+
+    return [file_fd.Stat()]
 
 
 class TestTransfer(test_lib.FlowTestsBaseclass):
@@ -53,6 +85,40 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     transfer.GetFile.WINDOW_SIZE = self.old_window_size
     transfer.GetFile.CHUNK_SIZE = self.old_chunk_size
+
+  def testUploadFiles(self):
+    """Test the upload file flows."""
+    with test_lib.ConfigOverrider({
+        "FileUploadFileStore.root_dir": self.temp_dir
+    }):
+      test_data_path = os.path.join(self.base_path, "test_img.dd")
+
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS, path=test_data_path)
+
+      session_id = None
+      for session_id in test_lib.TestFlowHelper(
+          "MultiUploadFile",
+          ClientMock(client_id=self.client_id),
+          token=self.token,
+          pathspecs=[pathspec],
+          client_id=self.client_id):
+        pass
+
+      results = list(
+          aff4.FACTORY.Open(
+              session_id.Add("Results"), token=self.token))
+
+      self.assertEqual(len(results), 1)
+      for stat_entry in results:
+        # Make sure the AFF4 file is the same as the original test file we tried
+        # to upload.
+        fd1 = aff4.FACTORY.Open(stat_entry.aff4path, token=self.token)
+        fd2 = open(test_data_path, "rb")
+        fd2.seek(0, 2)
+
+        self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
+        self.CompareFDs(fd1, fd2)
 
   def testGetMBR(self):
     """Test that the GetMBR flow works."""
@@ -218,6 +284,11 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertMultiLineEqual(fd.read(len(data)), data)
 
   def CompareFDs(self, fd1, fd2):
+    # Seek the files to the end to make sure they are the same size.
+    fd2.seek(0, 2)
+    fd1.seek(0, 2)
+    self.assertEqual(fd2.tell(), fd1.tell())
+
     ranges = [
         # Start of file
         (0, 100),

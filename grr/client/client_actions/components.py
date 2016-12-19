@@ -94,6 +94,33 @@ class LoadComponent(actions.ActionPlugin):
 
   def LoadComponent(self, summary):
     """Import all the required modules as specified in the request."""
+
+    # This is a temporary hack until we can deprecate components
+    # by having chipsec and rekall build their own packages, be deployed
+    # separately, and just called by GRR.
+    #
+    # First check if we need components at all. If the modules are built
+    # directly into the client just try and find them at the normal src path. If
+    # modules are built in like this they can't be updated without building a
+    # new client.
+    package_map = {}
+
+    try:
+      if summary.name in package_map:
+        for mod_name in summary.modules:
+          setup = importlib.import_module(package_map[summary.name]["setup"])
+          importlib.import_module(package_map[summary.name]["module"])
+          builtin_version = setup.setup_args["version"]
+          if builtin_version != summary.version:
+            raise RuntimeError("Requested %s version %s but %s built in." %
+                               (mod_name, summary.version, builtin_version))
+          logging.info("Using built-in %s %s %s.", summary.name, mod_name,
+                       summary.version)
+          LOADED_COMPONENTS[mod_name] = builtin_version
+        return
+    except ImportError:
+      pass
+
     if (summary.name in LOADED_COMPONENTS and
         summary.version != LOADED_COMPONENTS[summary.name]):
       logging.error("Component %s is already loaded at version %s. Exiting!",
@@ -129,6 +156,7 @@ class LoadComponent(actions.ActionPlugin):
       RuntimeError: If the component is invalid.
     """
     summary = request.summary
+
     # Just try to load the required modules.
     try:
       self.LoadComponent(summary)
@@ -153,7 +181,6 @@ class LoadComponent(actions.ActionPlugin):
       logging.info("Component %s already present.", summary.name)
       self.SendReply(request)
       return
-
     except ImportError:
       pass
 

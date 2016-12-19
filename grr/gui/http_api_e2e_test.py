@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 """End-to-end tests for HTTP API.
 
 HTTP API plugins are tested with their own dedicated unit-tests that are
@@ -30,6 +31,7 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.proto import api_pb2
 
 
 class ApiE2ETest(test_lib.GRRBaseTest):
@@ -65,8 +67,8 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
     self.trd.StartAndWaitUntilServing()
 
 
-class ApiClientTest(ApiE2ETest):
-  """Tests GRR Python API client library."""
+class ApiClientLibFlowTest(ApiE2ETest):
+  """Tests flows-related part of GRR Python API client library."""
 
   def testSearchWithNoClients(self):
     clients = list(self.api.SearchClients(query="."))
@@ -145,6 +147,92 @@ class ApiClientTest(ApiE2ETest):
     self.assertEqual(len(list(children)), 1)
     result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
+
+
+class ApiClientLibVfsTest(ApiE2ETest):
+  """Tests VFS operations part of GRR Python API client library."""
+
+  def setUp(self):
+    super(ApiClientLibVfsTest, self).setUp()
+    self.client_urn = self.SetupClients(1)[0]
+    test_lib.ClientFixture(self.client_urn, self.token)
+
+  def testGetFileFromRef(self):
+    file_ref = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads/a.txt")
+    self.assertEqual(file_ref.path, "fs/os/c/Downloads/a.txt")
+
+    file_obj = file_ref.Get()
+    self.assertEqual(file_obj.path, "fs/os/c/Downloads/a.txt")
+    self.assertFalse(file_obj.is_directory)
+    self.assertEqual(file_obj.data.name, "a.txt")
+
+  def testGetFileForDirectory(self):
+    file_obj = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads").Get()
+    self.assertEqual(file_obj.path, "fs/os/c/Downloads")
+    self.assertTrue(file_obj.is_directory)
+
+  def testListFiles(self):
+    files_iter = self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/os/c/Downloads").ListFiles()
+    files_list = list(files_iter)
+
+    self.assertEqual(
+        sorted(f.data.name for f in files_list),
+        sorted(
+            [u"a.txt", u"b.txt", u"c.txt", u"d.txt", u"sub1", u"中国新闻网新闻中.txt"]))
+
+  def testGetBlob(self):
+    out = StringIO.StringIO()
+    self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
+
+    self.assertEqual(out.getvalue(), "Hello world")
+
+  def testGetFilesArchive(self):
+    zip_stream = StringIO.StringIO()
+    self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/tsk/c/bin").GetFilesArchive().WriteToStream(zip_stream)
+    zip_fd = zipfile.ZipFile(zip_stream)
+
+    namelist = zip_fd.namelist()
+    self.assertEqual(
+        sorted(namelist),
+        sorted([
+            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
+            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash"
+        ]))
+
+  def testGetVersionTimes(self):
+    vtimes = self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/os/c/Downloads/a.txt").GetVersionTimes()
+    self.assertEqual(len(vtimes), 1)
+
+  def testRefresh(self):
+    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/os/c/Downloads").Refresh()
+    self.assertTrue(operation.operation_id)
+    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+  def testCollect(self):
+    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/os/c/Downloads/a.txt").Collect()
+    self.assertTrue(operation.operation_id)
+    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+  def testGetTimeline(self):
+    timeline = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs").GetTimeline()
+    self.assertTrue(timeline)
+    for item in timeline:
+      self.assertTrue(isinstance(item, api_pb2.ApiVfsTimelineItem))
+
+  def testGetTimelineAsCsv(self):
+    out = StringIO.StringIO()
+    self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs").GetTimelineAsCsv().WriteToStream(out)
+    self.assertTrue(out.getvalue())
 
 
 class CSRFProtectionTest(ApiE2ETest):

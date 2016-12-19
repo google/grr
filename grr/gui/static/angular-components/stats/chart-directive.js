@@ -68,7 +68,9 @@ ChartController.prototype.initChart_ = function(data) {
   case 'PIE_CHART':
     this.initPieChart_(data['pie_chart']);
     break;
-  //TODO(user): Implement cases for other chart types.
+  case 'LINE_CHART':
+    this.initLineChart_(data['line_chart']);
+    break;
   default:
     this.errorMsg = 'Unexpected representation type.';
   }
@@ -211,6 +213,69 @@ ChartController.prototype.initPieChart_ = function(pieChartData) {
       this.hoverColor = obj.series.color;
       this.hoverText = obj.series.label + ' ' +
                        obj.series.data[0][1] + ' (' + percent + '%)';
+    }
+  }.bind(this));
+
+  this.chartElement_.resize();
+};
+
+/**
+ * Initializes a line chart.
+ *
+ * @param {Object} lineChartData The data to be displayed.
+ * @private
+ */
+ChartController.prototype.initLineChart_ = function(lineChartData) {
+  if (lineChartData['data'].length == 0) {
+    this.errorMsg = 'No data to display.';
+    return;
+  }
+
+  var specs = lineChartData['data'].map(function(series) {
+    return {
+      label: series['label'],
+      data: series['points'].map(function(point) {
+        return [
+          point['x'],
+          point['y']
+        ];
+      }.bind(this))
+    };
+  }.bind(this));
+
+  this.chartElement_.resize(function() {
+    this.chartElement_.html('');
+
+    $.plot($(this.chartElement_), specs, {
+      xaxis: {
+        mode: 'time',
+        timeformat: '%y/%m/%d'
+      },
+      lines: {
+        show: true
+      },
+      points: {
+        show: true
+      },
+      zoom: {
+        interactive: true
+      },
+      pan: {
+        interactive: true
+      },
+      grid: {
+        clickable: true,
+        autohighlight: true
+      }
+    });
+  }.bind(this));
+
+  this.chartElement_.bind('plotclick', function(event, pos, obj) {
+    if (obj) {
+      var date = new Date(obj.datapoint[0]);
+      this.hoverColor = obj.series.color;
+      this.hoverText = 'On ' + date.toDateString() + ', there were ' +
+                       obj.datapoint[1] + ' ' + obj.series.label + ' systems.';
     }
   }.bind(this));
 

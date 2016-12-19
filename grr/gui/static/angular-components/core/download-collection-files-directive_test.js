@@ -167,14 +167,14 @@ describe('download collection files directive', function() {
       expect(grrApiService.get).toHaveBeenCalledWith('some/export-command/url');
     });
 
-    it('shows "Show GRR export tool command" link', function() {
+    it('shows "Show export command" link', function() {
       exportCommandDeferred.resolve({
         data: {
           command: 'blah --foo'
         }
       });
       var element = renderTestTemplate(true);
-      expect($('a:contains("Show GRR export tool command")', element).length)
+      expect($('a:contains("Show export command")', element).length)
           .toBe(1);
     });
 

@@ -1757,7 +1757,7 @@
       "api_method": "GetFileDownloadCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username api_test_user file --path aff4:/C.1000000000000000/fs/os/etc --output ."
+        "command": "/usr/bin/grr_api_shell 'http://localhost:8000/' --exec_code 'grrapi.Client(\"C.1000000000000000\").File(r\"\"\"fs/os/etc\"\"\").GetBlob().WriteToFile(\"./etc\")'"
       },
       "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
@@ -1988,10 +1988,10 @@
       "api_method": "GetFlowResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
+        "command": "/usr/bin/grr_api_shell 'http://localhost:8000/' --exec_code 'grrapi.Client(\"C.1000000000000000\").Flow(\"F:ABCDEF\").GetFilesArchive().WriteToFile(\"./flow_results_C_1000000000000000_F_ABCDEF.zip\")'"
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
+      "url": "/api/clients/C.1000000000000000/flows/F:ABCDEF/results/export-command"
     }
   ],
   "ApiGetGrrBinaryHandler": [
@@ -2962,7 +2962,7 @@
       "api_method": "GetHuntResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/hunts/H:123456/Results --output ."
+        "command": "/usr/bin/grr_api_shell 'http://localhost:8000/' --exec_code 'grrapi.Hunt(\"H:123456\").GetFilesArchive().WriteToFile(\"./hunt_results_H_123456.zip\")'"
       },
       "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest_http_v1",
       "url": "/api/hunts/H:123456/results/export-command"
@@ -6653,7 +6653,7 @@
               "file_path": {
                 "age": 0,
                 "type": "unicode",
-                "value": "fs/os/Users/Shared/a.txt"
+                "value": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt"
               },
               "timestamp": {
                 "age": 0,
@@ -6674,7 +6674,7 @@
               "file_path": {
                 "age": 0,
                 "type": "unicode",
-                "value": "fs/os/Users/Shared/a.txt"
+                "value": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt"
               },
               "timestamp": {
                 "age": 0,
@@ -6695,7 +6695,7 @@
               "file_path": {
                 "age": 0,
                 "type": "unicode",
-                "value": "fs/os/Users/Shared/a.txt"
+                "value": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt"
               },
               "timestamp": {
                 "age": 0,
@@ -6716,7 +6716,7 @@
               "file_path": {
                 "age": 0,
                 "type": "unicode",
-                "value": "fs/os/Users/Shared/a.txt"
+                "value": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt"
               },
               "timestamp": {
                 "age": 0,
@@ -6737,7 +6737,7 @@
               "file_path": {
                 "age": 0,
                 "type": "unicode",
-                "value": "fs/os/Users/Shared/a.txt"
+                "value": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt"
               },
               "timestamp": {
                 "age": 0,
@@ -6753,32 +6753,32 @@
         "items": [
           {
             "action": "MODIFICATION",
-            "file_path": "fs/os/Users/Shared/a.txt",
+            "file_path": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": 4000000
           },
           {
             "action": "MODIFICATION",
-            "file_path": "fs/os/Users/Shared/a.txt",
+            "file_path": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": 3000000
           },
           {
             "action": "MODIFICATION",
-            "file_path": "fs/os/Users/Shared/a.txt",
+            "file_path": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": 2000000
           },
           {
             "action": "MODIFICATION",
-            "file_path": "fs/os/Users/Shared/a.txt",
+            "file_path": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": 1000000
           },
           {
             "action": "MODIFICATION",
-            "file_path": "fs/os/Users/Shared/a.txt",
+            "file_path": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": 0
           }
         ]
       },
-      "url": "/api/clients/C.1000000000000000/vfs-timeline/fs/os/Users/Shared"
+      "url": "/api/clients/C.1000000000000000/vfs-timeline/fs/os/Users/%E4%B8%AD%E5%9B%BD%E6%96%B0%E9%97%BB%E7%BD%91%E6%96%B0%E9%97%BB%E4%B8%AD/Shared"
     }
   ],
   "ApiGrantClientApprovalHandler": [

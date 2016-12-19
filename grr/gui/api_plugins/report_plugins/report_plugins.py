@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
 
+from grr.gui.api_plugins.report_plugins import filestore_report_plugins
 from grr.gui.api_plugins.report_plugins import server_report_plugins
 
 
@@ -53,6 +54,12 @@ class _Registry(object):
 
 
 REGISTRY = _Registry()
+
+# FileStore report plugins.
+
+REGISTRY.RegisterPlugin(filestore_report_plugins.FileClientCountReportPlugin)
+REGISTRY.RegisterPlugin(
+    filestore_report_plugins.FileSizeDistributionReportPlugin)
 
 # Server report plugins.
 

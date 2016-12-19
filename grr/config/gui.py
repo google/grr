@@ -60,7 +60,8 @@ config_lib.DEFINE_bool("AdminUI.use_precompiled_js", False,
                        "If True - use Closure-compiled JS bundle. This flag "
                        "is experimental and is not properly supported yet.")
 
-config_lib.DEFINE_string("AdminUI.export_command", "/usr/bin/grr_export",
+config_lib.DEFINE_string("AdminUI.export_command", "/usr/bin/grr_api_shell "
+                         "'%(AdminUI.url)'",
                          "Command to show in the fileview for downloading the "
                          "files from the command line.")
 

@@ -13,13 +13,16 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
+from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import threadpool
+from grr.lib import uploads
 from grr.lib import utils
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -419,6 +422,42 @@ class FrontEndServer(object):
       wkf.ProcessMessages(msg_list)
 
     return result
+
+  def _GetClientPublicKey(self, client_id):
+    client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
+    return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
+
+  def HandleUpload(self, encoding_header, encoded_policy, encoded_client_hmac,
+                   data_generator):
+    """Handles the upload of a file."""
+    if encoding_header != "chunked":
+      raise IOError("Only chunked uploads are allowed.")
+
+    # Extract request parameters.
+    if not encoded_client_hmac:
+      raise IOError("HMAC not provided")
+
+    if not encoded_policy:
+      raise IOError("Policy not provided")
+
+    client_hmac = encoded_client_hmac.decode("base64")
+    serialized_policy = encoded_policy.decode("base64")
+
+    transfer.GetHMAC().Verify(serialized_policy, client_hmac)
+
+    policy = rdf_client.UploadPolicy.FromSerializedString(serialized_policy)
+    if rdfvalue.RDFDatetime.Now() > policy.expires:
+      raise IOError("Client upload policy is too old.")
+
+    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
+        "Frontend.upload_store"])()
+
+    out_fd = upload_store.open_for_writing(policy.client_id, policy.filename)
+    with uploads.DecryptStream(config_lib.CONFIG["PrivateKeys.server_key"],
+                               self._GetClientPublicKey(policy.client_id),
+                               out_fd) as decrypt_fd:
+      for data in data_generator:
+        decrypt_fd.write(data)
 
 
 class FrontendInit(registry.InitHook):

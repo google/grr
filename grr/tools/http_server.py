@@ -19,28 +19,19 @@ import logging
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
-# pylint: enable=g-bad-import-order
+# pylint: enable=unused-import, g-bad-import-order
 
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
-from grr.lib import file_store
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import front_end
 from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import server_startup
 from grr.lib import stats
-from grr.lib import type_info
-from grr.lib import uploads
 from grr.lib import utils
-from grr.lib.flows.general import file_finder
-from grr.lib.flows.general import transfer
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-
-# pylint: disable=g-bad-name
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -71,7 +62,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      self.date_time_string(last_modified), data)
     self.wfile.write(data)
 
-  def do_GET(self):
+  def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
     url_prefix = config_lib.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
@@ -117,86 +108,54 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       length -= len(data)
     return input_data.getvalue()
 
-  def _CopyBytes(self, infd, outfd, length):
-    """Copy bytes from infd to outfd."""
+  def _GenerateChunk(self, length):
+    """Generates data for a single chunk."""
 
     while 1:
       to_read = min(length, self.RECV_BLOCK_SIZE)
       if to_read == 0:
         return
 
-      data = infd.read(to_read)
+      data = self.rfile.read(to_read)
       if not data:
         return
 
-      outfd.write(data)
+      yield data
       length -= len(data)
 
-  def _GetClientPublicKey(self, client_id):
-    # Decrypt the file upon writing it.
-    client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
-    return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
+  def GenerateFileData(self):
+    """Generates the file data for a chunk encoded file."""
+    # Handle chunked encoding:
+    # https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1
+    while 1:
+      line = self.rfile.readline()
+      # We do not support chunked extensions, just ignore them.
+      chunk_size = int(line.split(";")[0], 16)
+      if chunk_size == 0:
+        break
+
+      for chunk in self._GenerateChunk(chunk_size):
+        yield chunk
+
+      # Chunk is followed by \r\n.
+      lf = self.rfile.read(2)
+      if lf != "\r\n":
+        raise IOError("Unable to parse chunk.")
+
+    # Skip entity headers.
+    for header in self.rfile.readline():
+      if not header:
+        break
 
   def HandleUploads(self):
     """Receive file uploads from the client."""
-    if self.headers.get("Transfer-Encoding") != "chunked":
-      raise IOError("Only chunked uploads are allowed.")
+    self.server.frontend.HandleUpload(
+        self.headers.get("Transfer-Encoding"),
+        self.headers.get("x-grr-policy"),
+        self.headers.get("x-grr-hmac"), self.GenerateFileData())
+    self.Send("Upload successful.")
 
-    # Extract request parameters.
-    client_hmac = self.headers.get("x-grr-hmac")
-    if not client_hmac:
-      raise IOError("HMAC not provided")
-
-    policy = self.headers.get("x-grr-policy")
-    if not policy:
-      raise IOError("Policy not provided")
-
-    client_hmac = client_hmac.decode("base64")
-    serialized_policy = policy.decode("base64")
-
-    # Ensure the HMAC verifies.
-    transfer.GetHMAC().Verify(serialized_policy, client_hmac)
-
-    policy = rdf_client.UploadPolicy.FromSerializedString(serialized_policy)
-    if rdfvalue.RDFDatetime.Now() > policy.expires:
-      raise IOError("Client upload policy is too old.")
-
-    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
-        "Frontend.upload_store"])()
-
-    out_fd = upload_store.open_for_writing(policy.client_id, policy.filename)
-    with uploads.DecryptStream(config_lib.CONFIG["PrivateKeys.server_key"],
-                               self._GetClientPublicKey(policy.client_id),
-                               out_fd) as decrypt_fd:
-      total_size = 0
-
-      # Handle chunked encoding:
-      # https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1
-      while 1:
-        line = self.rfile.readline()
-        # We do not support chunked extensions, just ignore them.
-        chunk_size = int(line.split(";")[0], 16)
-        if chunk_size == 0:
-          break
-
-        # Copy the chunk into the file store.
-        self._CopyBytes(self.rfile, decrypt_fd, chunk_size)
-        total_size += chunk_size
-
-        # Chunk is followed by \r\n.
-        lf = self.rfile.read(2)
-        if lf != "\r\n":
-          raise IOError("Unable to parse chunk.")
-
-      # Skip entity headers.
-      for header in self.rfile.readline():
-        if not header:
-          break
-
-      # The file is all here.
-      self.Send("Success: Uploaded %s" % policy.filename)
-
-  def do_POST(self):
+  def do_POST(self):  # pylint: disable=g-bad-name
     """Process encrypted message bundles."""
     try:
       if self.path.startswith("/upload/"):

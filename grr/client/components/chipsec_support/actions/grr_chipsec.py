@@ -5,13 +5,17 @@ __author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 import logging
 from logging import handlers
+import os
+import platform
 import StringIO
 
 
-# Force Chipsec to execute as not frozen so it can find its configuration files.
+# Import Chipsec configuration first so we can hook onto its internal path
+# resolution.
 from chipsec import file as chipsec_file  # pylint: disable=g-bad-import-order
 
 chipsec_file.main_is_frozen = lambda: False
+
 
 # Initialize the Chipsec plugins
 from chipsec import chipset  # pylint: disable=g-import-not-at-top
@@ -20,10 +24,9 @@ from chipsec.hal import acpi
 from chipsec.hal import spi
 from chipsec.helper import oshelper
 
-import chipsec_types
-
 from grr.client import actions
 from grr.client.client_actions import tempfiles
+from grr.client.components.chipsec_support.actions import chipsec_types
 from grr.lib import config_lib
 
 

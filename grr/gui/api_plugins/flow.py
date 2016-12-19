@@ -2,6 +2,7 @@
 """API handlers for dealing with flows."""
 
 import itertools
+import re
 
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
@@ -402,15 +403,16 @@ class ApiGetFlowResultsExportCommandHandler(
   result_type = ApiGetFlowResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    flow_obj = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
-    output_urn = flow_obj.GetRunner().output_urn
+    output_fname = re.sub("[^0-9a-zA-Z]+", "_",
+                          "%s_%s" % (utils.SmartStr(args.client_id),
+                                     utils.SmartStr(args.flow_id)))
+    code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
+                       """WriteToFile("./flow_results_%s.zip")""") % (
+                           args.client_id, args.flow_id, output_fname)
 
     export_command_str = " ".join([
-        config_lib.CONFIG["AdminUI.export_command"], "--username",
-        utils.ShellQuote(token.username), "collection_files", "--path",
-        utils.ShellQuote(output_urn), "--output", "."
+        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        utils.ShellQuote(code_to_execute)
     ])
 
     return ApiGetFlowResultsExportCommandResult(command=export_command_str)

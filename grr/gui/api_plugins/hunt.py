@@ -4,6 +4,7 @@
 import functools
 import itertools
 import operator
+import re
 
 import logging
 
@@ -414,19 +415,14 @@ class ApiGetHuntResultsExportCommandHandler(
   result_type = ApiGetHuntResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    results_path = args.hunt_id.ToURN().Add("Results")
+    output_fname = re.sub("[^0-9a-zA-Z]+", "_", utils.SmartStr(args.hunt_id))
+    code_to_execute = ("""grrapi.Hunt("%s").GetFilesArchive()."""
+                       """WriteToFile("./hunt_results_%s.zip")""") % (
+                           args.hunt_id, output_fname)
 
     export_command_str = " ".join([
-        config_lib.CONFIG["AdminUI.export_command"],
-        "--username",
-        utils.ShellQuote(token.username),
-        # NOTE: passing reason is no longer necessary, as necessary
-        # approval will be found and cached automatically.
-        "collection_files",
-        "--path",
-        utils.ShellQuote(results_path),
-        "--output",
-        "."
+        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        utils.ShellQuote(code_to_execute)
     ])
 
     return ApiGetHuntResultsExportCommandResult(command=export_command_str)

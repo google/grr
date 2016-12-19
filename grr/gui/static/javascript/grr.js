@@ -510,7 +510,7 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
       grr.update(renderer, loading_id, state,
         function(data) {
           // Make sure to insert this data only after its corresponding
-          // loading placer.
+          // loading message.
           var table_loading;
 
           if (loading_id) {

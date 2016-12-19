@@ -2534,6 +2534,9 @@ class AFF4Stream(AFF4Object):
                             (self.size, self.max_unbound_read))
     return self.Read(length)
 
+  def GetContentAge(self):
+    return self.Get(self.Schema.TYPE).age
+
   seek = utils.Proxy("Seek")
   tell = utils.Proxy("Tell")
   close = utils.Proxy("Close")

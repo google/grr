@@ -716,8 +716,10 @@ class Uname(structs.RDFProtoStruct):
         return "i386"
 
       return "amd64"
-    elif self.machine in "x86":
+    elif self.machine == "x86":
       return "i386"
+
+    return self.machine
 
   def signature(self):
     """Returns a unique string that encapsulates the architecture."""

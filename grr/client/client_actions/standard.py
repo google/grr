@@ -705,6 +705,7 @@ class UploadFile(actions.ActionPlugin):
 
   def FileGenerator(self, fd):
     """A Generator of file content."""
+    self.sent_data = 0
     while 1:
       data = fd.Read(self.BUFFER_SIZE)
       if not data:
@@ -713,6 +714,9 @@ class UploadFile(actions.ActionPlugin):
       # Ensure we heartbeat while the upload is happening.
       self.Progress()
       yield data
+
+      # Keep track of how much data we sent.
+      self.sent_data += len(data)
 
   def Run(self, args):
     file_fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
@@ -738,7 +742,13 @@ class UploadFile(actions.ActionPlugin):
     if response.code != 200:
       raise IOError("Unable to upload %s" % args.pathspec.CollapsePath())
 
-    self.SendReply(file_fd.Stat())
+    logging.debug("Uploaded %s (%s bytes)", args.pathspec, self.sent_data)
+    stat_entry = file_fd.Stat()
+    # Sometimes the file we upload does not report its correct size in the
+    # st_size attribute (e.g. /proc files). We modify the st_size to force it to
+    # report the actual amount of data uploaded.
+    stat_entry.st_size = self.sent_data
+    self.SendReply(stat_entry)
 
 
 class StatFS(actions.ActionPlugin):

@@ -8,6 +8,7 @@ from grr.gui import runtests_test
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -25,25 +26,32 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
       self.RequestAndGrantClientApproval(self.client_id)
       self.action_mock = action_mocks.FileFinderClientMock()
 
-  def testExportTabIsEnabledForStatEntryResults(self):
+  def testExportCommandIsShownForStatEntryResults(self):
     with self.ACLChecksDisabled():
-      for s in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult",
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+          client_id=self.client_id,
+          token=self.token)
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
           self.action_mock,
           client_id=self.client_id,
           token=self.token):
-        session_id = s
+        pass
 
-    self.Open("/#c=C.0000000000000001")
-    self.Click("css=a[grrtarget='client.flows']")
+    self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
-    self.Click("link=Show GRR export tool command")
+    self.Click("link=Show export command")
 
-    self.WaitUntil(self.IsTextPresent, "--username %s collection_files "
-                   "--path %s/Results" % (self.token.username, session_id))
+    self.WaitUntil(
+        self.IsTextPresent, "/usr/bin/grr_api_shell 'http://localhost:8000/' "
+        "--exec_code 'grrapi.Client(\"C.0000000000000001\")."
+        "Flow(\"%s\").GetFilesArchive()."
+        "WriteToFile(\"./flow_results_C_0000000000000001_%s.zip\")'" %
+        (flow_urn.Basename(), flow_urn.Basename().replace(":", "_")))
 
-  def testExportCommandIsNotDisabledWhenNoResults(self):
+  def testExportCommandIsNotShownWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
@@ -53,13 +61,12 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
           token=self.token):
         pass
 
-    self.Open("/#c=C.0000000000000001")
-    self.Click("css=a[grrtarget='client.flows']")
+    self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-results:contains('Value')")
-    self.WaitUntilNot(self.IsTextPresent, "Show GRR export tool command")
+    self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
     with self.ACLChecksDisabled():
@@ -70,13 +77,12 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
           token=self.token):
         pass
 
-    self.Open("/#c=C.0000000000000001")
-    self.Click("css=a[grrtarget='client.flows']")
+    self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-results:contains('Value')")
-    self.WaitUntilNot(self.IsTextPresent, "Show GRR export tool command")
+    self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
 
 def main(argv):

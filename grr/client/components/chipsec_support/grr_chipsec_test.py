@@ -7,6 +7,8 @@ import collections
 import sys
 import mock
 
+from chipsec.helper import oshelper
+
 from grr.client import vfs
 from grr.client.components.chipsec_support.actions import chipsec_types
 from grr.lib import flags
@@ -14,10 +16,6 @@ from grr.lib import test_lib
 
 
 class MockUnknownChipsetError(RuntimeError):
-  pass
-
-
-class MockOsHelperError(RuntimeError):
   pass
 
 
@@ -41,7 +39,7 @@ class FailingOsHelperChipset(mock.MagicMock):
 
   def init(self, unused_platform, unused_load_driver):
     msg = "Unable to open /sys/bus/pci/devices/0000:00:00.0/config"
-    raise MockOsHelperError(msg, -1)
+    raise oshelper.OsHelperError(msg, -1)
 
 
 class GRRChipsecTest(test_lib.EmptyActionTest):
@@ -53,14 +51,11 @@ class GRRChipsecTest(test_lib.EmptyActionTest):
     self.chipsec_mock.chipset = mock.MagicMock()
     self.chipsec_mock.chipset.UnknownChipsetError = MockUnknownChipsetError
     self.chipsec_mock.hal = mock.MagicMock()
-    self.chipsec_mock.helper = mock.MagicMock()
-    self.chipsec_mock.helper.oshelper.OsHelperError = MockOsHelperError
     self.chipsec_mock.logger = mock.MagicMock()
 
     mock_modules = {
         "chipsec": self.chipsec_mock,
         "chipsec.hal": self.chipsec_mock.hal,
-        "chipsec.helper": self.chipsec_mock.helper
     }
 
     self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)

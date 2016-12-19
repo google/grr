@@ -238,7 +238,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
         "GetFlowResultsExportCommand",
         args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
             client_id=self.client_id.Basename(), flow_id=flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={flow_urn.Basename()[2:]: "ABCDEF"})
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(

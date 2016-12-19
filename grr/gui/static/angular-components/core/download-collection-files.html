@@ -33,7 +33,7 @@
 
   <div class="export-command" ng-if="controller.exportCommand">
     <a ng-click="exportCommandExpanded = !exportCommandExpanded">
-      {$ exportCommandExpanded ? 'Hide' : 'Show' $} GRR export tool command
+      {$ exportCommandExpanded ? 'Hide' : 'Show' $} export command
     </a>
     <div collapse="!exportCommandExpanded" class="padded">
       <p>
@@ -41,12 +41,6 @@
         this command:
       </p>
       <pre>{$ controller.exportCommand $}</pre>
-      <p>
-        <em>
-          NOTE: You can optionally add <tt>--dump_client_info</tt> flag to
-          dump client info in YAML format.
-        </em>
-      </p>
     </div>
   </div>
 </div>

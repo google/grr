@@ -8,6 +8,7 @@ import logging
 # These import populate the action test registry
 from grr.client.client_actions import action_test
 from grr.client.client_actions import admin_test
+from grr.client.client_actions import cloud_test
 from grr.client.client_actions import components_test
 from grr.client.client_actions import file_finder_test
 from grr.client.client_actions import file_fingerprint_test

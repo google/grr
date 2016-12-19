@@ -11,6 +11,7 @@ from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
@@ -40,7 +41,7 @@ class GetFile(flow.GRRFlow):
   stat when read_length is specified.
 
   Returns to parent flow:
-    An PathSpec.
+    A PathSpec.
   """
 
   category = "/Filesystem/"
@@ -742,6 +743,51 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
     self.SendReply(stat_entry)
 
 
+class MultiUploadFileArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.MultiUploadFileArgs
+
+
+class MultiUploadFile(flow.GRRFlow):
+  """Upload multiple files using direct HTTP uploads."""
+  args_type = MultiGetFileArgs
+
+  @flow.StateHandler()
+  def Start(self):
+    for pathspec in self.args.pathspecs:
+      # The AFF4 path under the client's namespace where we store the file.
+      filename = aff4_grr.VFSGRRClient.PathspecToURN(
+          pathspec, self.client_id).RelativeName(self.client_id)
+      policy = rdf_client.UploadPolicy(
+          client_id=self.client_id,
+          filename=filename,
+          expires=rdfvalue.RDFDatetime.Now() + 7 * 24 * 60 * 60)
+      serialized_policy = policy.SerializeToString()
+      hmac = GetHMAC().HMAC(serialized_policy)
+
+      self.CallClient(
+          standard_actions.UploadFile,
+          pathspec=pathspec,
+          policy=serialized_policy,
+          hmac=hmac,
+          next_state="ProcessFileUpload",
+          request_data=dict(path=filename))
+
+  @flow.StateHandler()
+  def ProcessFileUpload(self, responses):
+    if responses.success:
+      upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
+          "Frontend.upload_store"])()
+      stat_entry = responses.First()
+      with upload_store.aff4_factory(
+          self.client_id, responses.request_data["path"],
+          token=self.token) as fd:
+        stat_entry.aff4path = fd.urn
+        fd.Set(fd.Schema.STAT, stat_entry)
+        fd.Set(fd.Schema.SIZE(stat_entry.st_size))
+
+      self.SendReply(stat_entry)
+
+
 class FileStoreCreateFile(flow.EventListener):
   """Receive an event about a new file and add it to the file store.
 
@@ -1006,36 +1052,3 @@ def GetHMAC():
   hmac_secret = hashlib.sha256(private_key).hexdigest()
 
   return rdf_crypto.HMAC(hmac_secret)
-
-
-class UploadFileArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.UploadFileArgs
-
-
-class UploadFile(flow.GRRFlow):
-  """Upload the files."""
-
-  category = "/Filesystem/"
-
-  args_type = UploadFileArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    hmac = GetHMAC()
-
-    for pathspec in self.args.pathspecs:
-      policy = rdf_client.UploadPolicy(
-          client_id=self.client_id,
-          filename=pathspec.CollapsePath(),
-          expires=rdfvalue.RDFDatetime.Now() + self.args.duration)
-
-      serialized_policy = policy.SerializeToString()
-
-      self.CallClient(
-          standard_actions.UploadFile,
-          rdf_client.UploadFileRequest(
-              pathspec=pathspec,
-              client_id=self.client_id,
-              policy=serialized_policy,
-              hmac=hmac.HMAC(serialized_policy)),
-          next_state="Upload")

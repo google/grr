@@ -81,6 +81,42 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent,
                    "Files referenced in this collection can be downloaded")
 
+  def testExportCommandIsShownForStatEntryResults(self):
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Click("link=Show export command")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "/usr/bin/grr_api_shell 'http://localhost:8000/' "
+                   "--exec_code 'grrapi.Hunt(\"%s\").GetFilesArchive()."
+                   "WriteToFile(\"./hunt_results_%s.zip\")'" %
+                   (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
+
+  def testExportCommandIsNotShownWhenNoResults(self):
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection([])
+
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-results:contains('Value')")
+    self.WaitUntilNot(self.IsTextPresent, "Show export command")
+
+  def testExportCommandIsNotShownForNonFileResults(self):
+    values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
+
+    with self.ACLChecksDisabled():
+      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-results:contains('Value')")
+    self.WaitUntilNot(self.IsTextPresent, "Show export command")
+
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]

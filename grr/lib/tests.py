@@ -5,8 +5,8 @@ This module loads and registers all the GRR library tests.
 """
 
 
-# These need to register plugins so, pylint: disable=unused-import,g-import-not-at-top
-# pylint: disable=g-import-not-at-top
+# These need to register plugins
+# pylint: disable=unused-import,g-import-not-at-top
 from grr.lib import aff4_test
 from grr.lib import artifact_test
 from grr.lib import artifact_utils_test
@@ -60,4 +60,4 @@ from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
 
 from grr.tools import http_server_test
-# pylint: enable=unused-import
+# pylint: enable=unused-import,g-import-not-at-top

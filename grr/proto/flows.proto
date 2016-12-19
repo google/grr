@@ -11,6 +11,32 @@ import "grr/proto/semantic.proto";
 import "grr/proto/sysinfo.proto";
 
 
+message CloudMetadataRequest {
+  optional string bios_version_regex = 1;
+  optional string service_name_regex = 2;
+  optional float timeout = 3;
+  optional string url = 4;
+  optional Dict headers = 5;
+  optional string label = 6 [(sem_type) = {
+    description: "Label to apply to the CloudMetadataResponse result. If "
+                 "unset, the URL is used as the label in the "
+                 "CloudMetadataResponse."
+  }];
+}
+
+message CloudMetadataRequests {
+  repeated CloudMetadataRequest requests = 2;
+}
+
+message CloudMetadataResponse {
+  optional string label = 1;
+  optional string text = 2;
+}
+
+message CloudMetadataResponses {
+  repeated CloudMetadataResponse responses = 1;
+}
+
 // The flow context.
 // Next field: 17
 message FlowContext {
@@ -957,14 +983,9 @@ message GetFileArgs {
     }];
 }
 
-message UploadFileArgs {
+message MultiUploadFileArgs {
   repeated PathSpec pathspecs = 1
       [(sem_type) = {description: "The pathspecs to upload"}];
-
-  optional uint64 duration = 2 [
-    (sem_type) = {type: "Duration", description: "When this upload expires."},
-    default = 604800
-  ];  // 7 Days
 }
 
 // Next field ID: 2

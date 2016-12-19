@@ -3,6 +3,7 @@
 
 from grr.gui.api_client import flow
 from grr.gui.api_client import utils
+from grr.gui.api_client import vfs
 from grr.proto import api_pb2
 
 
@@ -87,6 +88,12 @@ class ClientBase(object):
 
     self.client_id = client_id
     self._context = context
+
+  def File(self, path):
+    """Returns a reference to a file with a given path on client's VFS."""
+
+    return vfs.FileRef(
+        client_id=self.client_id, path=path, context=self._context)
 
   def Flow(self, flow_id):
     """Return a reference to a flow with a given id on this client."""

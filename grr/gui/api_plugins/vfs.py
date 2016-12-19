@@ -495,12 +495,16 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
+    output_fname = os.path.basename(args.file_path)
+
+    code_to_execute = (
+        """grrapi.Client("%s").File(r\"\"\"%s\"\"\").GetBlob()."""
+        """WriteToFile("./%s")""") % (args.client_id, args.file_path,
+                                      output_fname)
 
     export_command = u" ".join([
-        config_lib.CONFIG["AdminUI.export_command"], "--username",
-        utils.ShellQuote(token.username), "file", "--path",
-        utils.ShellQuote(aff4_path), "--output", "."
+        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        utils.ShellQuote(code_to_execute)
     ])
 
     return ApiGetFileDownloadCommandResult(command=export_command)
@@ -706,7 +710,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       for item in items[start:start + self.CHUNK_SIZE]:
         writer.writerow([
             item.timestamp.AsMicroSecondsFromEpoch(), item.timestamp,
-            item.file_path, item.action
+            utils.SmartStr(item.file_path), item.action
         ])
 
       yield fd.getvalue()

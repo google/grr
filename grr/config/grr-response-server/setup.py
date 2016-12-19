@@ -62,6 +62,7 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     entry_points={
         "console_scripts": [
+            "grr_api_shell = grr.gui.api_client.api_shell:main",
             "grr_console = grr.lib.distro_entry:Console",
             "grr_config_updater = grr.lib.distro_entry:ConfigUpdater",
             "grr_front_end = grr.lib.distro_entry:GrrFrontEnd",

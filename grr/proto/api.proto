@@ -1135,13 +1135,14 @@ message ApiReportData {
   enum RepresentationType {
     STACK_CHART = 0 [(description) = "Stack chart"];
     PIE_CHART = 1 [(description) = "Pie chart"];
-    //TODO(user): Add the remaining representation types.
+    LINE_CHART = 2 [(description) = "Line chart"];
   }
 
   optional RepresentationType representation_type = 1;
 
   optional ApiStackChartReportData stack_chart = 2;
   optional ApiPieChartReportData pie_chart = 3;
+  optional ApiLineChartReportData line_chart = 4;
 }
 
 message ApiStackChartReportData {
@@ -1164,6 +1165,12 @@ message ApiStackChartReportData {
 
 message ApiPieChartReportData {
   repeated ApiReportDataPoint1D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+}
+
+message ApiLineChartReportData {
+  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
       description: "What the report contains."
     }];
 }

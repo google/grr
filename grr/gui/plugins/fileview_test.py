@@ -234,10 +234,11 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Download]")
 
     # Check that export tool download hint is displayed.
-    self.WaitUntil(self.IsTextPresent, "/usr/bin/grr_export "
-                   "--username %s file --path "
-                   "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output ."
-                   % self.token.username)
+    self.WaitUntil(self.IsTextPresent, "/usr/bin/grr_api_shell "
+                   "'http://localhost:8000/' "
+                   "--exec_code 'grrapi.Client(\"C.0000000000000001\")."
+                   "File(r\"\"\"fs/os/c/Downloads/a.txt\"\"\").GetBlob()."
+                   "WriteToFile(\"./a.txt\")'")
 
 
 def main(argv):

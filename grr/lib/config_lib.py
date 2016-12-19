@@ -14,7 +14,6 @@ import os
 import platform
 import re
 import StringIO
-import struct
 import sys
 
 
@@ -112,13 +111,19 @@ def SetPlatformArchContext():
   # Initialize the running platform context:
   CONFIG.AddContext("Platform:%s" % platform.system().title())
 
-  pointer_size = struct.calcsize("P")
-  if pointer_size == 4:
-    CONFIG.AddContext("Arch:i386")
-  elif pointer_size == 8:
-    CONFIG.AddContext("Arch:amd64")
+  machine = platform.uname()[4]
+  if machine in ["x86_64", "AMD64", "i686"]:
+    # 32 bit binaries running on AMD64 will still have a i386 arch.
+    if platform.architecture()[0] == "32bit":
+      arch = "i386"
+    else:
+      arch = "amd64"
+  elif machine == "x86":
+    arch = "i386"
   else:
-    raise Error("Unsupported pointer size: %d" % pointer_size)
+    arch = machine
+
+  CONFIG.AddContext("Arch:%s" % arch)
 
 
 class ConfigFilter(object):
