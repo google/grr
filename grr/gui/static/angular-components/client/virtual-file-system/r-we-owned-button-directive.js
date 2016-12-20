@@ -36,17 +36,17 @@ var phrases = ["It is certain",
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @ngInject
  */
 grrUi.client.virtualFileSystem.rWeOwnedButtonDirective
     .RWeOwnedButtonController = function(
-    $scope, $modal) {
+    $scope, $uibModal) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @type {string} */
   this.phrase;
@@ -65,7 +65,7 @@ RWeOwnedButtonController.prototype.onClick = function() {
   var randomIndex = Math.floor(Math.random() * phrases.length);
   this.scope_.phrase = phrases[randomIndex];
 
-  this.modal_.open({
+  this.uibModal_.open({
     templateUrl: '/static/angular-components/client/virtual-file-system/' +
         'r-we-owned-button-modal.html',
     scope: this.scope_

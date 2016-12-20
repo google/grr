@@ -16,48 +16,39 @@
 
     <h1>{$ controller.selectedFileName $}</h1>
 
-    <tabset active="controller.currentTab">
+    <uib-tabset active="controller.currentTab">
 
-      <tab heading="Stats"
-           ng-click="controller.selectTab('stats')"
-           active="controller.tabsStates['stats']"
-           index="stats">
-        <div ng-if="currentTab == 'stats'">
+      <uib-tab heading="Stats" index="'stats'">
+        <div ng-if="controller.currentTab === 'stats'">
           <grr-file-stats-view></grr-file-stats-view>
         </div>
-      </tab>
+      </uib-tab>
 
-      <tab heading="Download"
-           ng-click="controller.selectTab('download')"
-           active="controller.tabsStates['download']"
-           disabled="controller.fileIsDirectory">
-        <div ng-if="currentTab == 'download'">
+      <uib-tab heading="Download" index="'download'"
+               disable="controller.fileIsDirectory">
+        <div ng-if="controller.currentTab === 'download'">
           <div grr-force-refresh refresh-trigger="controller.downloadQueryParams.age">
             <grr-file-download-view></grr-file-download-view>
           </div>
         </div>
 
-      </tab>
+      </uib-tab>
 
-      <tab heading="TextView"
-           ng-click="controller.selectTab('textview')"
-           active="controller.tabsStates['textview']"
-           disabled="controller.fileIsDirectory">
-        <div ng-if="currentTab == 'textview'">
+      <uib-tab heading="TextView" index="'textview'"
+               disable="controller.fileIsDirectory">
+        <div ng-if="controller.currentTab === 'textview'">
           <grr-file-text-view></grr-file-text-view>
         </div>
-      </tab>
+      </uib-tab>
 
-      <tab heading="HexView"
-           ng-click="controller.selectTab('hexview')"
-           active="controller.tabsStates['hexview']"
-           disabled="controller.fileIsDirectory">
-        <div ng-if="currentTab == 'hexview'">
+      <uib-tab heading="HexView" index="'hexview'"
+               disable="controller.fileIsDirectory">
+        <div ng-if="controller.currentTab === 'hexview'">
           <grr-file-hex-view></grr-file-hex-view>
         </div>
-      </tab>
+      </uib-tab>
 
-    </tabset>
+    </uib-tabset>
 
   </div>
 

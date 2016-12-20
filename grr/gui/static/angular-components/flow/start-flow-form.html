@@ -41,9 +41,9 @@ Please Select a flow to launch from the tree on the left.
 
 <div class="padded" ng-if="controller.requestSent">
   <div ng-if="!controller.responseData && !controller.responseError">
-    <progressbar class="progress-striped active" max="100" value="50">
+    <uib-progressbar class="progress-striped active" max="100" value="50">
       Launching flow {$ descriptor['value']['name']['value'] $}...
-    </progressbar>
+    </uib-progressbar>
   </div>
 
   <div class="panel panel-default" ng-if="controller.responseData">

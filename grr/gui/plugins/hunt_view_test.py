@@ -430,7 +430,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=li[heading='Context Detail']")
+    self.Click("css=li[heading='Context Details']")
 
     # Check for different context properties.
     self.WaitUntilContains(

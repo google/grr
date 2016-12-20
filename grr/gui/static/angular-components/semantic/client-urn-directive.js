@@ -10,22 +10,22 @@ goog.scope(function() {
  * Controller for the ClientUrnDirective.
  *
  * @param {!angular.Scope} $scope Directive's scope.
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService GRR Aff4 service.
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @constructor
  * @ngInject
  */
 var ClientUrnController = function(
-    $scope, $modal, grrApiService, grrRoutingService) {
+    $scope, $uibModal, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @type {?} */
   this.scope_.value;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -76,7 +76,7 @@ ClientUrnController.prototype.onValueChange = function() {
  * @export
  */
 ClientUrnController.prototype.onInfoClick = function() {
-  this.modal_.open({
+  this.uibModal_.open({
     templateUrl: '/static/angular-components/semantic/client-urn-modal.html',
     scope: this.scope_
   });

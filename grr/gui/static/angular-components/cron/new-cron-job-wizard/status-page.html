@@ -1,9 +1,9 @@
 <div class="padded">
 
   <div ng-if="!response">
-    <progressbar class="progress-striped active" max="100" value="50">
+    <uib-progressbar class="progress-striped active" max="100" value="50">
       Creating cron job...
-    </progressbar>
+    </uib-progressbar>
   </div>
 
   <div ng-if="response && response.error" class="alert alert-error">

@@ -18,13 +18,13 @@ var FETCH_INTERVAL = 10 * SECOND;
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$interval} $interval
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @constructor
  * @ngInject
  */
 grrUi.user.userNotificationButtonDirective.UserNotificationButtonController =
-  function($scope, $interval, $modal, grrApiService) {
+  function($scope, $interval, $uibModal, grrApiService) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -32,8 +32,8 @@ grrUi.user.userNotificationButtonDirective.UserNotificationButtonController =
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -71,7 +71,7 @@ UserNotificationButtonController.prototype.fetchNotificationCount_ = function() 
 UserNotificationButtonController.prototype.showNotifications = function() {
   var modalScope = this.scope_.$new();
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-user-notification-dialog close="$close()" />',
     scope: modalScope,
     size: 'lg'
@@ -86,7 +86,7 @@ UserNotificationButtonController.prototype.showNotifications = function() {
 /**
  * Directive that displays the notification button.
  *
- * @constructor
+ * @return {angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

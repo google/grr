@@ -27,7 +27,7 @@
     "jquery-migrate": "https://code.jquery.com/jquery-migrate-1.4.1.js",
     "moment": "2.14.1",
     "bootstrap": "3.3.6",
-    "angular-bootstrap": "0.14.3",
+    "angular-bootstrap": "1.3.3",
     "angular-ui-router": "0.2.18",
     "jquery-ui": "1.11.4"
   },

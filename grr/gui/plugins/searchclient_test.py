@@ -185,9 +185,16 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
   def testSearchingForLabelOpensTypeAheadDropdown(self):
     self.Open("/")
 
-    self.Type("client_query", text="common_")
-    self.WaitUntilEqual(1, self.GetCssCount,
-                        "css=grr-search-box ul.dropdown-menu li")
+    # We need to retry the whole sequence of "clear->type->wait for dropdown",
+    # as there's a potential race when we start typing before the
+    # typeahead options are loaded. In this case the dropdown won't be shown,
+    # and we need to type in the data one more time.
+    def TypeAndGetDropdownCount():
+      self.Type("client_query", text="")
+      self.Type("client_query", text="common_")
+      return self.GetCssCount("css=grr-search-box ul.dropdown-menu li")
+
+    self.WaitUntilEqual(1, TypeAndGetDropdownCount)
 
     # If the popup is visible, check that clicking it will change the search
     # input.

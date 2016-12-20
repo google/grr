@@ -32,6 +32,7 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            instance_type="GOOGLE",
             url=self.ZONE_URL,
             label="zone",
             headers={"Metadata-Flavor": "Google"})
@@ -54,10 +55,12 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex=".*amazon",
+            instance_type="AMAZON",
             service_name_regex="SERVICE_NAME: AWSLiteAgent",
             url="http://169.254.169.254/latest/meta-data/ami-id",
             label="amazon-ami"), rdf_cloud.CloudMetadataRequest(
                 bios_version_regex="Google",
+                instance_type="GOOGLE",
                 service_name_regex="SERVICE_NAME: GCEAgent",
                 url=self.PROJ_URL,
                 label="Google-project-id",
@@ -73,6 +76,7 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
 
     responses = list(results[0].responses)
     self.assertEqual(len(responses), 1)
+    self.assertEqual(results[0].instance_type, "GOOGLE")
     for response in responses:
       if response.label == "Google-project-id":
         self.assertEqual(response.text, project.text)
@@ -84,9 +88,11 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex=".*amazon",
+            instance_type="AMAZON",
             url="http://169.254.169.254/latest/meta-data/ami-id",
             label="amazon-ami"), rdf_cloud.CloudMetadataRequest(
                 bios_version_regex="Google",
+                instance_type="GOOGLE",
                 url=self.PROJ_URL,
                 label="Google-project-id",
                 headers={"Metadata-Flavor": "Google"})
@@ -101,6 +107,7 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
 
     responses = list(results[0].responses)
     self.assertEqual(len(responses), 1)
+    self.assertEqual(results[0].instance_type, "AMAZON")
     for response in responses:
       if response.label == "amazon-ami":
         self.assertEqual(response.text, ami.text)
@@ -113,11 +120,13 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            instance_type="GOOGLE",
             url=self.ZONE_URL,
             label="zone",
             headers={"Metadata-Flavor": "Google"}),
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            instance_type="GOOGLE",
             url=self.PROJ_URL,
             label="project-id",
             headers={"Metadata-Flavor": "Google"})
@@ -133,6 +142,7 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
 
       responses = list(results[0].responses)
       self.assertEqual(len(responses), 2)
+      self.assertEqual(results[0].instance_type, "GOOGLE")
       for response in responses:
         if response.label == "zone":
           self.assertEqual(response.text, zone.text)

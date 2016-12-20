@@ -17,6 +17,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -190,6 +191,11 @@ class VFSGRRClient(standard.VFSDirectory):
     MEMORY_SIZE = aff4.Attribute("aff4:memory_size", rdfvalue.ByteSize,
                                  "Amount of memory this client's machine has.")
 
+    # Cloud VM information.
+    CLOUD_INSTANCE = aff4.Attribute("metadata:cloud_instance",
+                                    cloud.CloudInstance,
+                                    "Information about cloud machines.")
+
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
@@ -305,6 +311,8 @@ class VFSGRRClient(standard.VFSDirectory):
 
     Returns:
       rdf_client.ClientSummary
+    Raises:
+      ValueError: on bad cloud type
     """
     self.max_age = 0
     summary = rdf_client.ClientSummary(client_id=self.urn)
@@ -326,6 +334,15 @@ class VFSGRRClient(standard.VFSDirectory):
       summary.serial_number = hwi.serial_number
       summary.system_manufacturer = hwi.system_manufacturer
     summary.timestamp = self.age
+    cloud_instance = self.Get(self.Schema.CLOUD_INSTANCE)
+    if cloud_instance:
+      summary.cloud_type = cloud_instance.cloud_type
+      if cloud_instance.cloud_type == "GOOGLE":
+        summary.cloud_instance_id = cloud_instance.google.unique_id
+      elif cloud_instance.cloud_type == "AMAZON":
+        summary.cloud_instance_id = cloud_instance.amazon.instance_id
+      else:
+        raise ValueError("Bad cloud type: %s" % cloud_instance.cloud_type)
 
     return summary
 
@@ -719,6 +736,7 @@ class TempKnowledgeBase(standard.VFSDirectory):
     KNOWLEDGE_BASE = aff4.Attribute("metadata:temp_knowledge_base",
                                     rdf_client.KnowledgeBase,
                                     "Artifact Knowledge Base", "KnowledgeBase")
+
 
 # The catchall client label used when compiling server-side stats about clients
 # by label.

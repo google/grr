@@ -4,10 +4,10 @@
   <div ng-if="controller.hexDataRows.length">
 
     <div>
-      <pagination total-items="controller.pageCount" items-per-page="1"
+      <uib-pagination total-items="controller.pageCount" items-per-page="1"
                   max-size="10" rotate="false" boundary-links="true"
                   ng-model="controller.page" ng-if="controller.pageCount > 1">
-      </pagination>
+      </uib-pagination>
     </div>
 
     <!-- Show the hex view using three separate tables to enable vertical selection. -->
@@ -54,10 +54,10 @@
     </div>
 
     <div>
-      <pagination total-items="controller.pageCount" items-per-page="1"
+      <uib-pagination total-items="controller.pageCount" items-per-page="1"
                   max-size="10" rotate="false" boundary-links="true"
                   ng-model="controller.page" ng-if="controller.pageCount > 1">
-      </pagination>
+      </uib-pagination>
     </div>
 
   </div>

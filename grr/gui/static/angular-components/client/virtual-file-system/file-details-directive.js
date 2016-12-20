@@ -46,34 +46,50 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
   /** @type {Object} */
   this.downloadQueryParams;
 
-  /** @type {Object} */
-  this.tabsStates;
+  /** @type {string} */
+  this.currentTab = 'stats';
 
   this.scope_.$on(REFRESH_FILE_EVENT,
       this.refreshFile_.bind(this));
+
+  this.scope_.$watch('currentTab', this.onDirectiveTabChange_.bind(this));
+  this.scope_.$watch('controller.currentTab', this.onControllerTabChange_.bind(this));
 
   this.scope_.$watchGroup(['controller.fileContext.clientId',
                            'controller.fileContext.selectedFilePath',
                            'controller.fileContext.selectedFileVersion'],
       this.onContextChange_.bind(this));
-
-  this.scope_.$watch('currentTab', function(newValue) {
-    this.tabsStates = {};
-    this.tabsStates[newValue] = true;
-  }.bind(this));
 };
 
 var FileDetailsController =
     grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController;
 
 
-FileDetailsController.prototype.selectTab = function(tab) {
-  if (this.fileIsDirectory && tab != 'stats') {
-    return;
+/**
+ * Handles currentTab scope attribute changes.
+ *
+ * @param {string} newValue
+ * @private
+ */
+FileDetailsController.prototype.onDirectiveTabChange_ = function(newValue) {
+  if (angular.isString(newValue)) {
+    this.currentTab = newValue;
   }
-
-  this.scope_['currentTab'] = tab;
 };
+
+/**
+ * Handles controller's currentTab attribute changes.
+ *
+ * @param {string} newValue
+ * @param {string} oldValue
+ * @private
+ */
+FileDetailsController.prototype.onControllerTabChange_ = function(newValue, oldValue) {
+  if (newValue !== oldValue) {
+    this.scope_['currentTab'] = newValue;
+  }
+};
+
 
 /**
  * Is triggered whenever the file context changes.

@@ -52,7 +52,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     self.Open("/")
 
@@ -115,7 +115,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Click("notification_button")
     self.Click("css=tr:contains('has granted you access') a")
     # Wait for modal backdrop to go away.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
 

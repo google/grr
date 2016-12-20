@@ -8,12 +8,20 @@ goog.provide('grrUi.tests.stubUiTrait');
 /**
  * Module required to run GRR javascript tests in Karma.
  */
-grrUi.tests.module = angular.module('grrUi.tests', ['ng']);
+grrUi.tests.module = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
 
-grrUi.tests.module.config(function($interpolateProvider) {
+var $animate;
+beforeEach(module('ngAnimateMock'));
+
+grrUi.tests.module.config(function($interpolateProvider, $uibModalProvider) {
   $interpolateProvider.startSymbol('{$');
   $interpolateProvider.endSymbol('$}');
+
+  $uibModalProvider.options.animation = false;
+}).run(function($injector) {
+  $animate = $injector.get('$animate');
 });
+
 
 beforeEach(function() {
   module('grrUi.tests');
@@ -35,7 +43,6 @@ beforeEach(function() {
     });
   });
 });
-
 
 /**
  * Trigger a browser event on the given element.
@@ -70,6 +77,9 @@ grrUi.tests.browserTrigger = function(element, eventType) {
   } else {
     element.fireEvent('on' + eventType);
   }
+
+  // True is for 'hideErrors' for cases when no animations are pending.
+  $animate.flush(true);
 };
 
 /**

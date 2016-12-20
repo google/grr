@@ -13,21 +13,21 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$timeout} $timeout
- * @param {!angularUi.$modal} $modal
+ * @param {!angularUi.$uibModal} $uibModal
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.flow.clientFlowsListDirective.ClientFlowsListController = function(
-    $scope, $timeout, $modal, grrApiService, grrRoutingService) {
+    $scope, $timeout, $uibModal, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!angular.$timeout} */
   this.timeout_ = $timeout;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -115,7 +115,7 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-create-from-flow-form on-resolve="resolve(huntUrn)" ' +
         'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
     scope: modalScope,

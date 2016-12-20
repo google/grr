@@ -16,6 +16,7 @@ from grr.lib import config_lib
 from grr.lib import worker_mocks
 from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -270,6 +271,17 @@ class InterrogatedClient(ActionMock):
       return [rdf_dict]
     else:
       return None
+
+  def GetCloudVMMetadata(self, args):
+    result_list = []
+    for request in args.requests:
+      result_list.append(
+          cloud.CloudMetadataResponse(
+              label=request.label or request.url, text=request.label))
+    return [
+        cloud.CloudMetadataResponses(
+            responses=result_list, instance_type="GOOGLE")
+    ]
 
 
 class UnixVolumeClientMock(ListDirectoryClientMock):

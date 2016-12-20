@@ -85,7 +85,7 @@ grr.parseHashState = function(hash) {};
 /**
  * @param {string} name
  * @param {string} value
- * @param {?} opt_event
+ * @param {Object=} opt_event
  * @param {Object=} opt_data
  */
 grr.publish = function(name, value, opt_event, opt_data) {};
@@ -117,15 +117,15 @@ var angularUi = {};
  *   result: angular.$q.Promise
  *   }}
  */
-angularUi.$modalInstance;
+angularUi.$uibModalInstance;
 
 
 /**
  * @typedef {{
- *   open: function(Object): angularUi.$modalInstance
+ *   open: function(Object): angularUi.$uibModalInstance
  *   }}
  */
-angularUi.$modal;
+angularUi.$uibModal;
 
 
 /**

@@ -14,11 +14,11 @@ var ERROR_EVENT_NAME = 'ServerError';
  *
  * @param {!angular.Scope} $rootScope
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @constructor
  * @ngInject
  */
-grrUi.core.serverErrorButtonDirective.ServerErrorButtonController = function($rootScope, $scope, $modal) {
+grrUi.core.serverErrorButtonDirective.ServerErrorButtonController = function($rootScope, $scope, $uibModal) {
 
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -26,8 +26,8 @@ grrUi.core.serverErrorButtonDirective.ServerErrorButtonController = function($ro
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @type {?{message: string, traceBack: string}} */
   this.error;
@@ -79,7 +79,7 @@ ServerErrorButtonController.prototype.showError = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
@@ -96,7 +96,7 @@ ServerErrorButtonController.prototype.showError = function() {
 /**
  * Directive that displays a button whenever a server error occurs
  *
- * @constructor
+ * @return {angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

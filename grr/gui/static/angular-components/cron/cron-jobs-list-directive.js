@@ -11,7 +11,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!angular.$q} $q
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @param {!grrUi.core.apiService.ApiService} grrApiService
@@ -19,12 +19,12 @@ goog.scope(function() {
  * @ngInject
  */
 grrUi.cron.cronJobsListDirective.CronJobsListController = function(
-    $scope, $modal, $q, grrTimeService, grrApiService, grrDialogService) {
+    $scope, $uibModal, $q, grrTimeService, grrApiService, grrDialogService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!angular.$q} */
   this.q_ = $q;
@@ -187,7 +187,7 @@ CronJobsListController.prototype.newCronJob = function() {
   });
   modalScope.result = {};
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-new-cron-job-wizard-form on-resolve="resolve()" ' +
         'on-reject="reject()" cron-job="result.cronJob" />',
     scope: modalScope,

@@ -13,6 +13,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -216,6 +217,13 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
+    google_cloud_instance = cloud.GoogleCloudInstance(
+        instance_id="1771384456894610289",
+        zone="projects/123456789733/zones/us-central1-a",
+        project_id="myproject",
+        unique_id="us-central1-a/myproject/1771384456894610289")
+    cloud_instance = cloud.CloudInstance(
+        cloud_type="GOOGLE", google=google_cloud_instance)
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
@@ -244,6 +252,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
         fd.Set(fd.Schema.USERNAMES([user]))
         fd.Set(fd.Schema.INTERFACES([interface]))
+        fd.Set(fd.Schema.CLOUD_INSTANCE(cloud_instance))
 
       with aff4.FACTORY.Open(
           "C.0000000000000000",
@@ -263,6 +272,9 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         self.assertFalse(summary.client_info)
 
         self.assertEqual(summary.timestamp.AsSecondsFromEpoch(), 101)
+        self.assertEqual(summary.cloud_type, "GOOGLE")
+        self.assertEqual(summary.cloud_instance_id,
+                         "us-central1-a/myproject/1771384456894610289")
 
 
 def main(argv):

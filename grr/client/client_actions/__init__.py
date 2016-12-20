@@ -10,6 +10,7 @@ from grr.lib import rdfvalue
 from grr.lib import rdfvalues
 from grr.client import actions
 from grr.client.client_actions import admin
+from grr.client.client_actions import cloud
 from grr.client.client_actions import components
 from grr.client.client_actions import enrol
 from grr.client.client_actions import file_finder

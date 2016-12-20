@@ -10,18 +10,18 @@ goog.scope(function() {
  * Service for opening confirmation dialogs.
  *
  * @param {angular.Scope} $rootScope The Angular root scope.
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @constructor
  * @ngInject
  * @export
  */
 grrUi.core.dialogService.DialogService =
-  function ($rootScope, $modal) {
+  function ($rootScope, $uibModal) {
     /** @private {angular.Scope} */
     this.rootScope_ = $rootScope;
 
-    /** @private {!angularUi.$modal} */
-    this.modal_ = $modal;
+    /** @private {!angularUi.$uibModal} */
+    this.uibModal_ = $uibModal;
   };
 
 var DialogService =
@@ -48,7 +48,7 @@ DialogService.prototype.openConfirmation = function(title, message, proceed){
   modalScope.message = message; //TODO(user): Evaluate markdown.
   modalScope.proceed = proceed;
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template:
       '<grr-confirmation-dialog title="title" proceed="proceed()" >' +
       '  <div class="vertically-padded">{$ message $}</div>' +
@@ -84,7 +84,7 @@ DialogService.prototype.openDirectiveDialog = function(directive, opt_params){
   }
 
   var template = '<' + tagName + ' ' + paramString + ' />';
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: template,
     scope: modalScope
   });

@@ -67,7 +67,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
@@ -132,7 +132,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("notification_button")
     self.Click("css=tr:contains('has granted you access') a")
     # Wait for modal backdrop to go away.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
@@ -250,7 +250,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
 
@@ -272,7 +272,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     #
     # Check that test user can start/stop/modify hunt2.
@@ -294,7 +294,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Run hunt
 
@@ -311,7 +311,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=StopHunt]:not([disabled])")
 
@@ -330,7 +330,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
 

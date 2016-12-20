@@ -14,7 +14,7 @@ import "grr/proto/sysinfo.proto";
 message CloudMetadataRequest {
   optional string bios_version_regex = 1;
   optional string service_name_regex = 2;
-  optional float timeout = 3;
+  optional float timeout = 3 [default = 1.0];
   optional string url = 4;
   optional Dict headers = 5;
   optional string label = 6 [(sem_type) = {
@@ -22,6 +22,8 @@ message CloudMetadataRequest {
                  "unset, the URL is used as the label in the "
                  "CloudMetadataResponse."
   }];
+  optional CloudInstance.InstanceType instance_type = 7
+      [(sem_type) = {description: "AMAZON/GOOGLE etc."}, default = UNSET];
 }
 
 message CloudMetadataRequests {
@@ -35,6 +37,7 @@ message CloudMetadataResponse {
 
 message CloudMetadataResponses {
   repeated CloudMetadataResponse responses = 1;
+  optional CloudInstance.InstanceType instance_type = 2 [default = UNSET];
 }
 
 // The flow context.

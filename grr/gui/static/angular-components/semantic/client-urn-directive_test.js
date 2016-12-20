@@ -120,6 +120,7 @@ describe('client urn directive', function() {
 
       browserTrigger($('button.close'), 'click');
       $timeout.flush();
+
       expect($(document.body).text()).not.toContain(
           'Client aff4:/C.0000000000000001');
     });

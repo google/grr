@@ -160,7 +160,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
 
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     with self.ACLChecksDisabled():
       self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
@@ -179,7 +179,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Close" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
@@ -205,7 +205,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     with self.ACLChecksDisabled():
       self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
@@ -224,7 +224,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Close" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
@@ -250,7 +250,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     with self.ACLChecksDisabled():
       self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
@@ -269,7 +269,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Close" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "
@@ -300,7 +300,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
       self.Click("css=grr-request-approval-dialog button[name=Cancel]")
       # Wait for dialog to disappear.
-      self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+      self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
       with self.ACLChecksDisabled():
         self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
@@ -320,7 +320,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
       # Click on "Close" and check that dialog disappears.
       self.Click("css=button[name=Close]")
-      self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+      self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
       # View should be refreshed automatically. The last run date should appear.
       self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "

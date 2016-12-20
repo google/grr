@@ -1803,7 +1803,7 @@ message ApiClientApproval {
     }];
 }
 
-// Next id: 19
+// Next id: 20
 message ApiClient {
   optional string client_id = 18 [(sem_type) = {
       type: "ApiClientId",
@@ -1854,6 +1854,7 @@ message ApiClient {
       type: "RDFDatetime",
       description: "Age of the client information."
     }];
+  optional CloudInstance cloud_instance = 19;
 }
 
 

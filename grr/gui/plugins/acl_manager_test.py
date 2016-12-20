@@ -216,7 +216,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # And make sure the approval was created...
     def GetApprovals():

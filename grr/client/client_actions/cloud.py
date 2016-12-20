@@ -22,7 +22,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   We make the regexes used to check that data customizable from the server side
   so we can adapt to minor changes without updating the client.
   """
-  in_rdfvalue = cloud.CloudMetadataRequest
+  in_rdfvalue = cloud.CloudMetadataRequests
   out_rdfvalues = [cloud.CloudMetadataResponses]
 
   BIOS_VERSION_COMMAND = ["/usr/sbin/dmidecode", "-s", "bios-version"]
@@ -38,6 +38,23 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     return False
 
   def GetMetaData(self, request):
+    """Get metadata from local metadata server.
+
+    Any failed URL check will fail the whole action since our bios/service
+    checks may not always correctly identify cloud machines. We don't want to
+    wait on multiple DNS timeouts.
+
+    Args:
+      request: CloudMetadataRequest object
+    Returns:
+      cloud.CloudMetadataResponse object
+    Raises:
+      ValueError: if request has a timeout of 0. This is a defensive
+      check (we pass 1.0) because the requests library just times out and it's
+      not obvious why.
+    """
+    if request.timeout == 0:
+      raise ValueError("Requests library can't handle timeout of 0")
     result = requests.request(
         "GET", request.url, headers=request.headers, timeout=request.timeout)
     # By default requests doesn't raise on HTTP error codes.
@@ -47,6 +64,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     # is received. This fixes that behaviour.
     if not result.ok:
       raise requests.RequestException(response=result)
+
     return cloud.CloudMetadataResponse(
         label=request.label or request.url, text=result.text)
 
@@ -62,11 +80,17 @@ class GetCloudVMMetadata(actions.ActionPlugin):
       ]
       services = subprocess.check_output(cmd)
     else:
-      raise RuntimeError("Only linux and windows are supported.")
+      # Interrogate shouldn't call this client action on OS X machines at all,
+      # so raise.
+      raise RuntimeError("Only linux and windows cloud vms supported.")
 
     result_list = []
+    instance_type = None
     for request in args.requests:
       if self.IsCloud(request, bios_version, services):
+        instance_type = request.instance_type
         result_list.append(self.GetMetaData(request))
     if result_list:
-      self.SendReply(cloud.CloudMetadataResponses(responses=result_list))
+      self.SendReply(
+          cloud.CloudMetadataResponses(
+              responses=result_list, instance_type=instance_type))

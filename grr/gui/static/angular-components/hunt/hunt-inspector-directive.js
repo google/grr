@@ -22,7 +22,10 @@ grrUi.hunt.huntInspectorDirective.huntInspectorController = function($scope) {
   this.shownHuntUrn;
 
   /** @type {string} */
-  this.activeTab;
+  this.activeTab = '';
+
+  /** type {Object<string, boolean>} */
+  this.tabsShown = {};
 
   this.scope_.$watchGroup(['huntUrn', 'activeTab'], this.onDirectiveArgumentsChange_.bind(this));
   this.scope_.$watch('controller.activeTab', this.onTabChange_.bind(this));
@@ -33,18 +36,14 @@ var HuntInspectorController =
 
 
 /**
- * Handles huntUrn scope attribute changes.
+ * Handles huntUrn and activeTab scope attribute changes.
  *
  * @private
  */
 HuntInspectorController.prototype.onDirectiveArgumentsChange_ = function() {
-  // TODO(user): Migrate to newer Bootstrap UI version to get rid of this hack.
-  //
-  // AngularUI Bootstrap does not support expressions in the tab.active attribute,
-  // so we need to set an attribute on the controller to be able to use active
-  // on a tab like active="controller['errors']".
-  var tabName = this.scope_['activeTab'];
-  this[tabName] = true;
+  if (angular.isString(this.scope_['activeTab'])) {
+    this.activeTab = this.scope_['activeTab'];
+  }
 
   // Doing this asynchronously so that ng-if clause in the template gets
   // triggered. This ensures that new hunt information gets properly
@@ -63,8 +62,9 @@ HuntInspectorController.prototype.onDirectiveArgumentsChange_ = function() {
  */
 HuntInspectorController.prototype.onTabChange_ = function(newValue, oldValue) {
   if (newValue !== oldValue) {
-    this.scope_['activeTab'] = this.activeTab;
+    this.scope_['activeTab'] = newValue;
   }
+  this.tabsShown[newValue] = true;
 };
 
 

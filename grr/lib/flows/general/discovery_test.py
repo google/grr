@@ -2,7 +2,11 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for Interrogate."""
 
+import platform
 import socket
+
+
+import mock
 
 from grr.client.client_actions import admin
 from grr.lib import action_mocks
@@ -202,10 +206,66 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.assertTrue(client.Get(client.Schema.MEMORY_SIZE))
 
+  def _CheckCloudMetadata(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    cloud_instance = client.Get(client.Schema.CLOUD_INSTANCE)
+    self.assertTrue(cloud_instance)
+    self.assertEqual(cloud_instance.google.instance_id, "instance_id")
+    self.assertEqual(cloud_instance.google.project_id, "project_id")
+    self.assertEqual(cloud_instance.google.zone, "zone")
+    self.assertEqual(cloud_instance.google.unique_id,
+                     "zone/project_id/instance_id")
+
   def setUp(self):
     super(TestClientInterrogate, self).setUp()
     # This test checks for notifications so we can't use a system user.
     self.token.username = "discovery_test_user"
+
+  def testInterrogateCloudMetadataLinux(self):
+    """Check google cloud metadata on linux."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    self.SetupClients(1, system="Linux", os_version="12.04")
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.FakeTestDataVFSHandler):
+      with test_lib.ConfigOverrider({
+          "Artifacts.knowledge_base":
+              ["LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"],
+          "Artifacts.interrogate_store_in_aff4": [],
+          "Artifacts.netgroup_filter_regexes": [r"^login$"]
+      }):
+        client_mock = action_mocks.InterrogatedClient()
+        client_mock.InitializeClient()
+        for _ in test_lib.TestFlowHelper(
+            "Interrogate",
+            client_mock,
+            token=self.token,
+            client_id=self.client_id):
+          pass
+
+        self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+        self._CheckCloudMetadata()
+
+  def testInterrogateCloudMetadataWindows(self):
+    """Check google cloud metadata on windows."""
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                               test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                 test_lib.FakeFullVFSHandler):
+        client_mock = action_mocks.InterrogatedClient()
+        client_mock.InitializeClient(
+            system="Windows", version="6.1.7600", kernel="6.1.7601")
+        with mock.patch.object(platform, "system", return_value="Windows"):
+          for _ in test_lib.TestFlowHelper(
+              "Interrogate",
+              client_mock,
+              token=self.token,
+              client_id=self.client_id):
+            pass
+
+        self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+        self._CheckCloudMetadata()
 
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""

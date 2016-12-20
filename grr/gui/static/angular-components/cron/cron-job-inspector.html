@@ -4,16 +4,16 @@
     Please select a cron job to see the details.
   </div>
 
-  <tabset ng-if="cronJobUrn">
-    <tab heading="Details" id="Details">
+  <uib-tabset ng-if="cronJobUrn">
+    <uib-tab heading="Details" id="Details">
       <grr-cron-job-overview cron-job-urn="cronJobUrn">
       </grr-cron-job-overview>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Flows" id="Flows">
+    <uib-tab heading="Flows" id="Flows">
       <grr-cron-job-flows-list cron-job-urn="cronJobUrn">
       </grr-cron-job-flows-list>
-    </tab>
-  </tabset>
+    </uib-tab>
+  </uib-tabset>
 
 </div>

@@ -39,8 +39,8 @@
 
 <div class="padded">
 
-  <tabset>
-    <tab heading="Frontend" select="frontendTabShown = true">
+  <uib-tabset>
+    <uib-tab heading="Frontend" select="frontendTabShown = true">
       <div ng-if="frontendTabShown">
         <p class="lead">Frontend
           <span ng-if="controller.frontendCount">
@@ -80,9 +80,9 @@
           </grr-server-load-graph-serie>
         </grr-timeseries-graph>
       </div>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Worker" select="workerTabShown = true">
+    <uib-tab heading="Worker" select="workerTabShown = true">
       <div ng-if="workerTabShown">
 
         <p class="lead">Worker
@@ -151,8 +151,8 @@
         </grr-timeseries-graph>
 
       </div>
-    </tab>
-  </tabset>
+    </uib-tab>
+  </uib-tabset>
 
 
 </div>

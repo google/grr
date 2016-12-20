@@ -9,19 +9,19 @@ goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!angular.$timeout} $timeout
  * @param {!angular.$window} $window
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.user.userSettingsButtonDirective.UserSettingsButtonController = function(
-    $scope, $modal, $timeout, $window, grrApiService) {
+    $scope, $uibModal, $timeout, $window, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!angular.$timeout} */
   this.timeout_ = $timeout;
@@ -63,7 +63,7 @@ UserSettingsButtonController.prototype.onClick = function() {
     this.userSettings = response['data']['value']['settings'];
   }.bind(this));
 
-  this.modal_.open({
+  this.uibModal_.open({
     templateUrl: '/static/angular-components/user/' +
         'user-settings-button-modal.html',
     scope: this.scope_

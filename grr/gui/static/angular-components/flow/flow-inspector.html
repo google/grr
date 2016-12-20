@@ -4,33 +4,26 @@
     Please select a flow to see its details here.
   </div>
 
-  <tabset ng-if="flowId">
-    <tab heading="Flow Information"
-         select="controller.activeTab = null">
+  <uib-tabset ng-if="flowId" active="controller.activeTab">
+    <uib-tab heading="Flow Information" index="''">
       <grr-flow-overview flow-id="flowId" api-base-path="apiBasePath"
-                         ng-if="!controller.activeTab" />
-    </tab>
+                         ng-if="controller.tabsShown['']" />
+    </uib-tab>
 
-    <tab heading="Requests"
-         select="controller.activeTab = 'requests'"
-         active="controller['requests']">
+    <uib-tab heading="Requests" index="'requests'">
       <grr-flow-requests flow-id="flowId" api-base-path="apiBasePath"
-                         ng-if="controller.activeTab === 'requests'" />
-    </tab>
+                         ng-if="controller.tabsShown['requests']" />
+    </uib-tab>
 
-    <tab heading="Results"
-         select="controller.activeTab = 'results'"
-         active="controller['results']">
+    <uib-tab heading="Results" index="'results'">
       <grr-flow-results flow-id="flowId" api-base-path="apiBasePath"
-                        ng-if="controller.activeTab === 'results'" />
-    </tab>
+                        ng-if="controller.tabsShown['results']" />
+    </uib-tab>
 
-    <tab heading="Log"
-         select="controller.activeTab = 'log'"
-         active="controller['log']">
+    <uib-tab heading="Log" index="'log'">
       <grr-flow-log flow-id="flowId" api-base-path="apiBasePath"
-                    ng-if="controller.activeTab === 'log'" />
-    </tab>
-  </tabset>
+                    ng-if="controller.tabsShown['log']" />
+    </uib-tab>
+  </uib-tabset>
 
 </div>

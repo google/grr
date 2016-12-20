@@ -107,6 +107,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     if type_obj:
       self.age = type_obj.age
 
+    self.cloud_instance = client_obj.Get(client_obj.Schema.CLOUD_INSTANCE)
     return self
 
 

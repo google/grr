@@ -176,6 +176,22 @@ class ClientBase(object):
 
     return utils.MapItemsIterator(MapClientApproval, items)
 
+  def AddLabels(self, labels):
+    if not labels:
+      raise ValueError("labels list can't be empty")
+
+    args = api_pb2.ApiAddClientsLabelsArgs(
+        client_ids=[self.client_id], labels=labels)
+    self._context.SendRequest("AddClientsLabels", args)
+
+  def RemoveLabels(self, labels):
+    if not labels:
+      raise ValueError("labels list can't be empty")
+
+    args = api_pb2.ApiRemoveClientsLabelsArgs(
+        client_ids=[self.client_id], labels=labels)
+    self._context.SendRequest("RemoveClientsLabels", args)
+
 
 class ClientRef(ClientBase):
   """Ref to the client."""

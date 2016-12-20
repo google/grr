@@ -28,14 +28,14 @@ var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
  * @param {!angular.Scope} $rootScope
  * @param {!angular.Scope} $scope
  * @param {!angular.$timeout} $timeout
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
 grrUi.client.virtualFileSystem.recursiveListButtonDirective
     .RecursiveListButtonController = function(
-    $rootScope, $scope, $timeout, $modal, grrApiService, grrReflectionService) {
+    $rootScope, $scope, $timeout, $uibModal, grrApiService, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
 
@@ -45,8 +45,8 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
   /** @private {!angular.$timeout} */
   this.timeout_ = $timeout;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -66,7 +66,7 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
   /** @type {?string} */
   this.error;
 
-  /** @private {angularUi.$modalInstance} */
+  /** @private {angularUi.$uibModalInstance} */
   this.modalInstance;
 
   this.scope_.$watchGroup(['clientId', 'filePath'],
@@ -118,7 +118,7 @@ RecursiveListButtonController.prototype.onClick = function() {
 
     this.refreshOperation['value']['notify_user'] = true;
 
-    this.modalInstance = this.modal_.open({
+    this.modalInstance = this.uibModal_.open({
       templateUrl: '/static/angular-components/client/virtual-file-system/' +
           'recursive-list-button-modal.html',
       scope: this.scope_

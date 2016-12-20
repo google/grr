@@ -1786,6 +1786,59 @@ message AuditEvent {
     }];
 }
 
+// https://cloud.google.com/compute/docs/storing-retrieving-metadata
+message GoogleCloudInstance {
+  optional string unique_id = 1 [(sem_type) = {
+    description: "Globally unique instance ID, a "
+                 "concatenation of zone/project_id/instance_id.",
+  }];
+  optional string zone = 2 [(sem_type) = {
+    description: "Zone ID where the instance is running",
+  }];
+  optional string project_id = 3 [(sem_type) = {
+    description: "Project ID containing the instance",
+  }];
+  optional string instance_id = 4 [(sem_type) = {
+    description: "Instance ID (may not be globally unique)",
+  }];
+  optional string hostname = 5 [(sem_type) = {
+    description: "Instance hostname",
+  }];
+  optional string machine_type = 6 [(sem_type) = {
+    description: "Machine type name of the instance's host machine.",
+  }];
+}
+
+// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
+message AmazonCloudInstance {
+  optional string instance_id = 1 [(sem_type) = {
+    description: "Globally unique instance ID.",
+  }];
+  optional string ami_id = 2 [(sem_type) = {
+    description: "The AMI ID used to launch the instance.",
+  }];
+  optional string hostname = 3 [(sem_type) = {
+    description: "The private IPv4 DNS hostname of the instance.",
+  }];
+  optional string public_hostname = 4 [(sem_type) = {
+    description: "The instance's public DNS hostname.",
+  }];
+  optional string instance_type = 5 [(sem_type) = {
+    description: "The type of instance.",
+  }];
+}
+
+message CloudInstance {
+  enum InstanceType {
+    UNSET = -1;
+    AMAZON = 0;
+    GOOGLE = 1;
+  };
+  optional InstanceType cloud_type = 1 [default = UNSET];
+  optional GoogleCloudInstance google = 2;
+  optional AmazonCloudInstance amazon = 3;
+}
+
 // This is a summary of a GRR client.
 message ClientSummary {
   option (semantic) = {
@@ -1834,6 +1887,14 @@ message ClientSummary {
       description: "User accounts on the system."
     }];
 
+  optional CloudInstance.InstanceType cloud_type = 11
+      [(sem_type) = {description: "Cloud type: AMAZON/GOOGLE etc."}];
+
+  optional string cloud_instance_id = 12 [(sem_type) = {
+    description: "Cloud instance unique ID. For Amazon EC2 it is the "
+                 "instance ID, for GCE it is the zone/project_id/instance_id "
+                 "concatenation."
+  }];
 }
 
 

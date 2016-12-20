@@ -13,13 +13,13 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {grrUi.core.dialogService.DialogService} grrDialogService
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.hunt.huntsListDirective.HuntsListController = function(
-    $scope, $q, $modal, grrDialogService, grrApiService) {
+    $scope, $q, $uibModal, grrDialogService, grrApiService) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
@@ -28,8 +28,8 @@ grrUi.hunt.huntsListDirective.HuntsListController = function(
   /** @private {!angular.$q} */
   this.q_ = $q;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {grrUi.core.dialogService.DialogService} */
   this.grrDialogService_ = grrDialogService;
@@ -123,7 +123,7 @@ HuntsListController.prototype.newHunt = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-form on-resolve="resolve()" ' +
         'on-reject="reject()" />',
     scope: modalScope,
@@ -234,7 +234,7 @@ HuntsListController.prototype.copyHunt = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.modal_.open({
+  var modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-copy-form on-resolve="resolve()" ' +
         'on-reject="reject()" hunt-urn="huntUrn" />',
     scope: modalScope,

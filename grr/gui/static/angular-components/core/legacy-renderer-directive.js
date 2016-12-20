@@ -45,7 +45,7 @@ LegacyRendererController.prototype.render_ = function() {
   grr.layout(this.scope_['renderer'], domId, this.scope_['queryParams'],
              function() {
                // Special case handling for dialogs shown through combination
-               // of legacy rendering and Bootstrap UI's $modal.
+               // of legacy rendering and Bootstrap UI's $uibModal.
                $('#' + domId).find('button[data-dismiss=modal]').click(
                    /** @suppress {missingProperties} For jQuery.scope(). */
                    function() {

@@ -27,11 +27,13 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.proto import api_pb2
+from grr.proto import jobs_pb2
 
 
 class ApiE2ETest(test_lib.GRRBaseTest):
@@ -39,7 +41,10 @@ class ApiE2ETest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ApiE2ETest, self).setUp()
+
     api_auth_manager.APIACLInit.InitApiAuthManager()
+    self.token.username = "api_test_robot_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     self.port = HTTPApiEndToEndTestProgram.server_port
     self.endpoint = "http://localhost:%s" % self.port
@@ -233,6 +238,57 @@ class ApiClientLibVfsTest(ApiE2ETest):
     self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs").GetTimelineAsCsv().WriteToStream(out)
     self.assertTrue(out.getvalue())
+
+
+class ApiClientLibLabelsTest(ApiE2ETest):
+  """Tests VFS operations part of GRR Python API client library."""
+
+  def setUp(self):
+    super(ApiClientLibLabelsTest, self).setUp()
+    self.client_urn = self.SetupClients(1)[0]
+
+  def testAddLabels(self):
+    client_ref = self.api.Client(client_id=self.client_urn.Basename())
+    self.assertEqual(list(client_ref.Get().data.labels), [])
+
+    with test_lib.FakeTime(42):
+      client_ref.AddLabels(["foo", "bar"])
+
+    self.assertEqual(
+        sorted(
+            client_ref.Get().data.labels, key=lambda l: l.name), [
+                jobs_pb2.AFF4ObjectLabel(
+                    name="bar", owner=self.token.username, timestamp=42000000),
+                jobs_pb2.AFF4ObjectLabel(
+                    name="foo", owner=self.token.username, timestamp=42000000)
+            ])
+
+  def testRemoveLabels(self):
+    with test_lib.FakeTime(42):
+      with aff4.FACTORY.Open(
+          self.client_urn,
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=self.token) as client_obj:
+        client_obj.AddLabels("bar", "foo")
+
+    client_ref = self.api.Client(client_id=self.client_urn.Basename())
+    self.assertEqual(
+        sorted(
+            client_ref.Get().data.labels, key=lambda l: l.name), [
+                jobs_pb2.AFF4ObjectLabel(
+                    name="bar", owner=self.token.username, timestamp=42000000),
+                jobs_pb2.AFF4ObjectLabel(
+                    name="foo", owner=self.token.username, timestamp=42000000)
+            ])
+
+    client_ref.RemoveLabels(["foo"])
+    self.assertEqual(
+        sorted(
+            client_ref.Get().data.labels, key=lambda l: l.name), [
+                jobs_pb2.AFF4ObjectLabel(
+                    name="bar", owner=self.token.username, timestamp=42000000)
+            ])
 
 
 class CSRFProtectionTest(ApiE2ETest):

@@ -11,6 +11,7 @@ from grr.lib.rdfvalues import aff4_rdfvalues_test
 from grr.lib.rdfvalues import basic_test
 from grr.lib.rdfvalues import benchmark_test
 from grr.lib.rdfvalues import client_test
+from grr.lib.rdfvalues import cloud_test
 from grr.lib.rdfvalues import crypto_test
 from grr.lib.rdfvalues import data_store_test
 from grr.lib.rdfvalues import filestore_test

@@ -227,11 +227,11 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=li#_fs i.jstree-icon")
     self.Click("css=li#_fs-os i.jstree-icon")
     self.Click("css=li#_fs-os-c i.jstree-icon")
-    self.Click("css=li#_fs-os-c-Downloads a")
+    self.Click("css=li#_fs-os-c-Downloads i.jstree-themeicon")
 
     # Click on the row and on the Download tab.
     self.Click("css=tr:contains(\"a.txt\")")
-    self.Click("css=li[heading=Download]")
+    self.Click("css=li[heading=Download]:not(:disabled)")
 
     # Check that export tool download hint is displayed.
     self.WaitUntil(self.IsTextPresent, "/usr/bin/grr_api_shell "

@@ -84,7 +84,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.urn)
@@ -103,7 +103,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -135,7 +135,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
 
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.session_id)
@@ -153,7 +153,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -195,7 +195,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
     with self.ACLChecksDisabled():
@@ -223,7 +223,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -258,7 +258,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
     with self.ACLChecksDisabled():
@@ -281,7 +281,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Close]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
 
 def main(argv):

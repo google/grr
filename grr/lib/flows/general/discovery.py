@@ -3,6 +3,7 @@
 
 
 from grr.client.client_actions import admin as admin_actions
+from grr.client.client_actions import cloud as cloud_actions
 from grr.client.client_actions import operating_system as operating_system_actions
 from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
@@ -13,6 +14,7 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -101,6 +103,25 @@ class Interrogate(flow.GRRFlow):
         next_state="EnumerateFilesystems")
 
   @flow.StateHandler()
+  def CloudMetadata(self, responses):
+    """Process cloud metadata and store in the client."""
+    if not responses.success:
+      # We want to log this but it's not serious enough to kill the whole flow.
+      self.Log("Failed to collect cloud metadata: %s" % responses.status)
+      return
+    metadata_responses = responses.First()
+
+    # Expected for non-cloud machines.
+    if not metadata_responses:
+      return
+
+    with self._CreateClient() as client:
+      client.Set(
+          client.Schema.CLOUD_INSTANCE(
+              cloud.ConvertCloudMetadataResponsesToCloudInstance(
+                  metadata_responses)))
+
+  @flow.StateHandler()
   def StoreMemorySize(self, responses):
     if not responses.success:
       return
@@ -145,6 +166,13 @@ class Interrogate(flow.GRRFlow):
           fd.Set(fd.Schema.PATHSPEC,
                  fd.Schema.PATHSPEC(
                      path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+
+      # No support for OS X cloud machines as yet.
+      if response.system in ["Linux", "Windows"]:
+        self.CallClient(
+            cloud_actions.GetCloudVMMetadata,
+            cloud.BuildCloudMetadataRequests(),
+            next_state="CloudMetadata")
 
       known_system_type = True
     else:

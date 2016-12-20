@@ -47,14 +47,12 @@ AclDialogService.prototype.openRequestApprovalDialog = function(
     approvalType, createRequestUrl, createRequestArgs,
     opt_accessErrorDescription) {
 
-  // TODO(user): This is copy&paste from acl_manager.js. This is enormously
-  // dirty, but we need this code while we still have some legacy dialogs.
-  // Get rid of this as soon as possible.
-  var openedModal = $('.modal[aria-hidden=false]');
-  openedModal.attr('update_on_show', 'false');
-  openedModal['modal']('hide');
-  // Also handle AngularJS modals.
-  $('.modal-dialog[ng-class]').each(function() {
+  // TODO(user): get rid of jQuery here and reimplement in cleaner fashion
+  // (all modals should run through our own service, so that we can control
+  // their stacking behavior).
+  //
+  // Handle AngularJS modals.
+  $('.modal-dialog:visible').each(function() {
     $(this).scope()['$parent']['$dismiss']();
   });
 

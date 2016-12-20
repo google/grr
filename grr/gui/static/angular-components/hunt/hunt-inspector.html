@@ -4,59 +4,52 @@
     Please select a hunt to see its details here.
   </div>
 
-  <tabset ng-if="huntUrn && huntUrn === controller.shownHuntUrn">
-    <tab heading="Overview" select="controller.activeTab = null">
-      <grr-hunt-overview hunt-urn="huntUrn" ng-if="!controller.activeTab">
+  <uib-tabset ng-if="huntUrn && huntUrn === controller.shownHuntUrn"
+              active="controller.activeTab">
+    <uib-tab heading="Overview" index="''">
+      <grr-hunt-overview hunt-urn="huntUrn" ng-if="controller.tabsShown['']">
       </grr-hunt-overview>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Log" active="controller['log']"
-                       select="controller.activeTab = 'log'">
-      <grr-hunt-log hunt-urn="huntUrn" ng-if="controller.activeTab === 'log'">
+    <uib-tab heading="Log" index="'log'">
+      <grr-hunt-log hunt-urn="huntUrn" ng-if="controller.tabsShown['log']">
       </grr-hunt-log>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Errors" active="controller['errors']"
-                          select="controller.activeTab = 'errors'">
-      <grr-hunt-errors hunt-urn="huntUrn" ng-if="controller.activeTab === 'errors'">
+    <uib-tab heading="Errors" index="'errors'">
+      <grr-hunt-errors hunt-urn="huntUrn" ng-if="controller.tabsShown['errors']">
       </grr-hunt-errors>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Graph" active="controller['hunt-graph']"
-                         select="controller.activeTab = 'hunt-graph'">
-      <grr-hunt-graph hunt-urn="huntUrn" ng-if="controller.activeTab === 'hunt-graph'">
+    <uib-tab heading="Graph" index="'hunt-graph'">
+      <grr-hunt-graph hunt-urn="huntUrn" ng-if="controller.tabsShown['hunt-graph']">
       </grr-hunt-graph>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Results" active="controller['results']"
-                           select="controller.activeTab = 'results'">
-      <grr-hunt-results hunt-urn="huntUrn" ng-if="controller.activeTab === 'results'">
+    <uib-tab heading="Results" index="'results'">
+      <grr-hunt-results hunt-urn="huntUrn" ng-if="controller.tabsShown['results']">
       </grr-hunt-results>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Stats" active="controller['stats']"
-                         select="controller.activeTab = 'stats'">
-      <grr-hunt-stats hunt-urn="huntUrn" ng-if="controller.activeTab === 'stats'">
+    <uib-tab heading="Stats" index="'stats'">
+      <grr-hunt-stats hunt-urn="huntUrn" ng-if="controller.tabsShown['stats']">
       </grr-hunt-stats>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Crashes" active="controller['crashes']"
-                           select="controller.activeTab = 'crashes'">
-      <grr-hunt-crashes hunt-urn="huntUrn" ng-if="controller.activeTab === 'crashes'">
+    <uib-tab heading="Crashes" index="'crashes'">
+      <grr-hunt-crashes hunt-urn="huntUrn" ng-if="controller.tabsShown['crashes']">
       </grr-hunt-crashes>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Clients" active="controller['clients']"
-                               select="controller.activeTab = 'clients'">
-      <grr-hunt-clients hunt-urn="huntUrn" ng-if="controller.activeTab === 'clients'">
+    <uib-tab heading="Clients" index="'clients'">
+      <grr-hunt-clients hunt-urn="huntUrn" ng-if="controller.tabsShown['clients']">
       </grr-hunt-clients>
-    </tab>
+    </uib-tab>
 
-    <tab heading="Context Detail" active="controller['context-details']"
-                                  select="controller.activeTab = 'context-details'">
-      <grr-hunt-context hunt-urn="huntUrn" ng-if="controller.activeTab === 'context-details'">
+    <uib-tab heading="Context Details" index="'context-details'">
+      <grr-hunt-context hunt-urn="huntUrn" ng-if="controller.tabsShown['context-details']">
       </grr-hunt-context>
-    </tab>
-  </tabset>
+    </uib-tab>
+  </uib-tabset>
 
 </div>

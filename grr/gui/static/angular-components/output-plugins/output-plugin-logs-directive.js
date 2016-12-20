@@ -11,17 +11,17 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsController =
-    function($scope, $modal, grrApiService) {
+    function($scope, $uibModal, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -57,7 +57,7 @@ OutputPluginLogsController.prototype.onUrlChange_ = function(newValue) {
  * @export
  */
 OutputPluginLogsController.prototype.onClick = function() {
-  this.modal_.open({
+  this.uibModal_.open({
     templateUrl: '/static/angular-components/output-plugins/' +
         'output-plugin-logs-modal.html',
     scope: this.scope_,
@@ -70,7 +70,7 @@ OutputPluginLogsController.prototype.onClick = function() {
 /**
  * Directive for displaying notes for output plugins of a flow or hunt.
  *
- * @constructor
+ * @return {angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
