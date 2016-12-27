@@ -4,6 +4,7 @@
 import os
 import platform
 import subprocess
+import unittest
 
 import mock
 import requests
@@ -15,6 +16,8 @@ from grr.lib import test_lib
 from grr.lib.rdfvalues import cloud as rdf_cloud
 
 
+@unittest.skipIf(platform.system() == "Darwin",
+                 ("OS X cloud machines unsupported."))
 class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
   ZONE_URL = "http://metadata.google.internal/computeMetadata/v1/instance/zone"
   PROJ_URL = ("http://metadata.google.internal/computeMetadata/"
