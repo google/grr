@@ -16,13 +16,13 @@ from grr.lib import test_lib
 from grr.lib.rdfvalues import cloud as rdf_cloud
 
 
-@unittest.skipIf(platform.system() == "Darwin",
-                 ("OS X cloud machines unsupported."))
 class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
   ZONE_URL = "http://metadata.google.internal/computeMetadata/v1/instance/zone"
   PROJ_URL = ("http://metadata.google.internal/computeMetadata/"
               "v1/project/project-id")
 
+  @unittest.skipIf(platform.system() == "Darwin",
+                   ("OS X cloud machines unsupported."))
   def testBIOSCommandRaises(self):
     with mock.patch.object(
         cloud.GetCloudVMMetadata, "BIOS_VERSION_COMMAND", new="/bin/false"):
@@ -30,6 +30,8 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
         self.RunAction(
             cloud.GetCloudVMMetadata, arg=rdf_cloud.CloudMetadataRequest())
 
+  @unittest.skipIf(platform.system() == "Darwin",
+                   ("OS X cloud machines unsupported."))
   def testNonMatchingBIOS(self):
     zone = mock.Mock(text="projects/123456789733/zones/us-central1-a")
     arg = rdf_cloud.CloudMetadataRequests(requests=[
@@ -50,6 +52,8 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
 
       self.assertFalse(results)
 
+  @unittest.skipIf(platform.system() == "Darwin",
+                   ("OS X cloud machines unsupported."))
   def testWindowsServiceQuery(self):
     project = mock.Mock(text="myproject")
     sc_query_output = open(
@@ -86,6 +90,8 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
       else:
         self.fail("Bad response.label: %s" % response.label)
 
+  @unittest.skipIf(platform.system() == "Darwin",
+                   ("OS X cloud machines unsupported."))
   def testMultipleBIOSMultipleURLs(self):
     ami = mock.Mock(text="ami-12345678")
     arg = rdf_cloud.CloudMetadataRequests(requests=[
@@ -117,6 +123,8 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
       else:
         self.fail("Bad response.label: %s" % response.label)
 
+  @unittest.skipIf(platform.system() == "Darwin",
+                   ("OS X cloud machines unsupported."))
   def testMatchingBIOSMultipleURLs(self):
     zone = mock.Mock(text="projects/123456789733/zones/us-central1-a")
     project = mock.Mock(text="myproject")

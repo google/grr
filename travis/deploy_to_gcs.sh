@@ -26,14 +26,6 @@ set -e
 
 source "${HOME}/INSTALL/bin/activate"
 
-# Temporary workaround until we migrate off PackageMaker.
-if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  cd /Applications
-  wget -q https://storage.googleapis.com/grr-osx-buildtools/packagemaker.tar.gz
-  tar zxf packagemaker.tar.gz
-  cd -
-fi
-
 grr_client_build build --output built_templates
 grr_client_build build_components --output built_templates
 

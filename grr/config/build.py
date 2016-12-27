@@ -391,12 +391,6 @@ config_lib.DEFINE_string(
     help="Time of build to embed into binary.")
 
 config_lib.DEFINE_string(
-    "ClientBuilder.packagemaker",
-    default=("/Developer/Applications/Utilities/PackageMaker.app/Contents"
-             "/MacOS/PackageMaker"),
-    help="Location of the PackageMaker executable.")
-
-config_lib.DEFINE_string(
     "ClientBuilder.vs_arch",
     default=None,
     help="Visual studio architecture string.")

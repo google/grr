@@ -50,15 +50,15 @@ class DarwinClientBuilder(build.ClientBuilder):
         config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
-    self.target_binary_dir = os.path.join(
-        self.pkg_root, "usr/local/lib/",
-        self.client_name, self.output_basename)
+    self.target_binary_dir = os.path.join(self.pkg_root, "usr/local/lib/",
+                                          self.client_name,
+                                          self.output_basename)
     self.pkgbuild_out_dir = os.path.join(self.build_root, "pkgbuild-out")
     self.pkgbuild_out_binary = os.path.join(self.pkgbuild_out_dir,
                                             self.pkg_name)
     self.prodbuild_out_dir = os.path.join(self.build_root, "prodbuild-out")
     self.prodbuild_out_binary = os.path.join(self.prodbuild_out_dir,
-      self.pkg_name)
+                                             self.pkg_name)
 
   def MakeZip(self, xar_file, output_file):
     """Add a zip to the end of the .xar containing build.yaml.
@@ -94,7 +94,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "grr.plist.in"),
         output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
-        self.plist_name))
+                                     self.plist_name))
     # We pass in scripts separately with --scripts so they don't go in pkg_root
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "preinstall.sh.in"),
@@ -146,11 +146,14 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   def SetFileOwner(self, user, group):
     print "Fixing file ownership and permissions"
-    command = ["sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
-               self.script_dir]
+    command = [
+        "sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
+        self.script_dir
+    ]
     self.RunCmd(command)
-    command = ["sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
-               self.pkg_root]
+    command = [
+        "sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group), self.pkg_root
+    ]
     self.RunCmd(command)
 
   def Set755Permissions(self):
@@ -162,19 +165,24 @@ class DarwinClientBuilder(build.ClientBuilder):
   def RunPkgBuild(self):
     pkg_org = config_lib.CONFIG.Get("ClientBuilder.package_maker_organization",
                                     context=self.context)
-    command = ["pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_org,
-               "--scripts", self.script_dir, "--version", self.version,
-               self.pkgbuild_out_binary]
+    command = [
+        "pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_org,
+        "--scripts", self.script_dir, "--version", self.version,
+        self.pkgbuild_out_binary
+    ]
     self.RunCmd(command)
 
   def RunProductBuild(self):
-    command = ["productbuild", "--distribution", os.path.join(self.build_dir,
-               "distribution.xml"), "--package-path", self.pkgbuild_out_dir,
-               self.prodbuild_out_binary]
+    command = [
+        "productbuild", "--distribution",
+        os.path.join(self.build_dir, "distribution.xml"), "--package-path",
+        self.pkgbuild_out_dir, self.prodbuild_out_binary
+    ]
     self.RunCmd(command)
 
   def RenamePkgToTemplate(self, output_file):
-    print "Copying output to templates location: %s -> %s" % (self.prodbuild_out_binary, output_file)
+    print "Copying output to templates location: %s -> %s" % (
+        self.prodbuild_out_binary, output_file)
     utils.EnsureDirExists(os.path.dirname(output_file))
     shutil.copyfile(self.prodbuild_out_binary, output_file)
 
@@ -190,4 +198,3 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.RunProductBuild()
     self.RenamePkgToTemplate(output_file)
     self.SetFileOwner(getpass.getuser(), "staff")
-
