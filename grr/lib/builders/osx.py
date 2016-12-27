@@ -20,18 +20,45 @@ class DarwinClientBuilder(build.ClientBuilder):
     """Initialize the Mac OS X client builder."""
     super(DarwinClientBuilder, self).__init__(context=context)
     self.context.append("Target:Darwin")
-    self.pkg_dir = config_lib.CONFIG.Get("ClientBuilder.package_dir",
-                                         context=self.context)
 
   def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template."""
     super(DarwinClientBuilder, self).MakeExecutableTemplate(
         output_file=output_file)
+    self.SetBuildVars()
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
     self.BuildInstallerPkg(output_file)
     self.MakeZip(output_file, self.template_file)
+
+  def SetBuildVars(self):
+    self.version = config_lib.CONFIG.Get("Source.version_string",
+                                         context=self.context)
+    self.pkg_name = "%s-%s.pkg" % (
+        config_lib.CONFIG.Get("Client.name", context=self.context),
+        self.version)
+    self.build_root = config_lib.CONFIG.Get("ClientBuilder.build_root_dir",
+                                            context=self.context)
+    self.client_name = config_lib.CONFIG.Get("Client.name",
+                                             context=self.context)
+    self.plist_name = config_lib.CONFIG.Get("Client.plist_filename",
+                                            context=self.context)
+    self.output_basename = config_lib.CONFIG.Get(
+        "ClientBuilder.output_basename", context=self.context)
+    self.template_binary_dir = os.path.join(
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
+        "grr-client")
+    self.pkg_root = os.path.join(self.build_root, "pkg-root")
+    self.target_binary_dir = os.path.join(
+        self.pkg_root, "usr/local/lib/",
+        self.client_name, self.output_basename)
+    self.pkgbuild_out_dir = os.path.join(self.build_root, "pkgbuild-out")
+    self.pkgbuild_out_binary = os.path.join(self.pkgbuild_out_dir,
+                                            self.pkg_name)
+    self.prodbuild_out_dir = os.path.join(self.build_root, "prodbuild-out")
+    self.prodbuild_out_binary = os.path.join(self.prodbuild_out_dir,
+      self.pkg_name)
 
   def MakeZip(self, xar_file, output_file):
     """Add a zip to the end of the .xar containing build.yaml.
@@ -56,81 +83,56 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   def MakeBuildDirectory(self):
     super(DarwinClientBuilder, self).MakeBuildDirectory()
-    self.CleanDirectory(self.pkg_dir)
+    self.CleanDirectory(self.pkg_root)
+    self.CleanDirectory(self.pkgbuild_out_dir)
+    self.CleanDirectory(self.prodbuild_out_dir)
+    self.script_dir = os.path.join(self.build_dir, "scripts")
+    self.CleanDirectory(self.script_dir)
 
-  # WARNING: change with care since the PackageMaker files are fragile!
-  def BuildInstallerPkg(self, output_file):
-    """Builds a package (.pkg) using PackageMaker."""
+  def InterpolateFiles(self):
     build_files_dir = config_lib.Resource().Filter("install_data/macosx/client")
-
-    pmdoc_dir = os.path.join(build_files_dir, "grr.pmdoc")
-
-    client_name = config_lib.CONFIG.Get("Client.name", context=self.context)
-    plist_name = config_lib.CONFIG.Get("Client.plist_filename",
-                                       context=self.context)
-
-    out_build_files_dir = build_files_dir.replace(
-        config_lib.Resource().Filter("grr"), self.build_dir)
-    out_pmdoc_dir = os.path.join(self.build_dir, "%s.pmdoc" % client_name)
-
-    utils.EnsureDirExists(out_build_files_dir)
-    utils.EnsureDirExists(out_pmdoc_dir)
-    utils.EnsureDirExists(
-        config_lib.CONFIG.Get("ClientBuilder.package_dir",
-                              context=self.context))
-
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "grr.plist.in"),
-        output_filename=os.path.join(self.build_dir, plist_name))
-    self.GenerateFile(
-        input_filename=os.path.join(pmdoc_dir, "index.xml.in"),
-        output_filename=os.path.join(out_pmdoc_dir, "index.xml"))
-    self.GenerateFile(
-        input_filename=os.path.join(pmdoc_dir, "01grr.xml.in"),
-        output_filename=os.path.join(out_pmdoc_dir, "01%s.xml" % client_name))
-    self.GenerateFile(
-        input_filename=os.path.join(pmdoc_dir, "01grr-contents.xml"),
-        output_filename=os.path.join(out_pmdoc_dir,
-                                     "01%s-contents.xml" % client_name))
-    self.GenerateFile(
-        input_filename=os.path.join(pmdoc_dir, "02com.xml.in"),
-        output_filename=os.path.join(out_pmdoc_dir, "02com.xml"))
-    self.GenerateFile(
-        input_filename=os.path.join(pmdoc_dir, "02com-contents.xml"),
-        output_filename=os.path.join(out_pmdoc_dir, "02com-contents.xml"))
-
+        output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
+        self.plist_name))
+    # We pass in scripts separately with --scripts so they don't go in pkg_root
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "preinstall.sh.in"),
-        output_filename=os.path.join(self.build_dir, "preinstall.sh"))
+        output_filename=os.path.join(self.script_dir, "preinstall"))
+
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "postinstall.sh.in"),
-        output_filename=os.path.join(self.build_dir, "postinstall.sh"))
+        output_filename=os.path.join(self.script_dir, "postinstall"))
+    self.GenerateFile(
+        input_filename=os.path.join(build_files_dir, "Distribution.xml.in"),
+        output_filename=os.path.join(self.build_dir, "Distribution.xml"))
 
-    output_basename = config_lib.CONFIG.Get("ClientBuilder.output_basename",
-                                            context=self.context)
-
-    # Rename the generated binaries to the correct name.
-    template_binary_dir = os.path.join(
-        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
-        "grr-client")
-    target_binary_dir = os.path.join(self.build_dir, "%s" % output_basename)
-
-    if template_binary_dir != target_binary_dir:
-      shutil.move(template_binary_dir, target_binary_dir)
-
+  def RenameGRRPyinstallerBinaries(self):
+    if self.template_binary_dir != self.target_binary_dir:
+      shutil.move(self.template_binary_dir, self.target_binary_dir)
     shutil.move(
-        os.path.join(target_binary_dir, "grr-client"),
+        os.path.join(self.target_binary_dir, "grr-client"),
         os.path.join(
-            target_binary_dir,
+            self.target_binary_dir,
             config_lib.CONFIG.Get("Client.binary_name", context=self.context)))
 
+  def CreateInstallDirs(self):
+    utils.EnsureDirExists(self.build_dir)
+    utils.EnsureDirExists(self.script_dir)
+    utils.EnsureDirExists(self.pkg_root)
+    utils.EnsureDirExists(os.path.join(self.pkg_root, "Library/LaunchDaemons"))
+    utils.EnsureDirExists(os.path.join(self.pkg_root, "usr/local/lib/"))
+    utils.EnsureDirExists(self.pkgbuild_out_dir)
+    utils.EnsureDirExists(self.prodbuild_out_dir)
+
+  def WriteClientConfig(self):
     repacker = build.ClientRepacker(context=self.context)
     repacker.context = self.context
 
     # Generate a config file.
     with open(
         os.path.join(
-            target_binary_dir,
+            self.target_binary_dir,
             config_lib.CONFIG.Get("ClientBuilder.config_filename",
                                   context=self.context)),
         "wb") as fd:
@@ -138,46 +140,54 @@ class DarwinClientBuilder(build.ClientBuilder):
           repacker.GetClientConfig(
               ["Client Context"] + self.context, validate=False))
 
+  def RunCmd(self, command):
+    print "Running: %s" % " ".join(command)
+    subprocess.check_call(command)
+
+  def SetFileOwner(self, user, group):
     print "Fixing file ownership and permissions"
+    command = ["sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
+               self.script_dir]
+    self.RunCmd(command)
+    command = ["sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
+               self.pkg_root]
+    self.RunCmd(command)
 
-    command = ["sudo", "/usr/sbin/chown", "-R", "root:wheel", self.build_dir]
-    # Change the owner, group and permissions of the binaries
-    print "Running: %s" % " ".join(command)
-    subprocess.call(command)
+  def Set755Permissions(self):
+    command = ["sudo", "/bin/chmod", "-R", "755", self.script_dir]
+    self.RunCmd(command)
+    command = ["sudo", "/bin/chmod", "-R", "755", self.pkg_root]
+    self.RunCmd(command)
 
-    command = ["sudo", "/bin/chmod", "-R", "755", self.build_dir]
+  def RunPkgBuild(self):
+    pkg_org = config_lib.CONFIG.Get("ClientBuilder.package_maker_organization",
+                                    context=self.context)
+    command = ["pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_org,
+               "--scripts", self.script_dir, "--version", self.version,
+               self.pkgbuild_out_binary]
+    self.RunCmd(command)
 
-    print "Running: %s" % " ".join(command)
-    subprocess.call(command)
+  def RunProductBuild(self):
+    command = ["productbuild", "--distribution", os.path.join(self.build_dir,
+               "distribution.xml"), "--package-path", self.pkgbuild_out_dir,
+               self.prodbuild_out_binary]
+    self.RunCmd(command)
 
-    print "Building a package with PackageMaker"
-    pkg = "%s-%s.pkg" % (
-        config_lib.CONFIG.Get("Client.name", context=self.context),
-        config_lib.CONFIG.Get("Source.version_string", context=self.context))
-
-    output_pkg_path = os.path.join(self.pkg_dir, pkg)
-    command = [
-        config_lib.CONFIG.Get("ClientBuilder.package_maker_path",
-                              context=self.context), "--doc", out_pmdoc_dir,
-        "--out", output_pkg_path
-    ]
-
-    print "Running: %s " % " ".join(command)
-    ret = subprocess.call(command)
-    if ret != 0:
-      msg = "PackageMaker returned an error (%d)." % ret
-      print msg
-      raise RuntimeError(msg)
-
-    print "Copying output to templates location: %s -> %s" % (output_pkg_path,
-                                                              output_file)
+  def RenamePkgToTemplate(self, output_file):
+    print "Copying output to templates location: %s -> %s" % (self.prodbuild_out_binary, output_file)
     utils.EnsureDirExists(os.path.dirname(output_file))
-    shutil.copyfile(output_pkg_path, output_file)
+    shutil.copyfile(self.prodbuild_out_binary, output_file)
 
-    # Change the owner, group and permissions of the binaries back.
-    command = [
-        "sudo", "/usr/sbin/chown", "-R", "%s:staff" % getpass.getuser(),
-        self.build_dir
-    ]
-    print "Running: %s" % " ".join(command)
-    subprocess.call(command)
+  def BuildInstallerPkg(self, output_file):
+    """Builds a package (.pkg) using PackageMaker."""
+    self.CreateInstallDirs()
+    self.InterpolateFiles()
+    self.RenameGRRPyinstallerBinaries()
+    self.WriteClientConfig()
+    self.SetFileOwner("root", "wheel")
+    self.Set755Permissions()
+    self.RunPkgBuild()
+    self.RunProductBuild()
+    self.RenamePkgToTemplate(output_file)
+    self.SetFileOwner(getpass.getuser(), "staff")
+

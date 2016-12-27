@@ -68,7 +68,7 @@ ClientBuilder Context:
 
     ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)"
+    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
     # Needed for package maker. Do not touch.
     ClientBuilder.mangled_output_basename: |
