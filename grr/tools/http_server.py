@@ -149,11 +149,11 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def HandleUploads(self):
     """Receive file uploads from the client."""
-    self.server.frontend.HandleUpload(
+    file_id = self.server.frontend.HandleUpload(
         self.headers.get("Transfer-Encoding"),
         self.headers.get("x-grr-policy"),
         self.headers.get("x-grr-hmac"), self.GenerateFileData())
-    self.Send("Upload successful.")
+    self.Send(file_id)
 
   def do_POST(self):  # pylint: disable=g-bad-name
     """Process encrypted message bundles."""

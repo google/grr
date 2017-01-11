@@ -46,6 +46,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     plugin = collection_plugin.CollectionExportPlugin()
     mock_args = mock.Mock()
     mock_args.path = rdfvalue.RDFURN("aff4:/huntcoll")
+    mock_args.no_legacy_warning_pause = True
     self.assertEqual(len(plugin.GetValuesForExport(mock_args)), 1)
 
   def testGetValuesRaisesForBadType(self):
@@ -54,6 +55,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     plugin = collection_plugin.CollectionExportPlugin()
     mock_args = mock.Mock()
     mock_args.path = rdfvalue.RDFURN("aff4:/bad")
+    mock_args.no_legacy_warning_pause = True
     with self.assertRaises(aff4.InstantiationError):
       plugin.GetValuesForExport(mock_args)
 
@@ -82,8 +84,14 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
 
       plugin.Run(
           parser.parse_args(args=[
-              "--path", "aff4:/testcoll", email_plugin.EmailOutputPlugin.name,
-              "--email_address", email_address, "--emails_limit", "100"
+              "--no_legacy_warning_pause",
+              "--path",
+              "aff4:/testcoll",
+              email_plugin.EmailOutputPlugin.name,
+              "--email_address",
+              email_address,
+              "--emails_limit",
+              "100",
           ]))
 
     self.assertEqual(len(self.email_messages), 1)

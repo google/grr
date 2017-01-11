@@ -2,7 +2,9 @@
 """A manager for storing files locally."""
 
 
+import hashlib
 import os
+import shutil
 
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -16,27 +18,19 @@ class UploadFileStore(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def open_for_writing(self, client_id, path):
-    """Facilitates writing to the specified path.
-
-    Args:
-      client_id: The client making this request.
-      path: The path to write on.
-
-    Returns:
-      a file like object ready for writing.
-
-    Raises:
-      IOError: If the writing is rejected.
-    """
+  def CreateFileStoreFile(self):
+    """Creates a new file for writing."""
 
 
 class FileStoreAFF4Object(aff4.AFF4Stream):
   """An AFF4 object which allows to read the files in the filestore."""
 
   class SchemaCls(aff4.AFF4Stream.SchemaCls):
-    FILESTORE_PATH = aff4.Attribute("aff4:filestore_path", rdfvalue.RDFString,
-                                    "The filestore path to read data from.")
+    FILE_ID = aff4.Attribute("aff4:file_id", rdfvalue.RDFString,
+                             "This string uniquely identifies a "
+                             "file stored in the file store. Passing "
+                             "this id to the file store grants read "
+                             "access to the corresponding data.")
 
     STAT = aff4.Attribute("aff4:stat", client.StatEntry,
                           "A StatEntry describing this file.", "stat")
@@ -46,12 +40,10 @@ class FileStoreAFF4Object(aff4.AFF4Stream):
   @property
   def file_handle(self):
     if self._file_handle is None:
-      filename = unicode(self.Get(self.Schema.FILESTORE_PATH)).strip(
-          os.path.sep)
-      path = os.path.join(config_lib.CONFIG["FileUploadFileStore.root_dir"],
-                          filename)
-
-      self._file_handle = open(path, "r")
+      file_id = self.Get(self.Schema.FILE_ID)
+      file_store = UploadFileStore.GetPlugin(config_lib.CONFIG[
+          "Frontend.upload_store"])()
+      self._file_handle = file_store.OpenForReading(file_id)
     return self._file_handle
 
   def Read(self, length):
@@ -67,30 +59,73 @@ class FileStoreAFF4Object(aff4.AFF4Stream):
     raise NotImplementedError("Write is not implemented.")
 
 
-class FileUploadFileStore(UploadFileStore):
-  """An implementation of upload server based on files."""
+class FileStoreFDCreator(object):
+  """A handle to a file opened via the FileUploadFileStore."""
 
-  def _get_filestore_path(self, client_id, path):
-    client_urn = client.ClientURN(client_id)
-    return client_urn.Add(path).Path().lstrip(os.path.sep)
-
-  def open_for_writing(self, client_id, path):
-    root_dir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
-    path = os.path.join(root_dir, self._get_filestore_path(client_id, path))
-
+  def __init__(self):
+    self.tmp_path = FileUploadFileStore.PathForId(
+        os.urandom(32).encode("hex"), prefix="tmp")
     # Ensure the directory exists.
     try:
-      os.makedirs(os.path.dirname(path))
+      os.makedirs(os.path.dirname(self.tmp_path))
     except (IOError, OSError):
       pass
 
-    return open(path, "wb")
+    self._fd = open(self.tmp_path, mode="wb")
+    self.hasher = hashlib.sha256()
 
-  def aff4_factory(self, client_id, path, token=None):
+  def Write(self, data):
+    self._fd.write(data)
+    self.hasher.update(data)
+
+  def Flush(self):
+    self._fd.flush()
+
+  def Close(self):
+    self._fd.close()
+
+  write = Write
+  flush = Flush
+  close = Close
+
+  def Finalize(self):
+    """Move the file to the hash based filename and return the file id."""
+    self._fd.close()
+    final_id = self.hasher.hexdigest()
+    final_filename = FileUploadFileStore.PathForId(final_id)
+
+    if not os.path.exists(final_filename):
+      # Ensure the directory exists.
+      try:
+        os.makedirs(os.path.dirname(final_filename))
+      except (IOError, OSError):
+        pass
+      shutil.move(self.tmp_path, final_filename)
+    else:
+      os.remove(self.tmp_path)
+
+    return final_id
+
+
+class FileUploadFileStore(UploadFileStore):
+  """An implementation of upload server based on files."""
+
+  @classmethod
+  def PathForId(cls, file_id, prefix=""):
+    root_dir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
+    return os.path.join(root_dir, prefix, file_id[0], file_id[1], file_id[2],
+                        file_id[3:])
+
+  def CreateFileStoreFile(self):
+    return FileStoreFDCreator()
+
+  def OpenForReading(self, file_id):
+    path = self.PathForId(file_id)
+    return open(path, "rb")
+
+  def Aff4ObjectForFileId(self, urn, file_id, token=None):
     """Returns an AFF4 object backed by the file store."""
-    urn = client.ClientURN(client_id).Add(path)
     result = aff4.FACTORY.Create(
         urn, FileStoreAFF4Object, mode="w", token=token)
-    result.Set(
-        result.Schema.FILESTORE_PATH(self._get_filestore_path(client_id, path)))
+    result.Set(result.Schema.FILE_ID(file_id))
     return result

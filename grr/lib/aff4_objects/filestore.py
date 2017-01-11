@@ -426,7 +426,7 @@ class HashFileStore(FileStore):
 
       file_store_files.append(file_store_fd)
 
-    # Write the hashes attribute to all the created files..
+    # Write the hashes attribute to all the created files.
     for file_store_fd in file_store_files:
       file_store_fd.Set(hashes)
       file_store_fd.Close(sync=sync)

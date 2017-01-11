@@ -4,8 +4,10 @@
 
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import standard
 from grr.tools.export_plugins import plugin
 
@@ -46,8 +48,18 @@ class FileExportPlugin(plugin.ExportPlugin):
         default=8,
         help="Maximum number of threads to use.")
 
+    parser.add_argument(
+        "--no_legacy_warning_pause",
+        action="store_true",
+        default=False,
+        help="Don't pause on legacy warning.")
+
   def Run(self, args):
     """Downloads files/directories with the given path."""
+    base_url = config_lib.CONFIG.Get("AdminUI.url", context=["AdminUI Context"])
+    source_path = rdfvalue.RDFURN(args.path)
+    components = source_path.Split(2)
+
     try:
       directory = aff4.FACTORY.Open(
           args.path, aff4.AFF4Volume, token=data_store.default_token)
@@ -63,6 +75,20 @@ class FileExportPlugin(plugin.ExportPlugin):
         raise RuntimeError("Specified path %s doesn't exist!" % directory.urn)
 
     if directory:
+      url = "%s/#/clients/%s/vfs/%s" % (base_url, components[0], components[1])
+      print "============================================================="
+      print("WARNING: Command line export tool is DEPRECATED and will be "
+            "removed soon.")
+      print
+      print("Please use the 'Download files collected in folder' button "
+            "instead. The archive will be generated on the fly:")
+      print url
+      print
+      print "============================================================="
+      print
+      if not args.no_legacy_warning_pause:
+        raw_input("Press Enter if you still want to continue...")
+
       export_utils.RecursiveDownload(
           directory,
           args.output,
@@ -70,6 +96,21 @@ class FileExportPlugin(plugin.ExportPlugin):
           max_depth=args.depth,
           max_threads=args.threads)
     else:
+      url = "%s/#/clients/%s/vfs/%s?tab=download" % (base_url, components[0],
+                                                     components[1])
+      print "============================================================="
+      print("WARNING: Command line export tool is DEPRECATED and will be "
+            "removed soon.")
+      print
+      print("Please use the 'Download' tab in the 'Browse Virtual Filesystem' "
+            "instead:")
+      print url
+      print
+      print "============================================================="
+      print
+      if not args.no_legacy_warning_pause:
+        raw_input("Press Enter if you still want to continue...")
+
       export_utils.CopyAFF4ToLocal(
           args.path,
           args.output,

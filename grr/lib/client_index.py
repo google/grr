@@ -243,6 +243,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     client_info = client.Get(s.CLIENT_INFO)
     if client_info:
       TryAppend("client", client_info.client_name)
+      TryAppend("client", client_info.client_version)
       if client_info.labels:
         for label in client_info.labels:
           TryAppend("label", label)

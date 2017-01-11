@@ -209,7 +209,6 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
 
   def Run(self, args):
     """Applies output plugin to the given collection."""
-
     output_plugin = self._CreateOutputPluginFromArgs(
         self.GetValuesSourceURN(args), args)
     logging.info("Initialized plugin '%s' with the state:", output_plugin.name)

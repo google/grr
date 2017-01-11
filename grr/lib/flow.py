@@ -45,7 +45,6 @@ self.runner_args: The flow runners args. This is an instance of
 
 import functools
 import operator
-import traceback
 
 
 import logging
@@ -488,14 +487,6 @@ class FlowBase(aff4.AFF4Volume):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    tb = "".join(traceback.format_stack())
-    self.state.setdefault("end_tracebacks", []).append(tb)
-
-    if len(self.state.end_tracebacks) > 1:
-      logging.warning("End state called multiple times in a single flow.\n"
-                      "Classname: %s\nTracebacks of the calls:\n%s",
-                      self.__class__.__name__,
-                      "\n".join(self.state.end_tracebacks))
 
   @StateHandler()
   def Start(self, unused_message=None):

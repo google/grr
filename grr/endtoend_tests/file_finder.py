@@ -3,6 +3,7 @@
 """End to end tests for lib.flows.general.file_finder."""
 
 
+from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib import flow
 from grr.lib import flow_runner
@@ -72,11 +73,7 @@ class TestFileFinderOSLinux(base.VFSPathContentIsELF):
       action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
-  args = {
-      "paths": ["/bin/ps"],
-      "conditions": filecondition,
-      "action": action
-  }
+  args = {"paths": ["/bin/ps"], "conditions": filecondition, "action": action}
 
 
 class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
@@ -145,7 +142,7 @@ class UnicodeTestFlow(flow.GRRFlow):
     test_path = u"/tmp/uñîcödé"
 
     self.CallClient(
-        "CopyPathToFile",
+        standard.CopyPathToFile,
         offset=0,
         length=1024,
         src_path=urandom,

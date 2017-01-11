@@ -186,11 +186,11 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListReportsResult
 
   def Handle(self, args, token):
-    return ApiListReportsResult(reports=[
-        rdf_report_plugins.ApiReport(
+    return ApiListReportsResult(reports=sorted(
+        (rdf_report_plugins.ApiReport(
             desc=report_cls.GetReportDescriptor(), data=None)
-        for report_cls in report_plugins.GetAvailableReportPlugins()
-    ])
+         for report_cls in report_plugins.GetAvailableReportPlugins()),
+        key=lambda report: (report.desc.type, report.desc.title)))
 
 
 class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
@@ -205,6 +205,9 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token):
     report = report_plugins.GetReportByName(args.name)
+
+    if not args.client_label:
+      args.client_label = "All"
 
     return rdf_report_plugins.ApiReport(
         desc=report.GetReportDescriptor(),

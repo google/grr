@@ -6,6 +6,7 @@ import math
 import os
 
 from grr.gui.api_plugins import stats as stats_api
+from grr.gui.api_plugins.report_plugins import client_report_plugins
 from grr.gui.api_plugins.report_plugins import filestore_report_plugins
 from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins
@@ -13,12 +14,15 @@ from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks
 from grr.gui.api_plugins.report_plugins import report_utils
 from grr.gui.api_plugins.report_plugins import server_report_plugins
 
+from grr.lib import aff4
+from grr.lib import client_fixture
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore_test
 from grr.lib.flows.cron import filestore_stats
+from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -54,11 +58,15 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(desc.requires_time_range, True)
 
 
-def AddFakeAuditLog(description, client=None, user=None, token=None):
+def AddFakeAuditLog(description=None,
+                    client=None,
+                    user=None,
+                    token=None,
+                    **kwargs):
   events.Events.PublishEventInline(
       "Audit",
       events.AuditEvent(
-          description=description, client=client, user=user),
+          description=description, client=client, user=user, **kwargs),
       token=token)
 
 
@@ -78,6 +86,214 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
 
     self.assertIn("Fake audit description foo.", audit_events)
     self.assertIn("Fake audit description bar.", audit_events)
+
+
+class ClientReportPluginsTest(test_lib.GRRBaseTest):
+
+  def MockClients(self):
+
+    # We are only interested in the client object (path = "/" in client VFS)
+    fixture = test_lib.FilterFixture(regex="^/$")
+
+    # Make 10 windows clients
+    for i in range(0, 10):
+      test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
+
+      with aff4.FACTORY.Open(
+          "C.0%015X" % i, mode="rw", token=self.token) as client:
+        client.AddLabels("Label1", "Label2", owner="GRR")
+        client.AddLabels("UserLabel", owner="jim")
+
+    # Make 10 linux clients 12 hours apart.
+    for i in range(0, 10):
+      test_lib.ClientFixture(
+          "C.1%015X" % i,
+          token=self.token,
+          fixture=client_fixture.LINUX_FIXTURE)
+
+  def testGRRVersionReportPlugin(self):
+    self.MockClients()
+
+    # Scan for activity to be reported.
+    for _ in test_lib.TestFlowHelper(
+        cron_system.GRRVersionBreakDown.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.GRRVersion30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
+
+    self.assertEqual(len(api_report_data.line_chart.data), 1)
+    self.assertEqual(api_report_data.line_chart.data[0].label, "GRR Monitor 1")
+    self.assertEqual(len(api_report_data.line_chart.data[0].points), 1)
+    self.assertEqual(api_report_data.line_chart.data[0].points[0].y, 20)
+
+  def testGRRVersionReportPluginWithNoActivityToReport(self):
+    # Scan for activity to be reported.
+    for _ in test_lib.TestFlowHelper(
+        cron_system.GRRVersionBreakDown.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.GRRVersion30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.LINE_CHART,
+            line_chart=rdf_report_plugins.ApiLineChartReportData(data=[])))
+
+  def testLastActiveReportPlugin(self):
+    self.MockClients()
+
+    # Scan for activity to be reported.
+    for _ in test_lib.TestFlowHelper(
+        cron_system.LastAccessStats.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.LastActiveReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
+
+    labels = [
+        "60 day active", "30 day active", "7 day active", "3 day active",
+        "1 day active"
+    ]
+    ys = [20, 20, 0, 0, 0]
+    for series, label, y in itertools.izip(api_report_data.line_chart.data,
+                                           labels, ys):
+      self.assertEqual(series.label, label)
+      self.assertEqual(len(series.points), 1)
+      self.assertEqual(series.points[0].y, y)
+
+  def testLastActiveReportPluginWithNoActivityToReport(self):
+    # Scan for activity to be reported.
+    for _ in test_lib.TestFlowHelper(
+        cron_system.LastAccessStats.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.LastActiveReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.LINE_CHART,
+            line_chart=rdf_report_plugins.ApiLineChartReportData(data=[])))
+
+  def testOSBreakdownReportPlugin(self):
+    # Add a client to be reported.
+    self.SetupClients(1)
+
+    # Scan for clients to be reported (the one we just added).
+    for _ in test_lib.TestFlowHelper(
+        cron_system.OSBreakDown.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.OSBreakdown30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
+                rdf_report_plugins.ApiReportDataPoint1D(
+                    label="Unknown", x=1)
+            ]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
+
+  def testOSBreakdownReportPluginWithNoDataToReport(self):
+    report = report_plugins.GetReportByName(
+        client_report_plugins.OSBreakdown30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
+
+  def testOSReleaseBreakdownReportPlugin(self):
+    # Add a client to be reported.
+    self.SetupClients(1)
+
+    # Scan for clients to be reported (the one we just added).
+    for _ in test_lib.TestFlowHelper(
+        cron_system.OSBreakDown.__name__, token=self.token):
+      pass
+
+    report = report_plugins.GetReportByName(
+        client_report_plugins.OSReleaseBreakdown30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
+                rdf_report_plugins.ApiReportDataPoint1D(
+                    label="Unknown", x=1)
+            ]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
+
+  def testOSReleaseBreakdownReportPluginWithNoDataToReport(self):
+    report = report_plugins.GetReportByName(
+        client_report_plugins.OSReleaseBreakdown30ReportPlugin.__name__)
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__, client_label="All"),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
 
 
 class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
@@ -319,8 +535,84 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             RepresentationType.PIE_CHART,
             pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[])))
 
+  def testSystemFlowsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.RUN_FLOW,
+          user="GRR",
+          flow_name="Flow123",
+          token=self.token)
 
-class UserActivityReportPluginTest(test_lib.GRRBaseTest):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for _ in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.RUN_FLOW,
+            user="GRR",
+            flow_name="Flow123",
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.RUN_FLOW,
+          user="GRR",
+          flow_name="Flow456",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.SystemFlowsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(
+                x_ticks=[],
+                data=[
+                    rdf_report_plugins.ApiReportDataSeries2D(
+                        label=u"Flow123\u2003Run By: GRR (10)",
+                        points=[
+                            rdf_report_plugins.ApiReportDataPoint2D(
+                                x=0, y=10)
+                        ]), rdf_report_plugins.ApiReportDataSeries2D(
+                            label=u"Flow456\u2003Run By: GRR (1)",
+                            points=[
+                                rdf_report_plugins.ApiReportDataPoint2D(
+                                    x=1, y=1)
+                            ])
+                ])))
+
+  def testSystemFlowsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.SystemFlowsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[])))
 
   def testUserActivityReportPlugin(self):
     with test_lib.FakeTime(
@@ -429,6 +721,85 @@ class UserActivityReportPluginTest(test_lib.GRRBaseTest):
             representation_type=rdf_report_plugins.ApiReportData.
             RepresentationType.STACK_CHART,
             stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[])))
+
+  def testUserFlowsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.RUN_FLOW,
+          user="User123",
+          flow_name="Flow123",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for _ in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.RUN_FLOW,
+            user="User123",
+            flow_name="Flow123",
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.RUN_FLOW,
+          user="User456",
+          flow_name="Flow456",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.UserFlowsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(
+                x_ticks=[],
+                data=[
+                    rdf_report_plugins.ApiReportDataSeries2D(
+                        label=u"Flow123\u2003Run By: User123 (10)",
+                        points=[
+                            rdf_report_plugins.ApiReportDataPoint2D(
+                                x=0, y=10)
+                        ]), rdf_report_plugins.ApiReportDataSeries2D(
+                            label=u"Flow456\u2003Run By: User456 (1)",
+                            points=[
+                                rdf_report_plugins.ApiReportDataPoint2D(
+                                    x=1, y=1)
+                            ])
+                ])))
+
+  def testUserFlowsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.UserFlowsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[])))
 
 
 def main(argv):

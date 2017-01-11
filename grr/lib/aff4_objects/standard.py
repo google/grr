@@ -180,7 +180,7 @@ class BlobImage(aff4.AFF4ImageBase):
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
-    raise NotImplementedError("Direct writing of HashImage not allowed.")
+    raise NotImplementedError("Direct writing of BlobImage not allowed.")
 
   def _GetChunkForReading(self, chunk):
     """Retrieve the relevant blob from the AFF4 data store or cache."""
@@ -313,93 +313,6 @@ class BlobImage(aff4.AFF4ImageBase):
     FINALIZED = aff4.Attribute("aff4:finalized", rdfvalue.RDFBool,
                                "Once a blobimage is finalized, further writes"
                                " will raise exceptions.")
-
-
-class HashImage(aff4.AFF4Image):
-  """An AFF4 Image which refers to chunks by their hash.
-
-  This object stores a large image in chunks. Each chunk is stored using its
-  hash in the AFF4 data store. We have an index with a series of hashes stored
-  back to back. When we need to read a chunk, we seek the index for the hash,
-  and then open the data blob indexed by this hash. Chunks are cached as per the
-  AFF4Image implementation.
-
-  Assumptions:
-    Hashes do not collide.
-    All data blobs have the same size (the chunk size), except possibly the last
-    one in the file.
-  """
-
-  # Size of a sha256 hash
-  _HASH_SIZE = 32
-
-  # How many chunks we read ahead
-  _READAHEAD = 5
-  _data_dirty = False
-
-  def Initialize(self):
-    super(HashImage, self).Initialize()
-    self.index = None
-
-  def _OpenIndex(self):
-    if self.index is None:
-      index_urn = self.urn.Add("index")
-      self.index = aff4.FACTORY.Create(
-          index_urn, aff4.AFF4Image, mode=self.mode, token=self.token)
-
-  def _GetChunkForWriting(self, chunk):
-    """Chunks must be added using the AddBlob() method."""
-    raise NotImplementedError("Direct writing of HashImage not allowed.")
-
-  def _GetChunkForReading(self, chunk):
-    """Retrieve the relevant blob from the AFF4 data store or cache."""
-    self._OpenIndex()
-    self.index.Seek(chunk * self._HASH_SIZE)
-
-    chunk_name = self.index.Read(self._HASH_SIZE)
-    try:
-      return self.chunk_cache.Get(chunk_name)
-    except KeyError:
-      pass
-
-    # Read ahead a few chunks.
-    self.index.Seek(-self._HASH_SIZE, whence=1)
-    readahead = []
-
-    for _ in range(self._READAHEAD):
-      name = self.index.Read(self._HASH_SIZE)
-      if name and name not in self.chunk_cache:
-        readahead.append(name.encode("hex"))
-
-    res = data_store.DB.ReadBlobs(readahead, token=self.token)
-    for blob_hash, content in res.iteritems():
-      fd = StringIO.StringIO(content)
-      fd.dirty = False
-      fd.chunk = blob_hash
-      self.chunk_cache.Put(blob_hash.decode("hex"), fd)
-
-    return self.chunk_cache.Get(chunk_name)
-
-  def Close(self, sync=True):
-    if self._data_dirty:
-      self.Set(self.Schema.SIZE(self.size))
-
-    if self.index:
-      self.index.Close(sync)
-
-    super(HashImage, self).Close(sync)
-
-  def AddBlob(self, blob_hash, length):
-    """Add another blob to this image using its hash."""
-    self._OpenIndex()
-    self._data_dirty = True
-    self.index.Seek(0, 2)
-    self.index.Write(blob_hash)
-    self.size += length
-
-  class SchemaCls(aff4.AFF4Image.SchemaCls):
-    """The schema for AFF4 files in the GRR VFS."""
-    STAT = VFSDirectory.SchemaCls.STAT
 
 
 class AFF4SparseImage(aff4.AFF4ImageBase):

@@ -4,6 +4,7 @@ import collections
 import gzip
 import StringIO
 import struct
+import zlib
 
 
 from grr.lib.rdfvalues import crypto
@@ -75,11 +76,11 @@ class EncryptStream(object):
     # First part is the encrypted cipher.
     self.encrypted_buffer = BufferedReader()
     self.encrypted_buffer.write(
-        self._get_part(signature.SerializeToString(),
-                       PART_TYPE_ENCRYPTED_CIPHER))
+        self._GetPart(signature.SerializeToString(),
+                      PART_TYPE_ENCRYPTED_CIPHER))
     self.eof = False
 
-  def _get_part(self, data, data_type):
+  def _GetPart(self, data, data_type):
     """Create a new part."""
     # Calculate a HMAC over the entire part.
     hmac = self.hmac.HMAC(data)
@@ -94,7 +95,7 @@ class EncryptStream(object):
         PartLength=HEADER_SIZE + len(hmac) + len(data))
     return struct.pack(HEADER_FMT, *header) + data + hmac
 
-  def read(self, length):
+  def read(self, length):  # pylint: disable=invalid-name
     """Read length bytes from the stream."""
     if length is None:
       raise RuntimeError("Read calls must be bounded.")
@@ -103,7 +104,7 @@ class EncryptStream(object):
       return ""
 
     while self.encrypted_buffer.len < length:
-      current_chunk = self._encrypt_next_chunk()
+      current_chunk = self._EncryptNextChunk()
       # None indicates that the input stream is exhausted.
       if current_chunk is None:
         self.eof = True
@@ -111,12 +112,12 @@ class EncryptStream(object):
 
       self.encrypted_buffer.write(current_chunk)
 
-    return self.encrypted_buffer.read_from_front(length)
+    return self.encrypted_buffer.ReadFromFront(length)
 
-  def Read(self, length):  # pylint: disable=invalid-name
+  def Read(self, length):
     return self.read(length)
 
-  def _encrypt_next_chunk(self):
+  def _EncryptNextChunk(self):
     """Encrypt a new chunk to send."""
     data = self.fd.read(self.chunk_size)
     if not data:
@@ -124,7 +125,7 @@ class EncryptStream(object):
 
     # Send an encrypted data part.
     encrypted_data = self.cipher.Encrypt(data)
-    return self._get_part(encrypted_data, PART_TYPE_ENCRYPTED_DATA)
+    return self._GetPart(encrypted_data, PART_TYPE_ENCRYPTED_DATA)
 
   def __enter__(self):
     return self
@@ -160,7 +161,7 @@ class DecryptStream(object):
     self.buffer = BufferedReader()
     self.cipher = None
 
-  def write(self, data):
+  def Write(self, data):
     """Write some data into the stream."""
     self.buffer.write(data)
 
@@ -184,9 +185,9 @@ class DecryptStream(object):
       if self.buffer.len < self.part_end:
         return
 
-      self._process_part()
+      self._ProcessPart()
 
-  def _process_part(self):
+  def _ProcessPart(self):
     """Process a full part in the buffer.
 
     We assume a complete part exists in self.buffer.
@@ -234,18 +235,22 @@ class DecryptStream(object):
       raise IOError("HMAC not verified")
 
     # Remove the part from the buffer.
-    self.buffer.read_from_front(self.part_end)
+    self.buffer.ReadFromFront(self.part_end)
     self.part_end = None
 
-  def close(self):
+  def Close(self):
     if self.buffer.len > 0:
       raise IOError("Partial Message Received")
 
     self.flush()
     self.outfd.close()
 
-  def flush(self):
+  def Flush(self):
     self.outfd.flush()
+
+  close = Close
+  flush = Flush
+  write = Write
 
   def __enter__(self):
     return self
@@ -257,7 +262,7 @@ class DecryptStream(object):
 class BufferedReader(StringIO.StringIO):
   """A FLO which can be written to the back and read from the front."""
 
-  def read_from_front(self, length):
+  def ReadFromFront(self, length):
     result_data = self.getvalue()
     self.truncate(0)
     self.write(result_data[length:])
@@ -274,7 +279,7 @@ class GzipWrapper(object):
     self.buff_fd = BufferedReader()
     self.zipper = gzip.GzipFile(mode="wb", fileobj=self.buff_fd)
 
-  def read(self, length=10000000):
+  def Read(self, length=10000000):
     """Public read interface.
 
     Readers from this endpoint will receive a gzip file streamed from the infd.
@@ -299,7 +304,9 @@ class GzipWrapper(object):
       self.total_read += len(data)
       self.zipper.write(data)
 
-    return self.buff_fd.read_from_front(length)
+    return self.buff_fd.ReadFromFront(length)
+
+  read = Read
 
   def __iter__(self):
     while 1:
@@ -308,3 +315,29 @@ class GzipWrapper(object):
         break
 
       yield data
+
+
+class GunzipWrapper(object):
+  """Wraps a file like object and decompresses it."""
+  BUFFER_SIZE = 1024 * 1024
+
+  def __init__(self, outfd):
+    self.outfd = outfd
+    # 16 + zlib.MAX_WBITS indicates that we want to decompress a gzip
+    # compressed stream. See
+    # http://stackoverflow.com/questions/1838699/
+    # how-can-i-decompress-a-gzip-stream-with-zlib.
+    self.decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
+
+  def Write(self, data):
+    self.outfd.write(self.decompressor.decompress(data))
+
+  def Flush(self):
+    self.outfd.flush()
+
+  def Close(self):
+    self.outfd.close()
+
+  write = Write
+  flush = Flush
+  close = Close

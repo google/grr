@@ -749,6 +749,11 @@ message UploadFileRequest {
       [(sem_type) = {description: "A HMAC in the encoded policy message."}];
 };
 
+message UploadFileResponse {
+  optional StatEntry stat = 1;
+  optional string file_id = 2;
+}
+
 // StatFS client action request
 message StatFSRequest {
   repeated string path_list = 1[(sem_type) = {

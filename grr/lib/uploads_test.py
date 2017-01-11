@@ -123,6 +123,18 @@ class UploadTests(test_lib.GRRBaseTest):
     fd = gzip.GzipFile(mode="r", fileobj=StringIO.StringIO(gzip_data))
     self.assertEqual(fd.read(), self.test_string)
 
+  def testGUnzipWrapper(self):
+    gzip_data = uploads.GzipWrapper(self.infd).read(10000)
+    outfd = StringIO.StringIO()
+    uploads.GunzipWrapper(outfd).write(gzip_data)
+    self.assertEqual(outfd.getvalue(), self.test_string)
+
+    outfd = StringIO.StringIO()
+    wrapped = uploads.GunzipWrapper(outfd)
+    for c in gzip_data:
+      wrapped.write(c)
+    self.assertEqual(outfd.getvalue(), self.test_string)
+
 
 def main(argv):
   # Run the full test suite

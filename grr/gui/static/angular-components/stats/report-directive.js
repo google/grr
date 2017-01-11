@@ -137,8 +137,8 @@ ReportController.prototype.fetchData_ = function() {
 
     var apiUrl = 'stats/reports/' + name;
     var apiParams = {
-      start_time: this.startTime,
-      duration: this.duration * 1e6,  // conversion to μs
+      start_time: this.startTime * 1e6,  // conversion to μs
+      duration: this.duration,
       client_label: this.clientLabel
     };
 

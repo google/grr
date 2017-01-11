@@ -11,6 +11,7 @@ modules that have been customized for your deployment.
 # Note for gui specific plugins see gui/gui_plugins.py
 """
 # pylint: disable=unused-import,g-import-not-at-top
+from grr import endtoend_tests
 
 # Server code needs to know about client actions as well.
 from grr.client import client_plugins

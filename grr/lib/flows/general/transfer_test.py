@@ -11,7 +11,7 @@ from grr.client import vfs
 from grr.client.client_actions import standard as standard_actions
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
+from grr.lib import file_store
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -42,28 +42,18 @@ class ClientMock(object):
   def UploadFile(self, args):
     """Just copy the file into the filestore."""
     # Must be absolute path rooted at /.
-    in_filename = os.path.join(os.path.sep, args.pathspec.CollapsePath())
     file_fd = vfs.VFSOpen(args.pathspec)
 
-    # NOTE: For testing we always use the FileUploadFileStore.
-    root_dir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
-    output_file = os.path.join(root_dir,
-                               self.client_id.Path().lstrip(os.path.sep), "fs",
-                               "os", in_filename.lstrip(os.path.sep))
+    fs = file_store.FileUploadFileStore()
+    fd = fs.CreateFileStoreFile()
+    while True:
+      data = file_fd.read(self.BUFFER_SIZE)
+      if not data:
+        break
+      fd.write(data)
+    file_id = fd.Finalize()
 
-    try:
-      os.makedirs(os.path.dirname(output_file))
-    except (IOError, OSError):
-      pass
-
-    with open(output_file, "wb") as outfd:
-      while 1:
-        data = file_fd.read(self.BUFFER_SIZE)
-        if not data:
-          break
-        outfd.write(data)
-
-    return [file_fd.Stat()]
+    return [rdf_client.UploadFileResponse(stat=file_fd.Stat(), file_id=file_id)]
 
 
 class TestTransfer(test_lib.FlowTestsBaseclass):

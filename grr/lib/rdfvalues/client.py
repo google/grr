@@ -800,6 +800,10 @@ class UploadFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadFileRequest
 
 
+class UploadFileResponse(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.UploadFileResponse
+
+
 class DumpProcessMemoryRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.DumpProcessMemoryRequest
 

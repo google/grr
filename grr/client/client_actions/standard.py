@@ -699,7 +699,7 @@ class SendFile(actions.ActionPlugin):
 class UploadFile(actions.ActionPlugin):
   """Upload a file to the server."""
   in_rdfvalue = rdf_client.UploadFileRequest
-  out_rdfvalues = [rdf_client.StatEntry]
+  out_rdfvalues = [rdf_client.UploadFileResponse]
 
   BUFFER_SIZE = 1024 * 1024
 
@@ -742,13 +742,16 @@ class UploadFile(actions.ActionPlugin):
     if response.code != 200:
       raise IOError("Unable to upload %s" % args.pathspec.CollapsePath())
 
+    file_id = response.data
     logging.debug("Uploaded %s (%s bytes)", args.pathspec, self.sent_data)
     stat_entry = file_fd.Stat()
     # Sometimes the file we upload does not report its correct size in the
     # st_size attribute (e.g. /proc files). We modify the st_size to force it to
     # report the actual amount of data uploaded.
-    stat_entry.st_size = self.sent_data
-    self.SendReply(stat_entry)
+    stat_entry.st_size = gzip_fd.total_read
+    self.SendReply(
+        rdf_client.UploadFileResponse(
+            stat=stat_entry, file_id=file_id))
 
 
 class StatFS(actions.ActionPlugin):

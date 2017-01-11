@@ -5418,20 +5418,20 @@
         "reports": [
           {
             "desc": {
-              "name": "BarReportPlugin",
-              "requiresTimeRange": true,
-              "summary": "Reports bars' activity in the given time range.",
-              "title": "Bar Activity",
-              "type": "SERVER"
-            }
-          },
-          {
-            "desc": {
               "name": "FooReportPlugin",
               "requiresTimeRange": false,
               "summary": "Reports all foos.",
               "title": "Foo",
               "type": "CLIENT"
+            }
+          },
+          {
+            "desc": {
+              "name": "BarReportPlugin",
+              "requiresTimeRange": true,
+              "summary": "Reports bars' activity in the given time range.",
+              "title": "Bar Activity",
+              "type": "SERVER"
             }
           }
         ]

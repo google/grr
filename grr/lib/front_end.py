@@ -452,12 +452,14 @@ class FrontEndServer(object):
     upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
         "Frontend.upload_store"])()
 
-    out_fd = upload_store.open_for_writing(policy.client_id, policy.filename)
+    filestore_fd = upload_store.CreateFileStoreFile()
+    out_fd = uploads.GunzipWrapper(filestore_fd)
     with uploads.DecryptStream(config_lib.CONFIG["PrivateKeys.server_key"],
                                self._GetClientPublicKey(policy.client_id),
                                out_fd) as decrypt_fd:
       for data in data_generator:
         decrypt_fd.write(data)
+    return filestore_fd.Finalize()
 
 
 class FrontendInit(registry.InitHook):

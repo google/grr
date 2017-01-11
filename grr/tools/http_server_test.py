@@ -2,9 +2,7 @@
 """Unittest for grr http server."""
 
 
-import gzip
 import os
-import StringIO
 import threading
 
 
@@ -16,6 +14,7 @@ import logging
 from grr.client import comms
 from grr.client.client_actions import standard
 from grr.lib import config_lib
+from grr.lib import file_store
 from grr.lib import flags
 from grr.lib import front_end
 from grr.lib import rdfvalue
@@ -154,15 +153,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       policy.expires = rdfvalue.RDFDatetime.Now() + 1000
       args.policy = policy.SerializeToString()
       args.hmac = transfer.GetHMAC().HMAC(args.policy)
-      self._UploadFile(args)
-
+      r = self._UploadFile(args)
+      fs = file_store.FileUploadFileStore()
       # Make sure the file was uploaded correctly.
-      with open(target_filename) as fd:
-        data = fd.read()
-        # The stored data is actually gzip compressed.
-        uncompressed_data = gzip.GzipFile(
-            fileobj=StringIO.StringIO(data)).read()
-        self.assertEqual(uncompressed_data, magic_string)
+      fd = fs.OpenForReading(r.file_id)
+      data = fd.read()
+      # The stored data is actually gzip compressed.
+      self.assertEqual(data, magic_string)
 
 
 def main(args):

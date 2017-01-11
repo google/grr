@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
 
+from grr.gui.api_plugins.report_plugins import client_report_plugins
 from grr.gui.api_plugins.report_plugins import filestore_report_plugins
 from grr.gui.api_plugins.report_plugins import server_report_plugins
 
@@ -55,6 +56,21 @@ class _Registry(object):
 
 REGISTRY = _Registry()
 
+# Client report plugins.
+
+REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion1ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion7ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.GRRVersion30ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.LastActiveReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown1ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown7ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown14ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSBreakdown30ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown1ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown7ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown14ReportPlugin)
+REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown30ReportPlugin)
+
 # FileStore report plugins.
 
 REGISTRY.RegisterPlugin(filestore_report_plugins.FileClientCountReportPlugin)
@@ -64,4 +80,6 @@ REGISTRY.RegisterPlugin(
 # Server report plugins.
 
 REGISTRY.RegisterPlugin(server_report_plugins.MostActiveUsersReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.SystemFlowsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.UserActivityReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.UserFlowsReportPlugin)

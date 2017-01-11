@@ -164,8 +164,7 @@ def RecursiveDownload(dir_obj,
     overwrite: Should we overwrite files that exist.
     max_threads: Use this many threads to do the downloads.
   """
-  if (not isinstance(dir_obj, aff4.AFF4Volume) or
-      isinstance(dir_obj, standard.HashImage)):
+  if not isinstance(dir_obj, aff4.AFF4Volume):
     return
 
   # Reuse the same threadpool as we call recursively.

@@ -13943,43 +13943,6 @@
                   "name": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "BarReportPlugin"
-                  },
-                  "requires_time_range": {
-                    "age": 0,
-                    "type": "RDFBool",
-                    "value": true
-                  },
-                  "summary": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Reports bars' activity in the given time range."
-                  },
-                  "title": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Bar Activity"
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "SERVER"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiReport",
-            "value": {
-              "desc": {
-                "age": 0,
-                "type": "ApiReportDescriptor",
-                "value": {
-                  "name": {
-                    "age": 0,
-                    "type": "unicode",
                     "value": "FooReportPlugin"
                   },
                   "requires_time_range": {
@@ -14005,6 +13968,43 @@
                 }
               }
             }
+          },
+          {
+            "age": 0,
+            "type": "ApiReport",
+            "value": {
+              "desc": {
+                "age": 0,
+                "type": "ApiReportDescriptor",
+                "value": {
+                  "name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "BarReportPlugin"
+                  },
+                  "requires_time_range": {
+                    "age": 0,
+                    "type": "RDFBool",
+                    "value": true
+                  },
+                  "summary": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Reports bars' activity in the given time range."
+                  },
+                  "title": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bar Activity"
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "SERVER"
+                  }
+                }
+              }
+            }
           }
         ]
       },
@@ -14013,20 +14013,20 @@
         "reports": [
           {
             "desc": {
-              "name": "BarReportPlugin",
-              "requires_time_range": true,
-              "summary": "Reports bars' activity in the given time range.",
-              "title": "Bar Activity",
-              "type": "SERVER"
-            }
-          },
-          {
-            "desc": {
               "name": "FooReportPlugin",
               "requires_time_range": false,
               "summary": "Reports all foos.",
               "title": "Foo",
               "type": "CLIENT"
+            }
+          },
+          {
+            "desc": {
+              "name": "BarReportPlugin",
+              "requires_time_range": true,
+              "summary": "Reports bars' activity in the given time range.",
+              "title": "Bar Activity",
+              "type": "SERVER"
             }
           }
         ]

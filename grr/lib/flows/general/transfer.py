@@ -749,7 +749,10 @@ class MultiUploadFileArgs(rdf_structs.RDFProtoStruct):
 
 class MultiUploadFile(flow.GRRFlow):
   """Upload multiple files using direct HTTP uploads."""
+
   args_type = MultiGetFileArgs
+
+  category = "/Filesystem/"
 
   @flow.StateHandler()
   def Start(self):
@@ -760,7 +763,7 @@ class MultiUploadFile(flow.GRRFlow):
       policy = rdf_client.UploadPolicy(
           client_id=self.client_id,
           filename=filename,
-          expires=rdfvalue.RDFDatetime.Now() + 7 * 24 * 60 * 60)
+          expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
       serialized_policy = policy.SerializeToString()
       hmac = GetHMAC().HMAC(serialized_policy)
 
@@ -774,18 +777,22 @@ class MultiUploadFile(flow.GRRFlow):
 
   @flow.StateHandler()
   def ProcessFileUpload(self, responses):
-    if responses.success:
-      upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
-          "Frontend.upload_store"])()
-      stat_entry = responses.First()
-      with upload_store.aff4_factory(
-          self.client_id, responses.request_data["path"],
-          token=self.token) as fd:
-        stat_entry.aff4path = fd.urn
-        fd.Set(fd.Schema.STAT, stat_entry)
-        fd.Set(fd.Schema.SIZE(stat_entry.st_size))
+    if not responses.success:
+      self.Log("File upload failed: %s", responses.status)
+      return
 
-      self.SendReply(stat_entry)
+    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
+        "Frontend.upload_store"])()
+    response = responses.First()
+    urn = self.client_id.Add(responses.request_data["path"])
+    with upload_store.Aff4ObjectForFileId(
+        urn, response.file_id, token=self.token) as fd:
+      stat_entry = response.stat
+      stat_entry.aff4path = urn
+      fd.Set(fd.Schema.STAT, stat_entry)
+      fd.Set(fd.Schema.SIZE(stat_entry.st_size))
+
+    self.SendReply(stat_entry)
 
 
 class FileStoreCreateFile(flow.EventListener):

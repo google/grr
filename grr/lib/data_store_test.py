@@ -232,9 +232,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     """Test the MultiSet() methods."""
     # Specify a per element timestamp
     data_store.DB.MultiSet(
-        self.test_row,
-        {"aff4:size": [(1, 1000)],
-         "aff4:stored": [("2", 2000)]},
+        self.test_row, {"aff4:size": [(1, 1000)],
+                        "aff4:stored": [("2", 2000)]},
         token=self.token)
 
     stored, ts = data_store.DB.Resolve(
@@ -571,8 +570,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     for i in range(5, 10):
       attributes.add(("metadata:%s" % i, "data%d" % i))
       data_store.DB.MultiSet(
-          unicode_string, {"metadata:%s" % i: ["data%d" % i]},
-          token=self.token)
+          unicode_string, {"metadata:%s" % i: ["data%d" % i]}, token=self.token)
 
     result = dict(
         data_store.DB.MultiResolvePrefix(
@@ -1443,7 +1441,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertFalse(data_store.DB.BlobExists(empty_digest, token=self.token))
     self.assertIsNone(data_store.DB.ReadBlob(empty_digest, token=self.token))
 
-  def testAFF4Image(self):
+  def testAFF4BlobImage(self):
     # 500k
     data = "randomdata" * 50 * 1024
 
@@ -1451,7 +1449,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     # Now create the image containing the blob.
     fd = aff4.FACTORY.Create(
-        "aff4:/C.1235/image", standard.HashImage, token=self.token)
+        "aff4:/C.1235/image", standard.BlobImage, token=self.token)
     fd.SetChunksize(512 * 1024)
     fd.Set(fd.Schema.STAT())
 
@@ -1620,9 +1618,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertRaises(
         access_control.UnauthorizedAccess,
         data_store.DB.MultiSet,
-        self.test_row,
-        {"aff4:size": [(1, 100)],
-         "aff4:stored": [("foo", 200)]},
+        self.test_row, {"aff4:size": [(1, 100)],
+                        "aff4:stored": [("foo", 200)]},
         token=self.token)
 
   @DeletionTest

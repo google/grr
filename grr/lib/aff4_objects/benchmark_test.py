@@ -8,7 +8,6 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -25,9 +24,7 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
       fd = aff4.FACTORY.Create(urn, object_type, token=self.token)
       fd.Close()
 
-    for object_type in [
-        aff4.AFF4Object, standard.HashImage, aff4.AFF4MemoryStream
-    ]:
+    for object_type in [aff4.AFF4Object, aff4.AFF4MemoryStream]:
       self.TimeIt(
           CreateAFF4Object,
           name="Create %s" % object_type,

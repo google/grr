@@ -1,3 +1,7 @@
+/**
+ * @fileoverview
+ * @suppress {missingProperties}
+ */
 'use strict';
 
 goog.provide('grrUi.acl.aclDialogService.AclDialogService');

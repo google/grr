@@ -4,6 +4,7 @@
 
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.tools.export_plugins import plugin
 
@@ -43,6 +44,12 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
         help="Flush the results every time after processing "
         "this number of values.")
 
+    parser.add_argument(
+        "--no_legacy_warning_pause",
+        action="store_true",
+        default=False,
+        help="Don't pause on legacy warning.")
+
     super(
         CollectionExportPlugin,
         self,).ConfigureArgParser(parser)
@@ -60,3 +67,31 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
           "Object %s is of type %s, but required_type is one of %s" %
           (collection, collection.__class__.__name__, self.export_types))
     return collection
+
+  def Run(self, args):
+    base_url = config_lib.CONFIG.Get("AdminUI.url", context=["AdminUI Context"])
+
+    source_path = rdfvalue.RDFURN(args.path)
+    components = source_path.Split()
+    if len(components) >= 2 and components[0] == "hunts":
+      url = "%s/#/hunts/%s/results" % (base_url, components[1])
+    elif len(components) >= 3:
+      url = "%s/#/clients/%s/flows/%s/results" % (base_url, components[0],
+                                                  components[2])
+    else:
+      url = "[AdminUI url unknown]"
+
+    print "============================================================="
+    print("WARNING: Command line export tool is DEPRECATED and will be "
+          "removed soon.")
+    print
+    print "Please use the 'Download as' buttons on the results page instead."
+    print "(the data in the selected format will be generated instantly):"
+    print url
+    print
+    print "============================================================="
+    print
+    if not args.no_legacy_warning_pause:
+      raw_input("Press Enter if you still want to continue...")
+
+    super(CollectionExportPlugin, self).Run(args)
