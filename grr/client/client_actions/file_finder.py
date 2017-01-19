@@ -182,7 +182,7 @@ class FileFinderOS(actions.ActionPlugin):
         continue
 
       else:
-        result.stat_entry = self.Stat(fname, stat_object, True)
+        stat_entry = self.Stat(fname, stat_object, True)
 
       # We never want to hash/download the link, always the target.
       if stat.S_ISLNK(stat_object.st_mode):
@@ -192,9 +192,31 @@ class FileFinderOS(actions.ActionPlugin):
           continue
 
       if args.action.action_type == args.action.Action.DOWNLOAD:
-        # TODO(user): DOWNLOAD
-        raise NotImplementedError()
+        max_bytes = None
+        max_size = args.action.download.max_size
+        if stat_entry.st_size > max_size:
+          policy = args.action.download.oversized_file_policy
+          policy_enum = args.action.download.OversizedFilePolicy
+          if policy == policy_enum.DOWNLOAD_TRUNCATED:
+            max_bytes = max_size
+          elif policy == policy_enum.SKIP:
+            continue
+          else:
+            raise ValueError("Unknown oversized file policy %s." % int(policy))
+
+        uploaded_file = self.grr_worker.UploadFile(
+            open(fname, "rb"),
+            args.upload_token,
+            max_bytes=max_bytes,
+            network_bytes_limit=self.network_bytes_limit,
+            session_id=self.session_id,
+            progress_callback=self.Progress)
+
+        uploaded_file.stat_entry = stat_entry
+        result.uploaded_file = uploaded_file
+
       elif args.action.action_type == args.action.Action.HASH:
+        result.stat_entry = stat_entry
         result.hash_entry = self.Hash(fname, stat_object,
                                       args.action.hash.max_size,
                                       args.action.hash.oversized_file_policy)

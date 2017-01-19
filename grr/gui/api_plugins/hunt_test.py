@@ -20,18 +20,17 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
-from grr.lib import instant_output_plugin_test
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
-from grr.lib.flows.general import processes
 from grr.lib.hunts import implementation
 from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
+from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base as rdf_test_base
@@ -477,17 +476,6 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                      results[0].payload.stat_entry.st_size)
 
 
-class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
-  """A dummy output plugin."""
-
-  name = "dummy"
-  description = "Dummy do do."
-  args_type = processes.ListProcessesArgs
-
-  def ProcessResponses(self, responses):
-    pass
-
-
 class ApiListHuntOutputPluginLogsHandlerTest(
     api_test_lib.ApiCallHandlerTest, standard_test.StandardHuntTestMixin):
   """Test for ApiListHuntOutputPluginLogsHandler."""
@@ -499,12 +487,13 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler()
     self.output_plugins = [
         output_plugin.OutputPluginDescriptor(
-            plugin_name=DummyHuntTestOutputPlugin.__name__,
-            plugin_args=DummyHuntTestOutputPlugin.args_type(
-                filename_regex="foo")), output_plugin.OutputPluginDescriptor(
-                    plugin_name=DummyHuntTestOutputPlugin.__name__,
-                    plugin_args=DummyHuntTestOutputPlugin.args_type(
-                        filename_regex="bar"))
+            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
+            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+                filename_regex="foo")),
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
+            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+                filename_regex="bar"))
     ]
 
   def RunHuntWithOutputPlugins(self, output_plugins):
@@ -523,7 +512,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
-            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
@@ -536,7 +525,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
-            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
@@ -551,7 +540,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
             hunt_id=hunt_urn.Basename(),
             offset=2,
             count=2,
-            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
@@ -564,7 +553,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
             hunt_id=hunt_urn.Basename(),
             offset=2,
             count=2,
-            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
+            plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
     self.assertEqual(result.total_count, 5)
@@ -737,8 +726,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     result = self.handler.Handle(
         hunt_plugin.ApiGetExportedHuntResultsArgs(
             hunt_id=self.hunt.urn.Basename(),
-            plugin_name=instant_output_plugin_test.TestInstantOutputPlugin.
-            plugin_name),
+            plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name),
         token=self.token)
 
     chunks = list(result.GenerateContent())

@@ -8,7 +8,10 @@ import stat
 from grr.client.client_actions import file_finder as file_finder_actions
 from grr.client.client_actions import searching as searching_actions
 from grr.client.client_actions import standard as standard_actions
+from grr.lib import config_lib
+from grr.lib import file_store
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
@@ -16,6 +19,7 @@ from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -373,13 +377,31 @@ class ClientFileFinder(flow.GRRFlow):
 
     action = self.args.action
     if action.action_type == "DOWNLOAD":
-      # TODO(user): Support download.
-      raise ValueError("Download not yet supported.")
+      policy = rdf_client.UploadPolicy(
+          client_id=self.client_id,
+          expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
+      upload_token = rdf_client.UploadToken()
+      upload_token.SetPolicy(policy)
+      upload_token.GenerateHMAC()
+      self.args.upload_token = upload_token
 
     self.CallClient(
         file_finder_actions.FileFinderOS,
         request=self.args,
         next_state="StoreResults")
+
+  def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
+    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
+        "Frontend.upload_store"])()
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(uploaded_file.stat_entry.pathspec,
+                                              self.client_id)
+
+    with upload_store.Aff4ObjectForFileId(
+        urn, uploaded_file.file_id, token=self.token) as fd:
+      uploaded_file.stat_entry.aff4path = urn
+      fd.Set(fd.Schema.STAT, uploaded_file.stat_entry)
+      fd.Set(fd.Schema.SIZE(uploaded_file.bytes_uploaded))
+      fd.Set(fd.Schema.HASH(uploaded_file.hash))
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -388,7 +410,24 @@ class ClientFileFinder(flow.GRRFlow):
 
     self.state.files_found = len(responses)
     for response in responses:
+      if response.uploaded_file:
+        self._CreateAFF4ObjectForUploadedFile(response.uploaded_file)
+        # TODO(user): Make the export support UploadedFile directly.
+        # This fixes the export which expects the stat_entry in
+        # response.stat_entry only.
+        response.stat_entry = response.uploaded_file.stat_entry
+      elif response.stat_entry:
+        filesystem.CreateAFF4Object(response.stat_entry, self.client_id,
+                                    self.token)
       self.SendReply(response)
+
+      # Publish the new file event to cause the file to be added to the
+      # filestore. This is not time critical so do it when we have spare
+      # capacity.
+      self.Publish(
+          "FileStore.AddFileToStore",
+          response.stat_entry.aff4path,
+          priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
   @flow.StateHandler()
   def End(self, responses):

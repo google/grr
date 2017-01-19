@@ -7,7 +7,7 @@ from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_service_parser
-from grr.parsers import linux_service_parser_test
+from grr.parsers import parsers_test_lib
 
 
 class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
@@ -26,15 +26,15 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
                      xinetd=False,
                      should_detect=True):
     host_data = self.SetKnowledgeBase()
-    cfgs = linux_service_parser_test.GenXinetd(svc, disabled)
-    stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
+    cfgs = parsers_test_lib.GenXinetd(svc, disabled)
+    stats, files = parsers_test_lib.GenTestData(cfgs, cfgs.values())
     data = list(self.parser(stats, files, None))
 
     # create entries on whether xinetd itself is setup to start or not
     if xinetd:
-      cfgs = linux_service_parser_test.GenInit(
-          "xinetd", "the extended Internet services daemon")
-      stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
+      cfgs = parsers_test_lib.GenInit("xinetd",
+                                      "the extended Internet services daemon")
+      stats, files = parsers_test_lib.GenTestData(cfgs, cfgs.values())
       lsb_parser = linux_service_parser.LinuxLSBInitParser()
       data.extend(list(lsb_parser.ParseMultiple(stats, files, None)))
 
@@ -100,7 +100,7 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
     links = [
         "/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd", "/etc/rc2.d/S10ufw"
     ]
-    stats, files = linux_service_parser_test.GenTestData(
+    stats, files = parsers_test_lib.GenTestData(
         links, [""] * len(links), st_mode=41471)
     parsed = list(self.parser(stats, files, None))
     host_data["LinuxServices"] = self.SetArtifactData(parsed=parsed)

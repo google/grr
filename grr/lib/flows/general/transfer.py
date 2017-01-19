@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
 
-import hashlib
 import zlib
 
 import logging
@@ -454,8 +453,9 @@ class MultiGetFileMixin(object):
       digest = hash_obj.sha256
       file_hashes[index] = hash_obj
       hash_to_tracker.setdefault(digest, []).append(tracker)
+
     # First we get all the files which are present in the file store.
-    files_in_filestore = set()
+    files_in_filestore = {}
 
     # TODO(user): This object never changes, could this be a class attribute?
     filestore_obj = aff4.FACTORY.Open(
@@ -474,47 +474,39 @@ class MultiGetFileMixin(object):
       for tracker in hash_to_tracker[hash_obj.sha256]:
         self.state.files_skipped += 1
         file_hashes.pop(tracker["index"])
-        files_in_filestore.add(file_store_urn)
+        files_in_filestore[file_store_urn] = hash_obj
         # Remove this tracker from the pending_hashes store since we no longer
         # need to process it.
         self.state.pending_hashes.pop(tracker["index"])
 
     # Now that the check is done, reset our counter
     self.state.files_hashed_since_check = 0
-
     # Now copy all existing files to the client aff4 space.
-    for existing_blob in aff4.FACTORY.MultiOpen(
-        files_in_filestore, mode="rw", token=self.token):
+    for filestore_file_urn, hash_obj in files_in_filestore.iteritems():
 
-      hashset = existing_blob.Get(existing_blob.Schema.HASH)
-      if hashset is None:
-        self.Log("Filestore File %s has no hash.", existing_blob.urn)
-        continue
-
-      for file_tracker in hash_to_tracker.get(hashset.sha256, []):
+      for file_tracker in hash_to_tracker.get(hash_obj.sha256, []):
         stat_entry = file_tracker["stat_entry"]
-        # Due to potential filestore corruption, the existing_blob files can
-        # have 0 size, make sure our size matches the actual size in that case.
-        if existing_blob.size == 0:
-          existing_blob.size = (file_tracker["bytes_read"] or
-                                stat_entry.st_size)
-
-        # Create a file in the client name space with the same classtype and
-        # populate its attributes.
+        # Copy the existing file from the filestore to the client namespace.
         stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
             stat_entry.pathspec, self.client_id)
 
-        with aff4.FACTORY.Create(
+        aff4.FACTORY.Copy(
+            filestore_file_urn,
             stat_entry.aff4path,
-            existing_blob.__class__,
-            mode="w",
-            token=self.token) as fd:
+            update_timestamps=True,
+            token=self.token)
 
-          fd.FromBlobImage(existing_blob)
-          fd.Set(hashset)
+        # Update the stat_entry.aff4path of the new object.
+        with aff4.FACTORY.Open(
+            stat_entry.aff4path, mode="rw", token=self.token) as new_fd:
+          new_fd.Set(new_fd.Schema.STAT, stat_entry)
+          # Due to potential filestore corruption, the existing files
+          # can have 0 size.
+          if new_fd.size == 0:
+            new_fd.size = (file_tracker["bytes_read"] or stat_entry.st_size)
 
-        # Add this file to the index at the canonical location
-        existing_blob.AddIndex(stat_entry.aff4path)
+        # Add this file to the filestore index.
+        filestore_obj.AddURNToIndex(str(hash_obj.sha256), stat_entry.aff4path)
 
         # Report this hit to the flow's caller.
         self._ReceiveFetchedFile(file_tracker)
@@ -663,6 +655,7 @@ class MultiGetFileMixin(object):
         stat_entry = file_tracker["stat_entry"]
         stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
             stat_entry.pathspec, self.client_id)
+
         with aff4.FACTORY.Create(
             stat_entry.aff4path,
             aff4_grr.VFSBlobImage,
@@ -762,16 +755,15 @@ class MultiUploadFile(flow.GRRFlow):
           pathspec, self.client_id).RelativeName(self.client_id)
       policy = rdf_client.UploadPolicy(
           client_id=self.client_id,
-          filename=filename,
           expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
-      serialized_policy = policy.SerializeToString()
-      hmac = GetHMAC().HMAC(serialized_policy)
+      upload_token = rdf_client.UploadToken()
+      upload_token.SetPolicy(policy)
+      upload_token.GenerateHMAC()
 
       self.CallClient(
           standard_actions.UploadFile,
           pathspec=pathspec,
-          policy=serialized_policy,
-          hmac=hmac,
+          upload_token=upload_token,
           next_state="ProcessFileUpload",
           request_data=dict(path=filename))
 
@@ -787,7 +779,7 @@ class MultiUploadFile(flow.GRRFlow):
     urn = self.client_id.Add(responses.request_data["path"])
     with upload_store.Aff4ObjectForFileId(
         urn, response.file_id, token=self.token) as fd:
-      stat_entry = response.stat
+      stat_entry = response.stat_entry
       stat_entry.aff4path = urn
       fd.Set(fd.Schema.STAT, stat_entry)
       fd.Set(fd.Schema.SIZE(stat_entry.st_size))
@@ -1049,13 +1041,3 @@ class LoadComponentMixin(object):
     self.Log("Loaded component %s %s",
              responses.First().summary.name, responses.First().summary.version)
     self.CallStateInline(next_state=responses.request_data["next_state"])
-
-
-def GetHMAC():
-  """Return a HMAC object suitable for validating file upload URLs."""
-  # Just get some random string.
-  private_key = config_lib.CONFIG["PrivateKeys.server_key"].SerializeToString()
-
-  hmac_secret = hashlib.sha256(private_key).hexdigest()
-
-  return rdf_crypto.HMAC(hmac_secret)

@@ -729,29 +729,37 @@ message ListDirRequest {
 message UploadPolicy {
   optional string client_id = 1 [(sem_type) = {type: "ClientURN"}];
 
-  optional string filename = 2
-      [(sem_type) = {description: "The filename to upload under."}];
-
-  optional uint64 expires = 3 [(sem_type) = {
+  optional uint64 expires = 2 [(sem_type) = {
     type: "RDFDatetime",
     description: "When this upload expires."
   }];
 };
 
+message UploadToken {
+  // Note: This must remain encoded because the hmac below must use the same
+  // message.
+  optional bytes encrypted_policy = 1
+      [(sem_type) = {description: "An encoded and encrypted UploadPolicy "
+                     "message."}];
+  optional bytes hmac = 2
+      [(sem_type) = {description: "The HMAC for the encoded policy message."}];
+
+  optional bytes iv = 3 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
+}
+
 message UploadFileRequest {
   optional PathSpec pathspec = 1;
 
-  // Note: This must remain encoded because the hmac below must use the same
-  // message.
-  optional bytes policy = 2
-      [(sem_type) = {description: "An encoded UploadPolicy message."}];
-  optional bytes hmac = 3
-      [(sem_type) = {description: "A HMAC in the encoded policy message."}];
+  optional UploadToken upload_token = 2;
 };
 
-message UploadFileResponse {
-  optional StatEntry stat = 1;
+message UploadedFile {
+  optional StatEntry stat_entry = 1;
   optional string file_id = 2;
+  optional uint64 bytes_uploaded = 3;
+  optional Hash hash = 4;
 }
 
 // StatFS client action request

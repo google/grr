@@ -151,14 +151,13 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Receive file uploads from the client."""
     file_id = self.server.frontend.HandleUpload(
         self.headers.get("Transfer-Encoding"),
-        self.headers.get("x-grr-policy"),
-        self.headers.get("x-grr-hmac"), self.GenerateFileData())
+        self.headers.get("x-grr-upload-token"), self.GenerateFileData())
     self.Send(file_id)
 
   def do_POST(self):  # pylint: disable=g-bad-name
     """Process encrypted message bundles."""
     try:
-      if self.path.startswith("/upload/"):
+      if self.path.startswith("/upload"):
         self.HandleUploads()
       else:
         self.Control()

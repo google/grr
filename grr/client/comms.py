@@ -75,6 +75,7 @@ Examples:
 """
 
 
+import base64
 import os
 
 import pdb
@@ -102,6 +103,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import type_info
+from grr.lib import uploads
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -515,6 +517,8 @@ class GRRClientWorker(object):
   # Client sends stats notifications at most every 60 seconds.
   STATS_MIN_SEND_INTERVAL = rdfvalue.Duration("60s")
 
+  UPLOAD_BUFFER_SIZE = 1024 * 1024
+
   def __init__(self, client=None):
     """Create a new GRRClientWorker."""
     super(GRRClientWorker, self).__init__()
@@ -687,6 +691,57 @@ class GRRClientWorker(object):
       # keep going.
       logging.info("Queue is full, dropping messages.")
 
+  def UploadFile(self,
+                 file_fd,
+                 upload_token,
+                 max_bytes=None,
+                 network_bytes_limit=None,
+                 session_id=None,
+                 progress_callback=None):
+    """Uploads a file to the GRR server using a direct HTTP transfer."""
+
+    def FileGenerator(fd):
+      """A Generator of file content."""
+      while 1:
+        data = fd.Read(self.UPLOAD_BUFFER_SIZE)
+        if not data:
+          break
+
+        # Ensure we heartbeat while the upload is happening.
+        if progress_callback:
+          progress_callback()
+
+        yield data
+
+        # Keep track of how much data we sent.
+        l = len(data)
+
+        if session_id:
+          self.ChargeBytesToSession(session_id, l, limit=network_bytes_limit)
+
+    # Gzip the original file.
+    gzip_fd = uploads.GzipWrapper(file_fd, byte_limit=max_bytes)
+    # And then encrypt it.
+    server_certificate = rdf_crypto.RDFX509Cert(self.client.server_certificate)
+    fd = uploads.EncryptStream(server_certificate.GetPublicKey(),
+                               config_lib.CONFIG["Client.private_key"], gzip_fd)
+    response = self.http_manager.OpenServerEndpoint(
+        u"/upload",
+        data=FileGenerator(fd),
+        headers={
+            "x-grr-upload-token":
+                base64.b64encode(upload_token.SerializeToString()),
+        },
+        method="POST")
+
+    if response.code != 200:
+      raise IOError("Unable to upload file (http code %d)" % response.code)
+
+    return rdf_client.UploadedFile(
+        bytes_uploaded=gzip_fd.total_read,
+        file_id=response.data,
+        hash=gzip_fd.HashObject(),)
+
   @utils.Synchronized
   def ChargeBytesToSession(self, session_id, length, limit=0):
     self.sent_bytes_per_flow.setdefault(session_id, 0)
@@ -695,7 +750,7 @@ class GRRClientWorker(object):
     # Check after incrementing so that sent_bytes_per_flow goes over the limit
     # even though we don't send those bytes.  This makes sure flow_runner will
     # die on the flow.
-    if limit and (self.sent_bytes_per_flow[session_id] > limit):
+    if limit and self.sent_bytes_per_flow[session_id] > limit:
       self.SendClientAlert("Network limit exceeded.")
       raise actions.NetworkBytesExceededError(
           "Action exceeded network send limit.")

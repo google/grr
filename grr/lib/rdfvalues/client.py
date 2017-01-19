@@ -13,11 +13,13 @@ import socket
 import stat
 import struct
 
+from grr.lib import config_lib
 from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
@@ -795,13 +797,52 @@ class ListDirRequest(structs.RDFProtoStruct):
 class UploadPolicy(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadPolicy
 
+  @classmethod
+  def FromEncryptedPolicy(cls, encrypted_policy, iv):
+    rsa_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    aes_key = rdf_crypto.EncryptionKey.FromHex(
+        hashlib.sha256(rsa_private_key.SerializeToString()).hexdigest())
+    cipher = rdf_crypto.AES128CBCCipher(aes_key, iv)
+    return cls.FromSerializedString(cipher.Decrypt(encrypted_policy))
+
+
+class UploadToken(structs.RDFProtoStruct):
+  """The upload token rdf class."""
+  protobuf = jobs_pb2.UploadToken
+
+  def SetPolicy(self, policy):
+    serialized_policy = policy.SerializeToString()
+    rsa_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    aes_key = rdf_crypto.EncryptionKey.FromHex(
+        hashlib.sha256(rsa_private_key.SerializeToString()).hexdigest())
+    iv = rdf_crypto.EncryptionKey.GenerateRandomIV()
+    cipher = rdf_crypto.AES128CBCCipher(aes_key, iv)
+    self.encrypted_policy = cipher.Encrypt(serialized_policy)
+    self.iv = iv
+
+  def GenerateHMAC(self):
+    hmac = self.GetHMAC()
+    self.hmac = hmac.HMAC(self.encrypted_policy + self.iv.RawBytes())
+    return True
+
+  def VerifyHMAC(self):
+    hmac = self.GetHMAC()
+    hmac.Verify(self.encrypted_policy + self.iv.RawBytes(), self.hmac)
+
+  @classmethod
+  def GetHMAC(cls):
+    # Just get some random string.
+    private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    hmac_secret = hashlib.sha256(private_key.SerializeToString()).hexdigest()
+    return rdf_crypto.HMAC(hmac_secret)
+
 
 class UploadFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadFileRequest
 
 
-class UploadFileResponse(structs.RDFProtoStruct):
-  protobuf = jobs_pb2.UploadFileResponse
+class UploadedFile(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.UploadedFile
 
 
 class DumpProcessMemoryRequest(structs.RDFProtoStruct):

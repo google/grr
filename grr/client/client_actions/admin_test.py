@@ -100,7 +100,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
   def testGetConfig(self):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
-    location = ["http://example.com"]
+    location = ["http://example.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600

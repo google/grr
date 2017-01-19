@@ -47,8 +47,8 @@ class ActionMock(object):
     self.action_counts = dict((cls_name, 0) for cls_name in self.action_classes)
     self.recorded_args = {}
 
-    # Create a single long lived client worker mock.
-    self.client_worker = worker_mocks.FakeClientWorker()
+    self.client_worker = (kwargs.get("client_worker", None) or
+                          worker_mocks.FakeClientWorker())
 
   def RecordCall(self, action_name, action_args):
     self.recorded_args.setdefault(action_name, []).append(action_args)

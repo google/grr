@@ -9,7 +9,6 @@ import pdb
 from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import hunt as hunt_plugin
-from grr.gui.api_plugins import hunt_test as hunt_plugin_test
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import hunts
@@ -19,6 +18,7 @@ from grr.lib import test_lib
 from grr.lib.hunts import process_results
 from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard_test
+from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -307,10 +307,8 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
           description="the hunt",
           output_plugins=[
               output_plugin.OutputPluginDescriptor(
-                  plugin_name=hunt_plugin_test.DummyHuntTestOutputPlugin.
-                  __name__,
-                  plugin_args=hunt_plugin_test.DummyHuntTestOutputPlugin.
-                  args_type(
+                  plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
+                  plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!", fetch_binaries=True))
           ]) as hunt_obj:
         pass
@@ -341,10 +339,8 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
           description="the hunt",
           output_plugins=[
               output_plugin.OutputPluginDescriptor(
-                  plugin_name=hunt_plugin_test.DummyHuntTestOutputPlugin.
-                  __name__,
-                  plugin_args=hunt_plugin_test.DummyHuntTestOutputPlugin.
-                  args_type(
+                  plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
+                  plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!", fetch_binaries=True))
           ])
 

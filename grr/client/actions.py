@@ -139,7 +139,6 @@ class ActionPlugin(object):
 
       self.cpu_start = self.proc.cpu_times()
       self.cpu_limit = self.message.cpu_limit
-      self.network_bytes_limit = self.message.network_bytes_limit
 
       if getattr(flags.FLAGS, "debug_client_actions", False):
         pdb.set_trace()
@@ -302,6 +301,20 @@ class ActionPlugin(object):
       self.nanny_controller.nanny.Stop()
     except AttributeError:
       logging.info("Can't disable Nanny on this OS.")
+
+  @property
+  def session_id(self):
+    try:
+      return self.message.session_id
+    except AttributeError:
+      return None
+
+  @property
+  def network_bytes_limit(self):
+    try:
+      return self.message.network_bytes_limit
+    except AttributeError:
+      return None
 
 
 class IteratedAction(ActionPlugin):

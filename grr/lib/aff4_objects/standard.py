@@ -223,17 +223,6 @@ class BlobImage(aff4.AFF4ImageBase):
     if chunk.dirty:
       data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
 
-  def FromBlobImage(self, fd):
-    """Copy this file cheaply from another BlobImage."""
-    self.content_dirty = True
-    self.SetChunksize(fd.chunksize)
-    self.index = StringIO.StringIO(fd.index.getvalue())
-    self.size = fd.size
-    if fd.IsAttributeSet(fd.Schema.STAT):
-      self.Set(self.Schema.STAT, fd.Get(fd.Schema.STAT))
-    if fd.IsAttributeSet(fd.Schema.CONTENT_LAST):
-      self.Set(self.Schema.CONTENT_LAST, fd.Get(fd.Schema.CONTENT_LAST))
-
   def Flush(self, sync=True):
     if self.content_dirty:
       self.Set(self.Schema.SIZE(self.size))

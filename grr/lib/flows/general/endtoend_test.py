@@ -2,6 +2,7 @@
 """Tests for grr.lib.flows.general.endtoend."""
 
 from grr.endtoend_tests import base
+from grr.endtoend_tests import endtoend_mocks
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -12,52 +13,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import endtoend
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
-
-
-class MockEndToEndTest(base.AutomatedTest):
-  platforms = ["Linux", "Darwin"]
-  flow = "ListDirectory"
-  args = {
-      "pathspec":
-          rdf_paths.PathSpec(
-              path="/bin", pathtype=rdf_paths.PathSpec.PathType.OS)
-  }
-
-  output_path = "/fs/os/bin"
-  file_to_find = "ls"
-
-  def setUp(self):
-    pass
-
-  def CheckFlow(self):
-    pass
-
-  def tearDown(self):
-    pass
-
-
-class MockEndToEndTestBadFlow(MockEndToEndTest):
-  flow = "RaiseOnStart"
-  args = {}
-
-
-class TestBadSetUp(MockEndToEndTest):
-
-  def setUp(self):
-    raise RuntimeError
-
-
-class TestBadTearDown(MockEndToEndTest):
-
-  def tearDown(self):
-    raise RuntimeError
-
-
-class TestFailure(MockEndToEndTest):
-
-  def CheckFlow(self):
-    raise RuntimeError("This should be logged")
 
 
 class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
@@ -162,10 +117,10 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def testRunSuccessAndFail(self):
     args = endtoend.EndToEndTestFlowArgs()
 
-    with utils.Stubber(
-        base.AutomatedTest, "classes",
-        {"MockEndToEndTest": MockEndToEndTest,
-         "TestFailure": TestFailure}):
+    with utils.Stubber(base.AutomatedTest, "classes", {
+        "MockEndToEndTest": endtoend_mocks.MockEndToEndTest,
+        "TestFailure": endtoend_mocks.TestFailure
+    }):
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
             "EndToEndTestFlow",

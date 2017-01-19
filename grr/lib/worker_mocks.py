@@ -8,14 +8,15 @@ from grr.client import comms
 from grr.lib.rdfvalues import flows as rdf_flows
 
 
-class FakeClientWorker(comms.GRRClientWorker):
-  """A Fake GRR client worker which just collects SendReplys."""
+class FakeMixin(object):
+  """Worker methods that just collect SendReplys."""
 
   # Global store of suspended actions, indexed by the unique ID of the client
   # action.
   suspended_actions = {}
 
-  def __init__(self):
+  def __init__(self, *args, **kw):
+    super(FakeMixin, self).__init__(*args, **kw)
     self.responses = []
     self.sent_bytes_per_flow = {}
     self.lock = threading.RLock()
@@ -36,3 +37,11 @@ class FakeClientWorker(comms.GRRClientWorker):
     result = self.responses
     self.responses = []
     return result
+
+
+class FakeClientWorker(FakeMixin, comms.GRRClientWorker):
+  """A Fake GRR client worker which just collects SendReplys."""
+
+
+class FakeThreadedWorker(FakeMixin, comms.GRRThreadedWorker):
+  """A Fake GRR client worker based on the actual threaded worker."""

@@ -182,7 +182,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       source.attributes["names"] = ["TestAggregationArtifactDeps"]
       with self.assertRaises(RuntimeError) as e:
         deps = art_obj.GetArtifactDependencies(recursive=True)
-      self.assertTrue("artifact recursion depth" in e.exception.message)
+      self.assertIn("artifact recursion depth", e.exception.message)
     finally:
       source.attributes["names"] = backup  # Restore old source.
 
@@ -338,8 +338,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
 
   def testGetArtifactPathDependencies(self):
     sources = [{
-        "type":
-            artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "
@@ -347,12 +346,10 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
             ]
         }
     }, {
-        "type":
-            artifact_registry.ArtifactSource.SourceType.WMI,
+        "type": artifact_registry.ArtifactSource.SourceType.WMI,
         "attributes": {
-            "query":
-                "SELECT * FROM Win32_UserProfile "
-                "WHERE SID='%%users.sid%%'"
+            "query": "SELECT * FROM Win32_UserProfile "
+                     "WHERE SID='%%users.sid%%'"
         }
     }, {
         "type": artifact_registry.ArtifactSource.SourceType.GREP,
@@ -392,8 +389,7 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
 
   def testValidateSyntax(self):
     sources = [{
-        "type":
-            artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
         "attributes": {
             "keys": [
                 r"%%current_control_set%%\Control\Session "

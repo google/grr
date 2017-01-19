@@ -851,7 +851,7 @@ class TestClientFileFinderFlow(test_lib.FlowTestsBaseclass):
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertListEqual(relpaths, [
+    self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist"
     ])

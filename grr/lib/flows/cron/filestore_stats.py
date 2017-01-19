@@ -8,6 +8,7 @@ from grr.lib import stats as stats_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import filestore
 from grr.lib.aff4_objects import stats as aff4_stats
 
 # pylint: enable=unused-import
@@ -90,7 +91,7 @@ class ClientCountHistogram(GraphDistribution):
     # The same file can be in multiple locations on the one client so we use a
     # set to kill the dups.
     clients = set()
-    for urn in fd.Query("aff4:/C"):
+    for urn in filestore.HashFileStore.Query(fd.urn, "aff4:/C", token=fd.token):
       client, _ = urn.Split(2)
       clients.add(client)
     self.Record(len(clients))

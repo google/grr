@@ -46,8 +46,10 @@ grrUi.core.fileDownloadUtils.getFileUrnFromValue = function(value) {
     return value['value']['aff4path']['value'];
 
     case 'FileFinderResult':
-    if (angular.isDefined(value['value']['stat_entry']['value']['aff4path'])) {
-      return value['value']['stat_entry']['value']['aff4path']['value'];
+    var st = value['value']['stat_entry'];
+    if (angular.isDefined(st) &&
+        angular.isDefined(st['value']['aff4path'])) {
+      return st['value']['aff4path']['value'];
     }
     return null;
     case 'ArtifactFilesDownloaderResult':

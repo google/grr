@@ -10,7 +10,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib.rdfvalues import client
+from grr.lib.aff4_objects import standard
 
 
 class UploadFileStore(object):
@@ -32,8 +32,7 @@ class FileStoreAFF4Object(aff4.AFF4Stream):
                              "this id to the file store grants read "
                              "access to the corresponding data.")
 
-    STAT = aff4.Attribute("aff4:stat", client.StatEntry,
-                          "A StatEntry describing this file.", "stat")
+    STAT = standard.VFSDirectory.SchemaCls.STAT
 
   _file_handle = None
 

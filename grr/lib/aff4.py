@@ -609,12 +609,17 @@ class Factory(object):
            age=NEWEST_TIME,
            token=None,
            limit=None,
+           update_timestamps=False,
            sync=False):
     """Make a copy of one AFF4 object to a different URN."""
     if token is None:
       token = data_store.default_token
 
     new_urn = rdfvalue.RDFURN(new_urn)
+
+    if update_timestamps and age != NEWEST_TIME:
+      raise ValueError(
+          "Can't update timestamps unless reading the latest version.")
 
     values = {}
     for predicate, value, ts in data_store.DB.ResolvePrefix(
@@ -623,7 +628,10 @@ class Factory(object):
         timestamp=self.ParseAgeSpecification(age),
         token=token,
         limit=limit):
-      values.setdefault(predicate, []).append((value, ts))
+      if update_timestamps:
+        values.setdefault(predicate, []).append((value, None))
+      else:
+        values.setdefault(predicate, []).append((value, ts))
 
     if values:
       data_store.DB.MultiSet(
@@ -775,7 +783,7 @@ class Factory(object):
         if follow_symlinks and isinstance(obj, AFF4Symlink):
           target = obj.Get(obj.Schema.SYMLINK_TARGET)
           if target is not None:
-            symlinks[target] = obj.urn
+            symlinks.setdefault(target, []).append(obj.urn)
         elif aff4_type:
           if isinstance(obj, aff4_type):
             yield obj
@@ -787,7 +795,13 @@ class Factory(object):
     if symlinks:
       for obj in self.MultiOpen(
           symlinks, mode=mode, token=token, aff4_type=aff4_type, age=age):
-        obj.symlink_urn = symlinks[obj.urn]
+        to_link = symlinks[obj.urn]
+        for additional_symlink in to_link[1:]:
+          clone = obj.__class__(obj.urn, clone=obj)
+          clone.symlink_urn = additional_symlink
+          yield clone
+
+        obj.symlink_urn = symlinks[obj.urn][0]
         yield obj
 
   def OpenDiscreteVersions(self,

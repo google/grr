@@ -10,10 +10,10 @@ import zipfile
 import yaml
 
 from grr.lib import flags
-from grr.lib import instant_output_plugin_test
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.output_plugins import csv_plugin
+from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -169,8 +169,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
                      self.client_id.Add("/fs/os/中国新闻网新闻中"))
 
 
-class CSVInstantOutputPluginTest(
-    instant_output_plugin_test.InstantOutputPluginTestBase):
+class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   """Tests instant CSV output plugin."""
 
   plugin_cls = csv_plugin.CSVInstantOutputPlugin

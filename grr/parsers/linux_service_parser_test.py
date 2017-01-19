@@ -1,67 +1,13 @@
 #!/usr/bin/env python
 """Unit test for the linux sysctl parser."""
 
-import StringIO
-
 
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_service_parser
-
-
-def GenTestData(paths, data, st_mode=33188):
-  stats = []
-  files = []
-  for path in paths:
-    p = rdf_paths.PathSpec(path=path, pathtype="OS")
-    stats.append(rdf_client.StatEntry(pathspec=p, st_mode=st_mode))
-  for val in data:
-    files.append(StringIO.StringIO(val))
-  return stats, files
-
-
-def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):
-  insserv = r"""
-    $local_fs   +umountfs
-    $network    +networking
-    $remote_fs  $local_fs +umountnfs +sendsigs
-    $syslog     +rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd
-    """
-  tmpl = r"""
-    ### BEGIN INIT INFO
-    # Provides:             %s
-    # Required-Start:       $remote_fs $syslog
-    # Required-Stop:        $syslog
-    # Default-Start:        %s
-    # Default-Stop:         %s
-    # Short-Description:    %s
-    ### END INIT INFO
-    """ % (svc, " ".join(start), " ".join(stop), desc)
-  return {"/etc/insserv.conf": insserv, "/etc/init.d/%s" % svc: tmpl}
-
-
-def GenXinetd(svc="test", disable="no"):
-  defaults = r"""
-    defaults
-    {
-       instances      = 60
-       log_type       = SYSLOG     authpriv
-       log_on_success = HOST PID
-       log_on_failure = HOST
-       cps            = 25 30
-    }
-    includedir /etc/xinetd.d
-    """
-  tmpl = """
-    service %s
-    {
-       disable         = %s
-    }
-    """ % (svc, disable)
-  return {"/etc/xinetd.conf": defaults, "/etc/xinetd.d/%s" % svc: tmpl}
+from grr.parsers import parsers_test_lib
 
 
 class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
@@ -69,8 +15,8 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
 
   def testParseLSBInit(self):
     """Init entries return accurate LinuxServiceInformation values."""
-    configs = GenInit("sshd", "OpenBSD Secure Shell server")
-    stats, files = GenTestData(configs, configs.values())
+    configs = parsers_test_lib.GenInit("sshd", "OpenBSD Secure Shell server")
+    stats, files = parsers_test_lib.GenTestData(configs, configs.values())
 
     parser = linux_service_parser.LinuxLSBInitParser()
     results = list(parser.ParseMultiple(stats, files, None))
@@ -99,7 +45,7 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     """
     paths = ["/tmp/empty", "/tmp/snippet", "/tmp/unfinished"]
     vals = [empty, snippet, unfinished]
-    stats, files = GenTestData(paths, vals)
+    stats, files = parsers_test_lib.GenTestData(paths, vals)
     parser = linux_service_parser.LinuxLSBInitParser()
     results = list(parser.ParseMultiple(stats, files, None))
     self.assertFalse(results)
@@ -110,9 +56,9 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
 
   def testParseXinetd(self):
     """Xinetd entries return accurate LinuxServiceInformation values."""
-    configs = GenXinetd("telnet", "yes")
-    configs.update(GenXinetd("forwarder", "no"))
-    stats, files = GenTestData(configs, configs.values())
+    configs = parsers_test_lib.GenXinetd("telnet", "yes")
+    configs.update(parsers_test_lib.GenXinetd("forwarder", "no"))
+    stats, files = parsers_test_lib.GenTestData(configs, configs.values())
 
     parser = linux_service_parser.LinuxXinetdParser()
     results = list(parser.ParseMultiple(stats, files, None))
@@ -142,15 +88,17 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
     if self.results is None:
       # Create a fake filesystem.
       dirs = ["/etc", "/etc/rc1.d", "/etc/rc2.d", "/etc/rc6.d", "/etc/rcS.d"]
-      d_stat, d_files = GenTestData(dirs, [""] * len(dirs), st_mode=16877)
+      d_stat, d_files = parsers_test_lib.GenTestData(
+          dirs, [""] * len(dirs), st_mode=16877)
       files = ["/etc/rc.local", "/etc/ignoreme", "/etc/rc2.d/S20ssh"]
-      f_stat, f_files = GenTestData(files, [""] * len(files))
+      f_stat, f_files = parsers_test_lib.GenTestData(files, [""] * len(files))
       links = [
           "/etc/rc1.d/S90single", "/etc/rc1.d/K20ssh", "/etc/rc1.d/ignore",
           "/etc/rc2.d/S20ntp", "/etc/rc2.d/S30ufw", "/etc/rc6.d/K20ssh",
           "/etc/rcS.d/S20firewall"
       ]
-      l_stat, l_files = GenTestData(links, [""] * len(links), st_mode=41471)
+      l_stat, l_files = parsers_test_lib.GenTestData(
+          links, [""] * len(links), st_mode=41471)
       stats = d_stat + f_stat + l_stat
       files = d_files + f_files + l_files
 
@@ -160,8 +108,7 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
   def testParseServices(self):
     """SysV init links return accurate LinuxServiceInformation values."""
     services = {
-        s.name:
-            s
+        s.name: s
         for s in self.results
         if isinstance(s, rdf_client.LinuxServiceInformation)
     }

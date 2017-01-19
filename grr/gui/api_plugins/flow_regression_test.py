@@ -6,7 +6,6 @@
 
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import flow as flow_plugin
-from grr.gui.api_plugins import flow_test as flow_plugin_test
 
 from grr.lib import aff4
 from grr.lib import flags
@@ -303,7 +302,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=flow_plugin_test.DummyFlowWithSingleReply.__name__,
+          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           output_plugins=[email_descriptor],
           token=self.token)
@@ -344,7 +343,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=flow_plugin_test.DummyFlowWithSingleReply.__name__,
+          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           output_plugins=[failing_descriptor],
           token=self.token)

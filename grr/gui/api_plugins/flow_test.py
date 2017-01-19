@@ -20,8 +20,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
-from grr.lib import instant_output_plugin_test
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import utils
@@ -29,26 +27,11 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
+from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
-
-
-class DummyFlow(flow.GRRFlow):
-  """Dummy flow that does nothing."""
-
-
-class FlowWithOneNestedFlow(flow.GRRFlow):
-  """Flow that calls a nested flow."""
-
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
-    self.CallFlow(DummyFlow.__name__, next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, unused_response=None):
-    pass
 
 
 class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
@@ -73,7 +56,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
   def testResolvesSimpleFlowURN(self):
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=FlowWithOneNestedFlow.__name__,
+        flow_name=test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
     flow_id = flow_plugin.ApiFlowId(flow_urn.Basename())
@@ -85,7 +68,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
   def testResolvesNestedFlowURN(self):
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=FlowWithOneNestedFlow.__name__,
+        flow_name=test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
 
@@ -108,7 +91,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
     with hunts.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name=FlowWithOneNestedFlow.__name__),
+            flow_name=test_lib.FlowWithOneNestedFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -380,18 +363,6 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.assertEqual(manifest["ignored_files"], 0)
 
 
-class DummyFlowWithSingleReply(flow.GRRFlow):
-  """Just emits 1 reply."""
-
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
-    self.CallState(next_state="SendSomething")
-
-  @flow.StateHandler()
-  def SendSomething(self, unused_response=None):
-    self.SendReply(rdfvalue.RDFString("oh"))
-
-
 class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiGetExportedFlowResultsHandler."""
 
@@ -404,7 +375,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=DummyFlowWithSingleReply.__name__,
+          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           token=self.token)
 
@@ -415,8 +386,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
         flow_plugin.ApiGetExportedFlowResultsArgs(
             client_id=self.client_id,
             flow_id=flow_urn.Basename(),
-            plugin_name=instant_output_plugin_test.TestInstantOutputPlugin.
-            plugin_name),
+            plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name),
         token=self.token)
 
     chunks = list(result.GenerateContent())

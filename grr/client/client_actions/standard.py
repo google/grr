@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
 
-import base64
 import cStringIO as StringIO
 import ctypes
 import gzip
@@ -25,7 +24,6 @@ from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import uploads
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -699,59 +697,27 @@ class SendFile(actions.ActionPlugin):
 class UploadFile(actions.ActionPlugin):
   """Upload a file to the server."""
   in_rdfvalue = rdf_client.UploadFileRequest
-  out_rdfvalues = [rdf_client.UploadFileResponse]
+  out_rdfvalues = [rdf_client.UploadedFile]
 
   BUFFER_SIZE = 1024 * 1024
-
-  def FileGenerator(self, fd):
-    """A Generator of file content."""
-    self.sent_data = 0
-    while 1:
-      data = fd.Read(self.BUFFER_SIZE)
-      if not data:
-        break
-
-      # Ensure we heartbeat while the upload is happening.
-      self.Progress()
-      yield data
-
-      # Keep track of how much data we sent.
-      self.sent_data += len(data)
 
   def Run(self, args):
     file_fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
 
-    # Gzip the original file.
-    gzip_fd = uploads.GzipWrapper(file_fd)
+    try:
+      uploaded_file = self.grr_worker.UploadFile(
+          file_fd,
+          args.upload_token,
+          session_id=self.session_id,
+          progress_callback=self.Progress)
+    except IOError as e:
+      raise IOError("Unable to upload %s: %s" % (args.pathspec.CollapsePath(),
+                                                 e))
 
-    # And then encrypt it.
-    server_certificate = rdf_crypto.RDFX509Cert(
-        self.grr_worker.client.server_certificate)
-    fd = uploads.EncryptStream(server_certificate.GetPublicKey(),
-                               config_lib.CONFIG["Client.private_key"], gzip_fd)
+    logging.debug("Uploaded %s", args.pathspec)
 
-    response = self.grr_worker.http_manager.OpenServerEndpoint(
-        u"/upload/",
-        data=self.FileGenerator(fd),
-        headers={
-            "x-grr-hmac": base64.b64encode(args.hmac),
-            "x-grr-policy": base64.b64encode(args.policy),
-        },
-        method="POST")
-
-    if response.code != 200:
-      raise IOError("Unable to upload %s" % args.pathspec.CollapsePath())
-
-    file_id = response.data
-    logging.debug("Uploaded %s (%s bytes)", args.pathspec, self.sent_data)
-    stat_entry = file_fd.Stat()
-    # Sometimes the file we upload does not report its correct size in the
-    # st_size attribute (e.g. /proc files). We modify the st_size to force it to
-    # report the actual amount of data uploaded.
-    stat_entry.st_size = gzip_fd.total_read
-    self.SendReply(
-        rdf_client.UploadFileResponse(
-            stat=stat_entry, file_id=file_id))
+    uploaded_file.stat_entry = file_fd.Stat()
+    self.SendReply(uploaded_file)
 
 
 class StatFS(actions.ActionPlugin):

@@ -9,18 +9,15 @@ import time
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
-from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
+from grr.lib.aff4_objects import filestore_test_lib
 from grr.lib.flows.general import file_finder
-from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -113,37 +110,6 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
 
-  @staticmethod
-  def AddFileToFileStore(pathspec=None, client_id=None, token=None):
-    """Adds file with given pathspec to the hash file store."""
-    if pathspec is None:
-      raise ValueError("pathspec can't be None")
-
-    if client_id is None:
-      raise ValueError("client_id can't be None")
-
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
-
-    client_mock = action_mocks.GetFileClientMock()
-    for _ in test_lib.TestFlowHelper(
-        transfer.GetFile.__name__,
-        client_mock,
-        token=token,
-        client_id=client_id,
-        pathspec=pathspec):
-      pass
-
-    auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-    events.Events.PublishEvent(
-        "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(
-            payload=urn, auth_state=auth_state),
-        token=token)
-    worker = test_lib.MockWorker(token=token)
-    worker.Simulate()
-
-    return urn
-
   def AddFile(self, path):
     """Add file with a subpath (relative to winexec_img.dd) to the store."""
     pathspec = rdf_paths.PathSpec(
@@ -151,7 +117,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         path=os.path.join(self.base_path, "winexec_img.dd"))
     pathspec.Append(path=path, pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    return self.AddFileToFileStore(
+    return filestore_test_lib.AddFileToFileStore(
         pathspec, client_id=self.client_id, token=self.token)
 
   def testListHashes(self):
@@ -211,7 +177,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
-      self.AddFileToFileStore(
+      filestore_test_lib.AddFileToFileStore(
           rdf_paths.PathSpec(
               pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "one_a")),
@@ -229,7 +195,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
     with utils.Stubber(time, "time", lambda: latest_time):
-      self.AddFileToFileStore(
+      filestore_test_lib.AddFileToFileStore(
           rdf_paths.PathSpec(
               pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
@@ -256,7 +222,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
-      self.AddFileToFileStore(
+      filestore_test_lib.AddFileToFileStore(
           rdf_paths.PathSpec(
               pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "one_a")),
@@ -274,7 +240,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
     with utils.Stubber(time, "time", lambda: latest_time):
-      self.AddFileToFileStore(
+      filestore_test_lib.AddFileToFileStore(
           rdf_paths.PathSpec(
               pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
@@ -285,6 +251,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     hits = list(
         filestore.HashFileStore.GetClientsForHash(
             hashes[0], token=self.token))
+
     self.assertEqual(len(hits), 2)
 
     # Check that new hit affects hash age.
@@ -427,9 +394,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.assertTrue(isinstance(fd1, aff4_grr.VFSBlobImage))
 
     fd2 = aff4.FACTORY.Open(urn2, token=self.token)
-    self.assertTrue(isinstance(fd2, filestore.FileStoreImage))
+    self.assertTrue(isinstance(fd2, aff4_grr.VFSBlobImage))
 
-    self.assertEqual(fd1.Get(fd1.Schema.STAT), fd2.Get(fd2.Schema.STAT))
+    self.assertTrue(fd1.Get(fd1.Schema.STAT))
+    self.assertTrue(fd2.Get(fd2.Schema.STAT))
     self.assertEqual(fd1.Get(fd1.Schema.SIZE), fd2.Get(fd2.Schema.SIZE))
     self.assertEqual(
         fd1.Get(fd1.Schema.CONTENT_LAST), fd2.Get(fd2.Schema.CONTENT_LAST))
@@ -440,7 +408,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     filename = os.path.join(self.base_path, "tcpip.sig")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=filename)
-    self.AddFileToFileStore(
+    filestore_test_lib.AddFileToFileStore(
         pathspec, client_id=self.client_id, token=self.token)
     self.assertEqual(len(self._GetBackRefs(filename)), 3)
 
@@ -448,28 +416,88 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     filename = os.path.join(self.base_path, "empty_file")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=filename)
-    self.AddFileToFileStore(
+    filestore_test_lib.AddFileToFileStore(
         pathspec, client_id=self.client_id, token=self.token)
     self.assertEqual(len(self._GetBackRefs(filename)), 0)
 
   def _GetBackRefs(self, filename):
     res = []
-    for name, algo in [
-        ("sha256", hashlib.sha256),
-        ("sha1", hashlib.sha1),
-        ("md5", hashlib.md5),
+    data = open(filename, "rb").read()
+    for name, algo, f in [
+        ("sha256", hashlib.sha256, "GetReferencesSHA256"),
+        ("sha1", hashlib.sha1, "GetReferencesSHA1"),
+        ("md5", hashlib.md5, "GetReferencesMD5"),
     ]:
       h = algo()
-      h.update(open(filename, "rb").read())
+      h.update(data)
 
       urn = rdfvalue.RDFURN("aff4:/files/hash/generic/").Add(name)
       urn = urn.Add(h.hexdigest())
 
-      for _, target, _ in data_store.DB.ResolvePrefix(
-          urn, "index:target:", token=self.token):
-        res.append(target)
+      fs = filestore.HashFileStore
+      for ref in getattr(fs, f)(h.hexdigest(), token=self.token):
+        res.append(ref)
 
     return res
+
+  def _SetupNSRLFiles(self):
+    urn1 = self.AddFile("/Ext2IFS_1_10b.exe")
+    urn2 = self.AddFile("/idea.dll")
+
+    fd1 = aff4.FACTORY.Open(urn1, token=self.token)
+    self.hashes1 = fd1.Get(fd1.Schema.HASH)
+
+    fd2 = aff4.FACTORY.Open(urn2, token=self.token)
+    self.hashes2 = fd2.Get(fd2.Schema.HASH)
+
+    # Pretend this file is part of the NSRL.
+    nsrl_fs = aff4.FACTORY.Open("aff4:/files/nsrl", token=self.token)
+    nsrl_fs.AddHash("e1f7e62b3909263f3a2518bbae6a9ee36d5b502b",
+                    "bb0a15eefe63fd41f8dc9dee01c5cf9a", None, "idea.dll", 100,
+                    None, None, "M")
+
+    self.sha1_hash = filestore.FileStoreHash(
+        fingerprint_type="generic",
+        hash_type="sha1",
+        hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
+    return nsrl_fs
+
+  def CheckHashesNSRL(self):
+    nsrl_fs = self._SetupNSRLFiles()
+    hits = list(nsrl_fs.CheckHashes([self.hashes1, self.hashes2]))
+
+    self.assertEqual(len(hits), 1)
+    hit = hits[0]
+    self.assertEqual(hit[1], self.hashes2)
+
+  def testNSRLInfo(self):
+    nsrl_fs = self._SetupNSRLFiles()
+    sha1s = [
+        "e1f7e62b3909263f3a2518bbae6a9ee36d5b502b",
+        "0000000000000000000000000000000000000000"
+    ]
+    infos = nsrl_fs.NSRLInfoForSHA1s(sha1s)
+    self.assertIn(sha1s[0], infos)
+    self.assertNotIn(sha1s[1], infos)
+
+    fd = infos[sha1s[0]]
+    info = fd.Get(fd.Schema.NSRL)
+    self.assertEqual(info.md5, "bb0a15eefe63fd41f8dc9dee01c5cf9a")
+    self.assertEqual(info.file_size, 100)
+
+  def testGetClientsForHashesNSRL(self):
+    """Tests GetClientsForHashes for the NSRL filestore.
+
+    This is just forwarding to the hash file store but we test it
+    anyways.
+    """
+    nsrl_fs = self._SetupNSRLFiles()
+    hits = dict(nsrl_fs.GetClientsForHashes([self.sha1_hash], token=self.token))
+    self.assertEqual(len(hits), 1)
+    self.assertListEqual(hits[self.sha1_hash], [
+        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
+            "winexec_img.dd/idea.dll")
+    ])
 
 
 def main(argv):

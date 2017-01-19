@@ -18,6 +18,7 @@ import socket
 import sys
 import tempfile
 import time
+import traceback
 import types
 import unittest
 
@@ -206,6 +207,34 @@ class BrokenFlow(flow.GRRFlow):
   def Start(self, unused_response=None):
     """Send a message to an incorrect state."""
     self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
+
+
+class DummyFlow(flow.GRRFlow):
+  """Dummy flow that does nothing."""
+
+
+class FlowWithOneNestedFlow(flow.GRRFlow):
+  """Flow that calls a nested flow."""
+
+  @flow.StateHandler()
+  def Start(self, unused_response=None):
+    self.CallFlow(DummyFlow.__name__, next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, unused_response=None):
+    pass
+
+
+class DummyFlowWithSingleReply(flow.GRRFlow):
+  """Just emits 1 reply."""
+
+  @flow.StateHandler()
+  def Start(self, unused_response=None):
+    self.CallState(next_state="SendSomething")
+
+  @flow.StateHandler()
+  def SendSomething(self, unused_response=None):
+    self.SendReply(rdfvalue.RDFString("oh"))
 
 
 class DummyLogFlow(flow.GRRFlow):
@@ -1056,8 +1085,8 @@ class Instrument(object):
     self.stubber.__enter__()
     return self
 
-  def __exit__(self, t, value, traceback):
-    return self.stubber.__exit__(t, value, traceback)
+  def __exit__(self, t, value, tb):
+    return self.stubber.__exit__(t, value, tb)
 
 
 class StatsDeltaAssertionContext(object):
@@ -1309,8 +1338,13 @@ class MockClient(object):
           # Error occurred.
           responses = []
           if self.status_message_enforced:
+            error_message = str(e)
             status = rdf_flows.GrrStatus(
                 status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR)
+            # Invalid action mock is usually expected.
+            if error_message != "Invalid Action Mock.":
+              status.backtrace = traceback.format_exc()
+              status.error_message = error_message
 
         # Now insert those on the flow state queue
         for response in responses:
@@ -2090,6 +2124,14 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       return stat_data[1]  # Strip the vfs_type.
     else:
       return self._FakeDirStat()
+
+
+class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.DataAgnosticConverterTestValue
+
+
+class DataAgnosticConverterTestValueWithMetadata(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.DataAgnosticConverterTestValueWithMetadata
 
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):

@@ -1622,7 +1622,7 @@ message FileFinderAction {
   optional FileFinderStatActionOptions stat = 4;
 }
 
-// Next field ID: 10
+// Next field ID: 11
 message FileFinderArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -1673,18 +1673,29 @@ message FileFinderArgs {
       "recursive searches.",
       label: ADVANCED,
     }, default = LOCAL];
+
+  optional UploadToken upload_token = 10  [(sem_type) = {
+      description: "An upload token to use with the direct upload "
+      "functionality. This token contains the hmac authenticated policy that "
+      "determines for how long the client is allowed to upload files to the "
+      "server. This is comparable to the policy document used by GCS: "
+      "https://cloud.google.com/storage/docs/xml-api/post-object#policydocument ",
+      label: HIDDEN,
+    }];
 }
 
 // TODO(user): This needs a bit more structure. There should be one
 // result per action and, if possible, they should be a
-// union_field. Once the file upload is ready, we need to add at least
-// an upload result that indicates the length of the uploaded data and
-// its hashes.
-// Next field ID: 4
+// union_field.
+// Next field ID: 5
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
   optional Hash hash_entry = 3;
+  optional UploadedFile uploaded_file = 4 [(sem_type) = {
+      description: "An uploaded file reference in case a file was collected "
+      "via the ClientFileFinder.",
+    }];
 }
 
 // Next field ID: 4

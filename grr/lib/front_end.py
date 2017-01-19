@@ -22,7 +22,6 @@ from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import uploads
 from grr.lib import utils
-from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -427,25 +426,32 @@ class FrontEndServer(object):
     client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
     return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
 
-  def HandleUpload(self, encoding_header, encoded_policy, encoded_client_hmac,
-                   data_generator):
+  def HandleUpload(self, encoding_header, encoded_upload_token, data_generator):
     """Handles the upload of a file."""
     if encoding_header != "chunked":
       raise IOError("Only chunked uploads are allowed.")
 
     # Extract request parameters.
-    if not encoded_client_hmac:
+    if not encoded_upload_token:
+      raise IOError("Upload token not provided")
+
+    upload_token = rdf_client.UploadToken.FromSerializedString(
+        encoded_upload_token.decode("base64"))
+
+    if not upload_token.hmac:
       raise IOError("HMAC not provided")
 
-    if not encoded_policy:
+    if not upload_token.encrypted_policy:
       raise IOError("Policy not provided")
 
-    client_hmac = encoded_client_hmac.decode("base64")
-    serialized_policy = encoded_policy.decode("base64")
+    if not upload_token.iv:
+      raise IOError("IV not provided")
 
-    transfer.GetHMAC().Verify(serialized_policy, client_hmac)
+    upload_token.VerifyHMAC()
 
-    policy = rdf_client.UploadPolicy.FromSerializedString(serialized_policy)
+    policy = rdf_client.UploadPolicy.FromEncryptedPolicy(
+        upload_token.encrypted_policy, upload_token.iv)
+
     if rdfvalue.RDFDatetime.Now() > policy.expires:
       raise IOError("Client upload policy is too old.")
 

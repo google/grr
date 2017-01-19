@@ -33,6 +33,30 @@ class UploadTests(test_lib.GRRBaseTest):
         writers_public_key=self.writers_private_key.GetPublicKey(),
         outfd=self.outfd)
 
+  def testKeyMismatch(self):
+    """Checks the performance impact of reusing stolen upload tokens.
+
+    Upload policies are HMAC'd by the server only so they can be
+    grabbed from the wire and reused to perform a DOS attack. To limit
+    the impact of this attack, we need to bail out as soon as possible
+    once we realize we are handed a stream that was not encrypted with
+    the client key that is indicated in the policy.
+    """
+    encrypted_data = self.encrypt_wrapper.read(1024 * 1024 * 100)
+
+    wrong_key = crypto.RSAPrivateKey().GenerateKey()
+    decrypt_wrapper = uploads.DecryptStream(
+        readers_private_key=self.readers_private_key,
+        writers_public_key=wrong_key.GetPublicKey(),
+        outfd=self.outfd)
+
+    # We should know after very few bytes that the key is wrong. The
+    # first encrypted chunk is the serialized signature which is 518
+    # bytes in the test. Adding crypto headers gives a chunk size of
+    # 570. After 600 bytes we should definitely bail out.
+    with self.assertRaises(crypto.VerificationError):
+      decrypt_wrapper.write(encrypted_data[:600])
+
   def testUploadWrapper(self):
     """Check that encryption/decryption of the streams works."""
     # Check that small reads still work.
@@ -122,6 +146,11 @@ class UploadTests(test_lib.GRRBaseTest):
 
     fd = gzip.GzipFile(mode="r", fileobj=StringIO.StringIO(gzip_data))
     self.assertEqual(fd.read(), self.test_string)
+
+  def testGzipWrapperLimit(self):
+    gzip_data = uploads.GzipWrapper(self.infd, byte_limit=100).read(10000)
+    fd = gzip.GzipFile(mode="r", fileobj=StringIO.StringIO(gzip_data))
+    self.assertEqual(fd.read(), self.test_string[:100])
 
   def testGUnzipWrapper(self):
     gzip_data = uploads.GzipWrapper(self.infd).read(10000)

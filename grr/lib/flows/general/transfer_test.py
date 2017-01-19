@@ -41,7 +41,6 @@ class ClientMock(object):
 
   def UploadFile(self, args):
     """Just copy the file into the filestore."""
-    # Must be absolute path rooted at /.
     file_fd = vfs.VFSOpen(args.pathspec)
 
     fs = file_store.FileUploadFileStore()
@@ -53,7 +52,7 @@ class ClientMock(object):
       fd.write(data)
     file_id = fd.Finalize()
 
-    return [rdf_client.UploadFileResponse(stat=file_fd.Stat(), file_id=file_id)]
+    return [rdf_client.UploadedFile(stat_entry=file_fd.Stat(), file_id=file_id)]
 
 
 class TestTransfer(test_lib.FlowTestsBaseclass):

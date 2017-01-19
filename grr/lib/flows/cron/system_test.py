@@ -3,6 +3,7 @@
 
 
 from grr.endtoend_tests import base
+from grr.endtoend_tests import endtoend_mocks
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import client_fixture
@@ -14,7 +15,6 @@ from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.cron import system
 from grr.lib.flows.general import endtoend as endtoend_flows
-from grr.lib.flows.general import endtoend_test
 from grr.lib.rdfvalues import client as client_rdf
 from grr.lib.rdfvalues import flows
 
@@ -232,7 +232,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
         "Test.end_to_end_client_ids": self.client_ids
     }):
       with utils.MultiStubber((base.AutomatedTest, "classes", {
-          "MockEndToEndTest": endtoend_test.MockEndToEndTest
+          "MockEndToEndTest": endtoend_mocks.MockEndToEndTest
       }), (system.EndToEndTests, "lifetime", 0)):
 
         # The test harness doesn't understand the callstate at a later time that

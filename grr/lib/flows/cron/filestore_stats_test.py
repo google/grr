@@ -13,32 +13,36 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(FilestoreStatsCronFlowTest, self).setUp()
 
+    fs = aff4.FACTORY.Open("aff4:/files", token=self.token)
+
     for i in range(0, 10):
-      newfd = aff4.FACTORY.Create(
+      with aff4.FACTORY.Create(
           "aff4:/files/hash/generic/sha256/fsi%s" % i,
           aff4_filestore.FileStoreImage,
-          token=self.token)
-      newfd.size = i * 1e6
-      for j in range(0, i):
-        newfd.AddIndex("aff4:/C.000000000000000%s/fs/os/blah%s" % (j, j))
-      newfd.Close()
+          token=self.token) as newfd:
+        newfd.size = i * 1e6
 
-    newfd = aff4.FACTORY.Create(
+      fake_hash = "fsi%s" % i
+      for j in range(0, i):
+        fs.AddURNToIndex(fake_hash,
+                         "aff4:/C.000000000000000%s/fs/os/blah%s" % (j, j))
+
+    with aff4.FACTORY.Create(
         "aff4:/files/hash/generic/sha256/blobbig",
         aff4_filestore.FileStoreImage,
-        token=self.token)
-    newfd.size = 1e12
-    newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
-    newfd.AddIndex("aff4:/C.0000000000000001/fs/os/2")
-    newfd.Close()
+        token=self.token) as newfd:
+      newfd.size = 1e12
 
-    newfd = aff4.FACTORY.Create(
+    fs.AddURNToIndex("blobbig", "aff4:/C.0000000000000001/fs/os/1")
+    fs.AddURNToIndex("blobbig", "aff4:/C.0000000000000001/fs/os/2")
+
+    with aff4.FACTORY.Create(
         "aff4:/files/hash/generic/sha256/blobtiny",
         aff4_filestore.FileStoreImage,
-        token=self.token)
-    newfd.size = 12
-    newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
-    newfd.Close()
+        token=self.token) as newfd:
+      newfd.size = 12
+
+    fs.AddURNToIndex("blobtiny", "aff4:/C.0000000000000001/fs/os/1")
 
   def testFileTypes(self):
     for _ in test_lib.TestFlowHelper(

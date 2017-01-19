@@ -20,7 +20,7 @@ from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.aff4_objects import filestore_test
+from grr.lib.aff4_objects import filestore_test_lib
 from grr.lib.flows.cron import filestore_stats
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -344,7 +344,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
     client_id, = self.SetupClients(1)
 
     # Add a file to be reported.
-    filestore_test.HashFileStoreTest.AddFileToFileStore(
+    filestore_test_lib.AddFileToFileStore(
         rdf_paths.PathSpec(
             pathtype=rdf_paths.PathSpec.PathType.OS,
             path=os.path.join(self.base_path, filename)),
@@ -394,7 +394,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
     client_id, = self.SetupClients(1)
 
     # Add a file to be reported.
-    filestore_test.HashFileStoreTest.AddFileToFileStore(
+    filestore_test_lib.AddFileToFileStore(
         rdf_paths.PathSpec(
             pathtype=rdf_paths.PathSpec.PathType.OS,
             path=os.path.join(self.base_path, filename)),

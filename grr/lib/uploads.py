@@ -2,8 +2,10 @@
 """Manage file uploads."""
 import collections
 import gzip
+import hashlib
 import StringIO
 import struct
+import sys
 import zlib
 
 
@@ -71,7 +73,7 @@ class EncryptStream(object):
     serialized_cipher = self.cipher_properties.SerializeToString()
     signature = SignaturePart(
         encrypted_cipher=readers_public_key.Encrypt(serialized_cipher),
-        signature=writers_private_key.Sign(serialized_cipher),)
+        signature=writers_private_key.Sign(serialized_cipher))
 
     # First part is the encrypted cipher.
     self.encrypted_buffer = BufferedReader()
@@ -241,7 +243,6 @@ class DecryptStream(object):
   def Close(self):
     if self.buffer.len > 0:
       raise IOError("Partial Message Received")
-
     self.flush()
     self.outfd.close()
 
@@ -273,11 +274,20 @@ class GzipWrapper(object):
   """Wraps a file like object and compresses it."""
   BUFFER_SIZE = 1024 * 1024
 
-  def __init__(self, infd):
+  def __init__(self, infd, byte_limit=None):
     self.total_read = 0
     self.infd = infd
     self.buff_fd = BufferedReader()
     self.zipper = gzip.GzipFile(mode="wb", fileobj=self.buff_fd)
+    self.remaining_bytes = byte_limit
+    if self.remaining_bytes is None:
+      self.remaining_bytes = sys.maxint
+
+    self.hashers = {
+        "sha256": hashlib.sha256(),
+        "sha1": hashlib.sha1(),
+        "md5": hashlib.md5()
+    }
 
   def Read(self, length=10000000):
     """Public read interface.
@@ -293,7 +303,7 @@ class GzipWrapper(object):
 
     # Read infd until we have length available in self.buff_fd.
     while self.zipper and self.buff_fd.len < length:
-      data = self.infd.read(self.BUFFER_SIZE)
+      data = self.infd.read(min(self.remaining_bytes, self.BUFFER_SIZE))
       if not data and self.zipper:
         # infd is finished.
         self.zipper.flush()
@@ -301,7 +311,11 @@ class GzipWrapper(object):
         self.zipper = None
         break
 
-      self.total_read += len(data)
+      l = len(data)
+      self.total_read += l
+      self.remaining_bytes -= l
+      for h in self.hashers.values():
+        h.update(data)
       self.zipper.write(data)
 
     return self.buff_fd.ReadFromFront(length)
@@ -315,6 +329,12 @@ class GzipWrapper(object):
         break
 
       yield data
+
+  def HashObject(self):
+    return crypto.Hash(
+        sha256=self.hashers["sha256"].digest(),
+        sha1=self.hashers["sha1"].digest(),
+        md5=self.hashers["md5"].digest())
 
 
 class GunzipWrapper(object):
