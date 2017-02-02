@@ -17,7 +17,6 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
 from grr.lib.flows.general import collectors as flow_collectors
 from grr.lib.rdfvalues import client as rdf_client
@@ -429,7 +428,10 @@ class StatEntryToExportedFileConverter(ExportConverter):
   def _OpenFilesForRead(self, metadata_value_pairs, token):
     """Open files all at once if necessary."""
     if self.open_file_for_read:
-      aff4_paths = [result.aff4path for _, result in metadata_value_pairs]
+      aff4_paths = [
+          result.AFF4Path(metadata.client_urn)
+          for metadata, result in metadata_value_pairs
+      ]
       fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
       fds_dict = dict([(fd.urn, fd) for fd in fds])
       return fds_dict
@@ -448,12 +450,12 @@ class StatEntryToExportedFileConverter(ExportConverter):
         result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
         result.content_sha256 = hashlib.sha256(result.content).hexdigest()
       except (IOError, AttributeError) as e:
-        logging.warning("Can't read content of %s: %s", result.aff4path, e)
+        logging.warning("Can't read content of %s: %s", aff4_object.urn, e)
 
   def _CreateExportedFile(self, metadata, stat_entry):
     return ExportedFile(
         metadata=metadata,
-        urn=stat_entry.aff4path,
+        urn=stat_entry.AFF4Path(metadata.client_urn),
         basename=stat_entry.pathspec.Basename(),
         st_mode=stat_entry.st_mode,
         st_ino=stat_entry.st_ino,
@@ -485,13 +487,12 @@ class StatEntryToExportedFileConverter(ExportConverter):
     """
     filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
     fds_dict = self._OpenFilesForRead(filtered_pairs, token=token)
-
     for metadata, stat_entry in filtered_pairs:
       result = self._CreateExportedFile(metadata, stat_entry)
 
       if self.open_file_for_read:
         try:
-          aff4_object = fds_dict[stat_entry.aff4path]
+          aff4_object = fds_dict[stat_entry.AFF4Path(metadata.client_urn)]
           self._ExportHash(aff4_object, result)
           self._ExportFileContent(aff4_object, result)
         except KeyError:
@@ -523,7 +524,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
 
     result = ExportedRegistryKey(
         metadata=metadata,
-        urn=stat_entry.aff4path,
+        urn=stat_entry.AFF4Path(metadata.client_urn),
         last_modified=stat_entry.st_mtime)
 
     if (stat_entry.HasField("registry_type") and
@@ -696,8 +697,7 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
         offset=buffer_reference.offset,
         length=buffer_reference.length,
         data=buffer_reference.data,
-        urn=aff4_grr.VFSGRRClient.PathspecToURN(buffer_reference.pathspec,
-                                                metadata.client_urn))
+        urn=buffer_reference.pathspec.AFF4Path(metadata.client_urn))
 
 
 class FileFinderResultConverter(StatEntryToExportedFileConverter):
@@ -761,12 +761,12 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
       self.ParseFileHash(ff_result.hash_entry, result)
 
       if self.options.export_files_contents:
+        urn = ff_result.stat_entry.AFF4Path(metadata.client_urn)
         try:
-          aff4_object = fds_dict[ff_result.stat_entry.aff4path]
+          aff4_object = fds_dict[urn]
           self._ExportFileContent(aff4_object, result)
         except KeyError:
-          logging.warn("Couldn't open %s for export",
-                       ff_result.stat_entry.aff4path)
+          logging.warn("Couldn't open %s for export", urn)
       yield result
 
     # Now export the registry keys
@@ -857,7 +857,7 @@ class VFSFileToExportedFileConverter(ExportConverter):
 
     result = ExportedFile(
         metadata=metadata,
-        urn=stat_entry.aff4path,
+        urn=stat_entry.AFF4Path(metadata.client_urn),
         basename=stat_entry.pathspec.Basename(),
         st_mode=stat_entry.st_mode,
         st_ino=stat_entry.st_ino,
@@ -989,8 +989,7 @@ class GrrMessageConverter(ExportConverter):
             converters_classes = ExportConverter.GetConvertersByValue(
                 message.payload)
             data_by_type[cls_name] = {
-                "converters":
-                    [cls(self.options) for cls in converters_classes],
+                "converters": [cls(self.options) for cls in converters_classes],
                 "batch_data": [(new_metadata, message.payload)]
             }
           else:
@@ -1090,12 +1089,16 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
   input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult.__name__
 
-  def GetExportedResult(self, original_result, converter, token=None):
+  def GetExportedResult(self,
+                        original_result,
+                        converter,
+                        metadata=None,
+                        token=None):
     """Converts original result via given converter.."""
 
     exported_results = list(
         converter.Convert(
-            ExportedMetadata(), original_result, token=token))
+            metadata or ExportedMetadata(), original_result, token=token))
 
     if not exported_results:
       raise RuntimeError("Got 0 exported result when a single one "
@@ -1131,12 +1134,16 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
         exported_registry_key = self.GetExportedResult(
             original_result,
             StatEntryToExportedRegistryKeyConverter(),
+            metadata=metadata,
             token=token)
         result = ExportedArtifactFilesDownloaderResult(
             metadata=metadata, original_registry_key=exported_registry_key)
       elif self.IsFileStatEntry(original_result):
         exported_file = self.GetExportedResult(
-            original_result, StatEntryToExportedFileConverter(), token=token)
+            original_result,
+            StatEntryToExportedFileConverter(),
+            metadata=metadata,
+            token=token)
         result = ExportedArtifactFilesDownloaderResult(
             metadata=metadata, original_file=exported_file)
       else:
@@ -1160,8 +1167,10 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
     converted_files_map = dict((f.urn, f) for f in converted_files)
 
     for result, downloaded_file in results:
-      if downloaded_file and downloaded_file.aff4path in converted_files_map:
-        result.downloaded_file = converted_files_map[downloaded_file.aff4path]
+      if downloaded_file:
+        aff4path = downloaded_file.AFF4Path(result.metadata.client_urn)
+        if aff4path in converted_files_map:
+          result.downloaded_file = converted_files_map[aff4path]
 
       yield result
 

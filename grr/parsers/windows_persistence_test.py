@@ -2,7 +2,6 @@
 """Tests for grr.parsers.windows_persistence."""
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -21,7 +20,6 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
     reg_data = "C:\\blah\\some.exe /v"
     reg_type = rdf_client.StatEntry.RegistryType.REG_SZ
     stat = rdf_client.StatEntry(
-        aff4path="aff4:/asdfasdf/",
         pathspec=pathspec,
         registry_type=reg_type,
         registry_data=rdf_protodict.DataBlob(string=reg_data))
@@ -32,9 +30,7 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
         "%systemroot%\\system32\\svchost.exe -k netsvcs",
         "\\SystemRoot\\system32\\drivers\\acpipmi.sys"
     ]
-    reg_key = rdfvalue.RDFURN("aff4:/C.1000000000000000/registry"
-                              "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001"
-                              "/services/AcpiPmi")
+    reg_key = "HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/services/AcpiPmi"
     for path in image_paths:
       serv_info = rdf_client.WindowsServiceInformation(
           name="blah",

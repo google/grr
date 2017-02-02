@@ -4,4 +4,6 @@
   {{controller.hoverText}}
 </div>
 
-<div class="chart"></div>
+<div class="chart" ng-show="typedData.value.representation_type.value != 'AUDIT_CHART'"></div>
+<grr-audit-chart ng-if="typedData.value.representation_type.value == 'AUDIT_CHART'"
+                 typed-data="typedData"></grr-audit-chart>

@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the registry flows."""
 
+import os
+
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
@@ -94,10 +96,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    basenames = [os.path.basename(r.stat_entry.pathspec.path) for r in results]
+    self.assertItemsEqual(basenames, ["Sidebar", "MctAdmin"])
 
   def testFindsKeysWithTwoGlobsWithoutConditions(self):
     session_id = self.RunFlow([
@@ -111,10 +111,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    basenames = [os.path.basename(r.stat_entry.pathspec.path) for r in results]
+    self.assertItemsEqual(basenames, ["Sidebar", "MctAdmin"])
 
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
     # Initialize client's knowledge base in order for the interpolation
@@ -137,7 +135,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     key = ("/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/"
            "Software/Microsoft/Windows/CurrentVersion/Explorer")
 
-    self.assertEqual(results[0].stat_entry.aff4path,
+    self.assertEqual(results[0].stat_entry.AFF4Path(self.client_id),
                      "aff4:/C.1000000000000000/registry" + key)
     self.assertEqual(results[0].stat_entry.pathspec.path, key)
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
@@ -176,7 +174,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(results[0].matches[0].data,
                      "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
-    self.assertEqual(results[0].stat_entry.aff4path,
+    self.assertEqual(results[0].stat_entry.AFF4Path(self.client_id),
                      "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
                      "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.path,
@@ -217,7 +215,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(results[0].matches[0].data,
                      "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
-    self.assertEqual(results[0].stat_entry.aff4path,
+    self.assertEqual(results[0].stat_entry.AFF4Path(self.client_id),
                      "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
                      "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.path,
@@ -259,10 +257,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue(
-        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    basenames = [os.path.basename(r.stat_entry.pathspec.path) for r in results]
+    self.assertItemsEqual(basenames, ["Sidebar", "MctAdmin"])
 
   def testFindsKeyWithLiteralAndModificationTimeConditions(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
@@ -290,7 +286,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertEqual(len(results), 1)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertEqual(results[0].stat_entry.aff4path,
+    self.assertEqual(results[0].stat_entry.AFF4Path(self.client_id),
                      "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
                      "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
 

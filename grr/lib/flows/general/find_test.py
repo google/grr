@@ -58,12 +58,12 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Should match ["bash" and "rbash"].
-    matches = set([x.aff4path.Basename() for x in fd])
+    matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
     self.assertEqual(sorted(matches), ["bash", "rbash"])
 
     self.assertEqual(len(fd), 4)
     for child in fd:
-      path = utils.SmartStr(child.aff4path)
+      path = utils.SmartStr(child.AFF4Path(self.client_id))
       self.assertTrue(path.endswith("bash"))
       self.assertEqual(child.__class__.__name__, "StatEntry")
 
@@ -90,12 +90,12 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Make sure that bash is a file.
-    matches = set([x.aff4path.Basename() for x in fd])
+    matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
     self.assertEqual(sorted(matches), ["bash"])
 
     self.assertEqual(len(fd), 2)
     for child in fd:
-      path = utils.SmartStr(child.aff4path)
+      path = utils.SmartStr(child.AFF4Path(self.client_id))
       self.assertTrue(path.endswith("bash"))
       self.assertEqual(child.__class__.__name__, "StatEntry")
 
@@ -125,7 +125,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Make sure that bin is a directory
     self.assertEqual(len(fd), 2)
     for child in fd:
-      path = utils.SmartStr(child.aff4path)
+      path = utils.SmartStr(child.AFF4Path(self.client_id))
       self.assertTrue("bin" in path)
       self.assertEqual(child.__class__.__name__, "StatEntry")
 

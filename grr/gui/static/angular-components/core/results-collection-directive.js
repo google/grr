@@ -3,7 +3,7 @@
 goog.provide('grrUi.core.resultsCollectionDirective.ResultsCollectionController');
 goog.provide('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
 
-goog.require('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
+goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 
 
 goog.scope(function() {
@@ -48,7 +48,7 @@ ResultsCollectionController.prototype.transformItems = function(items) {
   if (!angular.isDefined(this.resultsAreFiles)) {
     this.resultsAreFiles = false;
     for (var i = 0; i <= items.length > 0; i++) {
-      if (grrUi.core.fileDownloadUtils.getFileUrnFromValue(items[i]) != null) {
+      if (grrUi.core.fileDownloadUtils.getPathSpecFromValue(items[i]) != null) {
         this.resultsAreFiles = true;
         break;
       }

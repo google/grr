@@ -18,19 +18,15 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     """Ensure we can extract users from a passwd file."""
     paths = ["/Users/user1", "/Users/user2", "/Users/Shared"]
     statentries = []
-    client = "C.1000000000000000"
     for path in paths:
       statentries.append(
           rdf_client.StatEntry(
-              aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
               pathspec=rdf_paths.PathSpec(
                   path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
               st_mode=16877))
 
     statentries.append(
         rdf_client.StatEntry(
-            aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(
-                "/Users/.localized"),
             pathspec=rdf_paths.PathSpec(
                 path="/Users/.localized",
                 pathtype=rdf_paths.PathSpec.PathType.OS),
@@ -55,14 +51,12 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
 
   def testOSXLaunchdPlistParser(self):
     parser = osx_file_parser.OSXLaunchdPlistParser()
-    client = "C.1000000000000000"
     plists = ["com.google.code.grr.plist", "com.google.code.grr.bplist"]
     results = []
     for plist in plists:
       path = os.path.join(self.base_path, "parser_test", plist)
       plist_file = open(path, "rb")
       stat = rdf_client.StatEntry(
-          aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
           pathspec=rdf_paths.PathSpec(
               path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
           st_mode=16877)

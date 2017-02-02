@@ -27,10 +27,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
       reg_data = rdf_protodict.DataBlob().SetValue(value)
 
     return rdf_client.StatEntry(
-        aff4path=self.client_id.Add("registry").Add(path),
-        pathspec=pathspec,
-        registry_data=reg_data,
-        registry_type=registry_type)
+        pathspec=pathspec, registry_data=reg_data, registry_type=registry_type)
 
   def testGetServiceName(self):
     hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/services"
@@ -78,8 +75,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(result.name, "AcpiPmi")
         self.assertEqual(result.startup_type, 3)
         self.assertEqual(result.display_name, "[u'AcpiPmi']")
-        self.assertEqual(result.registry_key.Path(),
-                         "/C.1000000000000000/registry/%s/AcpiPmi" % hklm_set01)
+        self.assertEqual(result.registry_key, "%s/AcpiPmi" % hklm_set01)
         names.append(result.display_name)
       elif utils.SmartStr(result.registry_key).endswith("ACPI"):
         self.assertEqual(result.name, "ACPI")

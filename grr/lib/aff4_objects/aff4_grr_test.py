@@ -43,7 +43,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     super(AFF4GRRTest, self).setUp()
     MockChangeEvent.CHANGED_URNS = []
 
-  def testPathspecToURN(self):
+  def testAFF4Path(self):
     """Test the pathspec to URN conversion function."""
     pathspec = rdf_paths.PathSpec(
         path="\\\\.\\Volume{1234}\\",
@@ -51,7 +51,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         mount_point="/c:/").Append(
             path="/windows", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
+    urn = pathspec.AFF4Path(rdf_client.ClientURN("C.1234567812345678"))
     self.assertEqual(
         urn,
         rdfvalue.RDFURN(
@@ -68,7 +68,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
             ntfs_type=128,
             ntfs_id=2)
 
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
+    urn = pathspec.AFF4Path(rdf_client.ClientURN("C.1234567812345678"))
     self.assertEqual(urn,
                      rdfvalue.RDFURN(
                          r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"

@@ -80,7 +80,7 @@ class Interrogate(flow.GRRFlow):
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
     pathspec = rdf_paths.PathSpec(
         path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     with aff4.FACTORY.Create(
         urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
@@ -282,7 +282,7 @@ class Interrogate(flow.GRRFlow):
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+          urn = pathspec.AFF4Path(self.client_id)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
@@ -294,7 +294,7 @@ class Interrogate(flow.GRRFlow):
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+          urn = pathspec.AFF4Path(self.client_id)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
@@ -305,7 +305,7 @@ class Interrogate(flow.GRRFlow):
               path=response.mount_point,
               pathtype=rdf_paths.PathSpec.PathType.OS)
 
-          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+          urn = pathspec.AFF4Path(self.client_id)
           with aff4.FACTORY.Create(
               urn, standard.VFSDirectory, token=self.token) as fd:
             fd.Set(fd.Schema.PATHSPEC(pathspec))

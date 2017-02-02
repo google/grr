@@ -774,11 +774,8 @@ message StatFSRequest {
 
 // A stat() record for a given path
 message StatEntry {
-  // This contains the URN of the aff4 object represented by this protobuf.
-  optional string aff4path = 1[(sem_type) = {
-      type: "RDFURN",
-      description: "The location of this file in the AFF4 space."
-    }];
+  // DEPRECATED
+  // optional string aff4path = 1;
   optional uint64 st_mode = 2 [(sem_type) = {
       type: "StatMode",
       description: "A unix file permission mode."

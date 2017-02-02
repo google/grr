@@ -28,6 +28,7 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import users as aff4_users
 
+from grr.lib.flows.general import administrative
 from grr.lib.flows.general import export
 
 from grr.lib.hunts import implementation
@@ -382,11 +383,19 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     try:
-      aff4_crashes = aff4.FACTORY.Open(
-          args.hunt_id.ToURN().Add("crashes"),
-          mode="r",
-          aff4_type=collects.PackedVersionedCollection,
-          token=token)
+      try:
+        aff4_crashes = aff4.FACTORY.Open(
+            args.hunt_id.ToURN().Add("crashes"),
+            mode="r",
+            aff4_type=administrative.CrashesCollection,
+            token=token)
+      except aff4.InstantiationError:
+        # TODO(user): Get rid of PackedVersionedCollection.
+        aff4_crashes = aff4.FACTORY.Open(
+            args.hunt_id.ToURN().Add("crashes"),
+            mode="r",
+            aff4_type=collects.PackedVersionedCollection,
+            token=token)
 
       total_count = len(aff4_crashes)
       result = api_call_handler_utils.FilterCollection(aff4_crashes,
@@ -570,6 +579,7 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
           mode="r",
           token=token)
     except IOError:
+      # TODO(user): Remove support for RDFValueCollection.
       logs_collection = aff4.FACTORY.Create(
           args.hunt_id.ToURN().Add("Logs"),
           aff4_type=collects.RDFValueCollection,
@@ -873,7 +883,11 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
         after_timestamp=timestamp.AsMicroSecondsFromEpoch(),
         max_records=self.MAX_RECORDS_TO_CHECK):
       try:
-        aff4_path = export.CollectionItemToAff4Path(item)
+        # Do not pass the client id we got from the caller. This will
+        # get filled automatically from the hunt results and we check
+        # later that the aff4_path we get is the same as the one that
+        # was requested.
+        aff4_path = export.CollectionItemToAff4Path(item, client_id=None)
       except export.ItemNotExportableError:
         continue
 

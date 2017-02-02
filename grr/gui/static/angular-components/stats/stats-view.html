@@ -1,26 +1,3 @@
-<!-- TODO(user): Deprecated, remove the noncanary block after statistics
-                    are migrated. -->
-<grr-noncanary-only>
-
-<div ng-if="controller.loaded">
-  <div grr-splitter orientation="vertical" class="rightSplitterContainer">
-
-    <div grr-splitter-pane id="main_leftPane" class="leftPane">
-      <grr-legacy-renderer renderer="StatsTree"
-                           query-params="{t: controller.selection}" />
-    </div>
-
-    <div grr-splitter-pane id="main_rightPane" class="rightPane">
-      <grr-legacy-renderer renderer="ReportRenderer"
-                           query-params="{t: controller.selection}" />
-    </div>
-
-  </div>
-</div>
-
-</grr-noncanary-only>
-<grr-canary-only>
-
 <div grr-splitter orientation="vertical" class="rightSplitterContainer">
 
   <div grr-splitter-pane id="main_leftPane" class="leftPane">
@@ -36,5 +13,3 @@
   </div>
 
 </div>
-
-</grr-canary-only>

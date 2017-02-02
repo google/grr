@@ -79,6 +79,10 @@ REGISTRY.RegisterPlugin(
 
 # Server report plugins.
 
+REGISTRY.RegisterPlugin(server_report_plugins.ClientApprovalsReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.CronApprovalsReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.HuntActionsReportPlugin)
+REGISTRY.RegisterPlugin(server_report_plugins.HuntApprovalsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.MostActiveUsersReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.SystemFlowsReportPlugin)
 REGISTRY.RegisterPlugin(server_report_plugins.UserActivityReportPlugin)

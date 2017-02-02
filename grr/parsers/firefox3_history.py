@@ -34,7 +34,7 @@ class FirefoxHistoryParser(parsers.FileParser):
           domain=urlparse.urlparse(url).netloc,
           access_time=timestamp,
           program_name="Firefox",
-          source_urn=stat.aff4path,
+          source_urn=file_object.urn,
           title=title)
 
 

@@ -4,9 +4,7 @@
 
 import importlib
 import os
-import pdb
 import string
-import time
 
 
 from django import http
@@ -17,76 +15,37 @@ import psutil
 import logging
 
 from grr.gui import http_api
-from grr.gui import renderers
 from grr.gui import urls
 from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
-from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import users as aff4_users
-
-from grr.lib.authorization import auth_manager
-
-LEGACY_RENDERERS_AUTH_MANAGER = None
 
 
 class ViewsInit(registry.InitHook):
 
   def RunOnce(self):
     """Run this once on init."""
-    # Renderer-aware metrics
-    stats.STATS.RegisterEventMetric(
-        "ui_renderer_latency", fields=[("renderer", str)])
-    stats.STATS.RegisterEventMetric(
-        "ui_renderer_response_size",
-        fields=[("renderer", str)],
-        units=stats.MetricUnits.BYTES)
-    stats.STATS.RegisterCounterMetric(
-        "ui_renderer_failure", fields=[("renderer", str)])
-
     # General metrics
-    stats.STATS.RegisterCounterMetric("ui_unknown_renderer")
     stats.STATS.RegisterCounterMetric("http_access_denied")
     stats.STATS.RegisterCounterMetric("http_server_error")
-
-    global LEGACY_RENDERERS_AUTH_MANAGER
-    legacy_renderers_groups = config_lib.CONFIG[
-        "AdminUI.legacy_renderers_allowed_groups"]
-    if legacy_renderers_groups:
-      LEGACY_RENDERERS_AUTH_MANAGER = auth_manager.AuthorizationManager()
-      for group in legacy_renderers_groups:
-        LEGACY_RENDERERS_AUTH_MANAGER.AuthorizeGroup(group, "legacy_renderers")
 
 
 @webauth.SecurityCheck
 @csrf.ensure_csrf_cookie  # Set the csrf cookie on the homepage.
 def Homepage(request):
   """Basic handler to render the index page."""
-  # DEPRECATED: renderers are now legacy, so just hardcoding the list
-  # of JS files here (it's not going to expand).
-  #
-  # We build a list of all js files to include by looking at the list
-  # of renderers modules. JS files are always named in accordance with
-  # renderers modules names. I.e. if there's a renderers package called
-  # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
-  renderers_js_files = set([
-      "statistics.js",
-      "usage.js"
-  ])  # pyformat: disable
-
   create_time = psutil.Process(os.getpid()).create_time()
   context = {
       "heading": config_lib.CONFIG["AdminUI.heading"],
       "report_url": config_lib.CONFIG["AdminUI.report_url"],
       "help_url": config_lib.CONFIG["AdminUI.help_url"],
       "use_precompiled_js": config_lib.CONFIG["AdminUI.use_precompiled_js"],
-      "renderers_js": renderers_js_files,
       "timestamp": create_time
   }
   response = shortcuts.render_to_response(
@@ -111,117 +70,9 @@ def Homepage(request):
 
 
 @webauth.SecurityCheck
-def RenderBinaryDownload(request):
-  """Basic handler to allow downloads of aff4:/config/executables files."""
-  if (LEGACY_RENDERERS_AUTH_MANAGER and
-      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(request.user,
-                                                         "legacy_renderers")):
-    return AccessDenied("User is not allowed to use legacy renderers.")
-
-  path, filename = request.path.split("/", 2)[-1].rsplit("/", 1)
-  if not path or not filename:
-    return AccessDenied("Error: Invalid path.")
-  request.REQ = request.REQUEST
-
-  def Generator():
-    with aff4.FACTORY.Open(
-        aff4_path,
-        aff4_type=aff4_collects.GRRSignedBlob,
-        token=BuildToken(request, 60)) as fd:
-      while True:
-        data = fd.Read(1000000)
-        if not data:
-          break
-        yield data
-
-  base_path = rdfvalue.RDFURN("aff4:/config/executables")
-  aff4_path = base_path.Add(path).Add(filename)
-  if not aff4_path.RelativeName(base_path):
-    # Check for path traversals.
-    return AccessDenied("Error: Invalid path.")
-  filename = aff4_path.Basename()
-  response = http.StreamingHttpResponse(
-      streaming_content=Generator(), content_type="binary/octet-stream")
-  response["Content-Disposition"] = ("attachment; filename=%s" % filename)
-  return response
-
-
-@webauth.SecurityCheck
-@renderers.ErrorHandler()
 def RenderApi(request):
   """Handler for the /api/ requests."""
   return http_api.RenderHttpResponse(request)
-
-
-@webauth.SecurityCheck
-@renderers.ErrorHandler()
-def RenderGenericRenderer(request):
-  """Django handler for rendering registered GUI Elements."""
-  if (LEGACY_RENDERERS_AUTH_MANAGER and
-      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(request.user,
-                                                         "legacy_renderers")):
-    return AccessDenied("User is not allowed to use legacy renderers.")
-
-  try:
-    action, renderer_name = request.path.split("/")[-2:]
-
-    renderer_cls = renderers.Renderer.GetPlugin(name=renderer_name)
-  except KeyError:
-    stats.STATS.IncrementCounter("ui_unknown_renderer")
-    return AccessDenied("Error: Renderer %s not found" % renderer_name)
-
-  # Check that the action is valid
-  ["Layout", "RenderAjax", "Download", "Validate"].index(action)
-  renderer = renderer_cls()
-  result = http.HttpResponse(content_type="text/html")
-
-  # Pass the request only from POST parameters. It is much more convenient to
-  # deal with normal dicts than Django's Query objects so we convert here.
-  if flags.FLAGS.debug:
-    # Allow both POST and GET for debugging
-    request.REQ = request.POST.dict()
-    request.REQ.update(request.GET.dict())
-  else:
-    # Only POST in production for CSRF protections.
-    request.REQ = request.POST.dict()
-
-  # Build the security token for this request
-  request.token = BuildToken(request, renderer.max_execution_time)
-
-  request.canary_mode = "canary_mode" in request.COOKIES
-
-  # Allow the renderer to check its own ACLs.
-  renderer.CheckAccess(request)
-
-  try:
-    # Does this renderer support this action?
-    method = getattr(renderer, action)
-
-    start_time = time.time()
-    try:
-      result = method(request, result) or result
-    finally:
-      total_time = time.time() - start_time
-      stats.STATS.RecordEvent(
-          "ui_renderer_latency", total_time, fields=[renderer_name])
-
-  except access_control.UnauthorizedAccess, e:
-    result = http.HttpResponse(content_type="text/html")
-    result = renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
-        request, result, exception=e)
-
-  except Exception:
-    stats.STATS.IncrementCounter("ui_renderer_failure", fields=[renderer_name])
-
-    if flags.FLAGS.debug:
-      pdb.post_mortem()
-
-    raise
-
-  if not isinstance(result, (http.HttpResponse, http.StreamingHttpResponse)):
-    raise RuntimeError("Renderer returned invalid response %r" % result)
-
-  return result
 
 
 def RedirectToRemoteHelp(path):

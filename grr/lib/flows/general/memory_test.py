@@ -288,16 +288,18 @@ class ListVADBinariesTest(MemoryTest):
         session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Sorting output collection to make the test deterministic
-    binaries = sorted(fd, key=lambda x: x.aff4path)
+    binaries = sorted(fd, key=lambda x: x.pathspec.path)
 
     self.assertEqual(len(binaries), 2)
 
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     self.assertEqual(binaries[1].pathspec.CollapsePath(), "/C:/WINDOWS/foo.exe")
 
-    fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
+    fd = aff4.FACTORY.Open(
+        binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
-    fd = aff4.FACTORY.Open(binaries[1].aff4path, token=self.token)
+    fd = aff4.FACTORY.Open(
+        binaries[1].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "this is foo")
 
   def testDoesNotFetchDuplicates(self):
@@ -318,7 +320,8 @@ class ListVADBinariesTest(MemoryTest):
 
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
-    fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
+    fd = aff4.FACTORY.Open(
+        binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
   def testConditionsOutBinariesUsingRegex(self):
@@ -342,7 +345,8 @@ class ListVADBinariesTest(MemoryTest):
 
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
-    fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
+    fd = aff4.FACTORY.Open(
+        binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
   def testIgnoresMissingFiles(self):
@@ -365,7 +369,8 @@ class ListVADBinariesTest(MemoryTest):
 
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
-    fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
+    fd = aff4.FACTORY.Open(
+        binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
 

@@ -62,13 +62,12 @@ class TestFindWindowsRegistry(base.ClientTestBase):
     urn = self.client_id.Add("registry").Add(self.reg_path)
     fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
 
-    user_accounts = sorted([
-        x.urn for x in fd.OpenChildren() if x.urn.Basename().startswith("S-")
-    ])
+    user_accounts = sorted(
+        [x.urn for x in fd.OpenChildren() if x.urn.Basename().startswith("S-")])
 
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, token=self.token)
-    hits = sorted([x.aff4path for x in fd])
+    hits = sorted([x.pathspec.AFF4Path(self.client_id) for x in fd])
 
     self.assertGreater(len(hits), 1)
     self.assertEqual(len(hits), len(user_accounts))
@@ -94,9 +93,9 @@ class TestClientRegistry(base.AutomatedTest):
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
     children = list(fd.OpenChildren())
-    self.assertTrue("SYSTEM" in [
-        os.path.basename(utils.SmartUnicode(child.urn)) for child in children
-    ])
+    self.assertTrue(
+        "SYSTEM" in
+        [os.path.basename(utils.SmartUnicode(child.urn)) for child in children])
 
   def tearDown(self):
     urn = self.client_id.Add(self.output_path)

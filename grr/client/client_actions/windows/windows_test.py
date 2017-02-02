@@ -349,7 +349,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     self.assertEqual(len(results), 2)
     for result in results:
       st = result.stat_entry
-      path = utils.SmartStr(st.aff4path)
+      path = utils.SmartStr(st.pathspec.path)
       if "Value1" in path:
         self.assertEqual(st.st_mtime, 110)
       elif "Value2" in path:
@@ -431,10 +431,9 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
          (r"HKEY_LOCAL_MACHINE\SOFTWARE\ListingTest", [],
           [r"Value1", r"Value2"]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft",
                                     [r"Windows", r"Windows NT"], []),
-         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows",
-          [r"CurrentVersion"], []),
-         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion", [],
-          [r"ProgramFilesDir", r"ProgramFilesDir (x86)"]),
+         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows", [r"CurrentVersion"],
+          []), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion",
+                [], [r"ProgramFilesDir", r"ProgramFilesDir (x86)"]),
          (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT",
           [r"CurrentVersion"], []),
          (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
@@ -454,10 +453,9 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
          (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001", [r"Control"], []),
          (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control",
           [r"Nls", r"Session Manager", r"TimeZoneInformation"], []),
-         (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls",
-          [r"CodePage"], []),
-         (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls\CodePage", [],
-          [r"ACP"]),
+         (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls", [r"CodePage"],
+          []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls\CodePage",
+                [], [r"ACP"]),
          (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager",
           [r"Environment"], []),
          (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager"

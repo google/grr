@@ -55,13 +55,16 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   def tearDownClass(cls):
     cls.httpd.shutdown()
 
+  def setUp(self):
+    super(GRRHTTPServerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
   def testServerPem(self):
     req = requests.get(self.base_url + "server.pem")
     self.assertEqual(req.status_code, 200)
     self.assertTrue("BEGIN CERTIFICATE" in req.content)
 
   def _UploadFile(self, args):
-    self.client_id = self.SetupClients(1)[0]
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
           ca_cert=config_lib.CONFIG["CA.certificate"],
@@ -205,14 +208,14 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertListEqual(relpaths, [
+    self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist"
     ])
 
     for r in results:
-      self.assertTrue(r.stat_entry.aff4path)
-      aff4_obj = aff4.FACTORY.Open(r.stat_entry.aff4path, token=self.token)
+      aff4_obj = aff4.FACTORY.Open(
+          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       data = open(r.stat_entry.pathspec.path, "rb").read()
       self.assertEqual(aff4_obj.Read(100), data[:100])
 
@@ -248,14 +251,14 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertListEqual(relpaths, [
+    self.assertItemsEqual(relpaths, [
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist"
     ])
 
     for r in results:
-      self.assertTrue(r.stat_entry.aff4path)
-      aff4_obj = aff4.FACTORY.Open(r.stat_entry.aff4path, token=self.token)
+      aff4_obj = aff4.FACTORY.Open(
+          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       data = aff4_obj.Read(1000000)
       self.assertLessEqual(len(data), 300)
       self.assertEqual(data,
@@ -278,11 +281,11 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
         for p in results
     ]
-    self.assertListEqual(relpaths, ["History.plist", "test.plist"])
+    self.assertItemsEqual(relpaths, ["History.plist", "test.plist"])
 
     for r in results:
-      self.assertTrue(r.stat_entry.aff4path)
-      aff4_obj = aff4.FACTORY.Open(r.stat_entry.aff4path, token=self.token)
+      aff4_obj = aff4.FACTORY.Open(
+          r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       self.assertEqual(
           aff4_obj.Read(100), open(r.stat_entry.pathspec.path, "rb").read(100))
 
@@ -292,29 +295,31 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     action = rdf_file_finder.FileFinderAction(action_type=action_type)
 
     client_ids = self.SetupClients(2)
-    session_ids = [
-        self._RunClientFileFinder(
-            paths, action, client_id=c) for c in client_ids
-    ]
-    collections = [
-        aff4.FACTORY.Open(
+    session_ids = {
+        c: self._RunClientFileFinder(
+            paths, action, client_id=c)
+        for c in client_ids
+    }
+    collections = {
+        c: aff4.FACTORY.Open(
             session_id.Add("Results"), token=self.token)
-        for session_id in session_ids
-    ]
-    for collection in collections:
+        for c, session_id in session_ids.iteritems()
+    }
+    for client_id, collection in collections.iteritems():
       results = list(collection)
       self.assertEqual(len(results), 4)
       relpaths = [
           os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
           for p in results
       ]
-      self.assertListEqual(relpaths, [
+      self.assertItemsEqual(relpaths, [
           "History.plist", "History.xml.plist", "test.plist",
           "parser_test/com.google.code.grr.plist"
       ])
 
       for r in results:
-        aff4_obj = aff4.FACTORY.Open(r.stat_entry.aff4path, token=self.token)
+        aff4_obj = aff4.FACTORY.Open(
+            r.stat_entry.pathspec.AFF4Path(client_id), token=self.token)
 
         # When files are uploaded to the server directly, we should get a
         # FileStoreAFF4Object.

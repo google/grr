@@ -28,15 +28,15 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(CollectionArchiveGeneratorTest, self).setUp()
-
-    path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
+    self.client_id = rdf_client.ClientURN("aff4:/C.0000000000000000")
+    path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
     with aff4.FACTORY.Create(
         path1, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello1")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
-    path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+    path2 = self.client_id.Add(u"fs/os/foo/bar/中国新闻网新闻中.txt")
     with aff4.FACTORY.Create(
         path2, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello2")
@@ -47,11 +47,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.paths = [path1, path2]
     for path in self.paths:
       self.stat_entries.append(
-          rdf_client.StatEntry(
-              aff4path=path,
-              pathspec=rdf_paths.PathSpec(
-                  path="fs/os/foo/bar/" + path.split("/")[-1],
-                  pathtype=rdf_paths.PathSpec.PathType.OS)))
+          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+              path="foo/bar/" + str(path).split("/")[-1],
+              pathtype=rdf_paths.PathSpec.PathType.OS)))
 
     self.fd = None
 
@@ -62,12 +60,12 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       predicate=None):
 
     self.fd_path = os.path.join(self.temp_dir, "archive")
-
     archive_generator = api_call_handler_utils.CollectionArchiveGenerator(
         archive_format=archive_format,
         predicate=predicate,
         prefix="test_prefix",
-        description="Test description")
+        description="Test description",
+        client_id=self.client_id)
     with open(self.fd_path, "wb") as out_fd:
       for chunk in archive_generator.Generate(collection, token=self.token):
         out_fd.write(chunk)

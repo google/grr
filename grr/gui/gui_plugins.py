@@ -16,7 +16,5 @@ from grr.gui import api_labels_restricted_call_router
 
 from grr.gui import api_plugins
 from grr.gui import local
-from grr.gui import plugins
-from grr.gui import renderers
 from grr.gui import urls
 from grr.gui import views

@@ -4491,7 +4491,6 @@
           {
             "payload": {
               "@type": "type.googleapis.com/StatEntry",
-              "aff4path": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt",
               "pathspec": {
                 "path": "/tmp/evil.txt",
                 "pathtype": "OS"

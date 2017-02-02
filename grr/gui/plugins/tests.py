@@ -30,7 +30,6 @@ from grr.gui.plugins import report_test
 from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import server_load_view_test
 from grr.gui.plugins import settings_view_test
-from grr.gui.plugins import statistics_test
 from grr.gui.plugins import timeline_test
 from grr.gui.plugins import userdashboard_test
 from grr.gui.plugins import vfsview_test

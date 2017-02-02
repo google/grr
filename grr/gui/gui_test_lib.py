@@ -31,7 +31,6 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
@@ -333,14 +332,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
     element = self.GetElement(target)
     return element and element.is_displayed()
 
-  def FileWasDownloaded(self):
-    new_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
-
-    result = (new_count - self.prev_download_count) > 0
-    self.prev_download_count = new_count
-    return result
-
   def GetText(self, target):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return element.text.strip()
@@ -488,9 +479,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
 
-    self.prev_download_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
-
     self.token.username = "gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
@@ -623,7 +611,9 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
           token=self.token) as collection:
 
         for value in values:
-          collection.Add(rdf_flows.GrrMessage(payload=value))
+          collection.Add(
+              rdf_flows.GrrMessage(
+                  payload=value, source=self.client_ids[0]))
 
       return hunt.urn
 
@@ -700,7 +690,9 @@ class FlowWithOneStatEntryResult(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.SendReply(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
+    self.SendReply(
+        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+            path="/some/unique/path", pathtype=rdf_paths.PathSpec.PathType.OS)))
 
 
 class FlowWithOneNetworkConnectionResult(flow.GRRFlow):

@@ -102,11 +102,17 @@ var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
  *     descriptors.
  * @param {Object=} opt_visibleFields If provided, only shows fields with names
  *     from this list.
+ * @param {Object=} opt_hiddenFields If provided, doesn't show fields with names
+ *     from this list.
  * @return {Array.<Object>} List of items to display.
  * @export
  */
 grrUi.semantic.semanticProtoDirective.buildItems = function(
-    value, descriptor, opt_visibleFields) {
+    value, descriptor, opt_visibleFields, opt_hiddenFields) {
+  if (angular.isUndefined(descriptor['fields'])) {
+    return [];
+  }
+
   var items = [];
 
   var fieldsLength = descriptor['fields'].length;
@@ -116,6 +122,10 @@ grrUi.semantic.semanticProtoDirective.buildItems = function(
     var keyValue = value.value[key];
 
     if (opt_visibleFields && opt_visibleFields.indexOf(key) == -1) {
+      continue;
+    }
+
+    if (opt_hiddenFields && opt_hiddenFields.indexOf(key) != -1) {
       continue;
     }
 
@@ -175,7 +185,8 @@ SemanticProtoController.prototype.onValueChange = function() {
           } else {
             this.items = buildItems(this.scope_['value'],
                                     descriptor,
-                                    this.scope_['visibleFields']);
+                                    this.scope_['visibleFields'],
+                                    this.scope_['hiddenFields']);
           }
         }.bind(this)); // TODO(user): Reflection failure scenario should be
                        // handled globally by reflection service.
@@ -195,7 +206,8 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
   return {
     scope: {
       value: '=',
-      visibleFields: '='
+      visibleFields: '=',
+      hiddenFields: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/semantic-proto.html',

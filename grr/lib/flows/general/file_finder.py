@@ -13,7 +13,6 @@ from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import transfer
@@ -112,9 +111,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
             path=utils.SmartUnicode(path),
             pathtype=rdf_paths.PathSpec.PathType.MEMORY)
 
-        aff4path = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
-
-        stat_entry = rdf_client.StatEntry(aff4path=aff4path, pathspec=pathspec)
+        stat_entry = rdf_client.StatEntry(pathspec=pathspec)
         self.ApplyCondition(
             rdf_file_finder.FileFinderResult(stat_entry=stat_entry),
             condition_index=0)
@@ -393,12 +390,10 @@ class ClientFileFinder(flow.GRRFlow):
   def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
     upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
         "Frontend.upload_store"])()
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(uploaded_file.stat_entry.pathspec,
-                                              self.client_id)
+    urn = uploaded_file.stat_entry.pathspec.AFF4Path(self.client_id)
 
     with upload_store.Aff4ObjectForFileId(
         urn, uploaded_file.file_id, token=self.token) as fd:
-      uploaded_file.stat_entry.aff4path = urn
       fd.Set(fd.Schema.STAT, uploaded_file.stat_entry)
       fd.Set(fd.Schema.SIZE(uploaded_file.bytes_uploaded))
       fd.Set(fd.Schema.HASH(uploaded_file.hash))
@@ -426,7 +421,7 @@ class ClientFileFinder(flow.GRRFlow):
       # capacity.
       self.Publish(
           "FileStore.AddFileToStore",
-          response.stat_entry.aff4path,
+          response.stat_entry.pathspec.AFF4Path(self.client_id),
           priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
   @flow.StateHandler()

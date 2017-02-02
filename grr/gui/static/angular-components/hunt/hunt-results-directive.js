@@ -4,8 +4,10 @@ goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsController');
 goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 
 goog.require('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
-goog.require('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
+goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 goog.require('grrUi.core.fileDownloadUtils.makeValueDownloadable');
+goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');
+goog.require('grrUi.core.utils.stripAff4Prefix');
 
 goog.scope(function() {
 
@@ -68,7 +70,8 @@ HuntResultsController.prototype.onHuntUrnChange = function(huntUrn) {
 
 /**
  * Transforms hunt results so that if they're pointing to files, corresponding
- * RDFURNs will be changed to __DownloadableUrn with a proper url set.
+ * StatEntry items will be changed to __DownloadableStatEntry with a proper url
+ * set.
  *
  * @param {Array<Object>} items
  * @return {Array<Object>}
@@ -78,30 +81,29 @@ HuntResultsController.prototype.transformItems = function(items) {
   var components = this.scope_['huntUrn'].split('/');
   var huntId = components[components.length - 1];
   var urlPrefix = '/hunts/' + huntId + '/results/clients';
-  var aff4Prefix = 'aff4:/';
 
   var newItems = items.map(function(item) {
-    var aff4Path = grrUi.core.fileDownloadUtils.getFileUrnFromValue(item);
-    if (!aff4Path) {
+    var pathSpec = grrUi.core.fileDownloadUtils.getPathSpecFromValue(item);
+    if (!pathSpec) {
       return item;
     }
 
-    if (aff4Path.toLowerCase().indexOf(aff4Prefix) == 0) {
-      aff4Path = aff4Path.substr(aff4Prefix.length);
-    }
+    var clientId = item['value']['client_id']['value'];
+    var aff4Path = grrUi.core.utils.stripAff4Prefix(
+        grrUi.core.fileDownloadUtils.pathSpecToAff4Path(pathSpec, clientId));
+
     var components = aff4Path.split('/');
-    var clientId = components[0];
     var vfsPath = components.slice(1).join('/');
 
     var downloadableVfsRoots =
         grrUi.core.fileDownloadUtils.downloadableVfsRoots;
 
-    var legitmiatePath = downloadableVfsRoots.some(function(vfsRoot) {
+    var legitimatePath = downloadableVfsRoots.some(function(vfsRoot) {
       var prefix = vfsRoot + '/';
       return vfsPath.startsWith(prefix);
     }.bind(this));
 
-    if (!legitmiatePath) {
+    if (!legitimatePath) {
       return item;
     }
 

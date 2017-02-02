@@ -47,7 +47,7 @@ class IEHistoryParser(parsers.FileParser):
           domain=urlparse.urlparse(dat["url"]).netloc,
           access_time=dat.get("mtime"),
           program_name="Internet Explorer",
-          source_urn=stat.aff4path)
+          source_urn=file_object.urn)
 
 
 class IEParser(object):

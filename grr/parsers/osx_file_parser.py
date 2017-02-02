@@ -69,7 +69,10 @@ class OSXLaunchdPlistParser(parsers.FileParser):
     """Parse the Plist file."""
     _ = knowledge_base
     kwargs = {}
-    kwargs["aff4path"] = statentry.aff4path
+    try:
+      kwargs["aff4path"] = file_object.urn
+    except AttributeError:
+      pass
 
     direct_copy_items = [
         "Label", "Disabled", "UserName", "GroupName", "Program",

@@ -3,9 +3,10 @@
 
 from grr.client.components.chipsec_support.actions import chipsec_types
 
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 
 
-class ACPITableDataCollection(collects.RDFValueCollection):
+class ACPITableDataCollection(
+    sequential_collection.IndexedSequentialCollection):
   """A collection of ACPI table data."""
-  _rdf_type = chipsec_types.ACPITableData
+  RDF_TYPE = chipsec_types.ACPITableData

@@ -23,6 +23,7 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore_test_lib
 from grr.lib.flows.cron import filestore_stats
 from grr.lib.flows.cron import system as cron_system
+from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -71,6 +72,10 @@ def AddFakeAuditLog(description=None,
 
 
 class ReportUtilsTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(ReportUtilsTest, self).setUp()
+    audit.AuditEventListener.created_logs.clear()
 
   def testGetAuditLogFiles(self):
     AddFakeAuditLog("Fake audit description foo.", token=self.token)
@@ -453,6 +458,390 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
 
 
 class ServerReportPluginsTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(ServerReportPluginsTest, self).setUp()
+    audit.AuditEventListener.created_logs.clear()
+
+  def testClientApprovalsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+          user="User123",
+          description="Approval request description.",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
+      for i in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST,
+            user="User%d" % i,
+            description="Approval request.",
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+          user="User456",
+          description="Grant.",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.ClientApprovalsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART)
+
+    self.assertEqual(api_report_data.audit_chart.used_fields,
+                     ["action", "client", "description", "timestamp", "user"])
+
+    self.assertEqual([(row.action, row.client, row.description, row.user)
+                      for row in api_report_data.audit_chart.rows],
+                     [(events.AuditEvent.Action.CLIENT_APPROVAL_GRANT, None,
+                       "Grant.", "User456"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User9"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User8"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User7"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User6"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User5"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User4"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User3"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User2"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User1"),
+                      (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
+                       "Approval request.", "User0")])
+
+  def testClientApprovalsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.ClientApprovalsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "client", "description", "timestamp", "user"
+                ],
+                rows=[])))
+
+  def testHuntActionsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.HUNT_CREATED,
+          user="User123",
+          flow_name="Flow123",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
+      for i in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.HUNT_MODIFIED,
+            user="User%d" % i,
+            flow_name="Flow%d" % i,
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.HUNT_PAUSED,
+          user="User456",
+          flow_name="Flow456",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.HuntActionsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART)
+
+    self.assertEqual(
+        api_report_data.audit_chart.used_fields,
+        ["action", "description", "flow_name", "timestamp", "urn", "user"])
+
+    self.assertEqual([(row.action, row.description, row.flow_name,
+                       row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
+                      for row in api_report_data.audit_chart.rows],
+                     [(events.AuditEvent.Action.HUNT_PAUSED, "", "Flow456",
+                       "2012/12/22", None, "User456"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow9",
+                       "2012/12/22", None, "User9"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow8",
+                       "2012/12/22", None, "User8"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow7",
+                       "2012/12/22", None, "User7"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow6",
+                       "2012/12/22", None, "User6"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow5",
+                       "2012/12/22", None, "User5"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow4",
+                       "2012/12/22", None, "User4"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow3",
+                       "2012/12/22", None, "User3"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow2",
+                       "2012/12/22", None, "User2"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow1",
+                       "2012/12/22", None, "User1"),
+                      (events.AuditEvent.Action.HUNT_MODIFIED, "",
+                       "Flow0", "2012/12/22", None, "User0")])
+
+  def testHuntActionsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.HuntActionsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "flow_name", "timestamp", "urn",
+                    "user"
+                ],
+                rows=[])))
+
+  def testHuntApprovalsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+          user="User123",
+          description="Approval grant description.",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
+      for i in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+            user="User%d" % i,
+            description="Approval request.",
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+          user="User456",
+          description="Another grant.",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.HuntApprovalsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART)
+
+    self.assertEqual(api_report_data.audit_chart.used_fields,
+                     ["action", "description", "timestamp", "urn", "user"])
+    self.assertEqual([(row.action, row.description,
+                       row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
+                      for row in api_report_data.audit_chart.rows],
+                     [(events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+                       "Another grant.", "2012/12/22", None, "User456"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User9"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User8"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User7"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User6"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User5"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User4"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User3"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User2"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User1"),
+                      (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User0")])
+
+  def testHuntApprovalsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.HuntApprovalsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "timestamp", "urn", "user"
+                ],
+                rows=[])))
+
+  def testCronApprovalsReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+          user="User123",
+          description="Approval grant description.",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
+      for i in xrange(10):
+        AddFakeAuditLog(
+            action=events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+            user="User%d" % i,
+            description="Approval request.",
+            token=self.token)
+
+      AddFakeAuditLog(
+          action=events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+          user="User456",
+          description="Another grant.",
+          token=self.token)
+
+    report = report_plugins.GetReportByName(
+        server_report_plugins.CronApprovalsReportPlugin.__name__)
+
+    start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=start,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART)
+
+    self.assertEqual(api_report_data.audit_chart.used_fields,
+                     ["action", "description", "timestamp", "urn", "user"])
+
+    self.assertEqual([(row.action, row.description,
+                       row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
+                      for row in api_report_data.audit_chart.rows],
+                     [(events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+                       "Another grant.", "2012/12/22", None, "User456"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User9"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User8"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User7"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User6"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User5"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User4"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User3"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User2"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User1"),
+                      (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
+                       "Approval request.", "2012/12/22", None, "User0")])
+
+  def testCronApprovalsReportPluginWithNoActivityToReport(self):
+    report = report_plugins.GetReportByName(
+        server_report_plugins.CronApprovalsReportPlugin.__name__)
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.AUDIT_CHART,
+            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                used_fields=[
+                    "action", "description", "timestamp", "urn", "user"
+                ],
+                rows=[])))
 
   def testMostActiveUsersReportPlugin(self):
     with test_lib.FakeTime(

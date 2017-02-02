@@ -2,6 +2,7 @@
 from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
+from grr.lib import aff4
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -42,12 +43,8 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
             "User456",
             token=self.token)
 
-      canary_mode_overrider = gui_test_lib.CanaryModeOverrider(self.token)
-
       # Make "test" user an admin.
       self.CreateAdminUser("test")
-
-      canary_mode_overrider.Start()
 
     self.Open("/#/stats/")
 
@@ -63,6 +60,59 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "User456")
     self.WaitUntil(self.IsTextPresent, "100%")
     self.assertFalse(self.IsTextPresent("User123"))
+
+  def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
+    with self.ACLChecksDisabled():
+      client_id, = self.SetupClients(1)
+
+      with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
+        client.AddLabels("bar", owner="owner")
+
+    self.Open("/#/stats/")
+
+    # Go to reports.
+    self.Click("css=#MostActiveUsersReportPlugin_anchor i.jstree-icon")
+    self.WaitUntil(self.IsTextPresent, "Server | User Breakdown")
+
+    # Default values aren't shown in the url.
+    self.WaitUntilNot(lambda: "start_time" in self.GetCurrentUrlPath())
+    self.assertFalse("duration" in self.GetCurrentUrlPath())
+
+    # Enter a timerange.
+    self.Type("css=grr-form-datetime input", "2012-12-21 12:34")
+    self.Click("css=button:contains('Show report')")
+
+    # Reports that require timeranges include them in the url after
+    # `Show report' has been clicked.
+    self.WaitUntil(lambda: "start_time" in self.GetCurrentUrlPath())
+    self.assertTrue("duration" in self.GetCurrentUrlPath())
+
+    # Select a different report.
+    self.Click("css=#LastActiveReportPlugin_anchor i.jstree-icon")
+    self.WaitUntil(self.IsTextPresent, "Client | Last Active")
+
+    # The default label isn't included in the url.
+    self.WaitUntilNot(lambda: "bar" in self.GetCurrentUrlPath())
+
+    # Select a client label.
+    self.Select("css=grr-report select", "bar")
+    self.Click("css=button:contains('Show report')")
+
+    # Reports that require labels include them in the url after `Show report'
+    # has been clicked.
+    self.WaitUntil(lambda: "bar" in self.GetCurrentUrlPath())
+    # Reports that dont require timeranges don't mention them in the url.
+    self.assertFalse("start_time" in self.GetCurrentUrlPath())
+    self.assertFalse("duration" in self.GetCurrentUrlPath())
+
+    # Select a different report.
+    self.Click("css=#GRRVersion7ReportPlugin_anchor i.jstree-icon")
+    self.WaitUntil(self.IsTextPresent, "Active Clients - 7 Days Active")
+
+    # The label is cleared when report type is changed.
+    self.WaitUntilNot(lambda: "bar" in self.GetCurrentUrlPath())
+    self.assertFalse("start_time" in self.GetCurrentUrlPath())
+    self.assertFalse("duration" in self.GetCurrentUrlPath())
 
 
 def main(argv):

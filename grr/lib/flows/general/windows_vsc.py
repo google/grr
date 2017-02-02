@@ -4,7 +4,6 @@ from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import server_stubs
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -53,11 +52,10 @@ class ListVolumeShadowCopies(flow.GRRFlow):
             pathspec=path_spec,
             next_state="ProcessListDirectory")
 
-        self.state.raw_device = aff4_grr.VFSGRRClient.PathspecToURN(
-            path_spec, self.client_id).Dirname()
+        aff4path = path_spec.AFF4Path(self.client_id)
+        self.state.raw_device = aff4path.Dirname()
 
-        self.state.shadows.append(
-            aff4_grr.VFSGRRClient.PathspecToURN(path_spec, self.client_id))
+        self.state.shadows.append(aff4path)
 
   @flow.StateHandler()
   def ProcessListDirectory(self, responses):

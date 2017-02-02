@@ -138,10 +138,8 @@ class GetFile(flow.GRRFlow):
       if response.offset + response.length >= self.state.file_size:
         # File is complete.
         stat_entry = self.state.stat_entry
-        urn = aff4_grr.VFSGRRClient.PathspecToURN(
-            self.state.stat_entry.pathspec, self.client_id)
+        urn = self.state.stat_entry.AFF4Path(self.client_id)
 
-        stat_entry.aff4path = urn
         with aff4.FACTORY.Create(
             urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
           fd.SetChunksize(self.CHUNK_SIZE)
@@ -163,7 +161,8 @@ class GetFile(flow.GRRFlow):
       self.Notify("ViewObject", self.urn, "File transfer failed.")
     else:
       stat_entry = self.state.stat_entry
-      self.Notify("ViewObject", stat_entry.aff4path,
+      self.Notify("ViewObject",
+                  stat_entry.AFF4Path(self.client_id),
                   "File transferred successfully.")
 
   @flow.StateHandler()
@@ -173,7 +172,8 @@ class GetFile(flow.GRRFlow):
       self.Log("File transfer failed.")
     else:
       stat_entry = self.state.stat_entry
-      self.Log("File %s transferred successfully.", stat_entry.aff4path)
+      self.Log("File %s transferred successfully.",
+               stat_entry.AFF4Path(self.client_id))
 
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_entry)
@@ -487,18 +487,16 @@ class MultiGetFileMixin(object):
       for file_tracker in hash_to_tracker.get(hash_obj.sha256, []):
         stat_entry = file_tracker["stat_entry"]
         # Copy the existing file from the filestore to the client namespace.
-        stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
-            stat_entry.pathspec, self.client_id)
+        target_urn = stat_entry.pathspec.AFF4Path(self.client_id)
 
         aff4.FACTORY.Copy(
             filestore_file_urn,
-            stat_entry.aff4path,
+            target_urn,
             update_timestamps=True,
             token=self.token)
 
-        # Update the stat_entry.aff4path of the new object.
         with aff4.FACTORY.Open(
-            stat_entry.aff4path, mode="rw", token=self.token) as new_fd:
+            target_urn, mode="rw", token=self.token) as new_fd:
           new_fd.Set(new_fd.Schema.STAT, stat_entry)
           # Due to potential filestore corruption, the existing files
           # can have 0 size.
@@ -506,7 +504,7 @@ class MultiGetFileMixin(object):
             new_fd.size = (file_tracker["bytes_read"] or stat_entry.st_size)
 
         # Add this file to the filestore index.
-        filestore_obj.AddURNToIndex(str(hash_obj.sha256), stat_entry.aff4path)
+        filestore_obj.AddURNToIndex(str(hash_obj.sha256), target_urn)
 
         # Report this hit to the flow's caller.
         self._ReceiveFetchedFile(file_tracker)
@@ -568,8 +566,7 @@ class MultiGetFileMixin(object):
 
     hash_response = responses.First()
     if not responses.success or not hash_response:
-      urn = aff4_grr.VFSGRRClient.PathspecToURN(
-          file_tracker["stat_entry"].pathspec, self.client_id)
+      urn = file_tracker["stat_entry"].pathspec.AFF4Path(self.client_id)
       self.Log("Failed to read %s: %s" % (urn, responses.status))
       self._FileFetchFailed(index, responses.request.request.name)
       return
@@ -653,14 +650,10 @@ class MultiGetFileMixin(object):
 
         # Write the file to the data store.
         stat_entry = file_tracker["stat_entry"]
-        stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
-            stat_entry.pathspec, self.client_id)
+        urn = stat_entry.pathspec.AFF4Path(self.client_id)
 
         with aff4.FACTORY.Create(
-            stat_entry.aff4path,
-            aff4_grr.VFSBlobImage,
-            mode="w",
-            token=self.token) as fd:
+            urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
 
           fd.SetChunksize(self.CHUNK_SIZE)
           fd.Set(fd.Schema.STAT(stat_entry))
@@ -681,7 +674,7 @@ class MultiGetFileMixin(object):
         # capacity.
         self.Publish(
             "FileStore.AddFileToStore",
-            stat_entry.aff4path,
+            urn,
             priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
         self.state.files_fetched += 1
@@ -722,7 +715,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
     for pathspec in self.args.pathspecs:
 
-      vfs_urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+      vfs_urn = pathspec.AFF4Path(self.client_id)
 
       if vfs_urn not in unique_paths:
         # Only Stat/Hash each path once, input pathspecs can have dups.
@@ -751,8 +744,7 @@ class MultiUploadFile(flow.GRRFlow):
   def Start(self):
     for pathspec in self.args.pathspecs:
       # The AFF4 path under the client's namespace where we store the file.
-      filename = aff4_grr.VFSGRRClient.PathspecToURN(
-          pathspec, self.client_id).RelativeName(self.client_id)
+      filename = pathspec.AFF4Path(self.client_id).RelativeName(self.client_id)
       policy = rdf_client.UploadPolicy(
           client_id=self.client_id,
           expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
@@ -780,7 +772,6 @@ class MultiUploadFile(flow.GRRFlow):
     with upload_store.Aff4ObjectForFileId(
         urn, response.file_id, token=self.token) as fd:
       stat_entry = response.stat_entry
-      stat_entry.aff4path = urn
       fd.Set(fd.Schema.STAT, stat_entry)
       fd.Set(fd.Schema.SIZE(stat_entry.st_size))
 

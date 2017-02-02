@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for registry keys and values."""
 
+import os
 import re
 
 import logging
@@ -302,7 +303,7 @@ class WinServicesParser(parsers.RegistryValueParser):
         continue
 
       service_name = self._GetServiceName(stat.pathspec.path)
-      reg_key = stat.aff4path.Dirname()
+      reg_key = os.path.dirname(stat.pathspec.path)
       service_info = rdf_client.WindowsServiceInformation(
           name=service_name, registry_key=reg_key)
       services.setdefault(service_name, service_info)
@@ -348,6 +349,7 @@ class WinTimezoneParser(parsers.RegistryValueParser):
       yield rdfvalue.RDFString("Unknown (%s)" % value.strip())
 
     yield rdfvalue.RDFString(result)
+
 
 # Prebuilt from HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT"
 # \CurrentVersion\Time Zones\

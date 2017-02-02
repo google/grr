@@ -126,17 +126,13 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       }
     })
     .state('stats', {
-      //TODO(user): Drop the `selection' argument and change this to
-      // slash-colon notation after migration.
-      url: '/stats/?selection&name&start_time&duration&client_label',
+      url: '/stats/:name/:client_label?start_time&duration',
       template: '<grr-stats-view />',
-      title: function(params) {
-        if (params['selection']) {
-          return ['Stats', params['selection']];
-        } else {
-          return 'Stats';
-        }
-      }
+      params: {
+        name: { value: null, squash: true },
+        client_label: { value: null, squash: true }
+      },
+      title: 'Stats'
     })
     .state('globalFlows', {
       url: '/global-flows',
@@ -227,11 +223,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       url: '/load-stats',
       template: '<grr-client-load-view />',
       title: 'Load Stats'
-    })
-    .state('client.stats', {
-      url: '/stats',
-      template: '<grr-client-stats-view />',
-      title: 'Performance Stats'
     });
 
 }).run(function ($rootScope, $location, $state, $urlRouter, $document) {

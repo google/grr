@@ -20,7 +20,7 @@ from grr.client.vfs_handlers import files
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: mode=test
@@ -313,8 +313,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     # Check that the ADS name is encoded correctly in the AFF4 URN for this
     # file.
-    aff4_urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspecs[1],
-                                                   "C.1234567812345678")
+    aff4_urn = pathspecs[1].AFF4Path(rdf_client.ClientURN("C.1234567812345678"))
     self.assertEqual(aff4_urn.Basename(), "notes.txt:ads")
 
     fd = vfs.VFSOpen(pathspecs[1])
@@ -623,8 +622,8 @@ class VFSTest(test_lib.GRRBaseTest):
         (u"/home/test", [u".config", u".mozilla"], []),
         (u"/home/test/.config", [u"google-chrome"], []),
         (u"/home/test/.config/google-chrome", [u"Default"], []),
-        (u"/home/test/.config/google-chrome/Default",
-         [u"Cache", u"Extensions"], [u"History"]),
+        (u"/home/test/.config/google-chrome/Default", [u"Cache", u"Extensions"],
+         [u"History"]),
         (u"/home/test/.config/google-chrome/Default/Cache", [], [
             u"data_0", u"data_0", u"data_1", u"data_1", u"data_2", u"data_3",
             u"f_000001", u"f_000001", u"f_000002", u"f_000002", u"f_000003",

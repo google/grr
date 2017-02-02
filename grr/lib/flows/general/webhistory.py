@@ -84,7 +84,8 @@ class ChromeHistory(flow.GRRFlow):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
       for response in responses:
-        fd = aff4.FACTORY.Open(response.stat_entry.aff4path, token=self.token)
+        fd = aff4.FACTORY.Open(
+            response.stat_entry.AFF4Path(self.client_id), token=self.token)
         hist = chrome_history.ChromeParser(fd)
         count = 0
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
@@ -196,7 +197,8 @@ class FirefoxHistory(flow.GRRFlow):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
-        fd = aff4.FACTORY.Open(response.stat_entry.aff4path, token=self.token)
+        fd = aff4.FACTORY.Open(
+            response.stat_entry.AFF4Path(self.client_id), token=self.token)
         hist = firefox3_history.Firefox3History(fd)
         count = 0
         for epoch64, dtype, url, dat1, in hist.Parse():
@@ -246,9 +248,8 @@ class FirefoxHistory(flow.GRRFlow):
 BROWSER_PATHS = {
     "Linux": {
         "Firefox": ["/home/{username}/.mozilla/firefox/"],
-        "Chrome": [
-            "{homedir}/.config/google-chrome/", "{homedir}/.config/chromium/"
-        ]
+        "Chrome":
+            ["{homedir}/.config/google-chrome/", "{homedir}/.config/chromium/"]
     },
     "Windows": {
         "Chrome": [
@@ -256,9 +257,8 @@ BROWSER_PATHS = {
             "{local_app_data}\\Chromium\\User Data\\"
         ],
         "Firefox": ["{local_app_data}\\Mozilla\\Firefox\\Profiles\\"],
-        "IE": [
-            "{cache}\\", "{cache}\\Low\\", "{app_data}\\Microsoft\\Windows\\"
-        ]
+        "IE":
+            ["{cache}\\", "{cache}\\Low\\", "{app_data}\\Microsoft\\Windows\\"]
     },
     "Darwin": {
         "Firefox": ["{homedir}/Library/Application Support/Firefox/Profiles/"],

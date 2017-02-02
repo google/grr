@@ -17,13 +17,11 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
   def testCronTabParser(self):
     """Ensure we can extract jobs from a crontab file."""
     parser = cron_file_parser.CronTabParser()
-    client = "C.1000000000000000"
     results = []
 
     path = os.path.join(self.base_path, "parser_test", "crontab")
     plist_file = open(path, "rb")
     stat = rdf_client.StatEntry(
-        aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
         pathspec=rdf_paths.PathSpec(
             path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=16877)

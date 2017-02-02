@@ -13,7 +13,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import software
 from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -497,14 +496,17 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
     elif isinstance(processor_obj, parsers.FileParser):
       if processor_obj.process_together:
-        file_objects = [
-            aff4.FACTORY.Open(
-                r.aff4path, token=token) for r in responses
-        ]
-        result_iterator = parse_method(responses, file_objects,
+        # TODO(user): This is very brittle, one day we should come
+        # up with a better API here.
+        urns = [r.AFF4Path(flow_obj.client_id) for r in responses]
+        file_objects = list(aff4.FACTORY.MultiOpen(urns, token=token))
+        file_objects.sort(key=lambda file_object: file_object.urn)
+        stats = sorted(responses, key=lambda r: r.pathspec.path)
+        result_iterator = parse_method(stats, file_objects,
                                        state.knowledge_base)
       else:
-        fd = aff4.FACTORY.Open(responses.aff4path, token=token)
+        fd = aff4.FACTORY.Open(
+            responses.AFF4Path(flow_obj.client_id), token=token)
         result_iterator = parse_method(responses, fd, state.knowledge_base)
 
     elif isinstance(processor_obj,
@@ -544,7 +546,9 @@ def UploadArtifactYamlFile(file_content,
 
   # Iterate through each artifact adding it to the collection.
   with aff4.FACTORY.Create(
-      base_urn, aff4_type=collects.RDFValueCollection, token=token,
+      base_urn,
+      aff4_type=artifact_registry.ArtifactCollection,
+      token=token,
       mode="r") as artifact_coll:
     current_artifacts = list(artifact_coll)
 
@@ -554,9 +558,10 @@ def UploadArtifactYamlFile(file_content,
   ]
 
   with aff4.FACTORY.Create(
-      base_urn, aff4_type=collects.RDFValueCollection, token=token,
+      base_urn,
+      aff4_type=artifact_registry.ArtifactCollection,
+      token=token,
       mode="w") as artifact_coll:
-
     for artifact_value in filtered_artifacts:
       artifact_coll.Add(artifact_value)
 

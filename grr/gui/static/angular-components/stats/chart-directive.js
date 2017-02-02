@@ -43,9 +43,13 @@ grrUi.stats.chartDirective.ChartController = function(
   /** @type {string} */
   this.errorMsg = '';
 
-  this.scope_.$watch('data', function(data) {
-    if (angular.isDefined(data)) {
-      this.initChart_(data);
+  this.scope_.$watch('typedData', function() {
+    var typedData = this.scope_['typedData'];
+
+    if (angular.isDefined(typedData)) {
+      var data = /** @type {Object} */ (stripTypeInfo(typedData));
+
+      this.initChart_(data, typedData);
     }
   }.bind(this));
 };
@@ -56,10 +60,12 @@ var ChartController = grrUi.stats.chartDirective.ChartController;
  * Initializes the chart.
  *
  * @param {Object} data The data to be displayed.
+ * @param {Object} typedData The data to be displayed, with type annotations.
  * @private
  */
-ChartController.prototype.initChart_ = function(data) {
+ChartController.prototype.initChart_ = function(data, typedData) {
   this.hoverText = DEFAULT_HOVER_TEXT;
+  this.errorMsg = '';
 
   switch (data['representation_type']) {
   case 'STACK_CHART':
@@ -70,6 +76,9 @@ ChartController.prototype.initChart_ = function(data) {
     break;
   case 'LINE_CHART':
     this.initLineChart_(data['line_chart']);
+    break;
+  case 'AUDIT_CHART':
+    // Noop.
     break;
   default:
     this.errorMsg = 'Unexpected representation type.';
@@ -83,7 +92,8 @@ ChartController.prototype.initChart_ = function(data) {
  * @private
  */
 ChartController.prototype.initStackChart_ = function(stackChartData) {
-  if (stackChartData['data'].length == 0) {
+  if (angular.isUndefined(stackChartData['data']) ||
+      stackChartData['data'].length == 0) {
     this.errorMsg = 'No data to display.';
     return;
   }
@@ -168,7 +178,8 @@ ChartController.prototype.initStackChart_ = function(stackChartData) {
  * @private
  */
 ChartController.prototype.initPieChart_ = function(pieChartData) {
-  if (pieChartData['data'].length == 0) {
+  if (angular.isUndefined(pieChartData['data']) ||
+      pieChartData['data'].length == 0) {
     this.errorMsg = 'No data to display.';
     return;
   }
@@ -226,7 +237,8 @@ ChartController.prototype.initPieChart_ = function(pieChartData) {
  * @private
  */
 ChartController.prototype.initLineChart_ = function(lineChartData) {
-  if (lineChartData['data'].length == 0) {
+  if (angular.isUndefined(lineChartData['data']) ||
+      lineChartData['data'].length == 0) {
     this.errorMsg = 'No data to display.';
     return;
   }
@@ -290,7 +302,7 @@ ChartController.prototype.initLineChart_ = function(lineChartData) {
 grrUi.stats.chartDirective.ChartDirective = function() {
   return {
     scope: {
-      data: "="
+      typedData: "="
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/stats/chart.html',

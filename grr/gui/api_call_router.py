@@ -4,6 +4,7 @@
 
 
 import inspect
+import re
 
 
 from grr.gui import api_value_renderers
@@ -113,6 +114,14 @@ class RouterMethodMetadata(object):
     self.category = category
     self.http_methods = http_methods or set()
     self.no_audit_log_required = no_audit_log_required
+
+  _RULE_REGEX = re.compile("<([a-zA-Z0-9_]+)")
+
+  def GetQueryParamsNames(self):
+    result = []
+    for m in self.http_methods or []:
+      result.extend(re.findall(self._RULE_REGEX, m[1]))
+    return result
 
 
 class ApiCallRouter(object):
@@ -248,6 +257,7 @@ class ApiCallRouter(object):
   @ArgsType(api_client.ApiGetLastClientIPAddressArgs)
   @ResultType(api_client.ApiGetLastClientIPAddressResult)
   @Http("GET", "/api/clients/<client_id>/last-ip")
+  @NoAuditLogRequired()
   def GetLastClientIPAddress(self, args, token=None):
     """Get last known client IP address."""
 

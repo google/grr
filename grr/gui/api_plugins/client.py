@@ -25,6 +25,7 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 from grr.lib.aff4_objects import stats as aff4_stats
 
+from grr.lib.flows.general import administrative
 from grr.lib.flows.general import audit
 from grr.lib.flows.general import discovery
 
@@ -347,11 +348,19 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     try:
-      aff4_crashes = aff4.FACTORY.Open(
-          args.client_id.ToClientURN().Add("crashes"),
-          mode="r",
-          aff4_type=collects.PackedVersionedCollection,
-          token=token)
+      try:
+        aff4_crashes = aff4.FACTORY.Open(
+            args.client_id.ToClientURN().Add("crashes"),
+            mode="r",
+            aff4_type=administrative.CrashesCollection,
+            token=token)
+      except aff4.InstantiationError:
+        # TODO(user): Get rid of PackedVersionedCollection.
+        aff4_crashes = aff4.FACTORY.Open(
+            args.client_id.ToClientURN().Add("crashes"),
+            mode="r",
+            aff4_type=collects.PackedVersionedCollection,
+            token=token)
 
       total_count = len(aff4_crashes)
       result = api_call_handler_utils.FilterCollection(aff4_crashes,

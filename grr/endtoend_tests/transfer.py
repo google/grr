@@ -82,16 +82,17 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
+      aff4path = response.pathspec.AFF4Path(self.client_id)
       fd = aff4.FACTORY.Open(
-          response.aff4path, aff4_grr.VFSBlobImage, mode="r", token=self.token)
+          aff4path, aff4_grr.VFSBlobImage, mode="r", token=self.token)
       server_hash = hashlib.sha256(fd.Read(response.st_size)).hexdigest()
-      client_hash = self.state.client_hashes[response.aff4path]
+      client_hash = self.state.client_hashes[aff4path]
 
       if server_hash != client_hash:
         format_string = ("Hash mismatch server hash: %s doesn't match"
                          "client hash: %s for file: %s")
         raise flow.FlowError(format_string % (server_hash, client_hash,
-                                              response.aff4path))
+                                              aff4path))
 
 
 class TestMultiGetFile(base.AutomatedTest):
@@ -112,6 +113,7 @@ class TestMultiGetFile(base.AutomatedTest):
     self.assertEqual(runner.GetState(), rdf_flows.FlowContext.State.TERMINATED,
                      "Expected TERMINATED state, got %s" %
                      flow_obj.context.state)
+
 
 #########
 # Linux #
@@ -232,6 +234,7 @@ class TestSendFile(base.LocalClientTest):
 
       self.assertEqual(received_data, original_data)
 
+
 ##########
 # Darwin #
 ##########
@@ -260,6 +263,7 @@ class TestMultiGetFileOSMac(base.VFSPathContentIsMachO):
       ]
   }
   test_output_path = "/fs/os/bin/ls"
+
 
 ###########
 # Windows #

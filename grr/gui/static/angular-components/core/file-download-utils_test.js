@@ -1,18 +1,76 @@
 'use strict';
 
-goog.require('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
+goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 goog.require('grrUi.core.fileDownloadUtils.makeValueDownloadable');
+goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');
+
+describe('statEntryDirective.buildAff4Path', function() {
+  var pathSpecToAff4Path = grrUi.core.fileDownloadUtils.pathSpecToAff4Path;
+
+  it('converts os+tsk pathspec correctly', function() {
+    var pathspec = {
+      type: 'PathSpec',
+      value: {
+        path: { value: '\\\\.\\Volume{1234}\\', type: 'RDFString' },
+        pathtype: { value: 'OS', type: 'EnumNamedValue' },
+        mount_point: '/c:/',
+        nested_path: {
+          type: 'PathSpec',
+          value: {
+            path: { value: '/windows', type: 'RDFString' },
+            pathtype: { value: 'TSK', type: 'EnumNamedValue' }
+          }
+        }
+      }
+    };
+
+    expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
+        .toBe('aff4:/C.1234567812345678/fs/tsk/\\\\.\\Volume{1234}\\/windows');
+  });
+
+  it('converts os+tsk ADS pathspec correctly', function() {
+    var pathspec = {
+      type: 'PathSpec',
+      value: {
+        path: { value: '\\\\.\\Volume{1234}\\', type: 'RDFString' },
+        pathtype: { value: 'OS', type: 'EnumNamedValue' },
+        mount_point: '/c:/',
+        nested_path: {
+          type: 'PathSpec',
+          value: {
+            path: { value: '/Test Directory/notes.txt:ads', type: 'RDFString' },
+            pathtype: { value: 'TSK', type: 'EnumNamedValue' },
+            inode: { value: 66, type: 'int' },
+            ntfs_type: { value: 128, type: 'int'},
+            ntfs_id: { value: 2, type: 'int'}
+          }
+        }
+      }
+    };
+
+    expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
+        .toBe('aff4:/C.1234567812345678/fs/tsk/\\\\.\\Volume{1234}\\/Test Directory/notes.txt:ads');
+  });
+});
+
 
 describe('fileDownloadUtils', function() {
-  var statEntry, fileFinderResult, artifactFilesDownloaderResult, rdfstring;
+  var statEntry, fileFinderResult, artifactFilesDownloaderResult, rdfstring, pathspec;
 
   beforeEach(function() {
+    pathspec = {
+      value: {
+        path: {
+          type: 'RDFString',
+          value: 'foo/bar',
+        }
+      },
+      type: 'Pathspec'
+    };
+
     statEntry = {
       value: {
-        aff4path: {
-          value: 'aff4:/foo/bar',
-          type: 'RDFURN'
-        }
+        pathspec: pathspec,
       },
       type: 'StatEntry'
     };
@@ -37,35 +95,35 @@ describe('fileDownloadUtils', function() {
     };
   });
 
-  describe('getFileUrnFromValue', function() {
-    var getFileUrnFromValue = grrUi.core.fileDownloadUtils.getFileUrnFromValue;
+  describe('getPathSpecFromValue', function() {
+    var getPathSpecFromValue = grrUi.core.fileDownloadUtils.getPathSpecFromValue;
 
     it('returns null if argument is null or undefined', function() {
-      expect(getFileUrnFromValue(null)).toBe(null);
-      expect(getFileUrnFromValue(undefined)).toBe(null);
+      expect(getPathSpecFromValue(null)).toBe(null);
+      expect(getPathSpecFromValue(undefined)).toBe(null);
     });
 
-    it('extracts urn from StatEntry', function() {
-      expect(getFileUrnFromValue(statEntry)).toBe('aff4:/foo/bar');
+    it('extracts pathspec from StatEntry', function() {
+      expect(getPathSpecFromValue(statEntry)).toEqual(pathspec);
     });
 
-    it('extracts urn from FileFinderResult', function() {
-      expect(getFileUrnFromValue(fileFinderResult)).toBe('aff4:/foo/bar');
+    it('extracts pathspec from FileFinderResult', function() {
+      expect(getPathSpecFromValue(fileFinderResult)).toEqual(pathspec);
     });
 
-    it('extracts urn from ArtifactFilesDownloaderResult', function() {
-      expect(getFileUrnFromValue(artifactFilesDownloaderResult)).toBe(
-          'aff4:/foo/bar');
+    it('extracts pathspec from ArtifactFilesDownloaderResult', function() {
+      expect(getPathSpecFromValue(artifactFilesDownloaderResult)).toEqual(
+          pathspec);
     });
 
-    it('extracts urn recursively from ApiFlowResult', function() {
+    it('extracts pathspec recursively from ApiFlowResult', function() {
       var apiFlowResult = {
         value: {
           payload: angular.copy(statEntry)
         },
         type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiFlowResult)).toEqual(pathspec);
 
       apiFlowResult = {
         value: {
@@ -73,7 +131,7 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiFlowResult)).toEqual(pathspec);
 
       apiFlowResult = {
         value: {
@@ -81,17 +139,17 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiFlowResult)).toEqual(pathspec);
     });
 
-    it('extracts urn recursively from ApiHuntResult', function() {
+    it('extracts pathspec recursively from ApiHuntResult', function() {
       var apiHuntResult = {
         value: {
           payload: angular.copy(statEntry)
         },
         type: 'ApiHuntResult'
       };
-      expect(getFileUrnFromValue(apiHuntResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiHuntResult)).toEqual(pathspec);
 
       apiHuntResult = {
         value: {
@@ -99,7 +157,7 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiHuntResult'
       };
-      expect(getFileUrnFromValue(apiHuntResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiHuntResult)).toEqual(pathspec);
 
       apiHuntResult = {
         value: {
@@ -107,11 +165,11 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiHuntResult'
       };
-      expect(getFileUrnFromValue(apiHuntResult)).toBe('aff4:/foo/bar');
+      expect(getPathSpecFromValue(apiHuntResult)).toEqual(pathspec);
     });
 
     it('returns null for other aff4 types', function() {
-      expect(getFileUrnFromValue(rdfstring)).toBe(null);
+      expect(getPathSpecFromValue(rdfstring)).toBe(null);
     });
 
     it('returns null for other types wrapped in ApiFlowResult', function() {
@@ -121,7 +179,7 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(apiFlowResult)).toBe(null);
+      expect(getPathSpecFromValue(apiFlowResult)).toBe(null);
     });
 
     it('returns null for other types wrapped in ApiHuntResult', function() {
@@ -131,7 +189,7 @@ describe('fileDownloadUtils', function() {
         },
         type: 'ApiHuntResult'
       };
-      expect(getFileUrnFromValue(apiHuntResult)).toBe(null);
+      expect(getPathSpecFromValue(apiHuntResult)).toBe(null);
     });
   });
 
@@ -158,11 +216,11 @@ describe('fileDownloadUtils', function() {
 
       expect(makeValueDownloadable(statEntry, downloadUrl, downloadParams))
           .toBe(true);
-      expect(statEntry.value.aff4path).toEqual({
+      expect(statEntry).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
-        originalValue: originalStatEntry.value.aff4path,
-        type: "__DownloadableUrn"
+        originalValue: originalStatEntry,
+        type: "__DownloadableStatEntry"
       });
     });
 
@@ -172,11 +230,11 @@ describe('fileDownloadUtils', function() {
       expect(makeValueDownloadable(
           fileFinderResult, downloadUrl, downloadParams))
           .toBe(true);
-      expect(fileFinderResult.value.stat_entry.value.aff4path).toEqual({
+      expect(fileFinderResult.value.stat_entry).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
-        originalValue: originalFileFinderResult.value.stat_entry.value.aff4path,
-        type: "__DownloadableUrn"
+        originalValue: originalFileFinderResult.value.stat_entry,
+        type: "__DownloadableStatEntry"
       });
     });
 
@@ -186,11 +244,11 @@ describe('fileDownloadUtils', function() {
       expect(makeValueDownloadable(
           artifactFilesDownloaderResult, downloadUrl, downloadParams))
           .toBe(true);
-      expect(artifactFilesDownloaderResult.value.downloaded_file.value.aff4path).toEqual({
+      expect(artifactFilesDownloaderResult.value.downloaded_file).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
-        originalValue: original.value.downloaded_file.value.aff4path,
-        type: "__DownloadableUrn"
+        originalValue: original.value.downloaded_file,
+        type: "__DownloadableStatEntry"
       });
     });
 
@@ -203,11 +261,11 @@ describe('fileDownloadUtils', function() {
       };
       expect(makeValueDownloadable(apiFlowResult, downloadUrl, downloadParams))
           .toBe(true);
-      expect(apiFlowResult.value.payload.value.aff4path).toEqual({
+      expect(apiFlowResult.value.payload).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
-        originalValue: statEntry.value.aff4path,
-        type: "__DownloadableUrn"
+        originalValue: statEntry,
+        type: "__DownloadableStatEntry"
       });
     });
 
@@ -220,11 +278,11 @@ describe('fileDownloadUtils', function() {
       };
       expect(makeValueDownloadable(apiHuntResult, downloadUrl, downloadParams))
           .toBe(true);
-      expect(apiHuntResult.value.payload.value.aff4path).toEqual({
+      expect(apiHuntResult.value.payload).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
-        originalValue: statEntry.value.aff4path,
-        type: "__DownloadableUrn"
+        originalValue: statEntry,
+        type: "__DownloadableStatEntry"
       });
     });
 

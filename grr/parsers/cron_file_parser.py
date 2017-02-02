@@ -34,4 +34,9 @@ class CronTabParser(parsers.FileParser):
               command=utils.SmartStr(job.command),
               comment=utils.SmartStr(job.comment)))
 
-    yield rdf_cronjobs.CronTabFile(aff4path=stat.aff4path, jobs=entries)
+    try:
+      source_urn = file_object.urn
+    except AttributeError:
+      source_urn = None
+
+    yield rdf_cronjobs.CronTabFile(aff4path=source_urn, jobs=entries)

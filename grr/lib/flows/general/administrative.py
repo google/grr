@@ -29,6 +29,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import reports
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import implementation
@@ -45,12 +46,16 @@ class AdministrativeInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
+class CrashesCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdf_client.ClientCrash
+
+
 class ClientCrashEventListener(flow.EventListener):
   """EventListener with additional helper methods to save crash details."""
 
   def _AppendCrashDetails(self, path, crash_details):
     collection = aff4.FACTORY.Create(
-        path, collects.PackedVersionedCollection, mode="rw", token=self.token)
+        path, CrashesCollection, mode="rw", token=self.token)
 
     collection.Add(crash_details)
     collection.Close(sync=False)

@@ -11,16 +11,16 @@ goog.scope(function() {
 var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /** @type {number} */
-var MONTH_SECONDS = 30*24*60*60;
+var WEEK_SECONDS = 7*24*60*60;
 
-// A month ago
+// A week ago
 /** @type {number} */
 var DEFAULT_START_TIME_SECS =
-    Math.ceil(moment().valueOf() / 1000 - MONTH_SECONDS);
+    Math.ceil(moment().valueOf() / 1000 - WEEK_SECONDS);
 
-// One month
+// One week
 /** @type {number} */
-var DEFAULT_DURATION_SECS = MONTH_SECONDS;
+var DEFAULT_DURATION_SECS = WEEK_SECONDS;
 
 /** @type {string} */
 var DEFAULT_CLIENT_LABEL = '';
@@ -57,19 +57,22 @@ grrUi.stats.reportDirective.ReportController =
   this.titleCasedType;
 
   /** @type {*} */
+  this.typedReportData;
+
+  /** @type {*} */
   this.reportData;
 
   /** @type {*} */
   this.reportDesc;
 
-  /** @type {number} */
-  this.startTime = DEFAULT_START_TIME_SECS;
+  /** @type {number|null} */
+  this.startTime = null;
 
-  /** @type {number} */
-  this.duration = DEFAULT_DURATION_SECS;
+  /** @type {number|null} */
+  this.duration = null;
 
-  /** @type {string} */
-  this.clientLabel = DEFAULT_CLIENT_LABEL;
+  /** @type {string|null} */
+  this.clientLabel = null;
 
   this.scope_.$watchGroup(['name', 'startTime', 'duration', 'clientLabel'],
                           this.onParamsChange_.bind(this));
@@ -85,27 +88,18 @@ var ReportController =
  */
 ReportController.prototype.onParamsChange_ = function() {
   var startTime = this.scope_['startTime'];
-  if (startTime) {
+  if (angular.isDefined(startTime)) {
     this.startTime = startTime;
-  }
-  if (startTime === null) {
-    this.startTime = DEFAULT_START_TIME_SECS;
   }
 
   var duration = this.scope_['duration'];
-  if (duration) {
+  if (angular.isDefined(duration)) {
     this.duration = duration;
-  }
-  if (duration === null) {
-    this.duration = DEFAULT_DURATION_SECS;
   }
 
   var clientLabel = this.scope_['clientLabel'];
-  if (clientLabel) {
+  if (angular.isDefined(clientLabel)) {
     this.clientLabel = clientLabel;
-  }
-  if (clientLabel === null) {
-    this.clientLabel = DEFAULT_CLIENT_LABEL;
   }
 
   if (this.scope_['name']) {
@@ -135,16 +129,41 @@ ReportController.prototype.fetchData_ = function() {
   if (name) {
     this.state = 'LOADING';
 
+    var startTime = DEFAULT_START_TIME_SECS;
+    if (this.startTime !== null) {
+      startTime = this.startTime;
+    }
+
+    var duration = DEFAULT_DURATION_SECS;
+    if (this.duration !== null) {
+      duration = this.duration;
+    }
+
+    var clientLabel = DEFAULT_CLIENT_LABEL;
+    if (this.clientLabel !== null) {
+      clientLabel = this.clientLabel;
+    }
+
     var apiUrl = 'stats/reports/' + name;
     var apiParams = {
-      start_time: this.startTime * 1e6,  // conversion to μs
-      duration: this.duration,
-      client_label: this.clientLabel
+      start_time: startTime * 1e6,  // conversion to μs
+      duration: duration,
+      client_label: clientLabel
     };
 
     this.grrApiService_.get(apiUrl, apiParams).then(function(response) {
-      this.reportData = stripTypeInfo(response['data']['data']);
+      this.typedReportData = response['data']['data'];
+      this.reportData = stripTypeInfo(this.typedReportData);
       this.reportDesc = stripTypeInfo(response['data']['desc']);
+
+      if (this.reportDesc['requires_time_range']) {
+        this.startTime = startTime;
+        this.duration = duration;
+      }
+
+      if (this.reportDesc['type'] === 'CLIENT') {
+        this.clientLabel = clientLabel;
+      }
 
       this.titleCasedType =
           grrUi.core.utils.upperCaseToTitleCase(this.reportDesc['type']);

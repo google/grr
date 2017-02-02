@@ -16,6 +16,7 @@ from grr.lib.flows.general import collectors
 from grr.lib.flows.general import export as flow_export
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
@@ -50,7 +51,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                       "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
-    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
@@ -65,7 +67,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForArtifactDownloaderHunt(self):
-    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
@@ -82,7 +85,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testExportCommandIsShownForStatEntryResults(self):
-    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
@@ -118,7 +122,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
-    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
@@ -133,7 +138,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
@@ -222,13 +228,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "42423")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-results-collection grr-downloadable-urn button")
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForFileFinderHunt(self):
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
-    stat_entry = rdf_client.StatEntry(aff4path=client_id.Add("fs/os/foo/bar"))
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
@@ -239,13 +245,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection grr-downloadable-urn button")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForArtifactDownloaderHunt(self):
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
-    stat_entry = rdf_client.StatEntry(aff4path=client_id.Add("fs/os/foo/bar"))
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
@@ -258,8 +264,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-results-collection grr-downloadable-urn button")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
     self._CreateHuntWithDownloadedFile()
@@ -268,7 +275,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    self.Click("css=grr-results-collection grr-downloadable-urn button")
+    self.Click("css=grr-results-collection button:has(span.glyphicon-download)")
 
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
@@ -287,7 +294,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Results]")
 
     with mock.patch.object(fd.__class__, "Read") as mock_obj:
-      self.Click("css=grr-results-collection grr-downloadable-urn button")
+      self.Click(
+          "css=grr-results-collection button:has(span.glyphicon-download)")
       self.WaitUntil(lambda: mock_obj.called)
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
@@ -305,7 +313,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    self.Click("css=grr-results-collection grr-downloadable-urn button")
+    self.Click("css=grr-results-collection button:has(span.glyphicon-download)")
     self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
 
 

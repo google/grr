@@ -81,10 +81,7 @@ class FindFiles(flow.GRRFlow):
 
     for response in responses:
       # Create the file in the VFS
-      vfs_urn = aff4_grr.VFSGRRClient.PathspecToURN(response.hit.pathspec,
-                                                    self.client_id)
-
-      response.hit.aff4path = vfs_urn
+      vfs_urn = response.hit.pathspec.AFF4Path(self.client_id)
 
       # TODO(user): This ends up being fairly expensive.
       if stat.S_ISDIR(response.hit.st_mode):

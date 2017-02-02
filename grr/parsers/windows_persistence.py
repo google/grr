@@ -35,11 +35,8 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
   def Parse(self, persistence, knowledge_base, download_pathtype):
     """Convert persistence collector output to downloadable rdfvalues."""
     pathspecs = []
-    source_urn = None
 
     if isinstance(persistence, rdf_client.WindowsServiceInformation):
-      if persistence.HasField("registry_key"):
-        source_urn = persistence.registry_key
       if persistence.HasField("binary"):
         pathspecs.append(persistence.binary.pathspec)
       elif persistence.HasField("image_path"):
@@ -52,8 +49,6 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
         rdf_client.StatEntry) and persistence.HasField("registry_type"):
       pathspecs = self._GetFilePaths(persistence.registry_data.string,
                                      download_pathtype, knowledge_base)
-      source_urn = persistence.aff4path
 
     for pathspec in pathspecs:
-      yield rdf_standard.PersistenceFile(
-          pathspec=pathspec, source_urn=source_urn)
+      yield rdf_standard.PersistenceFile(pathspec=pathspec)

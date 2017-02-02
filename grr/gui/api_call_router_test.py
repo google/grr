@@ -47,6 +47,19 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
         "SomeRandomMethod" in DummyApiCallRouterChild.GetAnnotatedMethods())
 
 
+class RouterMethodMetadataTest(test_lib.GRRBaseTest):
+  """Tests for RouterMethodMetadata."""
+
+  def testGetQueryParamsNamesReturnsEmptyListOnEmptyMetadata(self):
+    m = api_call_router.RouterMethodMetadata("SomeMethod")
+    self.assertEqual(m.GetQueryParamsNames(), [])
+
+  def testGetQueryParamsNamesWorksCorrectly(self):
+    m = api_call_router.RouterMethodMetadata(
+        "SomeMethod", http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})])
+    self.assertEqual(m.GetQueryParamsNames(), ["foo", "bar"])
+
+
 def main(argv):
   test_lib.main(argv)
 

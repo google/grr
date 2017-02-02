@@ -102,7 +102,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       for stat_entry in results:
         # Make sure the AFF4 file is the same as the original test file we tried
         # to upload.
-        fd1 = aff4.FACTORY.Open(stat_entry.aff4path, token=self.token)
+        fd1 = aff4.FACTORY.Open(
+            stat_entry.AFF4Path(self.client_id), token=self.token)
         fd2 = open(test_data_path, "rb")
         fd2.seek(0, 2)
 
@@ -166,7 +167,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
     fd2 = open(pathspec.path, "rb")
     fd2.seek(0, 2)
@@ -199,7 +200,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(res_pathspec, self.client_id)
+    urn = res_pathspec.AFF4Path(self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
     fd2 = open(res_pathspec.path, "rb")
     fd2.seek(0, 2)
@@ -267,7 +268,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     # Test the AFF4 file that was created - it should be empty since by default
     # we judge the file size based on its stat.st_size.
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.size, len(data))
     self.assertMultiLineEqual(fd.read(len(data)), data)
@@ -323,7 +324,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
     fd2 = open(pathspec.path, "rb")
     fd2.seek(0, 2)
@@ -373,7 +374,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     # Now open each file and make sure the data is there.
     for pathspec in pathspecs:
-      urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+      urn = pathspec.AFF4Path(self.client_id)
       fd = aff4.FACTORY.Open(urn, token=self.token)
       self.assertEqual("Hello", fd.Read(100000))
 
@@ -424,7 +425,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     fd_hash = fd.Get(fd.Schema.HASH)
 
@@ -453,7 +454,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         args=args):
       pass
 
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     blobimage = aff4.FACTORY.Open(urn, token=self.token)
     # Make sure a VFSBlobImage got written.
     self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))

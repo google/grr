@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
-import getpass
 import logging
 import os
 import shutil
@@ -144,22 +143,10 @@ class DarwinClientBuilder(build.ClientBuilder):
     print "Running: %s" % " ".join(command)
     subprocess.check_call(command)
 
-  def SetFileOwner(self, user, group):
-    print "Fixing file ownership and permissions"
-    command = [
-        "sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group),
-        self.script_dir
-    ]
-    self.RunCmd(command)
-    command = [
-        "sudo", "/usr/sbin/chown", "-R", "%s:%s" % (user, group), self.pkg_root
-    ]
-    self.RunCmd(command)
-
   def Set755Permissions(self):
-    command = ["sudo", "/bin/chmod", "-R", "755", self.script_dir]
+    command = ["/bin/chmod", "-R", "755", self.script_dir]
     self.RunCmd(command)
-    command = ["sudo", "/bin/chmod", "-R", "755", self.pkg_root]
+    command = ["/bin/chmod", "-R", "755", self.pkg_root]
     self.RunCmd(command)
 
   def RunPkgBuild(self):
@@ -192,9 +179,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.InterpolateFiles()
     self.RenameGRRPyinstallerBinaries()
     self.WriteClientConfig()
-    self.SetFileOwner("root", "wheel")
     self.Set755Permissions()
     self.RunPkgBuild()
     self.RunProductBuild()
     self.RenamePkgToTemplate(output_file)
-    self.SetFileOwner(getpass.getuser(), "staff")

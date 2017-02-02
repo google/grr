@@ -371,8 +371,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     filename = os.path.join(self.base_path, "tcpip.sig")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=filename)
-    urn1 = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_ids[0])
-    urn2 = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_ids[1])
+    urn1 = pathspec.AFF4Path(client_ids[0])
+    urn2 = pathspec.AFF4Path(client_ids[1])
 
     for client_id in client_ids:
       client_mock = action_mocks.FileFinderClientMock()

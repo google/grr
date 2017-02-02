@@ -540,7 +540,8 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         description=description,
         archive_format=archive_format,
         predicate=self._BuildPredicate(
-            args.client_id, token=token))
+            args.client_id, token=token),
+        client_id=args.client_id.ToClientURN())
     content_generator = self._WrapContentGenerator(
         generator, collection, args, token=token)
     return api_call_handler_base.ApiBinaryStream(

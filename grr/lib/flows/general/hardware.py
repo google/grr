@@ -9,6 +9,7 @@ from grr.client.client_actions import tempfiles as tempfiles_actions
 from grr.client.components.chipsec_support import grr_chipsec_stub
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib.aff4_objects import hardware
 from grr.lib.flows.general import transfer
@@ -92,7 +93,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     with aff4.FACTORY.Create(
         self.client_id.Add("spiflash"), aff4.AFF4Symlink,
         token=self.token) as symlink:
-      symlink.Set(symlink.Schema.SYMLINK_TARGET, response.aff4path)
+      symlink.Set(symlink.Schema.SYMLINK_TARGET,
+                  response.AFF4Path(self.client_id))
 
     # Clean up the temporary image from the client.
     self.CallClient(
@@ -164,13 +166,18 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
 
     if response.acpi_tables:
       self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
-      with aff4.FACTORY.Create(
-          self.client_id.Add("devices/chipsec/acpi/tables/%s" %
-                             table_signature),
-          hardware.ACPITableDataCollection,
-          token=self.token) as fd:
-        fd.AddAll(response.acpi_tables)
-        fd.Flush()
-
-      for acpi_table_response in response.acpi_tables:
-        self.SendReply(acpi_table_response)
+      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+        collection_urn = self.client_id.Add("devices/chipsec/acpi/tables/%s" %
+                                            table_signature)
+        aff4.FACTORY.Create(
+            collection_urn,
+            hardware.ACPITableDataCollection,
+            mutation_pool=mutation_pool,
+            token=self.token).Close()
+        for acpi_table_response in response.acpi_tables:
+          hardware.ACPITableDataCollection.StaticAdd(
+              collection_urn,
+              self.token,
+              acpi_table_response,
+              mutation_pool=mutation_pool)
+          self.SendReply(acpi_table_response)

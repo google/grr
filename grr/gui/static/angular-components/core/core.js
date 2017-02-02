@@ -21,7 +21,6 @@ goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
 goog.require('grrUi.core.hexNumberFilter.HexNumberFilter');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
-goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
 goog.require('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
 goog.require('grrUi.core.loadingIndicatorService.LoadingIndicatorService');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
@@ -74,9 +73,6 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.forceRefreshDirective.ForceRefreshDirective.directive_name,
     grrUi.core.forceRefreshDirective.ForceRefreshDirective);
-grrUi.core.module.directive(
-    grrUi.core.legacyRendererDirective.LegacyRendererDirective.directive_name,
-    grrUi.core.legacyRendererDirective.LegacyRendererDirective);
 grrUi.core.module.directive(
     grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective.directive_name,
     grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective);

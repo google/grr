@@ -227,84 +227,9 @@ class VFSGRRClient(standard.VFSDirectory):
 
       return flow_id
 
-  AFF4_PREFIXES = {
-      rdf_paths.PathSpec.PathType.OS: "/fs/os",
-      rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
-      rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
-      rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
-      rdf_paths.PathSpec.PathType.TMPFILE: "/temp"
-  }
-
   @staticmethod
   def ClientURNFromURN(urn):
     return rdf_client.ClientURN(rdfvalue.RDFURN(urn).Split()[0])
-
-  @staticmethod
-  def PathspecToURN(pathspec, client_urn):
-    """Returns a mapping between a pathspec and an AFF4 URN.
-
-    Args:
-      pathspec: The PathSpec instance to convert.
-      client_urn: A URN of any object within the client. We use it to find the
-          client id.
-
-    Returns:
-      A urn that corresponds to this pathspec.
-
-    Raises:
-      ValueError: If pathspec is not of the correct type.
-    """
-    client_urn = rdf_client.ClientURN(client_urn)
-
-    if not isinstance(pathspec, rdfvalue.RDFValue):
-      raise ValueError("Pathspec should be an rdfvalue.")
-
-    # If the first level is OS and the second level is TSK its probably a mount
-    # point resolution. We map it into the tsk branch. For example if we get:
-    # path: \\\\.\\Volume{1234}\\
-    # pathtype: OS
-    # mount_point: /c:/
-    # nested_path {
-    #    path: /windows/
-    #    pathtype: TSK
-    # }
-    # We map this to aff4://client_id/fs/tsk/\\\\.\\Volume{1234}\\/windows/
-    dev = pathspec[0].path
-    if pathspec[0].HasField("offset"):
-      # We divide here just to get prettier numbers in the GUI
-      dev += ":" + str(pathspec[0].offset / 512)
-
-    if (len(pathspec) > 1 and
-        pathspec[0].pathtype == rdf_paths.PathSpec.PathType.OS and
-        pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
-      result = [
-          VFSGRRClient.AFF4_PREFIXES[rdf_paths.PathSpec.PathType.TSK], dev
-      ]
-
-      # Skip the top level pathspec.
-      pathspec = pathspec[1]
-    else:
-      # For now just map the top level prefix based on the first pathtype
-      result = [VFSGRRClient.AFF4_PREFIXES[pathspec[0].pathtype]]
-
-    for p in pathspec:
-      component = p.path
-
-      # The following encode different pathspec properties into the AFF4 path in
-      # such a way that unique files on the client are mapped to unique URNs in
-      # the AFF4 space. Note that this transformation does not need to be
-      # reversible since we always use the PathSpec when accessing files on the
-      # client.
-      if p.HasField("offset"):
-        component += ":" + str(p.offset / 512)
-
-      # Support ADS names.
-      if p.HasField("stream_name"):
-        component += ":" + p.stream_name
-
-      result.append(component)
-
-    return client_urn.Add("/".join(result))
 
   def GetSummary(self):
     """Gets a client summary object.

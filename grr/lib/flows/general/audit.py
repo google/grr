@@ -14,12 +14,17 @@ activities are maintained.
 
 
 from grr.lib import aff4
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 
 AUDIT_EVENT = "Audit"
+
+
+class AuditEventCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = events.AuditEvent
 
 
 class AuditEventListener(flow.EventListener):
@@ -28,12 +33,18 @@ class AuditEventListener(flow.EventListener):
       base="aff4:/audit", queue=queues.FLOWS, flow_name="listener")
   EVENTS = [AUDIT_EVENT]
 
+  created_logs = set()
+
+  def EnsureLogExists(self):
+    log_urn = aff4.CurrentAuditLog()
+    if log_urn not in self.created_logs:
+      aff4.FACTORY.Create(
+          log_urn, AuditEventCollection, mode="w", token=self.token).Close()
+      self.created_logs.add(log_urn)
+    return log_urn
+
   @flow.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    with aff4.FACTORY.Create(
-        aff4.CurrentAuditLog(),
-        collects.PackedVersionedCollection,
-        mode="w",
-        token=self.token) as fd:
-      fd.Add(event)
+    log_urn = self.EnsureLogExists()
+    AuditEventCollection.StaticAdd(log_urn, self.token, event)

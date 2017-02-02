@@ -279,8 +279,7 @@ message WindowsServiceInformation {
     }];
 
   optional string registry_key = 15 [(sem_type) = {
-      type: "RDFURN",
-      description: "The AFF4 location for the service registry key."
+      description: "The service registry key."
     }];
 
 }

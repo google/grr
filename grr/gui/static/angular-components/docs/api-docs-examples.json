@@ -10126,11 +10126,6 @@
                 "age": 42000000,
                 "type": "StatEntry",
                 "value": {
-                  "aff4path": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt"
-                  },
                   "pathspec": {
                     "age": 0,
                     "type": "PathSpec",
@@ -10219,7 +10214,6 @@
         "items": [
           {
             "payload": {
-              "aff4path": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt",
               "pathspec": {
                 "path": "/tmp/evil.txt",
                 "pathtype": "OS"

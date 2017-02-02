@@ -127,10 +127,5 @@
   </div>
 
   <script src="/static/javascript/grr.js?timestamp={{timestamp|escape}}"></script>
-  <script src="/static/javascript/renderers.js?timestamp={{timestamp|escape}}"></script>
-  {% for renderer in renderers_js %}
-  <script src="/static/javascript/plugins/{{renderer|escape}}?timestamp={{timestamp|escape}}">
-  </script>
-  {% endfor %}
 </body>
 </html>

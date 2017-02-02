@@ -24,7 +24,7 @@ class ChromeHistoryParser(parsers.FileParser):
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the History file."""
-    _, _ = stat, knowledge_base
+    _ = knowledge_base
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     chrome = ChromeParser(file_object)
     for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
@@ -34,7 +34,7 @@ class ChromeHistoryParser(parsers.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_urn=stat.aff4path,
+            source_urn=file_object.urn,
             download_path=data1)
       elif entry_type == "CHROME_VISIT":
         yield rdf_webhistory.BrowserHistoryItem(
@@ -42,7 +42,7 @@ class ChromeHistoryParser(parsers.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_urn=stat.aff4path,
+            source_urn=file_object.urn,
             title=data1)
 
 

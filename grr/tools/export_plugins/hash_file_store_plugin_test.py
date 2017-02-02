@@ -12,7 +12,6 @@ from grr.lib import events
 from grr.lib import flags
 from grr.lib import output_plugin
 from grr.lib import test_lib
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore as aff4_filestore
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -47,7 +46,7 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
         path=os.path.join(self.base_path, "winexec_img.dd"))
     pathspec.Append(
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
 
     client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(

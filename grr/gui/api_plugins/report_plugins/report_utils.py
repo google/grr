@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """UI report handling helper utils."""
+import itertools
 
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import collects
+from grr.lib.flows.general import audit
 
 
 def GetAuditLogFiles(offset, now, token):
@@ -31,8 +33,12 @@ def GetAuditLogFiles(offset, now, token):
     raise ValueError("Couldn't find any logs in aff4:/audit/logs "
                      "between %s and %s" % (oldest_time, now))
 
-  return aff4.FACTORY.MultiOpen(
+  # TODO(user): Switch to AuditEventCollection fully.
+  legacy_logs = aff4.FACTORY.MultiOpen(
       logs, aff4_type=collects.RDFValueCollection, token=token)
+  audit_logs = aff4.FACTORY.MultiOpen(
+      logs, aff4_type=audit.AuditEventCollection, token=token)
+  return itertools.chain(legacy_logs, audit_logs)
 
 
 def GetAuditLogEntries(offset, now, token):

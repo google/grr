@@ -83,8 +83,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     for i in range(10):
       responses.append(
           rdf_client.StatEntry(
-              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512L,
@@ -155,10 +155,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
-            rdf_client.Process(pid=42)
+            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="/中国新闻网新闻中", pathtype="OS")), rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
 
@@ -177,8 +175,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     for i in range(10):
       responses.append(
           rdf_client.StatEntry(
-              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512L,
@@ -221,11 +219,9 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testBigQueryPluginFallbackToAFF4(self):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
-        rdf_client.StatEntry(
-            aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-            pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
-        rdf_client.Process(pid=42), rdf_client.Process(pid=43),
-        rdf_client.SoftwarePackage(name="test.deb")
+        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+            path="/中国新闻网新闻中", pathtype="OS")), rdf_client.Process(pid=42),
+        rdf_client.Process(pid=43), rdf_client.SoftwarePackage(name="test.deb")
     ]
 
     plugin = bigquery_plugin.BigQueryOutputPlugin(

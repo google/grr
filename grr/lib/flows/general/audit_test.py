@@ -47,6 +47,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
 
       parentdir = aff4.FACTORY.Open(
           "aff4:/audit/logs", aff4.AFF4Volume, mode="r", token=self.token)
+
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
       log = aff4.CurrentAuditLog()

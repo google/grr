@@ -25,11 +25,10 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users
-# pylint: disable=unused-import
 from grr.lib.flows.general import administrative
+# pylint: disable=unused-import
 # For AuditEventListener, needed to handle published audit events.
 from grr.lib.flows.general import audit as _
 from grr.lib.flows.general import discovery
@@ -149,13 +148,13 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
     self.CheckCrash(crash, flow_obj.session_id)
 
-    # Make sure crashes RDFValueCollections are created and written
+    # Make sure crashes collections are created and written
     # into proper locations. First check the per-client crashes collection.
     client_crashes = sorted(
         list(
             aff4.FACTORY.Open(
                 self.client_id.Add("crashes"),
-                aff4_type=collects.PackedVersionedCollection,
+                aff4_type=administrative.CrashesCollection,
                 token=self.token)),
         key=lambda x: x.timestamp)
 
@@ -236,12 +235,12 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # Make sure the message is included in the email message.
       self.assertTrue(nanny_message in self.email_message["message"])
 
-      # Make sure crashes RDFValueCollections are created and written
+      # Make sure crashes collections are created and written
       # into proper locations. First check the per-client crashes collection.
       client_crashes = list(
           aff4.FACTORY.Open(
               self.client_id.Add("crashes"),
-              aff4_type=collects.PackedVersionedCollection,
+              aff4_type=administrative.CrashesCollection,
               token=self.token))
 
       self.assertEqual(len(client_crashes), 1)

@@ -1172,7 +1172,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 class GRRHTTPClient(object):
   """A class which abstracts away HTTP communications.
 
-  To create a new GRR HTTP client, intantiate this class and generate
+  To create a new GRR HTTP client, instantiate this class and generate
   its Run() method.
 
   The HTTP client starts up by loading a communicator which will read the
@@ -1199,7 +1199,7 @@ class GRRHTTPClient(object):
       maximum of one every 10 minutes.
 
     - A status code of 500 is an error, the messages are re-queued and the
-      client waits and retried to send them later.
+      client waits and retries to send them later.
   """
 
   http_manager_class = HTTPManager

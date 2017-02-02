@@ -257,7 +257,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
+    self.WaitUntil(self.IsTextPresent,
+                   "aff4:/C.0000000000000001/fs/os/some/unique/path")
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
     with self.ACLChecksDisabled():

@@ -41,7 +41,8 @@ class CollectionArchiveGenerator(object):
                archive_format=ZIP,
                prefix=None,
                description=None,
-               predicate=None):
+               predicate=None,
+               client_id=None):
     """CollectionArchiveGenerator constructor.
 
     Args:
@@ -54,6 +55,7 @@ class CollectionArchiveGenerator(object):
           'Files archive collection'.
       predicate: If not None, only the files matching the predicate will be
           archived, all others will be skipped.
+      client_id: The client_id to use when exporting a flow results collection.
     Raises:
       ValueError: if prefix is None.
     """
@@ -79,6 +81,7 @@ class CollectionArchiveGenerator(object):
     self.failed_files = []
 
     self.predicate = predicate or (lambda _: True)
+    self.client_id = client_id
 
   @property
   def output_size(self):
@@ -88,7 +91,7 @@ class CollectionArchiveGenerator(object):
     """Converts collection items to aff4 urns suitable for downloading."""
     for item in items:
       try:
-        yield flow_export.CollectionItemToAff4Path(item)
+        yield flow_export.CollectionItemToAff4Path(item, self.client_id)
       except flow_export.ItemNotExportableError:
         pass
 

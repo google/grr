@@ -67,6 +67,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   def __iter__(self):
     """Only iterate over all components from the current pointer."""
     element = self
+
     while element.HasField("pathtype"):
       yield element
 
@@ -176,6 +177,76 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   def Validate(self):
     if not self.HasField("pathtype") or self.pathtype == self.PathType.UNSET:
       raise ValueError("No path type set in PathSpec.")
+
+  AFF4_PREFIXES = {
+      0: "/fs/os",  # PathSpec.PathType.OS
+      1: "/fs/tsk",  # PathSpec.PathType.TSK
+      2: "/registry",  # PathSpec.PathType.REGISTRY
+      3: "/devices/memory",  # PathSpec.PathType.MEMORY
+      4: "/temp",  # PathSpec.PathType.TMPFILE
+  }
+
+  def AFF4Path(self, client_urn):
+    """Returns the AFF4 URN this pathspec will be stored under.
+
+    Args:
+      client_urn: A ClientURN.
+
+    Returns:
+      A urn that corresponds to this pathspec.
+
+    Raises:
+      ValueError: If pathspec is not of the correct type.
+    """
+    # If the first level is OS and the second level is TSK its probably a mount
+    # point resolution. We map it into the tsk branch. For example if we get:
+    # path: \\\\.\\Volume{1234}\\
+    # pathtype: OS
+    # mount_point: /c:/
+    # nested_path {
+    #    path: /windows/
+    #    pathtype: TSK
+    # }
+    # We map this to aff4://client_id/fs/tsk/\\\\.\\Volume{1234}\\/windows/
+
+    if not self.HasField("pathtype"):
+      raise ValueError("Can't determine AFF4 path without a valid pathtype.")
+
+    first_component = self[0]
+    dev = first_component.path
+    if first_component.HasField("offset"):
+      # We divide here just to get prettier numbers in the GUI
+      dev += ":" + str(first_component.offset / 512)
+
+    if (len(self) > 1 and first_component.pathtype == PathSpec.PathType.OS and
+        self[1].pathtype == PathSpec.PathType.TSK):
+      result = [self.AFF4_PREFIXES[PathSpec.PathType.TSK], dev]
+
+      # Skip the top level pathspec.
+      start = 1
+    else:
+      # For now just map the top level prefix based on the first pathtype
+      result = [self.AFF4_PREFIXES[first_component.pathtype]]
+      start = 0
+
+    for p in self[start]:
+      component = p.path
+
+      # The following encode different pathspec properties into the AFF4 path in
+      # such a way that unique files on the client are mapped to unique URNs in
+      # the AFF4 space. Note that this transformation does not need to be
+      # reversible since we always use the PathSpec when accessing files on the
+      # client.
+      if p.HasField("offset"):
+        component += ":" + str(p.offset / 512)
+
+      # Support ADS names.
+      if p.HasField("stream_name"):
+        component += ":" + p.stream_name
+
+      result.append(component)
+
+    return client_urn.Add("/".join(result))
 
 
 class GlobExpression(rdfvalue.RDFString):

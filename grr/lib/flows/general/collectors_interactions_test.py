@@ -16,7 +16,6 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
@@ -76,7 +75,7 @@ supported_os: [ "Linux" ]
           cmd_artifact):
         with aff4.FACTORY.Create(
             "aff4:/artifact_store",
-            aff4_type=collects.RDFValueCollection,
+            aff4_type=artifact_registry.ArtifactCollection,
             token=self.token,
             mode="rw") as artifact_coll:
           artifact_coll.Add(artifact_val)

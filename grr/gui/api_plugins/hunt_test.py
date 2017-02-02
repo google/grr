@@ -391,7 +391,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         wrong_result = rdf_flows.GrrMessage(
             payload=rdfvalue.RDFString("foo/bar"),
             age=(original_result.age - (self.handler.MAX_RECORDS_TO_CHECK - i +
-                                        1) * rdfvalue.Duration("1s")))
+                                        1) * rdfvalue.Duration("1s")),
+            source=self.client_id)
         new_results.Add(wrong_result, timestamp=wrong_result.age)
 
     return original_result
@@ -426,9 +427,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     original_result = original_results[0]
 
     with aff4.FACTORY.Create(
-        original_result.payload.stat_entry.aff4path,
+        original_result.payload.stat_entry.AFF4Path(self.client_id),
         aff4_type=aff4.AFF4Volume,
-        token=self.token) as _:
+        token=self.token):
       pass
 
     args = hunt_plugin.ApiGetHuntFileArgs(
@@ -444,12 +445,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
     original_result = original_results[0]
 
-    aff4.FACTORY.Delete(
-        original_result.payload.stat_entry.aff4path, token=self.token)
-    with aff4.FACTORY.Create(
-        original_result.payload.stat_entry.aff4path,
-        aff4_type=aff4_grr.VFSFile,
-        token=self.token) as _:
+    urn = original_result.payload.stat_entry.AFF4Path(self.client_id)
+    aff4.FACTORY.Delete(urn, token=self.token)
+    with aff4.FACTORY.Create(urn, aff4_type=aff4_grr.VFSFile, token=self.token):
       pass
 
     args = hunt_plugin.ApiGetHuntFileArgs(

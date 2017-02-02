@@ -1,0 +1,21 @@
+<h3>{{ controller.errorMsg }}</h3>
+
+<table class="table table-striped table-condensed table-hover table-bordered
+              full-width">
+  <thead>
+    <tr>
+      <th ng-repeat="titleCaseLabel in controller.auditTitleCaseUsedFields
+                     track by $index">
+        {{ titleCaseLabel }}
+      </th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr ng-repeat="row in controller.typedAuditRows track by $index">
+      <td ng-repeat="label in controller.auditUsedFields track by $index">
+        <grr-semantic-value value="row.value[label]"></grr-semantic-value>
+      </td>
+    </tr>
+  </tbody>
+</table>

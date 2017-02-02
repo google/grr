@@ -519,10 +519,9 @@ users:
     results = list(flow_obj.ListResults())
     self.assertEqual(len(results), 3)
     # We expect results to be FileFinderResult.
-    self.assertEqual(
-        sorted(
-            os.path.basename(r.payload.stat_entry.aff4path) for r in results),
-        sorted(["test.plist", "numbers.txt", "numbers.txt.ver2"]))
+    self.assertItemsEqual(
+        [os.path.basename(r.payload.stat_entry.pathspec.path) for r in results],
+        ["test.plist", "numbers.txt", "numbers.txt.ver2"])
 
     # Now downloads the files archive.
     zip_stream = StringIO.StringIO()

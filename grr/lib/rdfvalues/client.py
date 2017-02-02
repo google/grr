@@ -648,6 +648,9 @@ class StatEntry(structs.RDFProtoStruct):
   """Represent an extended stat response."""
   protobuf = jobs_pb2.StatEntry
 
+  def AFF4Path(self, client_urn):
+    return self.pathspec.AFF4Path(client_urn)
+
 
 class FindSpec(structs.RDFProtoStruct):
   """A find specification."""

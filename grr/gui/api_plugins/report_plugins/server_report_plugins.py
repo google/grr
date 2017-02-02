@@ -14,6 +14,192 @@ from grr.lib.aff4_objects import users as aff4_users
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
 
 
+class ClientApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
+  """Given timerange's client approvals."""
+
+  TYPE = TYPE
+  TITLE = "Client Approvals"
+  SUMMARY = "Client approval requests and grants for the given timerange."
+  REQUIRES_TIME_RANGE = True
+
+  USED_FIELDS = ["action", "client", "description", "timestamp", "user"]
+  TYPES = [
+      events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+      events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+      events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST
+  ]
+
+  def GetReportData(self, get_report_args, token):
+    """Filter the cron job approvals in the given timerange."""
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
+        AUDIT_CHART,
+        audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            used_fields=self.__class__.USED_FIELDS))
+
+    try:
+      timerange_offset = get_report_args.duration
+      timerange_end = get_report_args.start_time + timerange_offset
+
+      rows = []
+      try:
+        for event in report_utils.GetAuditLogEntries(timerange_offset,
+                                                     timerange_end, token):
+          if event.action in self.__class__.TYPES:
+            rows.append(event)
+
+      except ValueError:  # Couldn't find any logs..
+        pass
+
+    except IOError:
+      pass
+
+    rows.sort(key=lambda row: row.timestamp, reverse=True)
+    ret.audit_chart.rows = rows
+
+    return ret
+
+
+class CronApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
+  """Given timerange's cron job approvals."""
+
+  TYPE = TYPE
+  TITLE = "Cron Job Approvals"
+  SUMMARY = "Cron job approval requests and grants for the given timerange."
+  REQUIRES_TIME_RANGE = True
+
+  USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
+  TYPES = [
+      events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+      events.AuditEvent.Action.CRON_APPROVAL_REQUEST
+  ]
+
+  def GetReportData(self, get_report_args, token):
+    """Filter the cron job approvals in the given timerange."""
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
+        AUDIT_CHART,
+        audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            used_fields=self.__class__.USED_FIELDS))
+
+    try:
+      timerange_offset = get_report_args.duration
+      timerange_end = get_report_args.start_time + timerange_offset
+
+      rows = []
+      try:
+        for event in report_utils.GetAuditLogEntries(timerange_offset,
+                                                     timerange_end, token):
+          if event.action in self.__class__.TYPES:
+            rows.append(event)
+
+      except ValueError:  # Couldn't find any logs..
+        pass
+
+    except IOError:
+      pass
+
+    rows.sort(key=lambda row: row.timestamp, reverse=True)
+    ret.audit_chart.rows = rows
+
+    return ret
+
+
+class HuntActionsReportPlugin(report_plugin_base.ReportPluginBase):
+  """Hunt actions in the given timerange."""
+
+  TYPE = TYPE
+  TITLE = "Hunts"
+  SUMMARY = "Hunt management actions for the given timerange."
+  REQUIRES_TIME_RANGE = True
+
+  USED_FIELDS = [
+      "action", "description", "flow_name", "timestamp", "urn", "user"
+  ]
+  TYPES = [
+      events.AuditEvent.Action.HUNT_CREATED,
+      events.AuditEvent.Action.HUNT_MODIFIED,
+      events.AuditEvent.Action.HUNT_PAUSED,
+      events.AuditEvent.Action.HUNT_STARTED,
+      events.AuditEvent.Action.HUNT_STOPPED
+  ]
+
+  def GetReportData(self, get_report_args, token):
+    """Filter the hunt actions in the given timerange."""
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
+        AUDIT_CHART,
+        audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            used_fields=self.__class__.USED_FIELDS))
+
+    try:
+      timerange_offset = get_report_args.duration
+      timerange_end = get_report_args.start_time + timerange_offset
+
+      rows = []
+      try:
+        for event in report_utils.GetAuditLogEntries(timerange_offset,
+                                                     timerange_end, token):
+          if event.action in self.__class__.TYPES:
+            rows.append(event)
+
+      except ValueError:  # Couldn't find any logs..
+        pass
+
+    except IOError:
+      pass
+
+    rows.sort(key=lambda row: row.timestamp, reverse=True)
+    ret.audit_chart.rows = rows
+
+    return ret
+
+
+class HuntApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
+  """Given timerange's hunt approvals."""
+
+  TYPE = TYPE
+  TITLE = "Hunt Approvals"
+  SUMMARY = "Hunt approval requests and grants for the given timerange."
+  REQUIRES_TIME_RANGE = True
+
+  USED_FIELDS = ["action", "description", "timestamp", "urn", "user"]
+  TYPES = [
+      events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+      events.AuditEvent.Action.HUNT_APPROVAL_REQUEST
+  ]
+
+  def GetReportData(self, get_report_args, token):
+    """Filter the hunt approvals in the given timerange."""
+    ret = rdf_report_plugins.ApiReportData(
+        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
+        AUDIT_CHART,
+        audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+            used_fields=self.__class__.USED_FIELDS))
+
+    try:
+      timerange_offset = get_report_args.duration
+      timerange_end = get_report_args.start_time + timerange_offset
+
+      rows = []
+      try:
+        for event in report_utils.GetAuditLogEntries(timerange_offset,
+                                                     timerange_end, token):
+          if event.action in self.__class__.TYPES:
+            rows.append(event)
+
+      except ValueError:  # Couldn't find any logs..
+        pass
+
+    except IOError:
+      pass
+
+    rows.sort(key=lambda row: row.timestamp, reverse=True)
+    ret.audit_chart.rows = rows
+
+    return ret
+
+
 class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
   """Reports client activity by week."""
 

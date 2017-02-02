@@ -16,7 +16,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
@@ -61,7 +61,7 @@ class ArtifactRegistry(object):
     for artifact_coll_urn in source_urns or set():
       with aff4.FACTORY.Create(
           artifact_coll_urn,
-          aff4_type=collects.RDFValueCollection,
+          aff4_type=ArtifactCollection,
           token=token,
           mode="rw") as artifact_coll:
         for artifact_value in artifact_coll:
@@ -854,6 +854,10 @@ class ArtifactDescriptor(structs.RDFProtoStruct):
   protobuf = artifact_pb2.ArtifactDescriptor
 
 
+class ArtifactCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = Artifact
+
+
 def DeleteArtifactsFromDatastore(artifact_names,
                                  reload_artifacts=True,
                                  token=None):
@@ -878,7 +882,7 @@ def DeleteArtifactsFromDatastore(artifact_names,
   with aff4.FACTORY.Create(
       "aff4:/artifact_store",
       mode="r",
-      aff4_type=collects.RDFValueCollection,
+      aff4_type=ArtifactCollection,
       token=token) as store:
     all_artifacts = list(store)
 
@@ -895,7 +899,7 @@ def DeleteArtifactsFromDatastore(artifact_names,
                      ",".join(not_found))
 
   # TODO(user): this is ugly and error- and race-condition- prone.
-  # We need to store artifacts not in an RDFValueCollection, which is an
+  # We need to store artifacts not in a *Collection, which is an
   # append-only object, but in some different way that allows easy
   # deletion. Possible option - just store each artifact in a separate object
   # in the same folder.
@@ -904,7 +908,7 @@ def DeleteArtifactsFromDatastore(artifact_names,
   with aff4.FACTORY.Create(
       "aff4:/artifact_store",
       mode="w",
-      aff4_type=collects.RDFValueCollection,
+      aff4_type=ArtifactCollection,
       token=token) as store:
     for artifact_value in filtered_artifacts:
       store.Add(artifact_value)

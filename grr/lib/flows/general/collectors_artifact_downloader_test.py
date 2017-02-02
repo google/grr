@@ -101,7 +101,6 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
     return rdf_client.StatEntry(
-        aff4path=self.client_id.Add("registry").Add(path),
         pathspec=pathspec,
         registry_data=rdf_protodict.DataBlob().SetValue(value),
         registry_type=rdf_client.StatEntry.RegistryType.REG_SZ)

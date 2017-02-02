@@ -11,12 +11,13 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # For file collection artifacts. pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
 # pylint: enable=unused-import
@@ -25,6 +26,7 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
@@ -34,6 +36,10 @@ from grr.parsers import registry_init
 # pylint: enable=unused-import
 from grr.parsers import windows_persistence
 from grr.proto import flows_pb2
+
+
+class AnomalyCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = anomaly.Anomaly
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -630,13 +636,20 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
     if self.state.client_anomalies:
-      with aff4.FACTORY.Create(
-          self.client_id.Add("anomalies"),
-          collects.RDFValueCollection,
-          token=self.token,
-          mode="rw") as store:
+      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+        collection_urn = self.client_id.Add("anomalies")
+        aff4.FACTORY.Create(
+            collection_urn,
+            AnomalyCollection,
+            token=self.token,
+            mode="rw",
+            mutation_pool=mutation_pool).Close()
         for anomaly_value in self.state.client_anomalies:
-          store.Add(anomaly_value)
+          AnomalyCollection.StaticAdd(
+              collection_urn,
+              self.token,
+              anomaly_value,
+              mutation_pool=mutation_pool)
 
   @flow.StateHandler()
   def ProcessCollectedRegistryStatEntry(self, responses):
@@ -791,7 +804,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         urn = "_".join((str(self.runner.output_urn),
                         utils.SmartStr(artifact_name)))
         collection = aff4.FACTORY.Create(
-            urn, collects.RDFValueCollection, mode="rw", token=self.token)
+            urn,
+            sequential_collection.GeneralIndexedCollection,
+            mode="rw",
+            token=self.token)
         # Cache the opened object.
         output_collection_map[artifact_name] = collection
       output_collection_map[artifact_name].Add(result)
@@ -953,7 +969,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
       path_type = paths.PathSpec.PathType.OS
 
     parser = windows_persistence.WindowsPersistenceMechanismsParser()
-    parsed_items = list(parser.Parse(response, knowledge_base, path_type))
+    parsed_items = parser.Parse(response, knowledge_base, path_type)
 
     return [item.pathspec for item in parsed_items]
 

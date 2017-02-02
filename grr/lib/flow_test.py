@@ -397,8 +397,7 @@ class FlowCreationTest(BasicFlowTest):
     with aff4.FACTORY.Open(
         flow_urn.Add("Logs"), age=aff4.ALL_TIMES,
         token=self.token) as log_collection:
-      count = 0
-      # Can't use len with PackedVersionCollection
+      self.assertEqual(len(log_collection), 8)
       for log in log_collection:
         self.assertEqual(log.client_id, self.client_id)
         self.assertTrue(log.log_message in [
@@ -406,8 +405,6 @@ class FlowCreationTest(BasicFlowTest):
         ])
         self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
         self.assertTrue(str(flow_urn) in str(log.urn))
-        count += 1
-      self.assertEqual(count, 8)
 
   def testFlowStoresResultsPerType(self):
     flow_urn = None
@@ -955,8 +952,6 @@ class GeneralFlowsTest(BasicFlowTest):
 
       # Make sure that the resulting directory is what it should be
       for x, y in zip(result, directory2):
-        x.aff4path = None
-
         self.assertEqual(x.st_mode, y.st_mode)
         self.assertRDFValuesEqual(x, y)
 

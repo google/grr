@@ -17,12 +17,8 @@ from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.hunts import process_results
-from grr.lib.output_plugins import csv_plugin
 
 
 class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
@@ -226,57 +222,6 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr.row-selected td:contains('GenericHunt')")
     self.WaitUntil(self.IsTextPresent, str(hunt.urn))
-
-  def testListOfCSVFilesIsNotShownWhenHuntProducedNoResults(self):
-    with self.ACLChecksDisabled():
-      self.client_ids = self.SetupClients(10)
-
-      # Create hunt without results.
-      self.CreateSampleHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(
-              plugin_name=csv_plugin.CSVOutputPlugin.__name__)
-      ])
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=td:contains('GenericHunt')")
-
-    # Click the Results tab.
-    self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsTextPresent, "CSV Output")
-    self.WaitUntil(self.IsTextPresent, "Nothing was written yet")
-
-  def testShowsFilesAndAllowsDownloadWhenCSVExportIsUsed(self):
-    with self.ACLChecksDisabled():
-      self.client_ids = self.SetupClients(10)
-
-      # Create hunt.
-      self.CreateSampleHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(
-              plugin_name=csv_plugin.CSVOutputPlugin.__name__)
-      ])
-
-      # Actually run created hunt.
-      client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-      # Make sure results are processed.
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=process_results.ProcessHuntResultCollectionsCronFlow.
-          __name__,
-          token=self.token)
-      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
-        pass
-
-    self.Open("/#main=ManageHunts")
-    self.Click("css=td:contains('GenericHunt')")
-
-    # Click the Results tab.
-    self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsTextPresent, "Following files were written")
-
-    # Check that displayed file can be downloaded.
-    self.Click("css=a:contains('ExportedFile.csv')")
-    self.WaitUntil(self.FileWasDownloaded)
 
   def testLogsTabShowsLogsFromAllClients(self):
     with self.ACLChecksDisabled():

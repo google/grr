@@ -3,11 +3,11 @@
 goog.provide('grrUi.client.module');
 goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
 goog.require('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
+goog.require('grrUi.client.clientContextDirective.ClientContextDirective');
 goog.require('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
 goog.require('grrUi.client.clientDialogService.ClientDialogService');
 goog.require('grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective');
 goog.require('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
-goog.require('grrUi.client.clientStatsViewDirective.ClientStatsViewDirective');
 goog.require('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
 goog.require('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
 goog.require('grrUi.client.clientsListDirective.ClientsListDirective');
@@ -38,6 +38,9 @@ grrUi.client.module.directive(
 grrUi.client.module.directive(
     grrUi.client.checkClientAccessDirective.CheckClientAccessDirective.directive_name,
     grrUi.client.checkClientAccessDirective.CheckClientAccessDirective);
+grrUi.client.module.directive(
+    grrUi.client.clientContextDirective.ClientContextDirective.directive_name,
+    grrUi.client.clientContextDirective.ClientContextDirective);
 grrUi.client.module.directive(
     grrUi.client.clientCrashesDirective.ClientCrashesDirective.directive_name,
     grrUi.client.clientCrashesDirective.ClientCrashesDirective);
@@ -70,9 +73,6 @@ grrUi.client.module.directive(
         .RemoveClientsLabelsDialogDirective.directive_name,
     grrUi.client.removeClientsLabelsDialogDirective
         .RemoveClientsLabelsDialogDirective);
-grrUi.client.module.directive(
-    grrUi.client.clientStatsViewDirective.ClientStatsViewDirective.directive_name,
-    grrUi.client.clientStatsViewDirective.ClientStatsViewDirective);
 
 grrUi.core.module.service(
     grrUi.client.clientDialogService.ClientDialogService.service_name,

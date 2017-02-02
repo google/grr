@@ -60,8 +60,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     for i in range(10):
       responses.append(
           rdf_client.StatEntry(
-              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512L,
@@ -112,10 +112,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/foo/bar"),
-                pathspec=rdf_paths.PathSpec(path="/foo/bar")),
-            rdf_client.Process(pid=42)
+            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="/foo/bar", pathtype="OS")), rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
 
@@ -155,9 +153,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))
+            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="/中国新闻网新闻中", pathtype="OS"))
         ],
         process_responses_separately=True)
 
@@ -184,8 +181,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     for i in range(10):
       responses.append(
           rdf_client.StatEntry(
-              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS"),
               st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
               st_ino=1063090,
               st_dev=64512L,
@@ -248,9 +245,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testCSVPluginWithValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client.StatEntry: [
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/foo/bar"),
-                pathspec=rdf_paths.PathSpec(path="/foo/bar"))
+            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="/foo/bar", pathtype="OS"))
         ],
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
@@ -303,9 +299,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testCSVPluginWritesUnicodeValuesCorrectly(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client.StatEntry: [
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))
+            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="/中国新闻网新闻中", pathtype="OS"))
         ]
     })
     self.assertEqual(
@@ -329,9 +324,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     responses = []
     for i in range(num_rows):
       responses.append(
-          rdf_client.StatEntry(
-              aff4path=self.client_id.Add("/fs/os/foo/bar/%d" % i),
-              pathspec=rdf_paths.PathSpec(path="/foo/bar/%d" % i)))
+          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+              path="/foo/bar/%d" % i, pathtype="OS")))
 
     zip_fd, prefix = self.ProcessValuesToZip({rdf_client.StatEntry: responses})
     parsed_output = list(

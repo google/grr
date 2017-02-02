@@ -100,7 +100,7 @@ function install_wget() {
 
 # We need a newer version of python that what lucid ships with.
 function install_python_from_source() {
-  PYTHON_VERSION=2.7.12
+  PYTHON_VERSION=2.7.13
 
   if [ $DISTRO == "Ubuntu" ]; then
     # This is essentially "apt-get build-dep python2.6|7" but without

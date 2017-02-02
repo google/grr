@@ -4,7 +4,6 @@
 from grr.lib import action_mocks
 from grr.lib import events
 from grr.lib import test_lib
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -17,7 +16,7 @@ def AddFileToFileStore(pathspec=None, client_id=None, token=None):
   if client_id is None:
     raise ValueError("client_id can't be None")
 
-  urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
+  urn = pathspec.AFF4Path(client_id)
 
   client_mock = action_mocks.GetFileClientMock()
   for _ in test_lib.TestFlowHelper(

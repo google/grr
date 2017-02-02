@@ -237,6 +237,18 @@ def DownloadCollection(coll_path,
   thread_pool = threadpool.ThreadPool.Factory("Downloader", max_threads)
   thread_pool.Start()
 
+  # Extract the client id from the source urn. This code makes me
+  # quite sad but there is just no concept of passing a client id in
+  # the export tool (and this would be unsafe anyways since the user
+  # could then download files from arbitrary machines easily). The
+  # export tool is on the way to deprecation so we decided to do this
+  # instead of fixing the obsolete code.
+  client_id = coll.urn.Split()[0]
+  try:
+    original_client_id = rdf_client.ClientURN(coll.urn.Split()[0])
+  except IOError:
+    original_client_id = None
+
   logging.info("Expecting to download %s files", len(coll))
 
   # Collections can include anything they want, but we only handle RDFURN and
@@ -251,12 +263,13 @@ def DownloadCollection(coll_path,
     if isinstance(grr_message, rdfvalue.RDFURN):
       urn = grr_message
     elif isinstance(grr_message, rdf_client.StatEntry):
-      urn = rdfvalue.RDFURN(grr_message.aff4path)
+      urn = rdfvalue.RDFURN(grr_message.AFF4Path(source or original_client_id))
     elif isinstance(grr_message, rdf_file_finder.FileFinderResult):
-      urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
+      urn = rdfvalue.RDFURN(
+          grr_message.stat_entry.AFF4Path(source or original_client_id))
     elif isinstance(grr_message, collectors.ArtifactFilesDownloaderResult):
       if grr_message.HasField("downloaded_file"):
-        urn = grr_message.downloaded_file.aff4path
+        urn = grr_message.downloaded_file.AFF4Path(source or original_client_id)
       else:
         continue
     elif isinstance(grr_message, rdfvalue.RDFBytes):
@@ -276,13 +289,14 @@ def DownloadCollection(coll_path,
       continue
 
     # Handle dumping client info, but only once per client.
-    client_id = urn.Split()[0]
-    re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_id)
-    if dump_client_info and re_match and client_id not in completed_clients:
-      args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
-      thread_pool.AddTask(
-          target=DumpClientYaml, args=args, name="ClientYamlDownloader")
-      completed_clients.add(client_id)
+    if dump_client_info:
+      client_id = urn.Split()[0]
+      re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_id)
+      if re_match and client_id not in completed_clients:
+        args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
+        thread_pool.AddTask(
+            target=DumpClientYaml, args=args, name="ClientYamlDownloader")
+        completed_clients.add(client_id)
 
     # Now queue downloading the actual files.
     args = (urn, target_path, token, overwrite)

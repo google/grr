@@ -11,7 +11,6 @@ import logging
 
 from grr.lib import config_lib
 from grr.lib import registry
-from grr.lib.aff4_objects import collects as collections_aff4
 from grr.lib.checks import filters
 from grr.lib.checks import hints
 from grr.lib.checks import triggers
@@ -67,11 +66,6 @@ class CheckResult(rdf_structs.RDFProtoStruct):
     for o in other:
       if o is not None:
         self.anomaly.Extend(list(o.anomaly))
-
-
-class CheckResultsCollection(collections_aff4.RDFValueCollection):
-  """A collection of check results."""
-  _rdf_type = CheckResult
 
 
 class CheckResults(rdf_structs.RDFProtoStruct):

@@ -350,7 +350,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       i = 0
       for i, x in enumerate(collection):
         self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
-        self.assertEqual(x.payload.aff4path.Split(2)[-1], "fs/os/tmp/evil.txt")
+        self.assertEqual(
+            x.payload.AFF4Path(x.source).Split(2)[-1], "fs/os/tmp/evil.txt")
 
       self.assertEqual(i, 4)
 
@@ -359,7 +360,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       for i, x in enumerate(per_type_collection):
         self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
-        self.assertEqual(x.payload.aff4path.Split(2)[-1], "fs/os/tmp/evil.txt")
+        self.assertEqual(
+            x.payload.AFF4Path(x.source).Split(2)[-1], "fs/os/tmp/evil.txt")
 
       self.assertListEqual(per_type_collection.ListStoredTypes(),
                            [rdf_client.StatEntry.__name__])

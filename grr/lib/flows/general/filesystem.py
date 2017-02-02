@@ -29,8 +29,7 @@ stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
   """This creates a File or a Directory from a stat response."""
 
-  stat_response.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
-      stat_response.pathspec, client_id)
+  urn = stat_response.pathspec.AFF4Path(client_id)
 
   if stat_response.pathspec.last.stream_name:
     # This is an ads. In that case we always need to create a file or
@@ -45,7 +44,7 @@ def CreateAFF4Object(stat_response, client_id, token, sync=False):
   else:
     ftype = aff4_grr.VFSFile
 
-  fd = aff4.FACTORY.Create(stat_response.aff4path, ftype, mode="w", token=token)
+  fd = aff4.FACTORY.Create(urn, ftype, mode="w", token=token)
   fd.Set(fd.Schema.STAT(stat_response))
   fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
   fd.Close(sync=sync)
@@ -91,8 +90,7 @@ class ListDirectory(flow.GRRFlow):
 
       # The full path of the object is the combination of the client_id and the
       # path.
-      self.state.urn = aff4_grr.VFSGRRClient.PathspecToURN(stat_entry.pathspec,
-                                                           self.client_id)
+      self.state.urn = stat_entry.pathspec.AFF4Path(self.client_id)
 
   @flow.StateHandler()
   def List(self, responses):
@@ -180,8 +178,7 @@ class IteratedListDirectory(ListDirectory):
 
     directory_pathspec = self.state.responses[0].pathspec.Dirname()
 
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(directory_pathspec,
-                                              self.client_id)
+    urn = directory_pathspec.AFF4Path(self.client_id)
 
     # First dir we get back is the main urn.
     if not self.state.urn:
@@ -236,8 +233,7 @@ class RecursiveListDirectory(flow.GRRFlow):
 
       directory_pathspec = response.pathspec.Dirname()
 
-      urn = aff4_grr.VFSGRRClient.PathspecToURN(directory_pathspec,
-                                                self.client_id)
+      urn = directory_pathspec.AFF4Path(self.client_id)
 
       self.StoreDirectory(responses)
 
@@ -280,9 +276,8 @@ class RecursiveListDirectory(flow.GRRFlow):
 
     urn = None
     try:
-      urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
-                                                self.client_id)
-    except IndexError:
+      urn = self.args.pathspec.AFF4Path(self.client_id)
+    except ValueError:
       pass
 
     self.Notify("ViewObject", self.state.first_directory or urn,
@@ -537,8 +532,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
     # If the file was big enough, we'll store it as an AFF4SparseImage
     if client_stat.st_size > self.args.size_threshold:
-      urn = aff4_grr.VFSGRRClient.PathspecToURN(self.state.pathspec,
-                                                self.client_id)
+      urn = self.state.pathspec.AFF4Path(self.client_id)
 
       # TODO(user) When we can check the last update time of the
       # contents of a file, raise if the contents have been updated before here.

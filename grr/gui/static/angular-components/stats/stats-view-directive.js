@@ -36,27 +36,6 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
   /** @type {string|null} */
   this.clientLabel;
 
-  // TODO(user): Deprecated, remove the following code after statistics are
-  //                migrated...
-
-  /** @type {string} */
-  this.selection;
-
-  /** @type {boolean} */
-  this.loaded;
-
-  // Most jsTree instances are still rendered using the legacy GRR code. Until
-  // all parts are migrated, the following event can be used to update URLs
-  // based on tree selection.
-  this.scope_.$on('grrTreeSelectionChanged', function(event, nodeId) {
-    this.grrRoutingService_.go('stats', {selection: nodeId});
-  }.bind(this));
-
-  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'selection',
-      this.onSelectionChange_.bind(this));
-
-  // TODO(user): ...until this line.
-
   this.grrRoutingService_.uiOnParamsChanged(
       this.scope_,
       ['name', 'start_time', 'duration', 'client_label'],
@@ -140,19 +119,6 @@ StatsViewController.prototype.onControllerParamsChange_ = function() {
   }
 
   this.grrRoutingService_.go('stats', urlParams);
-};
-
-// TODO(user): Deprecated, remove the following function after statistics are
-//                migrated...
-/**
- * Handles changes to the selection state param.
- *
- * @param {string} selection The new selection.
- * @private
- */
-StatsViewController.prototype.onSelectionChange_ = function(selection) {
-  this.selection = selection;
-  this.loaded = true;
 };
 
 /**

@@ -20,6 +20,7 @@ from grr.lib.hunts import results
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.tools.export_plugins import collection_plugin
 
 
@@ -30,7 +31,6 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
 
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
-    self.out = self.client_id.Add("fs/os")
 
     data_store.default_token = access_control.ACLToken(
         username="user", reason="reason")
@@ -40,7 +40,8 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
         "aff4:/huntcoll", results.HuntResultCollection, token=self.token) as fd:
       fd.Add(
           rdf_flows.GrrMessage(
-              payload=rdf_client.StatEntry(aff4path=self.out.Add("testfile")),
+              payload=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                  path="testfile", pathtype="OS")),
               source=self.client_id))
 
     plugin = collection_plugin.CollectionExportPlugin()
@@ -65,7 +66,8 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
         "aff4:/testcoll", collects.RDFValueCollection, token=self.token)
     fd.Add(
         rdf_flows.GrrMessage(
-            payload=rdf_client.StatEntry(aff4path=self.out.Add("testfile")),
+            payload=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="testfile", pathtype="OS")),
             source=self.client_id))
     fd.Close()
 

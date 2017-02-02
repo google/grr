@@ -25,6 +25,7 @@ from grr.lib.flows.general import administrative
 from grr.lib.hunts import implementation
 
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -771,7 +772,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
         self.reference.discovery.client_id = components[0]
       else:
         path = notification.subject.Path()
-        for prefix in aff4_grr.VFSGRRClient.AFF4_PREFIXES.values():
+        for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
           part = "/%s%s" % (components[0], prefix)
           if path.startswith(part):
             self.reference.type = reference_type_enum.VFS

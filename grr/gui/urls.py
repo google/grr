@@ -22,8 +22,6 @@ def GetURLPatterns():
       (r"^$", view_base + "Homepage"),
       # Automatic rendering is done here
       (r"^api/.+", view_base + "RenderApi"),
-      (r"^render/[^/]+/.*", view_base + "RenderGenericRenderer"),
-      (r"^download/[^/]+/.*", view_base + "RenderBinaryDownload"),
       (r"^static/(.*)$", static_handler, {
           "document_root": config_lib.CONFIG["AdminUI.document_root"]
       }),

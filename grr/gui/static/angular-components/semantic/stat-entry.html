@@ -1,0 +1,21 @@
+<table class="proto_table">
+  <tbody>
+    <tr>
+      <td class="proto_key">
+        <abbr title="The location of this file in the AFF4 space.">Aff4path</abbr>
+      </td>
+      <td class="proto_value">
+        <grr-semantic-value value="::controller.aff4Path"></grr-semantic-value>
+
+        <button ng-if="::controller.downloadUrl !== undefined"
+                class="btn btn-default btn-xs" name="download"
+                type="button" ng-click="controller.onDownloadClick()">
+          <span class="glyphicon glyphicon-download"></span>
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<grr-semantic-proto value="::controller.statEntry"
+                    hidden-fields="::['aff4path']">
+</grr-semantic-proto>

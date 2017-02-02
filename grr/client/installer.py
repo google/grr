@@ -12,12 +12,9 @@ import logging
 import os
 import sys
 
-from grr.client import comms
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class Installer(registry.HookRegistry):
@@ -30,41 +27,6 @@ class Installer(registry.HookRegistry):
   """
 
   __metaclass__ = registry.MetaclassRegistry
-
-
-def InstallerNotifyServer():
-  """An emergency function Invoked when the client installation failed."""
-  # We make a temporary emergency config file to contain the new client id. Note
-  # that the notification callback does not really mean anything to us, since
-  # the client is not installed and we dont have basic interrogate information.
-  config_lib.CONFIG.SetWriteBack("temp.yaml")
-
-  try:
-    log_data = open(config_lib.CONFIG["Installer.logfile"], "rb").read()
-  except (IOError, OSError):
-    log_data = ""
-
-  # Start the client and send the server a message, then terminate. The
-  # private key may be empty if we did not install properly yet. In this case,
-  # the client will automatically generate a random client ID and private key
-  # (and the message will be unauthenticated since we never enrolled.).
-  comms.CommsInit().RunOnce()
-
-  client = comms.GRRHTTPClient(
-      ca_cert=config_lib.CONFIG["CA.certificate"],
-      private_key=config_lib.CONFIG.Get("Client.private_key"))
-
-  client.client_worker.SendReply(
-      session_id=rdfvalue.FlowSessionID(flow_name="InstallationFailed"),
-      message_type=rdf_flows.GrrMessage.Type.STATUS,
-      request_id=0,
-      response_id=0,
-      rdf_value=rdf_flows.GrrStatus(
-          status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-          error_message="Installation failed.",
-          backtrace=log_data[-10000:]))
-
-  client.RunOnce()
 
 
 def RunInstaller():
@@ -105,9 +67,6 @@ def RunInstaller():
     # Ouch! we failed to install... Not a lot we can do
     # here - just log the error and give up.
     logging.exception("Installation failed: %s", e)
-
-    # Let the server know about this just in case.
-    InstallerNotifyServer()
 
     # Error return status.
     sys.exit(-1)

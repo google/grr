@@ -56,7 +56,7 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
         self.assertEqual(
             str(reply.hash_entry.md5), "12be1109aa3d3b46c9398972af2008e1")
 
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = pathspec.AFF4Path(self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
 

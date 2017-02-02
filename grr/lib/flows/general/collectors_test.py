@@ -338,11 +338,12 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             client_id=self.client_id):
           session_id = s
 
-    # Test the statentry got stored with the correct aff4path.
+    # Test the statentry got stored.
     fd = aff4.FACTORY.Open(
         session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
-    self.assertTrue(str(fd[0].aff4path).endswith("BootExecute"))
+    urn = fd[0].pathspec.AFF4Path(self.client_id)
+    self.assertTrue(str(urn).endswith("BootExecute"))
 
   def testRegistryDefaultValueArtifact(self):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,

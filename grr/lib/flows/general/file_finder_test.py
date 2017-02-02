@@ -126,10 +126,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(output), len(fnames))
 
       sorted_output = sorted(
-          output, key=lambda x: x.stat_entry.aff4path.Basename())
+          output,
+          key=lambda x: x.stat_entry.AFF4Path(self.client_id).Basename())
       for fname, result in zip(sorted(fnames), sorted_output):
         self.assertTrue(isinstance(result, rdf_file_finder.FileFinderResult))
-        self.assertEqual(result.stat_entry.aff4path.Basename(), fname)
+        self.assertEqual(
+            result.stat_entry.AFF4Path(self.client_id).Basename(), fname)
     else:
       # No results expected.
       results = aff4.FACTORY.Open(
@@ -262,7 +264,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         paths=paths)
 
     stat_entries = [result[1].stat_entry for result in results]
-    result_paths = [stat.aff4path for stat in stat_entries]
+    result_paths = [stat.AFF4Path(self.client_id) for stat in stat_entries]
 
     self.assertItemsEqual(expected_files, result_paths)
 
