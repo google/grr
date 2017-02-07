@@ -3,6 +3,7 @@
 
 import os
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import log
@@ -27,8 +28,8 @@ def TestInit():
   flags.FLAGS.config = config_lib.Resource().Filter(
       "install_data/etc/grr-server.yaml")
 
-  flags.FLAGS.secondary_configs.append(config_lib.Resource().Filter(
-      "test_data/grr_test.yaml@grr-response-test"))
+  flags.FLAGS.secondary_configs.append(
+      config_lib.Resource().Filter("test_data/grr_test.yaml@grr-response-test"))
 
   # This config contains non-public settings that should be applied during
   # tests.
@@ -37,7 +38,7 @@ def TestInit():
     flags.FLAGS.secondary_configs.append(extra_test_config)
 
   # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext("Test Context",
+  config_lib.CONFIG.AddContext(contexts.TEST_CONTEXT,
                                "Context applied when we run tests.")
 
   # Tests additionally add a test configuration file.

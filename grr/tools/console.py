@@ -23,6 +23,7 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr.config import contexts
 from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
@@ -94,9 +95,10 @@ def main(unused_argv):
   """Main."""
   banner = ("\nWelcome to the GRR console\n")
 
-  config_lib.CONFIG.AddContext("Commandline Context")
+  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   config_lib.CONFIG.AddContext(
-      "Console Context", "Context applied when running the console binary.")
+      contexts.CONSOLE_CONTEXT,
+      "Context applied when running the console binary.")
   server_startup.Init()
 
   # To make the console easier to use, we make a default token which will be
@@ -105,23 +107,16 @@ def main(unused_argv):
       username=getpass.getuser(), reason=flags.FLAGS.reason)
 
   locals_vars = {
-      "__name__":
-          "GRR Console",
-      "l":
-          Lister,
-      "lc":
-          GetChildrenList,
-      "o":
-          aff4.FACTORY.Open,
+      "__name__": "GRR Console",
+      "l": Lister,
+      "lc": GetChildrenList,
+      "o": aff4.FACTORY.Open,
 
       # Bring some symbols from other modules into the console's
       # namespace.
-      "StartFlowAndWait":
-          flow_utils.StartFlowAndWait,
-      "StartFlowAndWorker":
-          debugging.StartFlowAndWorker,
-      "RunEndToEndTests":
-          end_to_end_tests.RunEndToEndTests,
+      "StartFlowAndWait": flow_utils.StartFlowAndWait,
+      "StartFlowAndWorker": debugging.StartFlowAndWorker,
+      "RunEndToEndTests": end_to_end_tests.RunEndToEndTests,
   }
 
   locals_vars.update(globals())  # add global variables to console

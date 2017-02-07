@@ -14,6 +14,7 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr.config import contexts
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -547,7 +548,7 @@ def Usage():
 
 
 def main(unused_argv):
-  config_lib.CONFIG.AddContext("Commandline Context",
+  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
                                "Context applied for all command line tools")
   server_startup.Init()
 

@@ -22,6 +22,7 @@ import pkg_resources
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr.config import contexts
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
@@ -524,8 +525,8 @@ server and the admin user interface.\n"""
   existing_frontend_urns = config_lib.CONFIG.Get("Client.server_urls")
   if not existing_frontend_urns:
     # Port from older deprecated setting Client.control_urls.
-    existing_control_urns = config_lib.CONFIG.Get("Client.control_urls",
-                                                  default=None)
+    existing_control_urns = config_lib.CONFIG.Get(
+        "Client.control_urls", default=None)
     if existing_control_urns is not None:
       existing_frontend_urns = []
       for existing_control_urn in existing_control_urns:
@@ -557,11 +558,11 @@ server and the admin user interface.\n"""
   when sending emails to users.\n"""
 
   existing_log_domain = config_lib.CONFIG.Get("Logging.domain", default=None)
-  existing_al_email = config_lib.CONFIG.Get("Monitoring.alert_email",
-                                            default=None)
+  existing_al_email = config_lib.CONFIG.Get(
+      "Monitoring.alert_email", default=None)
 
-  existing_em_email = config_lib.CONFIG.Get("Monitoring.emergency_access_email",
-                                            default=None)
+  existing_em_email = config_lib.CONFIG.Get(
+      "Monitoring.emergency_access_email", default=None)
   if not existing_log_domain or not existing_al_email or not existing_em_email:
     ConfigureEmails(config)
   else:
@@ -765,8 +766,8 @@ def GetToken():
 def main(unused_argv):
   """Main."""
   token = GetToken()
-  config_lib.CONFIG.AddContext("Commandline Context")
-  config_lib.CONFIG.AddContext("ConfigUpdater Context")
+  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
+  config_lib.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
 
   if flags.FLAGS.subparser_name == "initialize":
     config_lib.ParseConfigCommandLine()

@@ -14,6 +14,7 @@ from requests.packages import urllib3
 from grr.client import client_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
@@ -101,9 +102,8 @@ class Manager(object):
       end = serv.interval.end
       perc = float(end - start) / float(2**64)
       perc *= 100
-      print "Server %d %s:%d %d%% [%s, %s[" % (i, addr, port, perc,
-                                               str(start).zfill(20),
-                                               str(end).zfill(20))
+      print "Server %d %s:%d %d%% [%s, %s[" % (
+          i, addr, port, perc, str(start).zfill(20), str(end).zfill(20))
 
   def _ComputeMappingSize(self, mapping):
     totalsize = 0
@@ -603,7 +603,7 @@ class Manager(object):
 def main(unused_argv):
   """Main."""
 
-  config_lib.CONFIG.AddContext("DataServer Context")
+  config_lib.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT)
   server_startup.Init()
 
   manager = Manager()

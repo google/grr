@@ -66,8 +66,9 @@ Windows Context:
     self.assertEqual(conf["Section1.test_list"], ["x", "y"])
 
     self.assertEqual(
-        conf.Get("Section1.test_list",
-                 context=["Client Context", "Windows Context"]), ["x", "y"])
+        conf.Get(
+            "Section1.test_list",
+            context=["Client Context", "Windows Context"]), ["x", "y"])
 
     # Test that contexts affect option selection.
     self.assertEqual(conf.Get("Section1.test", context=["Client Context"]), 6)
@@ -116,14 +117,13 @@ Extra Context:
     # --context option are stronger than contexts set by the running binary,
     # since they are added last.
     self.assertEqual(
-        conf.Get("Section1.test",
-                 context=["Client Context", "Platform:Windows"]),
+        conf.Get(
+            "Section1.test", context=["Client Context", "Platform:Windows"]),
         10)
 
     self.assertEqual(
-        conf.Get("Section1.test",
-                 context=["Platform:Windows", "Client Context"]),
-        6)
+        conf.Get(
+            "Section1.test", context=["Platform:Windows", "Client Context"]), 6)
 
   def testRemoveContext(self):
     """Test that conflicting contexts are resolved by precedence."""
@@ -246,14 +246,14 @@ Platform:Windows:
     # Check that the linux client have a different value from the windows
     # client.
     self.assertEqual(
-        conf.Get("MemoryDriver.device_path",
-                 context=("Client Context", "Platform:Linux")),
-        "/dev/pmem")
+        conf.Get(
+            "MemoryDriver.device_path",
+            context=("Client Context", "Platform:Linux")), "/dev/pmem")
 
     self.assertEqual(
-        conf.Get("MemoryDriver.device_path",
-                 context=("Client Context", "Platform:Windows")),
-        r"\\.\pmem")
+        conf.Get(
+            "MemoryDriver.device_path",
+            context=("Client Context", "Platform:Windows")), r"\\.\pmem")
 
   def testSet(self):
     """Test setting options."""

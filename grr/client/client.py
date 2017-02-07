@@ -12,6 +12,7 @@ from grr.client import client_plugins
 
 from grr.client import comms
 from grr.client import installer
+from grr.config import contexts
 from grr.client import stdlib
 from grr.lib import client_startup
 from grr.lib import config_lib
@@ -31,7 +32,8 @@ flags.DEFINE_bool("debug_client_actions", False,
 def main(unused_args):
   # Allow per platform configuration.
   config_lib.CONFIG.AddContext(
-      "Client Context", "Context applied when we run the client process.")
+      contexts.CLIENT_CONTEXT,
+      "Context applied when we run the client process.")
 
   client_startup.ClientInit()
 

@@ -9,6 +9,7 @@ import os
 import socket
 import time
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
 
@@ -31,10 +32,9 @@ class GrrApplicationLogger(object):
       request: A HttpRequest protobuf.
       response: A HttpResponse protobuf.
     """
-    log_msg = "%s-%s %d: %s %s %s %d %s" % (event_id, request.source_ip,
-                                            response.code, request.method,
-                                            request.url, request.user_agent,
-                                            response.size, request.user)
+    log_msg = "%s-%s %d: %s %s %s %d %s" % (
+        event_id, request.source_ip, response.code, request.method, request.url,
+        request.user_agent, response.size, request.user)
     logging.info(log_msg)
 
   def GetNewEventId(self, event_time=None):
@@ -46,14 +46,13 @@ class GrrApplicationLogger(object):
 
   def LogHttpApiCall(self, request, response):
     """Log an api call based on the django.http request and response objects."""
-    # TODO(user): This is broken, please fix.
-    return
+    _ = request
+    _ = response
 
-    log_msg = "API call [%s] by %s: %s [%d]" % (response.get("X-API-Method",
-                                                             "unknown"),
-                                                request.user, request.path,
-                                                response.status_code)
-    logging.info(log_msg)
+    # TODO(user): This is broken, please fix.
+    # See:
+    # https://github.com/google/grr/blob/7381f6636018a564b3b7fa0bda3a9a901dbeb122/grr/lib/log.py#L52
+    return
 
 
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
@@ -125,8 +124,8 @@ def GetLogHandlers():
         yield handler
 
       elif engine == "event_log":
-        handler = handlers.NTEventLogHandler(config_lib.CONFIG[
-            "Logging.service_name"])
+        handler = handlers.NTEventLogHandler(
+            config_lib.CONFIG["Logging.service_name"])
         handler.setFormatter(formatter)
         yield handler
 
@@ -168,7 +167,7 @@ def LogInit():
   if flags.FLAGS.verbose:
     # verbose flag just sets the logging verbosity level.
     config_lib.CONFIG.AddContext(
-        "Debug Context",
+        contexts.DEBUG_CONTEXT,
         "This context is to allow verbose and debug output from "
         "the binary.")
 

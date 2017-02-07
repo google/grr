@@ -9,6 +9,7 @@ import logging
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.config import contexts
 from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
@@ -39,7 +40,7 @@ def RunEndToEndTests():
   runner = unittest.TextTestRunner()
 
   # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext("Test Context",
+  config_lib.CONFIG.AddContext(contexts.TEST_CONTEXT,
                                "Context applied when we run tests.")
   server_startup.Init()
 
@@ -98,12 +99,9 @@ def RunEndToEndTests():
       cls.__call__ = _RealCall
 
       if sysinfo.system in cls.platforms:
-        print "Running %s on %s (%s: %s, %s, %s)" % (cls.__name__,
-                                                     client_summary.client_id,
-                                                     sysinfo.fqdn,
-                                                     sysinfo.system,
-                                                     sysinfo.version,
-                                                     sysinfo.machine)
+        print "Running %s on %s (%s: %s, %s, %s)" % (
+            cls.__name__, client_summary.client_id, sysinfo.fqdn,
+            sysinfo.system, sysinfo.version, sysinfo.machine)
 
         try:
           # Mixin the unittest framework so we can use the test runner to run

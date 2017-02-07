@@ -16,6 +16,7 @@ from grr.client import client_plugins
 
 from grr.client import comms
 from grr.client import vfs
+from grr.config import contexts
 from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
@@ -159,7 +160,7 @@ def CheckLocation():
 
 
 def main(unused_argv):
-  config_lib.CONFIG.AddContext("PoolClient Context",
+  config_lib.CONFIG.AddContext(contexts.POOL_CLIENT_CONTEXT,
                                "Context applied when we run the pool client.")
 
   client_startup.ClientInit()

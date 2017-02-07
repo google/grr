@@ -441,10 +441,9 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
       try:
         hash(key)
       except TypeError, exc:
-        raise yaml.loader.ConstructorError("while constructing a mapping",
-                                           node.start_mark,
-                                           "found unacceptable key (%s)" % exc,
-                                           key_node.start_mark)
+        raise yaml.loader.ConstructorError(
+            "while constructing a mapping", node.start_mark,
+            "found unacceptable key (%s)" % exc, key_node.start_mark)
       value = loader.construct_object(value_node, deep=deep)
       mapping[key] = value
 
@@ -1044,6 +1043,7 @@ class GrrConfigManager(object):
 
   def DefineContext(self, context_name):
     self.valid_contexts.add(context_name)
+    return context_name
 
   def FormatHelp(self):
     result = "Context: %s\n\n" % ",".join(self.context)
@@ -1498,29 +1498,25 @@ class GrrConfigManager(object):
   def DEFINE_bool(self, name, default, help, constant=False):
     """A helper for defining boolean options."""
     self.AddOption(
-        type_info.Bool(
-            name=name, default=default, description=help),
+        type_info.Bool(name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_float(self, name, default, help, constant=False):
     """A helper for defining float options."""
     self.AddOption(
-        type_info.Float(
-            name=name, default=default, description=help),
+        type_info.Float(name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_integer(self, name, default, help, constant=False):
     """A helper for defining integer options."""
     self.AddOption(
-        type_info.Integer(
-            name=name, default=default, description=help),
+        type_info.Integer(name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_string(self, name, default, help, constant=False):
     """A helper for defining string options."""
     self.AddOption(
-        type_info.String(
-            name=name, default=default or "", description=help),
+        type_info.String(name=name, default=default or "", description=help),
         constant=constant)
 
   def DEFINE_integer_list(self, name, default, help, constant=False):
@@ -1546,12 +1542,11 @@ class GrrConfigManager(object):
   def DEFINE_constant_string(self, name, default, help):
     """A helper for defining constant strings."""
     self.AddOption(
-        type_info.String(
-            name=name, default=default or "", description=help),
+        type_info.String(name=name, default=default or "", description=help),
         constant=True)
 
   def DEFINE_context(self, name):
-    self.DefineContext(name)
+    return self.DefineContext(name)
 
   # pylint: enable=g-bad-name
 
@@ -1570,15 +1565,13 @@ def DEFINE_bool(name, default, help):
 def DEFINE_float(name, default, help):
   """A helper for defining float options."""
   CONFIG.AddOption(
-      type_info.Float(
-          name=name, default=default, description=help))
+      type_info.Float(name=name, default=default, description=help))
 
 
 def DEFINE_integer(name, default, help):
   """A helper for defining integer options."""
   CONFIG.AddOption(
-      type_info.Integer(
-          name=name, default=default, description=help))
+      type_info.Integer(name=name, default=default, description=help))
 
 
 def DEFINE_boolean(name, default, help):
@@ -1589,15 +1582,13 @@ def DEFINE_boolean(name, default, help):
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
   CONFIG.AddOption(
-      type_info.String(
-          name=name, default=default or "", description=help))
+      type_info.String(name=name, default=default or "", description=help))
 
 
 def DEFINE_bytes(name, default, help):
   """A helper for defining bytes options."""
   CONFIG.AddOption(
-      type_info.Bytes(
-          name=name, default=default or "", description=help))
+      type_info.Bytes(name=name, default=default or "", description=help))
 
 
 def DEFINE_choice(name, default, choices, help):
@@ -1647,8 +1638,7 @@ def DEFINE_option(type_descriptor):
 def DEFINE_constant_string(name, default, help):
   """A helper for defining constant strings."""
   CONFIG.AddOption(
-      type_info.String(
-          name=name, default=default or "", description=help),
+      type_info.String(name=name, default=default or "", description=help),
       constant=True)
 
 

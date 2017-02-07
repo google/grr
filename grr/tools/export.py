@@ -9,6 +9,7 @@ import getpass
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.config import contexts
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -52,9 +53,9 @@ def AddPluginsSubparsers():
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext("Commandline Context",
+  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
                                "Context applied for all command line tools")
-  config_lib.CONFIG.AddContext("ExportTool Context",
+  config_lib.CONFIG.AddContext(contexts.EXPORT_TOOL_CONTEXT,
                                "Context applied to the export tool.")
   server_startup.Init()
 

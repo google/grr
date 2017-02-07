@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import registry
@@ -58,7 +59,8 @@ def RunInstaller():
   # location.
   config_lib.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
   config_lib.CONFIG.AddContext(
-      "Installer Context", "Context applied when we run the client installer.")
+      contexts.INSTALLER_CONTEXT,
+      "Context applied when we run the client installer.")
 
   logging.warn("Starting installation procedure for GRR client.")
   try:

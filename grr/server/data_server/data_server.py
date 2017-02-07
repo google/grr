@@ -18,6 +18,7 @@ from requests.packages import urllib3
 
 import logging
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
@@ -844,7 +845,7 @@ def main(unused_argv):
   """Main."""
   # Change the startup sequence in order to set the database path, if needed.
   config_lib.SetPlatformArchContext()
-  config_lib.CONFIG.AddContext("DataServer Context",
+  config_lib.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT,
                                "Context applied when running a data server.")
   config_lib.ParseConfigCommandLine()
 

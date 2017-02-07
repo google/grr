@@ -16,6 +16,7 @@ from grr.gui import django_lib
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
@@ -28,7 +29,7 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 def main(_):
   """Run the main test harness."""
   config_lib.CONFIG.AddContext(
-      "AdminUI Context",
+      contexts.ADMIN_UI_CONTEXT,
       "Context applied when running the admin user interface GUI.")
   server_startup.Init()
 

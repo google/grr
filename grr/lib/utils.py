@@ -1085,6 +1085,14 @@ class StreamingZipGenerator(object):
     self.cur_zinfo.CRC = self.cur_crc
     self.cur_zinfo.file_size = self.cur_file_size
 
+    # The zip footer has a 8 bytes limit for sizes so if we compress a
+    # file larger than 4 GB, the code below will not work. The ZIP64
+    # convention is to write 0xffffffff for compressed and
+    # uncompressed size in those cases. The actual size is written by
+    # the library for us anyways so those fields are redundant.
+    cur_file_size = min(0xffffffff, self.cur_file_size)
+    cur_compress_size = min(0xffffffff, self.cur_compress_size)
+
     # Writing data descriptor ZIP64-way by default. We never know how large
     # the archive may become as we're generating it dynamically.
     #
@@ -1092,8 +1100,7 @@ class StreamingZipGenerator(object):
     # compressed size                 8 bytes (little endian)
     # uncompressed size               8 bytes (little endian)
     self._stream.write(
-        struct.pack("<LLL", self.cur_crc, self.cur_compress_size,
-                    self.cur_file_size))
+        struct.pack("<LLL", self.cur_crc, cur_compress_size, cur_file_size))
 
     # Register the file in the zip file, so that central directory gets
     # written correctly.
