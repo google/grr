@@ -89,6 +89,8 @@ setup_args = dict(
         "portpicker==1.1.1",
         "python-crontab==2.0.1",
         "rekall-core~=1.6.0",
+        # TODO(user): remove as soon as this is added to rekall-core itself.
+        "SPARQLWrapper~=1.6.4",
         "Werkzeug==0.11.3",
         "wsgiref==0.1.2",
     ],
