@@ -1991,7 +1991,7 @@ message ApiHunt {
   optional int64 client_limit = 10 [(sem_type) = {
       description: "Client limit.",
     }];
-  optional int64 client_rate = 11 [(sem_type) = {
+  optional float client_rate = 11 [(sem_type) = {
       description: "Client rate.",
     }];
   optional uint64 created = 12 [(sem_type) = {
