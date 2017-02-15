@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This file contains various utility classes used by GRR."""
 
-
 import base64
 import copy
 import cStringIO
@@ -14,6 +13,7 @@ import Queue
 import random
 import re
 import shutil
+import socket
 import struct
 import tarfile
 import tempfile
@@ -1494,3 +1494,13 @@ def EnsureDirExists(path):
       pass
     else:
       raise
+
+
+def ResolveHostnameToIP(host, port):
+  ip_addrs = socket.getaddrinfo(host, port, socket.AF_UNSPEC, 0,
+                                socket.IPPROTO_TCP)
+  # getaddrinfo returns tuples (family, socktype, proto, canonname, sockaddr).
+  # We are interested in sockaddr which is in turn a tuple
+  # (address, port) for IPv4 or (address, port, flow info, scope id)
+  # for IPv6. In both cases, we want the first element, the address.
+  return ip_addrs[0][4][0]

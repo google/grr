@@ -173,8 +173,8 @@ class DataServerConnection(object):
         raise HTTPDataStoreError("Invalid data server username/password.")
       if ack != "OK\n":
         return False
-      logging.info("Connected to data server %s:%d",
-                   self.Address(), self.Port())
+      logging.info("Connected to data server %s:%d", self.Address(),
+                   self.Port())
       return True
     except httplib.HTTPException as e:
       logging.warning("Httplib problem when connecting to %s:%d: %s",
@@ -362,9 +362,7 @@ class RemoteInquirer(object):
     self.servers = []
     for location in server_list:
       loc = urlparse.urlparse(location, scheme="http")
-      addr = loc.hostname
-      port = loc.port
-      self.servers.append(DataServer(addr, port))
+      self.servers.append(DataServer(loc.hostname, loc.port))
     self.mapping_server = random.choice(self.servers)
     self.mapping = self.mapping_server.LoadMapping()
 

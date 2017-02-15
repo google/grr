@@ -64,6 +64,7 @@ from grr.lib import queues as queue_config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rekall_profile_server
+from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import testing_startup
 from grr.lib import utils
@@ -138,7 +139,7 @@ class ClientActionRunner(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallClient(
-        actions.ActionPlugin.classes[self.args.action],
+        server_stubs.ClientActionStub.classes[self.args.action],
         next_state="End",
         **self.action_args)
 
@@ -732,8 +733,8 @@ class GRRBaseTest(unittest.TestCase):
         with aff4.FACTORY.Create(
             client_id, aff4_grr.VFSGRRClient, mode="rw",
             token=self.token) as fd:
-          cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
-              "Client.private_key"])
+          cert = self.ClientCertFromPrivateKey(
+              config_lib.CONFIG["Client.private_key"])
           fd.Set(fd.Schema.CERT, cert)
 
           info = fd.Schema.CLIENT_INFO()
@@ -1532,7 +1533,7 @@ class Popen(object):
     return "stdout here", "stderr here"
 
 
-class Test(actions.ActionPlugin):
+class Test(server_stubs.ClientActionStub):
   """A test action which can be used in mocks."""
   in_rdfvalue = rdf_protodict.DataBlob
   out_rdfvalues = [rdf_protodict.DataBlob]
@@ -1550,9 +1551,8 @@ def CheckFlowErrors(total_flows, token=None):
     if flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
-      raise RuntimeError("Flow %s completed in state %s" %
-                         (flow_obj.runner_args.flow_name,
-                          flow_obj.context.state))
+      raise RuntimeError("Flow %s completed in state %s" % (
+          flow_obj.runner_args.flow_name, flow_obj.context.state))
 
 
 def TestFlowHelper(flow_urn_or_cls_name,
@@ -1732,8 +1732,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   token = token.SetUID()
 
   client_mocks = [
-      MockClient(
-          client_id, client_mock, token=token)
+      MockClient(client_id, client_mock, token=token)
       for client_id, client_mock in client_mocks.iteritems()
   ]
   worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)

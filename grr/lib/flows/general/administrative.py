@@ -10,10 +10,6 @@ import urllib
 
 import logging
 
-from grr.client.client_actions import admin as admin_actions
-from grr.client.client_actions import operating_system as operating_system_actions
-from grr.client.client_actions import standard as standard_actions
-from grr.client.client_actions import tempfiles as tempfiles_actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -24,6 +20,7 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -116,7 +113,7 @@ class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient(admin_actions.GetClientStats, next_state="StoreResults")
+    self.CallClient(server_stubs.GetClientStats, next_state="StoreResults")
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -165,9 +162,7 @@ class DeleteGRRTempFiles(flow.GRRFlow):
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
     self.CallClient(
-        tempfiles_actions.DeleteGRRTempFiles,
-        self.args.pathspec,
-        next_state="Done")
+        server_stubs.DeleteGRRTempFiles, self.args.pathspec, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -199,7 +194,7 @@ class Uninstall(flow.GRRFlow):
     system = client.Get(client.Schema.SYSTEM)
 
     if system == "Darwin" or system == "Windows":
-      self.CallClient(operating_system_actions.Uninstall, next_state="Kill")
+      self.CallClient(server_stubs.Uninstall, next_state="Kill")
     else:
       self.Log("Unsupported platform for Uninstall")
 
@@ -209,7 +204,7 @@ class Uninstall(flow.GRRFlow):
     if not responses.success:
       self.Log("Failed to uninstall client.")
     elif self.args.kill:
-      self.CallClient(admin_actions.Kill, next_state="Confirmation")
+      self.CallClient(server_stubs.Kill, next_state="Confirmation")
 
   @flow.StateHandler()
   def Confirmation(self, responses):
@@ -226,7 +221,7 @@ class Kill(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Call the kill function on the client."""
-    self.CallClient(admin_actions.Kill, next_state="Confirmation")
+    self.CallClient(server_stubs.Kill, next_state="Confirmation")
 
   @flow.StateHandler()
   def Confirmation(self, responses):
@@ -253,7 +248,7 @@ class UpdateConfiguration(flow.GRRFlow):
   def Start(self):
     """Call the UpdateConfiguration function on the client."""
     self.CallClient(
-        admin_actions.UpdateConfiguration,
+        server_stubs.UpdateConfiguration,
         request=self.args.config,
         next_state="Confirmation")
 
@@ -261,8 +256,8 @@ class UpdateConfiguration(flow.GRRFlow):
   def Confirmation(self, responses):
     """Confirmation."""
     if not responses.success:
-      raise flow.FlowError("Failed to write config. Err: {0}".format(
-          responses.status))
+      raise flow.FlowError(
+          "Failed to write config. Err: {0}".format(responses.status))
 
 
 class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
@@ -287,7 +282,7 @@ class ExecutePythonHack(flow.GRRFlow):
     # TODO(user): This will break if someone wants to execute lots of Python.
     for python_blob in fd:
       self.CallClient(
-          standard_actions.ExecutePython,
+          server_stubs.ExecutePython,
           python_code=python_blob,
           py_args=self.args.py_args,
           next_state="Done")
@@ -320,7 +315,7 @@ class ExecuteCommand(flow.GRRFlow):
   def Start(self):
     """Call the execute function on the client."""
     self.CallClient(
-        standard_actions.ExecuteCommand,
+        server_stubs.ExecuteCommand,
         cmd=self.args.cmd,
         args=shlex.split(self.args.command_line),
         time_limit=self.args.time_limit,
@@ -418,16 +413,15 @@ class OnlineNotification(flow.GRRFlow):
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
-    return cls.args_type(email="%s@%s" %
-                         (token.username,
-                          config_lib.CONFIG.Get("Logging.domain")))
+    return cls.args_type(email="%s@%s" % (
+        token.username, config_lib.CONFIG.Get("Logging.domain")))
 
   @flow.StateHandler()
   def Start(self):
     """Starts processing."""
     if self.args.email is None:
       self.args.email = self.token.username
-    self.CallClient(admin_actions.Echo, data="Ping", next_state="SendMail")
+    self.CallClient(server_stubs.Echo, data="Ping", next_state="SendMail")
 
   @flow.StateHandler()
   def SendMail(self, responses):
@@ -519,7 +513,7 @@ class UpdateClient(flow.GRRFlow):
     write_path = "%d_%s" % (time.time(), aff4_blobs.urn.Basename())
     for i, blob in enumerate(aff4_blobs):
       self.CallClient(
-          operating_system_actions.UpdateAgent,
+          server_stubs.UpdateAgent,
           executable=blob,
           more_data=i < aff4_blobs.chunks - 1,
           offset=offset,
@@ -844,7 +838,7 @@ class KeepAlive(flow.GRRFlow):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    self.CallClient(admin_actions.Echo, data="Wake up!", next_state="Sleep")
+    self.CallClient(server_stubs.Echo, data="Wake up!", next_state="Sleep")
 
   @flow.StateHandler()
   def Sleep(self, responses):
@@ -875,9 +869,8 @@ class TerminateFlow(flow.GRRFlow):
     check_token = access_control.ACLToken(
         username=self.token.username, reason=self.token.reason)
     # If we can read the flow, we're allowed to terminate it.
-    data_store.DB.security_manager.CheckDataStoreAccess(check_token,
-                                                        [self.args.flow_urn],
-                                                        "r")
+    data_store.DB.security_manager.CheckDataStoreAccess(
+        check_token, [self.args.flow_urn], "r")
 
     flow.GRRFlow.TerminateFlow(
         self.args.flow_urn,
@@ -908,7 +901,7 @@ class LaunchBinary(flow.GRRFlow):
     write_path = "%d" % time.time()
     for i, blob in enumerate(fd):
       self.CallClient(
-          standard_actions.ExecuteBinaryCommand,
+          server_stubs.ExecuteBinaryCommand,
           executable=blob,
           more_data=i < fd.chunks - 1,
           args=shlex.split(self.args.command_line),

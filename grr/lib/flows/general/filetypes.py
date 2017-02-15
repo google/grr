@@ -2,8 +2,8 @@
 """File-type specific flows."""
 
 
-from grr.client.client_actions import plist as plist_actions
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -54,7 +54,7 @@ class PlistValueFilter(flow.GRRFlow):
   def Start(self, unused_response):
     """Issue a request to list the directory."""
     self.CallClient(
-        plist_actions.PlistQuery,
+        server_stubs.PlistQuery,
         request=self.args.request,
         next_state="Receive")
 

@@ -49,7 +49,6 @@ import operator
 
 import logging
 
-from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -60,6 +59,7 @@ from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
@@ -154,7 +154,7 @@ class Responses(object):
   def __iter__(self):
     """An iterator which returns all the responses in order."""
     old_response_id = None
-    action_registry = actions.ActionPlugin.classes
+    action_registry = server_stubs.ClientActionStub.classes
     expected_response_classes = []
     is_client_request = False
     # This is the client request so this response packet was sent by a client.
@@ -952,17 +952,19 @@ class GRRFlow(FlowBase):
     # the flow via AFF4 is not really possible here, because it forces a state
     # to be written in Close() method.
     if mutation_pool:
-      mutation_pool.Set(flow_urn,
-                        cls.SchemaCls.PENDING_TERMINATION.predicate,
-                        PendingFlowTermination(reason=reason),
-                        replace=False)
+      mutation_pool.Set(
+          flow_urn,
+          cls.SchemaCls.PENDING_TERMINATION.predicate,
+          PendingFlowTermination(reason=reason),
+          replace=False)
     else:
-      data_store.DB.Set(flow_urn,
-                        cls.SchemaCls.PENDING_TERMINATION.predicate,
-                        PendingFlowTermination(reason=reason),
-                        replace=False,
-                        sync=sync,
-                        token=token)
+      data_store.DB.Set(
+          flow_urn,
+          cls.SchemaCls.PENDING_TERMINATION.predicate,
+          PendingFlowTermination(reason=reason),
+          replace=False,
+          sync=sync,
+          token=token)
 
   @classmethod
   def TerminateFlow(cls,
@@ -1014,8 +1016,8 @@ class GRRFlow(FlowBase):
       # This calls runner.Terminate to kill the flow
       runner.Error(reason, status=status)
 
-      flow_obj.Log("Terminated by user {0}. Reason: {1}".format(token.username,
-                                                                reason))
+      flow_obj.Log(
+          "Terminated by user {0}. Reason: {1}".format(token.username, reason))
 
       # From now on we run with supervisor access
       super_token = token.SetUID()

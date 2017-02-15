@@ -2,10 +2,8 @@
 """These are processes memory dump related flows."""
 
 
-from grr.client.client_actions import standard as standard_actions
-from grr.client.client_actions import tempfiles as tempfiles_actions
-
 from grr.lib import flow
+from grr.lib import server_stubs
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -35,9 +33,8 @@ class DumpProcessMemory(flow.GRRFlow):
     """Start processing."""
     for pid in self.args.pids:
       self.CallClient(
-          standard_actions.DumpProcessMemory,
-          rdf_client.DumpProcessMemoryRequest(
-              pid=pid, pause=self.args.pause),
+          server_stubs.DumpProcessMemory,
+          rdf_client.DumpProcessMemoryRequest(pid=pid, pause=self.args.pause),
           next_state="DownloadImage")
 
   @flow.StateHandler()
@@ -50,6 +47,6 @@ class DumpProcessMemory(flow.GRRFlow):
   @flow.StateHandler()
   def DeleteFile(self, responses):
     self.CallClient(
-        tempfiles_actions.DeleteGRRTempFiles,
+        server_stubs.DeleteGRRTempFiles,
         responses.First().pathspec,
         next_state="End")

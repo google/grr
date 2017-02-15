@@ -8,9 +8,9 @@ import platform
 import unittest
 
 from grr.client import vfs
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import constants
 from grr.lib import file_store
 from grr.lib import flags
 from grr.lib import test_lib
@@ -95,8 +95,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pass
 
       results = list(
-          aff4.FACTORY.Open(
-              session_id.Add("Results"), token=self.token))
+          aff4.FACTORY.Open(session_id.Add("Results"), token=self.token))
 
       self.assertEqual(len(results), 1)
       for stat_entry in results:
@@ -125,7 +124,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
   def _RunAndCheck(self, chunk_size, download_length):
 
-    with utils.Stubber(standard_actions, "MAX_BUFFER_SIZE", chunk_size):
+    with utils.Stubber(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
       for _ in test_lib.TestFlowHelper(
           "GetMBR",
           ClientMock(self.mbr),
@@ -192,8 +191,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       session_id = s
 
     results = list(
-        aff4.FACTORY.Open(
-            session_id.Add("Results"), token=self.token))
+        aff4.FACTORY.Open(session_id.Add("Results"), token=self.token))
     self.assertEqual(len(results), 1)
     res_pathspec = results[0].pathspec
 

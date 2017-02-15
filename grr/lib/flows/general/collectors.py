@@ -2,8 +2,6 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
-from grr.client import actions
-from grr.client.client_actions import standard as standard_actions
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.lib import aff4
@@ -390,7 +388,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         pathspec = paths.PathSpec(
             path=new_path, pathtype=paths.PathSpec.PathType.REGISTRY)
         self.CallClient(
-            standard_actions.StatFile,
+            server_stubs.StatFile,
             pathspec=pathspec,
             request_data={
                 "artifact_name": self.current_artifact_name,
@@ -430,7 +428,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def RunCommand(self, source):
     """Run a command."""
     self.CallClient(
-        standard_actions.ExecuteCommand,
+        server_stubs.ExecuteCommand,
         cmd=source.attributes["cmd"],
         args=source.attributes.get("args", []),
         request_data={
@@ -534,12 +532,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     # Retrieve the correct rdfvalue to use for this client action.
     action_name = source.attributes["client_action"]
     try:
-      action = actions.ActionPlugin.classes[action_name]
+      action_stub = server_stubs.ClientActionStub.classes[action_name]
     except KeyError:
       raise RuntimeError("Client action %s not found." % action_name)
 
     self.CallClient(
-        action,
+        action_stub,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()

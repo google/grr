@@ -4,8 +4,8 @@
 
 import stat
 
-from grr.client.client_actions import searching as searching_actions
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -81,7 +81,7 @@ class SearchFileContent(flow.GRRFlow):
             request = rdf_client.GrepSpec(
                 target=response.pathspec, **self.args.grep.AsDict())
             self.CallClient(
-                searching_actions.Grep,
+                server_stubs.Grep,
                 request=request,
                 next_state="WriteHits",
                 request_data=dict(pathspec=response.pathspec))

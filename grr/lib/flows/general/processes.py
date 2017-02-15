@@ -2,8 +2,8 @@
 """These are process related flows."""
 
 
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -23,8 +23,7 @@ class ListProcesses(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Start processing."""
-    self.CallClient(
-        standard_actions.ListProcesses, next_state="IterateProcesses")
+    self.CallClient(server_stubs.ListProcesses, next_state="IterateProcesses")
 
   def _FilenameMatch(self, process):
     if not self.args.filename_regex:

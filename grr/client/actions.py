@@ -71,6 +71,8 @@ class ActionPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
+  __abstract = True  # pylint: disable=invalid-name
+
   priority = rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY
 
   require_fastpoll = True
@@ -124,9 +126,8 @@ class ActionPlugin(object):
                              self.message.args_rdf_name)
 
         if self.in_rdfvalue.__name__ != self.message.args_rdf_name:
-          raise RuntimeError("Unexpected arg type %s != %s." %
-                             (self.message.args_rdf_name,
-                              self.in_rdfvalue.__name__))
+          raise RuntimeError("Unexpected arg type %s != %s." % (
+              self.message.args_rdf_name, self.in_rdfvalue.__name__))
 
         args = self.message.payload
 
@@ -324,6 +325,8 @@ class IteratedAction(ActionPlugin):
   Iterate() method.
   """
 
+  __abstract = True  # pylint: disable=invalid-name
+
   def Run(self, request):
     """Munge the iterator to the server and abstract it away."""
     # Pass the client_state as a dict to the action. This is often more
@@ -438,6 +441,8 @@ class SuspendableAction(ActionPlugin):
      suspended_actions store. We then call the Run method, which switched
      execution to the ClientActionWorker() thread.
   """
+
+  __abstract = True  # pylint: disable=invalid-name
 
   def __init__(self, *args, **kw):
     # We allow specifying the worker class.

@@ -5,13 +5,11 @@
 
 import stat
 
-from grr.client.client_actions import file_finder as file_finder_actions
-from grr.client.client_actions import searching as searching_actions
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import config_lib
 from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import fingerprint
@@ -40,7 +38,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   # Will be used by FingerprintFileMixin.
-  fingerprint_file_mixin_client_action = standard_actions.HashFile
+  fingerprint_file_mixin_client_action = server_stubs.HashFile
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
@@ -184,7 +182,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         bytes_after=options.bytes_after)
 
     self.CallClient(
-        searching_actions.Grep,
+        server_stubs.Grep,
         request=grep_spec,
         next_state="ProcessGrep",
         request_data=dict(
@@ -210,7 +208,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         xor_out_key=options.xor_out_key)
 
     self.CallClient(
-        searching_actions.Grep,
+        server_stubs.Grep,
         request=grep_spec,
         next_state="ProcessGrep",
         request_data=dict(
@@ -383,13 +381,11 @@ class ClientFileFinder(flow.GRRFlow):
       self.args.upload_token = upload_token
 
     self.CallClient(
-        file_finder_actions.FileFinderOS,
-        request=self.args,
-        next_state="StoreResults")
+        server_stubs.FileFinderOS, request=self.args, next_state="StoreResults")
 
   def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
-    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
-        "Frontend.upload_store"])()
+    upload_store = file_store.UploadFileStore.GetPlugin(
+        config_lib.CONFIG["Frontend.upload_store"])()
     urn = uploaded_file.stat_entry.pathspec.AFF4Path(self.client_id)
 
     with upload_store.Aff4ObjectForFileId(

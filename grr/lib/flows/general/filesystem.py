@@ -5,11 +5,10 @@ import fnmatch
 import re
 import stat
 
-from grr.client.client_actions import searching as searching_actions
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import artifact_utils
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 # pylint: disable=unused-import
@@ -66,13 +65,11 @@ class ListDirectory(flow.GRRFlow):
     """Issue a request to list the directory."""
     self.state.urn = None
     self.CallClient(
-        standard_actions.StatFile,
-        pathspec=self.args.pathspec,
-        next_state="Stat")
+        server_stubs.StatFile, pathspec=self.args.pathspec, next_state="Stat")
 
     # We use data to pass the path to the callback:
     self.CallClient(
-        standard_actions.ListDirectory,
+        server_stubs.ListDirectory,
         pathspec=self.args.pathspec,
         next_state="List")
 
@@ -147,7 +144,7 @@ class IteratedListDirectory(ListDirectory):
     self.state.request.iterator.number = 50
 
     self.CallClient(
-        standard_actions.IteratedListDirectory,
+        server_stubs.IteratedListDirectory,
         self.state.request,
         next_state="List")
 
@@ -163,7 +160,7 @@ class IteratedListDirectory(ListDirectory):
 
       self.state.request.iterator = responses.iterator
       self.CallClient(
-          standard_actions.IteratedListDirectory,
+          server_stubs.IteratedListDirectory,
           self.state.request,
           next_state="List")
     else:
@@ -218,7 +215,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     self.state.file_count = 0
 
     self.CallClient(
-        standard_actions.ListDirectory,
+        server_stubs.ListDirectory,
         pathspec=self.args.pathspec,
         next_state="ProcessDirectory")
 
@@ -253,7 +250,7 @@ class RecursiveListDirectory(flow.GRRFlow):
         # symlinks.
         if not stat_response.symlink and stat.S_ISDIR(stat_response.st_mode):
           self.CallClient(
-              standard_actions.ListDirectory,
+              server_stubs.ListDirectory,
               pathspec=stat_response.pathspec,
               next_state="ProcessDirectory")
           self.state.dir_count += 1
@@ -330,7 +327,7 @@ class UpdateSparseImageChunks(flow.GRRFlow):
       chunk = self.state.missing_chunks.pop(0)
       request = self.GetBufferForChunk(chunk)
       self.CallClient(
-          standard_actions.TransferBuffer, request, next_state="UpdateChunk")
+          server_stubs.TransferBuffer, request, next_state="UpdateChunk")
 
   @flow.StateHandler()
   def UpdateChunk(self, responses):
@@ -346,7 +343,7 @@ class UpdateSparseImageChunks(flow.GRRFlow):
       next_chunk = self.state.missing_chunks.pop(0)
       request = self.GetBufferForChunk(next_chunk)
       self.CallClient(
-          standard_actions.TransferBuffer, request, next_state="UpdateChunk")
+          server_stubs.TransferBuffer, request, next_state="UpdateChunk")
     else:
       with aff4.FACTORY.Open(
           self.args.file_urn,
@@ -411,7 +408,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     self.state.current_offset += chunksize
 
     self.CallClient(
-        standard_actions.TransferBuffer, request, next_state="TransferBuffer")
+        server_stubs.TransferBuffer, request, next_state="TransferBuffer")
 
   @flow.StateHandler()
   def TransferBuffer(self, responses):
@@ -437,7 +434,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
       # waiting for a client response every time we request a buffer. We need to
       # queue up multiple reads.
       self.CallClient(
-          standard_actions.TransferBuffer, request, next_state="TransferBuffer")
+          server_stubs.TransferBuffer, request, next_state="TransferBuffer")
 
       # Move our offset along the file by how much we read.
       self.state.current_offset += length_to_read
@@ -512,7 +509,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallClient(
-        standard_actions.StatFile,
+        server_stubs.StatFile,
         pathspec=self.args.pathspec,
         next_state="ProcessStat")
 
@@ -747,7 +744,7 @@ class GlobMixin(object):
       findspec = rdf_client.FindSpec(responses.request.request.payload)
       findspec.iterator = responses.iterator
       self.CallClient(
-          searching_actions.Find,
+          server_stubs.Find,
           findspec,
           next_state="ProcessEntry",
           request_data=responses.request_data)
@@ -850,16 +847,15 @@ class GlobMixin(object):
             # Check for the existence of the last node.
             request = rdf_client.ListDirRequest(pathspec=pathspec)
 
-            if (response is None or (response and
-                                     (response.st_mode == 0 or
-                                      not stat.S_ISREG(response.st_mode)))):
+            if (response is None or (response and (
+                response.st_mode == 0 or not stat.S_ISREG(response.st_mode)))):
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there. There is a special case
               # here where this pathspec points to a file/directory in the root
               # directory. In this case, response will be None but we still need
               # to stat it.
               self.CallClient(
-                  standard_actions.StatFile,
+                  server_stubs.StatFile,
                   request,
                   next_state="ProcessEntry",
                   request_data=dict(component_path=next_component))
@@ -881,8 +877,8 @@ class GlobMixin(object):
           base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
 
         for depth, recursions in recursions_to_get.iteritems():
-          path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions
-                                                ])) + "$"
+          path_regex = "(?i)^" + "$|^".join(
+              set([c.path for c in recursions])) + "$"
 
           findspec = rdf_client.FindSpec(
               pathspec=base_pathspec,
@@ -892,7 +888,7 @@ class GlobMixin(object):
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient(
-              searching_actions.Find,
+              server_stubs.Find,
               findspec,
               next_state="ProcessEntry",
               request_data=dict(base_path=component_path))
@@ -905,7 +901,7 @@ class GlobMixin(object):
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient(
-              searching_actions.Find,
+              server_stubs.Find,
               findspec,
               next_state="ProcessEntry",
               request_data=dict(base_path=component_path))
@@ -1027,7 +1023,7 @@ class DiskVolumeInfo(flow.GRRFlow):
           store_results_in_aff4=True)
     else:
       self.CallClient(
-          standard_actions.StatFS,
+          server_stubs.StatFS,
           rdf_client.StatFSRequest(
               path_list=self.args.path_list, pathtype=self.args.pathtype),
           next_state="ProcessVolumes")

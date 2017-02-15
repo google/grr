@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Queries a Windows client for Volume Shadow Copy information."""
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import server_stubs
@@ -48,7 +47,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
         self.Log("Listing Volume Shadow Copy device: %s.", device_object)
         self.CallClient(
-            standard_actions.ListDirectory,
+            server_stubs.ListDirectory,
             pathspec=path_spec,
             next_state="ProcessListDirectory")
 

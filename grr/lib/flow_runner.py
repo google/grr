@@ -394,8 +394,8 @@ class FlowRunner(object):
     # requests. If we're stuck for some reason, the notification
     # will be delivered later and the stuck flow will get
     # terminated.
-    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
     kill_timestamp = (rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueNotification(
@@ -418,8 +418,8 @@ class FlowRunner(object):
             start=self.context.kill_timestamp,
             end=self.context.kill_timestamp + rdfvalue.Duration("1s"))
 
-        stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-            "Worker.stuck_flows_timeout"])
+        stuck_flows_timeout = rdfvalue.Duration(
+            config_lib.CONFIG["Worker.stuck_flows_timeout"])
         self.context.kill_timestamp = (
             rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
         manager.QueueNotification(
@@ -1219,12 +1219,13 @@ class FlowRunner(object):
           source=self.session_id,
           timestamp=rdfvalue.RDFDatetime.Now())
 
-      data_store.DB.Set(self.session_id,
-                        self.flow_obj.Schema.NOTIFICATION,
-                        notification,
-                        replace=False,
-                        sync=False,
-                        token=self.token)
+      data_store.DB.Set(
+          self.session_id,
+          self.flow_obj.Schema.NOTIFICATION,
+          notification,
+          replace=False,
+          sync=False,
+          token=self.token)
 
       # Disable further notifications.
       self.context.user_notified = True

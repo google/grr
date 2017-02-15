@@ -5,7 +5,6 @@
 import time
 
 
-from grr.client import actions
 from grr.client import vfs
 from grr.client.client_actions import admin
 from grr.client.client_actions import standard
@@ -18,6 +17,7 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
@@ -42,7 +42,7 @@ class FlowResponseSerialization(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_message=None):
     self.CallClient(
-        actions.ActionPlugin.classes["ReturnBlob"],
+        server_stubs.ClientActionStub.classes["ReturnBlob"],
         rdf_client.EchoRequest(data="test"),
         next_state="Response1")
 
@@ -51,7 +51,7 @@ class FlowResponseSerialization(flow.GRRFlow):
     """Record the message id for testing."""
     self.state.messages = list(messages)
     self.CallClient(
-        actions.ActionPlugin.classes["ReturnBlob"],
+        server_stubs.ClientActionStub.classes["ReturnBlob"],
         rdf_client.EchoRequest(data="test"),
         next_state="Response2")
 
@@ -78,7 +78,7 @@ class CallClientChildFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self, unused_message):
-    self.CallClient(admin.GetClientStats, next_state="End")
+    self.CallClient(server_stubs.GetClientStats, next_state="End")
 
 
 class NoRequestParentFlow(flow.GRRFlow):
@@ -202,7 +202,8 @@ class FlowCreationTest(BasicFlowTest):
 
       def __init__(self):
         # Register us as an action plugin.
-        actions.ActionPlugin.classes["ReturnBlob"] = self
+        # TODO(user): this is a hacky shortcut and should be fixed.
+        server_stubs.ClientActionStub.classes["ReturnBlob"] = self
         self.__name__ = "ReturnBlob"
 
       def ReturnBlob(self, unused_args):
@@ -505,11 +506,11 @@ class FlowTest(BasicFlowTest):
     request_state = rdf_flows.RequestState.FromSerializedString(request_state)
     request_state.status = status
 
-    data_store.DB.Set(message.session_id.Add("state"),
-                      queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE %
-                      message.request_id,
-                      request_state,
-                      token=self.token)
+    data_store.DB.Set(
+        message.session_id.Add("state"),
+        queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
+        request_state,
+        token=self.token)
 
     return message
 
@@ -553,7 +554,7 @@ class FlowTest(BasicFlowTest):
     cls = flow.GRRFlow.classes["GetClientStatsAuto"]
     flow_obj = cls(cls.well_known_session_id, mode="rw", token=self.token)
 
-    flow_obj.CallClient(self.client_id, admin.GetClientStats)
+    flow_obj.CallClient(self.client_id, server_stubs.GetClientStats)
 
     # Check that a message went out to the client
     manager = queue_manager.QueueManager(token=self.token)
@@ -567,7 +568,7 @@ class FlowTest(BasicFlowTest):
     devnull = flow.GRRFlow.classes["IgnoreResponses"]
     self.assertEqual(message.session_id, devnull.well_known_session_id)
     self.assertEqual(message.request_id, 0)
-    self.assertEqual(message.name, admin.GetClientStats.__name__)
+    self.assertEqual(message.name, server_stubs.GetClientStats.__name__)
 
     messages = []
 
@@ -905,9 +906,8 @@ class GeneralFlowsTest(BasicFlowTest):
     self.assertEqual(ParentFlow.success, True)
     subflows = list(
         obj
-        for obj in aff4.FACTORY.Open(
-            session_id, token=self.token).OpenChildren()
-        if isinstance(obj, flow.GRRFlow))
+        for obj in aff4.FACTORY.Open(session_id, token=self.token)
+        .OpenChildren() if isinstance(obj, flow.GRRFlow))
     self.assertEqual(len(subflows), 1)
     self.assertEqual(subflows[0].GetRunner().context.creator, "original_user")
 
@@ -1121,7 +1121,8 @@ class PriorityClientMock(object):
 
   def __init__(self, storage):
     # Register us as an action plugin.
-    actions.ActionPlugin.classes["Store"] = self
+    # TODO(user): This is a hacky shortcut and should be fixed.
+    server_stubs.ClientActionStub.classes["Store"] = self
     self.storage = storage
     self.__name__ = "Store"
 
@@ -1142,7 +1143,7 @@ class PriorityFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallClient(
-        actions.ActionPlugin.classes["Store"],
+        server_stubs.ClientActionStub.classes["Store"],
         string=self.args.msg,
         next_state="Done")
 
@@ -1158,7 +1159,8 @@ class CPULimitClientMock(object):
 
   def __init__(self, storage):
     # Register us as an action plugin.
-    actions.ActionPlugin.classes["Store"] = self
+    # TODO(user): this is a hacky shortcut and should be fixed.
+    server_stubs.ClientActionStub.classes["Store"] = self
     self.storage = storage
     self.__name__ = "Store"
 
@@ -1174,21 +1176,23 @@ class CPULimitFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallClient(
-        actions.ActionPlugin.classes["Store"],
+        server_stubs.ClientActionStub.classes["Store"],
         string="Hey!",
         next_state="State1")
 
   @flow.StateHandler()
   def State1(self):
     self.CallClient(
-        actions.ActionPlugin.classes["Store"],
+        server_stubs.ClientActionStub.classes["Store"],
         string="Hey!",
         next_state="State2")
 
   @flow.StateHandler()
   def State2(self):
     self.CallClient(
-        actions.ActionPlugin.classes["Store"], string="Hey!", next_state="Done")
+        server_stubs.ClientActionStub.classes["Store"],
+        string="Hey!",
+        next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1200,20 +1204,24 @@ class NetworkLimitFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State1")
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"], next_state="State1")
 
   @flow.StateHandler()
   def State1(self):
     # The mock worker doesn't track usage so we add it here.
-    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State2")
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"], next_state="State2")
 
   @flow.StateHandler()
   def State2(self):
-    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State3")
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"], next_state="State3")
 
   @flow.StateHandler()
   def State3(self):
-    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="Done")
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"], next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1228,7 +1236,8 @@ class ClientMock(object):
 
   def __init__(self):
     # Register us as an action plugin.
-    actions.ActionPlugin.classes["ReturnHello"] = self
+    # TODO(user): this is a hacky shortcut and should be fixed.
+    server_stubs.ClientActionStub.classes["ReturnHello"] = self
     self.__name__ = "ReturnHello"
 
   def ReturnHello(self, _):
@@ -1241,7 +1250,8 @@ class ChildFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallClient(
-        actions.ActionPlugin.classes["ReturnHello"], next_state="ReceiveHello")
+        server_stubs.ClientActionStub.classes["ReturnHello"],
+        next_state="ReceiveHello")
 
   @flow.StateHandler()
   def ReceiveHello(self, responses):

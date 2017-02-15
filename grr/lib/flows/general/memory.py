@@ -12,14 +12,14 @@ import json
 from rekall import constants
 
 import logging
-from grr.client.client_actions import tempfiles as tempfiles_actions
-from grr.client.components.rekall_support import grr_rekall
+from grr.client.components.rekall_support import grr_rekall_stubs
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rekall_profile_server
+from grr.lib import server_stubs
 
 from grr.lib.aff4_objects import aff4_rekall
 
@@ -61,7 +61,7 @@ class MemoryCollector(flow.GRRFlow):
     # Should we check if there is enough free space?
     if self.args.check_disk_free_space:
       self.CallClient(
-          tempfiles_actions.CheckFreeGRRTempSpace, next_state="CheckFreeSpace")
+          server_stubs.CheckFreeGRRTempSpace, next_state="CheckFreeSpace")
     else:
       self.RunRekallPlugin()
 
@@ -183,7 +183,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.rekall_request = request
 
     self.CallClient(
-        grr_rekall.RekallAction,
+        grr_rekall_stubs.RekallAction,
         self.state.rekall_request,
         next_state="StoreResults")
 
@@ -207,7 +207,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
                                         response.repository_version)
         if profile:
           self.CallClient(
-              grr_rekall.WriteRekallProfile,
+              grr_rekall_stubs.WriteRekallProfile,
               profile,
               next_state="UpdateProfile")
         else:
@@ -244,7 +244,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
       self.CallClient(
-          grr_rekall.RekallAction,
+          grr_rekall_stubs.RekallAction,
           self.state.rekall_request,
           next_state="StoreResults")
     else:
@@ -264,7 +264,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
     for output_file in self.state.output_files:
       self.CallClient(
-          tempfiles_actions.DeleteGRRTempFiles,
+          server_stubs.DeleteGRRTempFiles,
           output_file,
           next_state="LogDeleteFiles")
 

@@ -2,16 +2,13 @@
 """These are flows designed to discover information about the host."""
 
 
-from grr.client.client_actions import admin as admin_actions
-from grr.client.client_actions import cloud as cloud_actions
-from grr.client.client_actions import operating_system as operating_system_actions
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import cloud
@@ -85,22 +82,18 @@ class Interrogate(flow.GRRFlow):
         urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
-    self.CallClient(admin_actions.GetPlatformInfo, next_state="Platform")
+    self.CallClient(server_stubs.GetPlatformInfo, next_state="Platform")
+    self.CallClient(server_stubs.GetMemorySize, next_state="StoreMemorySize")
+    self.CallClient(server_stubs.GetInstallDate, next_state="InstallDate")
+    self.CallClient(server_stubs.GetClientInfo, next_state="ClientInfo")
     self.CallClient(
-        standard_actions.GetMemorySize, next_state="StoreMemorySize")
+        server_stubs.GetConfiguration, next_state="ClientConfiguration")
     self.CallClient(
-        operating_system_actions.GetInstallDate, next_state="InstallDate")
-    self.CallClient(admin_actions.GetClientInfo, next_state="ClientInfo")
+        server_stubs.GetLibraryVersions, next_state="ClientLibraries")
     self.CallClient(
-        admin_actions.GetConfiguration, next_state="ClientConfiguration")
+        server_stubs.EnumerateInterfaces, next_state="EnumerateInterfaces")
     self.CallClient(
-        admin_actions.GetLibraryVersions, next_state="ClientLibraries")
-    self.CallClient(
-        operating_system_actions.EnumerateInterfaces,
-        next_state="EnumerateInterfaces")
-    self.CallClient(
-        operating_system_actions.EnumerateFilesystems,
-        next_state="EnumerateFilesystems")
+        server_stubs.EnumerateFilesystems, next_state="EnumerateFilesystems")
 
   @flow.StateHandler()
   def CloudMetadata(self, responses):
@@ -170,7 +163,7 @@ class Interrogate(flow.GRRFlow):
       # No support for OS X cloud machines as yet.
       if response.system in ["Linux", "Windows"]:
         self.CallClient(
-            cloud_actions.GetCloudVMMetadata,
+            server_stubs.GetCloudVMMetadata,
             cloud.BuildCloudMetadataRequests(),
             next_state="CloudMetadata")
 
@@ -203,10 +196,10 @@ class Interrogate(flow.GRRFlow):
 
   def _GetExtraArtifactsForCollection(self):
     original_set = set(config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"])
-    add_set = set(config_lib.CONFIG[
-        "Artifacts.interrogate_store_in_aff4_additions"])
-    skip_set = set(config_lib.CONFIG[
-        "Artifacts.interrogate_store_in_aff4_skip"])
+    add_set = set(
+        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
+    skip_set = set(
+        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
     return original_set.union(add_set) - skip_set
 
   @flow.StateHandler()

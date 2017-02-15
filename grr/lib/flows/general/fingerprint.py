@@ -2,9 +2,9 @@
 """Invoke the fingerprint client action on a file."""
 
 
-from grr.client.client_actions import file_fingerprint
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -22,7 +22,7 @@ class FingerprintFileResult(rdf_structs.RDFProtoStruct):
 class FingerprintFileMixin(object):
   """Retrieve all fingerprints of a file."""
 
-  fingerprint_file_mixin_client_action = file_fingerprint.FingerprintFile
+  fingerprint_file_mixin_client_action = server_stubs.FingerprintFile
 
   def FingerprintFile(self, pathspec, max_filesize=None, request_data=None):
     """Launch a fingerprint client action."""

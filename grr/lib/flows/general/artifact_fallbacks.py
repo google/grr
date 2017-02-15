@@ -4,12 +4,12 @@
 These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
 
-from grr.client.client_actions import standard as standard_actions
 from grr.lib import artifact
 from grr.lib import flow
 # pylint: disable=unused-import
 from grr.lib import parsers
 # pylint: enable=unused-import
+from grr.lib import server_stubs
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -33,7 +33,7 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
       pathspec = rdf_paths.PathSpec(
           path=drive, pathtype=rdf_paths.PathSpec.PathType.OS)
       self.CallClient(
-          standard_actions.ListDirectory,
+          server_stubs.ListDirectory,
           pathspec=pathspec,
           next_state="ProcessFileStats")
 

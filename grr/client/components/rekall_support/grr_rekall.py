@@ -58,8 +58,8 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
   renderers = ["GRRRekallRenderer"]
 
   def _GetDelegateObjectRenderer(self, item):
-    return self.FromEncoded(item, "DataExportRenderer")(renderer=self.renderer,
-                                                        session=self.session)
+    return self.FromEncoded(item, "DataExportRenderer")(
+        renderer=self.renderer, session=self.session)
 
   def EncodeToJsonSafe(self, item, **options):
     object_renderer = self.ForTarget(item, "DataExportRenderer")
@@ -214,6 +214,7 @@ class GrrRekallSession(session.Session):
     self.renderers.append(result)
 
     return result
+
 
 # Short term storage for profile data.
 UPLOADED_PROFILES = {}

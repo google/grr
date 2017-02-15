@@ -3,9 +3,9 @@
 """Find files on the client."""
 import stat
 
-from grr.client.client_actions import searching as searching_actions
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -71,7 +71,7 @@ class FindFiles(flow.GRRFlow):
 
     # Call the client with it
     self.CallClient(
-        searching_actions.Find, self.args.findspec, next_state="IterateFind")
+        server_stubs.Find, self.args.findspec, next_state="IterateFind")
 
   @flow.StateHandler()
   def IterateFind(self, responses):
@@ -115,5 +115,5 @@ class FindFiles(flow.GRRFlow):
           self.args.max_results - self.state.received_count)
 
       self.CallClient(
-          searching_actions.Find, self.args.findspec, next_state="IterateFind")
+          server_stubs.Find, self.args.findspec, next_state="IterateFind")
       self.Log("%d files processed.", self.state.received_count)

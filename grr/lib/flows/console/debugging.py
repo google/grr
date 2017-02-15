@@ -8,13 +8,12 @@ import pickle
 import tempfile
 import time
 
-from grr.client import actions
-
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import worker
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -26,7 +25,7 @@ class ClientActionArgs(rdf_structs.RDFProtoStruct):
 
   def GetActionArgsClass(self):
     if self.action:
-      action_cls = actions.ActionPlugin.classes.get(self.action)
+      action_cls = server_stubs.ClientActionStub.classes.get(self.action)
       if action_cls is None:
         raise ValueError("Client Action '%s' not known." % self.action)
 
@@ -48,7 +47,7 @@ class ClientAction(flow.GRRFlow):
     # Retrieve the correct rdfvalue to use for this client action.
     action_name = self.args.action
     try:
-      action = actions.ActionPlugin.classes[action_name]
+      action = server_stubs.ClientActionStub.classes[action_name]
     except KeyError:
       raise RuntimeError("Client action %s not found." % action_name)
 
@@ -187,7 +186,7 @@ def TestClientActionWithWorker(client_id,
                                break_pdb=True,
                                **kwargs):
   """Run a client action on a client and break on return."""
-  action_cls = actions.ActionPlugin.classes[client_action]
+  action_cls = server_stubs.ClientActionStub.classes[client_action]
   request = action_cls.in_rdfvalue(**kwargs)
   if print_request:
     print str(request)

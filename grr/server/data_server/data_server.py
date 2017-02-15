@@ -44,6 +44,8 @@ flags.DEFINE_string("path", None, "Specify the data store path.")
 
 flags.DEFINE_bool("master", False, "Mark this data server as the master.")
 
+flags.DEFINE_bool("ipv6", False, "Use IPV6 to accept connections.")
+
 
 class DataServerHandler(BaseHTTPRequestHandler, object):
   """Handler for HTTP requests to the data server."""
@@ -108,7 +110,9 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
         "/servers/sync-all": cls.HandleServerSyncAll
     }
 
-    cls.STREAMING_TABLE = {"/rebalance/copy-file": cls.HandleRebalanceCopyFile,}
+    cls.STREAMING_TABLE = {
+        "/rebalance/copy-file": cls.HandleRebalanceCopyFile,
+    }
 
   @classmethod
   def GetStatistics(cls):
@@ -774,6 +778,7 @@ class StandardDataServer(object):
 
 def Start(db,
           port=0,
+          address_family=socket.AF_INET,
           is_master=False,
           server_cls=ThreadedHTTPServer,
           reqhandler_cls=DataServerHandler):
@@ -828,6 +833,7 @@ def Start(db,
                reqhandler_cls.__name__)
 
   try:
+    server_cls.address_family = address_family
     server = server_cls(("", server_port), reqhandler_cls)
     server.serve_forever()
   except KeyboardInterrupt:
@@ -861,7 +867,16 @@ def main(unused_argv):
       ["ConfigurationViewInitHook", "FileStoreInit", "GRRAFF4Init"])
   registry.Init(skip_set=do_not_start)
 
-  Start(data_store.DB, port=flags.FLAGS.port, is_master=flags.FLAGS.master)
+  if flags.FLAGS.ipv6:
+    af = socket.AF_INET6
+  else:
+    af = socket.AF_INET
+
+  Start(
+      data_store.DB,
+      port=flags.FLAGS.port,
+      address_family=af,
+      is_master=flags.FLAGS.master)
 
 
 if __name__ == "__main__":

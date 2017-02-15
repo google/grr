@@ -2,8 +2,8 @@
 """These are network related flows."""
 
 
-from grr.client.client_actions import network as network_actions
 from grr.lib import flow
+from grr.lib import server_stubs
 
 
 class Netstat(flow.GRRFlow):
@@ -15,7 +15,7 @@ class Netstat(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Start processing."""
-    self.CallClient(network_actions.Netstat, next_state="StoreNetstat")
+    self.CallClient(server_stubs.Netstat, next_state="StoreNetstat")
 
   @flow.StateHandler()
   def StoreNetstat(self, responses):
@@ -28,8 +28,8 @@ class Netstat(flow.GRRFlow):
       flow.FlowError: On failure to get retrieve the connections.
     """
     if not responses.success:
-      raise flow.FlowError("Failed to get connections. Err: {0}".format(
-          responses.status))
+      raise flow.FlowError(
+          "Failed to get connections. Err: {0}".format(responses.status))
 
     for response in responses:
       self.SendReply(response)

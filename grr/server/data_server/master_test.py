@@ -2,6 +2,10 @@
 """Test the master data server abstraction."""
 
 
+import socket
+
+
+import ipaddr
 
 from requests.packages import urllib3
 
@@ -80,7 +84,9 @@ class MasterTest(test_lib.GRRBaseTest):
     super(MasterTest, self).setUp()
     self.mock_service = MockDataStoreService()
 
-    self.host = "127.0.0.1"
+    ip_addrs = socket.getaddrinfo("localhost", 0, socket.AF_UNSPEC, 0,
+                                  socket.IPPROTO_TCP)
+    self.host = ip_addrs[0][4][0]
 
     # Ports 7000+ are typically used for GRR data servers, so they are tested
     # here for illustration and documentation purposes.
@@ -90,10 +96,14 @@ class MasterTest(test_lib.GRRBaseTest):
     # bugs in the past, so this constitues a regression test.
 
     self.ports = [7000, 7001, 7002, 3000]
+    if ipaddr.IPAddress(self.host).version == 6:
+      urn_template = "http://[%s]:%i"
+    else:
+      urn_template = "http://%s:%i"
 
     server_list = []
     for port in self.ports:
-      server_list.append("http://%s:%i" % (self.host, port))
+      server_list.append(urn_template % (self.host, port))
 
     self.server_list_overrider = test_lib.ConfigOverrider({
         "Dataserver.server_list": server_list
@@ -185,9 +195,9 @@ class MasterTest(test_lib.GRRBaseTest):
     """Check that the mapping is valid."""
     m = master.DataMaster(7000, self.mock_service)
     self.assertNotEqual(m, None)
-    server1 = m.RegisterServer("127.0.0.1", 7001)
-    server2 = m.RegisterServer("127.0.0.1", 7002)
-    server3 = m.RegisterServer("127.0.0.1", 3000)
+    server1 = m.RegisterServer(self.host, 7001)
+    server2 = m.RegisterServer(self.host, 7002)
+    server3 = m.RegisterServer(self.host, 3000)
     self.assertTrue(m.AllRegistered())
     mapping = m.LoadMapping()
     self.assertNotEqual(mapping, None)
@@ -195,7 +205,7 @@ class MasterTest(test_lib.GRRBaseTest):
     self.assertEqual(len(mapping.servers), 4)
 
     # Check server information.
-    self.assertEqual(mapping.servers[0].address, "127.0.0.1")
+    self.assertEqual(mapping.servers[0].address, self.host)
     self.assertEqual(mapping.servers[0].port, 7000)
     self.assertEqual(mapping.servers[0].index, 0)
     for idx, server in [(1, server1), (2, server2), (3, server3)]:

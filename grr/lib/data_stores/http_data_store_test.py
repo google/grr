@@ -11,6 +11,7 @@ import threading
 import unittest
 
 
+import ipaddr
 import portpicker
 
 import logging
@@ -19,6 +20,7 @@ from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 
 from grr.lib.data_stores import http_data_store
 from grr.lib.data_stores import sqlite_data_store
@@ -65,6 +67,10 @@ TMP_DIR = tempfile.mkdtemp(dir=(os.environ.get("TEST_TMPDIR") or "/tmp"))
 CONFIG_OVERRIDER = None
 
 
+def _GetLocalIPAsString():
+  return utils.ResolveHostnameToIP("localhost", 0)
+
+
 def _StartServers():
   global HTTP_DB
   global STARTED_SERVER
@@ -77,13 +83,17 @@ def _StartServers():
       sqlite_data_store.SqliteDataStore(temp_dir_1),
       sqlite_data_store.SqliteDataStore(temp_dir_2)
   ]
+  if ipaddr.IPAddress(_GetLocalIPAsString()).version == 6:
+    af = socket.AF_INET6
+  else:
+    af = socket.AF_INET
   STARTED_SERVER = [
       threading.Thread(
           target=data_server.Start,
-          args=(HTTP_DB[0], PORT[0], True, StoppableHTTPServer,
+          args=(HTTP_DB[0], PORT[0], af, True, StoppableHTTPServer,
                 MockRequestHandler1)), threading.Thread(
                     target=data_server.Start,
-                    args=(HTTP_DB[1], PORT[1], False, StoppableHTTPServer,
+                    args=(HTTP_DB[1], PORT[1], af, False, StoppableHTTPServer,
                           MockRequestHandler2))
   ]
   STARTED_SERVER[0].start()
@@ -92,9 +102,16 @@ def _StartServers():
 
 def _SetConfig():
   global CONFIG_OVERRIDER
+  local_ip = _GetLocalIPAsString()
+  if ipaddr.IPAddress(local_ip).version == 6:
+    urn_template = "http://[%s]:%d"
+  else:
+    urn_template = "http://%s:%d"
+
   CONFIG_OVERRIDER = test_lib.ConfigOverrider({
-      "Dataserver.server_list":
-          ["http://127.0.0.1:%d" % PORT[0], "http://127.0.0.1:%d" % PORT[1]],
+      "Dataserver.server_list": [
+          urn_template % (local_ip, PORT[0]), urn_template % (local_ip, PORT[1])
+      ],
       "Dataserver.server_username":
           "root",
       "Dataserver.server_password":

@@ -3,14 +3,13 @@
 
 
 
-from grr.client.client_actions import tempfiles as tempfiles_actions
-
 # The DumpFlashImage class is loaded from here
 from grr.client.components.chipsec_support import grr_chipsec_stub
 
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import hardware
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -66,8 +65,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
           self.Log(log)
 
     if not responses.success:
-      raise flow.FlowError("Failed to dump the flash image: {0}".format(
-          responses.status))
+      raise flow.FlowError(
+          "Failed to dump the flash image: {0}".format(responses.status))
     elif not responses.First().path:
       self.Log("No path returned. Skipping host.")
       self.CallState(next_state="End")
@@ -83,8 +82,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   def DeleteTemporaryImage(self, responses):
     """Remove the temporary image from the client."""
     if not responses.success:
-      raise flow.FlowError("Unable to collect the flash image: {0}".format(
-          responses.status))
+      raise flow.FlowError(
+          "Unable to collect the flash image: {0}".format(responses.status))
 
     response = responses.First()
     self.SendReply(response)
@@ -98,7 +97,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
 
     # Clean up the temporary image from the client.
     self.CallClient(
-        tempfiles_actions.DeleteGRRTempFiles,
+        server_stubs.DeleteGRRTempFiles,
         responses.request_data["image_path"],
         next_state="TemporaryImageRemoved")
 

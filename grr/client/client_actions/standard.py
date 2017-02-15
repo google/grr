@@ -22,6 +22,7 @@ from grr.client import client_utils_common
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
+from grr.lib import constants
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -30,9 +31,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-
-# We do not send larger buffers than this:
-MAX_BUFFER_SIZE = 640 * 1024
 
 
 class ReadBuffer(actions.ActionPlugin):
@@ -43,7 +41,7 @@ class ReadBuffer(actions.ActionPlugin):
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
     # Make sure we limit the size of our output
-    if args.length > MAX_BUFFER_SIZE:
+    if args.length > constants.CLIENT_MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
     try:
@@ -71,7 +69,7 @@ class TransferBuffer(actions.ActionPlugin):
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
     # Make sure we limit the size of our output
-    if args.length > MAX_BUFFER_SIZE:
+    if args.length > constants.CLIENT_MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
     data = vfs.ReadVFS(
@@ -107,7 +105,7 @@ class HashBuffer(actions.ActionPlugin):
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
     # Make sure we limit the size of our output
-    if args.length > MAX_BUFFER_SIZE:
+    if args.length > constants.CLIENT_MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
     data = vfs.ReadVFS(args.pathspec, args.offset, args.length)
@@ -139,7 +137,7 @@ class HashFile(actions.ActionPlugin):
     bytes_read = 0
     while bytes_read < max_length:
       self.Progress()
-      to_read = min(MAX_BUFFER_SIZE, max_length - bytes_read)
+      to_read = min(constants.CLIENT_MAX_BUFFER_SIZE, max_length - bytes_read)
       data = file_obj.read(to_read)
       if not data:
         break
@@ -414,8 +412,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   def Run(self, args):
     """Run."""
     # Verify the executable blob.
-    args.executable.Verify(config_lib.CONFIG[
-        "Client.executable_signing_public_key"])
+    args.executable.Verify(
+        config_lib.CONFIG["Client.executable_signing_public_key"])
 
     path = self.WriteBlobToFile(args)
 
@@ -467,8 +465,8 @@ class ExecutePython(actions.ActionPlugin):
       def write(self, text):
         self.buf.write(text)
 
-    args.python_code.Verify(config_lib.CONFIG[
-        "Client.executable_signing_public_key"])
+    args.python_code.Verify(
+        config_lib.CONFIG["Client.executable_signing_public_key"])
 
     # The execed code can assign to this variable if it wants to return data.
     logging.debug("exec for python code %s", args.python_code.data[0:100])
@@ -737,8 +735,7 @@ class StatFS(actions.ActionPlugin):
 
       try:
         fd = vfs.VFSOpen(
-            rdf_paths.PathSpec(
-                path=path, pathtype=args.pathtype),
+            rdf_paths.PathSpec(path=path, pathtype=args.pathtype),
             progress_callback=self.Progress)
         st = fd.StatFS()
         mount_point = fd.GetMountPoint()
