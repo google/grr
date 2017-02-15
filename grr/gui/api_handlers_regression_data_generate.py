@@ -33,6 +33,7 @@ def GroupRegressionTestsByHandler():
 
 def main(unused_argv):
   sample_data = {}
+  testing_startup.TestInit()
 
   tests = GroupRegressionTestsByHandler()
   for handler, test_classes in tests.items():
@@ -46,8 +47,6 @@ def main(unused_argv):
 
       test_instance = test_class()
 
-      # Recreate a new data store each time.
-      testing_startup.TestInit()
       try:
         test_instance.setUp()
 

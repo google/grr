@@ -758,8 +758,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -833,7 +833,7 @@
         "reason": "really important reason!",
         "subject": {
           "client_limit": 100,
-          "client_rate": 0,
+          "client_rate": 0.0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "foo",
@@ -2217,8 +2217,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -2289,7 +2289,7 @@
         "reason": "foo",
         "subject": {
           "client_limit": 100,
-          "client_rate": 0,
+          "client_rate": 0.0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt1",
@@ -2357,8 +2357,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -2429,7 +2429,7 @@
         "reason": "bar",
         "subject": {
           "client_limit": 100,
-          "client_rate": 0,
+          "client_rate": 0.0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt2",
@@ -2719,8 +2719,8 @@
           },
           "client_rate": {
             "age": 0,
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "client_rule_set": {
             "age": 0,
@@ -2906,7 +2906,7 @@
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 100,
-        "client_rate": 0,
+        "client_rate": 0.0,
         "client_rule_set": {
           "rules": [
             {
@@ -7121,8 +7121,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -7193,7 +7193,7 @@
         "reason": "foo",
         "subject": {
           "client_limit": 100,
-          "client_rate": 0,
+          "client_rate": 0.0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "a hunt",
@@ -10578,8 +10578,8 @@
                   },
                   "client_rate": {
                     "age": 0,
-                    "type": "long",
-                    "value": 20
+                    "type": "float",
+                    "value": 20.5
                   },
                   "created": {
                     "age": 0,
@@ -10654,7 +10654,7 @@
             "reason": "Running tests",
             "subject": {
               "client_limit": 100,
-              "client_rate": 20,
+              "client_rate": 20.5,
               "created": 42000000,
               "creator": "api_test_user",
               "description": "",
@@ -12669,8 +12669,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -12735,8 +12735,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -12798,7 +12798,7 @@
         "items": [
           {
             "client_limit": 100,
-            "client_rate": 0,
+            "client_rate": 0.0,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -12812,7 +12812,7 @@
           },
           {
             "client_limit": 100,
-            "client_rate": 0,
+            "client_rate": 0.0,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -12845,8 +12845,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -12908,7 +12908,7 @@
         "items": [
           {
             "client_limit": 100,
-            "client_rate": 0,
+            "client_rate": 0.0,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -12941,8 +12941,8 @@
               },
               "client_rate": {
                 "age": 0,
-                "type": "long",
-                "value": 0
+                "type": "float",
+                "value": 0.0
               },
               "created": {
                 "age": 0,
@@ -13004,7 +13004,7 @@
         "items": [
           {
             "client_limit": 100,
-            "client_rate": 0,
+            "client_rate": 0.0,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -14323,8 +14323,8 @@
           },
           "client_rate": {
             "age": 0,
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "client_rule_set": {
             "age": 0,
@@ -14515,7 +14515,7 @@
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 142,
-        "client_rate": 0,
+        "client_rate": 0.0,
         "client_rule_set": {
           "rules": [
             {
@@ -14588,8 +14588,8 @@
           },
           "client_rate": {
             "age": 0,
-            "type": "long",
-            "value": 0
+            "type": "float",
+            "value": 0.0
           },
           "client_rule_set": {
             "age": 0,
@@ -14780,7 +14780,7 @@
       "type_stripped_response": {
         "all_clients_count": 0,
         "client_limit": 142,
-        "client_rate": 0,
+        "client_rate": 0.0,
         "client_rule_set": {
           "rules": [
             {

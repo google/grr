@@ -123,7 +123,6 @@ class ApiRegressionTest(object):
 
     self.token.username = "api_test_user"
 
-    testing_startup.TestInit()
     # Force creation of new APIAuthorizationManager.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
@@ -165,8 +164,7 @@ class ApiRegressionTest(object):
     mdata = router.GetAnnotatedMethods()[method]
 
     check = self.HandleCheck(
-        mdata, args=args,
-        replace=lambda s: self._Replace(s, replace=replace))
+        mdata, args=args, replace=lambda s: self._Replace(s, replace=replace))
 
     check["test_class"] = self.__class__.__name__
     check["api_method"] = method
@@ -225,6 +223,7 @@ class ApiRegressionGoldenOutputGenerator(object):
     """Prints generated 'golden' output to the stdout."""
 
     sample_data = {}
+    testing_startup.TestInit()
 
     tests = self._GroupRegressionTestsByHandler()
     for handler, test_classes in tests.items():
@@ -235,7 +234,6 @@ class ApiRegressionGoldenOutputGenerator(object):
         if getattr(test_class, "connection_type", "") != self.connection_type:
           continue
 
-        testing_startup.TestInit()
         test_class.setUpClass()
         loaded = self.loader.loadTestsFromTestCase(test_class)
         for t in loaded:

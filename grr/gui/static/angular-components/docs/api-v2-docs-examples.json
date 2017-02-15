@@ -187,7 +187,7 @@
         "reason": "really important reason!",
         "subject": {
           "clientLimit": "100",
-          "clientRate": "0",
+          "clientRate": 0.0,
           "created": "42000000",
           "creator": "api_test_user",
           "description": "foo",
@@ -657,7 +657,7 @@
         "reason": "foo",
         "subject": {
           "clientLimit": "100",
-          "clientRate": "0",
+          "clientRate": 0.0,
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt1",
@@ -689,7 +689,7 @@
         "reason": "bar",
         "subject": {
           "clientLimit": "100",
-          "clientRate": "0",
+          "clientRate": 0.0,
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt2",
@@ -967,7 +967,7 @@
       "response": {
         "allClientsCount": "0",
         "clientLimit": "100",
-        "clientRate": "0",
+        "clientRate": 0.0,
         "clientRuleSet": {
           "rules": [
             {
@@ -3733,7 +3733,7 @@
         "reason": "foo",
         "subject": {
           "clientLimit": "100",
-          "clientRate": "0",
+          "clientRate": 0.0,
           "created": "42000000",
           "creator": "api_test_user",
           "description": "a hunt",
@@ -4609,7 +4609,7 @@
             "reason": "Running tests",
             "subject": {
               "clientLimit": "100",
-              "clientRate": "20",
+              "clientRate": 20.5,
               "created": "42000000",
               "creator": "api_test_user",
               "description": "",
@@ -5104,7 +5104,7 @@
         "items": [
           {
             "clientLimit": "100",
-            "clientRate": "0",
+            "clientRate": 0.0,
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -5118,7 +5118,7 @@
           },
           {
             "clientLimit": "100",
-            "clientRate": "0",
+            "clientRate": 0.0,
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -5143,7 +5143,7 @@
         "items": [
           {
             "clientLimit": "100",
-            "clientRate": "0",
+            "clientRate": 0.0,
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -5168,7 +5168,7 @@
         "items": [
           {
             "clientLimit": "100",
-            "clientRate": "0",
+            "clientRate": 0.0,
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -5529,7 +5529,7 @@
       "response": {
         "allClientsCount": "0",
         "clientLimit": "142",
-        "clientRate": "0",
+        "clientRate": 0.0,
         "clientRuleSet": {
           "rules": [
             {
@@ -5591,7 +5591,7 @@
       "response": {
         "allClientsCount": "0",
         "clientLimit": "142",
-        "clientRate": "0",
+        "clientRate": 0.0,
         "clientRuleSet": {
           "rules": [
             {
