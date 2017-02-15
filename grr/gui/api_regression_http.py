@@ -16,8 +16,8 @@ from grr import gui
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router
 from grr.gui import api_value_renderers
-from grr.gui import django_lib
 from grr.gui import http_api
+from grr.gui import wsgiapp_testlib
 from grr.gui.api_client.connectors import http_connector
 from grr.lib import flags
 from grr.lib import testing_startup
@@ -30,14 +30,14 @@ class HttpApiRegressionTestMixinBase(object):
   """Load only API E2E test cases."""
 
   api_version = None
-  _connector = None
+  endpoint = None
 
   @classmethod
   def setUpClass(cls):  # pylint: disable=invalid-name
     if cls.api_version not in [1, 2]:
       raise ValueError("api_version may be 1 or 2 only")
 
-    if not HttpApiRegressionTestMixinBase._connector:
+    if not HttpApiRegressionTestMixinBase.endpoint:
       port = portpicker.PickUnusedPort()
       logging.info("Picked free AdminUI port %d.", port)
 
@@ -45,16 +45,15 @@ class HttpApiRegressionTestMixinBase(object):
       # Force creation of new APIAuthorizationManager.
       api_auth_manager.APIACLInit.InitApiAuthManager()
 
-      trd = django_lib.DjangoThread(port)
+      trd = wsgiapp_testlib.ServerThread(port)
       trd.StartAndWaitUntilServing()
 
-      endpoint = "http://localhost:%d" % port
-      HttpApiRegressionTestMixinBase._connector = http_connector.HttpConnector(
-          api_endpoint=endpoint)
+      cls.endpoint = "http://localhost:%d" % port
 
-  @property
-  def connector(self):
-    return HttpApiRegressionTestMixinBase._connector
+  def setUp(self):  # pylint: disable=invalid-name
+    super(HttpApiRegressionTestMixinBase, self).setUp()
+    self.connector = http_connector.HttpConnector(
+        api_endpoint=self.__class__.endpoint)
 
   def _ParseJSON(self, json_str):
     """Parses response JSON."""
@@ -134,8 +133,8 @@ class HttpApiRegressionTestMixinBase(object):
       check_result["response"] = self._ParseJSON(replace(response.content))
 
     if self.__class__.api_version == 1:
-      stripped_response = api_value_renderers.StripTypeInfo(check_result[
-          "response"])
+      stripped_response = api_value_renderers.StripTypeInfo(
+          check_result["response"])
       if stripped_response != check_result["response"]:
         check_result["type_stripped_response"] = stripped_response
 

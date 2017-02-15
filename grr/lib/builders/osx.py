@@ -32,26 +32,26 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.MakeZip(output_file, self.template_file)
 
   def SetBuildVars(self):
-    self.version = config_lib.CONFIG.Get("Source.version_string",
-                                         context=self.context)
-    self.pkg_name = "%s-%s.pkg" % (
-        config_lib.CONFIG.Get("Client.name", context=self.context),
-        self.version)
-    self.build_root = config_lib.CONFIG.Get("ClientBuilder.build_root_dir",
-                                            context=self.context)
-    self.client_name = config_lib.CONFIG.Get("Client.name",
-                                             context=self.context)
-    self.plist_name = config_lib.CONFIG.Get("Client.plist_filename",
-                                            context=self.context)
+    self.version = config_lib.CONFIG.Get(
+        "Source.version_string", context=self.context)
+    self.client_name = config_lib.CONFIG.Get(
+        "Client.name", context=self.context)
+
+    self.pkg_org = config_lib.CONFIG.Get(
+        "ClientBuilder.package_maker_organization", context=self.context)
+    self.pkg_name = "%s-%s.pkg" % (self.client_name, self.version)
+    self.build_root = config_lib.CONFIG.Get(
+        "ClientBuilder.build_root_dir", context=self.context)
+    self.plist_name = config_lib.CONFIG.Get(
+        "Client.plist_filename", context=self.context)
     self.output_basename = config_lib.CONFIG.Get(
         "ClientBuilder.output_basename", context=self.context)
     self.template_binary_dir = os.path.join(
         config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
-    self.target_binary_dir = os.path.join(self.pkg_root, "usr/local/lib/",
-                                          self.client_name,
-                                          self.output_basename)
+    self.target_binary_dir = os.path.join(
+        self.pkg_root, "usr/local/lib/", self.client_name, self.output_basename)
     self.pkgbuild_out_dir = os.path.join(self.build_root, "pkgbuild-out")
     self.pkgbuild_out_binary = os.path.join(self.pkgbuild_out_dir,
                                             self.pkg_name)
@@ -130,11 +130,10 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     # Generate a config file.
     with open(
-        os.path.join(
-            self.target_binary_dir,
-            config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                  context=self.context)),
-        "wb") as fd:
+        os.path.join(self.target_binary_dir,
+                     config_lib.CONFIG.Get(
+                         "ClientBuilder.config_filename",
+                         context=self.context)), "wb") as fd:
       fd.write(
           repacker.GetClientConfig(
               ["Client Context"] + self.context, validate=False))
@@ -150,10 +149,10 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.RunCmd(command)
 
   def RunPkgBuild(self):
-    pkg_org = config_lib.CONFIG.Get("ClientBuilder.package_maker_organization",
-                                    context=self.context)
+    pkg_id = "%s.%s.%s_%s" % (self.pkg_org, self.client_name, self.client_name,
+                              self.version)
     command = [
-        "pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_org,
+        "pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_id,
         "--scripts", self.script_dir, "--version", self.version,
         self.pkgbuild_out_binary
     ]

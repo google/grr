@@ -4,12 +4,8 @@
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 
-config_lib.DEFINE_string("BigQuery.service_account", None,
-                         "The service account email address for BigQuery.")
-
-config_lib.DEFINE_string("BigQuery.private_key", None,
-                         "The private key entry from the service account "
-                         "credential file.")
+config_lib.DEFINE_string("BigQuery.service_acct_json", None,
+                         "The json contents of the service account file.")
 
 config_lib.DEFINE_string("BigQuery.project_id", None,
                          "The BigQuery project_id.")

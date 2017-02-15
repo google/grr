@@ -6,12 +6,12 @@
   window.CLOSURE_NO_DEPS = true;
 </script>
 
-<link rel="stylesheet" type="text/css" href="/static/dist/third-party.bundle.css?timestamp={{timestamp|escape}}" />
-<script src="/static/dist/third-party.bundle.js?timestamp={{timestamp|escape}}"></script>
-<link rel="stylesheet" type="text/css" href="/static/dist/grr-ui.bundle.css?timestamp={{timestamp|escape}}" />
+<link rel="stylesheet" type="text/css" href="/static/dist/third-party.bundle.css?timestamp={{timestamp}}" />
+<script src="/static/dist/third-party.bundle.js?timestamp={{timestamp}}"></script>
+<link rel="stylesheet" type="text/css" href="/static/dist/grr-ui.bundle.css?timestamp={{timestamp}}" />
 
 {% if use_precompiled_js %}
-<script src="/static/dist/grr-ui.bundle.js?timestamp={{timestamp|escape}}"></script>
+<script src="/static/dist/grr-ui.bundle.js?timestamp={{timestamp}}"></script>
 
 <!-- This makes sure templates are loaded from the JS bundle. -->
 <script>
@@ -48,7 +48,7 @@
     <div class="navbar-inner">
       <div class="container-fluid">
         <a href="/"><img class="grr-logo" src="/static/images/grr_logo_real_sm.png" /></a>
-        <div class="navbar-brand">{{heading|escape}}</div>
+        <div class="navbar-brand">{{heading}}</div>
 
         <div class="nav pull-left">
           <grr-user-label class="navbar-text"></grr-user-label>
@@ -104,8 +104,8 @@
 
       <ul class="nav navbar-nav pull-right">
         <li><a ui-sref="apiDocs">API</a></li>
-        <li><a href="{{help_url|escape}}" target="_blank">Help</a></li>
-        <li><a href="{{report_url|escape}}" target="_blank">Report a problem</a></li>
+        <li><a href="{{help_url}}" target="_blank">Help</a></li>
+        <li><a href="{{report_url}}" target="_blank">Report a problem</a></li>
       </ul>
 
     </div>
@@ -126,6 +126,6 @@
     </div>
   </div>
 
-  <script src="/static/javascript/grr.js?timestamp={{timestamp|escape}}"></script>
+  <script src="/static/javascript/grr.js?timestamp={{timestamp}}"></script>
 </body>
 </html>

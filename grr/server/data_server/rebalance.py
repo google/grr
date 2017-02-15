@@ -245,7 +245,8 @@ def SaveTemporaryFile(fp):
   # Read DataServerFileCopy object.
   filecopy_len_str = fp.read(sutils.SIZE_PACKER.size)
   filecopy_len = sutils.SIZE_PACKER.unpack(filecopy_len_str)[0]
-  filecopy = rdf_data_server.DataServerFileCopy.FromSerializedString(fp.read(filecopy_len))
+  filecopy = rdf_data_server.DataServerFileCopy.FromSerializedString(
+      fp.read(filecopy_len))
 
   rebdir = _CreateDirectory(loc, filecopy.rebalance_id)
   filedir = utils.JoinPath(rebdir, filecopy.directory)

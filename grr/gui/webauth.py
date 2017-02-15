@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
 
-
-# weird django import order for version issues so
-
-from django import http
-# pylint: enable=g-bad-import-order,unused-import
+from werkzeug import utils as werkzeug_utils
+from werkzeug import wrappers
 
 import logging
 
@@ -40,7 +37,7 @@ class BaseWebAuthManager(object):
       **kwargs: Passthrough to wrapped function.
 
     Returns:
-      A django http response object.
+      A WSGI http response object.
 
     This will get called for all requests that get passed through one of our
     handlers that is wrapped in @SecurityCheck.
@@ -48,7 +45,7 @@ class BaseWebAuthManager(object):
 
   def RedirectBase(self):
     """Return a redirect to the main GRR page."""
-    return http.HttpResponsePermanentRedirect(config_lib.CONFIG["AdminUI.url"])
+    return werkzeug_utils.redirect(config_lib.CONFIG["AdminUI.url"])
 
 
 class BasicWebAuthManager(BaseWebAuthManager):
@@ -64,8 +61,8 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
     authorized = False
     try:
-      auth_type, authorization = request.META.get("HTTP_AUTHORIZATION",
-                                                  " ").split(" ", 1)
+      auth_type, authorization = request.headers.get("Authorization",
+                                                     " ").split(" ", 1)
 
       if auth_type == "Basic":
         user, password = authorization.decode("base64").split(":", 1)
@@ -84,8 +81,8 @@ class BasicWebAuthManager(BaseWebAuthManager):
       pass
 
     if not authorized:
-      result = http.HttpResponse("Unauthorized", status=401)
-      result["WWW-Authenticate"] = "Basic realm='Secure Area'"
+      result = wrappers.Response("Unauthorized", status=401)
+      result.headers["WWW-Authenticate"] = "Basic realm='Secure Area'"
       return result
 
     # Modify this to implement additional checking (e.g. enforce SSL).
@@ -136,8 +133,8 @@ class WebAuthInit(registry.InitHook):
     global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
     # pylint: disable=g-bad-name
-    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(config_lib.CONFIG[
-        "AdminUI.webauth_manager"])()
+    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
+        config_lib.CONFIG["AdminUI.webauth_manager"])()
 
     # pylint: enable=g-bad-name
     logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

@@ -7,10 +7,10 @@ import random
 import time
 import unittest
 
-from gcloud import bigtable
 from grpc.framework.interfaces.face import face
 import mock
 
+from google.cloud import bigtable
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -46,7 +46,6 @@ class CloudBigTableDataStoreMixin(object):
 
     cls.db = cloud_bigtable_data_store.CloudBigTableDataStore()
     cls.btclient = bigtable.Client(project=cls.test_project_id, admin=True)
-    cls.btclient.start()
 
     # Ideally we wouldn't stand up a new instance for each test run, but
     # deleting an instance just marks it for delete in 7 days and you can't
@@ -69,8 +68,6 @@ class CloudBigTableDataStoreMixin(object):
     # If we auto-created this instance, delete it now
     if cls.btinstance.instance_id.startswith(cls.TEST_BIGTABLE_INSTANCE_PREFIX):
       cls.DeleteTestBigtableInstance()
-    cls.btclient.stop()
-    cls.db.StopClient()
 
   def InitDatastore(self):
     self.token = access_control.ACLToken(username="Test", reason="Just testing")
@@ -128,7 +125,7 @@ class CloudBigTableDataStoreIntegrationTest(CloudBigTableDataStoreMixin,
 
   @unittest.skip(
       "https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2397")
-  def testAFF4Image(self):
+  def testAFF4BlobImage(self):
     pass
 
   @unittest.skip(

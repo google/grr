@@ -136,18 +136,15 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   """Test for RouterMatcher."""
 
   def _CreateRequest(self, method, path, query_parameters=None):
-    if not query_parameters:
-      query_parameters = {}
-
     request = utils.DataObject()
     request.method = method
     request.path = path
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = "test"
-    if method == "GET":
-      request.GET = query_parameters
-    request.META = {}
+    request.args = query_parameters or {}
+    request.headers = {}
+    request.get_data = lambda as_text=False: ""
 
     return request
 
@@ -192,30 +189,28 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
 
   def _CreateRequest(self, method, path, username="test",
                      query_parameters=None):
-    if not query_parameters:
-      query_parameters = {}
-
     request = utils.DataObject()
     request.method = method
     request.path = path
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = username
-    if method in ["GET", "HEAD"]:
-      request.GET = query_parameters
-    request.META = {"CONTENT_TYPE": "application/json; charset=utf-8"}
-    request.body = ""
+    request.args = query_parameters or {}
+    request.content_type = "application/json; charset=utf-8"
+    request.headers = {}
+    request.get_data = lambda as_text=False: ""
 
     return request
 
   def _RenderResponse(self, request):
-    response = http_api.RenderHttpResponse(request)
+    return http_api.RenderHttpResponse(request)
 
-    if hasattr(response, "content"):
-      if response.content.startswith(")]}'\n"):
-        response.content = response.content[5:]
+  def _GetResponseContent(self, response):
+    content = response.get_data(as_text=True)
+    if content.startswith(")]}'\n"):
+      content = content[5:]
 
-    return response
+    return json.loads(content)
 
   def setUp(self):
     super(HttpRequestHandlerTest, self).setUp()
@@ -235,14 +230,13 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
 
   def testBuildToken(self):
     request = self._CreateRequest("POST", "/test_sample/some/path")
-    request.META["HTTP_X_GRR_REASON"] = urllib2.quote("区最 trailing space ")
+    request.headers["X-Grr-Reason"] = urllib2.quote("区最 trailing space ")
     token = self.request_handler.BuildToken(request, 20)
     self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(
-        self._CreateRequest(
-            "GET", "/test_sample/some/path", username="GRR"))
+        self._CreateRequest("GET", "/test_sample/some/path", username="GRR"))
     self.assertEqual(response.status_code, 403)
 
   def testRendersGetHandlerCorrectly(self):
@@ -250,7 +244,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
 
     self.assertEqual(
-        json.loads(response.content),
+        self._GetResponseContent(response),
         {"method": "GET",
          "path": "some/path",
          "foo": ""})
@@ -260,7 +254,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     response = self._RenderResponse(
         self._CreateRequest("HEAD", "/test_sample/some/path"))
 
-    self.assertEqual(json.loads(response.content), {"status": "OK"})
+    self.assertEqual(self._GetResponseContent(response), {"status": "OK"})
     self.assertEqual(response.status_code, 200)
 
   def testHeadResponseHasSubjectAndReasonOnUnauthorizedAccess(self):
@@ -268,42 +262,39 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
 
     self.assertEqual(
-        json.loads(response.content), {
-            "message": "Access denied by ACL: oh no",
-            "subject": "aff4:/foo/bar"
-        })
+        self._GetResponseContent(response),
+        {"message": "Access denied by ACL: oh no",
+         "subject": "aff4:/foo/bar"})
     self.assertEqual(response.status_code, 403)
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
     response = self._RenderResponse(
         self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
 
-    headers = dict(response.items())
-    self.assertEqual(headers["X-GRR-Unauthorized-Access-Subject"],
+    self.assertEqual(response.headers["X-GRR-Unauthorized-Access-Subject"],
                      "aff4:/foo/bar")
-    self.assertEqual(headers["X-GRR-Unauthorized-Access-Reason"], "oh no")
+    self.assertEqual(response.headers["X-GRR-Unauthorized-Access-Reason"],
+                     "oh no")
 
   def testBinaryStreamIsCorrectlyStreamedViaGetMethod(self):
     response = self._RenderResponse(
         self._CreateRequest("GET", "/test_sample/streaming"))
 
-    headers = dict(response.items())
-    self.assertEqual(list(response.streaming_content), ["foo", "bar", "blah"])
-    self.assertEqual(headers["Content-Length"], "1337")
+    self.assertEqual(list(response.iter_encoded()), ["foo", "bar", "blah"])
+    self.assertEqual(response.headers["Content-Length"], "1337")
 
   def testBinaryStreamReturnsContentLengthViaHeadMethod(self):
     response = self._RenderResponse(
         self._CreateRequest("HEAD", "/test_sample/streaming"))
 
-    headers = dict(response.items())
-    self.assertEqual(headers["Content-Length"], "1337")
+    self.assertEqual(response.headers["Content-Length"], "1337")
 
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
             "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
     self.assertEqual(
-        json.loads(response.content),
+        self._GetResponseContent(response),
         {"method": "GET",
          "path": "some/path",
          "foo": "bar"})
@@ -315,7 +306,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
             "/test_sample/some/path",
             query_parameters={"path": "foobar"}))
     self.assertEqual(
-        json.loads(response.content),
+        self._GetResponseContent(response),
         {"method": "GET",
          "path": "some/path",
          "foo": ""})
@@ -325,7 +316,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("DELETE", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content),
+        self._GetResponseContent(response),
         {"method": "DELETE",
          "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
@@ -335,7 +326,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("PATCH", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content),
+        self._GetResponseContent(response),
         {"method": "PATCH",
          "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)

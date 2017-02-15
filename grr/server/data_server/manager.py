@@ -63,7 +63,8 @@ class Manager(object):
       res = self.pool.urlopen("POST", "/manage", headers=headers, body=body)
       if res.status != constants.RESPONSE_OK:
         return False
-      self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
+      self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+          res.data)
       self.mapping_time = time.time()
     except urllib3.exceptions.MaxRetryError:
       pass
@@ -178,7 +179,8 @@ class Manager(object):
     if res.status != constants.RESPONSE_OK:
       print "Re-sharding cannot be done!"
       return
-    rebalance = rdf_data_server.DataServerRebalance.FromSerializedString(res.data)
+    rebalance = rdf_data_server.DataServerRebalance.FromSerializedString(
+        res.data)
     print "OK"
     print
     print "The following servers will need to move data:"
@@ -217,8 +219,8 @@ class Manager(object):
       print "'recover %s' in order to re-run transaction" % rebalance.id
       return
 
-    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
-
+    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        res.data)
     print "Rebalance with id %s fully performed." % rebalance.id
 
   def _Recover(self, transid):
@@ -249,7 +251,8 @@ class Manager(object):
     if res.status != constants.RESPONSE_OK:
       print "Potential data master error. Giving up..."
       return
-    rebalance = rdf_data_server.DataServerRebalance.FromSerializedString(res.data)
+    rebalance = rdf_data_server.DataServerRebalance.FromSerializedString(
+        res.data)
     print "Got transaction object %s" % rebalance.id
     answer = raw_input("Proceed with the recover process? (y/n) ")
     if answer != "y":
@@ -273,7 +276,8 @@ class Manager(object):
       print "'recover %s' in order to re-run transaction" % rebalance.id
       return
 
-    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
+    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        res.data)
     print "Rebalance with id %s fully performed." % rebalance.id
 
   def _PackNewServer(self, addr, port):
@@ -354,7 +358,8 @@ class Manager(object):
     self._CompleteAddServerHelp(addr, port)
 
     # Update mapping.
-    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
+    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        res.data)
 
   def _CompleteAddServerHelp(self, addr, port):
     print("\t1. Add '//%s:%d' to Dataserver.server_list in your configuration "
@@ -390,7 +395,8 @@ class Manager(object):
       return False
     print "Sync done."
     # Update mapping.
-    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
+    self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        res.data)
     return True
 
   def _FindServer(self, addr, port):
@@ -489,7 +495,8 @@ class Manager(object):
 
     if res.status == constants.RESPONSE_OK:
       # Update mapping.
-      self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
+      self.mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+          res.data)
       self._CompleteRemServerHelpComplete(addr, port)
       return
 

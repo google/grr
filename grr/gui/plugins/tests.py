@@ -13,8 +13,10 @@ from grr.gui.plugins import artifact_view_test
 # from grr.gui.plugins import crash_view_test
 from grr.gui.plugins import cron_view_test
 from grr.gui.plugins import fileview_test
+from grr.gui.plugins import flow_archive_test
 from grr.gui.plugins import flow_export_test
 from grr.gui.plugins import flow_management_test
+from grr.gui.plugins import flow_notifications_test
 from grr.gui.plugins import forms_test
 from grr.gui.plugins import hosttable_test
 from grr.gui.plugins import hunt_archive_test

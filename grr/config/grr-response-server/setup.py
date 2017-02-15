@@ -76,21 +76,16 @@ setup_args = dict(
         ]
     },
     install_requires=[
-        "Django==1.8.3",
-        "gcloud[grpc]==0.18.2",
-        # gcloud made a mess of their pins. Just installing the gcloud package
-        # as above should be enough, but sub dependencies require slightly
-        # different version of google-gax. This is a workaround.
-        "google-gax==0.12.5",
-        "google-api-python-client==1.4.2",
+        "google-api-python-client==1.6.2",
+        "google-cloud-bigquery==0.22.1",
+        "google-cloud-bigtable==0.22.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
+        "Jinja2==2.9.5",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "python-crontab==2.0.1",
         "rekall-core~=1.6.0",
-        # TODO(user): remove as soon as this is added to rekall-core itself.
-        "SPARQLWrapper~=1.6.4",
         "Werkzeug==0.11.3",
         "wsgiref==0.1.2",
     ],

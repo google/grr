@@ -8,10 +8,11 @@ import threading
 import time
 import traceback
 
-from gcloud import bigtable
-from gcloud.bigtable import row_filters
 from grpc.framework.interfaces.face import face
 import pytz
+
+from google.cloud import bigtable
+from google.cloud.bigtable import row_filters
 
 import logging
 from grr.lib import aff4
@@ -174,19 +175,9 @@ class CloudBigTableDataStore(data_store.DataStore):
     # Connection to bigtable is fairly expensive so we open one and re-use it.
     # https://cloud.google.com/bigtable/docs/performance
     self.btclient = bigtable.Client(project=project_id)
-    self.btclient.start()
     self.instance = self.btclient.instance(instance_id)
-    self.table = self.instance.table(config_lib.CONFIG[
-        "CloudBigtable.table_name"])
-
-  def __del__(self):
-    self.StopClient()
-    super(CloudBigTableDataStore, self).__del__()
-
-  def StopClient(self):
-    if self.btclient:
-      if self.btclient.is_started():
-        self.btclient.stop()
+    self.table = self.instance.table(
+        config_lib.CONFIG["CloudBigtable.table_name"])
 
   def Initialize(self, project_id=None, instance_id=None):
     super(CloudBigTableDataStore, self).Initialize()
@@ -204,41 +195,41 @@ class CloudBigTableDataStore(data_store.DataStore):
   def CreateInstanceAndTable(self, project_id=None, instance_id=None):
     # The client must be created with admin=True because it will create a
     # table.
-    with bigtable.Client(project=project_id, admin=True) as btclient:
-      tablename = config_lib.CONFIG["CloudBigtable.table_name"]
-      instance_name = config_lib.CONFIG["CloudBigtable.instance_name"]
+    btclient = bigtable.Client(project=project_id, admin=True)
+    tablename = config_lib.CONFIG["CloudBigtable.table_name"]
+    instance_name = config_lib.CONFIG["CloudBigtable.instance_name"]
 
-      btinstance = self.GetInstance(btclient, instance_id)
-      if not btinstance:
-        logging.info("Creating cloud bigtable: %s.%s in %s", instance_id,
-                     tablename, project_id)
-        btinstance = btclient.instance(
-            instance_id,
-            display_name=instance_name,
-            serve_nodes=config_lib.CONFIG["CloudBigtable.serve_nodes"],
-            location=config_lib.CONFIG["CloudBigtable.instance_location"])
-        operation = btinstance.create()
-        self.WaitOnOperation(operation)
+    btinstance = self.GetInstance(btclient, instance_id)
+    if not btinstance:
+      logging.info("Creating cloud bigtable: %s.%s in %s", instance_id,
+                   tablename, project_id)
+      btinstance = btclient.instance(
+          instance_id,
+          display_name=instance_name,
+          serve_nodes=config_lib.CONFIG["CloudBigtable.serve_nodes"],
+          location=config_lib.CONFIG["CloudBigtable.instance_location"])
+      operation = btinstance.create()
+      self.WaitOnOperation(operation)
 
-      table = self.GetTable(btinstance, tablename)
-      if not table:
-        table = btinstance.table(tablename)
-        table.create()
-        for column, gc_rules in self.COLUMN_FAMILIES.iteritems():
-          gc_rule = None
-          if gc_rules:
-            age = gc_rules.get("age", None)
-            if age:
-              gc_rule = bigtable.column_family.MaxAgeGCRule(age)
+    table = self.GetTable(btinstance, tablename)
+    if not table:
+      table = btinstance.table(tablename)
+      table.create()
+      for column, gc_rules in self.COLUMN_FAMILIES.iteritems():
+        gc_rule = None
+        if gc_rules:
+          age = gc_rules.get("age", None)
+          if age:
+            gc_rule = bigtable.column_family.MaxAgeGCRule(age)
 
-            version_max = gc_rules.get("versions", None)
-            if version_max:
-              gc_rule = bigtable.column_family.MaxVersionsGCRule(version_max)
+          version_max = gc_rules.get("versions", None)
+          if version_max:
+            gc_rule = bigtable.column_family.MaxVersionsGCRule(version_max)
 
-          cf = table.column_family(column, gc_rule=gc_rule)
-          cf.create()
+        cf = table.column_family(column, gc_rule=gc_rule)
+        cf.create()
 
-      return btinstance
+    return btinstance
 
   def DeleteSubject(self, subject, sync=False, token=None):
     self.DeleteSubjects([subject], sync=sync, token=token)

@@ -3,19 +3,16 @@
 
 
 
+import itertools
 import json
 import time
 import traceback
 import urllib2
 
 
-# pylint: disable=g-bad-import-order,unused-import
-from grr.gui import django_lib
-# pylint: enable=g-bad-import-order,unused-import
-
-from django import http
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
+from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
 from google.protobuf import symbol_database
@@ -83,8 +80,7 @@ class RouterMatcher(object):
     for _, metadata in router_cls.GetAnnotatedMethods().items():
       for http_method, path, unused_options in metadata.http_methods:
         routing_map.add(
-            routing.Rule(
-                path, methods=[http_method], endpoint=metadata))
+            routing.Rule(path, methods=[http_method], endpoint=metadata))
         # This adds support for the next version of the API that uses
         # standartized JSON protobuf serialization.
         routing_map.add(
@@ -125,7 +121,7 @@ class RouterMatcher(object):
 
     if request.method in ["GET", "HEAD"]:
       if method_metadata.args_type:
-        unprocessed_request = request.GET
+        unprocessed_request = request.args
         if hasattr(unprocessed_request, "dict"):
           unprocessed_request = unprocessed_request.dict()
 
@@ -145,19 +141,19 @@ class RouterMatcher(object):
           if type_info.name in route_args:
             self._SetField(args, type_info, route_args[type_info.name])
 
-        if request.META["CONTENT_TYPE"].startswith("multipart/form-data;"):
-          payload = json.loads(request.POST["_params_"])
+        if request.content_type.startswith("multipart/form-data;"):
+          payload = json.loads(request.form["_params_"])
           args.FromDict(payload)
 
-          for name, fd in request.FILES.items():
+          for name, fd in request.files.items():
             args.Set(name, fd.read())
         elif format_mode == JsonMode.PROTO3_JSON_MODE:
           # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
           args_proto = args.protobuf()
-          json_format.Parse(request.body or "{}", args_proto)
+          json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
           args.ParseFromString(args_proto.SerializeToString())
         else:
-          payload = json.loads(request.body or "{}")
+          payload = json.loads(request.get_data(as_text=True) or "{}")
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
@@ -183,9 +179,8 @@ class RouterMatcher(object):
                                        (request.path, request.method))
 
     router_method_metadata, route_args_dict = match
-    return (router, router_method_metadata,
-            self._GetArgsFromRequest(request, router_method_metadata,
-                                     route_args_dict))
+    return (router, router_method_metadata, self._GetArgsFromRequest(
+        request, router_method_metadata, route_args_dict))
 
 
 class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
@@ -222,7 +217,7 @@ def GetRequestFormatMode(request, method_metadata):
   if request.path.startswith("/api/v2/"):
     return JsonMode.PROTO3_JSON_MODE
 
-  if hasattr(request, "GET") and request.GET.get("strip_type_info", ""):
+  if request.args.get("strip_type_info", ""):
     return JsonMode.GRR_TYPE_STRIPPED_JSON_MODE
 
   for http_method, unused_url, options in method_metadata.http_methods:
@@ -240,14 +235,13 @@ class HttpRequestHandler(object):
   def BuildToken(request, execution_time):
     """Build an ACLToken from the request."""
 
-    # The request.GET dictionary will also be filled on HEAD calls.
+    # The request.args dictionary will also be filled on HEAD calls.
     if request.method in ["GET", "HEAD"]:
-      reason = request.GET.get("reason", "")
+      reason = request.args.get("reason", "")
     elif request.method in ["POST", "DELETE", "PATCH"]:
-      # The header X-GRR-REASON is set in api-service.js, which django converts
-      # to HTTP_X_GRR_REASON.
+      # The header X-GRR-Reason is set in api-service.js.
       reason = utils.SmartUnicode(
-          urllib2.unquote(request.META.get("HTTP_X_GRR_REASON", "")))
+          urllib2.unquote(request.headers.get("X-Grr-Reason", "")))
 
     # We assume that request.user contains the username that we can trust.
     # No matter what authentication method is used, the WebAuthManager is
@@ -263,8 +257,8 @@ class HttpRequestHandler(object):
         process="GRRAdminUI",
         expiry=rdfvalue.RDFDatetime.Now() + execution_time)
 
-    for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
-      remote_addr = request.META.get(field, "")
+    for field in ["Remote_Addr", "X-Forwarded-For"]:
+      remote_addr = request.headers.get(field, "")
       if remote_addr:
         token.source_ips.append(remote_addr)
     return token
@@ -278,9 +272,9 @@ class HttpRequestHandler(object):
     elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
       result_dict = {}
       for field, value in result.ListSetFields():
-        if isinstance(field, (rdf_structs.ProtoDynamicEmbedded,
-                              rdf_structs.ProtoEmbedded,
-                              rdf_structs.ProtoList)):
+        if isinstance(field,
+                      (rdf_structs.ProtoDynamicEmbedded,
+                       rdf_structs.ProtoEmbedded, rdf_structs.ProtoList)):
           result_dict[field.name] = api_value_renderers.RenderValue(value)
         else:
           result_dict[field.name] = api_value_renderers.RenderValue(value)[
@@ -305,9 +299,8 @@ class HttpRequestHandler(object):
       expected_type = None.__class__
 
     if result.__class__ != expected_type:
-      raise UnexpectedResultTypeError("Expected %s, but got %s." %
-                                      (expected_type.__name__,
-                                       result.__class__.__name__))
+      raise UnexpectedResultTypeError("Expected %s, but got %s." % (
+          expected_type.__name__, result.__class__.__name__))
 
     return result
 
@@ -319,26 +312,10 @@ class HttpRequestHandler(object):
                      rendered_data,
                      method_name=None,
                      headers=None,
+                     content_length=None,
                      token=None,
                      no_audit_log=False):
     """Builds HTTPResponse object from rendered data and HTTP status."""
-
-    response = http.HttpResponse(
-        status=status, content_type="application/json; charset=utf-8")
-    response["Content-Disposition"] = "attachment; filename=response.json"
-    response["X-Content-Type-Options"] = "nosniff"
-
-    if token and token.reason:
-      response["X-GRR-Reason"] = utils.SmartStr(token.reason)
-    if method_name:
-      response["X-API-Method"] = method_name
-    if no_audit_log:
-      response["X-No-Log"] = "True"
-
-    for key, value in (headers or {}).items():
-      response[key] = value
-
-    response.write(")]}'\n")  # XSSI protection
 
     # To avoid IE content sniffing problems, escape the tags. Otherwise somebody
     # may send a link with malicious payload that will be opened in IE (which
@@ -347,23 +324,57 @@ class HttpRequestHandler(object):
     # passed with the payload.
     str_data = json.dumps(
         rendered_data, cls=JSONEncoderWithRDFPrimitivesSupport)
-    response.write(str_data.replace("<", r"\u003c").replace(">", r"\u003e"))
+    # XSSI protection and tags escaping
+    rendered_data = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
+        ">", r"\u003e")
+
+    response = werkzeug_wrappers.Response(
+        rendered_data,
+        status=status,
+        content_type="application/json; charset=utf-8")
+    response.headers[
+        "Content-Disposition"] = "attachment; filename=response.json"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    if token and token.reason:
+      response.headers["X-GRR-Reason"] = utils.SmartStr(token.reason)
+    if method_name:
+      response.headers["X-API-Method"] = method_name
+    if no_audit_log:
+      response.headers["X-No-Log"] = "True"
+
+    for key, value in (headers or {}).items():
+      response.headers[key] = value
+
+    if content_length is not None:
+      response.content_length = content_length
 
     return response
 
   def _BuildStreamingResponse(self, binary_stream, method_name=None):
     """Builds HTTPResponse object for streaming."""
 
-    response = http.StreamingHttpResponse(
-        streaming_content=binary_stream.GenerateContent(),
-        content_type="binary/octet-stream")
-    response["Content-Disposition"] = ("attachment; filename=%s" %
-                                       binary_stream.filename)
+    # We get a first chunk of the output stream. This way the likelihood
+    # of catching an exception that may happen during response generation
+    # is much higher.
+    content = binary_stream.GenerateContent()
+    try:
+      peek = content.next()
+      stream = itertools.chain([peek], content)
+    except StopIteration:
+      stream = []
+
+    response = werkzeug_wrappers.Response(
+        response=stream,
+        content_type="binary/octet-stream",
+        direct_passthrough=True)
+    response.headers["Content-Disposition"] = ("attachment; filename=%s" %
+                                               binary_stream.filename)
     if method_name:
-      response["X-API-Method"] = method_name
+      response.headers["X-API-Method"] = method_name
 
     if binary_stream.content_length:
-      response["Content-Length"] = binary_stream.content_length
+      response.content_length = binary_stream.content_length
 
     return response
 
@@ -402,9 +413,10 @@ class HttpRequestHandler(object):
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
 
-      return self._BuildResponse(
-          500, dict(
-              message=str(e), traceBack=traceback.format_exc()))
+      return self._BuildResponse(500,
+                                 dict(
+                                     message=str(e),
+                                     traceBack=traceback.format_exc()))
 
     # SetUID() is called here so that ACL checks done by the router do not
     # clash with datastore ACL checks.
@@ -441,14 +453,11 @@ class HttpRequestHandler(object):
         if (method_metadata.result_type ==
             method_metadata.BINARY_STREAM_RESULT_TYPE):
           binary_stream = handler.Handle(args, token=token)
-          headers = None
-          if binary_stream.content_length:
-            headers = {"Content-Length": binary_stream.content_length}
           return self._BuildResponse(
               200, {"status": "OK"},
               method_name=method_metadata.name,
-              headers=headers,
               no_audit_log=method_metadata.no_audit_log_required,
+              content_length=binary_stream.content_length,
               token=token)
         else:
           return self._BuildResponse(
@@ -511,8 +520,7 @@ class HttpRequestHandler(object):
                         handler.__class__.__name__, e)
       return self._BuildResponse(
           500,
-          dict(
-              message=str(e), traceBack=traceback.format_exc()),
+          dict(message=str(e), traceBack=traceback.format_exc()),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
           token=token)
@@ -527,7 +535,7 @@ def RenderHttpResponse(request):
 
   log.LOGGER.LogHttpApiCall(request, response)
 
-  method_name = response.get("X-API-Method", "unknown")
+  method_name = response.headers.get("X-API-Method", "unknown")
   if response.status_code == 200:
     status = "SUCCESS"
   elif response.status_code == 403:

@@ -19,13 +19,15 @@ import requests
 import logging
 
 from grr.gui import api_auth_manager
-from grr.gui import django_lib
 from grr.gui import webauth
+from grr.gui import wsgiapp
+from grr.gui import wsgiapp_testlib
 from grr.gui.api_client import api as grr_api
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
@@ -63,12 +65,12 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
   def setUp(self):
     super(HTTPApiEndToEndTestProgram, self).setUp()
 
-    # Select a free port
+    # Set up HTTP server
     port = portpicker.PickUnusedPort()
     HTTPApiEndToEndTestProgram.server_port = port
-    logging.info("Picked free AdminUI port %d.", port)
+    logging.info("Picked free AdminUI port for HTTP %d.", port)
 
-    self.trd = django_lib.DjangoThread(port)
+    self.trd = wsgiapp_testlib.ServerThread(port)
     self.trd.StartAndWaitUntilServing()
 
 
@@ -255,13 +257,12 @@ class ApiClientLibLabelsTest(ApiE2ETest):
       client_ref.AddLabels(["foo", "bar"])
 
     self.assertEqual(
-        sorted(
-            client_ref.Get().data.labels, key=lambda l: l.name), [
-                jobs_pb2.AFF4ObjectLabel(
-                    name="bar", owner=self.token.username, timestamp=42000000),
-                jobs_pb2.AFF4ObjectLabel(
-                    name="foo", owner=self.token.username, timestamp=42000000)
-            ])
+        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
+            jobs_pb2.AFF4ObjectLabel(
+                name="bar", owner=self.token.username, timestamp=42000000),
+            jobs_pb2.AFF4ObjectLabel(
+                name="foo", owner=self.token.username, timestamp=42000000)
+        ])
 
   def testRemoveLabels(self):
     with test_lib.FakeTime(42):
@@ -274,21 +275,19 @@ class ApiClientLibLabelsTest(ApiE2ETest):
 
     client_ref = self.api.Client(client_id=self.client_urn.Basename())
     self.assertEqual(
-        sorted(
-            client_ref.Get().data.labels, key=lambda l: l.name), [
-                jobs_pb2.AFF4ObjectLabel(
-                    name="bar", owner=self.token.username, timestamp=42000000),
-                jobs_pb2.AFF4ObjectLabel(
-                    name="foo", owner=self.token.username, timestamp=42000000)
-            ])
+        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
+            jobs_pb2.AFF4ObjectLabel(
+                name="bar", owner=self.token.username, timestamp=42000000),
+            jobs_pb2.AFF4ObjectLabel(
+                name="foo", owner=self.token.username, timestamp=42000000)
+        ])
 
     client_ref.RemoveLabels(["foo"])
     self.assertEqual(
-        sorted(
-            client_ref.Get().data.labels, key=lambda l: l.name), [
-                jobs_pb2.AFF4ObjectLabel(
-                    name="bar", owner=self.token.username, timestamp=42000000)
-            ])
+        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
+            jobs_pb2.AFF4ObjectLabel(
+                name="bar", owner=self.token.username, timestamp=42000000)
+        ])
 
 
 class CSRFProtectionTest(ApiE2ETest):
@@ -297,15 +296,15 @@ class CSRFProtectionTest(ApiE2ETest):
   def setUp(self):
     super(CSRFProtectionTest, self).setUp()
 
-    self.base_url = "http://localhost:%s" % self.port
+    self.base_url = self.endpoint
 
-  def testGETRequestWithoutCSRFTokenSucceeds(self):
+  def testGETRequestWithoutCSRFTokenAndRequestedWithHeaderSucceeds(self):
     response = requests.get(self.base_url + "/api/config")
     self.assertEquals(response.status_code, 200)
     # Assert XSSI protection is in place.
     self.assertEquals(response.text[:5], ")]}'\n")
 
-  def testHEADRequestForGETUrlWithoutCSRFTokenSucceeds(self):
+  def testHEADRequestForGETUrlWithoutTokenAndRequestedWithHeaderSucceeds(self):
     response = requests.head(self.base_url + "/api/config")
     self.assertEquals(response.status_code, 200)
 
@@ -348,7 +347,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
+    headers = {"x-csrftoken": csrf_token}
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
     cookies = {"csrftoken": csrf_token}
 
@@ -358,6 +357,79 @@ class CSRFProtectionTest(ApiE2ETest):
         data=json.dumps(data),
         cookies=cookies)
     self.assertEquals(response.status_code, 200)
+
+  def testPOSTRequestFailsIfCSRFTokenIsExpired(self):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)):
+      index_response = requests.get(self.base_url)
+      csrf_token = index_response.cookies.get("csrftoken")
+
+      headers = {"x-csrftoken": csrf_token}
+      data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+      cookies = {"csrftoken": csrf_token}
+
+      response = requests.post(
+          self.base_url + "/api/clients/labels/add",
+          headers=headers,
+          data=json.dumps(data),
+          cookies=cookies)
+      self.assertEquals(response.status_code, 200)
+
+    # This should still succeed as we use strict check in wsgiapp.py:
+    # current_time - token_time > CSRF_TOKEN_DURATION.microseconds
+    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42) +
+                           wsgiapp.CSRF_TOKEN_DURATION.seconds):
+      response = requests.post(
+          self.base_url + "/api/clients/labels/add",
+          headers=headers,
+          data=json.dumps(data),
+          cookies=cookies)
+      self.assertEquals(response.status_code, 200)
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42) +
+                           wsgiapp.CSRF_TOKEN_DURATION.seconds + 1):
+      response = requests.post(
+          self.base_url + "/api/clients/labels/add",
+          headers=headers,
+          data=json.dumps(data),
+          cookies=cookies)
+      self.assertEquals(response.status_code, 403)
+      self.assertTrue("Expired CSRF token" in response.text)
+
+  def testPOSTRequestFailsIfCSRFTokenIsMalformed(self):
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    headers = {"x-csrftoken": csrf_token + "BLAH"}
+    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+    cookies = {"csrftoken": csrf_token}
+
+    response = requests.post(
+        self.base_url + "/api/clients/labels/add",
+        headers=headers,
+        data=json.dumps(data),
+        cookies=cookies)
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("Malformed" in response.text)
+
+  def testPOSTRequestFailsIfCSRFTokenDoesNotMatch(self):
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    headers = {"x-csrftoken": csrf_token}
+    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+    cookies = {"csrftoken": csrf_token}
+
+    # This changes the default test username, meaning that encoded CSRF
+    # token and the token corresponding to the next requests's user won't
+    # match.
+    webauth.WEBAUTH_MANAGER.SetUserName("someotheruser")
+    response = requests.post(
+        self.base_url + "/api/clients/labels/add",
+        headers=headers,
+        data=json.dumps(data),
+        cookies=cookies)
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("Non-matching" in response.text)
 
   def testDELETERequestWithoutCSRFTokenFails(self):
     response = requests.delete(self.base_url +
@@ -385,7 +457,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
+    headers = {"x-csrftoken": csrf_token}
     cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
@@ -419,7 +491,7 @@ class CSRFProtectionTest(ApiE2ETest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    headers = {"x-csrftoken": csrf_token, "x-requested-with": "XMLHttpRequest"}
+    headers = {"x-csrftoken": csrf_token}
     cookies = {"csrftoken": csrf_token}
 
     response = requests.patch(
@@ -428,6 +500,25 @@ class CSRFProtectionTest(ApiE2ETest):
     # We consider 404 to be a normal response here.
     # Hunt H:123456 doesn't exist.
     self.assertEquals(response.status_code, 404)
+
+  def testGetPendingUserNotificationCountMethodRefreshesCSRFToken(self):
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    # Check that calling GetGrrUser method doesn't update the cookie.
+    get_user_response = requests.get(self.base_url + "/api/users/me")
+    csrf_token_2 = get_user_response.cookies.get("csrftoken")
+
+    self.assertIsNone(csrf_token_2)
+
+    # Check that calling GetPendingUserNotificationsCount refreshes the
+    # token.
+    notifications_response = requests.get(
+        self.base_url + "/api/users/me/notifications/pending/count")
+    csrf_token_3 = notifications_response.cookies.get("csrftoken")
+
+    self.assertTrue(csrf_token_3)
+    self.assertNotEqual(csrf_token, csrf_token_3)
 
 
 class ApiCallRobotRouterE2ETest(ApiE2ETest):

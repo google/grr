@@ -8,8 +8,8 @@ from selenium import webdriver
 
 import logging
 
-from grr.gui import django_lib
 from grr.gui import gui_test_lib
+from grr.gui import wsgiapp_testlib
 from grr.lib import flags
 from grr.lib import test_lib
 
@@ -50,7 +50,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
     logging.info("Picked free AdminUI port %d.", port)
 
     # Start up a server in another thread
-    self.trd = django_lib.DjangoThread(port)
+    self.trd = wsgiapp_testlib.ServerThread(port)
     self.trd.StartAndWaitUntilServing()
     self.SetupSelenium(port)
 

@@ -2,6 +2,7 @@
 """Library for interacting with Google BigQuery service."""
 
 
+import json
 import logging
 import time
 
@@ -10,9 +11,16 @@ from apiclient.discovery import build
 from apiclient.errors import HttpError
 from apiclient.http import MediaFileUpload
 import httplib2
-from oauth2client.client import SignedJwtAssertionCredentials
+
+# pylint: disable=g-import-not-at-top
+try:
+  from oauth2client.service_account import ServiceAccountCredentials
+except ImportError:
+  # Set this so mock won't complain about stubbing it.
+  ServiceAccountCredentials = None
 
 from grr.lib import config_lib
+# pylint: enable=g-import-not-at-top
 
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"
 
@@ -25,24 +33,22 @@ class BigQueryJobUploadError(Error):
   """Failed to create BigQuery uplod job."""
 
 
-def GetBigQueryClient(service_account=None,
-                      private_key=None,
+def GetBigQueryClient(service_account_json=None,
                       project_id=None,
                       dataset_id=None):
   """Create a BigQueryClient."""
-  service_account = service_account or config_lib.CONFIG[
-      "BigQuery.service_account"]
-  private_key = private_key or config_lib.CONFIG["BigQuery.private_key"]
+  service_account_data = service_account_json or config_lib.CONFIG[
+      "BigQuery.service_acct_json"]
   project_id = project_id or config_lib.CONFIG["BigQuery.project_id"]
   dataset_id = dataset_id or config_lib.CONFIG["BigQuery.dataset_id"]
 
-  if not (service_account and private_key and project_id and dataset_id):
-    raise RuntimeError("BigQuery.service_account, BigQuery.private_key, "
+  if not (service_account_data and project_id and dataset_id):
+    raise RuntimeError("BigQuery.service_account_json, "
                        "BigQuery.project_id and BigQuery.dataset_id "
                        "must be defined.")
 
-  creds = SignedJwtAssertionCredentials(
-      service_account, private_key, scope=BIGQUERY_SCOPE)
+  creds = ServiceAccountCredentials.from_json_keyfile_dict(
+      json.loads(service_account_data), scopes=BIGQUERY_SCOPE)
   http = httplib2.Http()
   http = creds.authorize(http)
   service = build("bigquery", "v2", http=http)
@@ -90,8 +96,8 @@ class BigQueryClient(object):
   def GetDataset(self, dataset_id):
     if dataset_id not in self.datasets:
       try:
-        result = self.service.datasets().get(projectId=self.project_id,
-                                             datasetId=dataset_id).execute()
+        result = self.service.datasets().get(
+            projectId=self.project_id, datasetId=dataset_id).execute()
         self.datasets[dataset_id] = result
       except HttpError:
         return None
@@ -179,8 +185,7 @@ class BigQueryClient(object):
             "tableId": table_id,
             "datasetId": self.dataset_id
         },
-        "sourceFormat":
-            "NEWLINE_DELIMITED_JSON",
+        "sourceFormat": "NEWLINE_DELIMITED_JSON",
     }
 
     body = {

@@ -20,17 +20,15 @@ from grr.lib import test_lib
 
 class BigQueryClientTest(test_lib.GRRBaseTest):
   """Tests BigQuery client."""
-  TEST_KEY = """-----BEGIN PRIVATE KEY-----\n==\n-----END PRIVATE KEY-----\n"""
   PROJECT_ID = "grr-dummy"
-  SERVICE_ACCOUNT = "account@grr-dummy.iam.gserviceaccount.com"
+  SERVICE_ACCOUNT_JSON = """{"type": "service_account"}"""
 
-  @mock.patch.object(bigquery, "SignedJwtAssertionCredentials")
+  @mock.patch.object(bigquery, "ServiceAccountCredentials")
   @mock.patch.object(bigquery, "build")
   @mock.patch.object(bigquery.httplib2, "Http")
   def testInsertData(self, mock_http, mock_build, mock_creds):
     bq_client = bigquery.GetBigQueryClient(
-        service_account=self.SERVICE_ACCOUNT,
-        private_key=self.TEST_KEY,
+        service_account_json=self.SERVICE_ACCOUNT_JSON,
         project_id=self.PROJECT_ID)
 
     schema_data = json.load(

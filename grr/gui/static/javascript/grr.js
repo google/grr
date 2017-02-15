@@ -385,7 +385,6 @@ grrUiApp.config(function($httpProvider, $interpolateProvider,
   // make-angularjs-and-django-play-nice-together/).
   $httpProvider.defaults.headers.post[
     'Content-Type'] = 'application/x-www-form-urlencoded';
-  $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
   // We use recursive data model generation when rendering forms. Therefore
   // have to increase the digestTtl limit to 50.

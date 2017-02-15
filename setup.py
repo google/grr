@@ -136,10 +136,9 @@ data_files = (
     find_data_files("docs") + find_data_files("executables") +
     find_data_files("install_data") + find_data_files("scripts") +
     find_data_files("grr/artifacts") + find_data_files("grr/checks") +
-    find_data_files(
-        "grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
-            "grr/gui/local/static", ignore_dirs=IGNORE_GUI_DIRS) +
-    ["version.ini"])
+    find_data_files("grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) +
+    find_data_files("grr/gui/local/static",
+                    ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
   print "*****************************************************"

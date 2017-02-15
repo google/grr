@@ -493,6 +493,7 @@ class MultiGetFileMixin(object):
             filestore_file_urn,
             target_urn,
             update_timestamps=True,
+            sync=True,
             token=self.token)
 
         with aff4.FACTORY.Open(

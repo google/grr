@@ -11,18 +11,21 @@ from wsgiref import simple_server
 
 import ipaddr
 
+from grr.config import contexts
+
 # pylint: disable=unused-import,g-bad-import-order
-from grr.gui import django_lib
+from grr.gui import local
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.config import contexts
+from grr.gui import wsgiapp
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
 
 
-class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
+class ThreadedServer(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
@@ -47,7 +50,7 @@ def main(_):
   ip = ipaddr.IPAddress(bind_address)
   if ip.version == 4:
     # Address looks like an IPv4 address.
-    ThreadingDjango.address_family = socket.AF_INET
+    ThreadedServer.address_family = socket.AF_INET
 
   max_port = config_lib.CONFIG.Get("AdminUI.port_max",
                                    config_lib.CONFIG["AdminUI.port"])
@@ -58,8 +61,8 @@ def main(_):
       server = simple_server.make_server(
           bind_address,
           port,
-          django_lib.GetWSGIHandler(),
-          server_class=ThreadingDjango)
+          wsgiapp.AdminUIApp().WSGIHandler(),
+          server_class=ThreadedServer)
       break
     except socket.error as e:
       if e.errno == socket.errno.EADDRINUSE and port < max_port:
