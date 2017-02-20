@@ -45,7 +45,7 @@ class GrrApplicationLogger(object):
     return "%s:%s:%s" % (event_time, socket.gethostname(), os.getpid())
 
   def LogHttpApiCall(self, request, response):
-    """Log an api call based on the django.http request and response objects."""
+    """Log an http based api call."""
     _ = request
     _ = response
 

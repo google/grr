@@ -242,7 +242,7 @@ class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
       aff4.FACTORY.Delete(
           aff4.ROOT_URN.Add("users/%s" % self.token.username), token=self.token)
 
-    self.Open("/")  # Django displays an error here if the settings are invalid.
+    self.Open("/")  # The ui displays an error here if the settings are invalid.
 
     self.WaitUntil(self.IsTextPresent, "Welcome to GRR")
 

@@ -39,7 +39,6 @@ class GlobalNotification(rdf_structs.RDFProtoStruct):
 
   @property
   def hash(self):
-    """Having hash property makes things easier in Django templates."""
     return hash(self)
 
   @property

@@ -60,7 +60,3 @@ class FilestoreStats(aff4.AFF4Object):
     FILESTORE_FILESIZE_HISTOGRAM = aff4.Attribute(
         "aff4:stats/filestore/filesize", stats.Graph,
         "Filesize histogram of files in the filestore")
-
-    FILESTORE_CLIENTCOUNT_HISTOGRAM = aff4.Attribute(
-        "aff4:stats/filestore/clientcount", stats.Graph,
-        "File distribution across clients")

@@ -73,7 +73,6 @@ REGISTRY.RegisterPlugin(client_report_plugins.OSReleaseBreakdown30ReportPlugin)
 
 # FileStore report plugins.
 
-REGISTRY.RegisterPlugin(filestore_report_plugins.FileClientCountReportPlugin)
 REGISTRY.RegisterPlugin(
     filestore_report_plugins.FileSizeDistributionReportPlugin)
 

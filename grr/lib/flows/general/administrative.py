@@ -37,7 +37,7 @@ from grr.proto import flows_pb2
 
 
 class AdministrativeInit(registry.InitHook):
-  """Initialize the Django environment."""
+  """Init handler to define crash metrics."""
 
   def RunOnce(self):
     stats.STATS.RegisterCounterMetric("grr_client_crashes")

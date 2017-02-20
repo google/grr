@@ -69,20 +69,6 @@ class ClientTestBase(unittest.TestCase):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __call__(self):
-    """Stub out __call__ to avoid django calling it during rendering.
-
-    See
-    https://docs.djangoproject.com/en/dev/ref/templates/api/#variables-and-lookups
-
-    Since __call__ is used by the Python testing framework to run tests, the
-    effect of __call__ is to run the test inside the adminui, resulting in very
-    slow rendering and extra test runs. We put the real __call__ back when tests
-    are run from tools/end_to_end_tests.py, but we don't need it here since we
-    effectively have our own test runner.
-    """
-    pass
-
   def __str__(self):
     return self.__class__.__name__
 

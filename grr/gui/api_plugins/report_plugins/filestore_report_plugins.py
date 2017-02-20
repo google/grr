@@ -13,41 +13,6 @@ from grr.lib.aff4_objects import stats as aff4_stats
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.FILE_STORE
 
 
-class FileClientCountReportPlugin(report_plugin_base.ReportPluginBase):
-  """Reports file frequency by client count."""
-
-  TYPE = TYPE
-  TITLE = "Client Count"
-  SUMMARY = ("File frequency by client count. Number of files seen on 0, 1, 5 "
-             "etc. clients. X: number of clients, Y: number of files. Hover to "
-             "show exact numbers.")
-
-  def GetReportData(self, get_report_args, token):
-    """Report file frequency by client count."""
-    ret = rdf_report_plugins.ApiReportData(
-        representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
-        STACK_CHART)
-
-    try:
-      fd = aff4.FACTORY.Open("aff4:/stats/FileStoreStats", token=token)
-      graph = fd.Get(
-          aff4_stats.FilestoreStats.SchemaCls.FILESTORE_CLIENTCOUNT_HISTOGRAM)
-
-      data = graph.data if graph else ()
-
-      ret.stack_chart.data = (
-          rdf_report_plugins.ApiReportDataSeries2D(
-              label=str(point.x_value),
-              points=(rdf_report_plugins.ApiReportDataPoint2D(
-                  x=point.x_value, y=point.y_value),)  # 1-elem tuple
-          ) for point in data)
-
-    except (IOError, TypeError):
-      pass
-
-    return ret
-
-
 class FileSizeDistributionReportPlugin(report_plugin_base.ReportPluginBase):
   """Reports file frequency by client count."""
 

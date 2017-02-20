@@ -296,8 +296,8 @@ def ImportConfig(filename, config):
   return options_imported
 
 
-def GenerateDjangoKey(config):
-  """Update a config with a random django key."""
+def GenerateCSRFKey(config):
+  """Update a config with a random csrf key."""
   try:
     secret_key = config["AdminUI.django_secret_key"]
   except ConfigParser.NoOptionError:
@@ -307,7 +307,7 @@ def GenerateDjangoKey(config):
     key = utils.GeneratePassphrase(length=100)
     config.Set("AdminUI.django_secret_key", key)
   else:
-    print "Not updating django_secret_key as it is already set."
+    print "Not updating csrf key as it is already set."
 
 
 def GenerateKeys(config, overwrite_keys=False):
@@ -341,8 +341,8 @@ def GenerateKeys(config, overwrite_keys=False):
   config.Set("Frontend.certificate", server_cert.AsPEM())
   config.Set("PrivateKeys.server_key", server_key.AsPEM())
 
-  print "Generating Django Secret key (used for xsrf protection etc)"
-  GenerateDjangoKey(config)
+  print "Generating secret key for csrf protection."
+  GenerateCSRFKey(config)
 
 
 def RetryQuestion(question_text, output_re="", default_val=None):

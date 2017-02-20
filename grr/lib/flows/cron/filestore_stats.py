@@ -8,7 +8,6 @@ from grr.lib import stats as stats_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.aff4_objects import filestore
 from grr.lib.aff4_objects import stats as aff4_stats
 
 # pylint: enable=unused-import
@@ -81,29 +80,13 @@ class FileSizeHistogram(GraphDistribution):
     self.Record(fd.Get(fd.Schema.SIZE))
 
 
-class ClientCountHistogram(GraphDistribution):
-  """Graph the number of files that are found on 0, 1, 5...etc clients."""
-
-  _bins = [0, 1, 5, 10, 20, 50, 100]
-
-  def ProcessFile(self, fd):
-
-    # The same file can be in multiple locations on the one client so we use a
-    # set to kill the dups.
-    clients = set()
-    for urn in filestore.HashFileStore.Query(fd.urn, "aff4:/C", token=fd.token):
-      client, _ = urn.Split(2)
-      clients.add(client)
-    self.Record(len(clients))
-
-
 class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   """Build statistics about the filestore."""
   frequency = rdfvalue.Duration("1w")
   lifetime = rdfvalue.Duration("1d")
   HASH_PATH = "aff4:/files/hash/generic/sha256"
   FILESTORE_STATS_URN = rdfvalue.RDFURN("aff4:/stats/FileStoreStats")
-  OPEN_FILES_LIMIT = 500
+  OPEN_FILES_LIMIT = 5000
 
   def _CreateConsumers(self):
     self.consumers = [
@@ -114,8 +97,6 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
             "Total filesize (GB) files in the filestore by type"),
         FileSizeHistogram(self.stats.Schema.FILESTORE_FILESIZE_HISTOGRAM,
                           "Filesize distribution in bytes"),
-        ClientCountHistogram(self.stats.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM,
-                             "Number of files found on X clients")
     ]
 
   @flow.StateHandler()
@@ -128,9 +109,8 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
         token=self.token)
 
     self._CreateConsumers()
-    hashes = list(
-        aff4.FACTORY.Open(
-            self.HASH_PATH, token=self.token).ListChildren())
+    hashes = aff4.FACTORY.Open(
+        self.HASH_PATH, token=self.token).ListChildren(limit=10**8)
 
     try:
       for urns in utils.Grouper(hashes, self.OPEN_FILES_LIMIT):

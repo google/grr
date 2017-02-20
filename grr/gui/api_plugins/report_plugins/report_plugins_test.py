@@ -394,68 +394,6 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
     for series in api_report_data.stack_chart.data:
       self.assertEqual([p.y for p in series.points], [0])
 
-  def testFileClientCountReportPlugin(self):
-    filename = "winexec_img.dd"
-    client_id, = self.SetupClients(1)
-
-    # Add a file to be reported.
-    filestore_test_lib.AddFileToFileStore(
-        rdf_paths.PathSpec(
-            pathtype=rdf_paths.PathSpec.PathType.OS,
-            path=os.path.join(self.base_path, filename)),
-        client_id=client_id,
-        token=self.token)
-
-    # Scan for files to be reported (the one we just added).
-    for _ in test_lib.TestFlowHelper(
-        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
-      pass
-
-    report = report_plugins.GetReportByName(
-        filestore_report_plugins.FileClientCountReportPlugin.__name__)
-
-    api_report_data = report.GetReportData(
-        stats_api.ApiGetReportArgs(name=report.__class__.__name__),
-        token=self.token)
-
-    # pyformat: disable
-    self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=rdf_report_plugins.ApiReportData.
-            RepresentationType.STACK_CHART,
-            stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"0",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=0, y=0)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"1",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=1, y=1)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"5",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=5, y=0)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"10",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=10, y=0)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"20",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=20, y=0)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"50",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=50, y=0)]
-                ),
-                rdf_report_plugins.ApiReportDataSeries2D(
-                    label=u"100",
-                    points=[rdf_report_plugins.ApiReportDataPoint2D(x=100, y=0)]
-                )
-            ])))
-    # pyformat: enable
-
 
 class ServerReportPluginsTest(test_lib.GRRBaseTest):
 

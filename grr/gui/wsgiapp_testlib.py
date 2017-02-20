@@ -11,6 +11,7 @@ from werkzeug import serving
 import logging
 
 from grr.gui import wsgiapp
+from grr.lib import utils
 
 
 class ServerThread(threading.Thread):
@@ -33,7 +34,10 @@ class ServerThread(threading.Thread):
     """Run the WSGI server in a thread."""
     logging.info("Listening on port %d.", self.port)
 
-    server = serving.make_server("localhost", self.port,
+    # Werkzeug only handles IPv6 if ":" is in the host (i.e. we pass
+    # an IPv6 ip).
+    ip = utils.ResolveHostnameToIP("localhost", self.port)
+    server = serving.make_server(ip, self.port,
                                  wsgiapp.AdminUIApp().WSGIHandler())
 
     # We want to notify other threads that we are now ready to serve right

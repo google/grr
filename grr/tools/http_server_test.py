@@ -4,9 +4,11 @@
 
 import hashlib
 import os
+import socket
 import threading
 
 
+import ipaddr
 import portpicker
 import requests
 
@@ -41,15 +43,21 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     front_end.FrontendInit().RunOnce()
 
     # Bring up a local server for testing.
-    cls.httpd = http_server.GRRHTTPServer(
-        ("127.0.0.1", portpicker.PickUnusedPort()),
-        http_server.GRRHTTPServerHandler)
+    port = portpicker.PickUnusedPort()
+    ip = utils.ResolveHostnameToIP("localhost", port)
+    cls.httpd = http_server.GRRHTTPServer((ip, port),
+                                          http_server.GRRHTTPServerHandler)
+
+    if ipaddr.IPAddress(ip).version == 6:
+      cls.address_family = socket.AF_INET6
+      cls.base_url = "http://[%s]:%d/" % (ip, port)
+    else:
+      cls.address_family = socket.AF_INET4
+      cls.base_url = "http://%s:%d/" % (ip, port)
 
     cls.httpd_thread = threading.Thread(target=cls.httpd.serve_forever)
     cls.httpd_thread.daemon = True
     cls.httpd_thread.start()
-
-    cls.base_url = "http://%s:%s/" % cls.httpd.server_address
 
   @classmethod
   def tearDownClass(cls):
@@ -296,13 +304,11 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
     client_ids = self.SetupClients(2)
     session_ids = {
-        c: self._RunClientFileFinder(
-            paths, action, client_id=c)
+        c: self._RunClientFileFinder(paths, action, client_id=c)
         for c in client_ids
     }
     collections = {
-        c: aff4.FACTORY.Open(
-            session_id.Add("Results"), token=self.token)
+        c: aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
         for c, session_id in session_ids.iteritems()
     }
     for client_id, collection in collections.iteritems():
@@ -336,8 +342,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         sha1_refs = list(fs.GetReferencesSHA1(hashes.sha1, token=self.token))
         self.assertIn(aff4_obj.urn, sha1_refs)
         sha256_refs = list(
-            fs.GetReferencesSHA256(
-                hashes.sha256, token=self.token))
+            fs.GetReferencesSHA256(hashes.sha256, token=self.token))
         self.assertIn(aff4_obj.urn, sha256_refs)
 
         # Open the file inside the file store.

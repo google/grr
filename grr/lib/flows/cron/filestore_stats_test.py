@@ -73,14 +73,6 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(filesizes.data[9].y_value, 5)
     self.assertEqual(filesizes.data[-1].y_value, 1)
 
-    clientcount = fd.Get(fd.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM)
-    self.assertEqual(clientcount.data[0].x_value, 0)
-    self.assertEqual(clientcount.data[0].y_value, 1)
-    self.assertEqual(clientcount.data[1].x_value, 1)
-    self.assertEqual(clientcount.data[1].y_value, 6)
-    self.assertEqual(clientcount.data[2].x_value, 5)
-    self.assertEqual(clientcount.data[2].y_value, 5)
-
 
 def main(argv):
   # Run the full test suite
