@@ -27,6 +27,7 @@ def main(unused_argv):
   server_startup.Init()
   token = access_control.ACLToken(username="GRRWorker").SetUID()
   worker_obj = worker.GRRWorker(token=token)
+  server_startup.DropPrivileges()
   worker_obj.Run()
 
 
