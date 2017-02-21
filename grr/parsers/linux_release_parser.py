@@ -87,6 +87,35 @@ class LsbReleaseParseHandler(ReleaseParseHandler):
     return complete, ParsedRelease(name, major, minor)
 
 
+class OsReleaseParseHandler(ReleaseParseHandler):
+  """Parse /etc/os-release file."""
+
+  def Parse(self):
+    for line in self.contents.splitlines():
+      line = line.strip()
+      if '=' not in line:
+        continue
+
+      key, value = line.split('=', 1)
+      key = key.strip()
+      value = value.strip()
+
+      if key == "NAME":
+        name = value
+      elif key == "VERSION_ID":
+        release = value
+
+    complete = all([name, release])
+    if complete:
+      if '.' not in release:
+        complete = False
+      else:
+        release_parts = release.split('.', 1)
+        major, minor = [int(x.strip()) for x in release_parts]
+
+    return complete, ParsedRelease(name, major, minor)
+
+
 class ReleaseFileParseHandler(ReleaseParseHandler):
   """Parse 'release' files (eg, oracle-release, redhat-release)."""
 
@@ -134,6 +163,7 @@ class LinuxReleaseParser(parsers.FileParser):
   WEIGHTS = (
       # Top priority: systems with lsb-release.
       WeightedReleaseFile(0, '/etc/lsb-release', LsbReleaseParseHandler),
+      WeightedReleaseFile(0, '/etc/os-release', OsReleaseParseHandler),
       # Oracle Linux (formerly OEL).
       WeightedReleaseFile(10, '/etc/oracle-release',
                           ReleaseFileParseHandler('OracleLinux')),
