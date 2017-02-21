@@ -169,7 +169,13 @@ class GetInstallDate(actions.ActionPlugin):
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
-    self.SendReply(integer=int(os.stat("/lost+found").st_ctime))
+    ctime = 0
+    for path in ("/lost+found", "/"):
+      try:
+        ctime = os.stat(path).st_ctime
+      except OSError:
+        continue
+    self.SendReply(integer=int(ctime))
 
 
 class UtmpStruct(utils.Struct):
