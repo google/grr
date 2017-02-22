@@ -91,13 +91,6 @@ def RunEndToEndTests():
       if cls.__name__.startswith("Abstract"):
         continue
 
-      # Fix the call method so we can use the test runner.  See doco in
-      # base.ClientTestBase
-      def _RealCall(testcase, *args, **kwds):
-        return testcase.run(*args, **kwds)
-
-      cls.__call__ = _RealCall
-
       if sysinfo.system in cls.platforms:
         print "Running %s on %s (%s: %s, %s, %s)" % (
             cls.__name__, client_summary.client_id, sysinfo.fqdn,
