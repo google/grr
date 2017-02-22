@@ -3,7 +3,7 @@
 
 import itertools
 
-from grr.gui.api_client import utils
+from grr_api_client import utils
 
 
 class GrrApiContext(object):

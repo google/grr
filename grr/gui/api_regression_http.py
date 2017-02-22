@@ -13,12 +13,12 @@ from google.protobuf import json_format
 import logging
 
 from grr import gui
+from grr_api_client.connectors import http_connector
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router
 from grr.gui import api_value_renderers
 from grr.gui import http_api
 from grr.gui import wsgiapp_testlib
-from grr.gui.api_client.connectors import http_connector
 from grr.lib import flags
 from grr.lib import utils
 

@@ -14,6 +14,7 @@ pip install -e .
 if [[ "$TRAVIS_OS_NAME" == "linux" || "$TRAVIS_OS_NAME" == "osx" ]]; then
   pip install -e grr/config/grr-response-server/
 fi
+pip install -e api_client/python/
 pip install -e grr/config/grr-response-test/
 pip install -e grr/config/grr-response-client/
 

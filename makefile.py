@@ -17,6 +17,11 @@ parser.add_argument(
     default=False,
     help="Clean compiled protos.")
 
+parser.add_argument(
+    "--python_out",
+    default=".",
+    help="Where to put compiled protos. Default: next to source files.")
+
 args = parser.parse_args()
 
 
@@ -35,7 +40,7 @@ def Clean():
         os.unlink(full_filename)
 
 
-def MakeProto():
+def MakeProto(python_out):
   """Make sure our protos have been compiled to python libraries."""
   # Start running from one directory above the grr directory which is found by
   # this scripts's location as __file__.
@@ -79,7 +84,8 @@ def MakeProto():
           [
               protoc,
               # Write the python files next to the .proto files.
-              "--python_out=.",
+              "--python_out",
+              python_out,
               # Standard include paths.
               # We just bring google/proto/descriptor.proto with us to make it
               # easier to install.
@@ -97,4 +103,4 @@ if __name__ == "__main__":
 
   if args.clean:
     Clean()
-  MakeProto()
+  MakeProto(args.python_out)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Hunts-related part of GRR API client library."""
 
-from grr.gui.api_client import client
-from grr.gui.api_client import utils
+from grr_api_client import client
+from grr_api_client import utils
 from grr.proto import api_pb2
 
 

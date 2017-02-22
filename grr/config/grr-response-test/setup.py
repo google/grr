@@ -75,6 +75,7 @@ setup_args = dict(
         "mock==1.3.0",
         "mox==0.5.3",
         "selenium==2.50.1",
+        "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
     ],
     cmdclass={"sdist": Sdist},

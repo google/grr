@@ -18,11 +18,11 @@ import requests
 
 import logging
 
+from grr_api_client import api as grr_api
 from grr.gui import api_auth_manager
 from grr.gui import webauth
 from grr.gui import wsgiapp
 from grr.gui import wsgiapp_testlib
-from grr.gui.api_client import api as grr_api
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags

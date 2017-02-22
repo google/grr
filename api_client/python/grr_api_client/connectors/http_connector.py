@@ -16,11 +16,11 @@ from google.protobuf import symbol_database
 
 import logging
 
-from grr.client.components.rekall_support import rekall_pb2
+from grr_api_client import connector
+from grr_api_client import errors
+from grr_api_client import utils
 
-from grr.gui.api_client import connector
-from grr.gui.api_client import errors
-from grr.gui.api_client import utils
+from grr.client.components.rekall_support import rekall_pb2
 
 from grr.proto import api_pb2
 from grr.proto import flows_pb2
@@ -73,10 +73,8 @@ class HttpConnector(connector.Connector):
 
     url = "%s/%s" % (self.api_endpoint.strip("/"),
                      "api/v2/reflection/api-methods")
-    response = requests.get(url,
-                            headers=headers,
-                            cookies=cookies,
-                            auth=self.auth)
+    response = requests.get(
+        url, headers=headers, cookies=cookies, auth=self.auth)
     self._CheckResponseStatus(response)
 
     json_str = response.content[len(self.JSON_PREFIX):]

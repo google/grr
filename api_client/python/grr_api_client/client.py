@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Clients-related part of GRR API client library."""
 
-from grr.gui.api_client import flow
-from grr.gui.api_client import utils
-from grr.gui.api_client import vfs
+from grr_api_client import flow
+from grr_api_client import utils
+from grr_api_client import vfs
 from grr.proto import api_pb2
 
 
@@ -127,8 +127,7 @@ class ClientBase(object):
 
     items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(
-        lambda data: flow.Flow(data=data, context=self._context),
-        items)
+        lambda data: flow.Flow(data=data, context=self._context), items)
 
   def Approval(self, username, approval_id):
     """Returns a reference to an approval."""
@@ -224,6 +223,5 @@ def SearchClients(query=None, context=None):
   args = api_pb2.ApiSearchClientsArgs(query=query)
 
   items = context.SendIteratorRequest("SearchClients", args)
-  return utils.MapItemsIterator(
-      lambda data: Client(data=data, context=context),
-      items)
+  return utils.MapItemsIterator(lambda data: Client(data=data, context=context),
+                                items)

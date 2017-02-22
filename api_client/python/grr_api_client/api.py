@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Main file of GRR API client library."""
 
-from grr.gui.api_client import client
-from grr.gui.api_client import context
-from grr.gui.api_client import hunt
-from grr.gui.api_client import types
-from grr.gui.api_client.connectors import http_connector
+from grr_api_client import client
+from grr_api_client import context
+from grr_api_client import hunt
+from grr_api_client import types
+from grr_api_client.connectors import http_connector
 
 
 class GrrApi(object):
