@@ -9,6 +9,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.aff4_objects import hardware as aff4_hardware
 # pylint: disable=unused-import
 from grr.lib.flows.general import hardware
 
@@ -19,11 +20,9 @@ class DumpFlashImageMock(action_mocks.ActionMock):
   """Mock the flash dumping on the client side."""
 
   def __init__(self, *args, **kwargs):
-    super(DumpFlashImageMock, self).__init__(standard.HashBuffer,
-                                             standard.HashFile,
-                                             standard.StatFile,
-                                             standard.TransferBuffer,
-                                             tempfiles.DeleteGRRTempFiles)
+    super(DumpFlashImageMock, self).__init__(
+        standard.HashBuffer, standard.HashFile, standard.StatFile,
+        standard.TransferBuffer, tempfiles.DeleteGRRTempFiles)
 
   def DumpFlashImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()
@@ -94,7 +93,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       pass
 
-    logs = aff4.FACTORY.Open(flow_urn.Add("Logs"), token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(flow_urn, token=self.token)
     self.assertIn("Unknown chipset", [l.log_message for l in logs])
 
   def testFailedDumpImage(self):
@@ -174,19 +173,19 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
         token=self.token):
       pass
 
-    fd = aff4.FACTORY.Open(
+    fd = aff4_hardware.ACPITableDataCollection(
         self.client_id.Add("/devices/chipsec/acpi/tables/DSDT"),
         token=self.token)
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["DSDT"][0])
 
-    fd = aff4.FACTORY.Open(
+    fd = aff4_hardware.ACPITableDataCollection(
         self.client_id.Add("/devices/chipsec/acpi/tables/XSDT"),
         token=self.token)
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["XSDT"][0])
 
-    fd = aff4.FACTORY.Open(
+    fd = aff4_hardware.ACPITableDataCollection(
         self.client_id.Add("/devices/chipsec/acpi/tables/SSDT"),
         token=self.token)
     self.assertEqual(len(fd), 2)
@@ -199,15 +198,15 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     table_signature_list = ["ABC"]
     session_id = None
 
-    for session_id in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "DumpACPITable",
         client_mock,
         table_signature_list=table_signature_list,
         client_id=self.client_id,
         token=self.token):
-      pass
+      session_id = s
 
-    logs = aff4.FACTORY.Open(session_id.Add("Logs"), token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(session_id, token=self.token)
     self.assertIn("Unable to retrieve ACPI table with signature ABC",
                   [log.log_message for log in logs])
 

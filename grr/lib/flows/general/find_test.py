@@ -3,9 +3,8 @@
 """Tests for the Find flow."""
 from grr.client.client_actions import searching
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
@@ -53,9 +52,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec):
       session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Check the results collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Should match ["bash" and "rbash"].
     matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
@@ -85,9 +83,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec):
       session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Check the results collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Make sure that bash is a file.
     matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
@@ -118,9 +115,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec):
       session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Check the results collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Make sure that bin is a directory
     self.assertEqual(len(fd), 2)
@@ -151,11 +147,11 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
 
     # Make sure we got the right number of results.
-    self.assertEqual(len(fd), 7)
+    self.assertEqual(len(collection), 7)
 
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
@@ -176,9 +172,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         findspec=findspec):
       session_id = s
 
-    # Check the output file with the right number of results.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Check the results collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     self.assertEqual(len(fd), 2)
 
@@ -193,8 +188,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         max_results=1):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Check the results collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertEqual(len(fd), 1)
 
 

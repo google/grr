@@ -6,8 +6,8 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import sequential_collection
 from grr.lib.aff4_objects import queue as aff4_queue
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
@@ -104,12 +104,11 @@ class HuntResultCollection(sequential_collection.GrrMessageCollection):
         timestamp=timestamp,
         suffix=suffix,
         **kwargs)
-    HuntResultQueue.StaticAdd(
-        RESULT_NOTIFICATION_QUEUE,
-        token,
-        HuntResultNotification(
-            result_collection_urn=collection_urn, timestamp=ts[0],
-            suffix=ts[1]))
+    HuntResultQueue.StaticAdd(RESULT_NOTIFICATION_QUEUE, token,
+                              HuntResultNotification(
+                                  result_collection_urn=collection_urn,
+                                  timestamp=ts[0],
+                                  suffix=ts[1]))
     return ts
 
 

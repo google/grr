@@ -9,7 +9,6 @@ import hmac
 import os
 import string
 
-
 from cryptography.hazmat.primitives import constant_time
 
 import jinja2
@@ -29,6 +28,7 @@ from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
@@ -43,9 +43,11 @@ def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
   time = time or rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
-  digester = hmac.new(
-      utils.SmartStr(config_lib.CONFIG["AdminUI.django_secret_key"]),
-      digestmod=hashlib.sha256)
+  secret = config_lib.CONFIG.Get("AdminUI.csrf_secret_key", None)
+  # TODO(user): Django is deprecated. Remove this at some point.
+  if not secret:
+    secret = config_lib.CONFIG["AdminUI.django_secret_key"]
+  digester = hmac.new(utils.SmartStr(secret), digestmod=hashlib.sha256)
   digester.update(utils.SmartStr(user_id))
   digester.update(CSRF_DELIMITER)
   digester.update(str(time))
@@ -119,8 +121,9 @@ class HttpRequest(werkzeug_wrappers.Request):
     super(HttpRequest, self).__init__(*args, **kwargs)
 
     self.user = None
-    self.event_id = None
     self.token = None
+
+    self.timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
   @property
   def user(self):
@@ -137,6 +140,32 @@ class HttpRequest(werkzeug_wrappers.Request):
     self._user = value
 
 
+def LogAccessWrapper(func):
+  """Decorator that ensures that HTTP access is logged."""
+
+  def Wrapper(request, *args, **kwargs):
+    """Wrapping function."""
+    try:
+      response = func(request, *args, **kwargs)
+      log.LOGGER.LogHttpAdminUIAccess(request, response)
+    except Exception:  # pylint: disable=g-broad-except
+      # This should never happen: wrapped function is supposed to handle
+      # all possible exceptions and generate a proper Response object.
+      # Still, handling exceptions here to guarantee that the access is logged
+      # no matter what.
+      response = werkzeug_wrappers.Response("", status=500)
+      log.LOGGER.LogHttpAdminUIAccess(request, response)
+      raise
+
+    return response
+
+  return Wrapper
+
+
+def EndpointWrapper(func):
+  return webauth.SecurityCheck(LogAccessWrapper(func))
+
+
 class AdminUIApp(object):
   """Base class for WSGI GRR app."""
 
@@ -146,17 +175,17 @@ class AdminUIApp(object):
         werkzeug_routing.Rule(
             "/",
             methods=["HEAD", "GET"],
-            endpoint=webauth.SecurityCheck(self._HandleHomepage)))
+            endpoint=EndpointWrapper(self._HandleHomepage)))
     self.routing_map.add(
         werkzeug_routing.Rule(
             "/api/<path:path>",
             methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"],
-            endpoint=webauth.SecurityCheck(self._HandleApi)))
+            endpoint=EndpointWrapper(self._HandleApi)))
     self.routing_map.add(
         werkzeug_routing.Rule(
             "/help/<path:path>",
             methods=["HEAD", "GET"],
-            endpoint=webauth.SecurityCheck(self._HandleHelp)))
+            endpoint=EndpointWrapper(self._HandleHelp)))
 
   def _BuildRequest(self, environ):
     return HttpRequest(environ)
@@ -304,3 +333,7 @@ class GuiPluginsInit(registry.InitHook):
     # pylint: disable=unused-variable,g-import-not-at-top
     from grr.gui import gui_plugins
     # pylint: enable=unused-variable,g-import-not-at-top
+
+    if config_lib.CONFIG.Get("AdminUI.django_secret_key", None):
+      logging.warn("The AdminUI.django_secret_key option has been deprecated, "
+                   "please use AdminUI.csrf_secret_key instead.")

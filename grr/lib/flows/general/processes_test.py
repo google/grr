@@ -4,12 +4,9 @@
 import os
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import test_lib
-from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import processes as _
 # pylint: enable=unused-import
@@ -49,8 +46,8 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the output collection
-    processes = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
@@ -91,15 +88,15 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Expect one result that matches regex
-    processes = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
     self.assertEqual(processes[0].cmdline, ["cmd2.exe"])
 
     # Expect two skipped results
-    logs = aff4.FACTORY.Open(flow_urn.Add("Logs"), token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(flow_urn, token=self.token)
     for log in logs:
       if "Skipped 2" in log.log_message:
         return
@@ -112,16 +109,14 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=long(1333718907.167083 * 1e6),
-        connections=rdf_client.NetworkConnection(
-            family="INET", state="CLOSED"))
+        connections=rdf_client.NetworkConnection(family="INET", state="CLOSED"))
     p2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["cmd2.exe"],
         exe="c:\\windows\\cmd2.exe",
         ctime=long(1333718907.167083 * 1e6),
-        connections=rdf_client.NetworkConnection(
-            family="INET", state="LISTEN"))
+        connections=rdf_client.NetworkConnection(family="INET", state="LISTEN"))
     p3 = rdf_client.Process(
         pid=4,
         ppid=1,
@@ -140,8 +135,8 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       session_id = s
 
-    processes = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
     self.assertEqual(len(processes), 2)
     states = set()
     for process in processes:
@@ -176,11 +171,9 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
       session_id = s
 
     # No output matched.
-    results = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX),
-        aff4_type=sequential_collection.GeneralIndexedCollection,
-        token=self.token)
-    self.assertEqual(len(results), 0)
+    processes = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
+    self.assertEqual(len(processes), 0)
 
   def testFetchesAndStoresBinary(self):
     process = rdf_client.Process(
@@ -200,9 +193,8 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
-    binaries = list(fd)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    binaries = list(results)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process.exe)
     self.assertEqual(binaries[0].st_size, os.stat(process.exe).st_size)
@@ -232,9 +224,9 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
-    self.assertEqual(len(fd), 1)
+    processes = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
+    self.assertEqual(len(processes), 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
     process1 = rdf_client.Process(
@@ -262,9 +254,8 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         check_flow_errors=False):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
-    binaries = list(fd)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    binaries = list(results)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
 

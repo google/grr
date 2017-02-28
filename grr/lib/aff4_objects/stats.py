@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """AFF4 stats objects."""
 
 
@@ -39,9 +38,8 @@ class ClientFleetStats(aff4.AFF4Object):
     RELEASE_HISTOGRAM = aff4.Attribute("aff4:stats/release", stats.GraphSeries,
                                        "Release statistics for active clients.")
 
-    LAST_CONTACTED_HISTOGRAM = aff4.Attribute("aff4:stats/last_contacted",
-                                              stats.Graph,
-                                              "Last contacted time")
+    LAST_CONTACTED_HISTOGRAM = aff4.Attribute(
+        "aff4:stats/last_contacted", stats.Graph, "Last contacted time")
 
 
 class FilestoreStats(aff4.AFF4Object):

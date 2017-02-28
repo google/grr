@@ -22,8 +22,8 @@ from grr.proto import api_pb2
 # the list of redacted options and settings here may lead to scenario
 # when new sensitive option is added, but these lists are not updated.
 REDACTED_OPTIONS = [
-    "AdminUI.django_secret_key", "Mysql.database_password",
-    "Worker.smtp_password"
+    "AdminUI.django_secret_key", "AdminUI.csrf_secret_key",
+    "Mysql.database_password", "Worker.smtp_password"
 ]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 

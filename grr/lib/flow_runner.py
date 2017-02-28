@@ -64,15 +64,16 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
+from grr.lib import grr_collections
+from grr.lib import multi_type_collection
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr.lib import output_plugin as output_plugin_lib
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib import stats
 from grr.lib import utils
 
-from grr.lib.aff4_objects import multi_type_collection
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -83,18 +84,6 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 class FlowRunnerError(Exception):
   """Raised when there is an error during state transitions."""
 
-
-class FlowLogCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = rdf_flows.FlowLog
-
-
-# TODO(user): Another pickling issue. Remove this asap, this will
-# break displaying old flows though so we will have to keep this
-# around for a while.
-FlowRunnerArgs = rdf_flows.FlowRunnerArgs  # pylint: disable=invalid-name
-
-RESULTS_SUFFIX = "Results"
-RESULTS_PER_TYPE_SUFFIX = "ResultsPerType"
 
 OUTPUT_PLUGIN_BASE_SUFFIX = "PluginOutput"
 
@@ -159,46 +148,11 @@ class FlowRunner(object):
     # when the flow is saved.
     self.sent_replies = []
 
-    # If we're running a child flow and send_replies=True, but
-    # write_intermediate_results=False, we don't want to create an output
-    # collection object. We also only want to create it if runner_args are
-    # passed as a parameter, so that the new context is initialized.
-    #
-    # We can't create the collection as part of InitializeContext, as flow's
-    # urn is not known when InitializeContext runs.
-    if runner_args is not None and self.IsWritingResults():
-      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
-        self.CreateCollections(mutation_pool)
-
-  def CreateCollections(self, mutation_pool):
-    logs_collection_urn = self._GetLogsCollectionURN(
-        self.runner_args.logs_collection_urn)
-    for urn, collection_type in [
-        (self.output_urn, sequential_collection.GeneralIndexedCollection),
-        (self.multi_type_output_urn, multi_type_collection.MultiTypeCollection),
-        (logs_collection_urn, FlowLogCollection),
-    ]:
-      with aff4.FACTORY.Create(
-          urn,
-          collection_type,
-          mode="w",
-          mutation_pool=mutation_pool,
-          token=self.token):
-        pass
-
   def IsWritingResults(self):
     return (not self.parent_runner or not self.runner_args.send_replies or
             self.runner_args.write_intermediate_results)
 
-  @property
-  def multi_type_output_urn(self):
-    return self.flow_obj.urn.Add(RESULTS_PER_TYPE_SUFFIX)
-
-  @property
-  def output_urn(self):
-    return self.flow_obj.urn.Add(RESULTS_SUFFIX)
-
-  def _GetLogsCollectionURN(self, logs_collection_urn):
+  def _GetLogCollectionURN(self, logs_collection_urn):
     if self.parent_runner is not None and not logs_collection_urn:
       # We are a child runner, we should have been passed a
       # logs_collection_urn
@@ -206,9 +160,9 @@ class FlowRunner(object):
                          " set." % (self.flow_obj.urn, self.parent_runner))
 
     # If we weren't passed a collection urn, create one in our namespace.
-    return logs_collection_urn or self.flow_obj.urn.Add("Logs")
+    return logs_collection_urn or self.flow_obj.logs_collection_urn
 
-  def OpenLogsCollection(self, logs_collection_urn, mode="w"):
+  def OpenLogCollection(self, logs_collection_urn):
     """Open the parent-flow logs collection for writing or create a new one.
 
     If we receive a logs_collection_urn here it is being passed from the parent
@@ -223,18 +177,13 @@ class FlowRunner(object):
 
     Args:
       logs_collection_urn: RDFURN pointing to parent logs collection
-      mode: Mode to use for opening, "r", "w", or "rw".
     Returns:
-      FlowLogCollection open with mode.
+      The LogCollection.
     Raises:
       RuntimeError: on parent missing logs_collection.
     """
-    return aff4.FACTORY.Create(
-        self._GetLogsCollectionURN(logs_collection_urn),
-        FlowLogCollection,
-        mode=mode,
-        object_exists=True,
-        token=self.token)
+    return grr_collections.LogCollection(
+        self._GetLogCollectionURN(logs_collection_urn), token=self.token)
 
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
@@ -251,7 +200,7 @@ class FlowRunner(object):
       output_base_urn = self.session_id.Add(OUTPUT_PLUGIN_BASE_SUFFIX)
       plugin_class = plugin_descriptor.GetPluginClass()
       plugin = plugin_class(
-          self.output_urn,
+          self.flow_obj.output_urn,
           args=plugin_descriptor.plugin_args,
           output_base_urn=output_base_urn,
           token=self.token)
@@ -841,7 +790,7 @@ class FlowRunner(object):
     # If the urn is passed explicitly (e.g. from the hunt runner) use that,
     # otherwise use the urn from the flow_runner args. If both are None, create
     # a new collection and give the urn to the flow object.
-    logs_urn = self._GetLogsCollectionURN(
+    logs_urn = self._GetLogCollectionURN(
         kwargs.pop("logs_collection_urn", None) or
         self.runner_args.logs_collection_urn)
 
@@ -915,11 +864,11 @@ class FlowRunner(object):
       self.queue_manager.QueueResponse(request_state.session_id, msg)
 
       if self.runner_args.write_intermediate_results:
-        self.QueueReplyForResultsCollection(response)
+        self.QueueReplyForResultCollection(response)
 
     else:
       # Only write the reply to the collection if we are the parent flow.
-      self.QueueReplyForResultsCollection(response)
+      self.QueueReplyForResultCollection(response)
 
   def FlushMessages(self):
     """Flushes the messages that were queued."""
@@ -931,12 +880,12 @@ class FlowRunner(object):
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
         for response in self.queued_replies:
           sequential_collection.GeneralIndexedCollection.StaticAdd(
-              self.output_urn,
+              self.flow_obj.output_urn,
               self.token,
               response,
               mutation_pool=mutation_pool)
           multi_type_collection.MultiTypeCollection.StaticAdd(
-              self.multi_type_output_urn,
+              self.flow_obj.multi_type_output_urn,
               self.token,
               response,
               mutation_pool=mutation_pool)
@@ -1119,7 +1068,7 @@ class FlowRunner(object):
   def QueueNotification(self, *args, **kw):
     self.queue_manager.QueueNotification(*args, **kw)
 
-  def QueueReplyForResultsCollection(self, response):
+  def QueueReplyForResultCollection(self, response):
     self.queued_replies.append(response)
 
     if self.runner_args.client_id:
@@ -1164,13 +1113,13 @@ class FlowRunner(object):
         urn=self.session_id,
         flow_name=self.flow_obj.__class__.__name__,
         log_message=status)
-    logs_collection_urn = self._GetLogsCollectionURN(
+    logs_collection_urn = self._GetLogCollectionURN(
         self.runner_args.logs_collection_urn)
-    FlowLogCollection.StaticAdd(logs_collection_urn, self.token, log_entry)
+    grr_collections.LogCollection.StaticAdd(logs_collection_urn, self.token,
+                                            log_entry)
 
   def GetLog(self):
-    return self.OpenLogsCollection(
-        self.runner_args.logs_collection_urn, mode="r")
+    return self.OpenLogCollection(self.runner_args.logs_collection_urn)
 
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""

@@ -499,8 +499,8 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertFalse(cron_job.IsRunning())
 
       # Check the termination log
-      log_collection = aff4.FACTORY.Open(
-          urn=flow_urn.Add("Logs"), token=self.token, mode="r")
+      log_collection = flow.GRRFlow.LogCollectionForFID(
+          flow_urn, token=self.token)
 
       for line in log_collection:
         if line.urn == flow_urn:

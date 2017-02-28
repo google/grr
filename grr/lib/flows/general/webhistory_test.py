@@ -8,10 +8,9 @@ from grr.client import client_utils_osx
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import webhistory
 # pylint: enable=unused-import
@@ -84,8 +83,7 @@ class TestWebHistory(WebHistoryFlowTest):
     self.assertTrue(fd.size > 20000)
 
     # Check for analysis file.
-    output_path = session_id.Add(flow_runner.RESULTS_SUFFIX)
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertGreater(len(fd), 50)
     self.assertIn("funnycats.exe",
                   "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()]))
@@ -106,16 +104,15 @@ class TestWebHistory(WebHistoryFlowTest):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
     # Check if the History file is created.
-    output_path = self.client_id.Add("fs/tsk").Add("/".join([
-        self.base_path.replace("\\", "/"), "test_img.dd"
-    ])).Add(fs_path.replace("\\", "/"))
+    output_path = self.client_id.Add("fs/tsk").Add(
+        "/".join([self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
+            fs_path.replace("\\", "/"))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
     self.assertEqual(fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
-    output_path = session_id.Add(flow_runner.RESULTS_SUFFIX)
-    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertGreater(len(fd), 3)
     data = "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()])
     self.assertTrue(data.find("Welcome to Firefox") != -1)
@@ -136,12 +133,7 @@ class TestWebHistory(WebHistoryFlowTest):
       session_id = s
 
     # Check if the collection file was created.
-    output_path = session_id.Add(flow_runner.RESULTS_SUFFIX)
-
-    fd = aff4.FACTORY.Open(
-        output_path,
-        aff4_type=sequential_collection.GeneralIndexedCollection,
-        token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # There should be one hit.
     self.assertEqual(len(fd), 1)
@@ -207,11 +199,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
         **kw):
       session_id = s
 
-    output_urn = session_id.Add(flow_runner.RESULTS_SUFFIX)
-    return aff4.FACTORY.Open(
-        output_urn,
-        aff4_type=sequential_collection.GeneralIndexedCollection,
-        token=self.token)
+    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""
@@ -225,8 +213,8 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
           knowledge_base=self.kb)
 
     self.assertEqual(len(fd), 71)
-    self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
-                    [d.download_path for d in fd])
+    self.assertTrue(
+        "/home/john/Downloads/funcats_scr.exe" in [d.download_path for d in fd])
     self.assertTrue("http://www.java.com/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.config/google-chrome/Default/History"))

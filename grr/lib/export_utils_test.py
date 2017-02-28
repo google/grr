@@ -9,11 +9,11 @@ from grr.lib import aff4
 from grr.lib import export_utils
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.hunts import results
@@ -83,8 +83,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
   def testDownloadHuntResultCollection(self):
     """Check we can download files references in HuntResultCollection."""
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create(
-        self.collection_urn, results.HuntResultCollection, token=self.token)
+    fd = results.HuntResultCollection(self.collection_urn, token=self.token)
     fd.AddAsMessage(rdfvalue.RDFURN(self.out.Add("testfile1")), self.client_id)
     fd.AddAsMessage(
         rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
@@ -92,43 +91,42 @@ class TestExports(test_lib.FlowTestsBaseclass):
         self.client_id)
     fd.AddAsMessage(
         rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="testfile5", pathtype="OS"))),
+            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
         self.client_id)
     fd.AddAsMessage(
         collectors.ArtifactFilesDownloaderResult(
             downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
                 path="testfile6", pathtype="OS"))),
         self.client_id)
-    fd.Close()
     self._VerifyDownload()
 
   def testDownloadCollection(self):
     """Check we can download files references in RDFValueCollection."""
-    self._testCollection(collects.RDFValueCollection)
+    fd = aff4.FACTORY.Create(
+        self.collection_urn, collects.RDFValueCollection, token=self.token)
+    self._AddTestData(fd)
+    fd.Close()
+    self._VerifyDownload()
 
   def testDownloadGeneralIndexedCollection(self):
     """Check we can download files references in GeneralIndexedCollection."""
-    self._testCollection(sequential_collection.GeneralIndexedCollection)
+    fd = sequential_collection.GeneralIndexedCollection(
+        self.collection_urn, token=self.token)
+    self._AddTestData(fd)
+    self._VerifyDownload()
 
-  def _testCollection(self, collection_type):
-    # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create(
-        self.collection_urn, collection_type, token=self.token)
+  def _AddTestData(self, fd):
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(
         rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
             path="testfile2", pathtype="OS")))
     fd.Add(
         rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="testfile5", pathtype="OS"))))
+            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
     fd.Add(
         collectors.ArtifactFilesDownloaderResult(
             downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
                 path="testfile6", pathtype="OS"))))
-    fd.Close()
-    self._VerifyDownload()
 
   def testDownloadCollectionIgnoresArtifactResultsWithoutFiles(self):
     # Create a collection with URNs to some files.
@@ -159,8 +157,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
             path="testfile2", pathtype="OS")))
     fd.Add(
         rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="testfile5", pathtype="OS"))))
+            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
     fd.Close()
 
     with utils.TempDirectory() as tmpdir:
@@ -194,12 +191,10 @@ class TestExports(test_lib.FlowTestsBaseclass):
         self.collection_urn, collects.RDFValueCollection, token=self.token)
     fd.Add(
         rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="testfile5", pathtype="OS"))))
+            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
     fd.Add(
         rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="testdir1", pathtype="OS"),
+            pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
             st_mode=stat.S_IFDIR)))
     fd.Close()
 
@@ -221,8 +216,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     """Check we can export a file without errors."""
     with utils.TempDirectory() as tmpdir:
       export_utils.RecursiveDownload(
-          aff4.FACTORY.Open(
-              self.out, token=self.token), tmpdir, overwrite=True)
+          aff4.FACTORY.Open(self.out, token=self.token), tmpdir, overwrite=True)
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       full_outdir = os.path.join(expected_outdir, "testdir1", "testdir2")

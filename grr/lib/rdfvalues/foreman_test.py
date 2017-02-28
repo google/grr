@@ -4,6 +4,8 @@
 
 
 from grr.lib import aff4
+from grr.lib import flags
+from grr.lib import test_lib
 from grr.lib.rdfvalues import test_base
 from grr.server import foreman as rdf_foreman
 
@@ -530,3 +532,12 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
         r.Evaluate(
             CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
             client_id))
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -37,7 +37,6 @@ from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
-from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -604,16 +603,10 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
       runner = hunt.GetRunner()
       runner.Start()
 
-      with aff4.FACTORY.Open(
-          hunt.results_collection_urn,
-          aff4_type=hunts_results.HuntResultCollection,
-          mode="w",
-          token=self.token) as collection:
-
-        for value in values:
-          collection.Add(
-              rdf_flows.GrrMessage(
-                  payload=value, source=self.client_ids[0]))
+      collection = hunt.ResultCollection()
+      for value in values:
+        collection.Add(
+            rdf_flows.GrrMessage(payload=value, source=self.client_ids[0]))
 
       return hunt.urn
 

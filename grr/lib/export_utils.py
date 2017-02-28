@@ -11,12 +11,14 @@ import logging
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib import serialize
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
+from grr.lib.hunts import results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -203,6 +205,22 @@ def RecursiveDownload(dir_obj,
     thread_pool.Stop()
 
 
+def _OpenCollectionPath(coll_path, token=None):
+  """Tries to open various types of collections at the given path."""
+  coll = aff4.FACTORY.Open(coll_path, token=token)
+  if coll.__class__.__name__ == "RDFValueCollection":
+    return coll
+
+  collection = results.HuntResultCollection(coll_path, token=token)
+  if collection and collection[0].payload:
+    return collection
+
+  collection = sequential_collection.GeneralIndexedCollection(
+      coll_path, token=token)
+  if collection:
+    return collection
+
+
 def DownloadCollection(coll_path,
                        target_path,
                        token=None,
@@ -225,11 +243,8 @@ def DownloadCollection(coll_path,
     max_threads: Use this many threads to do the downloads.
   """
   completed_clients = set()
-  export_types = [
-      "HuntResultCollection", "RDFValueCollection", "GeneralIndexedCollection"
-  ]
-  coll = aff4.FACTORY.Open(coll_path, token=token)
-  if coll.__class__.__name__ not in export_types:
+  coll = _OpenCollectionPath(coll_path, token=token)
+  if coll is None:
     logging.error("%s is not a valid collection. Typo? "
                   "Are you sure something was written to it?", coll_path)
     return
@@ -243,9 +258,13 @@ def DownloadCollection(coll_path,
   # could then download files from arbitrary machines easily). The
   # export tool is on the way to deprecation so we decided to do this
   # instead of fixing the obsolete code.
-  client_id = coll.urn.Split()[0]
   try:
-    original_client_id = rdf_client.ClientURN(coll.urn.Split()[0])
+    collection_urn = coll.collection_id
+  except AttributeError:
+    collection_urn = coll.urn
+
+  try:
+    original_client_id = rdf_client.ClientURN(collection_urn.Split()[0])
   except IOError:
     original_client_id = None
 

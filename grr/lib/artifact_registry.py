@@ -9,14 +9,13 @@ import yaml
 import logging
 
 from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import artifact_utils
 from grr.lib import objectfilter
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
@@ -59,25 +58,21 @@ class ArtifactRegistry(object):
     to_delete = []
 
     for artifact_coll_urn in source_urns or set():
-      with aff4.FACTORY.Create(
-          artifact_coll_urn,
-          aff4_type=ArtifactCollection,
-          token=token,
-          mode="rw") as artifact_coll:
-        for artifact_value in artifact_coll:
-          try:
-            self.RegisterArtifact(
-                artifact_value,
-                source="datastore:%s" % artifact_coll_urn,
-                overwrite_if_exists=overwrite_if_exists)
-            loaded_artifacts.append(artifact_value)
-            logging.debug("Loaded artifact %s from %s", artifact_value.name,
-                          artifact_coll_urn)
-          except ArtifactDefinitionError as e:
-            if e.message.startswith("System artifact"):
-              to_delete.append(artifact_value.name)
-            else:
-              raise
+      artifact_coll = ArtifactCollection(artifact_coll_urn, token=token)
+      for artifact_value in artifact_coll:
+        try:
+          self.RegisterArtifact(
+              artifact_value,
+              source="datastore:%s" % artifact_coll_urn,
+              overwrite_if_exists=overwrite_if_exists)
+          loaded_artifacts.append(artifact_value)
+          logging.debug("Loaded artifact %s from %s", artifact_value.name,
+                        artifact_coll_urn)
+        except ArtifactDefinitionError as e:
+          if e.message.startswith("System artifact"):
+            to_delete.append(artifact_value.name)
+          else:
+            raise
 
     if to_delete:
       DeleteArtifactsFromDatastore(
@@ -786,9 +781,8 @@ class Artifact(structs.RDFProtoStruct):
         of = objectfilter.Parser(condition).Parse()
         of.Compile(objectfilter.BaseFilterImplementation)
       except ConditionError as e:
-        raise ArtifactDefinitionError(
-            "Artifact %s has invalid condition %s. %s" % (cls_name, condition,
-                                                          e))
+        raise ArtifactDefinitionError("Artifact %s has invalid condition %s. %s"
+                                      % (cls_name, condition, e))
 
     for label in self.labels:
       if label not in self.ARTIFACT_LABELS:
@@ -879,12 +873,9 @@ def DeleteArtifactsFromDatastore(artifact_names,
         "Artifact(s) %s depend(s) on one of the artifacts to delete." %
         (",".join(deps)))
 
-  with aff4.FACTORY.Create(
-      "aff4:/artifact_store",
-      mode="r",
-      aff4_type=ArtifactCollection,
-      token=token) as store:
-    all_artifacts = list(store)
+  store = ArtifactCollection(
+      rdfvalue.RDFURN("aff4:/artifact_store"), token=token)
+  all_artifacts = list(store)
 
   filtered_artifacts, found_artifact_names = set(), set()
   for artifact_value in all_artifacts:
@@ -903,15 +894,10 @@ def DeleteArtifactsFromDatastore(artifact_names,
   # append-only object, but in some different way that allows easy
   # deletion. Possible option - just store each artifact in a separate object
   # in the same folder.
-  aff4.FACTORY.Delete("aff4:/artifact_store", token=token)
+  store.Delete()
 
-  with aff4.FACTORY.Create(
-      "aff4:/artifact_store",
-      mode="w",
-      aff4_type=ArtifactCollection,
-      token=token) as store:
-    for artifact_value in filtered_artifacts:
-      store.Add(artifact_value)
+  for artifact_value in filtered_artifacts:
+    store.Add(artifact_value)
 
   for artifact_value in to_delete:
     REGISTRY.UnregisterArtifact(artifact_value)

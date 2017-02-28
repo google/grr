@@ -74,8 +74,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
     children = list(
         aff4.FACTORY.MultiOpen(
-            list(aff4.FACTORY.ListChildren(
-                flow_urn, token=self.token)),
+            list(aff4.FACTORY.ListChildren(flow_urn, token=self.token)),
             aff4_type=flow.GRRFlow,
             token=self.token))
     self.assertEqual(len(children), 1)
@@ -250,6 +249,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def _GetZipManifest(self, result):
     out_fd = StringIO.StringIO()
+
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
 

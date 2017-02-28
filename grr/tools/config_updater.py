@@ -3,7 +3,6 @@
 
 
 import argparse
-import ConfigParser
 import getpass
 import json
 import os
@@ -298,14 +297,16 @@ def ImportConfig(filename, config):
 
 def GenerateCSRFKey(config):
   """Update a config with a random csrf key."""
-  try:
-    secret_key = config["AdminUI.django_secret_key"]
-  except ConfigParser.NoOptionError:
-    secret_key = "CHANGE_ME"  # This is the config file default.
+  secret_key = config.Get("AdminUI.csrf_secret_key", None)
+  if not secret_key:
+    # TODO(user): Remove support for django_secret_key.
+    secret_key = config.Get("AdminUI.django_secret_key", None)
+    if secret_key:
+      config.Set("AdminUI.csrf_secret_key", secret_key)
 
-  if not secret_key or secret_key.strip().upper() == "CHANGE_ME":
+  if not secret_key:
     key = utils.GeneratePassphrase(length=100)
-    config.Set("AdminUI.django_secret_key", key)
+    config.Set("AdminUI.csrf_secret_key", key)
   else:
     print "Not updating csrf key as it is already set."
 

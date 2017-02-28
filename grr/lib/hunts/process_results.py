@@ -12,7 +12,7 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.hunts import implementation as hunts_implementation
+from grr.lib.hunts import implementation
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -112,17 +112,11 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             batch_size=len(results))
         exceptions_by_plugin.setdefault(plugin_def, []).append(e)
 
-      aff4.FACTORY.Open(
-          hunt_urn.Add("OutputPluginsStatus"),
-          hunts_implementation.PluginStatusCollection,
-          mode="w",
-          token=self.token).Add(plugin_status)
+      implementation.GRRHunt.PluginStatusCollectionForHID(
+          hunt_urn, token=self.token).Add(plugin_status)
       if plugin_status.status == plugin_status.Status.ERROR:
-        aff4.FACTORY.Open(
-            hunt_urn.Add("OutputPluginsErrors"),
-            hunts_implementation.PluginStatusCollection,
-            mode="w",
-            token=self.token).Add(plugin_status)
+        implementation.GRRHunt.PluginErrorCollectionForHID(
+            hunt_urn, token=self.token).Add(plugin_status)
 
   def ProcessOneHunt(self, exceptions_by_hunt):
     """Reads results for one hunt and process them."""
@@ -131,8 +125,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             start_time=self.args.start_processing_time,
             token=self.token,
             lease_time=self.lifetime))
-    logging.debug("Found %d results for hunt %s",
-                  len(results), hunt_results_urn)
+    logging.debug("Found %d results for hunt %s", len(results),
+                  hunt_results_urn)
     if not results:
       return 0
 
@@ -141,38 +135,33 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     metadata_urn = hunt_urn.Add("ResultsMetadata")
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
+    collection_obj = implementation.GRRHunt.ResultCollectionForHID(
+        hunt_urn, token=self.token)
     with aff4.FACTORY.OpenWithLock(
-        hunt_results_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        lease_time=600,
-        token=self.token) as collection_obj:
-      with aff4.FACTORY.OpenWithLock(
-          metadata_urn, lease_time=600, token=self.token) as metadata_obj:
-        all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
-        num_processed = int(
-            metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-        for batch in utils.Grouper(results, batch_size):
-          results = list(
-              collection_obj.MultiResolve([(ts, suffix)
-                                           for (_, ts, suffix) in batch]))
-          self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
+        metadata_urn, lease_time=600, token=self.token) as metadata_obj:
+      all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
+      num_processed = int(
+          metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
+      for batch in utils.Grouper(results, batch_size):
+        results = list(
+            collection_obj.MultiResolve([(ts, suffix)
+                                         for (_, ts, suffix) in batch]))
+        self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
 
-          hunts_results.HuntResultQueue.DeleteNotifications(
-              [record_id for (record_id, _, _) in batch], token=self.token)
-          num_processed += len(batch)
-          num_processed_for_hunt += len(batch)
-          self.HeartBeat()
-          collection_obj.UpdateLease(600)
-          metadata_obj.Set(
-              metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
-          metadata_obj.UpdateLease(600)
-          if self.CheckIfRunningTooLong():
-            logging.warning("Run too long, stopping.")
-            break
-
-        metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
+        hunts_results.HuntResultQueue.DeleteNotifications(
+            [record_id for (record_id, _, _) in batch], token=self.token)
+        num_processed += len(batch)
+        num_processed_for_hunt += len(batch)
+        self.HeartBeat()
         metadata_obj.Set(
             metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
+        metadata_obj.UpdateLease(600)
+        if self.CheckIfRunningTooLong():
+          logging.warning("Run too long, stopping.")
+          break
+
+      metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
+      metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
 
     if exceptions_by_plugin:
       for plugin, exceptions in exceptions_by_plugin.items():

@@ -12,6 +12,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import grr_collections
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -58,10 +59,9 @@ class VFSGRRClient(standard.VFSDirectory):
         "GRR client",
         default=rdf_client.ClientInformation())
 
-    LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
-                                    rdfvalue.RDFDatetime,
-                                    "When the machine was last booted",
-                                    "BootTime")
+    LAST_BOOT_TIME = aff4.Attribute(
+        "metadata:LastBootTime", rdfvalue.RDFDatetime,
+        "When the machine was last booted", "BootTime")
 
     FIRST_SEEN = aff4.Attribute("metadata:FirstSeen", rdfvalue.RDFDatetime,
                                 "First time the client registered with us",
@@ -198,6 +198,40 @@ class VFSGRRClient(standard.VFSDirectory):
 
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
+
+  # A collection of crashes for this client.
+  @classmethod
+  def CrashCollectionURNForCID(cls, client_id):
+    return client_id.Add("crashes")
+
+  @classmethod
+  def CrashCollectionForCID(cls, client_id, token=None):
+    """Returns the collection storing crash information for the given client.
+
+    Args:
+      client_id: The id of the client, a rdfvalue.ClientURN.
+      token: A data store token.
+    Returns:
+      The collection containing the crash information objects for the client.
+    """
+    return grr_collections.CrashCollection(
+        cls.CrashCollectionURNForCID(client_id), token=token)
+
+  def CrashCollection(self):
+    return self.CrashCollectionForCID(self.client_id, token=self.token)
+
+  # A collection of Anomalies found on this client.
+  @classmethod
+  def AnomalyCollectionURNForCID(cls, client_id):
+    return client_id.Add("anomalies")
+
+  @classmethod
+  def AnomalyCollectionForCID(cls, client_id, token=None):
+    return grr_collections.AnomalyCollection(
+        cls.AnomalyCollectionURNForCID(client_id), token=token)
+
+  def AnomalyCollection(self):
+    return self.AnomalyCollectionForCID(self.client_id, token=self.token)
 
   @property
   def age(self):

@@ -21,11 +21,9 @@ from grr.lib import timeseries
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 from grr.lib.aff4_objects import stats as aff4_stats
 
-from grr.lib.flows.general import administrative
 from grr.lib.flows.general import audit
 from grr.lib.flows.general import discovery
 
@@ -138,6 +136,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     index = client_index.CreateClientIndex(token=token)
     result_urns = sorted(
         index.LookupClients(keywords), key=str)[args.offset:args.offset + end]
+
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
     api_clients = []
@@ -183,8 +182,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       all_urns.update(index.LookupClients(label_filter))
 
     all_objs = aff4.FACTORY.MultiOpen(
-        sorted(
-            all_urns, key=str), aff4_type=aff4_grr.VFSGRRClient, token=token)
+        sorted(all_urns, key=str), aff4_type=aff4_grr.VFSGRRClient, token=token)
 
     api_clients = []
     index = 0
@@ -347,28 +345,12 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListClientCrashesResult
 
   def Handle(self, args, token=None):
-    try:
-      try:
-        aff4_crashes = aff4.FACTORY.Open(
-            args.client_id.ToClientURN().Add("crashes"),
-            mode="r",
-            aff4_type=administrative.CrashesCollection,
-            token=token)
-      except aff4.InstantiationError:
-        # TODO(user): Get rid of PackedVersionedCollection.
-        aff4_crashes = aff4.FACTORY.Open(
-            args.client_id.ToClientURN().Add("crashes"),
-            mode="r",
-            aff4_type=collects.PackedVersionedCollection,
-            token=token)
+    aff4_crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
+        args.client_id.ToClientURN(), token=token)
 
-      total_count = len(aff4_crashes)
-      result = api_call_handler_utils.FilterCollection(aff4_crashes,
-                                                       args.offset, args.count,
-                                                       args.filter)
-    except aff4.InstantiationError:
-      total_count = 0
-      result = []
+    total_count = len(aff4_crashes)
+    result = api_call_handler_utils.FilterCollection(aff4_crashes, args.offset,
+                                                     args.count, args.filter)
 
     return ApiListClientCrashesResult(items=result, total_count=total_count)
 
@@ -654,8 +636,8 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       ts.MakeIncreasing()
 
     if len(stat_values) > self.MAX_SAMPLES:
-      sampling_interval = rdfvalue.Duration.FromSeconds((
-          (end_time - start_time).seconds / self.MAX_SAMPLES) or 1)
+      sampling_interval = rdfvalue.Duration.FromSeconds(
+          ((end_time - start_time).seconds / self.MAX_SAMPLES) or 1)
       if args.metric in self.GAUGE_METRICS:
         mode = timeseries.NORMALIZE_MODE_GAUGE
       else:

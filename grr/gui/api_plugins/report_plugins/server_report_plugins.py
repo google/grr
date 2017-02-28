@@ -7,9 +7,11 @@ from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugin_base
 from grr.gui.api_plugins.report_plugins import report_utils
 
+from grr.lib import config_lib
 from grr.lib import events
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.flows.general import audit
 
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
 
@@ -228,8 +230,8 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
         pass
 
       ret.pie_chart.data = sorted(
-          (rdf_report_plugins.ApiReportDataPoint1D(
-              x=count, label=user) for user, count in counts.iteritems()
+          (rdf_report_plugins.ApiReportDataPoint1D(x=count, label=user)
+           for user, count in counts.iteritems()
            if user not in aff4_users.GRRUser.SYSTEM_USERS),
           key=lambda series: series.label)
 
@@ -278,8 +280,8 @@ class SystemFlowsReportPlugin(report_plugin_base.ReportPluginBase):
         pass
 
       for i, (flow, countdict) in enumerate(
-          sorted(
-              counts.iteritems(), key=lambda x: x[1]["total"], reverse=True)):
+          sorted(counts.iteritems(), key=lambda x: x[1]["total"],
+                 reverse=True)):
         total_count = countdict["total"]
         countdict.pop("total")
         topusercounts = sorted(
@@ -292,8 +294,7 @@ class SystemFlowsReportPlugin(report_plugin_base.ReportPluginBase):
                 # \u2003 is an emspace, a long whitespace character.
                 label=u"%s\u2003Run By: %s" % (flow, topusers),
                 points=[
-                    rdf_report_plugins.ApiReportDataPoint2D(
-                        x=i, y=total_count)
+                    rdf_report_plugins.ApiReportDataPoint2D(x=i, y=total_count)
                 ]))
 
     except IOError:
@@ -321,10 +322,13 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     try:
       user_activity = {}
       week_duration = rdfvalue.Duration("7d")
-      offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.__class__.WEEKS)
+      offset = rdfvalue.Duration("%dw" % self.WEEKS)
       now = rdfvalue.RDFDatetime.Now()
+      # TODO(user): Why is the rollover not a duration?
+      start_time = now - offset - rdfvalue.Duration(
+          config_lib.CONFIG["Logging.aff4_audit_log_rollover"])
       try:
-        for fd in report_utils.GetAuditLogFiles(offset, now, token):
+        for fd in audit.AuditLogsForTimespan(start_time, now, token):
           for event in fd.GenerateItems():
             for week in xrange(self.__class__.WEEKS):
               start = now - week * week_duration
@@ -339,8 +343,8 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
       ret.stack_chart.data = sorted(
           (rdf_report_plugins.ApiReportDataSeries2D(
               label=user,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(
-                  x=x, y=y) for x, y in data))
+              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                      for x, y in data))
            for user, data in user_activity.iteritems()
            if user not in aff4_users.GRRUser.SYSTEM_USERS),
           key=lambda series: series.label)
@@ -390,8 +394,8 @@ class UserFlowsReportPlugin(report_plugin_base.ReportPluginBase):
         pass
 
       for i, (flow, countdict) in enumerate(
-          sorted(
-              counts.iteritems(), key=lambda x: x[1]["total"], reverse=True)):
+          sorted(counts.iteritems(), key=lambda x: x[1]["total"],
+                 reverse=True)):
         total_count = countdict["total"]
         countdict.pop("total")
         topusercounts = sorted(
@@ -404,8 +408,7 @@ class UserFlowsReportPlugin(report_plugin_base.ReportPluginBase):
                 # \u2003 is an emspace, a long whitespace character.
                 label=u"%s\u2003Run By: %s" % (flow, topusers),
                 points=[
-                    rdf_report_plugins.ApiReportDataPoint2D(
-                        x=i, y=total_count)
+                    rdf_report_plugins.ApiReportDataPoint2D(x=i, y=total_count)
                 ]))
 
     except IOError:

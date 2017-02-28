@@ -80,9 +80,10 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
 
     # Enter a timerange.
     self.Type("css=grr-form-datetime input", "2012-12-21 12:34")
+    self.Type("css=grr-form-duration input", "2w")
     self.Click("css=button:contains('Show report')")
 
-    # Reports that require timeranges include them in the url after
+    # Reports that require timeranges include nondefault values in the url when
     # `Show report' has been clicked.
     self.WaitUntil(lambda: "start_time" in self.GetCurrentUrlPath())
     self.assertTrue("duration" in self.GetCurrentUrlPath())

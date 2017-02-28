@@ -3,7 +3,7 @@
 
 from grr.client.components.chipsec_support.actions import chipsec_types
 
-from grr.lib.aff4_objects import sequential_collection
+from grr.lib import sequential_collection
 
 
 class ACPITableDataCollection(

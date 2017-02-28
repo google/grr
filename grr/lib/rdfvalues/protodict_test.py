@@ -14,7 +14,9 @@ an __iter__) method, but are serializable as an RDFProto.
 
 import collections
 
+from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -294,3 +296,12 @@ class EmbeddedRDFValueTest(test_base.RDFProtoTestCase):
     self.assertEqual(new_log.age, original_age, "Age not preserved: %s != %s" %
                      (new_log.age.AsMicroSecondsFromEpoch(),
                       original_age.AsMicroSecondsFromEpoch()))
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

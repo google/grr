@@ -66,7 +66,7 @@ class FieldParser(lexer.Lexer):
                sep=r"[ \t\f\v]+",
                term=r"[\r\n]",
                verbose=0):
-    """A generalized field-based parser. Handles whitespace, csv etc.
+    r"""A generalized field-based parser. Handles whitespace, csv etc.
 
     Args:
       comments: Line comment patterns (e.g. "#").
@@ -333,11 +333,10 @@ class NfsExportsParser(parsers.FileParser, FieldParser):
       yield result
 
 
-class SshdConfigParser(parsers.FileParser):
-  """Parser for sshd_config files."""
+class SshdParserBase(object):
+  """The base class for the ssh config parsers."""
 
   output_types = ["SshdConfig"]
-  supported_artifacts = ["SshdConfigFile", "SshdConfigCmd"]
   # Specify the values that are boolean or integer. Anything else is a string.
   _integers = ["clientalivecountmax",
                "magicudsport",
@@ -412,7 +411,7 @@ class SshdConfigParser(parsers.FileParser):
   ]
 
   def __init__(self):
-    super(SshdConfigParser, self).__init__()
+    super(SshdParserBase, self).__init__()
     self.Flush()
 
   def Flush(self):
@@ -502,6 +501,20 @@ class SshdConfigParser(parsers.FileParser):
     # Switch to a match-specific processor on a new match_block.
     self.processor = self._ParseMatchGrp
 
+  def GenerateResults(self):
+    matches = []
+    for match in self.matches:
+      criterion, config = match["criterion"], match["config"]
+      block = rdf_config_file.SshdMatchBlock(criterion=criterion, config=config)
+      matches.append(block)
+    yield rdf_config_file.SshdConfig(config=self.config, matches=matches)
+
+
+class SshdConfigParser(SshdParserBase, parsers.FileParser):
+  """A parser for sshd_config files."""
+
+  supported_artifacts = ["SshdConfigFile"]
+
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the sshd configuration.
 
@@ -521,19 +534,31 @@ class SshdConfigParser(parsers.FileParser):
     _, _ = stat, knowledge_base
     # Clean out any residual state.
     self.Flush()
-    # for line in file_object:
     lines = [l.strip() for l in file_object.read(100000).splitlines()]
     for line in lines:
       # Remove comments (will break if it includes a quoted/escaped #)
       line = line.split("#")[0].strip()
       if line:
         self.ParseLine(line)
-    matches = []
-    for match in self.matches:
-      criterion, config = match["criterion"], match["config"]
-      block = rdf_config_file.SshdMatchBlock(criterion=criterion, config=config)
-      matches.append(block)
-    yield rdf_config_file.SshdConfig(config=self.config, matches=matches)
+    for result in self.GenerateResults():
+      yield result
+
+
+class SshdConfigCmdParser(SshdConfigParser, parsers.CommandParser):
+  """A command parser for sshd -T output."""
+
+  supported_artifacts = ["SshdConfigCmd"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    # Clean out any residual state.
+    self.Flush()
+    lines = [l.strip() for l in stdout.splitlines()]
+    for line in lines:
+      if line:
+        self.ParseLine(line)
+    for result in self.GenerateResults():
+      yield result
 
 
 class MtabParser(parsers.FileParser, FieldParser):
@@ -714,8 +739,8 @@ class PackageSourceParser(parsers.FileParser):
       for k, v in kv_entry.iteritems():
         # This line could be a URL if a) from  key:value, value is empty OR
         # b) if separator is : and first character of v starts with /.
-        if (check_uri_on_next_line and (not v or (separator == ":" and
-                                                  v[0].startswith("/")))):
+        if (check_uri_on_next_line and
+            (not v or (separator == ":" and v[0].startswith("/")))):
           uris.append(sp_entry[0])
         else:
           check_uri_on_next_line = False
@@ -979,8 +1004,8 @@ class SudoersParser(parsers.FileParser, FieldParser):
       # Check for continuation; this will either be a trailing comma or the
       # next field after this one being a comma. The lookahead here is a bit
       # nasty.
-      if not (field.endswith(",") or
-              set(fields[i + 1:i + 2]).intersection(ignores)):
+      if not (field.endswith(",") or set(
+          fields[i + 1:i + 2]).intersection(ignores)):
         break
 
     return extracted, fields[i + 1:]

@@ -34,12 +34,15 @@ from grr.lib import hunt_test
 from grr.lib import instant_output_plugin_test
 from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
+from grr.lib import log_test
+from grr.lib import multi_type_collection_test
 from grr.lib import objectfilter_test
 from grr.lib import output_plugin_test
 from grr.lib import parsers_test
 from grr.lib import queue_manager_test
 from grr.lib import rekall_profile_server_test
 from grr.lib import repacking_test
+from grr.lib import sequential_collection_test
 from grr.lib import server_stubs_test
 from grr.lib import stats_test
 from grr.lib import test_lib

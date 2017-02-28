@@ -115,12 +115,29 @@ class RouterMethodMetadata(object):
     self.http_methods = http_methods or set()
     self.no_audit_log_required = no_audit_log_required
 
-  _RULE_REGEX = re.compile("<([a-zA-Z0-9_]+)")
+  _RULE_REGEX = re.compile("<([a-zA-Z0-9:_]+)")
 
   def GetQueryParamsNames(self):
+    """This extracts all parameters from URL paths for logging.
+
+    This extracts the name of all parameters that are sent inside the
+    URL path for the given route. For example the path
+    /api/clients/<client_id>/last-ip would return ["client_id"].
+
+    Some URL paths contain annotated parameters - for example paths as
+    in /api/clients/<client_id>/vfs-index/<path:file_path>. Those
+    annotations will be stripped off by this function and just the
+    plain parameter name will be returned.
+
+    Returns:
+      A list of extracted parameters.
+    """
     result = []
-    for m in self.http_methods or []:
-      result.extend(re.findall(self._RULE_REGEX, m[1]))
+    for unused_method, path, unused_params in self.http_methods or []:
+      for arg in re.findall(self._RULE_REGEX, path):
+        if ":" in arg:
+          arg = arg[arg.find(":") + 1:]
+        result.append(arg)
     return result
 
 

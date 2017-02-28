@@ -545,35 +545,27 @@ def UploadArtifactYamlFile(file_content,
     new_artifact_names.add(artifact_value.name)
 
   # Iterate through each artifact adding it to the collection.
-  with aff4.FACTORY.Create(
-      base_urn,
-      aff4_type=artifact_registry.ArtifactCollection,
-      token=token,
-      mode="r") as artifact_coll:
-    current_artifacts = list(artifact_coll)
+  artifact_coll = artifact_registry.ArtifactCollection(base_urn, token=token)
+  current_artifacts = list(artifact_coll)
 
   # We need to remove artifacts we are overwriting.
   filtered_artifacts = [
       art for art in current_artifacts if art.name not in new_artifact_names
   ]
 
-  with aff4.FACTORY.Create(
-      base_urn,
-      aff4_type=artifact_registry.ArtifactCollection,
-      token=token,
-      mode="w") as artifact_coll:
-    for artifact_value in filtered_artifacts:
-      artifact_coll.Add(artifact_value)
+  artifact_coll.Delete()
+  for artifact_value in filtered_artifacts:
+    artifact_coll.Add(artifact_value)
 
-    for artifact_value in new_artifacts:
-      registry_obj.RegisterArtifact(
-          artifact_value,
-          source="datastore:%s" % base_urn,
-          overwrite_if_exists=overwrite,
-          overwrite_system_artifacts=overwrite_system_artifacts)
-      artifact_coll.Add(artifact_value)
-      loaded_artifacts.append(artifact_value)
-      logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
+  for artifact_value in new_artifacts:
+    registry_obj.RegisterArtifact(
+        artifact_value,
+        source="datastore:%s" % base_urn,
+        overwrite_if_exists=overwrite,
+        overwrite_system_artifacts=overwrite_system_artifacts)
+    artifact_coll.Add(artifact_value)
+    loaded_artifacts.append(artifact_value)
+    logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
 
   # Once all artifacts are loaded we can validate, as validation of dependencies
   # requires the group are all loaded before doing the validation.

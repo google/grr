@@ -2,13 +2,12 @@
 """Tests for grr.lib.output_plugin."""
 
 
-from grr.lib import aff4
 from grr.lib import export
 from grr.lib import flags
 from grr.lib import instant_output_plugin
+from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.output_plugins import test_plugins
 
 
@@ -20,10 +19,8 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     self.plugin = test_plugins.TestInstantOutputPlugin(
         source_urn=rdfvalue.RDFURN("aff4:/foo/bar"), token=self.token)
 
-    self.collection = aff4.FACTORY.Create(
-        "aff4:/mt_collection/testAddScan",
-        multi_type_collection.MultiTypeCollection,
-        token=self.token)
+    self.collection = multi_type_collection.MultiTypeCollection(
+        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
 
   def ProcessPlugin(self):
     return list(

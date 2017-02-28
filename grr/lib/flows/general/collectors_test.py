@@ -19,14 +19,14 @@ from grr.lib import artifact_registry
 from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
+from grr.lib import sequential_collection
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
-from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -234,9 +234,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           client_id=self.client_id):
         session_id = s
 
-      # Test the AFF4 file that was created.
-      fd = aff4.FACTORY.Open(
-          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertTrue(len(fd) == 1)
 
@@ -264,17 +262,14 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         session_id = s
 
       # Check that we got two separate collections based on artifact name
-      fd = aff4.FACTORY.Open(
-          session_id.Add("%s_%s" %
-                         (flow_runner.RESULTS_SUFFIX, "FakeArtifact")),
-          token=self.token)
+      fd = collectors.ArtifactCollectorFlow.ResultCollectionForArtifact(
+          session_id, "FakeArtifact", token=self.token)
+
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertEqual(len(fd), 1)
 
-      fd = aff4.FACTORY.Open(
-          session_id.Add("%s_%s" %
-                         (flow_runner.RESULTS_SUFFIX, "FakeArtifact2")),
-          token=self.token)
+      fd = collectors.ArtifactCollectorFlow.ResultCollectionForArtifact(
+          session_id, "FakeArtifact2", token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
 
@@ -339,8 +334,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           session_id = s
 
     # Test the statentry got stored.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     urn = fd[0].pathspec.AFF4Path(self.client_id)
     self.assertTrue(str(urn).endswith("BootExecute"))
@@ -370,8 +364,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             client_id=self.client_id):
           session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertEqual(fd[0].registry_data.GetValue(), "DefaultValue")
 
@@ -423,11 +416,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    # Test the AFF4 file was not created, as flow should not have run due to
-    # conditions.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
-    return fd
+    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
 
 def main(argv):

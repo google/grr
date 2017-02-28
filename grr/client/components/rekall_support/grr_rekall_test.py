@@ -8,7 +8,6 @@ import gzip
 import json
 import os
 
-import logging
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
@@ -17,7 +16,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import test_lib
 
 from grr.lib.aff4_objects import aff4_grr
@@ -133,9 +132,8 @@ class RekallTests(RekallTestSuite):
     ]
     session_id = self.LaunchRekallPlugin(request)
 
-    # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
@@ -173,15 +171,13 @@ class RekallTests(RekallTestSuite):
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
             plugin="pslist",
-            args=dict(
-                pids=[4, 2860], method="PsActiveProcessHead")),
+            args=dict(pids=[4, 2860], method="PsActiveProcessHead")),
     ]
 
     session_id = self.LaunchRekallPlugin(request)
 
-    # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -197,73 +193,19 @@ class RekallTests(RekallTestSuite):
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
             plugin="dlllist",
-            args=dict(
-                proc_regex="dumpit", method="PsActiveProcessHead")),
+            args=dict(proc_regex="dumpit", method="PsActiveProcessHead")),
     ]
 
     session_id = self.LaunchRekallPlugin(request)
 
-    # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
 
     for knownresult in ["DumpIt", "wow64win", "wow64", "wow64cpu", "ntdll"]:
       self.assertTrue(knownresult in json_blobs)
-
-  @RequireTestImage
-  def DisabledTestAllPlugins(self):
-    """Tests that we can run a wide variety of plugins.
-
-    Some of those plugins are very expensive to run so this test is disabled by
-    default.
-    """
-
-    plugins = [
-        "atoms", "atomscan", "build_index", "callbacks", "cc", "cert_vad_scan",
-        "certscan", "cmdscan", "consoles", "convert_profile", "desktops",
-        "devicetree", "dis", "dlldump", "dlllist", "driverirp", "driverscan",
-        "dt", "dtbscan", "dtbscan2", "dump", "dwarfparser", "eifconfig",
-        "enetstat", "eventhooks", "fetch_pdb", "filescan", "find_dtb", "gahti",
-        "getservicesids", "grep", "guess_guid", "handles", "hivedump", "hives",
-        "imagecopy", "imageinfo", "impscan", "info", "json_render", "kdbgscan",
-        "kpcr", "l", "ldrmodules", "load_as", "load_plugin", "malfind",
-        "memdump", "memmap", "messagehooks", "moddump", "modscan", "modules",
-        "mutantscan", "netscan", "netstat", "notebook", "null", "object_tree",
-        "object_types", "p", "parse_pdb", "pas2vas", "pedump", "peinfo", "pfn",
-        "phys_map", "pool_tracker", "pools", "printkey", "procdump", "procinfo",
-        "pslist", "psscan", "pstree", "psxview", "pte", "ptov", "raw2dmp",
-        "regdump", "rekal", "sessions", "ssdt", "svcscan", "symlinkscan",
-        "thrdscan", "threads", "timers", "tokens", "unloaded_modules",
-        "userassist", "userhandles", "users", "vad", "vaddump", "vadinfo",
-        "vadtree", "vadwalk", "version_modules", "version_scan", "vmscan",
-        "vtop", "windows_stations"
-    ]
-
-    failed_plugins = []
-
-    for plugin in plugins:
-      logging.info("Running plugin: %s", plugin)
-      try:
-        aff4.FACTORY.Delete(output_urn, token=self.token)
-
-        request = rdf_rekall_types.RekallRequest()
-        request.plugins = [rdf_rekall_types.PluginRequest(plugin=plugin)]
-
-        session_id = self.LaunchRekallPlugin(request)
-
-        # Get the result collection - it should be a RekallResponseCollection.
-        fd = aff4.FACTORY.Open(
-            session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
-        # Try to render the result.
-        fd.RenderAsText()
-      except Exception:  # pylint: disable=broad-except
-        failed_plugins.append(plugin)
-        logging.error("Plugin %s failed.", plugin)
-    if failed_plugins:
-      self.fail("Some plugins failed: %s" % failed_plugins)
 
 
 def main(argv):

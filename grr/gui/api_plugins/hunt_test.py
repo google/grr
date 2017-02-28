@@ -27,7 +27,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.hunts import implementation
-from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import test_plugins
@@ -109,8 +108,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.CreateHunt(description="hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(
-            offset=2, count=2), token=self.token)
+        hunt_plugin.ApiListHuntsArgs(offset=2, count=2), token=self.token)
     create_times = [r.created.AsMicroSecondsFromEpoch() for r in result.items]
 
     self.assertEqual(len(create_times), 2)
@@ -151,16 +149,14 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
           token=access_control.ACLToken(username="user-bar"))
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(
-            created_by="user-foo", active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(created_by="user-foo", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 5)
     for item in result.items:
       self.assertEqual(item.creator, "user-foo")
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(
-            created_by="user-bar", active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(created_by="user-bar", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 3)
     for item in result.items:
@@ -322,7 +318,6 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         token=self.token)
     self.hunt.Run()
 
-    self.results_urn = self.hunt.results_collection_urn
     self.aff4_file_path = "fs/os/%s" % self.file_path
 
     self.client_id = self.SetupClients(1)[0]
@@ -368,7 +363,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args)
 
   def testRaisesIfResultIsBeforeTimestamp(self):
-    results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    results = implementation.GRRHunt.ResultCollectionForHID(
+        self.hunt.urn, token=self.token)
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt.urn.Basename(),
@@ -379,23 +375,19 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
   def _FillInStubResults(self):
-    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
-    original_result = original_results[0]
+    results = implementation.GRRHunt.ResultCollectionForHID(
+        self.hunt.urn, token=self.token)
+    result = results[0]
 
-    with aff4.FACTORY.Create(
-        self.results_urn,
-        aff4_type=hunt_results.HuntResultCollection,
-        mode="rw",
-        token=self.token) as new_results:
-      for i in range(self.handler.MAX_RECORDS_TO_CHECK):
-        wrong_result = rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("foo/bar"),
-            age=(original_result.age - (self.handler.MAX_RECORDS_TO_CHECK - i +
-                                        1) * rdfvalue.Duration("1s")),
-            source=self.client_id)
-        new_results.Add(wrong_result, timestamp=wrong_result.age)
+    for i in range(self.handler.MAX_RECORDS_TO_CHECK):
+      wrong_result = rdf_flows.GrrMessage(
+          payload=rdfvalue.RDFString("foo/bar"),
+          age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
+               rdfvalue.Duration("1s")),
+          source=self.client_id)
+      results.Add(wrong_result, timestamp=wrong_result.age)
 
-    return original_result
+    return result
 
   def testRaisesIfResultIsAfterMaxRecordsAfterTimestamp(self):
     original_result = self._FillInStubResults()
@@ -423,7 +415,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler.Handle(args, token=self.token)
 
   def testRaisesIfResultFileIsNotStream(self):
-    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    original_results = implementation.GRRHunt.ResultCollectionForHID(
+        self.hunt.urn, token=self.token)
     original_result = original_results[0]
 
     with aff4.FACTORY.Create(
@@ -442,7 +435,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfResultIsEmptyStream(self):
-    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    original_results = implementation.GRRHunt.ResultCollectionForHID(
+        self.hunt.urn, token=self.token)
     original_result = original_results[0]
 
     urn = original_result.payload.stat_entry.AFF4Path(self.client_id)
@@ -460,7 +454,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
   def testReturnsBinaryStreamIfResultFound(self):
-    results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    results = implementation.GRRHunt.ResultCollectionForHID(
+        self.hunt.urn, token=self.token)
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt.urn.Basename(),
@@ -574,14 +569,12 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testDoesNothingIfArgsHaveNoChanges(self):
     before = hunt_plugin.ApiHunt().InitFromAff4Object(
-        aff4.FACTORY.Open(
-            self.hunt.urn, token=self.token))
+        aff4.FACTORY.Open(self.hunt.urn, token=self.token))
 
     self.handler.Handle(self.args, token=self.token)
 
     after = hunt_plugin.ApiHunt().InitFromAff4Object(
-        aff4.FACTORY.Open(
-            self.hunt.urn, token=self.token))
+        aff4.FACTORY.Open(self.hunt.urn, token=self.token))
 
     self.assertEqual(before, after)
 
@@ -635,8 +628,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler.Handle(self.args, token=self.token)
 
     after = hunt_plugin.ApiHunt().InitFromAff4Object(
-        aff4.FACTORY.Open(
-            self.hunt.urn, token=self.token))
+        aff4.FACTORY.Open(self.hunt.urn, token=self.token))
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
     self.assertEqual(after.expires,
@@ -649,8 +641,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(self.args, token=self.token)
 
     after = hunt_plugin.ApiHunt().InitFromAff4Object(
-        aff4.FACTORY.Open(
-            self.hunt.urn, token=self.token))
+        aff4.FACTORY.Open(self.hunt.urn, token=self.token))
     self.assertNotEqual(after.client_limit, 42)
 
 

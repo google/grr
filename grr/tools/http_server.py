@@ -10,7 +10,6 @@ import pdb
 import socket
 import SocketServer
 import threading
-import time
 
 
 import ipaddr
@@ -26,6 +25,7 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import front_end
+from grr.lib import log
 from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import server_startup
@@ -218,18 +218,15 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         source_ip = source_ip.ipv4_mapped or source_ip
 
       request_comms.orig_request = rdf_flows.HttpRequest(
+          timestamp=rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch(),
           raw_headers=utils.SmartStr(self.headers),
           source_ip=utils.SmartStr(source_ip))
 
-      request_start_time = time.ctime()
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
 
-      logging.info(
-          "HTTP request from %s (%s) @ %s, %d bytes - %d messages received,"
-          " %d messages sent.", source,
-          utils.SmartStr(source_ip), request_start_time, length, nr_messages,
-          responses_comms.num_messages)
+      log.LOGGER.LogHttpFrontendAccess(
+          request_comms.orig_request, source=source, message_count=nr_messages)
 
       self.Send(responses_comms.SerializeToString())
 

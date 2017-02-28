@@ -15,8 +15,8 @@ from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
-from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
@@ -48,8 +48,7 @@ class ApiListHuntsHandlerRegressionTest(
         replace=replace)
     self.Check(
         "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(
-            offset=1, count=1),
+        args=hunt_plugin.ApiListHuntsArgs(offset=1, count=1),
         replace=replace)
 
 
@@ -61,30 +60,24 @@ class ApiListHuntResultsRegressionTest(
 
   def Run(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
-    results_urn = hunt_urn.Add("Results")
+    results = implementation.GRRHunt.ResultCollectionForHID(
+        hunt_urn, token=self.token)
+    result = rdf_flows.GrrMessage(
+        payload=rdfvalue.RDFString("blah1"),
+        age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
 
-    with aff4.FACTORY.Create(
-        results_urn,
-        aff4_type=hunt_results.HuntResultCollection,
-        token=self.token) as results:
-
-      result = rdf_flows.GrrMessage(
-          payload=rdfvalue.RDFString("blah1"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
-      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
-
-      result = rdf_flows.GrrMessage(
-          payload=rdfvalue.RDFString("blah2-foo"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
-      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
+    result = rdf_flows.GrrMessage(
+        payload=rdfvalue.RDFString("blah2-foo"),
+        age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+    results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
 
     self.Check(
         "ListHuntResults",
         args=hunt_plugin.ApiListHuntResultsArgs(hunt_id="H:123456"))
     self.Check(
         "ListHuntResults",
-        args=hunt_plugin.ApiListHuntResultsArgs(
-            hunt_id="H:123456", count=1))
+        args=hunt_plugin.ApiListHuntResultsArgs(hunt_id="H:123456", count=1))
     self.Check(
         "ListHuntResults",
         args=hunt_plugin.ApiListHuntResultsArgs(
@@ -206,8 +199,8 @@ class ApiListHuntCrashesHandlerRegressionTest(
       self.AssignTasksToClients(client_ids)
       test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
 
-    crashes = aff4.FACTORY.Open(
-        hunt_obj.urn.Add("crashes"), mode="r", token=self.token)
+    crashes = implementation.GRRHunt.CrashCollectionForHID(
+        hunt_obj.urn, token=self.token)
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}

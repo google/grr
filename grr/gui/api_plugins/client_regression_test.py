@@ -14,6 +14,7 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
@@ -140,8 +141,8 @@ class ApiListClientCrashesHandlerRegressionTest(
           client_id: client_mock
       }, False, self.token)
 
-    crashes = aff4.FACTORY.Open(
-        client_id.Add("crashes"), mode="r", token=self.token)
+    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
+        client_id, token=self.token)
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}

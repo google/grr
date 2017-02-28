@@ -18,21 +18,16 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import instant_output_plugin
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
-from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import users as aff4_users
 
-from grr.lib.flows.general import administrative
 from grr.lib.flows.general import export
 
 from grr.lib.hunts import implementation
-from grr.lib.hunts import results as hunts_results
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
@@ -356,11 +351,10 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListHuntResultsResult
 
   def Handle(self, args, token=None):
-    results_collection = aff4.FACTORY.Open(
-        args.hunt_id.ToURN().Add("Results"), mode="r", token=token)
-    items = api_call_handler_utils.FilterCollection(results_collection,
-                                                    args.offset, args.count,
-                                                    args.filter)
+    results_collection = implementation.GRRHunt.ResultCollectionForHID(
+        args.hunt_id.ToURN(), token=token)
+    items = api_call_handler_utils.FilterCollection(
+        results_collection, args.offset, args.count, args.filter)
     wrapped_items = [ApiHuntResult().InitFromGrrMessage(item) for item in items]
 
     return ApiListHuntResultsResult(
@@ -382,29 +376,11 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListHuntCrashesResult
 
   def Handle(self, args, token=None):
-    try:
-      try:
-        aff4_crashes = aff4.FACTORY.Open(
-            args.hunt_id.ToURN().Add("crashes"),
-            mode="r",
-            aff4_type=administrative.CrashesCollection,
-            token=token)
-      except aff4.InstantiationError:
-        # TODO(user): Get rid of PackedVersionedCollection.
-        aff4_crashes = aff4.FACTORY.Open(
-            args.hunt_id.ToURN().Add("crashes"),
-            mode="r",
-            aff4_type=collects.PackedVersionedCollection,
-            token=token)
-
-      total_count = len(aff4_crashes)
-      result = api_call_handler_utils.FilterCollection(aff4_crashes,
-                                                       args.offset, args.count,
-                                                       args.filter)
-    except aff4.InstantiationError:
-      total_count = 0
-      result = []
-
+    crashes = implementation.GRRHunt.CrashCollectionForHID(
+        args.hunt_id.ToURN(), token=token)
+    total_count = len(crashes)
+    result = api_call_handler_utils.FilterCollection(crashes, args.offset,
+                                                     args.count, args.filter)
     return ApiListHuntCrashesResult(items=result, total_count=total_count)
 
 
@@ -477,12 +453,10 @@ class ApiListHuntOutputPluginLogsHandlerBase(
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  collection_name = None
+  def CreateCollection(self, hunt_id, token=None):
+    raise NotImplementedError()
 
   def Handle(self, args, token=None):
-    if not self.collection_name:
-      raise ValueError("collection_name can't be None")
-
     metadata = aff4.FACTORY.Create(
         args.hunt_id.ToURN().Add("ResultsMetadata"),
         mode="r",
@@ -500,8 +474,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
     # TODO(user): Write errors/logs per-plugin, so that we don't
     # have to do the filtering.
 
-    logs_collection = aff4.FACTORY.Open(
-        args.hunt_id.ToURN().Add(self.collection_name), mode="r", token=token)
+    logs_collection = self.CreateCollection(args.hunt_id.ToURN(), token=token)
 
     if len(plugins) == 1:
       total_count = len(logs_collection)
@@ -533,9 +506,12 @@ class ApiListHuntOutputPluginLogsHandler(
     ApiListHuntOutputPluginLogsHandlerBase):
   """Renders hunt's output plugin's log."""
 
-  collection_name = "OutputPluginsStatus"
   args_type = ApiListHuntOutputPluginLogsArgs
   result_type = ApiListHuntOutputPluginLogsResult
+
+  def CreateCollection(self, hunt_id, token=None):
+    return implementation.GRRHunt.PluginStatusCollectionForHID(
+        hunt_id, token=token)
 
 
 class ApiListHuntOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
@@ -550,9 +526,12 @@ class ApiListHuntOutputPluginErrorsHandler(
     ApiListHuntOutputPluginLogsHandlerBase):
   """Renders hunt's output plugin's errors."""
 
-  collection_name = "OutputPluginsErrors"
   args_type = ApiListHuntOutputPluginErrorsArgs
   result_type = ApiListHuntOutputPluginErrorsResult
+
+  def CreateCollection(self, hunt_id, token=None):
+    return implementation.GRRHunt.PluginErrorCollectionForHID(
+        hunt_id, token=token)
 
 
 class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
@@ -571,24 +550,11 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
-    # TODO(user): Use hunt's logs_collection_urn to open logs collection.
-    try:
-      logs_collection = aff4.FACTORY.Open(
-          args.hunt_id.ToURN().Add("Logs"),
-          aff4_type=flow_runner.FlowLogCollection,
-          mode="r",
-          token=token)
-    except IOError:
-      # TODO(user): Remove support for RDFValueCollection.
-      logs_collection = aff4.FACTORY.Create(
-          args.hunt_id.ToURN().Add("Logs"),
-          aff4_type=collects.RDFValueCollection,
-          mode="r",
-          token=token)
+    logs_collection = implementation.GRRHunt.LogCollectionForHID(
+        args.hunt_id.ToURN(), token=token)
 
-    result = api_call_handler_utils.FilterCollection(logs_collection,
-                                                     args.offset, args.count,
-                                                     args.filter)
+    result = api_call_handler_utils.FilterCollection(
+        logs_collection, args.offset, args.count, args.filter)
 
     return ApiListHuntLogsResult(items=result, total_count=len(logs_collection))
 
@@ -609,14 +575,11 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
-    # TODO(user): Use hunt's logs_collection_urn to open errors collection.
+    errors_collection = implementation.GRRHunt.ErrorCollectionForHID(
+        args.hunt_id.ToURN(), token=token)
 
-    errors_collection = aff4.FACTORY.Open(
-        args.hunt_id.ToURN().Add("ErrorClients"), mode="r", token=token)
-
-    result = api_call_handler_utils.FilterCollection(errors_collection,
-                                                     args.offset, args.count,
-                                                     args.filter)
+    result = api_call_handler_utils.FilterCollection(
+        errors_collection, args.offset, args.count, args.filter)
 
     return ApiListHuntErrorsResult(
         items=result, total_count=len(errors_collection))
@@ -786,8 +749,8 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                   "Downloaded archive of hunt %s results (archived %d "
                   "out of %d items, archive size is %d)" %
                   (args.hunt_id, generator.archived_files,
-                   generator.total_files, generator.output_size),
-                  self.__class__.__name__)
+                   generator.total_files,
+                   generator.output_size), self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None, "Archive generation failed for hunt %s: %s" %
                   (args.hunt_id, utils.SmartStr(e)), self.__class__.__name__)
@@ -801,13 +764,13 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
     description = ("Files downloaded by hunt %s (%s, '%s') created by user %s "
-                   "on %s" % (hunt_api_object.name,
-                              hunt_api_object.urn.Basename(),
-                              hunt_api_object.description,
-                              hunt_api_object.creator, hunt_api_object.created))
+                   "on %s" %
+                   (hunt_api_object.name, hunt_api_object.urn.Basename(),
+                    hunt_api_object.description, hunt_api_object.creator,
+                    hunt_api_object.created))
 
-    collection_urn = hunt.results_collection_urn
-    collection = aff4.FACTORY.Open(collection_urn, token=token)
+    collection = implementation.GRRHunt.ResultCollectionForHID(
+        hunt_urn, token=token)
 
     target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
 
@@ -866,11 +829,8 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
 
     api_vfs.ValidateVfsPath(args.vfs_path)
 
-    hunt_results_urn = args.hunt_id.ToURN().Add("Results")
-    results = aff4.FACTORY.Open(
-        hunt_results_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        token=token)
+    results = implementation.GRRHunt.ResultCollectionForHID(
+        args.hunt_id.ToURN(), token=token)
 
     expected_aff4_path = args.client_id.ToClientURN().Add(args.vfs_path)
     # TODO(user): should after_tiestamp be strictly less than the desired
@@ -907,12 +867,11 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
       except aff4.InstantiationError:
         break
 
-    raise HuntFileNotFoundError("File %s with timestamp %s and client %s "
-                                "wasn't found among the results of hunt %s" %
-                                (utils.SmartStr(args.vfs_path),
-                                 utils.SmartStr(args.timestamp),
-                                 utils.SmartStr(args.client_id),
-                                 utils.SmartStr(args.hunt_id)))
+    raise HuntFileNotFoundError(
+        "File %s with timestamp %s and client %s "
+        "wasn't found among the results of hunt %s" %
+        (utils.SmartStr(args.vfs_path), utils.SmartStr(args.timestamp),
+         utils.SmartStr(args.client_id), utils.SmartStr(args.hunt_id)))
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):
@@ -990,8 +949,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
           rdfvalue.RDFURN(request_base_urn).Add("request:%08X" % request.id))
 
     response_dict = dict(
-        data_store.DB.MultiResolvePrefix(
-            response_urns, "flow:", token=token))
+        data_store.DB.MultiResolvePrefix(response_urns, "flow:", token=token))
 
     for flow_urn in sorted(all_flow_urns):
       request_urn = flow_urn.Add("state")
@@ -1297,17 +1255,14 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_urn = args.hunt_id.ToURN()
     try:
-      hunt_fd = aff4.FACTORY.Open(
+      aff4.FACTORY.Open(
           hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
       raise HuntNotFoundError("Hunt with id %s could not be found" %
                               args.hunt_id)
 
-    output_urn = hunt_fd.GetRunner().multi_type_output_urn
-    output_collection = aff4.FACTORY.Open(
-        output_urn,
-        aff4_type=multi_type_collection.MultiTypeCollection,
-        token=token)
+    output_collection = implementation.GRRHunt.TypedResultCollectionForHID(
+        hunt_urn, token=token)
 
     plugin = plugin_cls(source_urn=hunt_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(

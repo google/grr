@@ -9,10 +9,8 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
@@ -84,14 +82,8 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(urn, token=self.token):
       pass
 
-    try:
-      results_fd = aff4.FACTORY.Open(
-          urn.Add(flow_runner.RESULTS_SUFFIX),
-          aff4_type=sequential_collection.GeneralIndexedCollection,
-          token=self.token)
-      return list(results_fd)
-    except aff4.InstantiationError:
-      return []
+    results_fd = flow.GRRFlow.ResultCollectionForFID(urn, token=self.token)
+    return list(results_fd)
 
   def MakeRegistryStatEntry(self, path, value):
     options = rdf_paths.PathSpec.Options.CASE_LITERAL
@@ -150,17 +142,15 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
                                    u"C:\\Windows\\bar.exe")
     ]
     self.failed_files = [
-        rdf_paths.PathSpec(
-            path="C:\\Windows\\bar.exe", pathtype="OS")
+        rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS")
     ]
 
     results = self.RunFlow()
 
     self.assertEquals(len(results), 1)
-    self.assertEquals(
-        results[0].found_pathspec,
-        rdf_paths.PathSpec(
-            path="C:\\Windows\\bar.exe", pathtype="OS"))
+    self.assertEquals(results[0].found_pathspec,
+                      rdf_paths.PathSpec(
+                          path="C:\\Windows\\bar.exe", pathtype="OS"))
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):

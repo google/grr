@@ -1118,8 +1118,7 @@ class Factory(object):
       RDFURNs instances of each child.
     """
     _, children_urns = list(
-        self.MultiListChildren(
-            [urn], token=token, limit=limit, age=age))[0]
+        self.MultiListChildren([urn], token=token, limit=limit, age=age))[0]
     return children_urns
 
   def RecursiveMultiListChildren(self,
@@ -1901,8 +1900,7 @@ class AFF4Object(object):
         # Store the latest version if there are multiple unsynced versions.
         value = value_array[-1]
         self.synced_attributes[attribute] = [
-            LazyDecoder(
-                decoded=value, age=value.age)
+            LazyDecoder(decoded=value, age=value.age)
         ]
 
       else:
@@ -2388,8 +2386,7 @@ class AFF4Volume(AFF4Object):
         # We stripped pieces of the URL, time to add them back.
         new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
         pathspec.Append(
-            rdf_paths.PathSpec(
-                path=new_path, pathtype=pathspec.last.pathtype))
+            rdf_paths.PathSpec(path=new_path, pathtype=pathspec.last.pathtype))
     else:
       raise IOError("Item has no pathspec.")
 
@@ -3083,6 +3080,10 @@ def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
 
 
+def AuditLogBase():
+  return ROOT_URN.Add("audit").Add("logs")
+
+
 def CurrentAuditLog():
   """Get the rdfurn of the current audit log."""
   now_sec = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
@@ -3090,4 +3091,4 @@ def CurrentAuditLog():
   # This gives us a filename that only changes every
   # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.
   current_log = (now_sec // rollover) * rollover
-  return ROOT_URN.Add("audit").Add("logs").Add(str(current_log))
+  return AuditLogBase().Add(str(current_log))

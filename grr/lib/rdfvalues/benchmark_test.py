@@ -3,6 +3,7 @@
 
 
 
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
@@ -337,3 +338,12 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
 
     self.TimeIt(RDFStructDecodeEncode)
     self.TimeIt(ProtoDecodeEncode)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

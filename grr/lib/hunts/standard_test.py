@@ -343,8 +343,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Results collection is always written, even if there are no output
       # plugins.
-      collection = aff4.FACTORY.Open(
-          hunt_obj.results_collection_urn, mode="r", token=self.token)
+      collection = implementation.GRRHunt.ResultCollectionForHID(
+          hunt_urn, token=self.token)
 
       # We should receive stat entries.
       i = 0
@@ -355,8 +355,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       self.assertEqual(i, 4)
 
-      per_type_collection = aff4.FACTORY.Open(
-          hunt_obj.multi_type_output_urn, mode="r", token=self.token)
+      per_type_collection = implementation.GRRHunt.TypedResultCollectionForHID(
+          hunt_urn, token=self.token)
 
       for i, x in enumerate(per_type_collection):
         self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
@@ -374,8 +374,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         mode="r",
         token=self.token,
         aff4_type=aff4_grr.GRRForeman) as foreman:
-      foreman_rules = foreman.Get(foreman.Schema.RULES,
-                                  default=foreman.Schema.RULES())
+      foreman_rules = foreman.Get(
+          foreman.Schema.RULES, default=foreman.Schema.RULES())
       self.assertFalse(foreman_rules)
 
     self.AssignTasksToClients()
@@ -447,11 +447,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(failrate=-1)
     self.ProcessHuntOutputPlugins()
 
-    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn, token=self.token)
-    errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn, token=self.token)
+    status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
+        hunt_urn, token=self.token)
+    errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
+        hunt_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 1)
@@ -477,11 +476,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(failrate=-1)
     self.ProcessHuntOutputPlugins()
 
-    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn, token=self.token)
-    errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn, token=self.token)
+    status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
+        hunt_urn, token=self.token)
+    errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
+        hunt_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 2)
@@ -513,11 +511,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     except process_results.ResultsProcessingError:
       pass
 
-    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn, token=self.token)
-    errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn, token=self.token)
+    status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
+        hunt_urn, token=self.token)
+    errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
+        hunt_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 2)
@@ -555,11 +552,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     except process_results.ResultsProcessingError:
       pass
 
-    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn, token=self.token)
-    errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn, token=self.token)
+    status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
+        hunt_urn, token=self.token)
+    errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
+        hunt_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 1)
@@ -1141,30 +1137,26 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt()
 
     # Check logs were written to the hunt collection
-    with aff4.FACTORY.Open(
-        hunt_urn.Add("Logs"), token=self.token,
-        age=aff4.ALL_TIMES) as hunt_logs:
+    hunt_logs = implementation.GRRHunt.LogCollectionForHID(
+        hunt_urn, token=self.token)
+    # Can't use len with PackedVersionCollection
+    count = 0
+    for log in hunt_logs:
+      if log.client_id:
+        self.assertTrue(log.client_id in self.client_ids)
+        self.assertTrue(log.log_message in [
+            "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
+        ])
+        self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
+        self.assertTrue(str(hunt_urn) in str(log.urn))
+      else:
+        self.assertEqual(log.log_message, "Log from the hunt itself")
+        self.assertEqual(log.flow_name, "GenericHunt")
+        self.assertEqual(log.urn, hunt_urn)
 
-      # Can't use len with PackedVersionCollection
-      count = 0
-      for log in hunt_logs:
-        if log.client_id:
-          self.assertTrue(log.client_id in self.client_ids)
-          self.assertTrue(log.log_message in [
-              "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres",
-              "Cuatro"
-          ])
-          self.assertTrue(
-              log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
-          self.assertTrue(str(hunt_urn) in str(log.urn))
-        else:
-          self.assertEqual(log.log_message, "Log from the hunt itself")
-          self.assertEqual(log.flow_name, "GenericHunt")
-          self.assertEqual(log.urn, hunt_urn)
-
-        count += 1
-      # 4 logs for each flow, 2 flow run.  One hunt-level log.
-      self.assertEqual(count, 8 * len(self.client_ids) + 1)
+      count += 1
+    # 4 logs for each flow, 2 flow run.  One hunt-level log.
+    self.assertEqual(count, 8 * len(self.client_ids) + 1)
 
   def testCreatorPropagation(self):
     self.CreateAdminUser("adminuser")

@@ -17,7 +17,6 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
@@ -262,8 +261,7 @@ class ListVADBinariesTest(MemoryTest):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Sorting output collection to make the test deterministic
     paths = sorted([x.CollapsePath() for x in fd])
@@ -284,8 +282,7 @@ class ListVADBinariesTest(MemoryTest):
         fetch_binaries=True):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Sorting output collection to make the test deterministic
     binaries = sorted(fd, key=lambda x: x.pathspec.path)
@@ -314,8 +311,7 @@ class ListVADBinariesTest(MemoryTest):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -339,8 +335,7 @@ class ListVADBinariesTest(MemoryTest):
         fetch_binaries=True):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -363,8 +358,7 @@ class ListVADBinariesTest(MemoryTest):
         fetch_binaries=True):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)

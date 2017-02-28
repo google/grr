@@ -14,17 +14,13 @@ from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import instant_output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-from grr.lib.aff4_objects import multi_type_collection
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -321,37 +317,11 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    flow_obj = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+    output_collection = flow.GRRFlow.ResultCollectionForFID(
+        flow_urn, token=token)
 
-    # TODO(user): Remove this as soon as possible. Once we do, old
-    # flow results will not be shown properly in the UI anymore.
-    try:
-      output_urn = flow_obj.GetRunner().output_urn
-    except AttributeError:
-      # Old style flow.
-      output_urn = flow_obj.GetRunner().context.output_urn
-
-    try:
-      # TODO(user): Remove support for RDFValueCollection.
-      output_collection = aff4.FACTORY.Open(
-          flow_obj.state.context.output_urn,
-          aff4_type=aff4_collects.RDFValueCollection,
-          mode="r",
-          token=token)
-    except (aff4.InstantiationError, AttributeError):
-      try:
-        output_collection = aff4.FACTORY.Open(
-            output_urn,
-            aff4_type=sequential_collection.GeneralIndexedCollection,
-            mode="r",
-            token=token)
-      except aff4.InstantiationError:
-        return ApiListFlowResultsResult(total_count=0)
-
-    items = api_call_handler_utils.FilterCollection(output_collection,
-                                                    args.offset, args.count,
-                                                    args.filter)
+    items = api_call_handler_utils.FilterCollection(
+        output_collection, args.offset, args.count, args.filter)
     wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
     return ApiListFlowResultsResult(
         items=wrapped_items, total_count=len(output_collection))
@@ -372,17 +342,11 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowLogsResult
 
   def Handle(self, args, token=None):
-    logs_collection_urn = args.flow_id.ResolveClientFlowURN(
-        args.client_id, token=token).Add("Logs")
-    logs_collection = aff4.FACTORY.Create(
-        logs_collection_urn,
-        aff4_type=flow_runner.FlowLogCollection,
-        mode="r",
-        token=token)
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+    logs_collection = flow.GRRFlow.LogCollectionForFID(flow_urn, token=token)
 
-    result = api_call_handler_utils.FilterCollection(logs_collection,
-                                                     args.offset, args.count,
-                                                     args.filter)
+    result = api_call_handler_utils.FilterCollection(
+        logs_collection, args.offset, args.count, args.filter)
 
     return ApiListFlowLogsResult(items=result, total_count=len(logs_collection))
 
@@ -403,9 +367,8 @@ class ApiGetFlowResultsExportCommandHandler(
   result_type = ApiGetFlowResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    output_fname = re.sub("[^0-9a-zA-Z]+", "_",
-                          "%s_%s" % (utils.SmartStr(args.client_id),
-                                     utils.SmartStr(args.flow_id)))
+    output_fname = re.sub("[^0-9a-zA-Z]+", "_", "%s_%s" % (
+        utils.SmartStr(args.client_id), utils.SmartStr(args.flow_id)))
     code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
                        """WriteToFile("./flow_results_%s.zip")""") % (
                            args.client_id, args.flow_id, output_fname)
@@ -471,8 +434,8 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                   "Downloaded archive of flow %s from client %s (archived %d "
                   "out of %d items, archive size is %d)" %
                   (args.flow_id, args.client_id, generator.archived_files,
-                   generator.total_files, generator.output_size),
-                  self.__class__.__name__)
+                   generator.total_files,
+                   generator.output_size), self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None,
                   "Archive generation failed for flow %s on client %s: %s" %
@@ -515,16 +478,15 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     flow_api_object = ApiFlow().InitFromAff4Object(
         flow_obj, flow_id=args.flow_id)
     description = ("Files downloaded by flow %s (%s) that ran on client %s by "
-                   "user %s on %s" % (flow_api_object.name, args.flow_id,
-                                      args.client_id, flow_api_object.creator,
-                                      flow_api_object.started_at))
+                   "user %s on %s" %
+                   (flow_api_object.name, args.flow_id, args.client_id,
+                    flow_api_object.creator, flow_api_object.started_at))
 
-    collection_urn = flow_obj.GetRunner().output_urn
     target_file_prefix = "%s_flow_%s_%s" % (
         args.client_id, flow_obj.runner_args.flow_name,
         flow_urn.Basename().replace(":", "_"))
 
-    collection = aff4.FACTORY.Open(collection_urn, token=token)
+    collection = flow.GRRFlow.ResultCollectionForFID(flow_urn, token=token)
 
     if args.archive_format == args.ArchiveFormat.ZIP:
       archive_format = api_call_handler_utils.CollectionArchiveGenerator.ZIP
@@ -539,8 +501,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format,
-        predicate=self._BuildPredicate(
-            args.client_id, token=token),
+        predicate=self._BuildPredicate(args.client_id, token=token),
         client_id=args.client_id.ToClientURN())
     content_generator = self._WrapContentGenerator(
         generator, collection, args, token=token)
@@ -900,22 +861,9 @@ class ApiGetRobotGetFilesOperationStateHandler(
     except aff4.InstantiationError:
       raise RobotGetFilesOperationNotFoundError()
 
-    try:
-      # TODO(user): Remove support for RDFValueCollection.
-      result_collection = aff4.FACTORY.Open(
-          flow_obj.state.context.output_urn,
-          aff4_type=aff4_collects.RDFValueCollection,
-          token=token)
-      result_count = len(result_collection)
-    except (aff4.InstantiationError, AttributeError):
-      try:
-        result_collection = aff4.FACTORY.Open(
-            flow_obj.GetRunner().output_urn,
-            aff4_type=sequential_collection.GeneralIndexedCollection,
-            token=token)
-        result_count = len(result_collection)
-      except aff4.InstantiationError:
-        result_count = 0
+    result_collection = flow.GRRFlow.ResultCollectionForFID(
+        flow_urn, token=token)
+    result_count = len(result_collection)
 
     api_flow_obj = ApiFlow().InitFromAff4Object(
         flow_obj, flow_id=flow_id.Basename())
@@ -1058,14 +1006,9 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
 
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
-    flow_fd = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    output_urn = flow_fd.GetRunner().multi_type_output_urn
-    output_collection = aff4.FACTORY.Open(
-        output_urn,
-        aff4_type=multi_type_collection.MultiTypeCollection,
-        token=token)
+    output_collection = flow.GRRFlow.TypedResultCollectionForFID(
+        flow_urn, token=token)
 
     plugin = plugin_cls(source_urn=flow_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(

@@ -7,7 +7,6 @@ import argparse
 import mock
 
 from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
@@ -15,7 +14,6 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
 from grr.lib.hunts import results
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
@@ -36,13 +34,12 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
         username="user", reason="reason")
 
   def testGetValuesForExportHuntResultCollection(self):
-    with aff4.FACTORY.Create(
-        "aff4:/huntcoll", results.HuntResultCollection, token=self.token) as fd:
-      fd.Add(
-          rdf_flows.GrrMessage(
-              payload=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                  path="testfile", pathtype="OS")),
-              source=self.client_id))
+    fd = results.HuntResultCollection("aff4:/huntcoll", token=self.token)
+    fd.Add(
+        rdf_flows.GrrMessage(
+            payload=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                path="testfile", pathtype="OS")),
+            source=self.client_id))
 
     plugin = collection_plugin.CollectionExportPlugin()
     mock_args = mock.Mock()
@@ -50,26 +47,14 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     mock_args.no_legacy_warning_pause = True
     self.assertEqual(len(plugin.GetValuesForExport(mock_args)), 1)
 
-  def testGetValuesRaisesForBadType(self):
-    fd = aff4.FACTORY.Create("aff4:/bad", aff4.AFF4Volume, token=self.token)
-    fd.Flush()
-    plugin = collection_plugin.CollectionExportPlugin()
-    mock_args = mock.Mock()
-    mock_args.path = rdfvalue.RDFURN("aff4:/bad")
-    mock_args.no_legacy_warning_pause = True
-    with self.assertRaises(aff4.InstantiationError):
-      plugin.GetValuesForExport(mock_args)
-
   def testExportCollectionWithEmailPlugin(self):
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create(
-        "aff4:/testcoll", collects.RDFValueCollection, token=self.token)
+    fd = results.HuntResultCollection("aff4:/testcoll", token=self.token)
     fd.Add(
         rdf_flows.GrrMessage(
             payload=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
                 path="testfile", pathtype="OS")),
             source=self.client_id))
-    fd.Close()
 
     plugin = collection_plugin.CollectionExportPlugin()
     parser = argparse.ArgumentParser()
@@ -77,8 +62,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(
-              address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message))
 
     email_address = "notify@%s" % config_lib.CONFIG["Logging.domain"]
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):

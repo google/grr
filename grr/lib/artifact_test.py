@@ -20,14 +20,13 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import sequential_collection
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
@@ -198,11 +197,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
         **kw):
       session_id = s
 
-    output_urn = session_id.Add(flow_runner.RESULTS_SUFFIX)
-    return aff4.FACTORY.Open(
-        output_urn,
-        aff4_type=sequential_collection.GeneralIndexedCollection,
-        token=self.token)
+    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
 
 class GRRArtifactTest(ArtifactTest):
@@ -371,10 +366,9 @@ supported_os: [Linux]
     self.assertTrue(artifact_obj.loaded_from.startswith("file:"))
 
     # The artifact is gone from the collection.
-    self.assertNotIn(
-        "WMIActiveScriptEventConsumer",
-        aff4.FACTORY.Open(
-            artifact_store_urn, token=self.token))
+    coll = artifact_registry.ArtifactCollection(
+        artifact_store_urn, token=self.token)
+    self.assertNotIn("WMIActiveScriptEventConsumer", coll)
 
 
 class ArtifactFlowLinuxTest(ArtifactTest):
@@ -383,8 +377,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Make sure things are initialized."""
     super(ArtifactFlowLinuxTest, self).setUp()
     with aff4.FACTORY.Open(
-        self.SetupClients(
-            1, system="Linux", os_version="12.04")[0],
+        self.SetupClients(1, system="Linux", os_version="12.04")[0],
         mode="rw",
         token=self.token) as fd:
 
@@ -417,10 +410,10 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     self.assertEqual(len(packages), 2)
     self.assertEqual(packages[0].__class__.__name__, "SoftwarePackage")
 
-    with aff4.FACTORY.Open(
-        self.client_id.Add("anomalies"), token=self.token) as anomaly_coll:
-      self.assertEqual(len(anomaly_coll), 1)
-      self.assertTrue("gremlin" in anomaly_coll[0].symptom)
+    anomaly_coll = aff4_grr.VFSGRRClient.AnomalyCollectionForCID(
+        self.client_id, token=self.token)
+    self.assertEqual(len(anomaly_coll), 1)
+    self.assertTrue("gremlin" in anomaly_coll[0].symptom)
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""

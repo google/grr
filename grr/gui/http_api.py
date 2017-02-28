@@ -25,7 +25,6 @@ from grr.gui import api_call_router
 from grr.gui import api_value_renderers
 from grr.lib import access_control
 from grr.lib import config_lib
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -532,8 +531,6 @@ def RenderHttpResponse(request):
   start_time = time.time()
   response = HTTP_REQUEST_HANDLER.HandleRequest(request)
   total_time = time.time() - start_time
-
-  log.LOGGER.LogHttpApiCall(request, response)
 
   method_name = response.headers.get("X-API-Method", "unknown")
   if response.status_code == 200:

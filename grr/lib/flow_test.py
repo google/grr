@@ -21,7 +21,6 @@ from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.aff4_objects import multi_type_collection
 # For GetClientStats. pylint: disable=unused-import
 from grr.lib.flows.general import administrative
 # pylint: enable=unused-import
@@ -395,17 +394,16 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id):
       flow_urn = session_id
 
-    with aff4.FACTORY.Open(
-        flow_urn.Add("Logs"), age=aff4.ALL_TIMES,
-        token=self.token) as log_collection:
-      self.assertEqual(len(log_collection), 8)
-      for log in log_collection:
-        self.assertEqual(log.client_id, self.client_id)
-        self.assertTrue(log.log_message in [
-            "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
-        ])
-        self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
-        self.assertTrue(str(flow_urn) in str(log.urn))
+    log_collection = flow.GRRFlow.LogCollectionForFID(
+        flow_urn, token=self.token)
+    self.assertEqual(len(log_collection), 8)
+    for log in log_collection:
+      self.assertEqual(log.client_id, self.client_id)
+      self.assertTrue(log.log_message in [
+          "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
+      ])
+      self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
+      self.assertTrue(str(flow_urn) in str(log.urn))
 
   def testFlowStoresResultsPerType(self):
     flow_urn = None
@@ -416,11 +414,7 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id):
       flow_urn = session_id
 
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    c = aff4.FACTORY.Open(
-        flow_obj.GetRunner().multi_type_output_urn,
-        aff4_type=multi_type_collection.MultiTypeCollection,
-        token=self.token)
+    c = flow.GRRFlow.TypedResultCollectionForFID(flow_urn, token=self.token)
     self.assertEqual(
         set(c.ListStoredTypes()),
         set([

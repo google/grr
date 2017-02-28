@@ -2,9 +2,8 @@
 """Tests for grr.lib.flows.general.artifact_fallbacks."""
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks as _
@@ -27,8 +26,8 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
           artifact_name="SystemRoot"):
         session_id = s
 
-      output_fd = aff4.FACTORY.Open(
-          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+      output_fd = flow.GRRFlow.ResultCollectionForFID(
+          session_id, token=self.token)
 
       self.assertEqual(len(output_fd), 1)
       self.assertEqual(

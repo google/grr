@@ -37,7 +37,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent,
                       "Files referenced in this collection can be downloaded")
 
-  def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
+  def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection([])
 
@@ -282,7 +282,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
     hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
-      results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
+      results = hunt.ResultCollection()
       fd = aff4.FACTORY.Open(
           flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
@@ -301,7 +301,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
     hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
-      results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
+      results = hunt.ResultCollection()
       aff4_path = flow_export.CollectionItemToAff4Path(results[0])
       with aff4.FACTORY.Create(
           aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:

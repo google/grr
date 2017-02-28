@@ -6,6 +6,8 @@
 
 
 
+from grr.lib import flags
+from grr.lib import test_lib
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base
 from grr.proto import jobs_pb2
@@ -238,3 +240,12 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     self.assertFalse(regex.Match("/foo/bar2/blah.com"))
     self.assertFalse(regex.Match("/foO/bAr2/blah.com"))
     self.assertFalse(regex.Match("/foo/bar2/blah.COM"))
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -3,6 +3,9 @@
 
 
 
+from grr.lib import flags
+from grr.lib import test_lib
+
 from grr.lib.rdfvalues import data_store
 from grr.lib.rdfvalues import test_base
 
@@ -30,3 +33,12 @@ class ResultSetTest(test_base.RDFValueTestCase):
     result_set.payload = [u"\n\t\"'"]
     # This triggets the getter
     self.assertEqual(result_set.payload, [u"\n\t\"'"])
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

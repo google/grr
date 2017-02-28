@@ -4,7 +4,6 @@ goog.provide('grrUi.stats.reportListingDirective.ReportListingController');
 goog.provide('grrUi.stats.reportListingDirective.ReportListingDirective');
 goog.provide('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
 goog.require('grrUi.core.utils.upperCaseToTitleCase');
 
 goog.scope(function() {
@@ -13,16 +12,14 @@ goog.scope(function() {
  * Parses the stats/reports API call response and converts it to a
  * jsTree-compatible format.
  *
- * @param {Object} typedReports The server response field response.data.reports
+ * @param {Object} reports The server response field response.data.reports,
+ *                         type-stripped.
  * @return {Array} The report listing in a jsTree-compatible structure.
  */
-grrUi.stats.reportListingDirective.parseStatsReportsApiResponse =
-    function(typedReports) {
+grrUi.stats.reportListingDirective.parseStatsReportsApiResponse = function(
+    reports) {
   var ret = [];
   var reportsByType = {};
-
-  var reports = /** @type {Object} */ (
-      grrUi.core.apiService.stripTypeInfo(typedReports));
 
   angular.forEach(reports, function(report) {
     var desc = report['desc'];
@@ -58,28 +55,29 @@ grrUi.stats.reportListingDirective.parseStatsReportsApiResponse =
 
   return ret;
 };
+var parseStatsReportsApiResponse =
+    grrUi.stats.reportListingDirective.parseStatsReportsApiResponse;
 
 
 /**
  * Controller for ReportListingDirective.
  *
  * @constructor
- * @param {!angular.Scope} $rootScope
  * @param {!angular.Scope} $scope
  * @param {!angular.jQuery} $element
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.stats.reportDescsService.ReportDescsService} grrReportDescsService
  * @ngInject
  */
 grrUi.stats.reportListingDirective.ReportListingController = function(
-    $rootScope, $scope, $element, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.rootScope_ = $rootScope;
-
+    $scope, $element, grrReportDescsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!angular.jQuery} */
   this.element_ = $element;
+
+  /** @private {!grrUi.stats.reportDescsService.ReportDescsService} */
+  this.grrReportDescsService_ = grrReportDescsService;
 
   /** @private {!Object} */
   this.treeElement_ = this.element_.find('.report-listing-tree');
@@ -87,19 +85,14 @@ grrUi.stats.reportListingDirective.ReportListingController = function(
   /** @private {!Object} */
   this.tree_;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
-
   /** @private {string} */
   this.selectionName_;
 
   /** @private {Object} */
   this.reportListing_;
 
-  this.grrApiService_.get('stats/reports').then(function(response) {
-    this.reportListing_ =
-        grrUi.stats.reportListingDirective.parseStatsReportsApiResponse(
-            response['data']['reports']);
+  this.grrReportDescsService_.getDescs().then(function(reports) {
+    this.reportListing_ = parseStatsReportsApiResponse(reports);
 
     this.initTree_();
   }.bind(this));

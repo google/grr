@@ -25,9 +25,9 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users
-from grr.lib.flows.general import administrative
 # pylint: disable=unused-import
 # For AuditEventListener, needed to handle published audit events.
 from grr.lib.flows.general import audit as _
@@ -113,8 +113,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(
-              address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
@@ -152,10 +151,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # into proper locations. First check the per-client crashes collection.
     client_crashes = sorted(
         list(
-            aff4.FACTORY.Open(
-                self.client_id.Add("crashes"),
-                aff4_type=administrative.CrashesCollection,
-                token=self.token)),
+            aff4_grr.VFSGRRClient.CrashCollectionForCID(
+                self.client_id, token=self.token)),
         key=lambda x: x.timestamp)
 
     self.assertTrue(len(client_crashes) >= 1)
@@ -177,8 +174,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(
-              address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message))
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
@@ -206,8 +202,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     def SendEmail(address, sender, title, message, **_):
       self.email_message.update(
-          dict(
-              address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       msg = rdf_flows.GrrMessage(
@@ -238,10 +233,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # Make sure crashes collections are created and written
       # into proper locations. First check the per-client crashes collection.
       client_crashes = list(
-          aff4.FACTORY.Open(
-              self.client_id.Add("crashes"),
-              aff4_type=administrative.CrashesCollection,
-              token=self.token))
+          aff4_grr.VFSGRRClient.CrashCollectionForCID(
+              self.client_id, token=self.token))
 
       self.assertEqual(len(client_crashes), 1)
       crash = client_crashes[0]

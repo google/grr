@@ -2,6 +2,7 @@
 """Tests for grr.lib.authorization.client_approval_auth."""
 
 from grr.lib import access_control
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.authorization import client_approval_auth
 from grr.lib.rdfvalues import client as rdf_client
@@ -127,3 +128,12 @@ users:
     self._CreateAuthMultiApproval()
     self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
                                     ["two", "four"], "label1")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

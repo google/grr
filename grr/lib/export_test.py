@@ -152,7 +152,7 @@ class ExportTest(ExportTestBase):
                      result[1] == DummyRDFValue("someA")))
 
   def _ConvertsCollectionWithValuesWithSingleConverter(self, coll_type):
-    fd = aff4.FACTORY.Create("aff4:/testcoll", coll_type, token=self.token)
+    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
     src1 = rdf_client.ClientURN("C.0000000000000000")
     fd.AddAsMessage(DummyRDFValue("some"), src1)
     test_lib.ClientFixture(src1, token=self.token)
@@ -160,11 +160,6 @@ class ExportTest(ExportTestBase):
     src2 = rdf_client.ClientURN("C.0000000000000001")
     fd.AddAsMessage(DummyRDFValue("some2"), src2)
     test_lib.ClientFixture(src2, token=self.token)
-
-    fd.Close()
-
-    fd = aff4.FACTORY.Open(
-        "aff4:/testcoll", aff4_type=coll_type, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(str(v) for v in results)
@@ -182,7 +177,7 @@ class ExportTest(ExportTestBase):
         collects.RDFValueCollection)
 
   def _ConvertsCollectionWithMultipleConverters(self, coll_type):
-    fd = aff4.FACTORY.Create("aff4:/testcoll", coll_type, token=self.token)
+    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
 
     src1 = rdf_client.ClientURN("C.0000000000000000")
     fd.AddAsMessage(DummyRDFValue3("some1"), src1)
@@ -191,11 +186,6 @@ class ExportTest(ExportTestBase):
     src2 = rdf_client.ClientURN("C.0000000000000001")
     fd.AddAsMessage(DummyRDFValue3("some2"), src2)
     test_lib.ClientFixture(src2, token=self.token)
-
-    fd.Close()
-
-    fd = aff4.FACTORY.Open(
-        "aff4:/testcoll", aff4_type=coll_type, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(results, key=str)
@@ -306,8 +296,7 @@ class ExportTest(ExportTestBase):
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     events.Events.PublishEvent(
         "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(
-            payload=urn, auth_state=auth_state),
+        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=self.token)
     worker = test_lib.MockWorker(token=self.token)
     worker.Simulate()
@@ -451,19 +440,15 @@ class ExportTest(ExportTestBase):
     conn1 = rdf_client.NetworkConnection(
         state=rdf_client.NetworkConnection.State.LISTEN,
         type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(
-            ip="0.0.0.0", port=22),
-        remote_address=rdf_client.NetworkEndpoint(
-            ip="0.0.0.0", port=0),
+        local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=22),
+        remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=0),
         pid=2136,
         ctime=0)
     conn2 = rdf_client.NetworkConnection(
         state=rdf_client.NetworkConnection.State.LISTEN,
         type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(
-            ip="192.168.1.1", port=31337),
-        remote_address=rdf_client.NetworkEndpoint(
-            ip="1.2.3.4", port=6667),
+        local_address=rdf_client.NetworkEndpoint(ip="192.168.1.1", port=31337),
+        remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4", port=6667),
         pid=1,
         ctime=0)
 
@@ -552,8 +537,7 @@ class ExportTest(ExportTestBase):
 
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(
-        converter.Convert(
-            self.metadata, client_summary, token=self.token))
+        converter.Convert(self.metadata, client_summary, token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
@@ -567,8 +551,8 @@ class ExportTest(ExportTestBase):
         addresses=[
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),),
-            rdf_client.NetworkAddress(
+                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
+            ), rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
                 packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
             rdf_client.NetworkAddress(
@@ -579,8 +563,7 @@ class ExportTest(ExportTestBase):
 
     converter = export.InterfaceToExportedNetworkInterfaceConverter()
     results = list(
-        converter.Convert(
-            self.metadata, interface, token=self.token))
+        converter.Convert(self.metadata, interface, token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
@@ -606,8 +589,7 @@ class ExportTest(ExportTestBase):
     metadata = self.metadata
 
     results = list(
-        export.ConvertValues(
-            metadata, checkresults, token=self.token))
+        export.ConvertValues(metadata, checkresults, token=self.token))
     self.assertEqual(len(results), 3)
     self.assertEqual(results[0].check_id, checkresults[0].check_id)
     self.assertFalse(results[0].HasField("anomaly"))
@@ -658,8 +640,7 @@ class ExportTest(ExportTestBase):
 
     converter = export.ClientSummaryToExportedClientConverter()
     results = list(
-        converter.Convert(
-            metadata, client_summary, token=self.token))
+        converter.Convert(metadata, client_summary, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].metadata.hostname, "ahostname")
@@ -674,8 +655,7 @@ class ExportTest(ExportTestBase):
 
     converter = export.BufferReferenceToExportedMatchConverter()
     results = list(
-        converter.Convert(
-            self.metadata, buffer_reference, token=self.token))
+        converter.Convert(self.metadata, buffer_reference, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].offset, 42)
@@ -704,8 +684,7 @@ class ExportTest(ExportTestBase):
 
     converter = export.FileFinderResultConverter()
     results = list(
-        converter.Convert(
-            self.metadata, file_finder_result, token=self.token))
+        converter.Convert(self.metadata, file_finder_result, token=self.token))
 
     # We expect 1 ExportedFile instance in the results
     exported_files = [
@@ -758,8 +737,7 @@ class ExportTest(ExportTestBase):
     file_finder_result = rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
     converter = export.FileFinderResultConverter()
     results = list(
-        converter.Convert(
-            self.metadata, file_finder_result, token=self.token))
+        converter.Convert(self.metadata, file_finder_result, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertIsInstance(results[0], export.ExportedRegistryKey)
@@ -1078,8 +1056,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
   def testIncludesRegistryStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
-        found_pathspec=rdf_paths.PathSpec(
-            path="foo", pathtype="OS"))
+        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"))
 
     converter = export.ArtifactFilesDownloaderResultConverter()
     converted = list(converter.Convert(self.metadata, result, token=self.token))
@@ -1108,8 +1085,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
   def testIncludesDownloadedFileIntoResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
-        found_pathspec=rdf_paths.PathSpec(
-            path="foo", pathtype="OS"),
+        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),
         downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
             path="foo", pathtype="OS")))
 
@@ -1509,8 +1485,8 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
 
   def setUp(self):
     super(RekallResponseToExportedYaraSignatureMatchConverterTest, self).setUp()
-    self.converter = export.RekallResponseToExportedYaraSignatureMatchConverter(
-    )
+    self.converter = (
+        export.RekallResponseToExportedYaraSignatureMatchConverter())
 
   def testConvertsCompatibleMessage(self):
     messages = [[
@@ -1569,8 +1545,7 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
         plugin="handles", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1638,8 +1613,7 @@ class RekallResponseToExportedRekallProcessConverterTest(ExportTestBase):
         plugin="handles", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1721,8 +1695,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
         plugin="handles", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1798,8 +1771,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
         plugin="check_syscall", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1844,8 +1816,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(ExportTestBase):
         plugin="check_syscall", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 2)
 
     model = export.ExportedLinuxSyscallTableEntry(
@@ -1911,8 +1882,7 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(ExportTestBase):
         plugin="check_task_fops", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1981,8 +1951,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
         plugin="check_proc_fops", json_messages=json.dumps(messages))
     metadata = self.metadata
     converted_values = list(
-        self.converter.Convert(
-            metadata, rekall_response, token=self.token))
+        self.converter.Convert(metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 

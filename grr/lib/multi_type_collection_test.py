@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """Tests for MultiTypeCollection."""
 
-from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
+from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-
-from grr.lib.aff4_objects import multi_type_collection
 
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -17,10 +15,8 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(MultiTypeCollectionTest, self).setUp()
-    self.collection = aff4.FACTORY.Create(
-        "aff4:/mt_collection/testAddScan",
-        multi_type_collection.MultiTypeCollection,
-        token=self.token)
+    self.collection = multi_type_collection.MultiTypeCollection(
+        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
 
   def testWrapsValueInGrrMessageIfNeeded(self):
     self.collection.Add(rdfvalue.RDFInteger(42))
@@ -79,14 +75,12 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
       self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
       self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
 
-    for index, (
-        _, v
-    ) in enumerate(self.collection.ScanByType(rdfvalue.RDFInteger.__name__)):
+    for index, (_, v) in enumerate(
+        self.collection.ScanByType(rdfvalue.RDFInteger.__name__)):
       self.assertEqual(index, v.payload)
 
-    for index, (
-        _, v
-    ) in enumerate(self.collection.ScanByType(rdfvalue.RDFString.__name__)):
+    for index, (_, v) in enumerate(
+        self.collection.ScanByType(rdfvalue.RDFString.__name__)):
       self.assertEqual(str(index), v.payload)
 
   def testLengthIsReportedCorrectlyForEveryType(self):
@@ -106,12 +100,11 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
     self.collection.Add(
         rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
-    # Need to make sure the object actually exists so we can delete it.
-    self.collection.Flush()
 
-    aff4.FACTORY.Delete(self.collection.urn, token=self.token)
+    self.collection.Delete()
+
     for urn in data_store.DB.subjects.keys():
-      self.assertFalse(utils.SmartStr(self.collection.urn) in urn)
+      self.assertFalse(utils.SmartStr(self.collection.collection_id) in urn)
 
 
 def main(argv):

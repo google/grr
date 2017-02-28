@@ -8,7 +8,6 @@ import threading
 import time
 
 from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -18,7 +17,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
-class SequentialCollection(aff4.AFF4Object):
+class SequentialCollection(object):
   """A sequential collection of RDFValues.
 
   This class supports the writing of individual RDFValues and the sequential
@@ -34,6 +33,12 @@ class SequentialCollection(aff4.AFF4Object):
 
   # The largest possible suffix - maximum value expressible by 6 hex digits.
   MAX_SUFFIX = 2**24 - 1
+
+  def __init__(self, collection_id, token=None):
+    super(SequentialCollection, self).__init__()
+    # The collection_id for this collection is a RDFURN for now.
+    self.collection_id = collection_id
+    self.token = token
 
   @classmethod
   def _MakeURN(cls, urn, timestamp, suffix=None):
@@ -109,18 +114,20 @@ class SequentialCollection(aff4.AFF4Object):
 
     result_subject = cls._MakeURN(collection_urn, timestamp, suffix)
     if mutation_pool:
-      mutation_pool.Set(result_subject,
-                        cls.ATTRIBUTE,
-                        rdf_value.SerializeToString(),
-                        timestamp=timestamp,
-                        **kwargs)
+      mutation_pool.Set(
+          result_subject,
+          cls.ATTRIBUTE,
+          rdf_value.SerializeToString(),
+          timestamp=timestamp,
+          **kwargs)
     else:
-      data_store.DB.Set(result_subject,
-                        cls.ATTRIBUTE,
-                        rdf_value.SerializeToString(),
-                        timestamp=timestamp,
-                        token=token,
-                        **kwargs)
+      data_store.DB.Set(
+          result_subject,
+          cls.ATTRIBUTE,
+          rdf_value.SerializeToString(),
+          timestamp=timestamp,
+          token=token,
+          **kwargs)
 
     return cls._ParseURN(result_subject)
 
@@ -151,7 +158,7 @@ class SequentialCollection(aff4.AFF4Object):
 
     """
     return self.StaticAdd(
-        self.urn,
+        self.collection_id,
         self.token,
         rdf_value,
         timestamp=timestamp,
@@ -187,11 +194,10 @@ class SequentialCollection(aff4.AFF4Object):
       else:
         suffix = self.MAX_SUFFIX
       after_urn = utils.SmartStr(
-          self._MakeURN(
-              self.urn, after_timestamp, suffix=suffix))
+          self._MakeURN(self.collection_id, after_timestamp, suffix=suffix))
 
     for subject, timestamp, value in data_store.DB.ScanAttribute(
-        self.urn.Add("Results"),
+        self.collection_id.Add("Results"),
         self.ATTRIBUTE,
         after_urn=after_urn,
         max_records=max_records,
@@ -206,7 +212,10 @@ class SequentialCollection(aff4.AFF4Object):
   def MultiResolve(self, timestamps):
     """Lookup multiple values by (timestamp, suffix) pairs."""
     for _, v in data_store.DB.MultiResolvePrefix(
-        [self._MakeURN(self.urn, ts, suffix) for (ts, suffix) in timestamps],
+        [
+            self._MakeURN(self.collection_id, ts, suffix)
+            for (ts, suffix) in timestamps
+        ],
         self.ATTRIBUTE,
         token=self.token):
       _, value, timestamp = v[0]
@@ -218,15 +227,14 @@ class SequentialCollection(aff4.AFF4Object):
     for _, item in self.Scan():
       yield item
 
-  def OnDelete(self, deletion_pool=None):
+  def Delete(self):
     pool = data_store.DB.GetMutationPool(self.token)
-    for subject, _, _ in data_store.DB.ScanAttribute(
-        self.urn.Add("Results"), self.ATTRIBUTE, token=self.token):
-      pool.DeleteSubject(subject)
-      if pool.Size() > 50000:
-        pool.Flush()
-    pool.Flush()
-    super(SequentialCollection, self).OnDelete(deletion_pool=deletion_pool)
+    with pool:
+      for subject, _, _ in data_store.DB.ScanAttribute(
+          self.collection_id.Add("Results"), self.ATTRIBUTE, token=self.token):
+        pool.DeleteSubject(subject)
+        if pool.Size() > 50000:
+          pool.Flush()
 
 
 class BackgroundIndexUpdater(object):
@@ -245,16 +253,14 @@ class BackgroundIndexUpdater(object):
       self.to_process.append(None)
       self.cv.notify()
 
-  def AddIndexToUpdate(self, index_urn):
+  def AddIndexToUpdate(self, collection_cls, index_urn):
     with self.cv:
-      self.to_process.append((index_urn, time.time() + self.INDEX_DELAY))
+      self.to_process.append((collection_cls, index_urn,
+                              time.time() + self.INDEX_DELAY))
       self.cv.notify()
 
-  def ProcessCollection(self, collection_urn, token):
-    try:
-      aff4.FACTORY.Open(collection_urn, token=token).UpdateIndex()
-    except AttributeError:
-      pass
+  def ProcessCollection(self, collection_cls, collection_id, token):
+    collection_cls(collection_id, token=token).UpdateIndex()
 
   def UpdateLoop(self):
     token = access_control.ACLToken(
@@ -268,13 +274,14 @@ class BackgroundIndexUpdater(object):
           return
 
       now = time.time()
-      next_urn = next_update[0]
-      next_time = next_update[1]
+      next_cls = next_update[0]
+      next_urn = next_update[1]
+      next_time = next_update[2]
       while now < next_time:
         time.sleep(next_time - now)
         now = time.time()
 
-      self.ProcessCollection(next_urn, token)
+      self.ProcessCollection(next_cls, next_urn, token)
 
 
 BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()
@@ -319,8 +326,8 @@ class IndexedSequentialCollection(SequentialCollection):
 
   INDEX_WRITE_DELAY = rdfvalue.Duration("3m")
 
-  def __init__(self, urn, **kwargs):
-    super(IndexedSequentialCollection, self).__init__(urn, **kwargs)
+  def __init__(self, *args, **kwargs):
+    super(IndexedSequentialCollection, self).__init__(*args, **kwargs)
     self._index = None
 
   def _ReadIndex(self):
@@ -329,7 +336,7 @@ class IndexedSequentialCollection(SequentialCollection):
     self._index = {0: (0, 0)}
     self._max_indexed = 0
     for (attr, value, ts) in data_store.DB.ResolvePrefix(
-        self.urn, self.INDEX_ATTRIBUTE_PREFIX, token=self.token):
+        self.collection_id, self.INDEX_ATTRIBUTE_PREFIX, token=self.token):
       i = int(attr[len(self.INDEX_ATTRIBUTE_PREFIX):], 16)
       self._index[i] = (ts, int(value, 16))
       self._max_indexed = max(i, self._max_indexed)
@@ -345,11 +352,12 @@ class IndexedSequentialCollection(SequentialCollection):
         # give up in that case. TODO(user): Remove this when the ACL
         # system allows.
         try:
-          mutation_pool.Set(self.urn,
-                            self.INDEX_ATTRIBUTE_PREFIX + "%08x" % i,
-                            "%06x" % ts[1],
-                            timestamp=ts[0],
-                            replace=True)
+          mutation_pool.Set(
+              self.collection_id,
+              self.INDEX_ATTRIBUTE_PREFIX + "%08x" % i,
+              "%06x" % ts[1],
+              timestamp=ts[0],
+              replace=True)
           self._index[i] = ts
           self._max_indexed = max(i, self._max_indexed)
         except access_control.UnauthorizedAccess:
@@ -426,11 +434,10 @@ class IndexedSequentialCollection(SequentialCollection):
                 timestamp=None,
                 suffix=None,
                 **kwargs):
-    r = super(IndexedSequentialCollection, cls).StaticAdd(collection_urn, token,
-                                                          rdf_value, timestamp,
-                                                          suffix, **kwargs)
+    r = super(IndexedSequentialCollection, cls).StaticAdd(
+        collection_urn, token, rdf_value, timestamp, suffix, **kwargs)
     if random.randint(0, cls.INDEX_SPACING) == 0:
-      BACKGROUND_INDEX_UPDATER.AddIndexToUpdate(collection_urn)
+      BACKGROUND_INDEX_UPDATER.AddIndexToUpdate(cls, collection_urn)
     return r
 
 

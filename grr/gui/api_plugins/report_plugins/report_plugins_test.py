@@ -11,7 +11,6 @@ from grr.gui.api_plugins.report_plugins import filestore_report_plugins
 from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks
-from grr.gui.api_plugins.report_plugins import report_utils
 from grr.gui.api_plugins.report_plugins import server_report_plugins
 
 from grr.lib import aff4
@@ -77,20 +76,24 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
     super(ReportUtilsTest, self).setUp()
     audit.AuditEventListener.created_logs.clear()
 
-  def testGetAuditLogFiles(self):
+  def testAuditLogsForTimespan(self):
+    two_weeks_ago = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("2w")
+    with test_lib.FakeTime(two_weeks_ago):
+      AddFakeAuditLog("Fake outdated audit log.", token=self.token)
     AddFakeAuditLog("Fake audit description foo.", token=self.token)
     AddFakeAuditLog("Fake audit description bar.", token=self.token)
 
     audit_events = {
         ev.description: ev
-        for fd in report_utils.GetAuditLogFiles(
-            rdfvalue.Duration("1d"),
+        for fd in audit.AuditLogsForTimespan(
+            rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"),
             rdfvalue.RDFDatetime.Now(),
             token=self.token) for ev in fd.GenerateItems()
     }
 
     self.assertIn("Fake audit description foo.", audit_events)
     self.assertIn("Fake audit description bar.", audit_events)
+    self.assertNotIn("Fake outdated audit log.", audit_events)
 
 
 class ClientReportPluginsTest(test_lib.GRRBaseTest):
@@ -235,8 +238,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         api_report_data,
         rdf_report_plugins.ApiReportData(
             pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
-                rdf_report_plugins.ApiReportDataPoint1D(
-                    label="Unknown", x=1)
+                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
             ]),
             representation_type=rdf_report_plugins.ApiReportData.
             RepresentationType.PIE_CHART))
@@ -278,8 +280,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         api_report_data,
         rdf_report_plugins.ApiReportData(
             pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
-                rdf_report_plugins.ApiReportDataPoint1D(
-                    label="Unknown", x=1)
+                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
             ]),
             representation_type=rdf_report_plugins.ApiReportData.
             RepresentationType.PIE_CHART))
@@ -468,7 +469,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                       (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
                        "Approval request.", "User1"),
                       (events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST, None,
-                       "Approval request.", "User0")])
+                       "Approval request.", "User0")])  # pyformat: disable
 
   def testClientApprovalsReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
@@ -484,16 +485,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=rdf_report_plugins.ApiReportData.
-            RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                used_fields=[
-                    "action", "client", "description", "timestamp", "user"
-                ],
-                rows=[])))
+    self.assertEqual(api_report_data,
+                     rdf_report_plugins.ApiReportData(
+                         representation_type=rdf_report_plugins.ApiReportData.
+                         RepresentationType.AUDIT_CHART,
+                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                             used_fields=[
+                                 "action", "client", "description", "timestamp",
+                                 "user"
+                             ],
+                             rows=[])))
 
   def testHuntActionsReportPlugin(self):
     with test_lib.FakeTime(
@@ -564,7 +565,8 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                       (events.AuditEvent.Action.HUNT_MODIFIED, "", "Flow1",
                        "2012/12/22", None, "User1"),
                       (events.AuditEvent.Action.HUNT_MODIFIED, "",
-                       "Flow0", "2012/12/22", None, "User0")])
+                       "Flow0", "2012/12/22", None, "User0")
+                     ])  # pyformat: disable
 
   def testHuntActionsReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
@@ -580,17 +582,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=rdf_report_plugins.ApiReportData.
-            RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                used_fields=[
-                    "action", "description", "flow_name", "timestamp", "urn",
-                    "user"
-                ],
-                rows=[])))
+    self.assertEqual(api_report_data,
+                     rdf_report_plugins.ApiReportData(
+                         representation_type=rdf_report_plugins.ApiReportData.
+                         RepresentationType.AUDIT_CHART,
+                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                             used_fields=[
+                                 "action", "description", "flow_name",
+                                 "timestamp", "urn", "user"
+                             ],
+                             rows=[])))
 
   def testHuntApprovalsReportPlugin(self):
     with test_lib.FakeTime(
@@ -659,7 +660,8 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                       (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User1"),
                       (events.AuditEvent.Action.HUNT_APPROVAL_REQUEST,
-                       "Approval request.", "2012/12/22", None, "User0")])
+                       "Approval request.", "2012/12/22", None, "User0")
+                     ])  # pyformat: disable
 
   def testHuntApprovalsReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
@@ -675,16 +677,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=rdf_report_plugins.ApiReportData.
-            RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                used_fields=[
-                    "action", "description", "timestamp", "urn", "user"
-                ],
-                rows=[])))
+    self.assertEqual(api_report_data,
+                     rdf_report_plugins.ApiReportData(
+                         representation_type=rdf_report_plugins.ApiReportData.
+                         RepresentationType.AUDIT_CHART,
+                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                             used_fields=[
+                                 "action", "description", "timestamp", "urn",
+                                 "user"
+                             ],
+                             rows=[])))
 
   def testCronApprovalsReportPlugin(self):
     with test_lib.FakeTime(
@@ -754,7 +756,8 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                       (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
                        "Approval request.", "2012/12/22", None, "User1"),
                       (events.AuditEvent.Action.CRON_APPROVAL_REQUEST,
-                       "Approval request.", "2012/12/22", None, "User0")])
+                       "Approval request.", "2012/12/22", None, "User0")
+                     ])  # pyformat: disable
 
   def testCronApprovalsReportPluginWithNoActivityToReport(self):
     report = report_plugins.GetReportByName(
@@ -770,16 +773,16 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=rdf_report_plugins.ApiReportData.
-            RepresentationType.AUDIT_CHART,
-            audit_chart=rdf_report_plugins.ApiAuditChartReportData(
-                used_fields=[
-                    "action", "description", "timestamp", "urn", "user"
-                ],
-                rows=[])))
+    self.assertEqual(api_report_data,
+                     rdf_report_plugins.ApiReportData(
+                         representation_type=rdf_report_plugins.ApiReportData.
+                         RepresentationType.AUDIT_CHART,
+                         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
+                             used_fields=[
+                                 "action", "description", "timestamp", "urn",
+                                 "user"
+                             ],
+                             rows=[])))
 
   def testMostActiveUsersReportPlugin(self):
     with test_lib.FakeTime(
@@ -910,8 +913,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                     rdf_report_plugins.ApiReportDataSeries2D(
                         label=u"Flow123\u2003Run By: GRR (10)",
                         points=[
-                            rdf_report_plugins.ApiReportDataPoint2D(
-                                x=0, y=10)
+                            rdf_report_plugins.ApiReportDataPoint2D(x=0, y=10)
                         ]), rdf_report_plugins.ApiReportDataSeries2D(
                             label=u"Flow456\u2003Run By: GRR (1)",
                             points=[
@@ -1097,8 +1099,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
                     rdf_report_plugins.ApiReportDataSeries2D(
                         label=u"Flow123\u2003Run By: User123 (10)",
                         points=[
-                            rdf_report_plugins.ApiReportDataPoint2D(
-                                x=0, y=10)
+                            rdf_report_plugins.ApiReportDataPoint2D(x=0, y=10)
                         ]), rdf_report_plugins.ApiReportDataSeries2D(
                             label=u"Flow456\u2003Run By: User456 (1)",
                             points=[

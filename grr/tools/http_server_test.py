@@ -21,6 +21,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import file_store
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import front_end
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -209,7 +210,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     action = rdf_file_finder.FileFinderAction(action_type=action_type)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
     results = list(collection)
     self.assertEqual(len(results), 4)
     relpaths = [
@@ -252,7 +254,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
     results = list(collection)
     self.assertEqual(len(results), 4)
     relpaths = [
@@ -281,7 +284,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(
+        session_id, token=self.token)
     results = list(collection)
     # Only two instead of the usual four results.
     self.assertEqual(len(results), 2)
@@ -308,7 +312,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         for c in client_ids
     }
     collections = {
-        c: aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+        c: flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
         for c, session_id in session_ids.iteritems()
     }
     for client_id, collection in collections.iteritems():

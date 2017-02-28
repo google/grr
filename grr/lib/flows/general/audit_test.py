@@ -10,10 +10,7 @@ from grr.lib import config_lib
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import test_lib
-# This needs to be imported for the audit event listener to be activated.
-# pylint: disable=unused-import
-from grr.lib.flows.general import audit as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -51,7 +48,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
       log = aff4.CurrentAuditLog()
-      stored_events = list(aff4.FACTORY.Open(log, token=self.token))
+      stored_events = audit.AuditEventCollection(log, token=self.token)
 
       self.assertEqual(len(stored_events), 2)
       for event in stored_events:
@@ -78,11 +75,11 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(logs), 2)
 
       # One with two events
-      stored_events = list(aff4.FACTORY.Open(logs[0], token=self.token))
+      stored_events = audit.AuditEventCollection(logs[0], token=self.token)
       self.assertEqual(len(stored_events), 2)
 
       # The other with one
-      stored_events = list(aff4.FACTORY.Open(logs[1], token=self.token))
+      stored_events = audit.AuditEventCollection(logs[1], token=self.token)
       self.assertEqual(len(stored_events), 1)
 
 

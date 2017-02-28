@@ -24,9 +24,6 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
   /** @type {string} */
   this.selectionName;
 
-  /** @type {string} */
-  this.oldSelectionName;
-
   /** @type {number|null} */
   this.startTime;
 
@@ -35,6 +32,9 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
 
   /** @type {string|null} */
   this.clientLabel;
+
+  /** @private {string} */
+  this.oldSelectionName_;
 
   this.grrRoutingService_.uiOnParamsChanged(
       this.scope_,
@@ -94,13 +94,13 @@ StatsViewController.prototype.onControllerParamsChange_ = function() {
   }
 
   // Clear the report parameters on different report type selection.
-  if (angular.isDefined(this.oldSelectionName) &&
-      this.oldSelectionName !== this.selectionName) {
+  if (angular.isDefined(this.oldSelectionName_) &&
+      this.oldSelectionName_ !== this.selectionName) {
     this.startTime = null;
     this.duration = null;
     this.clientLabel = null;
   }
-  this.oldSelectionName = this.selectionName;
+  this.oldSelectionName_ = this.selectionName;
 
   var urlParams = {
     name: this.selectionName,

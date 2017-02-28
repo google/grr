@@ -3,11 +3,10 @@
 
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
-# pylint: disable=unused-import
 from grr.lib.flows.general import network
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -24,10 +23,8 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
         conn1 = rdf_client.NetworkConnection(
             state=rdf_client.NetworkConnection.State.LISTEN,
             type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-            local_address=rdf_client.NetworkEndpoint(
-                ip="0.0.0.0", port=22),
-            remote_address=rdf_client.NetworkEndpoint(
-                ip="0.0.0.0", port=0),
+            local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=22),
+            remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0", port=0),
             pid=2136,
             ctime=0)
         conn2 = rdf_client.NetworkConnection(
@@ -35,14 +32,13 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
             type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
             local_address=rdf_client.NetworkEndpoint(
                 ip="192.168.1.1", port=31337),
-            remote_address=rdf_client.NetworkEndpoint(
-                ip="1.2.3.4", port=6667),
+            remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4", port=6667),
             pid=1,
             ctime=0)
 
         return [conn1, conn2]
 
-    # Set the system to Windows so the netstat flow will run as its the only
+    # Set the system to Windows so the netstat flow will run as it's the only
     # one that works at the moment.
     fd = aff4.FACTORY.Create(
         self.client_id, aff4_grr.VFSGRRClient, token=self.token)
@@ -50,11 +46,14 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     fd.Close()
 
     for s in test_lib.TestFlowHelper(
-        "Netstat", ClientMock(), client_id=self.client_id, token=self.token):
+        network.Netstat.__name__,
+        ClientMock(),
+        client_id=self.client_id,
+        token=self.token):
       session_id = s
 
     # Check the results are correct.
-    fd = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     conns = list(fd)
     self.assertEqual(len(conns), 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")

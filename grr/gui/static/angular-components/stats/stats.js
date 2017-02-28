@@ -5,6 +5,7 @@ goog.provide('grrUi.stats.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.stats.auditChartDirective.AuditChartDirective');
 goog.require('grrUi.stats.chartDirective.ChartDirective');
+goog.require('grrUi.stats.reportDescsService.ReportDescsService');
 goog.require('grrUi.stats.reportDirective.ReportDirective');
 goog.require('grrUi.stats.reportListingDirective.ReportListingDirective');
 goog.require('grrUi.stats.serverLoadDirective.ServerLoadDirective');
@@ -55,3 +56,6 @@ grrUi.stats.module.directive(
 grrUi.stats.module.service(
     grrUi.stats.serverLoadDirective.ServerLoadIndicatorService.service_name,
     grrUi.stats.serverLoadDirective.ServerLoadIndicatorService);
+grrUi.stats.module.service(
+    grrUi.stats.reportDescsService.ReportDescsService.service_name,
+    grrUi.stats.reportDescsService.ReportDescsService);

@@ -10,10 +10,10 @@ import os
 
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 # pylint: disable=unused-import
@@ -71,14 +71,11 @@ supported_os: [ "Linux" ]
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
       # Add artifact to datastore but not registry
+      artifact_coll = artifact_registry.ArtifactCollection(
+          rdfvalue.RDFURN("aff4:/artifact_store"), token=self.token)
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
           cmd_artifact):
-        with aff4.FACTORY.Create(
-            "aff4:/artifact_store",
-            aff4_type=artifact_registry.ArtifactCollection,
-            token=self.token,
-            mode="rw") as artifact_coll:
-          artifact_coll.Add(artifact_val)
+        artifact_coll.Add(artifact_val)
 
       # Add artifact to registry but not datastore
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(

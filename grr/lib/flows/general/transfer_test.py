@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import constants
 from grr.lib import file_store
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
 
@@ -94,8 +95,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
           client_id=self.client_id):
         pass
 
-      results = list(
-          aff4.FACTORY.Open(session_id.Add("Results"), token=self.token))
+      results = flow.GRRFlow.ResultCollectionForFID(
+          session_id, token=self.token)
 
       self.assertEqual(len(results), 1)
       for stat_entry in results:
@@ -190,8 +191,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathspec=pathspec):
       session_id = s
 
-    results = list(
-        aff4.FACTORY.Open(session_id.Add("Results"), token=self.token))
+    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertEqual(len(results), 1)
     res_pathspec = results[0].pathspec
 

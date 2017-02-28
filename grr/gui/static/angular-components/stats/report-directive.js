@@ -31,11 +31,14 @@ var DEFAULT_CLIENT_LABEL = '';
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
+ * @param {!grrUi.core.timeService.TimeService} grrTimeService
+ * @param {!grrUi.stats.reportDescsService.ReportDescsService} grrReportDescsService
  * @constructor
  * @ngInject
  */
-grrUi.stats.reportDirective.ReportController =
-    function($scope, grrApiService, grrReflectionService) {
+grrUi.stats.reportDirective.ReportController = function(
+    $scope, grrApiService, grrReflectionService, grrTimeService,
+    grrReportDescsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -44,6 +47,12 @@ grrUi.stats.reportDirective.ReportController =
 
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
+
+  /** @private {!grrUi.core.timeService.TimeService} */
+  this.grrTimeService_ = grrTimeService;
+
+  /** @private {!grrUi.stats.reportDescsService.ReportDescsService} */
+  this.grrReportDescsService_ = grrReportDescsService;
 
   /** @type {string}
    * This is intended to be an enum with the following possible values:
@@ -74,7 +83,26 @@ grrUi.stats.reportDirective.ReportController =
   /** @type {string|null} */
   this.clientLabel = null;
 
-  this.scope_.$watchGroup(['name', 'startTime', 'duration', 'clientLabel'],
+  /** @private {number} */
+  this.latestFetchTime_ = 0;
+
+  this.scope_.$watch('name', function(name) {
+    this.grrReportDescsService_.getDescByName(name).then(function(desc) {
+      // This if is triggered also when name is undefined.
+      if (angular.isUndefined(desc)) {
+        return;
+      }
+
+      this.reportDesc = desc;
+
+      this.titleCasedType =
+          grrUi.core.utils.upperCaseToTitleCase(this.reportDesc['type']);
+
+      this.onParamsChange_();
+    }.bind(this));
+  }.bind(this));
+
+  this.scope_.$watchGroup(['startTime', 'duration', 'clientLabel'],
                           this.onParamsChange_.bind(this));
 };
 var ReportController =
@@ -102,9 +130,7 @@ ReportController.prototype.onParamsChange_ = function() {
     this.clientLabel = clientLabel;
   }
 
-  if (this.scope_['name']) {
-    this.fetchData_();
-  }
+  this.fetchData_();
 };
 
 /**
@@ -124,53 +150,61 @@ ReportController.prototype.refreshReport = function() {
  * @private
  */
 ReportController.prototype.fetchData_ = function() {
-  var name = this.scope_['name'];
-
-  if (name) {
-    this.state = 'LOADING';
-
-    var startTime = DEFAULT_START_TIME_SECS;
-    if (this.startTime !== null) {
-      startTime = this.startTime;
-    }
-
-    var duration = DEFAULT_DURATION_SECS;
-    if (this.duration !== null) {
-      duration = this.duration;
-    }
-
-    var clientLabel = DEFAULT_CLIENT_LABEL;
-    if (this.clientLabel !== null) {
-      clientLabel = this.clientLabel;
-    }
-
-    var apiUrl = 'stats/reports/' + name;
-    var apiParams = {
-      start_time: startTime * 1e6,  // conversion to μs
-      duration: duration,
-      client_label: clientLabel
-    };
-
-    this.grrApiService_.get(apiUrl, apiParams).then(function(response) {
-      this.typedReportData = response['data']['data'];
-      this.reportData = stripTypeInfo(this.typedReportData);
-      this.reportDesc = stripTypeInfo(response['data']['desc']);
-
-      if (this.reportDesc['requires_time_range']) {
-        this.startTime = startTime;
-        this.duration = duration;
-      }
-
-      if (this.reportDesc['type'] === 'CLIENT') {
-        this.clientLabel = clientLabel;
-      }
-
-      this.titleCasedType =
-          grrUi.core.utils.upperCaseToTitleCase(this.reportDesc['type']);
-
-      this.state = 'LOADED';
-    }.bind(this));
+  if (angular.isUndefined(this.reportDesc)) {
+    return;
   }
+
+  var name = this.reportDesc['name'];
+  // `!name' handles all falsey values, including '' and undefined.
+  if (!name) {
+    return;
+  }
+
+  this.state = 'LOADING';
+
+  var startTime = DEFAULT_START_TIME_SECS;
+  if (this.startTime !== null) {
+    startTime = this.startTime;
+  }
+
+  var duration = DEFAULT_DURATION_SECS;
+  if (this.duration !== null) {
+    duration = this.duration;
+  }
+
+  var clientLabel = DEFAULT_CLIENT_LABEL;
+  if (this.clientLabel !== null) {
+    clientLabel = this.clientLabel;
+  }
+
+  var apiUrl = 'stats/reports/' + name;
+  var apiParams = {
+    start_time: startTime * 1e6,  // conversion to μs
+    duration: duration,
+    client_label: clientLabel
+  };
+
+  if (this.reportDesc['requires_time_range']) {
+    this.startTime = startTime;
+    this.duration = duration;
+  }
+
+  if (this.reportDesc['type'] === 'CLIENT') {
+    this.clientLabel = clientLabel;
+  }
+
+  var fetchTime = this.grrTimeService_.getCurrentTimeMs();
+  this.latestFetchTime_ = fetchTime;
+  this.grrApiService_.get(apiUrl, apiParams).then(function(response) {
+    if (fetchTime !== this.latestFetchTime_) {
+      return;
+    }
+
+    this.typedReportData = response['data']['data'];
+    this.reportData = stripTypeInfo(this.typedReportData);
+
+    this.state = 'LOADED';
+  }.bind(this));
 };
 
 /**

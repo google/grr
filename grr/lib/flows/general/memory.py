@@ -21,8 +21,6 @@ from grr.lib import flow
 from grr.lib import rekall_profile_server
 from grr.lib import server_stubs
 
-from grr.lib.aff4_objects import aff4_rekall
-
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -117,10 +115,6 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   This flow takes a list of Rekall plugins to run. It then sends the list of
   Rekall commands to the client. The client will run those plugins using the
   client's copy of Rekall.
-
-  Each plugin will return its results and they will be stored in
-  RekallResultCollections.
-
   """
 
   category = "/Memory/"
@@ -147,16 +141,6 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def StartAnalysis(self, responses):
-    # TODO(user): This is not good, it does not change the
-    # collection that stores the results split by type...
-
-    # Our output collection is a RekallResultCollection.
-    aff4.FACTORY.Create(
-        self.runner.output_urn,
-        aff4_rekall.RekallResponseCollection,
-        mode="rw",
-        token=self.token)
-
     self.state.rekall_context_messages = {}
     self.state.output_files = []
     self.state.plugin_errors = []

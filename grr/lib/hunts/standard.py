@@ -12,6 +12,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
+from grr.lib import grr_collections
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -533,17 +534,6 @@ class GenericHunt(implementation.GRRHunt):
   def started_flows_collection_urn(self):
     return self.urn.Add("StartedFlows")
 
-  def CreateCollections(self, mutation_pool):
-    super(GenericHunt, self).CreateCollections(mutation_pool)
-
-    with aff4.FACTORY.Create(
-        self.started_flows_collection_urn,
-        implementation.RDFUrnCollection,
-        mutation_pool=mutation_pool,
-        mode="w",
-        token=self.token):
-      pass
-
   @flow.StateHandler()
   def RunClient(self, responses):
     # Just run the flow on this client.
@@ -554,17 +544,14 @@ class GenericHunt(implementation.GRRHunt):
           next_state="MarkDone",
           sync=False,
           runner_args=self.args.flow_runner_args)
-      implementation.RDFUrnCollection.StaticAdd(
+      grr_collections.RDFUrnCollection.StaticAdd(
           self.started_flows_collection_urn, self.token, flow_urn)
 
   def Stop(self):
     super(GenericHunt, self).Stop()
 
-    started_flows = aff4.FACTORY.Create(
-        self.started_flows_collection_urn,
-        implementation.RDFUrnCollection,
-        mode="r",
-        token=self.token)
+    started_flows = grr_collections.RDFUrnCollection(
+        self.started_flows_collection_urn, token=self.token)
 
     self.Log("Hunt stop. Terminating all the started flows.")
     num_terminated_flows = 0
@@ -667,7 +654,7 @@ class VariableGenericHunt(GenericHunt):
               next_state="MarkDone",
               client_id=requested_client_id)
 
-          implementation.RDFUrnCollection.StaticAdd(
+          grr_collections.RDFUrnCollection.StaticAdd(
               self.started_flows_collection_urn, self.token, flow_urn)
 
   def ManuallyScheduleClients(self, token=None):

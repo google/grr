@@ -57,7 +57,7 @@ class RouterMethodMetadataTest(test_lib.GRRBaseTest):
   def testGetQueryParamsNamesWorksCorrectly(self):
     m = api_call_router.RouterMethodMetadata(
         "SomeMethod", http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})])
-    self.assertEqual(m.GetQueryParamsNames(), ["foo", "bar"])
+    self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo"])
 
 
 def main(argv):

@@ -9,7 +9,6 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import log
 from grr.lib import registry
 
 from grr.lib.aff4_objects import users as aff4_users
@@ -53,10 +52,6 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """Wrapping function."""
-    event_id = log.LOGGER.GetNewEventId()
-
-    # Modify request adding an event_id attribute to track the event
-    request.event_id = event_id
     request.user = ""
 
     authorized = False
@@ -102,7 +97,6 @@ class NullWebAuthManager(BaseWebAuthManager):
 
   def SecurityCheck(self, func, request, *args, **kwargs):
     """A decorator applied to protected web handlers."""
-    request.event_id = "1"
     request.user = self.username
     request.token = access_control.ACLToken(
         username="Testing", reason="Just a test")

@@ -13,6 +13,7 @@ from grr.lib import events
 from grr.lib import flags
 from grr.lib import test_lib
 
+from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
 
@@ -62,8 +63,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testAddsSingleLabelToSingleClient(self):
     for client_id in self.client_ids:
       self.assertFalse(
-          aff4.FACTORY.Open(
-              client_id, token=self.token).GetLabels())
+          aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
@@ -77,14 +77,12 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     for client_id in self.client_ids[1:]:
       self.assertFalse(
-          aff4.FACTORY.Open(
-              client_id, token=self.token).GetLabels())
+          aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
   def testAddsTwoLabelsToTwoClients(self):
     for client_id in self.client_ids:
       self.assertFalse(
-          aff4.FACTORY.Open(
-              client_id, token=self.token).GetLabels())
+          aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
@@ -101,8 +99,15 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.assertEqual(labels[1].owner, self.token.username)
 
     self.assertFalse(
-        aff4.FACTORY.Open(
-            self.client_ids[2], token=self.token).GetLabels())
+        aff4.FACTORY.Open(self.client_ids[2], token=self.token).GetLabels())
+
+  def _FindAuditEvent(self):
+    for fd in audit.AllAuditLogs(token=self.token):
+      for event in fd:
+        if event.action == events.AuditEvent.Action.CLIENT_ADD_LABEL:
+          for client_id in self.client_ids:
+            if event.client == rdf_client.ClientURN(client_id):
+              return event
 
   def testAuditEntryIsCreatedForEveryClient(self):
     self.handler.Handle(
@@ -115,24 +120,14 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     mock_worker = test_lib.MockWorker(token=self.token)
     mock_worker.Simulate()
 
-    parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=self.token)
-    log = list(parentdir.ListChildren())[0]
-    fd = aff4.FACTORY.Open(log, token=self.token)
+    event = self._FindAuditEvent()
 
-    for client_id in self.client_ids:
-      found_event = None
-      for event in fd:
-        if (event.action == events.AuditEvent.Action.CLIENT_ADD_LABEL and
-            event.client == rdf_client.ClientURN(client_id)):
-          found_event = event
-          break
+    self.assertFalse(event is None)
 
-      self.assertFalse(found_event is None)
-
-      self.assertEqual(found_event.user, self.token.username)
-      self.assertEqual(
-          found_event.description, "%s.drei,%s.ein,%s.zwei" %
-          (self.token.username, self.token.username, self.token.username))
+    self.assertEqual(event.user, self.token.username)
+    self.assertEqual(
+        event.description, "%s.drei,%s.ein,%s.zwei" %
+        (self.token.username, self.token.username, self.token.username))
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):

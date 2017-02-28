@@ -1898,7 +1898,8 @@ message ClientSummary {
     }];
 
   optional CloudInstance.InstanceType cloud_type = 11
-      [(sem_type) = {description: "Cloud type: AMAZON/GOOGLE etc."}];
+      [(sem_type) = {description: "Cloud type: AMAZON/GOOGLE etc."},
+      default = UNSET];
 
   optional string cloud_instance_id = 12 [(sem_type) = {
     description: "Cloud instance unique ID. For Amazon EC2 it is the "

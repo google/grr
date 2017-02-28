@@ -15,7 +15,6 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
@@ -499,14 +498,9 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
       flow_urn = rdfvalue.RDFURN(start_result.operation_id)
 
       # Put something in the output collection
-      flow_obj = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-
-      with aff4.FACTORY.Create(
-          flow_obj.GetRunner().output_urn,
-          aff4_type=sequential_collection.GeneralIndexedCollection,
-          token=self.token) as collection:
-        collection.Add(rdf_client.ClientSummary())
+      collection = flow.GRRFlow.ResultCollectionForFID(
+          flow_urn, token=self.token)
+      collection.Add(rdf_client.ClientSummary())
 
       self.Check(
           "GetRobotGetFilesOperationState",

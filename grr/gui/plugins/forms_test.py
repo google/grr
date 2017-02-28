@@ -7,6 +7,8 @@
 from grr.gui import gui_test_lib
 # pylint: enable=g-bad-import-order
 
+from grr.gui import runtests_test
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
@@ -73,3 +75,12 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent, "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Enum value with default')) select "
         "option:selected(label='OPTION_2 (default)')")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

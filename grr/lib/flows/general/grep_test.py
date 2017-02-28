@@ -8,7 +8,7 @@ from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
@@ -91,9 +91,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         grep=grepspec):
       session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0].offset, 3)
@@ -119,9 +117,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         token=self.token):
       session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     self.assertEqual(len(fd), 100)
     self.assertEqual(fd[15].offset, 523)
@@ -152,9 +148,7 @@ class TestSearchFileContentWithFixture(GrepTests):
           grep=grepspec):
         session_id = s
 
-      # Check the output file is created
-      fd = aff4.FACTORY.Open(
-          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(fd[0].offset, searching.Grep.BUFF_SIZE - len("HIT"))
       self.assertEqual(fd[0].length, 23)
@@ -188,8 +182,7 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     # Make sure that there is a hit.
     self.assertEqual(len(fd), 1)
@@ -218,8 +211,7 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     self.assertEqual(len(fd), 3)
 
@@ -242,14 +234,13 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
     self.assertEqual(len(fd), 3)
 
     for log in aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(self.base_path).Add(
-            "searching"),
+        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(
+            self.base_path).Add("searching"),
         token=self.token).OpenChildren():
       self.assertTrue(isinstance(log, aff4_grr.VFSBlobImage))
       # Make sure there is some data.

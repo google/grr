@@ -5,7 +5,9 @@
 
 import re
 
+from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -221,3 +223,12 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     self.assertItemsEqual(
         labels_list.GetLabelNames(owner="test2"), ["foo2", "foo3"])
     self.assertEqual(labels_list.GetLabelNames(owner="test4"), [])
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

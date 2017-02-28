@@ -54,7 +54,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent,
                       "Files referenced in this collection can be downloaded")
 
-  def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
+  def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
           gui_test_lib.RecursiveTestFlow.__name__,

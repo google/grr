@@ -17,6 +17,7 @@ from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flow
+from grr.lib import grr_collections
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -26,7 +27,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import reports
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import implementation
@@ -43,19 +43,11 @@ class AdministrativeInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_crashes")
 
 
-class CrashesCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = rdf_client.ClientCrash
-
-
 class ClientCrashEventListener(flow.EventListener):
   """EventListener with additional helper methods to save crash details."""
 
   def _AppendCrashDetails(self, path, crash_details):
-    collection = aff4.FACTORY.Create(
-        path, CrashesCollection, mode="rw", token=self.token)
-
-    collection.Add(crash_details)
-    collection.Close(sync=False)
+    grr_collections.CrashCollection.StaticAdd(path, self.token, crash_details)
 
   def _ExtractHuntId(self, flow_session_id):
     hunt_str, hunt_id, _ = flow_session_id.Split(3)
@@ -75,7 +67,8 @@ class ClientCrashEventListener(flow.EventListener):
 
     # Duplicate the crash information in a number of places so we can find it
     # easily.
-    self._AppendCrashDetails(client_id.Add("crashes"), crash_details)
+    client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_id)
+    self._AppendCrashDetails(client_crashes, crash_details)
 
     if flow_session_id:
       aff4_flow = aff4.FACTORY.Open(
@@ -90,7 +83,9 @@ class ClientCrashEventListener(flow.EventListener):
 
       hunt_session_id = self._ExtractHuntId(flow_session_id)
       if hunt_session_id and hunt_session_id != flow_session_id:
-        self._AppendCrashDetails(hunt_session_id.Add("crashes"), crash_details)
+        hunt_crashes = implementation.GRRHunt.CrashCollectionURNForHID(
+            hunt_session_id)
+        self._AppendCrashDetails(hunt_crashes, crash_details)
 
 
 class GetClientStatsProcessResponseMixin(object):

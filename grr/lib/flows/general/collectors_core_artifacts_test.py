@@ -16,7 +16,7 @@ from grr.lib import artifact_utils
 from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import flow_runner
+from grr.lib import flow
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
@@ -49,8 +49,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
@@ -62,8 +61,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    fd = aff4.FACTORY.Open(
-        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     self.assertEqual(len(fd), 1)
     # Filesystem gives WINDOWS, registry gives Windows
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
@@ -206,8 +204,8 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
             FETCH_NOW):
           session_id = s
 
-        output = aff4.FACTORY.Open(
-            session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+        output = flow.GRRFlow.ResultCollectionForFID(
+            session_id, token=self.token)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], r"C:\Windows")
 

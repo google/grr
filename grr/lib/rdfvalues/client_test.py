@@ -4,7 +4,9 @@
 
 import socket
 
+from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base
@@ -205,3 +207,12 @@ class UnameTests(test_base.RDFValueTestCase):
     # We do not support old protos without a signature.
     sample.pep425tag = None
     self.assertRaises(ValueError, sample.signature)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

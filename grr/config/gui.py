@@ -33,10 +33,14 @@ config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.")
 
+# TODO(user): Deprecated, remove at some point.
+config_lib.DEFINE_string("AdminUI.django_secret_key", "CHANGE_ME",
+                         "This is deprecated. Used csrf_secret_key instead!.")
+
 config_lib.DEFINE_string(
-    "AdminUI.django_secret_key", "CHANGE_ME",
+    "AdminUI.csrf_secret_key", "CHANGE_ME",
     "This is a secret key that should be set in the server "
-    "config. It is used in XSRF and session protection.")
+    "config. It is used in CSRF protection.")
 
 config_lib.DEFINE_bool("AdminUI.enable_ssl", False,
                        "Turn on SSL. This needs AdminUI.ssl_cert to be set.")

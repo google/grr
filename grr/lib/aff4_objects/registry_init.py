@@ -3,7 +3,6 @@
 """
 # pylint: disable=unused-import
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import filestore

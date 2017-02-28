@@ -55,15 +55,17 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow_runner
+from grr.lib import grr_collections
+from grr.lib import multi_type_collection
 from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import sequential_collection
 from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -405,6 +407,11 @@ class FlowBehaviour(Behaviour):
       "Linux":
           "This flow works on Linux operating systems.",
   }
+
+
+RESULTS_SUFFIX = "Results"
+RESULTS_PER_TYPE_SUFFIX = "ResultsPerType"
+LOGS_SUFFIX = "Logs"
 
 
 class FlowBase(aff4.AFF4Volume):
@@ -887,7 +894,7 @@ class GRRFlow(FlowBase):
     if self.locked:
       lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
       if self.CheckLease() < lease_time / 2:
-        logging.info("%s: Extending Lease", self.session_id)
+        logging.debug("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
         self.runner.HeartBeat()
@@ -1110,6 +1117,55 @@ class GRRFlow(FlowBase):
 
         flow_requests.setdefault(flow_urn, []).append(msg)
     return flow_requests
+
+  # All the collections flows use.
+
+  # Results collection.
+  @property
+  def output_urn(self):
+    return self.urn.Add(RESULTS_SUFFIX)
+
+  @classmethod
+  def ResultCollectionForFID(cls, flow_id, token=None):
+    """Returns the ResultCollection for the flow with a given flow_id.
+
+    Args:
+      flow_id: The id of the flow, a RDFURN of the form aff4:/flows/F:123456.
+      token: A data store token.
+    Returns:
+      The collection containing the results for the flow identified by the id.
+    """
+    return sequential_collection.GeneralIndexedCollection(
+        flow_id.Add(RESULTS_SUFFIX), token=token)
+
+  def ResultCollection(self):
+    return self.ResultCollectionForFID(self.session_id, token=self.token)
+
+  # Results collection per type.
+  @property
+  def multi_type_output_urn(self):
+    return self.urn.Add(RESULTS_PER_TYPE_SUFFIX)
+
+  @classmethod
+  def TypedResultCollectionForFID(cls, flow_id, token=None):
+    return multi_type_collection.MultiTypeCollection(
+        flow_id.Add(RESULTS_PER_TYPE_SUFFIX), token=token)
+
+  def TypedResultCollection(self):
+    return self.TypedResultCollectionForFID(self.session_id, token=self.token)
+
+  # Logs collection.
+  @property
+  def logs_collection_urn(self):
+    return self.urn.Add(LOGS_SUFFIX)
+
+  @classmethod
+  def LogCollectionForFID(cls, flow_id, token=None):
+    return grr_collections.LogCollection(
+        flow_id.Add(LOGS_SUFFIX), token=token)
+
+  def LogCollection(self):
+    return self.LogCollectionForFID(self.session_id, token=self.token)
 
 
 class GRRGlobalFlow(GRRFlow):

@@ -7,6 +7,7 @@ import datetime
 from datetime import datetime
 import time
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -420,3 +421,12 @@ class HashDigestTest(test_base.RDFValueTestCase):
     self.assertEqual(sample, binary_digest)
     self.assertNotEqual(sample, "\xaa\xbb")
     self.assertNotEqual(sample, "deadbeef")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

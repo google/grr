@@ -3,7 +3,6 @@
 
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import flow
@@ -108,8 +107,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     event = rdf_flows.GrrMessage(
         session_id=rdfvalue.SessionID(flow_name="SomeFlow"),
         name="test message",
-        payload=rdf_paths.PathSpec(
-            path="foobar", pathtype="TSK"),
+        payload=rdf_paths.PathSpec(path="foobar", pathtype="TSK"),
         source="aff4:/C.0000000000000001",
         auth_state="AUTHENTICATED")
 
@@ -181,8 +179,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     worker.Simulate()
 
     log_entries = []
-    for log in aff4.FACTORY.Open(
-        "aff4:/audit/logs", token=self.token).OpenChildren():
+    for log in audit.AllAuditLogs(token=self.token):
       log_entries.extend(log)
 
     self.assertEqual(len(log_entries), 3)

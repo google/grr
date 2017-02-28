@@ -7,28 +7,28 @@ goog.scope(function() {
 describe('stats.reportListingDirective.parseStatsReportsApiResponse', function() {
 
   it('Parses the response into a jsTree-compatible format.', function() {
-    var typedReports = [
-      {value: {desc: {value:{
-        name: {value: 'FooReportPlugin'},
-        title: {value: 'Foos\' Activity'},
-        type: {value: 'SERVER'},
-      }}}},
-
-      {value: {desc: {value:{
-        name: {value: 'BarReportPlugin'},
-        title: {value: 'Bars Reported Over Time'},
-        type: {value: 'SERVER'},
-      }}}},
-
-      {value: {desc: {value:{
-        name: {value: 'BazReportPlugin'},
-        title: {value: 'Baz Statistics'},
-        type: {value: 'CLIENT'},
-      }}}}
-    ];
+    var reports = [{
+      desc: {
+        name: 'FooReportPlugin',
+        title: 'Foos\' Activity',
+        type: 'SERVER',
+      }
+    }, {
+      desc: {
+        name: 'BarReportPlugin',
+        title: 'Bars Reported Over Time',
+        type: 'SERVER',
+      }
+    }, {
+      desc: {
+        name: 'BazReportPlugin',
+        title: 'Baz Statistics',
+        type: 'CLIENT',
+      }
+    }];
 
     var ret = grrUi.stats.reportListingDirective.parseStatsReportsApiResponse(
-        typedReports);
+        reports);
 
     expect(ret).toEqual([
       {

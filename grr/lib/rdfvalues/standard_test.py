@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Test standard RDFValues."""
 
+from grr.lib import flags
+from grr.lib import test_lib
 from grr.lib.rdfvalues import standard as rdf_standard
 from grr.lib.rdfvalues import test_base
 
@@ -40,3 +42,12 @@ class URITests(test_base.RDFValueTestCase):
     self.assertEqual(sample.fragment, "anchor2")
 
     self.assertEqual(sample.SerializeToString(), url)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

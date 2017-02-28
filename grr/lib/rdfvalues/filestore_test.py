@@ -4,6 +4,8 @@
 
 
 
+from grr.lib import flags
+from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import test_base
 
@@ -63,3 +65,12 @@ class FileStoreHashTest(test_base.RDFValueTestCase):
         ValueError, filestore.FileStoreHash,
         "aff4:/files/hash/pecoff/sha1/eb875812858d27b22cb2b75f992dffadc1b05c66/"
         "_")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

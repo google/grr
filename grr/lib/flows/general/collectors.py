@@ -11,11 +11,13 @@ from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import grr_collections
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib import server_stubs
 from grr.lib import utils
-from grr.lib.aff4_objects import sequential_collection
+from grr.lib.aff4_objects import aff4_grr
 # For file collection artifacts. pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
 # pylint: enable=unused-import
@@ -24,7 +26,6 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
-from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
@@ -34,10 +35,6 @@ from grr.parsers import registry_init
 # pylint: enable=unused-import
 from grr.parsers import windows_persistence
 from grr.proto import flows_pb2
-
-
-class AnomalyCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = anomaly.Anomaly
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -635,15 +632,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
     if self.state.client_anomalies:
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
-        collection_urn = self.client_id.Add("anomalies")
-        aff4.FACTORY.Create(
-            collection_urn,
-            AnomalyCollection,
-            token=self.token,
-            mode="rw",
-            mutation_pool=mutation_pool).Close()
+        collection_urn = aff4_grr.VFSGRRClient.AnomalyCollectionURNForCID(
+            self.client_id)
         for anomaly_value in self.state.client_anomalies:
-          AnomalyCollection.StaticAdd(
+          grr_collections.AnomalyCollection.StaticAdd(
               collection_urn,
               self.token,
               anomaly_value,
@@ -783,6 +775,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             self._WriteResultToMappedAFF4Location(result, artifact_name,
                                                   aff4_output_map)
 
+  @classmethod
+  def ResultCollectionForArtifact(cls, session_id, artifact_name, token=None):
+    urn = rdfvalue.RDFURN("_".join((str(session_id.Add(flow.RESULTS_SUFFIX)),
+                                    utils.SmartStr(artifact_name))))
+    return sequential_collection.GeneralIndexedCollection(urn, token=token)
+
   def _WriteResultToSplitCollection(self, result, artifact_name,
                                     output_collection_map):
     """Write any results to the collection if we are splitting by artifact.
@@ -794,19 +792,13 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       artifact_name: artifact name string
       output_collection_map: dict of collections when splitting by artifact
     """
-    if self.args.split_output_by_artifact:
-      if (self.runner.IsWritingResults() and
-          artifact_name not in output_collection_map):
+    if self.args.split_output_by_artifact and self.runner.IsWritingResults():
+      if artifact_name not in output_collection_map:
+        # TODO(user): Make this work in the UI...
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
-        urn = "_".join((str(self.runner.output_urn),
-                        utils.SmartStr(artifact_name)))
-        collection = aff4.FACTORY.Create(
-            urn,
-            sequential_collection.GeneralIndexedCollection,
-            mode="rw",
-            token=self.token)
-        # Cache the opened object.
+        collection = self.ResultCollectionForArtifact(
+            self.urn, artifact_name, token=self.token)
         output_collection_map[artifact_name] = collection
       output_collection_map[artifact_name].Add(result)
 
@@ -814,11 +806,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Flush all of the collections that were split by artifact."""
     total = 0
     for artifact_name, collection in output_collection_map.iteritems():
-      total += len(collection)
-      collection.Flush()
-
+      l = len(collection)
+      total += l
       self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-               artifact_name, collection.urn, total)
+               artifact_name, collection.collection_id, l)
+
+    self.Log("Total collection size: %d", total)
 
   def _WriteResultToMappedAFF4Location(self, result, artifact_name,
                                        aff4_output_map):

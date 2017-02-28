@@ -2,6 +2,9 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the Rekall collection viewer interface."""
 
+
+import unittest
+
 from grr.client.components.rekall_support import grr_rekall_test
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.gui import gui_test_lib
@@ -29,7 +32,8 @@ class TestRekallViewer(gui_test_lib.GRRSeleniumTest,
 
     self.LaunchRekallPlugin(request)
 
-  def Disabled_testRekallView(self):
+  @unittest.skip("Test not passing; disabled since cr/81985246")
+  def testRekallView(self):
     self.Open("/")
 
     self.Type("client_query", "Host-0")

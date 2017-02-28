@@ -3,18 +3,19 @@
 
 
 
-from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib.hunts import results
 from grr.tools.export_plugins import plugin
 
 
 class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
-  """ExportPlugin that exports RDFValueCollections."""
+  """ExportPlugin that exports hunt results collections."""
 
   name = "collection"
-  description = "Exports RDFValueCollection from AFF4."
-  export_types = ["HuntResultCollection", "RDFValueCollection"]
+  description = "Exports hunt results collections from AFF4."
+  export_types = ["HuntResultCollection"]
 
   def ConfigureArgParser(self, parser):
     """Configure args parser for CollectionExportPlugin."""
@@ -58,15 +59,8 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
     return args.path
 
   def GetValuesForExport(self, args):
-    collection = aff4.FACTORY.Open(args.path, mode="r")
-    for aff4_type in self.export_types:
-      if isinstance(collection, aff4.AFF4Object.classes[aff4_type]):
-        break
-    else:
-      raise aff4.InstantiationError(
-          "Object %s is of type %s, but required_type is one of %s" %
-          (collection, collection.__class__.__name__, self.export_types))
-    return collection
+    return results.HuntResultCollection(
+        args.path, token=data_store.default_token)
 
   def Run(self, args):
     base_url = config_lib.CONFIG.Get("AdminUI.url", context=["AdminUI Context"])

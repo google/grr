@@ -166,13 +166,10 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
     if response.acpi_tables:
       self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+
+        # TODO(user): Make this work in the UI!?
         collection_urn = self.client_id.Add("devices/chipsec/acpi/tables/%s" %
                                             table_signature)
-        aff4.FACTORY.Create(
-            collection_urn,
-            hardware.ACPITableDataCollection,
-            mutation_pool=mutation_pool,
-            token=self.token).Close()
         for acpi_table_response in response.acpi_tables:
           hardware.ACPITableDataCollection.StaticAdd(
               collection_urn,

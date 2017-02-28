@@ -20,7 +20,7 @@ class CollectionFilesExportPlugin(plugin.ExportPlugin):
     parser.add_argument(
         "--path",
         required=True,
-        help="Path to the RDFValueCollection. Files referenced "
+        help="Path to the Collection. Files referenced "
         "in this collection will be downloaded.")
 
     parser.add_argument(

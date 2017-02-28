@@ -774,21 +774,27 @@ class DataStoreInit(registry.InitHook):
 
   pre = ["UserManagersInit"]
 
+  def _ListStorageOptions(self):
+    for name, cls in DataStore.classes.items():
+      print "%s\t\t%s" % (name, cls.__doc__)
+
   def Run(self):
     """Initialize the data_store."""
     global DB  # pylint: disable=global-statement
 
     if flags.FLAGS.list_storage:
-      for name, cls in DataStore.classes.items():
-        print "%s\t\t%s" % (name, cls.__doc__)
-
+      self._ListStorageOptions()
       sys.exit(0)
 
     try:
       cls = DataStore.GetPlugin(config_lib.CONFIG["Datastore.implementation"])
     except KeyError:
-      raise RuntimeError("No Storage System %s found." %
-                         config_lib.CONFIG["Datastore.implementation"])
+      msg = ("No Storage System %s found." %
+             config_lib.CONFIG["Datastore.implementation"])
+      print msg
+      print "Available options:"
+      self._ListStorageOptions()
+      raise RuntimeError(msg)
 
     DB = cls()  # pylint: disable=g-bad-name
     DB.Initialize()

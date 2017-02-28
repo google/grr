@@ -143,11 +143,6 @@ jQuery.prototype.jstree = function(data) {};
 
 
 /**
- * @type {Function}
- */
-moment.utc = function() {};
-
-/**
  * @typedef {{
  *   as: function(string):number,
  *   asSeconds: function():number,

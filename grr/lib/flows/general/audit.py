@@ -7,9 +7,7 @@ Noteworthy events within the GRR system (such as approval granting, flow
 execution etc) generate events to notify listeners about the event.
 
 The audit system consists of a group of event listeners which receive these
-events and act upon them. The current implementation simply maintains the
-aff4:/statistics/ area of the AFF4 namespace, where statistics of user
-activities are maintained.
+events and act upon them.
 """
 
 
@@ -18,13 +16,26 @@ from grr.lib import events
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import sequential_collection
+from grr.lib import sequential_collection
 
 AUDIT_EVENT = "Audit"
 
 
 class AuditEventCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = events.AuditEvent
+
+
+def AllAuditLogs(token=None):
+  # TODO(user): This is not great, we should store this differently.
+  for log in aff4.FACTORY.Open("aff4:/audit/logs", token=token).ListChildren():
+    yield AuditEventCollection(log, token=token)
+
+
+def AuditLogsForTimespan(start_time, end_time, token=None):
+  # TODO(user): This is not great, we should store this differently.
+  for log in aff4.FACTORY.Open(
+      "aff4:/audit/logs", token=token).ListChildren(age=(start_time, end_time)):
+    yield AuditEventCollection(log, token=token)
 
 
 class AuditEventListener(flow.EventListener):
@@ -35,16 +46,18 @@ class AuditEventListener(flow.EventListener):
 
   created_logs = set()
 
-  def EnsureLogExists(self):
-    log_urn = aff4.CurrentAuditLog()
+  def EnsureLogIsIndexed(self, log_urn):
     if log_urn not in self.created_logs:
+      # Just write any type to the aff4 space so we can determine
+      # which audit logs exist easily.
       aff4.FACTORY.Create(
-          log_urn, AuditEventCollection, mode="w", token=self.token).Close()
+          log_urn, aff4.AFF4Volume, mode="w", token=self.token).Close()
       self.created_logs.add(log_urn)
     return log_urn
 
   @flow.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    log_urn = self.EnsureLogExists()
+    log_urn = aff4.CurrentAuditLog()
+    self.EnsureLogIsIndexed(log_urn)
     AuditEventCollection.StaticAdd(log_urn, self.token, event)

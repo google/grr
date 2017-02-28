@@ -3,7 +3,9 @@
 
 
 
+from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib.rdfvalues import test_base
 
 
@@ -55,3 +57,12 @@ class SessionIDTest(test_base.RDFValueTestCase):
   def testBadFlowID(self):
     self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
                       rdfvalue.RDFURN("aff4:/flows/A:1234567G%sdf"))
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

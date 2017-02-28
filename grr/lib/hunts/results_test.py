@@ -2,7 +2,6 @@
 """Tests for grr.lib.hunts.results."""
 
 
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -13,14 +12,9 @@ from grr.lib.rdfvalues import flows as rdf_flows
 class ResultTest(test_lib.AFF4ObjectTest):
 
   def testEmptyQueue(self):
-    # Create two HuntResultCollections.
-    collection_urn = "aff4:/testEmptyQueue/collection"
-    with aff4.FACTORY.Create(
-        collection_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
+    # Create and empty HuntResultCollection.
+    collection_urn = rdfvalue.RDFURN("aff4:/testEmptyQueue/collection")
+    hunts_results.HuntResultCollection(collection_urn, token=self.token)
 
     # The queue starts empty, and returns no notifications.
     results = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
@@ -29,13 +23,8 @@ class ResultTest(test_lib.AFF4ObjectTest):
     self.assertEqual([], results[1])
 
   def testNotificationsContainTimestamps(self):
-    collection_urn = "aff4:/testNotificationsContainTimestamps/collection"
-    with aff4.FACTORY.Create(
-        collection_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
+    collection_urn = rdfvalue.RDFURN(
+        "aff4:/testNotificationsContainTimestamps/collection")
     for i in range(5):
       hunts_results.HuntResultCollection.StaticAdd(
           collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
@@ -48,24 +37,16 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     # Read all the results, using the contained (ts, suffix) pairs.
     values_read = []
-    with aff4.FACTORY.Create(
-        collection_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="r",
-        token=self.token) as collection:
-      for message in collection.MultiResolve([(
-          ts, suffix) for (_, ts, suffix) in results[1]]):
-        values_read.append(message.request_id)
+    collection = hunts_results.HuntResultCollection(
+        collection_urn, token=self.token)
+    for message in collection.MultiResolve([(ts, suffix)
+                                            for (_, ts, suffix) in results[1]]):
+      values_read.append(message.request_id)
     self.assertEqual(sorted(values_read), range(5))
 
   def testNotificationClaimsTimeout(self):
-    collection_urn = "aff4:/testNotificationClaimsTimeout/collection"
-    with aff4.FACTORY.Create(
-        collection_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
+    collection_urn = rdfvalue.RDFURN(
+        "aff4:/testNotificationClaimsTimeout/collection")
     for i in range(5):
       hunts_results.HuntResultCollection.StaticAdd(
           collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
@@ -88,13 +69,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
     self.assertEqual(results_3, results_1)
 
   def testDelete(self):
-    collection_urn = "aff4:/testDelete/collection"
-    with aff4.FACTORY.Create(
-        collection_urn,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
+    collection_urn = rdfvalue.RDFURN("aff4:/testDelete/collection")
     for i in range(5):
       hunts_results.HuntResultCollection.StaticAdd(
           collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
@@ -116,21 +91,10 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
   def testNotificationsSplitByCollection(self):
     # Create two HuntResultCollections.
-    collection_urn_1 = "aff4:/testNotificationsSplitByCollection/collection_1"
-    collection_urn_2 = "aff4:/testNotificationsSplitByCollection/collection_2"
-    with aff4.FACTORY.Create(
-        collection_urn_1,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
-
-    with aff4.FACTORY.Create(
-        collection_urn_2,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="w",
-        token=self.token):
-      pass
+    collection_urn_1 = rdfvalue.RDFURN(
+        "aff4:/testNotificationsSplitByCollection/collection_1")
+    collection_urn_2 = rdfvalue.RDFURN(
+        "aff4:/testNotificationsSplitByCollection/collection_2")
 
     # Add 100 records to each collection, in an interleaved manner.
     for i in range(100):
@@ -157,14 +121,11 @@ class ResultTest(test_lib.AFF4ObjectTest):
     self.assertEqual(100, len(results_2[1]))
 
     values_read = []
-    with aff4.FACTORY.Create(
-        collection_urn_2,
-        aff4_type=hunts_results.HuntResultCollection,
-        mode="r",
-        token=self.token) as collection_2:
-      for message in collection_2.MultiResolve([(
-          ts, suffix) for (_, ts, suffix) in results_2[1]]):
-        values_read.append(message.request_id)
+    collection_2 = hunts_results.HuntResultCollection(
+        collection_urn_2, token=self.token)
+    for message in collection_2.MultiResolve([(
+        ts, suffix) for (_, ts, suffix) in results_2[1]]):
+      values_read.append(message.request_id)
     self.assertEqual(sorted(values_read), range(100, 200))
 
 
