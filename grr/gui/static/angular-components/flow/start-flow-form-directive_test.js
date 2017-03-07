@@ -5,18 +5,16 @@ goog.require('grrUi.tests.module');
 
 describe('start flow form directive', function() {
   var $compile, $rootScope, $q, grrApiService, grrReflectionService;
+  var flowRunnerArgsDefault;
 
   beforeEach(module('/static/angular-components/flow/start-flow-form.html'));
   beforeEach(module(grrUi.flow.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
-  // Stub out grr-semantic-value, grr-form-value and
-  // grr-form-proto-repeated-field directives, as all rendering is going to
-  // be delegated to them.
+  // Stub out grr-semantic-value and grr-flow-form directives, as all
+  // rendering is going to be delegated to them.
   angular.forEach(
-      ['grrFormValue',
-       'grrFormProtoRepeatedField',
-       'grrSemanticValue'],
+      ['grrFlowForm', 'grrSemanticValue'],
       function(directiveName) {
         grrUi.tests.stubDirective(directiveName);
       });
@@ -28,44 +26,28 @@ describe('start flow form directive', function() {
     grrApiService = $injector.get('grrApiService');
     grrReflectionService = $injector.get('grrReflectionService');
 
-    spyOn(grrReflectionService, 'getRDFValueDescriptor').and.callFake(
-        function(valueType) {
-          var deferred = $q.defer();
-
-          if (valueType == 'FlowRunnerArgs') {
-            deferred.resolve({
-              default: {
-                type: 'FlowRunnerArgs',
-                value: {
-                  flow_name: 'FooFlow',
-                  output_plugins: [
-                    {
-                      foo: 'bar'
-                    }
-                  ],
-                  foo: 'bar'
-                }
-              },
-              fields: [
-                {
-                  name: 'output_plugins',
-                  default: [],
-                  foo: 'bar'
-                }
-              ]
-            });
-          } else if (valueType == 'OutputPluginDescriptor') {
-            deferred.resolve({
-              default: {
-                type: 'OutputPluginDescriptor',
-                value: 'OutputPluginDescriptor-default',
-                foo: 'bar'
-              }
-            });
+    flowRunnerArgsDefault = {
+      type: 'FlowRunnerArgs',
+      value: {
+        flow_name: {
+          type: 'RDFString',
+          value: 'FooFlow'
+        },
+        output_plugins: [
+          {
+            foo: 'bar'
           }
+        ],
+        foo: 'bar'
+      }
+    };
 
-          return deferred.promise;
-        });
+    var deferred = $q.defer();
+    deferred.resolve({
+      default: flowRunnerArgsDefault,
+    });
+    spyOn(grrReflectionService, 'getRDFValueDescriptor').and.returnValue(
+        deferred.promise);
   }));
 
   var renderTestTemplate = function() {
@@ -96,53 +78,12 @@ describe('start flow form directive', function() {
 
   it('shows flow arguments form', function() {
     var element = renderTestTemplate();
-    var directive = element.find('grr-form-value:nth(0)');
+    var directive = element.find('grr-flow-form');
 
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual(
+    expect(directive.scope().$eval(directive.attr('flow-args'))).toEqual(
         $rootScope.descriptor['value']['default_args']);
-  });
-
-  it('shows flow runner arguments form', function() {
-    var element = renderTestTemplate();
-    var directive = element.find('grr-form-value:nth(1)');
-
-    // This should be equal to flow runner arguments default.
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual({
-      type: 'FlowRunnerArgs',
-      value: {
-        flow_name: {
-          value: 'FooFlow',
-          type: 'RDFString'
-        },
-        output_plugins: [],
-        foo: 'bar'
-      }
-    });
-  });
-
-  it('shows output plugins list form', function() {
-    var element = renderTestTemplate();
-    var directive = element.find('grr-form-proto-repeated-field');
-
-    // This should be equal to output plugin descriptor.
-    expect(directive.scope().$eval(directive.attr('descriptor'))).toEqual({
-      default: {
-        type: 'OutputPluginDescriptor',
-        value: 'OutputPluginDescriptor-default',
-        foo: 'bar'
-      }
-    });
-
-    // This should be equal to output plugins field from flor runner arguments
-    // descriptor.
-    expect(directive.scope().$eval(directive.attr('field'))).toEqual({
-      name: 'output_plugins',
-      default: [],
-      foo: 'bar'
-    });
-
-    // Output plugins list is empty by default.
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual([]);
+    expect(directive.scope().$eval(directive.attr('flow-runner-args'))).toEqual(
+        flowRunnerArgsDefault);
   });
 
   it('sends request when Launch button is clicked', function() {
@@ -158,7 +99,7 @@ describe('start flow form directive', function() {
           flow: {
             runner_args: {
               flow_name: 'FooFlow',
-              output_plugins: [],
+              output_plugins: [{foo: 'bar'}],
               foo: 'bar'
             },
             args: {
@@ -171,17 +112,13 @@ describe('start flow form directive', function() {
   it('respects changes in form data when sending request', function() {
     var element = renderTestTemplate();
 
+    var directive = element.find('grr-flow-form:nth(0)');
     // Change flow args.
-    var directive = element.find('grr-form-value:nth(0)');
-    directive.scope().$eval(directive.attr('value'))['value']['changed'] = true;
-
+    directive.scope().$eval(directive.attr('flow-args'))['value']['changed'] = true;
     // Change flow runner args.
-    directive = element.find('grr-form-value:nth(1)');
-    directive.scope().$eval(directive.attr('value'))['value']['changed'] = true;
-
+    directive.scope().$eval(directive.attr('flow-runner-args'))['value']['changed'] = true;
     // Change output plugins value.
-    directive = element.find('grr-form-proto-repeated-field');
-    directive.scope().$eval(directive.attr('value')).push(42);
+    directive.scope().$eval(directive.attr('flow-runner-args'))['value']['output_plugins'].push(42);
 
     // Apply the changes.
     $rootScope.$apply();
@@ -196,7 +133,7 @@ describe('start flow form directive', function() {
           flow: {
             runner_args: {
               flow_name: 'FooFlow',
-              output_plugins: [42],
+              output_plugins: [{foo: 'bar'}, 42],
               changed: true,
               foo: 'bar'
             },

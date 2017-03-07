@@ -1,0 +1,12 @@
+<grr-form-value value="flowArgs"></grr-form-value>
+<hr>
+<grr-form-value value="flowRunnerArgs"></grr-form-value>
+
+<div ng-if="withOutputPlugins && controller.outputPluginsField !== undefined">
+  <hr>
+  <grr-form-proto-repeated-field
+    descriptor="controller.outputPluginDescriptor"
+    field="controller.outputPluginsField"
+    value="flowRunnerArgs.value.output_plugins">
+  </grr-form-proto-repeated-field>
+</div>

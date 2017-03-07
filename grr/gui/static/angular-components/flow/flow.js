@@ -5,7 +5,9 @@ goog.provide('grrUi.flow.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective');
 goog.require('grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective');
+goog.require('grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective');
 goog.require('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
+goog.require('grrUi.flow.flowFormDirective.FlowFormDirective');
 goog.require('grrUi.flow.flowInfoDirective.FlowInfoDirective');
 goog.require('grrUi.flow.flowInspectorDirective.FlowInspectorDirective');
 goog.require('grrUi.flow.flowLogDirective.FlowLogDirective');
@@ -31,9 +33,15 @@ grrUi.flow.module.directive(
     grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective.directive_name,
     grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective);
 grrUi.flow.module.directive(
+    grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective.directive_name,
+    grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective);
+grrUi.flow.module.directive(
     grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective
         .directive_name,
     grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective);
+grrUi.flow.module.directive(
+    grrUi.flow.flowFormDirective.FlowFormDirective.directive_name,
+    grrUi.flow.flowFormDirective.FlowFormDirective);
 grrUi.flow.module.directive(
     grrUi.flow.flowInfoDirective.FlowInfoDirective.directive_name,
     grrUi.flow.flowInfoDirective.FlowInfoDirective);

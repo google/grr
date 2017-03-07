@@ -65,22 +65,9 @@ grrUi.flow.startFlowFormDirective.StartFlowFormController = function(
             this.flowRunnerArguments = angular.copy(descriptor['default']);
             this.flowRunnerArguments['value']['flow_name'] =
                 flowDescriptor['value']['name'];
-            this.flowRunnerArguments['value']['output_plugins'] = [];
-
-            angular.forEach(descriptor['fields'], function(field) {
-              if (field.name == 'output_plugins') {
-                this.outputPluginsField = field;
-              }
-            }.bind(this));
           }.bind(this));
     }
   }.bind(this));
-
-  this.grrReflectionService_.getRDFValueDescriptor(
-      'OutputPluginDescriptor').then(function(descriptor) {
-        this.outputPluginDescriptor = descriptor;
-      }.bind(this));
-
 };
 var StartFlowFormController =
     grrUi.flow.startFlowFormDirective.StartFlowFormController;

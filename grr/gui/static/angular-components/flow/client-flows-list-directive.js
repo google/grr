@@ -92,7 +92,7 @@ ClientFlowsListController.prototype.cancelButtonClicked = function() {
 };
 
 /**
- * Shows 'New Hunt' dialog prefilled with the data of the currently selected
+ * Shows a 'New Hunt' dialog prefilled with the data of the currently selected
  * flow.
  *
  * @export
@@ -125,6 +125,44 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
   modalInstance.result.then(function resolve() {
     var huntId = huntUrn.split('/')[2];
     this.grrRoutingService_.go('hunts', {huntId: huntId});
+  }.bind(this));
+};
+
+
+/**
+ * Shows a 'New Hunt' dialog prefilled with the data of the currently selected
+ * hunt.
+ *
+ * @export
+ */
+ClientFlowsListController.prototype.copyFlow = function() {
+  var newFlowId;
+
+  var modalScope = this.scope_.$new();
+  modalScope['clientId'] = this.scope_['clientId'];
+  modalScope['flowId'] = this.scope_['selectedFlowId'];
+  modalScope['resolve'] = function(newFlowObj) {
+    newFlowId = newFlowObj['value']['flow_id']['value'];
+    modalInstance.close();
+  }.bind(this);
+  modalScope['reject'] = function() {
+    modalInstance.dismiss();
+  }.bind(this);
+
+  this.scope_.$on('$destroy', function() {
+    modalScope.$destroy();
+  });
+
+  var modalInstance = this.uibModal_.open({
+    template: '<grr-copy-flow-form on-resolve="resolve(flow)" ' +
+        'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
+    scope: modalScope,
+    windowClass: 'wide-modal high-modal',
+    size: 'lg'
+  });
+  modalInstance.result.then(function resolve() {
+    this.grrRoutingService_.go('client.flows', {flowId: newFlowId});
+    this.triggerUpdate();
   }.bind(this));
 };
 

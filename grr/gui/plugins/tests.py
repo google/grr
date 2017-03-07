@@ -14,6 +14,8 @@ from grr.gui.plugins import artifact_view_test
 from grr.gui.plugins import cron_view_test
 from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_archive_test
+from grr.gui.plugins import flow_copy_test
+from grr.gui.plugins import flow_create_hunt_test
 from grr.gui.plugins import flow_export_test
 from grr.gui.plugins import flow_management_test
 from grr.gui.plugins import flow_notifications_test

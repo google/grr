@@ -5,6 +5,14 @@
             ng-click="controller.cancelButtonClicked()">
       <img src="/static/images/editdelete.png" class="toolbar_icon">
     </button>
+
+    <button class="btn btn-default" name="copy_flow"
+            title="Copy Flow"
+            ng-disabled="!selectedFlowId"
+            ng-click="controller.copyFlow()">
+      <img src="/static/images/copy.png" class="toolbar-icon" />
+    </button>
+
     <button title="Create Hunt From Flow" class="btn btn-default" name="create_hunt"
             ng-disabled="!selectedFlowId"
             ng-click="controller.createHuntFromFlow()">

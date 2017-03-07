@@ -12,19 +12,10 @@ Please Select a flow to launch from the tree on the left.
 
 <div class="padded" ng-if="descriptor">
 
-  <grr-form-value value="controller.flowArguments"></grr-form-value>
-  <hr>
-  <grr-form-value value="controller.flowRunnerArguments"></grr-form-value>
-
-  <!-- Output plugins only make sense for client flows (not for global flows). -->
-  <div ng-if="clientId">
-    <hr>
-    <grr-form-proto-repeated-field
-       descriptor="controller.outputPluginDescriptor"
-       field="controller.outputPluginsField"
-       value="controller.flowRunnerArguments.value.output_plugins">
-    </grr-form-proto-repeated-field>
-  </div>
+  <grr-flow-form flow-args="controller.flowArguments"
+                 flow-runner-args="controller.flowRunnerArguments"
+                 with-output-plugins="clientId">
+  </grr-flow-form>
 
   <div class="form-group">
     <div class="col-sm-offset-2 col-sm-3 padded">
