@@ -327,6 +327,9 @@ def ShowUser(username, token=None):
 
 def AddUser(username, password=None, labels=None, token=None):
   """Implementation of the add_user command."""
+  if not username:
+    raise UserError("Cannot add user: User must have a non-empty name")
+
   token = data_store.GetDefaultToken(token)
   user_urn = "aff4:/users/%s" % username
   try:
@@ -362,6 +365,9 @@ def UpdateUser(username,
                delete_labels=None,
                token=None):
   """Implementation of the update_user command."""
+  if not username:
+    raise UserError("User must have a non-empty name")
+
   token = data_store.GetDefaultToken(token)
 
   user_urn = "aff4:/users/%s" % username
@@ -431,6 +437,9 @@ def UpdateUser(username,
 
 def DeleteUser(username, token=None):
   """Deletes an existing user."""
+  if not username:
+    raise UserError("User must have a non-empty name")
+
   token = data_store.GetDefaultToken(token)
   user_urn = "aff4:/users/%s" % username
   try:
