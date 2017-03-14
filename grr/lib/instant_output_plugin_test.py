@@ -9,6 +9,8 @@ from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.output_plugins import test_plugins
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
@@ -19,63 +21,93 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     self.plugin = test_plugins.TestInstantOutputPlugin(
         source_urn=rdfvalue.RDFURN("aff4:/foo/bar"), token=self.token)
 
+    self.client_id = self.SetupClients(1)[0]
     self.collection = multi_type_collection.MultiTypeCollection(
         rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
 
-  def ProcessPlugin(self):
+  def ProcessPlugin(self, source_urn=None):
     return list(
-        instant_output_plugin.ApplyPluginToMultiTypeCollection(self.plugin,
-                                                               self.collection))
+        instant_output_plugin.ApplyPluginToMultiTypeCollection(
+            self.plugin, self.collection, source_urn=source_urn))
 
   def testCorrectlyExportsSingleValue(self):
-    self.collection.Add(rdfvalue.RDFString("foo"))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("foo"), source=self.client_id))
 
     chunks = self.ProcessPlugin()
 
     self.assertListEqual(chunks, [
         "Start: aff4:/foo/bar",
         "Values of type: RDFString",
-        "First pass: foo",
-        "Second pass: foo",
+        "First pass: foo (source=%s)" % self.client_id,
+        "Second pass: foo (source=%s)" % self.client_id,
+        "Finish: aff4:/foo/bar"
+    ])  # pyformat: disable
+
+  def testUsesDefaultClientURNIfGrrMessageHasNoSource(self):
+    self.collection.Add(
+        rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo"), source=None))
+
+    chunks = self.ProcessPlugin(
+        source_urn=rdf_client.ClientURN("C.1111222233334444"))
+
+    self.assertListEqual(chunks, [
+        "Start: aff4:/foo/bar",
+        "Values of type: RDFString",
+        "First pass: foo (source=aff4:/C.1111222233334444)",
+        "Second pass: foo (source=aff4:/C.1111222233334444)",
         "Finish: aff4:/foo/bar"
     ])  # pyformat: disable
 
   def testCorrectlyExportsTwoValuesOfTheSameType(self):
-    self.collection.Add(rdfvalue.RDFString("foo"))
-    self.collection.Add(rdfvalue.RDFString("bar"))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("foo"), source=self.client_id))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("bar"), source=self.client_id))
 
     chunks = self.ProcessPlugin()
 
     self.assertListEqual(chunks, [
         "Start: aff4:/foo/bar",
         "Values of type: RDFString",
-        "First pass: foo",
-        "First pass: bar",
-        "Second pass: foo",
-        "Second pass: bar",
+        "First pass: foo (source=%s)" % self.client_id,
+        "First pass: bar (source=%s)" % self.client_id,
+        "Second pass: foo (source=%s)" % self.client_id,
+        "Second pass: bar (source=%s)" % self.client_id,
         "Finish: aff4:/foo/bar"
     ])  # pyformat: disable
 
   def testCorrectlyExportsFourValuesOfTwoDifferentTypes(self):
-    self.collection.Add(rdfvalue.RDFString("foo"))
-    self.collection.Add(rdfvalue.RDFInteger(42))
-    self.collection.Add(rdfvalue.RDFString("bar"))
-    self.collection.Add(rdfvalue.RDFInteger(43))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("foo"), source=self.client_id))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFInteger(42), source=self.client_id))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("bar"), source=self.client_id))
+    self.collection.Add(
+        rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFInteger(43), source=self.client_id))
 
     chunks = self.ProcessPlugin()
 
     self.assertListEqual(chunks, [
         "Start: aff4:/foo/bar",
         "Values of type: RDFInteger",
-        "First pass: 42",
-        "First pass: 43",
-        "Second pass: 42",
-        "Second pass: 43",
+        "First pass: 42 (source=%s)" % self.client_id,
+        "First pass: 43 (source=%s)" % self.client_id,
+        "Second pass: 42 (source=%s)" % self.client_id,
+        "Second pass: 43 (source=%s)" % self.client_id,
         "Values of type: RDFString",
-        "First pass: foo",
-        "First pass: bar",
-        "Second pass: foo",
-        "Second pass: bar",
+        "First pass: foo (source=%s)" % self.client_id,
+        "First pass: bar (source=%s)" % self.client_id,
+        "Second pass: foo (source=%s)" % self.client_id,
+        "Second pass: bar (source=%s)" % self.client_id,
         "Finish: aff4:/foo/bar"
     ])  # pyformat: disable
 
@@ -100,7 +132,6 @@ class TestConverter1(export.ExportConverter):
   input_rdf_type = "DummySrcValue1"
 
   def Convert(self, metadata, value, token=None):
-    _ = metadata
     _ = token
     return [DummyOutValue1("exp-" + str(value))]
 

@@ -706,10 +706,14 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
         token=self.token)
     self.hunt.Run()
 
-    client_ids = self.SetupClients(5)
-    self.AssignTasksToClients(client_ids=client_ids)
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, token=self.token)
+    self.client_ids = self.SetupClients(5)
+    # Ensure that clients are processed sequentially - this way the test won't
+    # depend on the order of results in the collection (which is normally
+    # random).
+    for cid in self.client_ids:
+      self.AssignTasksToClients(client_ids=[cid])
+      client_mock = test_lib.SampleHuntMock()
+      test_lib.TestHuntHelper(client_mock, [cid], token=self.token)
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     result = self.handler.Handle(
@@ -724,16 +728,16 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
         chunks,
         ["Start: %s" % utils.SmartStr(self.hunt.urn),
          "Values of type: RDFString",
-         "First pass: oh",
-         "First pass: oh",
-         "First pass: oh",
-         "First pass: oh",
-         "First pass: oh",
-         "Second pass: oh",
-         "Second pass: oh",
-         "Second pass: oh",
-         "Second pass: oh",
-         "Second pass: oh",
+         "First pass: oh (source=%s)" % self.client_ids[0],
+         "First pass: oh (source=%s)" % self.client_ids[1],
+         "First pass: oh (source=%s)" % self.client_ids[2],
+         "First pass: oh (source=%s)" % self.client_ids[3],
+         "First pass: oh (source=%s)" % self.client_ids[4],
+         "Second pass: oh (source=%s)" % self.client_ids[0],
+         "Second pass: oh (source=%s)" % self.client_ids[1],
+         "Second pass: oh (source=%s)" % self.client_ids[2],
+         "Second pass: oh (source=%s)" % self.client_ids[3],
+         "Second pass: oh (source=%s)" % self.client_ids[4],
          "Finish: %s" % utils.SmartStr(self.hunt.urn)])  # pyformat: disable
 
 

@@ -124,7 +124,13 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
 
   def NotifyAboutEnd(self):
-    self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
+    try:
+      urn = self.state.urn
+    except AttributeError:
+      self.Notify("FlowStatus", self.client_id,
+                  "Unable to fingerprint %s." % self.args.pathspec.path)
+      return
+    self.Notify("ViewObject", urn, "Fingerprint retrieved.")
 
   @flow.StateHandler()
   def End(self):

@@ -137,31 +137,37 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     num_processed_for_hunt = 0
     collection_obj = implementation.GRRHunt.ResultCollectionForHID(
         hunt_urn, token=self.token)
-    with aff4.FACTORY.OpenWithLock(
-        metadata_urn, lease_time=600, token=self.token) as metadata_obj:
-      all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
-      num_processed = int(
-          metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-      for batch in utils.Grouper(results, batch_size):
-        results = list(
-            collection_obj.MultiResolve([(ts, suffix)
-                                         for (_, ts, suffix) in batch]))
-        self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
+    try:
+      with aff4.FACTORY.OpenWithLock(
+          metadata_urn, lease_time=600, token=self.token) as metadata_obj:
+        all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
+        num_processed = int(
+            metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
+        for batch in utils.Grouper(results, batch_size):
+          results = list(
+              collection_obj.MultiResolve([(ts, suffix)
+                                           for (_, ts, suffix) in batch]))
+          self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
 
-        hunts_results.HuntResultQueue.DeleteNotifications(
-            [record_id for (record_id, _, _) in batch], token=self.token)
-        num_processed += len(batch)
-        num_processed_for_hunt += len(batch)
-        self.HeartBeat()
+          hunts_results.HuntResultQueue.DeleteNotifications(
+              [record_id for (record_id, _, _) in batch], token=self.token)
+          num_processed += len(batch)
+          num_processed_for_hunt += len(batch)
+          self.HeartBeat()
+          metadata_obj.Set(
+              metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
+          metadata_obj.UpdateLease(600)
+          if self.CheckIfRunningTooLong():
+            logging.warning("Run too long, stopping.")
+            break
+
+        metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
         metadata_obj.Set(
             metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
-        metadata_obj.UpdateLease(600)
-        if self.CheckIfRunningTooLong():
-          logging.warning("Run too long, stopping.")
-          break
-
-      metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
-      metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
+    except aff4.LockError:
+      logging.warn("ProcessHuntResultCollectionsCronFlow: "
+                   "Could not get lock on hunt metadata %s.", metadata_urn)
+      return 0
 
     if exceptions_by_plugin:
       for plugin, exceptions in exceptions_by_plugin.items():

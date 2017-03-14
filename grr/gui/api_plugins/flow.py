@@ -439,8 +439,8 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     except Exception as e:
       user.Notify("Error", None,
                   "Archive generation failed for flow %s on client %s: %s" %
-                  (args.flow_id, args.client_id, utils.SmartStr(e)),
-                  self.__class__.__name__)
+                  (args.flow_id, args.client_id,
+                   utils.SmartStr(e)), self.__class__.__name__)
       raise
     finally:
       user.Close()
@@ -482,9 +482,10 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                    (flow_api_object.name, args.flow_id, args.client_id,
                     flow_api_object.creator, flow_api_object.started_at))
 
-    target_file_prefix = "%s_flow_%s_%s" % (
-        args.client_id, flow_obj.runner_args.flow_name,
-        flow_urn.Basename().replace(":", "_"))
+    target_file_prefix = "%s_flow_%s_%s" % (args.client_id,
+                                            flow_obj.runner_args.flow_name,
+                                            flow_urn.Basename().replace(
+                                                ":", "_"))
 
     collection = flow.GRRFlow.ResultCollectionForFID(flow_urn, token=token)
 
@@ -1011,7 +1012,7 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         flow_urn, token=token)
 
     plugin = plugin_cls(source_urn=flow_urn, token=token)
+    content_generator = instant_output_plugin.ApplyPluginToMultiTypeCollection(
+        plugin, output_collection, source_urn=args.client_id.ToClientURN())
     return api_call_handler_base.ApiBinaryStream(
-        plugin.output_file_name,
-        content_generator=instant_output_plugin.
-        ApplyPluginToMultiTypeCollection(plugin, output_collection))
+        plugin.output_file_name, content_generator=content_generator)

@@ -395,8 +395,8 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
         chunks,
         ["Start: %s" % utils.SmartStr(flow_urn),
          "Values of type: RDFString",
-         "First pass: oh",
-         "Second pass: oh",
+         "First pass: oh (source=%s)" % utils.SmartStr(self.client_id),
+         "Second pass: oh (source=%s)" % utils.SmartStr(self.client_id),
          "Finish: %s" % utils.SmartStr(flow_urn)])  # pyformat: disable
 
 
