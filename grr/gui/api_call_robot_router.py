@@ -67,12 +67,14 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
 
-  def __init__(self, robot_id=None):
+  def __init__(self, robot_id=None, override_flow_args=None):
     super(ApiRobotCreateFlowHandler, self).__init__()
 
     if not robot_id:
       raise ValueError("Robot id can't be empty.")
     self.robot_id = robot_id
+
+    self.override_flow_args = override_flow_args
 
   def Handle(self, args, token=None):
     if not args.client_id:
@@ -87,7 +89,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         client_id=args.client_id.ToClientURN(),
         flow_name=args.flow.name,
         token=token,
-        args=args.flow.args)
+        args=self.override_flow_args or args.flow.args)
 
     with aff4.FACTORY.Open(
         flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
@@ -209,10 +211,31 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
     needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
     if needed_label_name not in fd.GetLabelsNames():
       raise access_control.UnauthorizedAccess(
-          "Flow %s (client %s) does not have a proper robot id label set." %
-          (flow_id, client_id))
+          "Flow %s (client %s) does not have a proper robot id label set." % (
+              flow_id, client_id))
 
     return fd
+
+  def _FixFileFinderArgs(self, source_args):
+    ffparams = self.params.file_finder_flow
+    if not ffparams.max_file_size:
+      return
+
+    new_args = source_args.Copy()
+    if new_args.action.action_type == new_args.action.Action.HASH:
+      ha = new_args.action.hash
+      ha.oversized_file_policy = ha.OversizedFilePolicy.SKIP
+      ha.max_size = ffparams.max_file_size
+    elif new_args.action.action_type == new_args.action.Action.DOWNLOAD:
+      da = new_args.action.download
+      da.oversized_file_policy = da.OversizedFilePolicy.SKIP
+      da.max_size = ffparams.max_file_size
+    elif new_args.action.action_type == new_args.action.Action.STAT:
+      pass
+    else:
+      raise ValueError("Unknown action type: %s", new_args.action)
+
+    return new_args
 
   def CreateFlow(self, args, token=None):
     # CreateFlow is used for starting both client flows and global flows.
@@ -222,9 +245,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
     if not args.client_id:
       raise ValueError("client_id must be provided")
 
+    override_flow_args = None
     throttler = None
     if args.flow.name == self.file_finder_flow_name:
       self._CheckFileFinderArgs(args.flow.args)
+      override_flow_args = self._FixFileFinderArgs(args.flow.args)
       throttler = self._GetFileFinderThrottler()
     elif args.flow.name == self.artifact_collector_flow_name:
       self._CheckArtifactCollectorFlowArgs(args.flow.args)
@@ -244,7 +269,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
       # If a similar flow did run recently, just return it.
       return ApiRobotReturnDuplicateFlowHandler(flow_urn=e.flow_urn)
 
-    return ApiRobotCreateFlowHandler(robot_id=self.params.robot_id)
+    return ApiRobotCreateFlowHandler(
+        robot_id=self.params.robot_id, override_flow_args=override_flow_args)
 
   def GetFlow(self, args, token=None):
     if not self.params.get_flow.enabled:

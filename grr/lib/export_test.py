@@ -191,10 +191,10 @@ class ExportTest(ExportTestBase):
     results = sorted(results, key=str)
 
     self.assertEqual(len(results), 4)
-    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
-                     ["some1A", "some2A"])
-    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
-                     ["some1B", "some2B"])
+    self.assertEqual([str(v) for v in results
+                      if isinstance(v, DummyRDFValue)], ["some1A", "some2A"])
+    self.assertEqual([str(v) for v in results
+                      if isinstance(v, DummyRDFValue2)], ["some1B", "some2B"])
 
   def testConvertsRDFValueCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters(collects.RDFValueCollection)
@@ -800,8 +800,8 @@ class ExportTest(ExportTestBase):
         result for result in results if isinstance(result, export.ExportedFile)
     ]
     self.assertEqual(len(exported_files), 2)
-    self.assertItemsEqual([x.basename for x in exported_files],
-                          ["path", "path2"])
+    self.assertItemsEqual([x.basename
+                           for x in exported_files], ["path", "path2"])
 
     for export_result in exported_files:
       if export_result.basename == "path":
@@ -1968,6 +1968,50 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(ExportTestBase):
 
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(
+        self.converter.Convert(
+            self.metadata, rekall_response, token=self.token))
+    self.assertEqual(len(converted_values), 0)
+
+
+class RekallResponseToExportedRekallKernelObjectConverterTest(ExportTestBase):
+  """Tests for RekallResponseToExportedRekallKernelObjectConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedRekallKernelObjectConverterTest, self).setUp()
+    self.converter = export.RekallResponseToExportedRekallKernelObjectConverter(
+    )
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r", {
+            u"type": u"Directory",
+            "_OBJECT_HEADER": {
+                u"name": u"_OBJECT_HEADER",
+                u"type_name": u"_OBJECT_HEADER",
+                u"vm": u"WindowsAMD64PagedMemory",
+            },
+            u"name": u"ObjectTypes"
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="object_tree", json_messages=json.dumps(messages))
+    metadata = self.metadata
+    converted_values = list(
+        self.converter.Convert(metadata, rekall_response, token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model = export.ExportedRekallKernelObject(
+        metadata=metadata, type="Directory", name="ObjectTypes")
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [["r", {"baseaddress": 0}]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="object_tree", json_messages=json.dumps(messages))
     converted_values = list(
         self.converter.Convert(
             self.metadata, rekall_response, token=self.token))

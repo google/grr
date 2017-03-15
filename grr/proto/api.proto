@@ -2932,6 +2932,11 @@ message RobotRouterFileFinderFlowParams {
       description: "Minimum time that has to pass between 2 FileFinder flows "
       "with same arguments. Default is 0, meaning any time."
     }];
+
+  optional uint64 max_file_size = 7 [(sem_type) = {
+      description: "Maximum file size in bytes. Will be enforced for all "
+      "FileFinder actions. Files bigger than max_file_size will be skipped."
+    }];
 }
 
 message RobotRouterArtifactCollectorFlowParams {

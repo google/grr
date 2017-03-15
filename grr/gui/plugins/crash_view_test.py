@@ -70,26 +70,6 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
         "Reason: Client crashed."
     ])
 
-    # Check that client crash is present in global crashes list.
-    self.Open("/")
-    self.WaitUntil(self.IsTextPresent, "Advanced")
-
-    # Open the "Advanced" dropdown.
-    self.Click("css=li#ManagementAdvanced > a")
-
-    self.WaitUntil(self.IsVisible, "css=a:contains('All Clients Crashes')")
-    # Check that needed data are displayed.
-    self.Click("css=a:contains('All Clients Crashes')")
-    self.WaitUntil(self.AllTextsPresent, [
-        "Crash Details", "aff4:/C.0000000000000001/flows/", ":CrashHandler",
-        "Client killed during transaction"
-    ])
-
-    # Click on a session id link and check that we're redirected to a flow.
-    self.Click("css=a:contains('%s/flows')" % self.client_id)
-    self.WaitUntil(self.AllTextsPresent,
-                   ["Manage launched flows", "Flow Name", "Flow Information"])
-
   def SetUpCrashedFlowInHunt(self):
     client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
     client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
@@ -100,7 +80,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex=""))
     ])
 
     with hunts.GRRHunt.StartHunt(
@@ -112,7 +92,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      self.assertTrue(foreman.AssignTasksToClient(client_id))
     test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
 
     return client_ids
@@ -122,15 +102,6 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
       client_ids = self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
-
-    # Open the "Advanced" dropdown.
-    self.Click("css=li#ManagementAdvanced > a")
-    self.WaitUntil(self.IsVisible, "css=a[grrtarget=clientCrashes]")
-
-    # Check that all crashed are registered in "All Clients Crashes"
-    self.Click("css=a[grrtarget=clientCrashes]")
-    self.WaitUntil(self.AllTextsPresent,
-                   [client_id for client_id in client_ids])
 
     # Go to hunt manager and select a hunt.
     self.Click("css=a[grrtarget=hunts]")

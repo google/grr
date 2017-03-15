@@ -27,6 +27,36 @@ class AnotherArtifactCollector(flow.GRRFlow):
   args_type = artifact_utils.ArtifactCollectorFlowArgs
 
 
+class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
+  """Tests for ApiRobotCreateFlowHandler."""
+
+  def setUp(self):
+    super(ApiRobotCreateFlowHandlerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def testPassesFlowArgsThroughIfNoOverridesSpecified(self):
+    h = rr.ApiRobotCreateFlowHandler(robot_id="foo")
+
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args.flow.name = file_finder.FileFinder.__name__
+    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+
+    f = h.Handle(args=args, token=self.token)
+    self.assertEqual(f.args.paths, ["foo"])
+
+  def testOverridesFlowArgsThroughIfOverridesSpecified(self):
+    override_flow_args = rdf_file_finder.FileFinderArgs(paths=["bar"])
+    h = rr.ApiRobotCreateFlowHandler(
+        robot_id="foo", override_flow_args=override_flow_args)
+
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args.flow.name = file_finder.FileFinder.__name__
+    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+
+    f = h.Handle(args=args, token=self.token)
+    self.assertEqual(f.args.paths, ["bar"])
+
+
 class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
   """Tests for ApiCallRobotRouter."""
 
@@ -131,6 +161,56 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
             client_id=self.client_id),
         token=self.token)
 
+  def testFileFinderHashMaxFileSizeCanBeOverriden(self):
+    router = self._CreateRouter(
+        file_finder_flow=rr.RobotRouterFileFinderFlowParams(
+            enabled=True, max_file_size=42))
+
+    ha = rdf_file_finder.FileFinderHashActionOptions()
+    ha.max_size = 80
+    ha.oversized_file_policy = ha.OversizedFilePolicy.HASH_TRUNCATED
+
+    path = "/foo/bar"
+    handler = router.CreateFlow(
+        api_flow.ApiCreateFlowArgs(
+            flow=api_flow.ApiFlow(
+                name=file_finder.FileFinder.__name__,
+                args=rdf_file_finder.FileFinderArgs(
+                    paths=[path],
+                    action=rdf_file_finder.FileFinderAction(
+                        action_type="HASH", hash=ha))),
+            client_id=self.client_id),
+        token=self.token)
+
+    ha = handler.override_flow_args.action.hash
+    self.assertEqual(ha.oversized_file_policy, ha.OversizedFilePolicy.SKIP)
+    self.assertEqual(ha.max_size, 42)
+
+  def testFileFinderDownloadMaxFileSizeCanBeOverriden(self):
+    router = self._CreateRouter(
+        file_finder_flow=rr.RobotRouterFileFinderFlowParams(
+            enabled=True, max_file_size=42))
+
+    da = rdf_file_finder.FileFinderDownloadActionOptions()
+    da.max_size = 80
+    da.oversized_file_policy = da.OversizedFilePolicy.DOWNLOAD_TRUNCATED
+
+    path = "/foo/bar"
+    handler = router.CreateFlow(
+        api_flow.ApiCreateFlowArgs(
+            flow=api_flow.ApiFlow(
+                name=file_finder.FileFinder.__name__,
+                args=rdf_file_finder.FileFinderArgs(
+                    paths=[path],
+                    action=rdf_file_finder.FileFinderAction(
+                        action_type="DOWNLOAD", download=da))),
+            client_id=self.client_id),
+        token=self.token)
+
+    da = handler.override_flow_args.action.download
+    self.assertEqual(da.oversized_file_policy, da.OversizedFilePolicy.SKIP)
+    self.assertEqual(da.max_size, 42)
+
   def testArtifactCollectorWorksWhenEnabledAndArgumentsAreCorrect(self):
     router = None
 
@@ -223,8 +303,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     flow_result = handler.Handle(
         api_flow.ApiCreateFlowArgs(
             client_id=self.client_id,
-            flow=api_flow.ApiFlow(
-                name=flow_name, args=flow_args)),
+            flow=api_flow.ApiFlow(name=flow_name, args=flow_args)),
         token=self.token)
     return flow_result.flow_id
 
@@ -239,8 +318,8 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)
 
-    router = self._CreateRouter(
-        get_flow=rr.RobotRouterGetFlowParams(enabled=True))
+    router = self._CreateRouter(get_flow=rr.RobotRouterGetFlowParams(
+        enabled=True))
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlow(
           api_flow.ApiGetFlowArgs(
@@ -249,11 +328,10 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
 
   def testGetFlowWorksIfFlowWasCreatedBySameRouter(self):
     flow_id = self._CreateFlowWithRobotId()
-    router = self._CreateRouter(
-        get_flow=rr.RobotRouterGetFlowParams(enabled=True))
+    router = self._CreateRouter(get_flow=rr.RobotRouterGetFlowParams(
+        enabled=True))
     router.GetFlow(
-        api_flow.ApiGetFlowArgs(
-            client_id=self.client_id, flow_id=flow_id),
+        api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_id),
         token=self.token)
 
   def testListFlowResultsIsDisabledByDefault(self):

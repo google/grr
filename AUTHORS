@@ -3,17 +3,18 @@ https://github.com/google/grr
 
 GRR is developed by (in alphabetical order):
 
-* Darren Bilby <darrenbilby@gmail.com>
 * Mikhail Bushkov <realbushman@gmail.com>
-* Greg Castle <github@mailgreg.com>
-* Michael Cohen <scudette@gmail.com>
 * Ben Galehouse <bgalehouse@gmail.com>
 * Andreas Moser <grrrrrrrrr@surfsup.at>
-* Dionysis Zindros <dionyziz@gmail.com>
+* Milosz Lakomy <milosz.lakomy@gmail.com>
 
 To reach the authors, please use the GRR development mailing
 list <grr-dev@googlegroups.com>.
 
 GRR emeriti:
 
+* Darren Bilby <darrenbilby@gmail.com>
 * Germano Caronni <caronni@gmail.com>
+* Greg Castle <github@mailgreg.com>
+* Michael Cohen <scudette@gmail.com>
+* Dionysis Zindros <dionyziz@gmail.com>

@@ -581,9 +581,9 @@ users:
 
     args = rdf_file_finder.FileFinderArgs(
         paths=[
-            os.path.join(self.base_path, "test.plist"),
-            os.path.join(self.base_path, "numbers.txt"),
-            os.path.join(self.base_path, "numbers.txt.ver2")
+            os.path.join(self.base_path, "test.plist"), os.path.join(
+                self.base_path, "numbers.txt"), os.path.join(
+                    self.base_path, "numbers.txt.ver2")
         ],
         action=rdf_file_finder.FileFinderAction(
             action_type=rdf_file_finder.FileFinderAction.Action.
@@ -611,8 +611,8 @@ users:
     self.assertEqual(len(results), 3)
     # We expect results to be FileFinderResult.
     self.assertItemsEqual(
-        [os.path.basename(r.payload.stat_entry.pathspec.path) for r in results],
-        ["test.plist", "numbers.txt", "numbers.txt.ver2"])
+        [os.path.basename(r.payload.stat_entry.pathspec.path)
+         for r in results], ["test.plist", "numbers.txt", "numbers.txt.ver2"])
 
     # Now downloads the files archive.
     zip_stream = StringIO.StringIO()
@@ -724,6 +724,34 @@ users:
     flow_obj_2 = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
     self.assertEqual(flow_obj.flow_id, flow_obj_2.flow_id)
+
+  FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG = """
+router: "ApiCallRobotRouter"
+router_params:
+  file_finder_flow:
+    enabled: True
+    max_file_size: 5000000
+  robot_id: "TheRobot"
+users:
+  - "%s"
+"""
+
+  def testFileFinderMaxFileSizeOverrideWorks(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG %
+                          self.token.username)
+
+    args = rdf_file_finder.FileFinderArgs(
+        action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        paths=["tests.plist"]).AsPrimitiveProto()
+
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+
+    flow_obj = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args)
+    flow_args = self.api.types.UnpackAny(flow_obj.data.args)
+    self.assertEqual(flow_args.action.download.max_size, 5000000)
+    self.assertEqual(flow_args.action.download.oversized_file_policy,
+                     flow_args.action.download.SKIP)
 
 
 def main(argv):

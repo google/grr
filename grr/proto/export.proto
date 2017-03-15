@@ -40,7 +40,7 @@ message ExportOptions {
 }
 
 message ExportedMetadata {
-  // Next field ID: 16
+  // Next field ID: 18
 
   optional string client_urn = 1 [(sem_type) = {
       type: "ClientURN",
@@ -107,6 +107,11 @@ message ExportedMetadata {
   optional HardwareInfo hardware_info = 16 [(sem_type) = {
       description: "Hardware information of the client."
     }];
+
+  optional string kernel_version = 17 [(sem_type) = {
+      description: "Client kernel version."
+    }];
+
 }
 
 message ExportedClient {
@@ -613,3 +618,17 @@ message ExportedRekallLinuxProcOp {
       description: "The name of the symbol at handler_address."
     }];
 };
+
+
+// Represents a kernel object.
+// Related plugins: object_tree
+message ExportedRekallKernelObject {
+  optional ExportedMetadata metadata = 1;
+
+  optional string type = 2 [(sem_type) = {
+      description: "Kernel object type."
+    }];
+  optional string name = 3 [(sem_type) = {
+      description: "Kernel object name."
+    }];
+}

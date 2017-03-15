@@ -964,8 +964,7 @@ class GrrMessageConverter(ExportConverter):
           metadata_to_fetch, mode="r", token=token)
 
       fetched_metadata = [
-          GetMetadata(
-              client_fd, token=token) for client_fd in client_fds
+          GetMetadata(client_fd, token=token) for client_fd in client_fds
       ]
       for metadata in fetched_metadata:
         self.cached_metadata[metadata.client_urn] = metadata
@@ -1004,8 +1003,7 @@ class GrrMessageConverter(ExportConverter):
     for dataset in data_by_type.values():
       for converter in dataset["converters"]:
         converted_batch.extend(
-            converter.BatchConvert(
-                dataset["batch_data"], token=token))
+            converter.BatchConvert(dataset["batch_data"], token=token))
 
     return converted_batch
 
@@ -1117,8 +1115,9 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
   def IsFileStatEntry(self, original_result):
     """Checks if given RDFValue is a file StatEntry."""
-    return (original_result.pathspec.pathtype in
-            [rdf_paths.PathSpec.PathType.OS, rdf_paths.PathSpec.PathType.TSK])
+    return (original_result.pathspec.pathtype in [
+        rdf_paths.PathSpec.PathType.OS, rdf_paths.PathSpec.PathType.TSK
+    ])
 
   def BatchConvert(self, metadata_value_pairs, token=None):
     metadata_value_pairs = list(metadata_value_pairs)
@@ -1357,18 +1356,16 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     field_number = 1
     output_class.AddDescriptor(
         rdf_structs.ProtoEmbedded(
-            name="metadata", field_number=field_number,
-            nested=ExportedMetadata))
+            name="metadata", field_number=field_number, nested=
+            ExportedMetadata))
 
     field_number += 1
     output_class.AddDescriptor(
-        rdf_structs.ProtoString(
-            name="section_name", field_number=field_number))
+        rdf_structs.ProtoString(name="section_name", field_number=field_number))
 
     field_number += 1
     output_class.AddDescriptor(
-        rdf_structs.ProtoString(
-            name="text", field_number=field_number))
+        rdf_structs.ProtoString(name="text", field_number=field_number))
 
     # All the tables are merged into one. This is done so that if plugin
     # outputs multiple tables, we get all possible columns in the output
@@ -1425,8 +1422,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     result.metadata = metadata
 
     try:
-      result.section_name = self._RenderObject(context_dict[
-          self.REKALL_MESSAGE_SECTION]["name"])
+      result.section_name = self._RenderObject(
+          context_dict[self.REKALL_MESSAGE_SECTION]["name"])
     except KeyError:
       pass
 
@@ -1713,6 +1710,34 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
     yield result
 
 
+class ExportedRekallKernelObject(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedRekallKernelObject
+
+
+class RekallResponseToExportedRekallKernelObjectConverter(
+    RekallResponseConverter):
+  """Converts suitable RekallResponses to ExportedRekallKernelObjects."""
+
+  input_rdf_type = "RekallResponse"
+
+  @staticmethod
+  def HandleTableRow(metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+
+    # Return immediately if we're not dealing with a row representing
+    # a kernel object.
+    if "_OBJECT_HEADER" not in row:
+      return
+
+    try:
+      yield ExportedRekallKernelObject(
+          metadata=metadata, type=row["type"], name=row["name"])
+    except KeyError:
+      pass
+
+
 def GetMetadata(client, token=None):
   """Builds ExportedMetadata object for a given client id.
 
@@ -1760,6 +1785,8 @@ def GetMetadata(client, token=None):
   metadata.labels = u",".join(client_fd.GetLabelsNames())
 
   metadata.hardware_info = client_fd.Get(client_fd.Schema.HARDWARE_INFO)
+
+  metadata.kernel_version = client_fd.Get(client_fd.Schema.KERNEL)
 
   return metadata
 

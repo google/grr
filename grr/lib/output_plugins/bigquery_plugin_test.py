@@ -203,6 +203,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
       actual_fds.append(gzip.GzipFile(None, "r", 9, stream))
 
     # Compare to our stored data.
+    # TODO(user): there needs to be a better way to generate these files on
+    # change than breaking into the debugger.
     expected_fd = open(
         os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
                      "ExportedFile.json"), "rb")
