@@ -119,7 +119,7 @@ class WindowsChildProcess : public grr::ChildProcess {
   // The methods below are overridden from Childprocess. See child_controller.h
   // for more information.
 
-  virtual void KillChild(std::string msg);
+  virtual void KillChild(const std::string &msg);
 
   virtual bool CreateChildProcess();
 
