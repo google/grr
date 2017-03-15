@@ -22,14 +22,14 @@ class MockChildProcess : public ChildProcess {
   MOCK_METHOD0(ClearHeartbeat, void());
   MOCK_METHOD1(SetHeartbeat, void(unsigned int));
   MOCK_METHOD0(Heartbeat, void());
-  MOCK_METHOD1(KillChild, void(std::string msg));
+  MOCK_METHOD1(KillChild, void(const std::string &msg));
   MOCK_METHOD0(GetCurrentTime, time_t());
   MOCK_METHOD0(IsAlive, bool());
   MOCK_METHOD0(Started, bool());
   MOCK_METHOD0(GetMemoryUsage, size_t());
-  MOCK_METHOD1(SetNannyMessage, void(std::string msg));
-  MOCK_METHOD1(SetNannyStatus, void(std::string msg));
-  MOCK_METHOD1(SetPendingNannyMessage, void(std::string msg));
+  MOCK_METHOD1(SetNannyMessage, void(const std::string &msg));
+  MOCK_METHOD1(SetNannyStatus, void(const std::string &msg));
+  MOCK_METHOD1(SetPendingNannyMessage, void(const std::string &msg));
   MOCK_METHOD1(ChildSleep, void(unsigned int));
 };
 

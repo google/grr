@@ -72,7 +72,7 @@ class ChildProcess {
   virtual ~ChildProcess();
 
   // Kills the child unconditionally.
-  virtual void KillChild(std::string msg) = 0;
+  virtual void KillChild(const std::string &msg) = 0;
 
   // Creates the child process. Returns true on success, false on failure
   // (e.g. the child executable is not found).
@@ -107,13 +107,13 @@ class ChildProcess {
   virtual size_t GetMemoryUsage() = 0;
 
   // Sets the nanny message.
-  virtual void SetNannyMessage(std::string msg) = 0;
+  virtual void SetNannyMessage(const std::string &msg) = 0;
 
   // Sets a nanny message to be sent with a delay.
-  virtual void SetPendingNannyMessage(std::string msg) = 0;
+  virtual void SetPendingNannyMessage(const std::string &msg) = 0;
 
   // Sets the nanny status.
-  virtual void SetNannyStatus(std::string msg) = 0;
+  virtual void SetNannyStatus(const std::string &msg) = 0;
 
   // Just sleeps for the indicated time.
   virtual void ChildSleep(unsigned int milliseconds) = 0;
@@ -136,7 +136,7 @@ class ChildController {
   virtual ~ChildController();
 
   // Kills the child unconditionally.
-  virtual void KillChild(std::string msg);
+  virtual void KillChild(const std::string &msg);
 
   // The controller's main loop.  This method should be called periodically to
   // check on the child's heartbeat status. Currently the child controller is

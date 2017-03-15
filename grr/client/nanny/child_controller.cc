@@ -34,7 +34,7 @@ ChildController::ChildController(const struct ControllerConfig config,
       last_heartbeat_time_(0) {}
 
 
-void ChildController::KillChild(std::string msg) {
+void ChildController::KillChild(const std::string &msg) {
   child_->KillChild(msg);
 }
 
@@ -60,9 +60,10 @@ time_t ChildController::Run() {
       child_->ChildSleep(2000);
       heartbeat = std::max(child_->GetHeartbeat(), last_heartbeat_time_);
       if (now - heartbeat > config_.unresponsive_kill_period) {
+        const std::string msg("No heartbeat received.");
         // We have not received a heartbeat in a while, kill the child.
-        child_->SetNannyMessage("No heartbeat received.");
-        child_->KillChild("No heartbeat received.");
+        child_->SetNannyMessage(msg);
+        child_->KillChild(msg);
         call_delay = 1;
       }
     }

@@ -127,11 +127,11 @@ class WindowsChildProcess : public grr::ChildProcess {
 
   virtual EventLogger *GetEventLogger();
 
-  virtual void SetNannyMessage(std::string msg);
+  virtual void SetNannyMessage(const std::string &msg);
 
-  virtual void SetPendingNannyMessage(std::string msg);
+  virtual void SetPendingNannyMessage(const std::string &msg);
 
-  virtual void SetNannyStatus(std::string msg);
+  virtual void SetNannyStatus(const std::string &msg);
 
   virtual time_t GetHeartbeat();
 
@@ -162,7 +162,7 @@ EventLogger *WindowsChildProcess::GetEventLogger() {
 
 
 // Kills the child.
-void WindowsChildProcess::KillChild(std::string msg) {
+void WindowsChildProcess::KillChild(const std::string &msg) {
   if (child_process.hProcess == NULL)
     return;
 
@@ -227,7 +227,7 @@ void WindowsChildProcess::SetHeartbeat(unsigned int value) {
 }
 
 // This sends a status message back to the server in case of a child kill.
-void WindowsChildProcess::SetNannyStatus(std::string msg) {
+void WindowsChildProcess::SetNannyStatus(const std::string &msg) {
   if (RegSetValueExA(kNannyConfig->service_key,
                      kGrrServiceNannyStatusKey, 0, REG_SZ,
                      reinterpret_cast<const BYTE*>(msg.c_str()),
@@ -236,12 +236,12 @@ void WindowsChildProcess::SetNannyStatus(std::string msg) {
   }
 }
 
-void WindowsChildProcess::SetPendingNannyMessage(std::string msg) {
+void WindowsChildProcess::SetPendingNannyMessage(const std::string &msg) {
   pendingNannyMsg_ = msg;
 }
 
 // This sends a message back to the server.
-void WindowsChildProcess::SetNannyMessage(std::string msg) {
+void WindowsChildProcess::SetNannyMessage(const std::string &msg) {
   if (RegSetValueExA(kNannyConfig->service_key,
                      kGrrServiceNannyMessageKey, 0, REG_SZ,
                      reinterpret_cast<const BYTE*>(msg.c_str()),
