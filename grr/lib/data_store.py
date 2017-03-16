@@ -664,6 +664,12 @@ class DataStore(object):
   def BlobsExist(self, identifiers, token=None):
     return self.blobstore.BlobsExist(identifiers, token=token)
 
+  def DeleteBlob(self, identifier, token=None):
+    return self.DeleteBlobs([identifier], token=token)
+
+  def DeleteBlobs(self, identifiers, token=None):
+    return self.blobstore.DeleteBlobs(identifiers, token=token)
+
   def GetMutationPool(self, token=None):
     return self.mutation_pool_cls(token=token)
 

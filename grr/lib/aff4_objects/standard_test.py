@@ -139,10 +139,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
       fd.index.seek(0)
       blob_id = fd.index.read(fd._HASH_SIZE).encode("hex")
 
-    # TODO(user): here we assume that MemoryStreamBlobstore is
-    # used in tests. DeleteBlobs method should be introduced to the
-    # BlobStore interface and used here.
-    aff4.FACTORY.Delete("aff4:/blobs/" + blob_id, token=self.token)
+    data_store.DB.DeleteBlob(blob_id, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     returned_fd, _, e = list(aff4.AFF4Stream.MultiStream([fd]))[0]
@@ -160,10 +157,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
       unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
       blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
 
-    # TODO(user): here we assume that MemoryStreamBlobstore is
-    # used in tests. DeleteBlobs method should be introduced to the
-    # BlobStore interface and used here.
-    aff4.FACTORY.Delete("aff4:/blobs/" + blob_id_2, token=self.token)
+    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     count = 0
@@ -188,10 +182,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
       unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
       blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
 
-    # TODO(user): here we assume that MemoryStreamBlobstore is
-    # used in tests. DeleteBlobs method should be introduced to the
-    # BlobStore interface and used here.
-    aff4.FACTORY.Delete("aff4:/blobs/" + blob_id_2, token=self.token)
+    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     content = []
@@ -218,10 +209,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
       fd.index.seek(0)
       blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
 
-    # TODO(user): here we assume that MemoryStreamBlobstore is
-    # used in tests. DeleteBlobs method should be introduced to the
-    # BlobStore interface and used here.
-    aff4.FACTORY.Delete("aff4:/blobs/" + blob_id_1, token=self.token)
+    data_store.DB.DeleteBlob(blob_id_1, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     count = 0

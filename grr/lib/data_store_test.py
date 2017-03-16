@@ -320,8 +320,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "aff4:stored",
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
-    self.assertListEqual(values, [("aff4:stored", "3", 4000),
-                                  ("aff4:stored", "2", 1000)])
+    self.assertListEqual(values, [("aff4:stored", "3", 4000), ("aff4:stored",
+                                                               "2", 1000)])
 
     data_store.DB.MultiSet(
         self.test_row, {"aff4:stored": [("4", 3000)]},
@@ -729,13 +729,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 1000))
+      self.assertEqual(predicate1_results[result_index], (predicate1, str(i),
+                                                          i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 1000))
+      self.assertEqual(predicate2_results[result_index], (predicate2, str(i),
+                                                          i * 1000))
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrderPerColumn2(self):
     predicate1 = "metadata:predicate1"
@@ -775,13 +775,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 1000))
+      self.assertEqual(predicate1_results[result_index], (predicate1, str(i),
+                                                          i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 1000))
+      self.assertEqual(predicate2_results[result_index], (predicate2, str(i),
+                                                          i * 1000))
 
   def testScanAttribute(self):
     data_store.DB.Set("aff4:/A", "aff4:foo", "A value", token=self.token)
@@ -1456,6 +1456,19 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertFalse(data_store.DB.BlobExists(empty_digest, token=self.token))
     self.assertIsNone(data_store.DB.ReadBlob(empty_digest, token=self.token))
 
+  @DeletionTest
+  def testBlobDeletion(self):
+    data = "randomdata" * 50
+
+    identifier = data_store.DB.StoreBlob(data, token=self.token)
+
+    self.assertTrue(data_store.DB.BlobExists(identifier, token=self.token))
+    self.assertEqual(data_store.DB.ReadBlob(identifier, token=self.token), data)
+
+    data_store.DB.DeleteBlob(identifier, token=self.token)
+    self.assertFalse(data_store.DB.BlobExists(identifier, token=self.token))
+    self.assertEqual(data_store.DB.ReadBlob(identifier, token=self.token), None)
+
   def testAFF4BlobImage(self):
     # 500k
     data = "randomdata" * 50 * 1024
@@ -1931,8 +1944,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
 
   def setUp(self):
     super(DataStoreCSVBenchmarks, self).setUp(
-        ["DB Size (KB)", "Queries", "Subjects", "Predicates", "Values"],
-        ["<20", "<10", "<10", "<10", "<10"])
+        ["DB Size (KB)", "Queries", "Subjects", "Predicates",
+         "Values"], ["<20", "<10", "<10", "<10", "<10"])
     self.InitDatastore()
     self.start_time = time.time()
     self.last_time = self.start_time
@@ -2526,8 +2539,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
         token=self.token)
     start_time = time.time()
     for _ in range(self.READ_COUNT):
-      for _ in packed_collection.GenerateItems(
-          offset=self.rand.randint(0, self.RECORDS - 1)):
+      for _ in packed_collection.GenerateItems(offset=self.rand.randint(
+          0, self.RECORDS - 1)):
         break
     elapsed_time = time.time() - start_time
     self.AddResult("Packed Coll. random 1 record reads", elapsed_time,
@@ -2536,8 +2549,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     start_time = time.time()
     for _ in range(self.READ_COUNT):
       count = 0
-      for _ in packed_collection.GenerateItems(
-          offset=self.rand.randint(0, self.RECORDS - self.BIG_READ_SIZE)):
+      for _ in packed_collection.GenerateItems(offset=self.rand.randint(
+          0, self.RECORDS - self.BIG_READ_SIZE)):
         count += 1
         if count >= self.BIG_READ_SIZE:
           break
@@ -2577,8 +2590,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for _ in range(self.READ_COUNT):
-      for _ in indexed_collection.GenerateItems(
-          offset=self.rand.randint(0, self.RECORDS - 1)):
+      for _ in indexed_collection.GenerateItems(offset=self.rand.randint(
+          0, self.RECORDS - 1)):
         break
     elapsed_time = time.time() - start_time
     self.AddResult("Seq. Coll. random 1 record reads", elapsed_time,
@@ -2587,8 +2600,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     start_time = time.time()
     for _ in range(self.READ_COUNT):
       count = 0
-      for _ in indexed_collection.GenerateItems(
-          offset=self.rand.randint(0, self.RECORDS - self.BIG_READ_SIZE)):
+      for _ in indexed_collection.GenerateItems(offset=self.rand.randint(
+          0, self.RECORDS - self.BIG_READ_SIZE)):
         count += 1
         if count >= self.BIG_READ_SIZE:
           break
@@ -2623,9 +2636,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     time_used = time.time() - start_time
 
-    self.AddResult("Generate Messages (%d clients, %d files)" %
-                   (self.nr_clients, self.nr_dirs * self.files_per_dir),
-                   time_used, 1)
+    self.AddResult("Generate Messages (%d clients, %d files)" % (
+        self.nr_clients, self.nr_dirs * self.files_per_dir), time_used, 1)
 
     my_worker = worker.GRRWorker(queues=[self.queue], token=self.token)
 

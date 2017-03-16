@@ -588,15 +588,14 @@ class MultiGetFileMixin(object):
     if not self.state.pending_files:
       return
 
-    blob_urns = set()
+    # Check what blobs we already have in the blob store.
+    blob_hashes = []
     for file_tracker in self.state.pending_files.itervalues():
       for hash_response in file_tracker.get("hash_list", []):
-        blob_urn = "aff4:/blobs/%s" % hash_response.data.encode("hex")
-        blob_urns.add(blob_urn)
+        blob_hashes.append(hash_response.data.encode("hex"))
 
-    # Check what blobs we already have in the AFF4 namespace.
-    stats = aff4.FACTORY.Stat(blob_urns, token=self.token)
-    blobs_we_have = set([x["urn"] for x in stats])
+    existing_blobs = data_store.DB.BlobsExist(blob_hashes, token=self.token)
+
     self.state.blob_hashes_pending = 0
 
     # Now iterate over all the blobs and add them directly to the blob image.
@@ -605,8 +604,7 @@ class MultiGetFileMixin(object):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        blob_urn = "aff4:/blobs/%s" % hash_response.data.encode("hex")
-        if blob_urn in blobs_we_have:
+        if existing_blobs[hash_response.data.encode("hex")]:
           # If we have the data we may call our state directly.
           self.CallState(
               [hash_response],
@@ -642,8 +640,8 @@ class MultiGetFileMixin(object):
     response = responses.First()
     file_tracker = self.state.pending_files.get(index)
     if file_tracker:
-      file_tracker.setdefault("blobs", []).append(
-          (response.data, response.length))
+      file_tracker.setdefault("blobs", []).append((response.data,
+                                                   response.length))
 
       download_size = file_tracker["size_to_download"]
       if (response.length < self.CHUNK_SIZE or
