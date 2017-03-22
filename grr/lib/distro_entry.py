@@ -125,6 +125,12 @@ def Client():
   flags.StartMain(client.main)
 
 
+def PoolClient():
+  from grr.client import poolclient
+  SetConfigOptions()
+  flags.StartMain(poolclient.main)
+
+
 def AdminUI():
   from grr.gui import admin_ui
   SetConfigOptions()
