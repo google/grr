@@ -36,6 +36,18 @@
 </script>
 {% endif %}
 
+{% if firebase_api_key %}
+<script>
+  (function () {
+    var config = {
+      apiKey: "{{firebase_api_key}}",
+      authDomain: "{{firebase_auth_domain}}",
+      authProvider: "{{firebase_auth_provider}}"
+    };
+    firebase.initializeApp(config);
+  })();
+</script>
+{% endif %}
 <link rel="shortcut icon" href="/static/images/favicon.png" />
 
 <title>GRR</title>

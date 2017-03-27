@@ -11,5 +11,6 @@ from grr.gui import api_call_router_without_checks_test
 from grr.gui import api_labels_restricted_call_router_test
 from grr.gui import api_value_renderers_test
 from grr.gui import http_api_test
+from grr.gui import webauth_test
 from grr.gui.api_plugins import tests
 # pylint: enable=unused-import

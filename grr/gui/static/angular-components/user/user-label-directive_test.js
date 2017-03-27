@@ -7,6 +7,7 @@ goog.require('grrUi.user.module');
 describe('User label directive', function() {
   var $q, $compile, $rootScope, grrApiService;
 
+  beforeEach(module('/static/angular-components/user/user-label.html'));
   beforeEach(module(grrUi.user.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
@@ -17,37 +18,59 @@ describe('User label directive', function() {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var render = function(mockServerResponse) {
-    // the directive uses grrApiService in the constructor already,
-    // so either mock early or use $provide.
-    mockApiServiceReponse(mockServerResponse);
-
+  var render = function() {
     var template = '<grr-user-label />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;
   };
 
-  var mockApiServiceReponse = function(value){
+
+  it('fetches username and shows it', function() {
+    var mockUserName = 'Test Username';
     spyOn(grrApiService, 'getCached').and.callFake(function() {
       var deferred = $q.defer();
       deferred.resolve({
         data: {
           value: {
             username: {
-              value: value
+              value: mockUserName
             }
           }
         }
       });
       return deferred.promise;
     });
-  }
 
-  it('fetches username and shows it', function() {
-    var mockUserName = 'Test Username';
     var element = render(mockUserName);
-    expect(grrApiService.getCached).toHaveBeenCalled();
-    expect(element.text().trim()).toBe("User: " + mockUserName);
+    expect(element.text().trim()).toBe('User: ' + mockUserName);
+  });
+
+  it('shows special message in case of 403 error', function() {
+    spyOn(grrApiService, 'getCached').and.callFake(function() {
+      var deferred = $q.defer();
+      deferred.reject({
+        status: 403,
+        statusText: 'Unauthorized'
+      });
+      return deferred.promise;
+    });
+
+    var element = render();
+    expect(element.text().trim()).toBe('User: Authentication Error');
+  });
+
+  it('shows status text in case of a non-403 error', function() {
+    spyOn(grrApiService, 'getCached').and.callFake(function() {
+      var deferred = $q.defer();
+      deferred.reject({
+        status: 500,
+        statusText: 'Error'
+      });
+      return deferred.promise;
+    });
+
+    var element = render();
+    expect(element.text().trim()).toBe('User: Error');
   });
 });

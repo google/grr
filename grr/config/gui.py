@@ -33,6 +33,16 @@ config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.")
 
+config_lib.DEFINE_string("AdminUI.firebase_api_key", None,
+                         "Firebase API key. Used by FirebaseWebAuthManager.")
+config_lib.DEFINE_string("AdminUI.firebase_auth_domain", None,
+                         "Firebase API key. Used by FirebaseWebAuthManager.")
+config_lib.DEFINE_string(
+    "AdminUI.firebase_auth_provider", "GoogleAuthProvider",
+    "Firebase auth provider (see "
+    "https://firebase.google.com/docs/auth/web/start). Used by "
+    "FirebaseWebAuthManager.")
+
 # TODO(user): Deprecated, remove at some point.
 config_lib.DEFINE_string("AdminUI.django_secret_key", "CHANGE_ME",
                          "This is deprecated. Used csrf_secret_key instead!.")

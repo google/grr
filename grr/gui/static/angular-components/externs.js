@@ -377,3 +377,18 @@ ui.router.$stateProvider = function(
  * @return {!ui.router.$stateProvider}
  */
 ui.router.$stateProvider.prototype.state = function(name, definition) {};
+
+
+/**
+ * @param {!firebase.auth.AuthProvider} provider The provider to authenticate.
+ *     The provider has to be an OAuth provider. Non-OAuth providers like {@link
+ *     firebase.auth.EmailAuthProvider} will throw an error.
+ * @return {!firebase.Promise<!firebase.User>}
+ */
+firebase.auth.Auth.prototype.signInWithRedirect = function(provider) {};
+
+
+/**
+ * @return {!firebase.Promise<!firebase.auth.UserCredential>}
+ */
+firebase.auth.Auth.prototype.getRedirectResult = function() {};

@@ -57,10 +57,10 @@ def GenerateCSRFToken(user_id, time):
   return token.rstrip("=")
 
 
-def StoreCSRFCookie(request, response):
+def StoreCSRFCookie(user, response):
   """Decorator for WSGI handler that inserts CSRF cookie into response."""
 
-  csrf_token = GenerateCSRFToken(request.user, None)
+  csrf_token = GenerateCSRFToken(user, None)
   response.set_cookie(
       "csrftoken", csrf_token, max_age=CSRF_TOKEN_DURATION.seconds)
 
@@ -114,13 +114,17 @@ def ValidateCSRFTokenOrRaise(request):
     raise werkzeug_exceptions.Forbidden("Expired CSRF token")
 
 
+class RequestHasNoUser(AttributeError):
+  """Error raised when accessing a user of an unautenticated request."""
+
+
 class HttpRequest(werkzeug_wrappers.Request):
   """HTTP request object to be used in GRR."""
 
   def __init__(self, *args, **kwargs):
     super(HttpRequest, self).__init__(*args, **kwargs)
 
-    self.user = None
+    self._user = None
     self.token = None
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
@@ -128,10 +132,12 @@ class HttpRequest(werkzeug_wrappers.Request):
   @property
   def user(self):
     if self._user is None:
-      raise ValueError("Trying to access Request.user while user is unset.")
+      raise RequestHasNoUser(
+          "Trying to access Request.user while user is unset.")
 
     if not self._user:
-      raise ValueError("Trying to access Request.user while user is empty.")
+      raise RequestHasNoUser(
+          "Trying to access Request.user while user is empty.")
 
     return self._user
 
@@ -216,31 +222,36 @@ class AdminUIApp(object):
 
     create_time = psutil.Process(os.getpid()).create_time()
     context = {
-        "heading": config_lib.CONFIG["AdminUI.heading"],
-        "report_url": config_lib.CONFIG["AdminUI.report_url"],
-        "help_url": config_lib.CONFIG["AdminUI.help_url"],
-        "timestamp": utils.SmartStr(create_time),
-        "use_precompiled_js": config_lib.CONFIG["AdminUI.use_precompiled_js"]
+        "heading":
+            config_lib.CONFIG["AdminUI.heading"],
+        "report_url":
+            config_lib.CONFIG["AdminUI.report_url"],
+        "help_url":
+            config_lib.CONFIG["AdminUI.help_url"],
+        "timestamp":
+            utils.SmartStr(create_time),
+        "use_precompiled_js":
+            config_lib.CONFIG["AdminUI.use_precompiled_js"],
+        # Used in conjunction with FirebaseWebAuthManager.
+        "firebase_api_key":
+            config_lib.CONFIG["AdminUI.firebase_api_key"],
+        "firebase_auth_domain":
+            config_lib.CONFIG["AdminUI.firebase_auth_domain"],
+        "firebase_auth_provider":
+            config_lib.CONFIG["AdminUI.firebase_auth_provider"]
     }
     template = env.get_template("base.html")
     response = werkzeug_wrappers.Response(
         template.render(context), mimetype="text/html")
 
-    # Check if we need to set the canary_mode cookie.
-    request.token = self._BuildToken(request, 60)
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(request.user),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=request.token)
-    canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
+    # For a redirect-based Firebase authentication scheme we won't have any
+    # user information at this point - therefore checking if the user is
+    # present.
+    try:
+      StoreCSRFCookie(request.user, response)
+    except RequestHasNoUser:
+      pass
 
-    if canary_mode:
-      response.set_cookie("canary_mode", "true")
-    else:
-      response.delete_cookie("canary_mode")
-
-    StoreCSRFCookie(request, response)
     return response
 
   def _HandleApi(self, request):
@@ -254,9 +265,10 @@ class AdminUIApp(object):
     # GetPendingUserNotificationsCount is an API method that is meant
     # to be invoked very often (every 10 seconds). So it's ideal
     # for updating the CSRF token.
-    if response.headers.get("X-API-Method",
-                            "") == "GetPendingUserNotificationsCount":
-      StoreCSRFCookie(request, response)
+    # We should also store the CSRF token if it wasn't yet stored at all.
+    if (("csrftoken" not in request.cookies) or response.headers.get(
+        "X-API-Method", "") == "GetPendingUserNotificationsCount"):
+      StoreCSRFCookie(request.user, response)
 
     return response
 

@@ -26,8 +26,17 @@ grrUi.user.userLabelDirective.UserLabelController =
     /** @type {string} */
     this.username;
 
-    this.grrApiService_.getCached('users/me').then(function(response){
+    /** @type {string} */
+    this.error;
+
+    this.grrApiService_.getCached('users/me').then(function(response) {
       this.username = response.data['value']['username']['value'];
+    }.bind(this), function(error) {
+      if (error['status'] == 403) {
+        this.error = 'Authentication Error';
+      } else {
+        this.error = error['statusText'] || ('Error');
+      }
     }.bind(this));
   };
 
@@ -46,7 +55,7 @@ grrUi.user.userLabelDirective.UserLabelDirective = function() {
   return {
     scope: true,
     restrict: 'E',
-    template: '<p>User: {$ controller.username $}</p>',
+    templateUrl: '/static/angular-components/user/user-label.html',
     controller: UserLabelController,
     controllerAs: 'controller'
   };

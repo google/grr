@@ -106,6 +106,9 @@ grrUi.core.apiService.ApiService = function(
 
   /** @private {grrUi.core.loadingIndicatorService.LoadingIndicatorService} */
   this.grrLoadingIndicatorService_ = grrLoadingIndicatorService;
+
+  /** @private {!angular.$q.Deferred} */
+  this.authDeferred_ = this.q_.defer();
 };
 var ApiService = grrUi.core.apiService.ApiService;
 
@@ -114,6 +117,33 @@ var ApiService = grrUi.core.apiService.ApiService;
  * Name of the service in Angular.
  */
 ApiService.service_name = 'grrApiService';
+
+
+/**
+ * Executes a given function only when authentication setup was done (i.e. after
+ * markAuthDone was called).
+ *
+ * @param {function()} fn Callback to be called when authentication is done.
+ * @return {!angular.$q.Promise} Promise that will be resolved with a callback
+ *     return value after the authentication setup is done.
+ * @private
+ */
+ApiService.prototype.waitForAuth_ = function(fn) {
+  return this.authDeferred_.promise.then(function() {
+    return fn();
+  });
+};
+
+/**
+ * This marks authentication setup as done, immediately resolving all promises
+ * created by ApiService calls and blocked on the authentication setup.
+ *
+ * @export
+ */
+ApiService.prototype.markAuthDone = function() {
+  this.authDeferred_.resolve();
+};
+
 
 /**
  * Fetches data for a given API url via the specified HTTP method.
@@ -134,15 +164,17 @@ ApiService.prototype.sendRequestWithoutPayload_ = function(
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();
   var url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
 
-  var promise = /** @type {function(Object)} */ (this.http_)({
-    method: method,
-    url: url,
-    params: requestParams,
-    cache: requestSettings['cache']
-  });
+  return this.waitForAuth_(function() {
+    var promise = /** @type {function(Object)} */ (this.http_)({
+      method: method,
+      url: url,
+      params: requestParams,
+      cache: requestSettings['cache']
+    });
 
-  return promise.finally(function() {
-    this.grrLoadingIndicatorService_.stopLoading(loadingKey);
+    return promise.finally(function() {
+      this.grrLoadingIndicatorService_.stopLoading(loadingKey);
+    }.bind(this));
   }.bind(this));
 };
 
@@ -367,10 +399,12 @@ ApiService.prototype.sendRequestWithPayload_ = function(
     };
   }
 
-  var loadingKey = this.grrLoadingIndicatorService_.startLoading();
-  var promise = /** @type {function(Object)} */ (this.http_)(request);
-  return promise.finally(function() {
-    this.grrLoadingIndicatorService_.stopLoading(loadingKey);
+  return this.waitForAuth_(function() {
+    var loadingKey = this.grrLoadingIndicatorService_.startLoading();
+    var promise = /** @type {function(Object)} */ (this.http_)(request);
+    return promise.finally(function() {
+      this.grrLoadingIndicatorService_.stopLoading(loadingKey);
+    }.bind(this));
   }.bind(this));
 };
 

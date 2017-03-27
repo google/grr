@@ -1,0 +1,6 @@
+<p ng-if="!controller.error">
+  User: {$ controller.username $}
+</p>
+<p ng-if="controller.error">
+  User: <span class="text-danger"><em>{$ controller.error $}</em></span>
+</p>

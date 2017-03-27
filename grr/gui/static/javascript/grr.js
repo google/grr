@@ -391,7 +391,7 @@ grrUiApp.config(function($httpProvider, $interpolateProvider,
   $rootScopeProvider.digestTtl(50);
 });
 
-grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {
+grrUiApp.run(function($injector, $http, $cookies, grrFirebaseService, grrReflectionService) {
   grr.angularInjector = $injector;
 
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
@@ -400,11 +400,12 @@ grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {
     'X-CSRFToken': $cookies.get('csrftoken')
   };
 
+  grrFirebaseService.setupIfNeeded();
+
   // Call reflection service as soon as possible in the app lifetime to cache
   // the values. "ACLToken" is picked up here as an arbitrary name.
   // grrReflectionService loads all RDFValues definitions on first request
   // and then caches them.
-
   grrReflectionService.getRDFValueDescriptor('ACLToken');
 });
 

@@ -17,6 +17,7 @@ goog.require('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
 goog.require('grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
+goog.require('grrUi.core.firebaseService.FirebaseService');
 goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
 goog.require('grrUi.core.hexNumberFilter.HexNumberFilter');
@@ -162,6 +163,9 @@ grrUi.core.module.directive(
     grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective.directive_name,
     grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective);
 
+grrUi.core.module.service(
+    grrUi.core.firebaseService.FirebaseService.service_name,
+    grrUi.core.firebaseService.FirebaseService);
 grrUi.core.module.service(
     grrUi.core.reflectionService.ReflectionService.service_name,
     grrUi.core.reflectionService.ReflectionService);

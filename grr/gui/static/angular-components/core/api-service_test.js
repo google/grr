@@ -19,6 +19,8 @@ describe('API service', function() {
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
+
+    grrApiService.markAuthDone();
   }));
 
   afterEach(function() {

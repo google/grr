@@ -29,6 +29,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
@@ -501,12 +502,33 @@ class CSRFProtectionTest(ApiE2ETest):
     # Hunt H:123456 doesn't exist.
     self.assertEquals(response.status_code, 404)
 
+  def testCSRFTokenIsUpdatedIfNotPresentInCookies(self):
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+    self.assertTrue(csrf_token)
+
+    # Check that calling GetGrrUser method doesn't update the cookie.
+    get_user_response = requests.get(self.base_url + "/api/users/me")
+    csrf_token_2 = get_user_response.cookies.get("csrftoken")
+    self.assertTrue(csrf_token_2)
+
+    self.assertNotEqual(csrf_token, csrf_token_2)
+
+  def testCSRFTokenIsNotUpdtedIfUserIsUnknown(self):
+    fake_manager = webauth.NullWebAuthManager()
+    fake_manager.SetUserName("")
+    with utils.Stubber(webauth, "WEBAUTH_MANAGER", fake_manager):
+      index_response = requests.get(self.base_url)
+      csrf_token = index_response.cookies.get("csrftoken")
+      self.assertIsNone(csrf_token)
+
   def testGetPendingUserNotificationCountMethodRefreshesCSRFToken(self):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
     # Check that calling GetGrrUser method doesn't update the cookie.
-    get_user_response = requests.get(self.base_url + "/api/users/me")
+    get_user_response = requests.get(
+        self.base_url + "/api/users/me", cookies={"csrftoken": csrf_token})
     csrf_token_2 = get_user_response.cookies.get("csrftoken")
 
     self.assertIsNone(csrf_token_2)
@@ -514,7 +536,8 @@ class CSRFProtectionTest(ApiE2ETest):
     # Check that calling GetPendingUserNotificationsCount refreshes the
     # token.
     notifications_response = requests.get(
-        self.base_url + "/api/users/me/notifications/pending/count")
+        self.base_url + "/api/users/me/notifications/pending/count",
+        cookies={"csrftoken": csrf_token})
     csrf_token_3 = notifications_response.cookies.get("csrftoken")
 
     self.assertTrue(csrf_token_3)

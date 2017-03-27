@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
 
+from oauth2client import client
+from oauth2client import crypt
+
 from werkzeug import utils as werkzeug_utils
-from werkzeug import wrappers
+from werkzeug import wrappers as werkzeug_wrappers
 
 import logging
 
@@ -76,13 +79,64 @@ class BasicWebAuthManager(BaseWebAuthManager):
       pass
 
     if not authorized:
-      result = wrappers.Response("Unauthorized", status=401)
+      result = werkzeug_wrappers.Response("Unauthorized", status=401)
       result.headers["WWW-Authenticate"] = "Basic realm='Secure Area'"
       return result
 
     # Modify this to implement additional checking (e.g. enforce SSL).
     response = func(request, *args, **kwargs)
     return response
+
+
+class FirebaseWebAuthManager(BaseWebAuthManager):
+  """Manager using Firebase auth service."""
+
+  BEARER_PREFIX = "Bearer "
+  SECURE_TOKEN_PREFIX = "https://securetoken.google.com/"
+  CERT_URI = ("https://www.googleapis.com/robot/v1/metadata/x509/"
+              "securetoken@system.gserviceaccount.com")
+
+  def __init__(self, *args, **kwargs):
+    super(FirebaseWebAuthManager, self).__init__(*args, **kwargs)
+
+    def_router = config_lib.CONFIG["API.DefaultRouter"]
+    if def_router != "DisabledApiCallRouter":
+      raise RuntimeError("Using FirebaseWebAuthManager with API.DefaultRouter "
+                         "being anything but DisabledApiCallRouter means "
+                         "risking opening your GRR UI/API to the world. "
+                         "Current setting is: %s" % def_router)
+
+  def AuthError(self, message):
+    return werkzeug_wrappers.Response(message, status=403)
+
+  def SecurityCheck(self, func, request, *args, **kwargs):
+    """Check if access should be allowed for the request."""
+
+    try:
+      auth_header = request.headers.get("Authorization", "")
+      if not auth_header.startswith(self.BEARER_PREFIX):
+        raise crypt.AppIdentityError("JWT token is missing.")
+
+      token = auth_header[len(self.BEARER_PREFIX):]
+
+      auth_domain = config_lib.CONFIG["AdminUI.firebase_auth_domain"]
+      project_id = auth_domain.split(".")[0]
+
+      idinfo = client.verify_id_token(token, project_id, cert_uri=self.CERT_URI)
+
+      if idinfo["iss"] != self.SECURE_TOKEN_PREFIX + project_id:
+        raise crypt.AppIdentityError("Wrong issuer.")
+
+      request.user = idinfo["email"]
+    except crypt.AppIdentityError as e:
+      # For a homepage, just do a pass-through, otherwise JS code responsible
+      # for the Firebase auth won't ever get executed. This approach is safe,
+      # because wsgiapp.HttpRequest object will raise on any attempt to
+      # access uninitialized HttpRequest.user attribute.
+      if request.path != "/":
+        return self.AuthError("JWT token validation failed: %s" % e)
+
+    return func(request, *args, **kwargs)
 
 
 class NullWebAuthManager(BaseWebAuthManager):

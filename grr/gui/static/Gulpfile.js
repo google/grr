@@ -41,6 +41,8 @@ gulp.task('compile-third-party-js', function() {
                    config.bowerDir + '/angular-bootstrap/ui-bootstrap-tpls.js',
                    config.bowerDir + '/angular-ui-router/release/angular-ui-router.js',
 
+                   config.bowerDir + '/firebase/firebase-app.js',
+                   config.bowerDir + '/firebase/firebase-auth.js',
                    config.bowerDir + '/Flot/jquery.flot.js',
                    config.bowerDir + '/Flot/jquery.flot.navigate.js',
                    config.bowerDir + '/Flot/jquery.flot.pie.js',

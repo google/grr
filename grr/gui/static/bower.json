@@ -29,7 +29,8 @@
     "bootstrap": "3.3.6",
     "angular-bootstrap": "1.3.3",
     "angular-ui-router": "0.2.18",
-    "jquery-ui": "1.11.4"
+    "jquery-ui": "1.11.4",
+    "firebase": "3.7.2"
   },
   "devDependencies": {
     "closure-compiler": "https://dl.google.com/closure-compiler/compiler-20160619.zip",
