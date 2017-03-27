@@ -24,8 +24,8 @@ RUN apt-get update && \
 # Install proto compiler
 RUN mkdir -p /usr/share/protobuf && \
 cd /usr/share/protobuf && \
-wget --quiet "https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-linux-x86_64.zip" && \
-unzip protoc-3.0.0-linux-x86_64.zip
+wget --quiet "https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip" && \
+unzip protoc-3.2.0-linux-x86_64.zip
 ENV PROTOC /usr/share/protobuf/bin/protoc
 
 # Make sure Bower will be able to run as root.

@@ -5,7 +5,7 @@
 set -e
 
 OS=$1
-VERSION=3.0.0
+VERSION=3.2.0
 ARCH=$(uname -m)
 # Get arch in the format that the protobuf urls use
 if [ "${ARCH}" == "i686" ]; then

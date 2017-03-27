@@ -357,9 +357,14 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
     return self.driver.execute_script(js_expression)
 
   def _WaitForAjaxCompleted(self):
-    self.WaitUntilEqual(
-        0, self.GetJavaScriptValue,
-        "return $('#ajax_spinner').scope().controller.queue.length")
+    self.driver.execute_script("""
+window._grrHasOutstandingRequests = true;
+$('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() {
+  window._grrHasOutstandingRequests = false;
+});
+""")
+    self.WaitUntilNot(self.GetJavaScriptValue,
+                      "return window._grrHasOutstandingRequests")
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):

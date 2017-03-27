@@ -72,9 +72,9 @@ def MakeProto(python_out):
       raise RuntimeError("Unable to launch %s protoc compiler. Please "
                          "set the PROTOC environment variable.", protoc)
 
-    if "3.0.0" not in output:
+    if "3.2.0" not in output:
       raise RuntimeError("Incompatible protoc compiler detected. "
-                         "We need 3.0.0 not %s" % output)
+                         "We need 3.2.0 not %s" % output)
 
     for proto in protos_to_compile:
       logging.info("Compiling %s", proto)

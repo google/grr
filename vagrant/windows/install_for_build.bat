@@ -37,8 +37,8 @@ start /wait msiexec.exe /i C:\grr_deps\VCForPython27.msi /passive
 
 :: Install protobuf compiler - needed for building sdist
 echo Installing protobuf compiler
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-win32.zip', 'C:\grr_deps\protoc-3.0.0-win32.zip')"
-C:\Python27-x64\python.exe -m "zipfile" -e C:\grr_deps\protoc-3.0.0-win32.zip C:\grr_deps\protoc
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-win32.zip', 'C:\grr_deps\protoc-3.2.0-win32.zip')"
+C:\Python27-x64\python.exe -m "zipfile" -e C:\grr_deps\protoc-3.2.0-win32.zip C:\grr_deps\protoc
 C:\grr_deps\protoc\bin\protoc.exe --version || echo "proto compiler install failed" && exit /b 1
 
 echo GRR dependency installation complete

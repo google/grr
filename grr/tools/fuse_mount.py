@@ -555,8 +555,11 @@ def main(unused_argv):
   if fuse is None:
     logging.critical("""Could not start!
 fusepy must be installed to run fuse_mount.py!
-Try:
-  sudo pip install fusepy""")
+Try to run:
+  pip install fusepy
+
+inside your virtualenv.
+""")
     sys.exit(1)
 
   if not flags.FLAGS.mountpoint:

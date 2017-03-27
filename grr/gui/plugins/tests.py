@@ -12,6 +12,7 @@ from grr.gui.plugins import artifact_view_test
 # it can be enabled
 # from grr.gui.plugins import crash_view_test
 from grr.gui.plugins import cron_view_test
+from grr.gui.plugins import dir_refresh_test
 from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_archive_test
 from grr.gui.plugins import flow_copy_test

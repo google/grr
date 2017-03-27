@@ -88,14 +88,13 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {angular.$http} $http The Angular http service.
  * @param {!angular.$q} $q
  * @param {!angular.$interval} $interval
- * @param {!angular.$timeout} $timeout
  * @param {grrUi.core.loadingIndicatorService.LoadingIndicatorService} grrLoadingIndicatorService
  * @constructor
  * @ngInject
  * @export
  */
 grrUi.core.apiService.ApiService = function(
-    $http, $q, $interval, $timeout, grrLoadingIndicatorService) {
+    $http, $q, $interval, grrLoadingIndicatorService) {
   /** @private {angular.$http} */
   this.http_ = $http;
 
@@ -104,9 +103,6 @@ grrUi.core.apiService.ApiService = function(
 
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
-
-  /** @private {!angular.$timeout} */
-  this.timeout_ = $timeout;
 
   /** @private {grrUi.core.loadingIndicatorService.LoadingIndicatorService} */
   this.grrLoadingIndicatorService_ = grrLoadingIndicatorService;
@@ -208,28 +204,34 @@ ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
     }.bind(this);
   }
 
-  var cancelled = false;
+  var result = this.q_.defer();
+  var inProgress = false;
   var pollIteration = function() {
-    if (cancelled) {
-      return;
-    }
-
-    return this.get(apiPath, opt_params).then(function success(response) {
+    inProgress = true;
+    this.get(apiPath, opt_params).then(function success(response) {
       if (opt_checkFn(response)) {
-        return response;
-      } else {
-        return this.timeout_(pollIteration, 1000);
+        result.resolve(response);
       }
     }.bind(this), function failure(response) {
-      return this.q_.reject(response);
+      result.reject(response);
+    }.bind(this)).finally(function() {
+      inProgress = false;
     }.bind(this));
   }.bind(this);
 
-  var result = pollIteration();
-  result['cancel'] = function() {
-    cancelled = true;
-  };
-  return result;
+  pollIteration();
+
+  var intervalPromise = this.interval_(function() {
+    if (!inProgress) {
+      pollIteration();
+    }
+  }.bind(this), 1000);
+  result.promise['cancel'] = function() {
+    this.interval_.cancel(intervalPromise);
+  }.bind(this);
+  result.promise.finally(result.promise['cancel']);
+
+  return result.promise;
 };
 
 /**

@@ -43,8 +43,8 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     # Check that the list is refreshed.
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
 
-    # Clear out the registry and load the same artifact directly from the file.
-    artifact_registry.REGISTRY.ClearRegistry()
+  def testSystemArtifactOverwriteIsForbidden(self):
+    # Load the artifact directly from the file.
     artifact_registry.REGISTRY.AddFileSource(self.json_file)
 
     self.Open("/#main=ArtifactManagerView")

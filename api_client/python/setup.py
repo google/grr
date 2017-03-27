@@ -145,7 +145,7 @@ setup_args = dict(
     },
     install_requires=[
         "ipython==5.0.0",
-        "protobuf==3.0.0",
+        "protobuf==3.2.0",
         "requests==2.9.1",
         "Werkzeug==0.11.3",
     ],

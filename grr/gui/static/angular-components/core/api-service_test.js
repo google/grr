@@ -11,14 +11,13 @@ var grr = grr || {};
 
 
 describe('API service', function() {
-  var $httpBackend, $interval, $timeout, grrApiService;
+  var $httpBackend, $interval, grrApiService;
 
   beforeEach(module(grrUi.core.module.name));
 
   beforeEach(inject(function($injector) {
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
-    $timeout = $injector.get('$timeout');
     grrApiService = $injector.get('grrApiService');
   }));
 
@@ -234,7 +233,7 @@ describe('API service', function() {
       grrApiService.poll('some/path');
 
       $httpBackend.flush();
-      $timeout.flush(2000);
+      $interval.flush(2000);
       // No requests should be outstanding by this point.
     });
 
@@ -288,7 +287,7 @@ describe('API service', function() {
       $httpBackend.flush();
 
       $httpBackend.expectGET('/api/some/path').respond(200, {});
-      $timeout.flush(2000);
+      $interval.flush(2000);
       $httpBackend.flush();
     });
 
@@ -310,7 +309,7 @@ describe('API service', function() {
         'foo': 'bar',
         'state': 'FINISHED'
       });
-      $timeout.flush(2000);
+      $interval.flush(2000);
       $httpBackend.flush();
 
       expect(successHandlerCalled).toBe(true);
@@ -341,7 +340,7 @@ describe('API service', function() {
       $httpBackend.flush();
 
       $httpBackend.expectGET('/api/some/path').respond(500);
-      $timeout.flush(2000);
+      $interval.flush(2000);
       $httpBackend.flush();
 
       expect(failureHandleCalled).toBe(true);
