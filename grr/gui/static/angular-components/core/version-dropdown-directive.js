@@ -59,6 +59,12 @@ VersionDropdownController.prototype.fetchVersions_ = function() {
   if (angular.isDefined(url)) {
     this.updateInProgress_ = true;
     this.grrApiService_.get(url).then(function success(response) {
+      // If promise is resolved, but the URL has changed in the meantime,
+      // just ignore the results.
+      if (url != this.scope_['url']) {
+        return;
+      }
+
       this.versions = response['data'][responseField];
 
       // If no versions were fetched from the server, do nothing and

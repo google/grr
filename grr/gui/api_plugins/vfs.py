@@ -135,8 +135,8 @@ class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
       if not hasattr(aff4_cls, "SchemaCls"):
         continue
 
-      type_repr = ApiAff4ObjectType().InitFromAff4Object(aff4_obj, aff4_cls,
-                                                         attr_blacklist)
+      type_repr = ApiAff4ObjectType().InitFromAff4Object(
+          aff4_obj, aff4_cls, attr_blacklist)
 
       if type_repr.attributes:
         self.types.append(type_repr)
@@ -473,7 +473,6 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
         token=token)
 
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
-
     return ApiGetFileVersionTimesResult(times=sorted(
         [t.age for t in type_values], reverse=True))
 

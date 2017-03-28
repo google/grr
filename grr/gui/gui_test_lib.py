@@ -189,6 +189,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
 
   def CheckJavascriptErrors(self):
     for message in self.driver.get_log("browser"):
+      logging.info("[javascript:%s]: %s",
+                   message.get("level", ""), message["message"])
       if (message.get("source", "") == "javascript" and
           message.get("level", "") == "SEVERE"):
         self.fail("Javascript error ecountered during test: %s" %
@@ -208,6 +210,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
+      self.CheckJavascriptErrors()
       time.sleep(self.sleep_time)
 
     raise RuntimeError("condition not met, body is: %s" %
@@ -363,8 +366,8 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
   window._grrHasOutstandingRequests = false;
 });
 """)
-    self.WaitUntilNot(self.GetJavaScriptValue,
-                      "return window._grrHasOutstandingRequests")
+    self.WaitUntilEqual(False, self.GetJavaScriptValue,
+                        "return window._grrHasOutstandingRequests || false")
 
   @SeleniumAction
   def Type(self, target, text, end_with_enter=False):
@@ -463,7 +466,8 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 
       time.sleep(self.sleep_time)
 
-    raise RuntimeError("condition not met. Got %r" % data)
+    raise RuntimeError("condition not met. got: %r, does not contain: %s" %
+                       (data, target))
 
   def _MakeFixtures(self):
     # Install the mock security manager so we can trap errors in interactive

@@ -59,17 +59,6 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
 
-    # Set up multiple version for an attribute on the client for tests.
-    with self.ACLChecksDisabled():
-      for fake_time, hostname in [(gui_test_lib.TIME_0, "HostnameV1"),
-                                  (gui_test_lib.TIME_1, "HostnameV2"),
-                                  (gui_test_lib.TIME_2, "HostnameV3")]:
-        with test_lib.FakeTime(fake_time):
-          client = aff4.FACTORY.Open(
-              u"C.0000000000000001", mode="rw", token=self.token)
-          client.Set(client.Schema.HOSTNAME(hostname))
-          client.Close()
-
     self.Open("/")
 
     self.Type("client_query", "C.0000000000000001")
@@ -94,8 +83,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
     # Verify that we have the latest version in the table by default.
     self.assertTrue(
-        gui_test_lib.DateString(gui_test_lib.TIME_2) in
-        self.GetText("css=tr:contains(\"a.txt\")"))
+        gui_test_lib.DateString(
+            gui_test_lib.TIME_2) in self.GetText("css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
     self.Click("css=tr:contains(\"a.txt\")")
