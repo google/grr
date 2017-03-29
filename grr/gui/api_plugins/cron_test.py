@@ -11,6 +11,7 @@ from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class CronJobsTestMixin(object):
@@ -28,6 +29,21 @@ class CronJobsTestMixin(object):
 
     return cronjobs.CRON_MANAGER.ScheduleFlow(
         cron_args, job_name=flow_name, disabled=disabled, token=token)
+
+
+class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiCreateCronJobHandler."""
+
+  def setUp(self):
+    super(ApiCreateCronJobHandlerTest, self).setUp()
+    self.handler = cron_plugin.ApiCreateCronJobHandler()
+
+  def testBaseSessionIdFlowRunnerArgumentIsNotRespected(self):
+    args = cron_plugin.ApiCronJob(
+        flow_name="CreateAndRunGenericHuntFlow",
+        flow_runner_args=rdf_flows.FlowRunnerArgs(base_session_id="aff4:/foo"))
+    result = self.handler.Handle(args, token=self.token)
+    self.assertFalse(result.flow_runner_args.HasField("base_session_id"))
 
 
 class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,

@@ -889,6 +889,16 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if not flow_name:
       raise RuntimeError("Flow name is not specified.")
 
+    # Clear all fields marked with HIDDEN, except for output_plugins - they are
+    # marked HIDDEN, because we have a separate UI for them, not because they
+    # shouldn't be shown to the user at all.
+    #
+    # TODO(user): Refactor the code to remove the HIDDEN label from
+    # FlowRunnerArgs.output_plugins.
+    args.flow.runner_args.ClearFieldsWithLabel(
+        rdf_structs.SemanticDescriptor.Labels.HIDDEN,
+        exceptions="output_plugins")
+
     client_urn = None
     if args.client_id:
       client_urn = args.client_id.ToClientURN()

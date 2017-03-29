@@ -1835,6 +1835,15 @@ class RDFStruct(rdfvalue.RDFValue):
     # Make sure to invalidate our parent's cache if needed.
     self.dirty = True
 
+  def ClearFieldsWithLabel(self, label, exceptions=None):
+    exceptions = exceptions or []
+    for desc, value in self.ListSetFields():
+      if desc.name not in exceptions and label in desc.labels:
+        self.Set(desc.name, None)
+      else:
+        if hasattr(value, "ClearFieldsWithLabel"):
+          value.ClearFieldsWithLabel(label, exceptions=exceptions)
+
   @classmethod
   def AddDescriptor(cls, field_desc):
     if not isinstance(field_desc, ProtoType):

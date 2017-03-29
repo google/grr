@@ -28,7 +28,8 @@ class TestStruct(structs.RDFProtoStruct):
           name="foobar",
           field_number=1,
           default="string",
-          description="A string value"),
+          description="A string value",
+          labels=[structs.SemanticDescriptor.Labels.HIDDEN]),
       structs.ProtoUnsignedInteger(
           name="int", field_number=2, default=5,
           description="An integer value"),
@@ -627,6 +628,19 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     tested_union.first = 1.61803399
     # Raises if there is a flavored field set that doesn't match struct_flavor.
     self.assertRaises(ValueError, tested_union.UnionCast)
+
+  def testClearFieldsWithLabelWorksCorrectly(self):
+    t = TestStruct(foobar="foo", int=42)
+    t.ClearFieldsWithLabel(structs.SemanticDescriptor.Labels.HIDDEN)
+    self.assertFalse(t.HasField("foobar"))
+    self.assertTrue(t.HasField("int"))
+
+  def testClearFieldsWithLabelWorksCorrectlyOnNestedStructures(self):
+    t = TestStruct(foobar="foo", int=42)
+    t.nested = TestStruct(foobar="bar", int=43)
+    t.ClearFieldsWithLabel(structs.SemanticDescriptor.Labels.HIDDEN)
+    self.assertFalse(t.nested.HasField("foobar"))
+    self.assertTrue(t.nested.HasField("int"))
 
 
 def main(argv):

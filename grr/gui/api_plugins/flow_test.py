@@ -135,6 +135,27 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
         nested_flows[0].urn)
 
 
+class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiCreateFlowHandler."""
+
+  def setUp(self):
+    super(ApiCreateFlowHandlerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.handler = flow_plugin.ApiCreateFlowHandler()
+
+  def testRunnerArgsBaseSessionIdDoesNotAffectCreatedFlow(self):
+    """When multiple clients match, check we run on the latest one."""
+    flow_runner_args = rdf_flows.FlowRunnerArgs(base_session_id="aff4:/foo")
+    args = flow_plugin.ApiCreateFlowArgs(
+        client_id=self.client_id.Basename(),
+        flow=flow_plugin.ApiFlow(
+            name=processes.ListProcesses.__name__,
+            runner_args=flow_runner_args))
+
+    result = self.handler.Handle(args, token=self.token)
+    self.assertFalse(utils.SmartStr(result.urn).startswith("aff4:/foo"))
+
+
 class ApiStartRobotGetFilesOperationHandlerTest(
     api_test_lib.ApiCallHandlerTest):
   """Test for ApiStartRobotGetFilesOperationHandler."""

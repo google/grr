@@ -203,6 +203,15 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Only CreateAndRunGenericHuntFlow flows are supported "
                        "here (got: %s)." % args.flow_name)
 
+    # Clear all fields marked with HIDDEN, except for output_plugins - they are
+    # marked HIDDEN, because we have a separate UI for them, not because they
+    # shouldn't be shown to the user at all.
+    #
+    # TODO(user): Refactor the code to remove the HIDDEN label from
+    # FlowRunnerArgs.output_plugins.
+    args.flow_runner_args.ClearFieldsWithLabel(
+        rdf_structs.SemanticDescriptor.Labels.HIDDEN,
+        exceptions="output_plugins")
     if not args.flow_runner_args.flow_name:
       args.flow_runner_args.flow_name = args.flow_name
 

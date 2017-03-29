@@ -927,8 +927,8 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     all_flow_urns = hunts.GRRHunt.GetAllSubflowUrns(
         hunt_urn, all_clients_urns, token=token)
     flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns, token)
-    client_requests = aff4_grr.VFSGRRClient.GetClientRequests(all_clients_urns,
-                                                              token)
+    client_requests = aff4_grr.VFSGRRClient.GetClientRequests(
+        all_clients_urns, token)
 
     waitingfor = {}
     status_by_request = {}
@@ -1101,6 +1101,15 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     generic_hunt_args.flow_runner_args.flow_name = args.flow_name
     generic_hunt_args.flow_args = args.flow_args
 
+    # Clear all fields marked with HIDDEN, except for output_plugins - they are
+    # marked HIDDEN, because we have a separate UI for them, not because they
+    # shouldn't be shown to the user at all.
+    #
+    # TODO(user): Refactor the code to remove the HIDDEN label from
+    # HuntRunnerArgs.output_plugins.
+    args.hunt_runner_args.ClearFieldsWithLabel(
+        rdf_structs.SemanticDescriptor.Labels.HIDDEN,
+        exceptions="output_plugins")
     args.hunt_runner_args.hunt_name = standard.GenericHunt.__name__
 
     # Anyone can create the hunt but it will be created in the paused
@@ -1267,5 +1276,6 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     plugin = plugin_cls(source_urn=hunt_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name,
-        content_generator=instant_output_plugin.
-        ApplyPluginToMultiTypeCollection(plugin, output_collection))
+        content_generator=
+        instant_output_plugin.ApplyPluginToMultiTypeCollection(
+            plugin, output_collection))

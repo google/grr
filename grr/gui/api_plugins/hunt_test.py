@@ -69,6 +69,22 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestCase):
     self.assertEqual(hunt_urn, "aff4:/hunts/H:1234")
 
 
+class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
+                               standard_test.StandardHuntTestMixin):
+  """Test for ApiCreateHuntHandler."""
+
+  def setUp(self):
+    super(ApiCreateHuntHandlerTest, self).setUp()
+    self.handler = hunt_plugin.ApiCreateHuntHandler()
+
+  def testQueueHuntRunnerArgumentIsNotRespected(self):
+    args = hunt_plugin.ApiCreateHuntArgs(
+        flow_name=file_finder.FileFinder.__name__)
+    args.hunt_runner_args.queue = "BLAH"
+    result = self.handler.Handle(args, token=self.token)
+    self.assertFalse(result.hunt_runner_args.HasField("queue"))
+
+
 class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
                               standard_test.StandardHuntTestMixin):
   """Test for ApiAff4Handler."""

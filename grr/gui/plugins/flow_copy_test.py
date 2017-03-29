@@ -11,6 +11,7 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.flows.general import processes as flows_processes
+from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -26,7 +27,8 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
     pass
 
 
-class TestFlowCopy(gui_test_lib.GRRSeleniumTest):
+class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
+                   standard_test.StandardHuntTestMixin):
 
   def setUp(self):
     super(TestFlowCopy, self).setUp()
@@ -34,6 +36,8 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest):
     # Prepare our fixture.
     with self.ACLChecksDisabled():
       self.client_id = rdf_client.ClientURN("C.0000000000000001")
+      # This attribute is used by StandardHuntTestMixin.
+      self.client_ids = [self.client_id]
       test_lib.ClientFixture(self.client_id, self.token)
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
@@ -184,6 +188,27 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest):
                   plugin_args=flows_processes.ListProcessesArgs(
                       filename_regex="foobar!")), self.email_descriptor
           ])
+
+  def testCopyingHuntFlowWorks(self):
+    with self.ACLChecksDisabled():
+      self.StartHunt(description="demo hunt")
+      self.AssignTasksToClients(client_ids=[self.client_id])
+      self.RunHunt(failrate=-1)
+
+    # Navigate to client and select newly created hunt flow.
+    self.Open("/#/clients/%s" % self.client_id.Basename())
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # StartHunt creates a hunt with a GetFile flow, so selecting a GetFile row.
+    self.Click("css=td:contains('GetFile')")
+    self.Click("css=button[name=copy_flow]")
+    self.Click("css=button:contains('Launch')")
+
+    # Check that flows list got updated and that the new flow is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-client-flows-list tr:contains('GetFile'):nth(1)")
+    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
+                   "tr:contains('GetFile'):nth(0).row-selected")
 
 
 def main(argv):
