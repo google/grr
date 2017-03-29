@@ -50,8 +50,7 @@ class TestStruct(structs.RDFProtoStruct):
           name="type",
           field_number=7,
           enum_name="Type",
-          enum=dict(
-              FIRST=1, SECOND=2, THIRD=3),
+          enum=dict(FIRST=1, SECOND=2, THIRD=3),
           default=3,
           description="An enum field"),
       structs.ProtoFloat(
@@ -64,8 +63,7 @@ class TestStruct(structs.RDFProtoStruct):
 # In order to define a recursive structure we must add it manually after the
 # class definition.
 TestStruct.AddDescriptor(
-    structs.ProtoEmbedded(
-        name="nested", field_number=4, nested=TestStruct),)
+    structs.ProtoEmbedded(name="nested", field_number=4, nested=TestStruct),)
 
 TestStruct.AddDescriptor(
     structs.ProtoList(
@@ -76,8 +74,7 @@ TestStruct.AddDescriptor(
 class PartialTest1(structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
   type_description = type_info.TypeDescriptorSet(
-      structs.ProtoUnsignedInteger(
-          name="int", field_number=2),)
+      structs.ProtoUnsignedInteger(name="int", field_number=2),)
 
 
 class DynamicTypeTest(structs.RDFProtoStruct):
@@ -145,8 +142,7 @@ class UnionTest(structs.RDFProtoStruct):
           name="struct_flavor",
           field_number=1,
           enum_name="Type",
-          enum=dict(
-              FIRST=1, SECOND=2, THIRD=3),
+          enum=dict(FIRST=1, SECOND=2, THIRD=3),
           default=3,
           description="An union enum field"),
       structs.ProtoFloat(
@@ -241,7 +237,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
         "grr_export")
 
     pool = descriptor_pool.DescriptorPool()
-    for file_descriptor in [test_pb_file_descriptor] + deps:
+    for file_descriptor in deps + [test_pb_file_descriptor]:
       pool.Add(file_descriptor)
 
     proto_descriptor = pool.FindMessageTypeByName("grr_export.DynamicTypeTest")
@@ -263,7 +259,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
         DynamicAnyValueTypeTest.EmitProtoFileDescriptor("grr_export"))
 
     pool = descriptor_pool.DescriptorPool()
-    for file_descriptor in [test_pb_file_descriptor] + deps:
+    for file_descriptor in deps + [test_pb_file_descriptor]:
       pool.Add(file_descriptor)
     proto_descriptor = pool.FindMessageTypeByName(
         "grr_export.DynamicAnyValueTypeTest")
@@ -298,11 +294,8 @@ class RDFStructsTest(test_base.RDFValueTestCase):
         type_info.TypeValueError, structs.ProtoEmbedded, name="name")
 
     # Adding a duplicate field number should raise.
-    self.assertRaises(
-        type_info.TypeValueError,
-        TestStruct.AddDescriptor,
-        structs.ProtoUnsignedInteger(
-            name="int", field_number=2))
+    self.assertRaises(type_info.TypeValueError, TestStruct.AddDescriptor,
+                      structs.ProtoUnsignedInteger(name="int", field_number=2))
 
     # Adding a descriptor which is not a Proto* descriptor is not allowed for
     # Struct fields:

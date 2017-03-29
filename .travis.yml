@@ -26,8 +26,7 @@ before_install:
 install:
 - /bin/bash travis/install.sh
 script:
-# TODO(grr): fix RDFStructsTest to pass with PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp.
-  - source ${HOME}/INSTALL/bin/activate && env PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python grr_run_tests --processes=2 && /bin/bash travis/deploy_to_gcs.sh
+  - source ${HOME}/INSTALL/bin/activate && grr_run_tests --processes=2 && /bin/bash travis/deploy_to_gcs.sh
 addons:
   apt:
     packages:

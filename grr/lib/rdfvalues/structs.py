@@ -410,10 +410,9 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self):
-    return "<Field %s (%s) of %s: field_number: %s>" % (self.name,
-                                                        self.__class__.__name__,
-                                                        self.owner.__name__,
-                                                        self.field_number)
+    return "<Field %s (%s) of %s: field_number: %s>" % (
+        self.name, self.__class__.__name__, self.owner.__name__,
+        self.field_number)
 
   def SetOwner(self, owner):
     self.owner = owner
@@ -784,8 +783,7 @@ class ProtoBoolean(ProtoEnum):
 
   def __init__(self, **kwargs):
     super(ProtoBoolean, self).__init__(
-        enum_name="Bool", enum=dict(
-            True=1, False=0), **kwargs)
+        enum_name="Bool", enum=dict(True=1, False=0), **kwargs)
 
     self.proto_type_name = "bool"
 
@@ -1840,9 +1838,8 @@ class RDFStruct(rdfvalue.RDFValue):
   @classmethod
   def AddDescriptor(cls, field_desc):
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError(
-          "%s field '%s' should be of type ProtoType" % (cls.__name__,
-                                                         field_desc.name))
+      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
+                                     % (cls.__name__, field_desc.name))
 
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
@@ -2085,9 +2082,21 @@ class RDFProtoStruct(RDFStruct):
       if not dependency_added:
         break
 
+    # Sort files by their dependencies (this is similar to sorting imports:
+    # things with no dependencies go first, then go things that depend on
+    # previous ones).
+    def CmpFiles(f1, f2):
+      for dep in f1.dependencies:
+        if dep.name == f2.name:
+          return 1
+
+      return -1
+
+    sorted_deps = sorted(files.values(), cmp=CmpFiles)
+
     # Add all dependent files to the pool.
     dependencies = []
-    for fd in files.values():
+    for fd in sorted_deps:
       dependencies.append(cls._GetFileDescriptorProto(fd))
 
     return file_descriptor, dependencies
@@ -2134,9 +2143,8 @@ class RDFProtoStruct(RDFStruct):
   def AddDescriptor(cls, field_desc):
     """Register this descriptor with the Proto Struct."""
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError(
-          "%s field '%s' should be of type ProtoType" % (cls.__name__,
-                                                         field_desc.name))
+      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
+                                     % (cls.__name__, field_desc.name))
 
     # Ensure the field descriptor knows the class that owns it.
     field_desc.SetOwner(cls)
@@ -2151,8 +2159,8 @@ class RDFProtoStruct(RDFStruct):
     # Ensure this field number is unique:
     if field_desc.field_number in cls.type_infos_by_field_number:
       raise type_info.TypeValueError(
-          "Field number %s for field %s is not unique in %s" %
-          (field_desc.field_number, field_desc.name, cls.__name__))
+          "Field number %s for field %s is not unique in %s" % (
+              field_desc.field_number, field_desc.name, cls.__name__))
 
     # We store an index of the type info by tag values to speed up parsing.
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
@@ -2182,8 +2190,8 @@ class RDFProtoStruct(RDFStruct):
         for case in self.type_infos[self.union_field].enum_container.enum_dict
     ]
 
-    mismatched_union_cases = (
-        set_fields.intersection(union_cases).difference([cast_field_name]))
+    mismatched_union_cases = (set_fields.intersection(union_cases).difference(
+        [cast_field_name]))
 
     if mismatched_union_cases:
       raise ValueError("Inconsistent union proto data. Expected only %r "
