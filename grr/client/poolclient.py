@@ -32,17 +32,26 @@ flags.DEFINE_string("cert_file", "",
 flags.DEFINE_bool("enroll_only", False,
                   "If specified, the script will enroll all clients and exit.")
 
+flags.DEFINE_bool("fast_poll", False,
+                  "If specified, every client in the pool will work in the "
+                  "fast poll mode. This is useful for benchmarks, as in fast "
+                  "poll mode the timeouts are predictable and benchmarks "
+                  "results are more stable.")
+
 
 class PoolGRRClient(threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self, ca_cert=None, private_key=None):
+  def __init__(self, ca_cert=None, private_key=None, fast_poll=False):
     """Constructor."""
     super(PoolGRRClient, self).__init__()
     self.private_key = private_key
     self.daemon = True
 
     self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
+    if fast_poll:
+      self.client.timer.FastPoll()
+
     self.stop = False
     # Is this client already enrolled?
     self.enrolled = False
@@ -79,15 +88,16 @@ def CreateClientPool(n):
       clients.append(
           PoolGRRClient(
               private_key=certificate,
-              ca_cert=config_lib.CONFIG["CA.certificate"]))
+              ca_cert=config_lib.CONFIG["CA.certificate"],
+              fast_poll=flags.FLAGS.fast_poll),)
 
     clients_loaded = True
   except (IOError, EOFError):
     clients_loaded = False
 
   if clients_loaded and len(clients) < n:
-    raise RuntimeError("Loaded %d clients, but expected %d." %
-                       (len(clients), n))
+    raise RuntimeError("Loaded %d clients, but expected %d." % (len(clients),
+                                                                n))
 
   while len(clients) < n:
     # Generate a new RSA key pair for each client.

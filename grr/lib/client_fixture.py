@@ -3774,22 +3774,6 @@ pathspec {
 """
     })),
     # The following are registry fixtures for testing registry related stuff.
-    (u"/registry/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/Software/Microsoft/Windows/CurrentVersion/Explorer/ComDlg32/OpenSavePidlMRU/dd/0", (aff4_grr.VFSFile, {
-        "aff4:stat":
-            """
-st_mode: 32768
-st_size: 148
-st_mtime: 1326790084
-registry_type: REG_BINARY
-pathspec {
-  pathtype: REGISTRY
-  path: "/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/Software/Microsoft/Windows/CurrentVersion/Explorer/ComDlg32/OpenSavePidlMRU/dd/0"
-}
-registry_data {
-  data: "\024\000\037DG\032\003Yr?\247D\211\305U\225\376k0\356~\000t\000\034\000CFSF\026\0002\000\000\340\365\0051@\366E \000test.dd\000\000\000t\032Y^\226\337\323H\215g\0273\274\356(\272\305\315\372\337\237gVA\211G\305\307k\300\266\177<\000\010\000\004\000\357\2761@\306E1@\306E*\000\000\000\226b\001\000\000\0003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000t\000e\000s\000t\000.\000d\000d\000\000\000B\000\000\000"
-}
-"""
-    })),
     # This is for testing CollectRunKeys.
 
     (u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar", (aff4_grr.VFSFile, {

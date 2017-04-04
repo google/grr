@@ -32,7 +32,6 @@ module.exports = function(grunt) {
       options: {
         compilerFile: closureCompiler.getPath(),
         compilerOpts: {
-          language_in: 'ECMASCRIPT5',
           angular_pass: 'true',
           compilation_level: 'WHITESPACE_ONLY',
           create_source_map: 'static/grr-ui.bundle.js.map',

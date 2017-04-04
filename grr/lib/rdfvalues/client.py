@@ -759,10 +759,9 @@ class Uname(structs.RDFProtoStruct):
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:
-      pep425tag = "%s%s-%s-%s" % (pep425tags.get_abbr_impl(),
-                                  pep425tags.get_impl_ver(),
-                                  str(pep425tags.get_abi_tag()).lower(),
-                                  pep425tags.get_platform())
+      pep425tag = "%s%s-%s-%s" % (
+          pep425tags.get_abbr_impl(), pep425tags.get_impl_ver(),
+          str(pep425tags.get_abi_tag()).lower(), pep425tags.get_platform())
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)
@@ -924,15 +923,6 @@ class RunKey(structs.RDFProtoStruct):
 class RunKeyEntry(protodict.RDFValueArray):
   """Structure of a Run Key entry with keyname, filepath, and last written."""
   rdf_type = RunKey
-
-
-class MRUFile(structs.RDFProtoStruct):
-  protobuf = sysinfo_pb2.MRUFile
-
-
-class MRUFolder(protodict.RDFValueArray):
-  """Structure describing Most Recently Used (MRU) files."""
-  rdf_type = MRUFile
 
 
 class ClientCrash(structs.RDFProtoStruct):

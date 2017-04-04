@@ -625,17 +625,6 @@ class GRRAFF4Init(registry.InitHook):
       pass
 
 
-class MRUCollection(aff4.AFF4Object):
-  """Stores all of the MRU files from the registry."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    LAST_USED_FOLDER = aff4.Attribute(
-        "aff4:mru",
-        rdf_client.MRUFolder,
-        "The Most Recently Used files.",
-        default="")
-
-
 class VFSFileSymlink(aff4.AFF4Stream):
   """A Delegate object for another URN."""
 

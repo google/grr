@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 """Gather information from the registry on windows."""
 
-import re
-import stat
 
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_utils
 from grr.lib import flow
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 # For FindFiles
 from grr.lib.flows.general import find
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -147,65 +142,3 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   def Done(self, responses):
     for response in responses:
       self.SendReply(response)
-
-
-class GetMRU(flow.GRRFlow):
-  """Collect a list of the Most Recently Used files for all users."""
-
-  category = "/Registry/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  @flow.StateHandler()
-  def Start(self):
-    """Call the find flow to get the MRU data for each user."""
-    fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    for user in kb.users:
-      mru_path = ("HKEY_USERS/%s/Software/Microsoft/Windows"
-                  "/CurrentVersion/Explorer/ComDlg32"
-                  "/OpenSavePidlMRU" % user.sid)
-
-      findspec = rdf_client.FindSpec(max_depth=2, path_regex=".")
-      findspec.iterator.number = 1000
-      findspec.pathspec.path = mru_path
-      findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-
-      self.CallFlow(
-          "FindFiles",
-          findspec=findspec,
-          next_state="StoreMRUs",
-          request_data=dict(username=user.username))
-
-  @flow.StateHandler()
-  def StoreMRUs(self, responses):
-    """Store the MRU data for each user in a special structure."""
-    for response in responses:
-      urn = response.pathspec.AFF4Path(self.client_id)
-
-      if stat.S_ISDIR(response.st_mode):
-        obj_type = standard.VFSDirectory
-      else:
-        obj_type = aff4_grr.VFSFile
-
-      fd = aff4.FACTORY.Create(urn, obj_type, mode="w", token=self.token)
-      fd.Set(fd.Schema.STAT(response))
-      fd.Close(sync=False)
-
-      username = responses.request_data["username"]
-
-      m = re.search("/([^/]+)/\\d+$", unicode(urn))
-      if m:
-        extension = m.group(1)
-        fd = aff4.FACTORY.Create(
-            rdf_client.ClientURN(self.client_id).Add("analysis/MRU/Explorer")
-            .Add(extension).Add(username),
-            aff4_grr.MRUCollection,
-            token=self.token,
-            mode="rw")
-
-        # TODO(user): Implement the actual parsing of the MRU.
-        mrus = fd.Get(fd.Schema.LAST_USED_FOLDER)
-        mrus.Append(filename="Foo")
-
-        fd.Set(mrus)
-        fd.Close()

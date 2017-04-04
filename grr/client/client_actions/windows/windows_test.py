@@ -239,13 +239,12 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     fixture = RegistryFake()
 
-    self.stubber = utils.MultiStubber(
-        (registry, "KeyHandle", FakeKeyHandle),
-        (registry, "OpenKey", fixture.OpenKey),
-        (registry, "QueryValueEx", fixture.QueryValueEx),
-        (registry, "QueryInfoKey", fixture.QueryInfoKey),
-        (registry, "EnumValue", fixture.EnumValue),
-        (registry, "EnumKey", fixture.EnumKey))
+    self.stubber = utils.MultiStubber((registry, "KeyHandle", FakeKeyHandle), (
+        registry, "OpenKey",
+        fixture.OpenKey), (registry, "QueryValueEx", fixture.QueryValueEx), (
+            registry, "QueryInfoKey", fixture.QueryInfoKey), (
+                registry, "EnumValue", fixture.EnumValue), (registry, "EnumKey",
+                                                            fixture.EnumKey))
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.
@@ -301,8 +300,8 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
         ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
     self.assertEqual(len(results), 2)
     self.assertEqual(
-        sorted([x.stat_entry.registry_data.GetValue() for x in results]),
-        ["Value1", "Value2"])
+        sorted([x.stat_entry.registry_data.GetValue()
+                for x in results]), ["Value1", "Value2"])
 
     # This is a key so we should get back the default value.
     results = self._RunRegistryFinder(
@@ -387,40 +386,36 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     walk_tups_inf = list(
         vfs.VFSOpen(pathspec).RecursiveListNames(depth=float("inf")))
 
-    self.assertEqual(walk_tups_0,
-                     [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], [])])
+    self.assertEqual(walk_tups_0, [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"],
+                                    [])])
 
-    self.assertEqual(walk_tups_1, [
-        (r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
-        (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []), (r"HKEY_USERS", [
-            r"S-1-5-20", r"S-1-5-21-2911950750-476812067-1487428992-1001",
-            r"S-1-5-21-702227000-2140022111-3110739999-1990"
-        ], [])
-    ])
+    self.assertEqual(
+        walk_tups_1,
+        [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"],
+          []), (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
+         (r"HKEY_USERS",
+          [r"S-1-5-20", r"S-1-5-21-702227000-2140022111-3110739999-1990"], [])])
 
     self.assertEqual(walk_tups_2, [
         (r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
         (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE", [r"ListingTest", r"Microsoft"], []),
         (r"HKEY_LOCAL_MACHINE\SYSTEM", [r"ControlSet001", r"Select"], []),
-        (r"HKEY_USERS", [
-            r"S-1-5-20", r"S-1-5-21-2911950750-476812067-1487428992-1001",
-            r"S-1-5-21-702227000-2140022111-3110739999-1990"
-        ], []),
+        (r"HKEY_USERS",
+         [r"S-1-5-20", r"S-1-5-21-702227000-2140022111-3110739999-1990"], []),
         (r"HKEY_USERS\S-1-5-20", [r"Software"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001",
-         [r"Software"], []),
         (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
          [r"Software"], []),
     ])
 
     self.assertEqual(walk_tups_inf, [
-        (r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
-        (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
-        (r"HKEY_LOCAL_MACHINE\SOFTWARE", [r"ListingTest", r"Microsoft"], []), (
-            r"HKEY_LOCAL_MACHINE\SOFTWARE\ListingTest", [],
-            [r"Value1", r"Value2"]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft",
-                                      [r"Windows", r"Windows NT"], []),
+        (r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"],
+         []), (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
+        (r"HKEY_LOCAL_MACHINE\SOFTWARE", [r"ListingTest", r"Microsoft"],
+         []), (r"HKEY_LOCAL_MACHINE\SOFTWARE\ListingTest", [],
+               [r"Value1",
+                r"Value2"]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft",
+                              [r"Windows", r"Windows NT"], []),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows", [r"CurrentVersion"],
          []), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion",
                [], [r"ProgramFilesDir", r"ProgramFilesDir (x86)"]), (
@@ -434,15 +429,15 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                  r"S-1-5-21-702227068-2140022151-3110739409-1000"
              ], [r"ProfilesDirectory", r"ProgramData"]),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-         r"\ProfileList\S-1-5-21-702227000-2140022111-3110739999-1990", [],
-         [r"ProfileImagePath"]), (
-             r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-             r"\ProfileList\S-1-5-21-702227068-2140022151-3110739409-1000", [],
-             [r"ProfileImagePath"]), (r"HKEY_LOCAL_MACHINE\SYSTEM",
-                                      [r"ControlSet001", r"Select"], []),
-        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001", [r"Control"], []), (
-            r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control",
-            [r"Nls", r"Session Manager", r"TimeZoneInformation"], []),
+         r"\ProfileList\S-1-5-21-702227000-2140022111-3110739999-1990", [], [
+             r"ProfileImagePath"
+         ]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+              r"\ProfileList\S-1-5-21-702227068-2140022151-3110739409-1000", [],
+              [r"ProfileImagePath"]), (r"HKEY_LOCAL_MACHINE\SYSTEM",
+                                       [r"ControlSet001", r"Select"], []),
+        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001", [r"Control"],
+         []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control",
+               [r"Nls", r"Session Manager", r"TimeZoneInformation"], []),
         (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls", [r"CodePage"],
          []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls\CodePage",
                [], [r"ACP"]),
@@ -451,52 +446,33 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
              r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager"
              r"\Environment", [], [r"Path", r"TEMP", r"windir"]), (
                  r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control"
-                 r"\TimeZoneInformation", [], [r"StandardName"]),
-        (r"HKEY_LOCAL_MACHINE\SYSTEM\Select", [], [r"Current"]), (
-            r"HKEY_USERS", [
-                r"S-1-5-20", r"S-1-5-21-2911950750-476812067-1487428992-1001",
-                r"S-1-5-21-702227000-2140022111-3110739999-1990"
-            ], []), (r"HKEY_USERS\S-1-5-20", [r"Software"], []),
-        (r"HKEY_USERS\S-1-5-20\Software", [r"Microsoft"], []),
-        (r"HKEY_USERS\S-1-5-20\Software\Microsoft", [r"Windows"], []),
+                 r"\TimeZoneInformation", [], [r"StandardName"]), (
+                     r"HKEY_LOCAL_MACHINE\SYSTEM\Select", [], [r"Current"]), (
+                         r"HKEY_USERS", [
+                             r"S-1-5-20",
+                             r"S-1-5-21-702227000-2140022111-3110739999-1990"
+                         ], []), (r"HKEY_USERS\S-1-5-20", [r"Software"], []), (
+                             r"HKEY_USERS\S-1-5-20\Software", [r"Microsoft"],
+                             []), (r"HKEY_USERS\S-1-5-20\Software\Microsoft",
+                                   [r"Windows"], []),
         (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows", [r"CurrentVersion"],
          []), (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows\CurrentVersion",
                [r"Run"], []),
         (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\Run",
          [], [r"MctAdmin", r"Sidebar"]), (
-             r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001",
+             r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
              [r"Software"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software",
-         [r"Microsoft"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-         r"\Microsoft", [r"Windows"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
+        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software", [
+            r"Microsoft"
+        ], []), (
+            r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
+            r"\Microsoft", [r"Windows"], []),
+        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
          r"\Microsoft\Windows", [r"CurrentVersion"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-         r"\Microsoft\Windows\CurrentVersion", [r"Explorer"], []
-        ), (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-            r"\Microsoft\Windows\CurrentVersion\Explorer", [r"ComDlg32"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-         r"\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32",
-         [r"OpenSavePidlMRU"], []
-        ), (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-            r"\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32"
-            r"\OpenSavePidlMRU", [r"dd"], []),
-        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001\Software"
-         r"\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32\OpenSavePidlMRU"
-         r"\dd", [],
-         [r"0"]), (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
-                   [r"Software"], []),
-        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software",
-         [r"Microsoft"], []),
         (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
-         r"\Microsoft", [r"Windows"], []
-        ), (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
-            r"\Microsoft\Windows", [r"CurrentVersion"], []),
+         r"\Microsoft\Windows\CurrentVersion", [r"Run"], []),
         (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
-         r"\Microsoft\Windows\CurrentVersion", [r"Run"], []
-        ), (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
-            r"\Microsoft\Windows\CurrentVersion\Run", [], [r"NothingToSeeHere"])
+         r"\Microsoft\Windows\CurrentVersion\Run", [], [r"NothingToSeeHere"])
     ])
 
 

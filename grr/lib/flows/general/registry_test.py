@@ -110,7 +110,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
     # Initialize client's knowledge base in order for the interpolation
     # to work.
-    user = rdf_client.User(sid="S-1-5-21-2911950750-476812067-1487428992-1001")
+    user = rdf_client.User(sid="S-1-5-20")
     kb = rdf_client.KnowledgeBase(users=[user])
 
     with aff4.FACTORY.Open(
@@ -125,8 +125,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
 
-    key = ("/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/"
-           "Software/Microsoft/Windows/CurrentVersion/Explorer")
+    key = ("/HKEY_USERS/S-1-5-20/"
+           "Software/Microsoft/Windows/CurrentVersion/Run")
 
     self.assertEqual(results[0].stat_entry.AFF4Path(self.client_id),
                      "aff4:/C.1000000000000000/registry" + key)
@@ -140,8 +140,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=
+            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
     self.AssertNoResults(session_id)
@@ -152,8 +152,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=
+            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 
@@ -179,8 +179,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
+            condition_type=
+            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
     self.AssertNoResults(session_id)
@@ -191,8 +191,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
+            condition_type=
+            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
 
@@ -220,8 +220,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time)
     ])
     self.AssertNoResults(session_id)
@@ -235,8 +235,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time)
     ])
 
@@ -259,12 +259,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
+            condition_type=
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time),
         registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
+            condition_type=
+            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 
@@ -289,43 +289,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
 
 class TestRegistryFlows(RegistryFlowTest):
-  """Test the Run Key and MRU registry flows."""
-
-  def testRegistryMRU(self):
-    """Test that the MRU discovery flow. Flow is a work in Progress."""
-    # Mock out the Find client action.
-    client_mock = action_mocks.ActionMock(searching.Find)
-
-    # Add some user accounts to this client.
-    fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    kb.users.Append(
-        rdf_client.User(
-            username="testing",
-            userdomain="testing-PC",
-            homedir=r"C:\Users\testing",
-            sid="S-1-5-21-2911950750-476812067-"
-            "1487428992-1001"))
-    fd.Set(kb)
-    fd.Close()
-
-    # Run the flow in the emulated way.
-    for _ in test_lib.TestFlowHelper(
-        "GetMRU", client_mock, client_id=self.client_id, token=self.token):
-      pass
-
-    # Check that the key was read.
-    fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add(
-            "registry/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/"
-            "Software/Microsoft/Windows/CurrentVersion/Explorer/"
-            "ComDlg32/OpenSavePidlMRU/dd/0"),
-        token=self.token)
-
-    self.assertEqual(fd.__class__.__name__, "VFSFile")
-    s = fd.Get(fd.Schema.STAT)
-    # TODO(user): Make this test better when the MRU flow is complete.
-    self.assertTrue(s.registry_data)
+  """Test the Run Key registry flows."""
 
   def testCollectRunKeyBinaries(self):
     """Read Run key from the client_fixtures to test parsing and storage."""
