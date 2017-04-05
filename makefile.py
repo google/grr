@@ -19,7 +19,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--python_out",
-    default=".",
+    default=os.path.dirname(os.path.abspath(__file__)),
     help="Where to put compiled protos. Default: next to source files.")
 
 args = parser.parse_args()
@@ -27,12 +27,8 @@ args = parser.parse_args()
 
 def Clean():
   """Clean out compiled protos."""
-  # Start running from one directory above the grr directory which is found by
-  # this scripts's location as __file__.
-  cwd = os.path.dirname(os.path.abspath(__file__))
-
-  # Find all the .proto files.
-  for (root, _, files) in os.walk(cwd):
+  # Find all the compiled proto files and unlink them.
+  for (root, _, files) in os.walk(args.python_out):
     for filename in files:
       full_filename = os.path.join(root, filename)
       if full_filename.endswith("_pb2.py") or full_filename.endswith(
@@ -53,8 +49,12 @@ def MakeProto(python_out):
       full_filename = os.path.join(root, filename)
       if full_filename.endswith(".proto"):
         proto_stat = os.stat(full_filename)
+
+        compiled_name = full_filename.rsplit(".", 1)[0] + "_pb2.py"
+        pb2_path = os.path.join(args.python_out,
+                                os.path.relpath(compiled_name, cwd))
         try:
-          pb2_stat = os.stat(full_filename.rsplit(".", 1)[0] + "_pb2.py")
+          pb2_stat = os.stat(pb2_path)
           if pb2_stat.st_mtime >= proto_stat.st_mtime:
             continue
 

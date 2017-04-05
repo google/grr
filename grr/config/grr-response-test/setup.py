@@ -84,7 +84,9 @@ setup_args = dict(
         "console_scripts": [
             "grr_run_tests = grr.tools.run_tests:DistEntry",
             "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
-            "grr_run_tests_api_e2e = grr.gui.http_api_e2e_test:DistEntry"
+            "grr_run_tests_api_e2e = grr.gui.http_api_e2e_test:DistEntry",
+            "grr_api_regression_generate = "
+            "grr.gui.api_regression_test_generate:DistEntry"
         ]
     })
 

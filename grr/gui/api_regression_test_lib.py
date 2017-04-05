@@ -44,11 +44,17 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
   def __init__(cls, name, bases, env_dict):  # pylint: disable=no-self-argument
     registry.MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
-    # We have to skip ApiRegressionTest itself and also the classes
-    # that get dynamically generated below (as they will inherit from
-    # cls).
-    if (cls.__name__ == "ApiRegressionTest" or
-        issubclass(cls, test_lib.GRRBaseTest)):
+    has_mixin = False
+    for mixin in cls.connection_mixins.values():
+      if issubclass(cls, mixin):
+        has_mixin = True
+        break
+
+    # ApiRegressionTest is a base class, so it doesn't make sense to generate
+    # _http_v1/_http_v2 classes for it.
+    # Generating classes from already generated classes would lead to infinite
+    # recursion. Skipping the generated ones.
+    if name == "ApiRegressionTest" or has_mixin:
       return
 
     for mixin in ApiRegressionTestMetaclass.connection_mixins.values():
@@ -57,7 +63,11 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
         continue
 
       cls_name = "%s_%s" % (name, mixin.connection_type)
-      test_cls = type(cls_name, (mixin, cls, test_lib.GRRBaseTest), {})
+      test_cls = type(
+          cls_name,
+          (mixin, cls, test_lib.GRRBaseTest),
+          # pylint: disable=protected-access
+          {"testForRegression": lambda x: x._testForRegression()})
       module = sys.modules[cls.__module__]
       setattr(module, cls_name, test_cls)
 
@@ -68,7 +78,7 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RegressionTestMixin)
 
 
-class ApiRegressionTest(object):
+class ApiRegressionTest(test_lib.GRRBaseTest):
   """Base class for API handlers regression tests.
 
   Regression tests are supposed to implement a single abstract Run() method.
@@ -91,15 +101,9 @@ class ApiRegressionTest(object):
   api_method = None
   # Handler class that's used to handle the requests.
   handler = None
-
-  # TODO(user): gpylint claims "Use of super on an old style class", but
-  # this class is obviously not an old-style class.
-  # pylint: disable=super-on-old-class
-  def __init__(self, *args, **kwargs):
-    super(ApiRegressionTest, self).__init__(*args, **kwargs)
-
-    self.token.username = "api_test_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+  # The api_regression label can be used to exclude/include API regression
+  # tests from/into test runs.
+  labels = ["small", "api_regression"]
 
   # TODO(user): gpylint claims "Use of super on an old style class", but
   # this class is obviously not an old-style class.
@@ -117,11 +121,12 @@ class ApiRegressionTest(object):
     self.checks = []
 
     self.syscalls_stubber = utils.MultiStubber(
-        (socket, "gethostname", lambda: "test.host"),
-        (os, "getpid", lambda: 42))
+        (socket, "gethostname", lambda: "test.host"), (os, "getpid",
+                                                       lambda: 42))
     self.syscalls_stubber.Start()
 
     self.token.username = "api_test_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # Force creation of new APIAuthorizationManager.
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -176,8 +181,14 @@ class ApiRegressionTest(object):
     """Sets up test envionment and does Check() calls."""
     pass
 
-  def testForRegression(self):  # pylint: disable=invalid-name
-    """Checks whether there's a regression."""
+  def _testForRegression(self):  # pylint: disable=invalid-name
+    """Checks whether there's a regression.
+
+    This method is intentionally protected so that the test runner doesn't
+    detect any tests in base regression classes. ApiRegressionTestMetaclass
+    creates a public testForRegression method for generated regression
+    classes.
+    """
     self.maxDiff = 65536  # pylint: disable=invalid-name
 
     with open(self.output_file_name, "rb") as fd:

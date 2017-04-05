@@ -64,7 +64,7 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
     self.Open("/#main=ServerLoadView")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
 
-    self.Click("css=label[btn-radio=72]")
+    self.Click("css=label[uib-btn-radio=72]")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
 
 
