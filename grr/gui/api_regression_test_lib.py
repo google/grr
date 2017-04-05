@@ -11,6 +11,8 @@ import socket
 import sys
 
 
+import psutil
+
 import logging
 
 from grr.gui import api_auth_manager
@@ -120,9 +122,10 @@ class ApiRegressionTest(test_lib.GRRBaseTest):
 
     self.checks = []
 
+    p = psutil.Process(os.getpid())
     self.syscalls_stubber = utils.MultiStubber(
-        (socket, "gethostname", lambda: "test.host"), (os, "getpid",
-                                                       lambda: 42))
+        (socket, "gethostname", lambda: "test.host"),
+        (os, "getpid", lambda: 42), (psutil, "Process", lambda _=None: p))
     self.syscalls_stubber.Start()
 
     self.token.username = "api_test_user"
