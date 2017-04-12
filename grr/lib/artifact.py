@@ -93,7 +93,10 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
   versions = client_obj.Get(client_schema.OS_VERSION)
   if versions and versions.versions:
     kb.os_major_version = versions.versions[0]
-    kb.os_minor_version = versions.versions[1]
+    if len(versions.versions) >= 2:
+      kb.os_minor_version = versions.versions[1]
+    else:
+      kb.os_minor_version = 0
   client_os = client_obj.Get(client_schema.SYSTEM)
   if client_os:
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
