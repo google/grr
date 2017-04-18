@@ -2,6 +2,7 @@
 """Abstracts encryption and authentication."""
 
 
+import hmac
 import struct
 import time
 import zlib
@@ -113,8 +114,7 @@ class Cipher(object):
     return self.cipher.hmac_type
 
   def HMAC(self, *data):
-    hmac = rdf_crypto.HMAC(self.cipher.hmac_key)
-    return hmac.HMAC("".join(data))
+    return rdf_crypto.HMAC(self.cipher.hmac_key).HMAC("".join(data))
 
 
 class ReceivedCipher(Cipher):
@@ -166,17 +166,6 @@ class ReceivedCipher(Cipher):
   def GetSource(self):
     return self.cipher_metadata.source
 
-  def IsEqual(self, a, b):
-    """A Constant time comparison."""
-    if len(a) != len(b):
-      return False
-
-    result = 0
-    for x, y in zip(a, b):
-      result |= ord(x) ^ ord(y)
-
-    return result == 0
-
   def VerifyReceivedHMAC(self, comms):
     """Verifies a received HMAC.
 
@@ -227,17 +216,17 @@ class ReceivedCipher(Cipher):
     """
     # Check the encrypted message integrity using HMAC.
     if self.hmac_type == "SIMPLE_HMAC":
-      hmac = self.HMAC(comms.encrypted)
-      if not self.IsEqual(hmac, comms.hmac):
+      digest = self.HMAC(comms.encrypted)
+      if not hmac.compare_digest(comms.hmac, digest):
         raise DecryptionError("HMAC verification failed.")
 
     elif self.hmac_type == "FULL_HMAC":
-      hmac = self.HMAC(comms.encrypted, comms.encrypted_cipher,
-                       comms.encrypted_cipher_metadata,
-                       comms.packet_iv.SerializeToString(),
-                       struct.pack("<I", comms.api_version))
+      digest = self.HMAC(comms.encrypted, comms.encrypted_cipher,
+                         comms.encrypted_cipher_metadata,
+                         comms.packet_iv.SerializeToString(),
+                         struct.pack("<I", comms.api_version))
 
-      if not self.IsEqual(hmac, comms.full_hmac):
+      if not hmac.compare_digest(comms.full_hmac, digest):
         raise DecryptionError("HMAC verification failed.")
 
     else:

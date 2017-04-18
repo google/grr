@@ -162,7 +162,11 @@ ApiService.prototype.sendRequestWithoutPayload_ = function(
   var requestSettings = angular.extend({}, opt_requestSettings);
 
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();
-  var url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
+  var apiPrefix = '/api/';
+  if (requestSettings['useV2']) {
+    apiPrefix += 'v2/';
+  }
+  var url = encodeUrlPath(apiPrefix + apiPath.replace(/^\//, ''));
 
   return this.waitForAuth_(function() {
     var promise = /** @type {function(Object)} */ (this.http_)({
@@ -198,6 +202,18 @@ ApiService.prototype.head = function(apiPath, opt_params) {
  */
 ApiService.prototype.get = function(apiPath, opt_params) {
   return this.sendRequestWithoutPayload_("GET", apiPath, opt_params);
+};
+
+
+/**
+ * Fetches data for a given API url via HTTP GET method.
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.getV2 = function(apiPath, opt_params) {
+  return this.sendRequestWithoutPayload_("GET", apiPath, opt_params, {'useV2': true});
 };
 
 /**

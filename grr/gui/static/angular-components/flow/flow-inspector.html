@@ -24,6 +24,11 @@
       <grr-flow-log flow-id="flowId" api-base-path="apiBasePath"
                     ng-if="controller.tabsShown['log']" />
     </uib-tab>
+
+    <uib-tab heading="API" index="'api'">
+      <grr-flow-api-helper flow-id="flowId" api-base-path="apiBasePath"
+                           ng-if="controller.tabsShown['api']" />
+    </uib-tab>
   </uib-tabset>
 
 </div>

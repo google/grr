@@ -297,6 +297,23 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
+  def testApiExampleIsShown(self):
+    with self.ACLChecksDisabled():
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    flow_id = flow_urn.Basename()
+    self.Open("/#/clients/C.0000000000000001/flows/%s/api" % flow_id)
+
+    self.WaitUntil(self.IsTextPresent,
+                   "HTTP (authentication details are omitted)")
+    self.WaitUntil(self.IsTextPresent,
+                   'curl -X POST -H "Content-Type: application/json"')
+    self.WaitUntil(self.IsTextPresent, '"@type": "type.googleapis.com/')
+    self.WaitUntil(self.IsTextPresent, '"name": "FlowWithOneStatEntryResult"')
+
   def testChangingTabUpdatesUrl(self):
     with self.ACLChecksDisabled():
       flow_urn = flow.GRRFlow.StartFlow(
@@ -320,6 +337,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self.Click("css=li[heading='Flow Information']")
     self.WaitUntilEqual(base_url, self.GetCurrentUrlPath)
+
+    self.Click("css=li[heading=API]")
+    self.WaitUntilEqual(base_url + "/api", self.GetCurrentUrlPath)
 
   def testDirectLinksToFlowsTabsWorkCorrectly(self):
     with self.ACLChecksDisabled():
