@@ -8,7 +8,7 @@ matrix:
     env: PROTOC="${HOME}/protobuf/bin/protoc" PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
   - os: osx
     # psutil fails to install on the default beta-xcode6.1
-    osx_image: beta-xcode6.2
+    osx_image: xcode6.4
     language: generic
     python: 2.7
     sudo: required
@@ -26,7 +26,7 @@ before_install:
 install:
 - /bin/bash travis/install.sh
 script:
-  - source ${HOME}/INSTALL/bin/activate && grr_run_tests --processes=2 && /bin/bash travis/deploy_to_gcs.sh
+  - source ${HOME}/INSTALL/bin/activate && if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then grr_run_tests --processes=2; else grr_run_tests --processes=2 --labels=client_action; fi && /bin/bash travis/deploy_to_gcs.sh
 addons:
   apt:
     packages:

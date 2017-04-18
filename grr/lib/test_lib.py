@@ -323,8 +323,8 @@ class MockSecurityManager(user_managers.BasicAccessControlManager):
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     for access in requested_access:
       if access in self.forbidden_datastore_access:
-        raise access_control.UnauthorizedAccess("%s access is is not allowed" %
-                                                access)
+        raise access_control.UnauthorizedAccess(
+            "%s access is is not allowed" % access)
 
     return super(MockSecurityManager, self).CheckDataStoreAccess(
         token, subjects, requested_access=requested_access)
@@ -800,6 +800,8 @@ class EmptyActionTest(GRRBaseTest):
   """Test the client Actions."""
 
   __metaclass__ = registry.MetaclassRegistry
+
+  labels = ["client_action", "small"]
 
   def RunAction(self,
                 action_cls,
@@ -1551,8 +1553,9 @@ def CheckFlowErrors(total_flows, token=None):
     if flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
-      raise RuntimeError("Flow %s completed in state %s" % (
-          flow_obj.runner_args.flow_name, flow_obj.context.state))
+      raise RuntimeError("Flow %s completed in state %s" %
+                         (flow_obj.runner_args.flow_name,
+                          flow_obj.context.state))
 
 
 def TestFlowHelper(flow_urn_or_cls_name,
@@ -1826,8 +1829,8 @@ def RequiresPackage(package_name):
       try:
         pkg_resources.get_distribution(package_name)
       except pkg_resources.DistributionNotFound:
-        raise unittest.SkipTest("Skipping, package %s not installed" %
-                                package_name)
+        raise unittest.SkipTest(
+            "Skipping, package %s not installed" % package_name)
       return test_function(*args, **kwargs)
 
     return Wrapper
