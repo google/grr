@@ -373,8 +373,8 @@ grr.init();
 var grrUiApp = angular.module('grrUi', ['ngCookies',
                                         'grrUi.appController']);
 
-grrUiApp.config(function($httpProvider, $interpolateProvider,
-                         $rootScopeProvider) {
+grrUiApp.config(function($httpProvider, $interpolateProvider, $qProvider,
+                         $locationProvider, $rootScopeProvider) {
   // Set templating braces to be '{$' and '$}' to avoid conflicts with Django
   // templates.
   $interpolateProvider.startSymbol('{$');
@@ -385,6 +385,14 @@ grrUiApp.config(function($httpProvider, $interpolateProvider,
   // make-angularjs-and-django-play-nice-together/).
   $httpProvider.defaults.headers.post[
     'Content-Type'] = 'application/x-www-form-urlencoded';
+
+  // Erroring on unhandled rejection is a behavior added in Angular 1.6, our
+  // code is written without this check in mind.
+  $qProvider.errorOnUnhandledRejections(false);
+
+  // Setting this explicitly due to Angular's behavior change between
+  // versions 1.5 and 1.6.
+  $locationProvider.hashPrefix('');
 
   // We use recursive data model generation when rendering forms. Therefore
   // have to increase the digestTtl limit to 50.

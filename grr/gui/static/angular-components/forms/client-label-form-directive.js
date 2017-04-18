@@ -36,10 +36,10 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
   this.formLabel;
 
   /** @type {boolean} */
-  this.hideEmptyOption = this.hideEmptyOption || false;
+  this.hideEmptyOption;
 
   /** @type {string} */
-  this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
+  this.emptyOptionLabel;
 
   this.grrApiService_.get('/clients/labels').then(function(response) {
     this.labelsList = stripTypeInfo(response['data']['items']);
@@ -56,6 +56,11 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
 var ClientLabelFormController =
     grrUi.forms.clientLabelFormDirective.ClientLabelFormController;
 
+
+ClientLabelFormController.prototype.$onInit = function() {
+  this.hideEmptyOption = this.hideEmptyOption || false;
+  this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
+};
 
 /**
  * Directive that displays a client label selector.

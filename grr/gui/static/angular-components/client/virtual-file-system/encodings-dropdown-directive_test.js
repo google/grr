@@ -73,7 +73,7 @@ describe('encodings dropdown directive', function () {
 
     var element = render('UTF_8');
     expect(element.find('select[disabled]').length).toBe(1);
-    expect(element.find('option[selected]').text().trim()).toBe('No encodings available.');
+    expect(element.find('option').text().trim()).toBe('No encodings available.');
     expect($scope.obj.encoding).toBe('UTF_8'); // It does not change the model.
   });
 

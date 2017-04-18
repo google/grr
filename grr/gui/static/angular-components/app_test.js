@@ -13,9 +13,12 @@ grrUi.tests.module = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
 var $animate;
 beforeEach(module('ngAnimateMock'));
 
-grrUi.tests.module.config(function($interpolateProvider, $uibModalProvider) {
+grrUi.tests.module.config(function($interpolateProvider, $qProvider,
+                                   $uibModalProvider) {
   $interpolateProvider.startSymbol('{$');
   $interpolateProvider.endSymbol('$}');
+
+  $qProvider.errorOnUnhandledRejections(false);
 
   $uibModalProvider.options.animation = false;
 }).run(function($injector) {
