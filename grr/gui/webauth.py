@@ -101,8 +101,9 @@ class HTTPWebAuthManager(BaseWebAuthManager):
     request.user = request.META.get("HTTP_REMOTE_USER")
     
     if not request.user :
-      result = http.HttpResponse("Unauthorized", status=401)
-      result["WWW-Authenticate"] = "Basic realm='Secure Area'"
+      result = http.HttpResponse("Internal Server Error", status=500)
+      logging.info("Service misconfigured, authentication should be handled by a "
+         "reverse proxy before reaching GRR")
       return result
 
     # Modify this to implement additional checking (e.g. enforce SSL).
