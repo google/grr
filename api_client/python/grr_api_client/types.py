@@ -3,8 +3,8 @@
 
 from grr_api_client import utils
 
-from grr.proto import api_pb2
 from grr.proto import flows_pb2
+from grr.proto.api import reflection_pb2
 
 
 class Error(Exception):
@@ -40,7 +40,7 @@ class Types(object):
     if not self._flow_descriptors:
       self._flow_descriptors = {}
 
-      args = api_pb2.ApiListFlowDescriptorsArgs()
+      args = reflection_pb2.ApiListFlowDescriptorsArgs()
       result = self._context.SendRequest("ListFlowDescriptors", args)
       for item in result.items:
         self._flow_descriptors[item.name] = item

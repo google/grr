@@ -11,23 +11,23 @@ from grr.lib import utils
 from grr.lib.aff4_objects import stats_store as stats_store_lib
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import stats_pb2
 
 
 class ApiStatsStoreMetric(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiStatsStoreMetric
+  protobuf = stats_pb2.ApiStatsStoreMetric
 
 
 class ApiStatsStoreMetricDataPoint(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiStatsStoreMetricDataPoint
+  protobuf = stats_pb2.ApiStatsStoreMetricDataPoint
 
 
 class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListStatsStoreMetricsMetadataArgs
+  protobuf = stats_pb2.ApiListStatsStoreMetricsMetadataArgs
 
 
 class ApiListStatsStoreMetricsMetadataResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListStatsStoreMetricsMetadataResult
+  protobuf = stats_pb2.ApiListStatsStoreMetricsMetadataResult
 
 
 class ApiListStatsStoreMetricsMetadataHandler(
@@ -56,7 +56,7 @@ class ApiListStatsStoreMetricsMetadataHandler(
 
 
 class ApiGetStatsStoreMetricArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetStatsStoreMetricArgs
+  protobuf = stats_pb2.ApiGetStatsStoreMetricArgs
 
 
 class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
@@ -158,8 +158,8 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     elif args.aggregation_mode == "AGG_NONE":
       pass
     else:
-      raise ValueError("Unexpected request.aggregation value: %s." %
-                       args.aggregation)
+      raise ValueError(
+          "Unexpected request.aggregation value: %s." % args.aggregation)
 
     if (args.rate and
         metric_metadata.metric_type != metric_metadata.MetricType.GAUGE):
@@ -170,14 +170,13 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     for value, timestamp in query.ts.data:
       if value is not None:
         result.data_points.append(
-            ApiStatsStoreMetricDataPoint(
-                timestamp=timestamp, value=value))
+            ApiStatsStoreMetricDataPoint(timestamp=timestamp, value=value))
 
     return result
 
 
 class ApiListReportsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListReportsResult
+  protobuf = stats_pb2.ApiListReportsResult
 
 
 class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
@@ -194,7 +193,7 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetReportArgs
+  protobuf = stats_pb2.ApiGetReportArgs
 
 
 class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):

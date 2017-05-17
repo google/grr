@@ -9,7 +9,7 @@ from grr.lib import rdfvalue
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import reflection_pb2
 
 
 def _GetAllTypes():
@@ -26,7 +26,7 @@ def _GetAllTypes():
 
 
 class ApiGetRDFValueDescriptorArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetRDFValueDescriptorArgs
+  protobuf = reflection_pb2.ApiGetRDFValueDescriptorArgs
 
 
 class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
@@ -43,7 +43,7 @@ class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListRDFValueDescriptorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListRDFValueDescriptorsResult
+  protobuf = reflection_pb2.ApiListRDFValueDescriptorsResult
 
 
 class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
@@ -64,11 +64,11 @@ class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
 
 
 class ApiAff4AttributeDescriptor(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAff4AttributeDescriptor
+  protobuf = reflection_pb2.ApiAff4AttributeDescriptor
 
 
 class ApiListAff4AttributeDescriptorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListAff4AttributeDescriptorsResult
+  protobuf = reflection_pb2.ApiListAff4AttributeDescriptorsResult
 
 
 class ApiListAff4AttributeDescriptorsHandler(
@@ -88,11 +88,11 @@ class ApiListAff4AttributeDescriptorsHandler(
 
 
 class ApiMethod(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiMethod
+  protobuf = reflection_pb2.ApiMethod
 
 
 class ApiListApiMethodsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListApiMethodsResult
+  protobuf = reflection_pb2.ApiListApiMethodsResult
 
 
 class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):

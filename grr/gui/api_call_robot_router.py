@@ -22,35 +22,35 @@ from grr.lib.flows.general import file_finder
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto import api_call_router_pb2
 
 
 class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterSearchClientsParams
+  protobuf = api_call_router_pb2.RobotRouterSearchClientsParams
 
 
 class RobotRouterFileFinderFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterFileFinderFlowParams
+  protobuf = api_call_router_pb2.RobotRouterFileFinderFlowParams
 
 
 class RobotRouterArtifactCollectorFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterArtifactCollectorFlowParams
+  protobuf = api_call_router_pb2.RobotRouterArtifactCollectorFlowParams
 
 
 class RobotRouterGetFlowParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterGetFlowParams
+  protobuf = api_call_router_pb2.RobotRouterGetFlowParams
 
 
 class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterListFlowResultsParams
+  protobuf = api_call_router_pb2.RobotRouterListFlowResultsParams
 
 
 class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.RobotRouterGetFlowFilesArchiveParams
+  protobuf = api_call_router_pb2.RobotRouterGetFlowFilesArchiveParams
 
 
 class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCallRobotRouterParams
+  protobuf = api_call_router_pb2.ApiCallRobotRouterParams
 
 
 LABEL_NAME_PREFIX = "robotapi-"
@@ -211,8 +211,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
     needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
     if needed_label_name not in fd.GetLabelsNames():
       raise access_control.UnauthorizedAccess(
-          "Flow %s (client %s) does not have a proper robot id label set." % (
-              flow_id, client_id))
+          "Flow %s (client %s) does not have a proper robot id label set." %
+          (flow_id, client_id))
 
     return fd
 

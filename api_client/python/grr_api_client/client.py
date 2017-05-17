@@ -4,7 +4,9 @@
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
-from grr.proto import api_pb2
+from grr.proto.api import client_pb2
+from grr.proto.api import flow_pb2
+from grr.proto.api import user_pb2
 
 
 class ClientApprovalBase(object):
@@ -33,7 +35,7 @@ class ClientApprovalBase(object):
     self._context = context
 
   def Grant(self):
-    args = api_pb2.ApiGrantClientApprovalArgs(
+    args = user_pb2.ApiGrantClientApprovalArgs(
         client_id=self.client_id,
         username=self.username,
         approval_id=self.approval_id)
@@ -48,7 +50,7 @@ class ClientApprovalRef(ClientApprovalBase):
   def Get(self):
     """Fetch and return a proper ClientApproval object."""
 
-    args = api_pb2.ApiGetClientApprovalArgs(
+    args = user_pb2.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=self.approval_id,
         username=self.username)
@@ -107,7 +109,7 @@ class ClientBase(object):
     if not name:
       raise ValueError("name can't be empty")
 
-    request = api_pb2.ApiCreateFlowArgs(client_id=self.client_id)
+    request = flow_pb2.ApiCreateFlowArgs(client_id=self.client_id)
 
     request.flow.name = name
     if runner_args:
@@ -123,7 +125,7 @@ class ClientBase(object):
   def ListFlows(self):
     """List flows that ran on this client."""
 
-    args = api_pb2.ApiListFlowsArgs(client_id=self.client_id)
+    args = flow_pb2.ApiListFlowsArgs(client_id=self.client_id)
 
     items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(
@@ -151,11 +153,11 @@ class ClientBase(object):
     if not notified_users:
       raise ValueError("notified_users list can't be empty.")
 
-    approval = api_pb2.ApiClientApproval(
+    approval = user_pb2.ApiClientApproval(
         reason=reason,
         notified_users=notified_users,
         email_cc_addresses=email_cc_addresses or [])
-    args = api_pb2.ApiCreateClientApprovalArgs(
+    args = user_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id,
         approval=approval,
         keep_client_alive=keep_client_alive)
@@ -164,8 +166,8 @@ class ClientBase(object):
     return ClientApproval(
         data=data, username=self._context.username, context=self._context)
 
-  def ListApprovals(self, state=api_pb2.ApiListClientApprovalsArgs.ANY):
-    args = api_pb2.ApiListClientApprovalsArgs(
+  def ListApprovals(self, state=user_pb2.ApiListClientApprovalsArgs.ANY):
+    args = user_pb2.ApiListClientApprovalsArgs(
         client_id=self.client_id, state=state)
     items = self._context.SendIteratorRequest("ListClientApprovals", args)
 
@@ -179,7 +181,7 @@ class ClientBase(object):
     if not labels:
       raise ValueError("labels list can't be empty")
 
-    args = api_pb2.ApiAddClientsLabelsArgs(
+    args = client_pb2.ApiAddClientsLabelsArgs(
         client_ids=[self.client_id], labels=labels)
     self._context.SendRequest("AddClientsLabels", args)
 
@@ -187,7 +189,7 @@ class ClientBase(object):
     if not labels:
       raise ValueError("labels list can't be empty")
 
-    args = api_pb2.ApiRemoveClientsLabelsArgs(
+    args = client_pb2.ApiRemoveClientsLabelsArgs(
         client_ids=[self.client_id], labels=labels)
     self._context.SendRequest("RemoveClientsLabels", args)
 
@@ -198,7 +200,7 @@ class ClientRef(ClientBase):
   def Get(self):
     """Fetch client's data and return a proper Client object."""
 
-    args = api_pb2.ApiGetClientArgs(client_id=self.client_id)
+    args = client_pb2.ApiGetClientArgs(client_id=self.client_id)
     result = self._context.SendRequest("GetClient", args)
     return Client(data=result, context=self._context)
 
@@ -220,7 +222,7 @@ class Client(ClientBase):
 def SearchClients(query=None, context=None):
   """List clients conforming to a givent query."""
 
-  args = api_pb2.ApiSearchClientsArgs(query=query)
+  args = client_pb2.ApiSearchClientsArgs(query=query)
 
   items = context.SendIteratorRequest("SearchClients", args)
   return utils.MapItemsIterator(lambda data: Client(data=data, context=context),

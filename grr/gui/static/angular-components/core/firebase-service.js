@@ -37,7 +37,8 @@ FirebaseService.service_name = 'grrFirebaseService';
  * @export
  */
 FirebaseService.prototype.setupIfNeeded = function() {
-  if (firebase.apps.length == 0) {
+  if (angular.isUndefined(window.firebase) ||
+      firebase.apps.length == 0) {
     this.grrApiService_.markAuthDone();
     return;
   }

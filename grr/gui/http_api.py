@@ -15,7 +15,6 @@ from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
-from google.protobuf import symbol_database
 
 import logging
 
@@ -31,8 +30,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import structs as rdf_structs
-
-from grr.proto import api_pb2
 
 
 class Error(Exception):
@@ -298,8 +295,9 @@ class HttpRequestHandler(object):
       expected_type = None.__class__
 
     if result.__class__ != expected_type:
-      raise UnexpectedResultTypeError("Expected %s, but got %s." % (
-          expected_type.__name__, result.__class__.__name__))
+      raise UnexpectedResultTypeError("Expected %s, but got %s." %
+                                      (expected_type.__name__,
+                                       result.__class__.__name__))
 
     return result
 
@@ -367,8 +365,8 @@ class HttpRequestHandler(object):
         response=stream,
         content_type="binary/octet-stream",
         direct_passthrough=True)
-    response.headers["Content-Disposition"] = ("attachment; filename=%s" %
-                                               binary_stream.filename)
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=%s" % binary_stream.filename)
     if method_name:
       response.headers["X-API-Method"] = method_name
 
@@ -564,11 +562,6 @@ class HttpApiInitHook(registry.InitHook):
   def RunOnce(self):
     global HTTP_REQUEST_HANDLER
     HTTP_REQUEST_HANDLER = HttpRequestHandler()
-
-    db = symbol_database.Default()
-    # Register api_pb2.DESCRIPTOR in the database, so that all API-related
-    # protos are recognized when Any messages are unpacked.
-    db.RegisterFileDescriptor(api_pb2.DESCRIPTOR)
 
     stats.STATS.RegisterEventMetric(
         "api_method_latency",

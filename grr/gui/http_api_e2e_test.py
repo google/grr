@@ -35,8 +35,8 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.proto import api_pb2
 from grr.proto import jobs_pb2
+from grr.proto.api import vfs_pb2
 
 
 class ApiE2ETest(test_lib.GRRBaseTest):
@@ -234,7 +234,7 @@ class ApiClientLibVfsTest(ApiE2ETest):
         client_id=self.client_urn.Basename()).File("fs").GetTimeline()
     self.assertTrue(timeline)
     for item in timeline:
-      self.assertTrue(isinstance(item, api_pb2.ApiVfsTimelineItem))
+      self.assertTrue(isinstance(item, vfs_pb2.ApiVfsTimelineItem))
 
   def testGetTimelineAsCsv(self):
     out = StringIO.StringIO()
@@ -589,28 +589,28 @@ users:
     self.config_overrider.Stop()
 
   def testCreatingArbitraryFlowDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
     with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
     args = rdf_file_finder.FileFinderArgs(
         paths=[
-            os.path.join(self.base_path, "test.plist"), os.path.join(
-                self.base_path, "numbers.txt"), os.path.join(
-                    self.base_path, "numbers.txt.ver2")
+            os.path.join(self.base_path, "test.plist"),
+            os.path.join(self.base_path, "numbers.txt"),
+            os.path.join(self.base_path, "numbers.txt.ver2")
         ],
         action=rdf_file_finder.FileFinderAction(
-            action_type=rdf_file_finder.FileFinderAction.Action.
-            DOWNLOAD)).AsPrimitiveProto()
+            action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
+    ).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
@@ -666,8 +666,8 @@ users:
         sorted(namelist))
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
@@ -679,8 +679,8 @@ users:
       flow_ref.Get()
 
   def testNoThrottlingDoneByDefault(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+    self.InitRouterConfig(
+        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),

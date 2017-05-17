@@ -19,11 +19,11 @@ from grr.lib.aff4_objects import user_managers
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto import api_call_router_pb2
 
 
 class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiLabelsRestrictedCallRouterParams
+  protobuf = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams
 
 
 class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):

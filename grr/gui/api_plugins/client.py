@@ -32,7 +32,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import client_pb2
 
 
 class InterrogateOperationNotFoundError(
@@ -64,7 +64,7 @@ class ApiClientId(rdfvalue.RDFString):
 
 
 class ApiClient(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClient
+  protobuf = client_pb2.ApiClient
 
   def InitFromAff4Object(self, client_obj):
     self.urn = client_obj.urn
@@ -111,15 +111,15 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
 
 class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientActionRequest
+  protobuf = client_pb2.ApiClientActionRequest
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiSearchClientsArgs
+  protobuf = client_pb2.ApiSearchClientsArgs
 
 
 class ApiSearchClientsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiSearchClientsResult
+  protobuf = client_pb2.ApiSearchClientsResult
 
 
 class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
@@ -199,7 +199,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
 
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientArgs
+  protobuf = client_pb2.ApiGetClientArgs
 
 
 class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
@@ -224,11 +224,11 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientVersionTimesArgs
+  protobuf = client_pb2.ApiGetClientVersionTimesArgs
 
 
 class ApiGetClientVersionTimesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientVersionTimesResult
+  protobuf = client_pb2.ApiGetClientVersionTimesResult
 
 
 class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
@@ -248,11 +248,11 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiInterrogateClientArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiInterrogateClientArgs
+  protobuf = client_pb2.ApiInterrogateClientArgs
 
 
 class ApiInterrogateClientResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiInterrogateClientResult
+  protobuf = client_pb2.ApiInterrogateClientResult
 
 
 class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
@@ -271,11 +271,11 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetInterrogateOperationStateArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetInterrogateOperationStateArgs
+  protobuf = client_pb2.ApiGetInterrogateOperationStateArgs
 
 
 class ApiGetInterrogateOperationStateResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetInterrogateOperationStateResult
+  protobuf = client_pb2.ApiGetInterrogateOperationStateResult
 
 
 class ApiGetInterrogateOperationStateHandler(
@@ -292,8 +292,8 @@ class ApiGetInterrogateOperationStateHandler(
 
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
-      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+      raise InterrogateOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
 
     result = ApiGetInterrogateOperationStateResult()
     if complete:
@@ -305,11 +305,11 @@ class ApiGetInterrogateOperationStateHandler(
 
 
 class ApiGetLastClientIPAddressArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetLastClientIPAddressArgs
+  protobuf = client_pb2.ApiGetLastClientIPAddressArgs
 
 
 class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetLastClientIPAddressResult
+  protobuf = client_pb2.ApiGetLastClientIPAddressResult
 
 
 class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
@@ -331,11 +331,11 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListClientCrashesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientCrashesArgs
+  protobuf = client_pb2.ApiListClientCrashesArgs
 
 
 class ApiListClientCrashesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientCrashesResult
+  protobuf = client_pb2.ApiListClientCrashesResult
 
 
 class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
@@ -356,7 +356,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAddClientsLabelsArgs
+  protobuf = client_pb2.ApiAddClientsLabelsArgs
 
 
 class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -397,7 +397,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRemoveClientsLabelsArgs
+  protobuf = client_pb2.ApiRemoveClientsLabelsArgs
 
 
 class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -450,7 +450,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientsLabelsResult
+  protobuf = client_pb2.ApiListClientsLabelsResult
 
 
 class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -472,7 +472,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListKbFieldsResult
+  protobuf = client_pb2.ApiListKbFieldsResult
 
 
 class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
@@ -486,11 +486,11 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListClientActionRequestsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientActionRequestsArgs
+  protobuf = client_pb2.ApiListClientActionRequestsArgs
 
 
 class ApiListClientActionRequestsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientActionRequestsResult
+  protobuf = client_pb2.ApiListClientActionRequestsResult
 
 
 class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
@@ -509,8 +509,8 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
       return []
 
     request_message = request_messages[0]
-    state_queue = request_message.session_id.Add("state/request:%08X" %
-                                                 request_message.request_id)
+    state_queue = request_message.session_id.Add(
+        "state/request:%08X" % request_message.request_id)
 
     result = []
     predicate_pre = (
@@ -547,11 +547,11 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetClientLoadStatsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientLoadStatsArgs
+  protobuf = client_pb2.ApiGetClientLoadStatsArgs
 
 
 class ApiGetClientLoadStatsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientLoadStatsResult
+  protobuf = client_pb2.ApiGetClientLoadStatsResult
 
 
 class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):

@@ -21,7 +21,7 @@ from grr.lib import utils
 from grr.lib.flows.general import export as flow_export
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import api_pb2
+from grr.proto import api_utils_pb2
 
 
 class CollectionArchiveGenerator(object):
@@ -201,7 +201,7 @@ class CollectionArchiveGenerator(object):
 class ApiDataObject(rdf_structs.RDFProtoStruct):
   """Defines a proto for returning Data Objects over the API."""
 
-  protobuf = api_pb2.ApiDataObject
+  protobuf = api_utils_pb2.ApiDataObject
 
   def InitFromDataObject(self, data_object):
     for key, value in sorted(data_object.iteritems()):
@@ -214,7 +214,7 @@ class ApiDataObject(rdf_structs.RDFProtoStruct):
 class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
   """Defines a proto for returning key value pairs of data objects."""
 
-  protobuf = api_pb2.ApiDataObjectKeyValuePair
+  protobuf = api_utils_pb2.ApiDataObjectKeyValuePair
 
   def InitFromKeyValue(self, key, value):
     self.key = key

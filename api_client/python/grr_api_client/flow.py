@@ -2,7 +2,7 @@
 """Flows-related part of GRR API client library."""
 
 from grr_api_client import utils
-from grr.proto import api_pb2
+from grr.proto.api import flow_pb2
 
 
 class FlowResult(object):
@@ -39,18 +39,18 @@ class FlowBase(object):
     self._context = context
 
   def Cancel(self):
-    args = api_pb2.ApiCancelFlowArgs(
+    args = flow_pb2.ApiCancelFlowArgs(
         client_id=self.client_id, flow_id=self.flow_id)
     self._context.SendRequest("CancelFlow", args)
 
   def ListResults(self):
-    args = api_pb2.ApiListFlowResultsArgs(
+    args = flow_pb2.ApiListFlowResultsArgs(
         client_id=self.client_id, flow_id=self.flow_id)
     items = self._context.SendIteratorRequest("ListFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
   def GetFilesArchive(self):
-    args = api_pb2.ApiGetFlowFilesArchiveArgs(
+    args = flow_pb2.ApiGetFlowFilesArchiveArgs(
         client_id=self.client_id, flow_id=self.flow_id)
     return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 
@@ -61,7 +61,7 @@ class FlowRef(FlowBase):
   def Get(self):
     """Fetch flow's data and return proper Flow object."""
 
-    args = api_pb2.ApiGetFlowArgs(
+    args = flow_pb2.ApiGetFlowArgs(
         client_id=self.client_id, flow_id=self.flow_id)
     data = self._context.SendRequest("GetFlow", args)
     return Flow(data=data, context=self._context)

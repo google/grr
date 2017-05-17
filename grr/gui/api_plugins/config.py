@@ -15,7 +15,7 @@ from grr.lib.aff4_objects import collects as aff4_collects
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import config_pb2
 
 # TODO(user): sensitivity of config options and sections should
 # probably be defined together with the options themselves. Keeping
@@ -29,7 +29,7 @@ REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 
 
 class ApiConfigOption(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiConfigOption
+  protobuf = config_pb2.ApiConfigOption
 
   def GetValueClass(self):
     return rdfvalue.RDFValue.classes.get(self.type)
@@ -70,11 +70,11 @@ class ApiConfigOption(rdf_structs.RDFProtoStruct):
 
 
 class ApiConfigSection(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiConfigSection
+  protobuf = config_pb2.ApiConfigSection
 
 
 class ApiGetConfigResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetConfigResult
+  protobuf = config_pb2.ApiGetConfigResult
 
 
 class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
@@ -117,7 +117,7 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetConfigOptionArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetConfigOptionArgs
+  protobuf = config_pb2.ApiGetConfigOptionArgs
 
 
 class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
@@ -136,11 +136,11 @@ class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGrrBinary(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGrrBinary
+  protobuf = config_pb2.ApiGrrBinary
 
 
 class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListGrrBinariesResult
+  protobuf = config_pb2.ApiListGrrBinariesResult
 
 
 def _GetSignedBlobsRoots():
@@ -249,7 +249,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetGrrBinaryArgs
+  protobuf = config_pb2.ApiGetGrrBinaryArgs
 
 
 class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):

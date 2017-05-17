@@ -441,7 +441,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     reb = rdf_data_server.DataServerRebalance.FromSerializedString(
         self.post_data)
     if not rebalance.MoveFiles(reb, self.MASTER):
-      logging.critical("Failed to perform transaction %s", reb.id)
+      logging.fatal("Failed to perform transaction %s", reb.id)
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_MOVED)
       return
     # Update range of servers.

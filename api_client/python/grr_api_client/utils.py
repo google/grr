@@ -3,7 +3,26 @@
 
 import itertools
 
+from google.protobuf import wrappers_pb2
+
 from google.protobuf import symbol_database
+
+from grr.client.components.rekall_support import rekall_pb2
+
+from grr.proto import flows_pb2
+from grr.proto import jobs_pb2
+
+from grr.proto.api import artifact_pb2
+from grr.proto.api import client_pb2
+from grr.proto.api import config_pb2
+from grr.proto.api import cron_pb2
+from grr.proto.api import flow_pb2
+from grr.proto.api import hunt_pb2
+from grr.proto.api import output_plugin_pb2
+from grr.proto.api import reflection_pb2
+from grr.proto.api import stats_pb2
+from grr.proto.api import user_pb2
+from grr.proto.api import vfs_pb2
 
 
 class Error(Exception):
@@ -147,3 +166,26 @@ def UnpackAny(proto_any):
 
   proto_any.Unpack(proto)
   return proto
+
+
+def RegisterProtoDescriptors(db, *additional_descriptors):
+  """Registers all API-releated descriptors in a given symbol DB."""
+  db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(client_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(config_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(cron_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(flow_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(hunt_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
+
+  db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(rekall_pb2.DESCRIPTOR)
+
+  for d in additional_descriptors:
+    db.RegisterFileDescriptor(d)

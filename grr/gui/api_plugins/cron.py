@@ -13,7 +13,7 @@ from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import cron_pb2
 
 
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -27,14 +27,14 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
   representation. It's also meant to contain only the information needed by
   the UI and and to not expose implementation defails.
   """
-  protobuf = api_pb2.ApiCronJob
+  protobuf = cron_pb2.ApiCronJob
 
   def GetArgsClass(self):
     if self.flow_name:
       flow_cls = flow.GRRFlow.classes.get(self.flow_name)
       if flow_cls is None:
-        raise ValueError("Flow %s not known by this implementation." %
-                         self.flow_name)
+        raise ValueError(
+            "Flow %s not known by this implementation." % self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -87,11 +87,11 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
 
 class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListCronJobsArgs
+  protobuf = cron_pb2.ApiListCronJobsArgs
 
 
 class ApiListCronJobsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListCronJobsResult
+  protobuf = cron_pb2.ApiListCronJobsResult
 
 
 class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
@@ -123,7 +123,7 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetCronJobArgs
+  protobuf = cron_pb2.ApiGetCronJobArgs
 
 
 class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -141,12 +141,12 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
 
       return ApiCronJob().InitFromAff4Object(cron_job)
     except aff4.InstantiationError:
-      raise CronJobNotFoundError("Cron job with id %s could not be found" %
-                                 args.cron_job_id)
+      raise CronJobNotFoundError(
+          "Cron job with id %s could not be found" % args.cron_job_id)
 
 
 class ApiListCronJobFlowsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListCronJobFlowsArgs
+  protobuf = cron_pb2.ApiListCronJobFlowsArgs
 
 
 class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
@@ -164,7 +164,7 @@ class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetCronJobFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetCronJobFlowArgs
+  protobuf = cron_pb2.ApiGetCronJobFlowArgs
 
 
 class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -232,7 +232,7 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiForceRunCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiForceRunCronJobArgs
+  protobuf = cron_pb2.ApiForceRunCronJobArgs
 
 
 class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -251,7 +251,7 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiModifyCronJobArgs
+  protobuf = cron_pb2.ApiModifyCronJobArgs
 
 
 class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -280,7 +280,7 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiDeleteCronJobArgs
+  protobuf = cron_pb2.ApiDeleteCronJobArgs
 
 
 class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):

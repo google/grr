@@ -34,7 +34,7 @@ from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import hunt_pb2
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
@@ -100,14 +100,14 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   representation. It's also meant to contain only the information needed by
   the UI and and to not expose implementation defails.
   """
-  protobuf = api_pb2.ApiHunt
+  protobuf = hunt_pb2.ApiHunt
 
   def GetFlowArgsClass(self):
     if self.flow_name:
       flow_cls = flow.GRRFlow.classes.get(self.flow_name)
       if flow_cls is None:
-        raise ValueError("Flow %s not known by this implementation." %
-                         self.flow_name)
+        raise ValueError(
+            "Flow %s not known by this implementation." % self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -155,7 +155,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
 
 class ApiHuntResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntResult
+  protobuf = hunt_pb2.ApiHuntResult
 
   def GetPayloadClass(self):
     return rdfvalue.RDFValue.classes[self.payload_type]
@@ -171,11 +171,11 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
 
 
 class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntsArgs
+  protobuf = hunt_pb2.ApiListHuntsArgs
 
 
 class ApiListHuntsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntsResult
+  protobuf = hunt_pb2.ApiListHuntsResult
 
 
 class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
@@ -316,7 +316,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntArgs
+  protobuf = hunt_pb2.ApiGetHuntArgs
 
 
 class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
@@ -332,16 +332,16 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
 
       return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
     except aff4.InstantiationError:
-      raise HuntNotFoundError("Hunt with id %s could not be found" %
-                              args.hunt_id)
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id)
 
 
 class ApiListHuntResultsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntResultsArgs
+  protobuf = hunt_pb2.ApiListHuntResultsArgs
 
 
 class ApiListHuntResultsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntResultsResult
+  protobuf = hunt_pb2.ApiListHuntResultsResult
 
 
 class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
@@ -362,11 +362,11 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListHuntCrashesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntCrashesArgs
+  protobuf = hunt_pb2.ApiListHuntCrashesArgs
 
 
 class ApiListHuntCrashesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntCrashesResult
+  protobuf = hunt_pb2.ApiListHuntCrashesResult
 
 
 class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
@@ -385,11 +385,11 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntResultsExportCommandArgs
+  protobuf = hunt_pb2.ApiGetHuntResultsExportCommandArgs
 
 
 class ApiGetHuntResultsExportCommandResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntResultsExportCommandResult
+  protobuf = hunt_pb2.ApiGetHuntResultsExportCommandResult
 
 
 class ApiGetHuntResultsExportCommandHandler(
@@ -414,11 +414,11 @@ class ApiGetHuntResultsExportCommandHandler(
 
 
 class ApiListHuntOutputPluginsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginsArgs
+  protobuf = hunt_pb2.ApiListHuntOutputPluginsArgs
 
 
 class ApiListHuntOutputPluginsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginsResult
+  protobuf = hunt_pb2.ApiListHuntOutputPluginsResult
 
 
 class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
@@ -495,11 +495,11 @@ class ApiListHuntOutputPluginLogsHandlerBase(
 
 
 class ApiListHuntOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginLogsArgs
+  protobuf = hunt_pb2.ApiListHuntOutputPluginLogsArgs
 
 
 class ApiListHuntOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginLogsResult
+  protobuf = hunt_pb2.ApiListHuntOutputPluginLogsResult
 
 
 class ApiListHuntOutputPluginLogsHandler(
@@ -515,11 +515,11 @@ class ApiListHuntOutputPluginLogsHandler(
 
 
 class ApiListHuntOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginErrorsArgs
+  protobuf = hunt_pb2.ApiListHuntOutputPluginErrorsArgs
 
 
 class ApiListHuntOutputPluginErrorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntOutputPluginErrorsResult
+  protobuf = hunt_pb2.ApiListHuntOutputPluginErrorsResult
 
 
 class ApiListHuntOutputPluginErrorsHandler(
@@ -535,11 +535,11 @@ class ApiListHuntOutputPluginErrorsHandler(
 
 
 class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntLogsArgs
+  protobuf = hunt_pb2.ApiListHuntLogsArgs
 
 
 class ApiListHuntLogsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntLogsResult
+  protobuf = hunt_pb2.ApiListHuntLogsResult
 
 
 class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
@@ -560,11 +560,11 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListHuntErrorsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntErrorsArgs
+  protobuf = hunt_pb2.ApiListHuntErrorsArgs
 
 
 class ApiListHuntErrorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntErrorsResult
+  protobuf = hunt_pb2.ApiListHuntErrorsResult
 
 
 class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
@@ -586,12 +586,12 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntClientCompletionStatsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntClientCompletionStatsArgs
+  protobuf = hunt_pb2.ApiGetHuntClientCompletionStatsArgs
 
 
 class ApiGetHuntClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
   """Result for getting the client completions of a hunt."""
-  protobuf = api_pb2.ApiGetHuntClientCompletionStatsResult
+  protobuf = hunt_pb2.ApiGetHuntClientCompletionStatsResult
 
   def InitFromDataPoints(self, start_stats, complete_stats):
     """Check that this approval applies to the given token.
@@ -727,7 +727,7 @@ class ApiGetHuntClientCompletionStatsHandler(
 
 
 class ApiGetHuntFilesArchiveArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntFilesArchiveArgs
+  protobuf = hunt_pb2.ApiGetHuntFilesArchiveArgs
 
 
 class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
@@ -795,7 +795,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntFileArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntFileArgs
+  protobuf = hunt_pb2.ApiGetHuntFileArgs
 
 
 class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
@@ -875,11 +875,11 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntStatsArgs
+  protobuf = hunt_pb2.ApiGetHuntStatsArgs
 
 
 class ApiGetHuntStatsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntStatsResult
+  protobuf = hunt_pb2.ApiGetHuntStatsResult
 
 
 class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
@@ -899,19 +899,19 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListHuntClientsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntClientsArgs
+  protobuf = hunt_pb2.ApiListHuntClientsArgs
 
 
 class ApiListHuntClientsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListHuntClientsResult
+  protobuf = hunt_pb2.ApiListHuntClientsResult
 
 
 class ApiHuntClientPendingRequest(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntClientPendingRequest
+  protobuf = hunt_pb2.ApiHuntClientPendingRequest
 
 
 class ApiHuntClient(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntClient
+  protobuf = hunt_pb2.ApiHuntClient
 
 
 class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
@@ -961,8 +961,8 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
         request_obj = None
 
       if request_obj:
-        response_urn = rdfvalue.RDFURN(request_urn).Add("request:%08X" %
-                                                        request_obj.id)
+        response_urn = rdfvalue.RDFURN(request_urn).Add(
+            "request:%08X" % request_obj.id)
         responses_available = len(response_dict.setdefault(response_urn, []))
         status_available = False
         responses_expected = "Unknown"
@@ -1024,11 +1024,11 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetHuntContextArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntContextArgs
+  protobuf = hunt_pb2.ApiGetHuntContextArgs
 
 
 class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntContextResult
+  protobuf = hunt_pb2.ApiGetHuntContextResult
 
   def GetArgsClass(self):
     hunt_name = self.runner_args.hunt_name
@@ -1036,8 +1036,8 @@ class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
     if hunt_name:
       hunt_cls = hunts.GRRHunt.classes.get(hunt_name)
       if hunt_cls is None:
-        raise ValueError("Hunt %s not known by this implementation." %
-                         hunt_name)
+        raise ValueError(
+            "Hunt %s not known by this implementation." % hunt_name)
 
       # The required protobuf for this class is in args_type.
       return hunt_cls.args_type
@@ -1074,14 +1074,14 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateHuntArgs
+  protobuf = hunt_pb2.ApiCreateHuntArgs
 
   def GetFlowArgsClass(self):
     if self.flow_name:
       flow_cls = flow.GRRFlow.classes.get(self.flow_name)
       if flow_cls is None:
-        raise ValueError("Flow %s not known by this implementation." %
-                         self.flow_name)
+        raise ValueError(
+            "Flow %s not known by this implementation." % self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -1127,7 +1127,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiModifyHuntArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiModifyHuntArgs
+  protobuf = hunt_pb2.ApiModifyHuntArgs
 
 
 class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
@@ -1142,8 +1142,8 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
       hunt = aff4.FACTORY.Open(
           hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
-      raise HuntNotFoundError("Hunt with id %s could not be found" %
-                              args.hunt_id)
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id)
 
     current_state = hunt.Get(hunt.Schema.STATE)
     hunt_changes = []
@@ -1207,7 +1207,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiDeleteHuntArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiDeleteHuntArgs
+  protobuf = hunt_pb2.ApiDeleteHuntArgs
 
 
 class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
@@ -1245,12 +1245,12 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
 
     except aff4.InstantiationError:
       # Raise standard NotFoundError if the hunt object can't be opened.
-      raise HuntNotFoundError("Hunt with id %s could not be found" %
-                              args.hunt_id)
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id)
 
 
 class ApiGetExportedHuntResultsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetExportedHuntResultsArgs
+  protobuf = hunt_pb2.ApiGetExportedHuntResultsArgs
 
 
 class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
@@ -1267,8 +1267,8 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
       aff4.FACTORY.Open(
           hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
-      raise HuntNotFoundError("Hunt with id %s could not be found" %
-                              args.hunt_id)
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id)
 
     output_collection = implementation.GRRHunt.TypedResultCollectionForHID(
         hunt_urn, token=token)
@@ -1276,6 +1276,5 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     plugin = plugin_cls(source_urn=hunt_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name,
-        content_generator=
-        instant_output_plugin.ApplyPluginToMultiTypeCollection(
-            plugin, output_collection))
+        content_generator=instant_output_plugin.
+        ApplyPluginToMultiTypeCollection(plugin, output_collection))

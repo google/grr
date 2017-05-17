@@ -1,0 +1,558 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr/proto/api/output_plugin.proto";
+
+import "grr/proto/analysis.proto";
+import "grr/proto/api_utils.proto";
+import "grr/proto/jobs.proto";
+import "grr/proto/flows.proto";
+import "grr/proto/output_plugin.proto";
+import "grr/proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+// Next id: 22
+message ApiHunt {
+  // Enum values here correspond to Hunt.State values.
+  enum State {
+    PAUSED = 0;
+    STARTED = 1;
+    STOPPED = 2;
+    COMPLETED = 3;
+  };
+
+  optional string urn = 1 [(sem_type) = {
+      type: "SessionID",
+      description: "Hunt URN."
+    }];
+  optional string name = 2 [(sem_type) = {
+      description: "Hunt name.",
+    }];
+  optional State state = 4 [(sem_type) = {
+      description: "Current hunt state."
+    }];
+
+  optional string flow_name = 20 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 21 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
+    }];
+  optional HuntRunnerArgs hunt_runner_args = 6 [(sem_type) = {
+      description: "Hunt runner arguments."
+    }];
+
+  optional int64 all_clients_count = 7 [(sem_type) = {
+      description: "Count of all clients.",
+    }];
+  optional int64 remaining_clients_count = 8 [(sem_type) = {
+      description: "Count of remaining clients.",
+    }];
+  optional int64 completed_clients_count = 9 [(sem_type) = {
+      description: "Count of completed clients.",
+    }];
+  optional int64 client_limit = 10 [(sem_type) = {
+      description: "Client limit.",
+    }];
+  optional float client_rate = 11 [(sem_type) = {
+      description: "Client rate.",
+    }];
+  optional uint64 created = 12 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Creation time of the hunt."
+    }];
+  optional uint64 expires = 13 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Expiration time of the hunt."
+    }];
+  optional string creator = 14 [(sem_type) = {
+      description: "Name of the user who created the hunt."
+    }];
+  optional string description = 15 [(sem_type) = {
+      description: "Hunt description."
+    }];
+  optional ForemanClientRuleSet client_rule_set = 16 [(sem_type) = {
+       description: "Client rules."
+    }];
+  optional bool is_robot = 17 [(sem_type) = {
+      description: "Whether the hunt was created by a GRRWorker."
+    }];
+  optional float total_cpu_usage = 18 [(sem_type) = {
+      description: "Total CPU usage (in seconds)."
+    }];
+  optional int64 total_net_usage = 19 [(sem_type) = {
+      description: "Total network usage (in bytes)."
+    }];
+}
+
+message ApiHuntResult {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional google.protobuf.Any payload = 3 [(sem_type) = {
+      description: "Result payload.",
+      dynamic_type: "GetPayloadClass"
+    }];
+  optional string payload_type = 4 [(sem_type) = {
+      description: "Type of the payload."
+    }];
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when result was written to the data "
+      "store."
+    }];
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiListHuntsArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Max number of items to fetch."
+    }];
+
+  // Filtering criterias.
+  optional string created_by = 3 [(sem_type) = {
+      description: "Only return hunts created by a given user. "
+      "If approved_by or/and description_contains are also supplied, "
+      "then logical AND is applied to all the criterias. NOTE: this filter "
+      "can only be used in conjunction with 'active_within' filter (to "
+      "prevent queries of death)."
+    }];
+  optional string description_contains = 4 [(sem_type) = {
+      description: "Only return hunts where description contains given "
+      "substring (matching is case-insensitive)."
+      "If created_by or/and approved_by are also supplied, "
+      "then logical AND is applied to all the criterias. NOTE: this filter "
+      "can only be used in conjunction with 'active_within' filter (to "
+      "prevent queries of death)."
+    }];
+  optional uint64 active_within = 5 [(sem_type) = {
+      type: "Duration",
+      description: "Only return hunts that were active within given time "
+      "duration."
+    }];
+}
+
+message ApiListHuntsResult {
+  repeated ApiHunt items = 1 [(sem_type) = {
+      description: "List of hunts."
+    }];
+  optional int64 total_count = 2 [(sem_type) = {
+      description: "Total number of items."
+    }];
+}
+
+message ApiGetHuntArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+}
+
+message ApiGetHuntClientCompletionStatsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 size = 2 [(sem_type) = {
+      description: "Max number of data points to fetch."
+    }];
+}
+
+message ApiGetHuntClientCompletionStatsResult {
+  repeated SampleFloat start_points = 1 [(sem_type) = {
+      description: "The list of samples for client starts."
+    }];
+  repeated SampleFloat complete_points = 2 [(sem_type) = {
+      description: "The list of samples for client completions."
+    }];
+}
+
+message ApiListHuntLogsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Log items starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of log items to fetch."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+};
+
+message ApiListHuntLogsResult {
+  repeated FlowLog items = 1 [(sem_type) = {
+      description: "The hunt errors"
+    }];
+  optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+  }];
+};
+
+message ApiListHuntErrorsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Hunt errors starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of errors to fetch."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+};
+
+message ApiListHuntErrorsResult {
+  repeated HuntError items = 1 [(sem_type) = {
+      description: "The hunt errors"
+    }];
+  optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+  }];
+};
+
+message ApiListHuntCrashesArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Hunt crashes starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of crashes to fetch."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+};
+
+message ApiListHuntCrashesResult {
+  repeated ClientCrash items = 1 [(sem_type) = {
+    description: "The client crashes"
+  }];
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+};
+
+message ApiListHuntResultsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Hunt results starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+};
+
+message ApiListHuntResultsResult {
+  repeated ApiHuntResult items = 1 [(sem_type) = {
+      description: "Hunt results."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+message ApiGetHuntResultsExportCommandArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+};
+
+message ApiGetHuntResultsExportCommandResult {
+  optional string command = 1 [(sem_type) = {
+      description: "Command that may be used to export hunt results."
+    }];
+}
+
+message ApiListHuntOutputPluginsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+};
+
+message ApiListHuntOutputPluginsResult {
+  repeated ApiOutputPlugin items = 1;
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+};
+
+
+message ApiListHuntOutputPluginLogsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional string plugin_id = 2 [(sem_type) = {
+      description: "Plugin id."
+    }];
+
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Status messages offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Number of status messages to fetch."
+    }];
+};
+
+message ApiListHuntOutputPluginLogsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Log entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+message ApiListHuntOutputPluginErrorsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional string plugin_id = 2 [(sem_type) = {
+      description: "Plugin id."
+    }];
+
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Errors offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Number of errors messages to fetch."
+    }];
+};
+
+message ApiListHuntOutputPluginErrorsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Errors entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+
+message ApiGetHuntFilesArchiveArgs {
+  enum ArchiveFormat {
+    ZIP = 0;
+    TAR_GZ = 1;
+  }
+
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id.",
+      type: "ApiHuntId"
+    }];
+  optional ArchiveFormat archive_format = 3;
+};
+
+message ApiGetHuntFileArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id.",
+      type: "ApiHuntId"
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the result in the collection."
+    }];
+  optional string vfs_path = 4 [(sem_type) = {
+      description: "AFF4 path to the file to be downloaded",
+    }];
+}
+
+message ApiGetHuntStatsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+};
+
+message ApiGetHuntStatsResult {
+  optional ClientResourcesStats stats = 1 [(sem_type) = {
+      description: "The stats."
+    }];
+};
+
+message ApiListHuntClientsArgs {
+  enum ClientStatus {
+    STARTED = 0;
+    OUTSTANDING = 1;
+    COMPLETED = 2;
+  }
+
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of items to fetch."
+    }];
+  optional ClientStatus client_status = 4 [(sem_type) = {
+      description: "The types of clients to fetch."
+    }];
+};
+
+message ApiHuntClientPendingRequest {
+  optional string flow_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The flow urn."
+    }];
+  optional string incomplete_request_id = 2 [(sem_type) = {
+      description: "The id of the incomplete request."
+    }];
+  optional string next_state = 3 [(sem_type) = {
+      description: "The next state of the flow."
+    }];
+  optional string expected_args = 4 [(sem_type) = {
+      description: "The name of the expected arguments."
+    }];
+  optional int64 available_responses_count = 5 [(sem_type) = {
+      description: "The number of available responses."
+    }];
+  optional string expected_responses = 6 [(sem_type) = {
+      description: "The expected responses."
+    }];
+  optional bool is_status_available = 7 [(sem_type) = {
+      description: "Whether the status is available or not."
+    }];
+  optional int64 available_client_requests_count = 8 [(sem_type) = {
+      description: "The number of client requests available."
+    }];
+}
+
+message ApiHuntClient {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "The client id."
+    }];
+  optional string flow_urn = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "The flow urn."
+    }];
+  optional CpuSeconds cpu_usage = 10 [(sem_type) = {
+      description: "CPU usage (in seconds)."
+    }];
+  optional int64 network_bytes_sent = 11 [(sem_type) = {
+      description: "Network usage (in bytes)."
+    }];
+  repeated ApiHuntClientPendingRequest pending_requests = 12;
+};
+
+message ApiListHuntClientsResult {
+  repeated ApiHuntClient items = 1 [(sem_type) = {
+      description: "The list of outstanding clients."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+};
+
+message ApiGetHuntContextArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+};
+
+message ApiGetHuntContextResult {
+  optional HuntContext context = 1 [(sem_type) = {
+      description: "The hunt context."
+    }];
+  optional ApiDataObject state = 2 [(sem_type) = {
+      description: "The hunt state."
+    }];
+};
+
+// Next id: 6
+message ApiCreateHuntArgs {
+  optional string flow_name = 3 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
+    }];
+  optional HuntRunnerArgs hunt_runner_args = 1 [(sem_type) = {
+      description: "Hunt runner arguments."
+    }];
+};
+
+message ApiModifyHuntArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional ApiHunt.State state = 2 [(sem_type) = {
+      description: "Hunt state."
+    }];
+  optional int64 client_limit = 3 [(sem_type) = {
+      description: "Client limit.",
+    }];
+  optional int64 client_rate = 4 [(sem_type) = {
+      description: "Client rate.",
+    }];
+  optional uint64 expires = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the hunt should expire."
+    }];
+}
+
+message ApiDeleteHuntArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+}
+
+message ApiGetExportedHuntResultsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+  optional string plugin_name = 2 [(sem_type) = {
+      description: "Instant output plugin name."
+    }];
+}

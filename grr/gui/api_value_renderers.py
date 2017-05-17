@@ -23,7 +23,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import reflection_pb2
 
 
 class Error(Exception):
@@ -35,18 +35,18 @@ class DefaultValueError(Error):
 
 
 class ApiRDFAllowedEnumValueDescriptor(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRDFAllowedEnumValueDescriptor
+  protobuf = reflection_pb2.ApiRDFAllowedEnumValueDescriptor
 
 
 class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRDFValueFieldDescriptor
+  protobuf = reflection_pb2.ApiRDFValueFieldDescriptor
 
   def GetDefaultValueClass(self):
     return rdfvalue.RDFValue.classes.get(self.type)
 
 
 class ApiRDFValueDescriptor(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRDFValueDescriptor
+  protobuf = reflection_pb2.ApiRDFValueDescriptor
 
   def GetDefaultValueClass(self):
     return rdfvalue.RDFValue.classes.get(self.name)
@@ -107,8 +107,8 @@ class ApiValueRenderer(object):
             candidates.append((candidate, candidate_class))
 
       if not candidates:
-        raise RuntimeError("No renderer found for value %s." %
-                           value.__class__.__name__)
+        raise RuntimeError(
+            "No renderer found for value %s." % value.__class__.__name__)
 
       candidates = sorted(
           candidates, key=lambda candidate: len(candidate[1].mro()))
@@ -257,8 +257,7 @@ class ApiListRenderer(ApiValueRenderer):
       result = [self._PassThrough(v) for v in list(value)[:self.limit_lists]]
       if len(value) > self.limit_lists:
         result.append(
-            dict(
-                age=0, type=FetchMoreLink.__name__, url="to/be/implemented"))
+            dict(age=0, type=FetchMoreLink.__name__, url="to/be/implemented"))
 
     return result
 

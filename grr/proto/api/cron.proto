@@ -1,0 +1,134 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr/proto/flows.proto";
+import "grr/proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+// Next id: 13
+message ApiCronJob {
+  enum State {
+    ENABLED = 0;
+    DISABLED = 1;
+  };
+
+  optional string urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "Cron job URN."
+    }];
+  optional string description = 2 [(sem_type) = {
+      description: "Cron job description."
+    }];
+  optional string flow_name = 3 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetArgsClass"
+    }];
+  optional FlowRunnerArgs flow_runner_args = 5 [(sem_type) = {
+      description: "Flow runner arguments."
+    }];
+  optional uint64 periodicity = 6 [(sem_type) = {
+      type: "Duration",
+      description: "Interval between cron runs."
+    }];
+  optional uint64 lifetime = 7 [(sem_type) = {
+      type: "Duration",
+      description: "How long each run of the cron should be allowed to run. "
+      "Runs that exceed lifetime will be killed. This is complimentary but"
+      " different to periodicity e.g. it allows us to run jobs weekly that"
+      " should be killed if they take more than a few hours.",
+    }];
+  optional bool allow_overruns = 8 [(sem_type) = {
+      description: "If true, don't kill the previous run if new one starts.",
+      label: ADVANCED
+    }];
+
+  optional State state = 9 [(sem_type) = {
+      description: "Current flow state."
+    }];
+  optional uint64 last_run_time = 10 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last time when this cron job ran."
+    }];
+  optional bool is_failing = 11 [(sem_type) = {
+      description: "Is this cron job constantly failing?"
+    }];
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiListCronJobsArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Max number of cron jobs to fetch."
+    }];
+};
+
+message ApiListCronJobsResult {
+  repeated ApiCronJob items = 1 [(sem_type) = {
+      description: "Cron jobs."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+}
+
+message ApiGetCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+}
+
+message ApiForceRunCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+}
+
+message ApiModifyCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional ApiCronJob.State state = 2 [(sem_type) = {
+      description: "New cron job state value."
+    }];
+}
+
+message ApiListCronJobFlowsArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of flows to fetch."
+    }];
+};
+
+message ApiGetCronJobFlowArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+}
+
+message ApiDeleteCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "The id of the cron job."
+    }];
+};

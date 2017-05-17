@@ -9,8 +9,6 @@ import requests
 
 from werkzeug import routing
 
-from google.protobuf import wrappers_pb2
-
 from google.protobuf import json_format
 from google.protobuf import symbol_database
 
@@ -20,11 +18,7 @@ from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
 
-from grr.client.components.rekall_support import rekall_pb2
-
-from grr.proto import api_pb2
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
+from grr.proto.api import reflection_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -79,16 +73,11 @@ class HttpConnector(connector.Connector):
 
     json_str = response.content[len(self.JSON_PREFIX):]
 
-    db = symbol_database.Default()
     # Register descriptors in the database, so that all API-related
     # protos are recognized when Any messages are unpacked.
-    db.RegisterFileDescriptor(api_pb2.DESCRIPTOR)
-    db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
-    db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
-    db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)
-    db.RegisterFileDescriptor(rekall_pb2.DESCRIPTOR)
+    utils.RegisterProtoDescriptors(symbol_database.Default())
 
-    proto = api_pb2.ApiListApiMethodsResult()
+    proto = reflection_pb2.ApiListApiMethodsResult()
     json_format.Parse(json_str, proto)
 
     routing_rules = []
@@ -128,8 +117,8 @@ class HttpConnector(connector.Connector):
     if args:
       for field, value in args.ListFields():
         if self.handlers_map.is_endpoint_expecting(handler_name, field.name):
-          path_params[field.name] = self._CoerceValueToQueryStringType(field,
-                                                                       value)
+          path_params[field.name] = self._CoerceValueToQueryStringType(
+              field, value)
 
     url = self.urls.build(handler_name, path_params, force_external=True)
 

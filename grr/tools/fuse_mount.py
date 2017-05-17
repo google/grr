@@ -553,7 +553,7 @@ def main(unused_argv):
   server_startup.Init()
 
   if fuse is None:
-    logging.critical("""Could not start!
+    logging.fatal("""Could not start!
 fusepy must be installed to run fuse_mount.py!
 Try to run:
   pip install fusepy

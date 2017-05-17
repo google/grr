@@ -395,8 +395,7 @@ def MigrateHuntFinishedAndErrors(hunt_or_urn, token=None):
 def MigrateAllHuntsFinishedAndError(token=None):
   """Migrates all hunts to collection-stored clients/errors lists."""
   hunts_list = list(
-      aff4.FACTORY.Open(
-          "aff4:/hunts", token=token).ListChildren())
+      aff4.FACTORY.Open("aff4:/hunts", token=token).ListChildren())
   all_hunts = aff4.FACTORY.MultiOpen(
       hunts_list,
       aff4_type=hunts_implementation.GRRHunt,
@@ -516,3 +515,49 @@ def FindClonedClients(token=None):
         break
 
   return cloned_clients
+
+
+def CleanClientVersions(clients=None, dry_run=True, token=None):
+  """A script to remove excessive client versions.
+
+  Especially when a client is heavily cloned, we sometimes write an excessive
+  number of versions of it. Since these version all go into the same database
+  row and are displayed as a dropdown list in the adminui, it is sometimes
+  necessary to clear them out.
+
+  This deletes version from clients so that we have at most one
+  version per hour.
+
+  Args:
+    clients: A list of ClientURN, if empty cleans all clients.
+    dry_run: whether this is a dry run
+    token: datastore token.
+  """
+  if not clients:
+    index = client_index.CreateClientIndex(token=token)
+    clients = index.LookupClients(["."])
+  clients.sort()
+  pool = data_store.MutationPool(token=token)
+
+  logging.info("checking %d clients", len(clients))
+
+  client_infos = data_store.DB.MultiResolvePrefix(
+      clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS, token=token)
+
+  for client, type_list in client_infos:
+    logging.info("%s: has %d versions", client, len(type_list))
+    cleared = 0
+    kept = 1
+    last_kept = type_list[0][2]
+    for _, _, ts in type_list[1:]:
+      if last_kept - ts > 60 * 60 * 1000000:  # 1 hour
+        last_kept = ts
+        kept += 1
+      else:
+        if not dry_run:
+          pool.DeleteAttributes(client, ["aff4:type"], start=ts, end=ts)
+        cleared += 1
+        if pool.Size() > 10000:
+          pool.Flush()
+    logging.info("%s: kept %d and cleared %d", client, kept, cleared)
+  pool.Flush()

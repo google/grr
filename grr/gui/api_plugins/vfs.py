@@ -25,7 +25,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import vfs_pb2
 
 # Files can only be accessed if their first path component is from this list.
 ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]
@@ -36,8 +36,8 @@ def ValidateVfsPath(path):
 
   components = (path or "").lstrip("/").split("/")
   if not components:
-    raise ValueError("Empty path is not a valid path: %s." %
-                     utils.SmartStr(path))
+    raise ValueError(
+        "Empty path is not a valid path: %s." % utils.SmartStr(path))
 
   if components[0] not in ROOT_FILES_WHITELIST:
     raise ValueError("First path component was '%s', but has to be one of %s" %
@@ -62,7 +62,7 @@ class VfsFileContentUpdateNotFoundError(
 
 
 class ApiFile(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFile
+  protobuf = vfs_pb2.ApiFile
 
   def InitFromAff4Object(self, file_obj, with_details=False):
     """Initializes the current instance from an Aff4Stream.
@@ -114,7 +114,7 @@ class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
   structured by type. If an attribute is found multiple times, it is only
   added once at the type where it is first encountered.
   """
-  protobuf = api_pb2.ApiAff4ObjectRepresentation
+  protobuf = vfs_pb2.ApiAff4ObjectRepresentation
 
   def InitFromAff4Object(self, aff4_obj):
     """Initializes the current instance from an Aff4Object.
@@ -154,7 +154,7 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
   ApiAff4ObjectType represents a subset of all attributes of an Aff4Object
   definied by a certain class of the inheritance hierarchy of the Aff4Object.
   """
-  protobuf = api_pb2.ApiAff4ObjectType
+  protobuf = vfs_pb2.ApiAff4ObjectType
 
   def InitFromAff4Object(self, aff4_obj, aff4_cls, attr_blacklist):
     """Initializes the current instance from an Aff4Object.
@@ -210,11 +210,11 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
 
 
 class ApiAff4ObjectAttribute(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAff4ObjectAttribute
+  protobuf = vfs_pb2.ApiAff4ObjectAttribute
 
 
 class ApiAff4ObjectAttributeValue(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAff4ObjectAttributeValue
+  protobuf = vfs_pb2.ApiAff4ObjectAttributeValue
 
   def GetValueClass(self):
     try:
@@ -224,11 +224,11 @@ class ApiAff4ObjectAttributeValue(rdf_structs.RDFProtoStruct):
 
 
 class ApiGetFileDetailsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileDetailsArgs
+  protobuf = vfs_pb2.ApiGetFileDetailsArgs
 
 
 class ApiGetFileDetailsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileDetailsResult
+  protobuf = vfs_pb2.ApiGetFileDetailsResult
 
 
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
@@ -256,11 +256,11 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListFilesArgs
+  protobuf = vfs_pb2.ApiListFilesArgs
 
 
 class ApiListFilesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListFilesResult
+  protobuf = vfs_pb2.ApiListFilesResult
 
 
 class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
@@ -316,11 +316,11 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileTextArgs
+  protobuf = vfs_pb2.ApiGetFileTextArgs
 
 
 class ApiGetFileTextResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileTextResult
+  protobuf = vfs_pb2.ApiGetFileTextResult
 
 
 class Aff4FileReaderMixin(object):
@@ -393,7 +393,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
 
 class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileBlobArgs
+  protobuf = vfs_pb2.ApiGetFileBlobArgs
 
 
 class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
@@ -450,11 +450,11 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
 
 
 class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileVersionTimesArgs
+  protobuf = vfs_pb2.ApiGetFileVersionTimesArgs
 
 
 class ApiGetFileVersionTimesResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileVersionTimesResult
+  protobuf = vfs_pb2.ApiGetFileVersionTimesResult
 
 
 class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
@@ -478,11 +478,11 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileDownloadCommandArgs
+  protobuf = vfs_pb2.ApiGetFileDownloadCommandArgs
 
 
 class ApiGetFileDownloadCommandResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileDownloadCommandResult
+  protobuf = vfs_pb2.ApiGetFileDownloadCommandResult
 
 
 class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
@@ -510,7 +510,7 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiListKnownEncodingsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListKnownEncodingsResult
+  protobuf = vfs_pb2.ApiListKnownEncodingsResult
 
 
 class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
@@ -527,12 +527,12 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS path."""
-  protobuf = api_pb2.ApiCreateVfsRefreshOperationArgs
+  protobuf = vfs_pb2.ApiCreateVfsRefreshOperationArgs
 
 
 class ApiCreateVfsRefreshOperationResult(rdf_structs.RDFProtoStruct):
   """Can be immediately returned to poll the status."""
-  protobuf = api_pb2.ApiCreateVfsRefreshOperationResult
+  protobuf = vfs_pb2.ApiCreateVfsRefreshOperationResult
 
 
 class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
@@ -577,12 +577,12 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a refresh operation."""
-  protobuf = api_pb2.ApiGetVfsRefreshOperationStateArgs
+  protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
 
 
 class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
   """Indicates the state of a refresh operation."""
-  protobuf = api_pb2.ApiGetVfsRefreshOperationStateResult
+  protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateResult
 
 
 class ApiGetVfsRefreshOperationStateHandler(
@@ -597,8 +597,8 @@ class ApiGetVfsRefreshOperationStateHandler(
 
     if not isinstance(flow_obj, (filesystem.RecursiveListDirectory,
                                  filesystem.ListDirectory)):
-      raise VfsRefreshOperationNotFoundError("Operation with id %s not found" %
-                                             args.operation_id)
+      raise VfsRefreshOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
 
     complete = not flow_obj.GetRunner().IsRunning()
     result = ApiGetVfsRefreshOperationStateResult()
@@ -611,15 +611,15 @@ class ApiGetVfsRefreshOperationStateHandler(
 
 
 class ApiGetVfsTimelineArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetVfsTimelineArgs
+  protobuf = vfs_pb2.ApiGetVfsTimelineArgs
 
 
 class ApiGetVfsTimelineResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetVfsTimelineResult
+  protobuf = vfs_pb2.ApiGetVfsTimelineResult
 
 
 class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiVfsTimelineItem
+  protobuf = vfs_pb2.ApiVfsTimelineItem
 
 
 class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
@@ -688,7 +688,7 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetVfsTimelineAsCsvArgs
+  protobuf = vfs_pb2.ApiGetVfsTimelineAsCsvArgs
 
 
 class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
@@ -729,12 +729,12 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS file."""
-  protobuf = api_pb2.ApiUpdateVfsFileContentArgs
+  protobuf = vfs_pb2.ApiUpdateVfsFileContentArgs
 
 
 class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
   """Can be immediately returned to poll the status."""
-  protobuf = api_pb2.ApiUpdateVfsFileContentResult
+  protobuf = vfs_pb2.ApiUpdateVfsFileContentResult
 
 
 class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
@@ -760,12 +760,12 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a file content update operation."""
-  protobuf = api_pb2.ApiGetVfsFileContentUpdateStateArgs
+  protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
 
 
 class ApiGetVfsFileContentUpdateStateResult(rdf_structs.RDFProtoStruct):
   """Indicates the state of a file content update operation."""
-  protobuf = api_pb2.ApiGetVfsFileContentUpdateStateResult
+  protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateResult
 
 
 class ApiGetVfsFileContentUpdateStateHandler(
@@ -781,8 +781,8 @@ class ApiGetVfsFileContentUpdateStateHandler(
           args.operation_id, aff4_type=transfer.MultiGetFile, token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
-      raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
 
     result = ApiGetVfsFileContentUpdateStateResult()
     if complete:
@@ -795,7 +795,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
 
 class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   """Arguments for GetVfsFilesArchive handler."""
-  protobuf = api_pb2.ApiGetVfsFilesArchiveArgs
+  protobuf = vfs_pb2.ApiGetVfsFilesArchiveArgs
 
 
 class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):

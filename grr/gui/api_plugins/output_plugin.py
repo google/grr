@@ -10,12 +10,13 @@ from grr.lib import output_plugin
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import output_plugin_pb2
+from grr.proto.api import reflection_pb2
 
 
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   """Output plugin API entity."""
-  protobuf = api_pb2.ApiOutputPlugin
+  protobuf = output_plugin_pb2.ApiOutputPlugin
 
   def GetStateClass(self):
     return rdf_protodict.AttributedDict
@@ -23,7 +24,7 @@ class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
 
 class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   """Output plugin descriptor API entity."""
-  protobuf = api_pb2.ApiOutputPluginDescriptor
+  protobuf = reflection_pb2.ApiOutputPluginDescriptor
 
   def InitFromOutputPluginClass(self, plugin_class):
     self.name = plugin_class.__name__
@@ -43,7 +44,7 @@ class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
 
 
 class ApiListOutputPluginDescriptorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListOutputPluginDescriptorsResult
+  protobuf = reflection_pb2.ApiListOutputPluginDescriptorsResult
 
 
 class ApiListOutputPluginDescriptorsHandler(

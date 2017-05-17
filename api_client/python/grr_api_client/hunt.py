@@ -3,7 +3,7 @@
 
 from grr_api_client import client
 from grr_api_client import utils
-from grr.proto import api_pb2
+from grr.proto.api import hunt_pb2
 
 
 class HuntApprovalBase(object):
@@ -32,7 +32,7 @@ class HuntApprovalBase(object):
     self._context = context
 
   def Grant(self):
-    args = api_pb2.ApiGrantHuntApprovalArgs(
+    args = hunt_pb2.ApiGrantHuntApprovalArgs(
         hunt_id=self.hunt_id,
         username=self.username,
         approval_id=self.approval_id)
@@ -47,7 +47,7 @@ class HuntApprovalRef(HuntApprovalBase):
   def Get(self):
     """Fetch and return a proper HuntApproval object."""
 
-    args = api_pb2.ApiGetHuntApprovalArgs(
+    args = hunt_pb2.ApiGetHuntApprovalArgs(
         hunt_id=self.hunt_id,
         approval_id=self.approval_id,
         username=self.username)
@@ -122,11 +122,11 @@ class HuntBase(object):
     if not notified_users:
       raise ValueError("notified_users list can't be empty.")
 
-    approval = api_pb2.ApiHuntApproval(
+    approval = hunt_pb2.ApiHuntApproval(
         reason=reason,
         notified_users=notified_users,
         email_cc_addresses=email_cc_addresses or [])
-    args = api_pb2.ApiCreateHuntApprovalArgs(
+    args = hunt_pb2.ApiCreateHuntApprovalArgs(
         hunt_id=self.hunt_id, approval=approval)
 
     data = self._context.SendRequest("CreateHuntApproval", args)
@@ -135,7 +135,7 @@ class HuntBase(object):
 
   def Modify(self, client_limit=None, client_rate=None, expires=None):
     """Modifies a number of hunt arguments."""
-    args = api_pb2.ApiModifyHuntArgs(hunt_id=self.hunt_id)
+    args = hunt_pb2.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
     if client_limit is not None:
       args.client_limit = client_limit
@@ -150,25 +150,25 @@ class HuntBase(object):
     return Hunt(data=data, context=self._context)
 
   def Start(self):
-    args = api_pb2.ApiModifyHuntArgs(
-        hunt_id=self.hunt_id, state=api_pb2.ApiHunt.STARTED)
+    args = hunt_pb2.ApiModifyHuntArgs(
+        hunt_id=self.hunt_id, state=hunt_pb2.ApiHunt.STARTED)
     data = self._context.SendRequest("ModifyHunt", args)
     return Hunt(data=data, context=self._context)
 
   def Stop(self):
-    args = api_pb2.ApiModifyHuntArgs(
-        hunt_id=self.hunt_id, state=api_pb2.ApiHunt.STOPPED)
+    args = hunt_pb2.ApiModifyHuntArgs(
+        hunt_id=self.hunt_id, state=hunt_pb2.ApiHunt.STOPPED)
     data = self._context.SendRequest("ModifyHunt", args)
     return Hunt(data=data, context=self._context)
 
   def ListResults(self):
-    args = api_pb2.ApiListHuntResultsArgs(hunt_id=self.hunt_id)
+    args = hunt_pb2.ApiListHuntResultsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntResults", args)
     return utils.MapItemsIterator(
         lambda data: HuntResult(data=data, context=self._context), items)
 
   def GetFilesArchive(self):
-    args = api_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id)
+    args = hunt_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id)
     return self._context.SendStreamingRequest("GetHuntFilesArchive", args)
 
 
@@ -178,7 +178,7 @@ class HuntRef(HuntBase):
   def Get(self):
     """Fetch hunt's data and return proper Hunt object."""
 
-    args = api_pb2.ApiGetHuntArgs(hunt_id=self.hunt_id)
+    args = hunt_pb2.ApiGetHuntArgs(hunt_id=self.hunt_id)
     data = self._context.SendRequest("GetHunt", args)
     return Hunt(data=data, context=self._context)
 
@@ -221,7 +221,7 @@ def CreateHunt(flow_name=None,
   if not flow_name:
     raise ValueError("flow_name can't be empty")
 
-  request = api_pb2.ApiCreateHuntArgs(flow_name=flow_name)
+  request = hunt_pb2.ApiCreateHuntArgs(flow_name=flow_name)
   if flow_args:
     request.flow_args.value = flow_args.SerializeToString()
     request.flow_args.type_url = utils.GetTypeUrl(flow_args)
@@ -236,16 +236,15 @@ def CreateHunt(flow_name=None,
 def ListHunts(context=None):
   """List all GRR hunts."""
 
-  items = context.SendIteratorRequest("ListHunts", api_pb2.ApiListHuntsArgs())
-  return utils.MapItemsIterator(
-      lambda data: Hunt(data=data, context=context),
-      items)
+  items = context.SendIteratorRequest("ListHunts", hunt_pb2.ApiListHuntsArgs())
+  return utils.MapItemsIterator(lambda data: Hunt(data=data, context=context),
+                                items)
 
 
 def ListHuntApprovals(context=None):
   """List all hunt approvals belonging to requesting user."""
   items = context.SendIteratorRequest("ListHuntApprovals",
-                                      api_pb2.ApiListHuntApprovalsArgs())
+                                      hunt_pb2.ApiListHuntApprovalsArgs())
 
   def MapHuntApproval(data):
     return HuntApproval(data=data, username=context.username, context=context)

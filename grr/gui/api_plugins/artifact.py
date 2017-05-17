@@ -8,15 +8,15 @@ from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import api_pb2
+from grr.proto.api import artifact_pb2
 
 
 class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListArtifactsArgs
+  protobuf = artifact_pb2.ApiListArtifactsArgs
 
 
 class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListArtifactsResult
+  protobuf = artifact_pb2.ApiListArtifactsResult
 
 
 class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
@@ -68,7 +68,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiUploadArtifactArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiUploadArtifactArgs
+  protobuf = artifact_pb2.ApiUploadArtifactArgs
 
 
 class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
@@ -85,7 +85,7 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiDeleteArtifactsArgs
+  protobuf = artifact_pb2.ApiDeleteArtifactsArgs
 
 
 class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):

@@ -1,0 +1,440 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr/proto/api/output_plugin.proto";
+import "grr/proto/api/reflection.proto";
+
+import "grr/proto/api_utils.proto";
+import "grr/proto/jobs.proto";
+import "grr/proto/flows.proto";
+import "grr/proto/output_plugin.proto";
+import "grr/proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+message ApiFlowDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Flow name as registered in GRR."
+    }];
+  optional string friendly_name = 2 [(sem_type) = {
+      description: "Friendly flow name."
+    }];
+  optional string category = 3 [(sem_type) = {
+      description: "Flow category."
+    }];
+  optional string doc = 4 [(sem_type) = {
+      description: "Flow documentation string."
+    }];
+
+  optional string args_type = 5 [(sem_type) = {
+      description: "Flow arguments type name."
+    }];
+  optional google.protobuf.Any default_args = 6 [(sem_type) = {
+      description: "Default flow arguments.",
+      dynamic_type: "GetDefaultArgsClass"
+    }];
+
+  repeated string behaviours = 7 [(sem_type) = {
+      description: "Flow behaviours."
+    }];
+}
+
+// Next id: 13
+message ApiFlow {
+  // Enum values here correspond to Flow.State values.
+  enum State {
+    RUNNING = 0;
+    TERMINATED = 1;
+    ERROR = 3;
+    CLIENT_CRASHED = 4;
+  };
+
+  optional string urn = 1 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow URN."
+    }];
+  optional string flow_id = 12 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "Flow name.",
+    }];
+  optional google.protobuf.Any args = 3 [(sem_type) = {
+      description: "Flow arguments.",
+      dynamic_type: "GetArgsClass"
+    }];
+  optional FlowRunnerArgs runner_args = 4 [(sem_type) = {
+      description: "Flow runner arguments."
+    }];
+  optional State state = 5 [(sem_type) = {
+      description: "Current flow state."
+    }];
+  optional uint64 started_at = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When flow was created."
+    }];
+  optional uint64 last_active_at = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When flow was last active."
+    }];
+  optional string creator = 8 [(sem_type) = {
+      description: "Who started the flow."
+    }];
+
+  optional ApiDataObject state_data = 10 [(sem_type) = {
+      description: "Current flow state data."
+    }];
+  optional FlowContext context = 11 [(sem_type) = {
+      description: "Current flow context."
+    }];
+
+  repeated ApiFlow nested_flows = 9 [(sem_type) = {
+      description: "Nested flows started by this flow."
+    }];
+}
+
+message ApiFlowRequest {
+  optional string request_id = 1;
+  optional RequestState request_state = 2;
+  repeated GrrMessage responses = 3;
+}
+
+message ApiFlowResult {
+  optional google.protobuf.Any payload = 1 [(sem_type) = {
+      description: "Result payload.",
+      dynamic_type: "GetPayloadClass"
+    }];
+  optional string payload_type = 2 [(sem_type) = {
+      description: "Type of the payload."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when result was written to the data "
+      "store."
+    }];
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiGetFlowArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+}
+
+message ApiCreateFlowArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional ApiFlow flow = 2;
+}
+
+message ApiCancelFlowArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+}
+
+message ApiListFlowRequestsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Results items starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+}
+
+message ApiListFlowRequestsResult {
+  repeated ApiFlowRequest items = 1 [(sem_type) = {
+      description: "Flow's requests list."
+    }];
+}
+
+message ApiListFlowResultsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Results items starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+  optional string filter = 5 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+}
+
+message ApiListFlowResultsResult {
+  repeated ApiFlowResult items = 1 [(sem_type) = {
+      description: "The flow results."
+    }];
+  optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+    }];
+}
+
+message ApiListFlowLogsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Results items starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+  optional string filter = 5 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+}
+
+message ApiListFlowLogsResult {
+  repeated FlowLog items = 1 [(sem_type) = {
+      description: "The hunt errors"
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+};
+
+message ApiGetFlowResultsExportCommandArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+}
+
+message ApiGetFlowResultsExportCommandResult {
+  optional string command = 1 [(sem_type) = {
+      description: "Export command for flow results."
+    }];
+}
+
+message ApiListFlowOutputPluginsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+}
+
+message ApiListFlowOutputPluginsResult {
+  repeated ApiOutputPlugin items = 2;
+}
+
+message ApiListFlowOutputPluginLogsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional string plugin_id = 3 [(sem_type) = {
+      description: "Output plugin id."
+    }];
+
+  optional int64 offset = 4 [(sem_type) = {
+      description: "Logs starting offset."
+    }];
+  optional int64 count = 5 [(sem_type) = {
+      description: "Max number of log entries."
+    }];
+}
+
+message ApiListFlowOutputPluginLogsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Log entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+
+message ApiListFlowOutputPluginErrorsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional string plugin_id = 3 [(sem_type) = {
+      description: "Output plugin id."
+    }];
+
+  optional int64 offset = 4 [(sem_type) = {
+      description: "Errors starting offset."
+    }];
+  optional int64 count = 5 [(sem_type) = {
+      description: "Max number of errors."
+    }];
+}
+
+message ApiListFlowOutputPluginErrorsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Errors entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+message ApiGetFlowFilesArchiveArgs {
+  enum ArchiveFormat {
+    ZIP = 0;
+    TAR_GZ = 1;
+  }
+
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      description: "Flow id.",
+      type: "ApiFlowId"
+    }];
+  optional ArchiveFormat archive_format = 3;
+};
+
+message ApiListFlowDescriptorsArgs {
+  enum FlowType {
+    CLIENT = 0;
+    GLOBAL = 1;
+  };
+  optional FlowType flow_type = 1 [(sem_type) = {
+      description: "If specified, narrows the list to the given type of flows "
+      "only."
+    }];
+};
+
+message ApiListFlowDescriptorsResult {
+  repeated ApiFlowDescriptor items = 1;
+}
+
+message ApiListFlowsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of flows to fetch."
+    }];
+};
+
+message ApiListFlowsResult {
+  repeated ApiFlow items = 1;
+};
+
+
+message ApiGetExportedFlowResultsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional string plugin_name = 3 [(sem_type) = {
+      description: "Instant output plugin name."
+    }];
+}
+
+
+// TODO(user): deprecate legacy robot get file API.
+message ApiStartRobotGetFilesOperationArgs {
+  optional string hostname = 1 [(sem_type) = {
+      description: "Target host. Can be FQDN or client ID."
+    }];
+  repeated string paths = 2 [(sem_type) = {
+      type: "GlobExpression",
+      description: "Fetch this number of elements."
+    }];
+  optional uint64 max_file_size = 3 [(sem_type) = {
+      type: "ByteSize",
+      description: "Maximum size of file we will download.",
+    }, default=20000000]; // 20MB
+  optional FileFinderAction.Action action = 4 [(sem_type) = {
+      description: "Action to apply to found files"
+    }, default=DOWNLOAD];
+  optional PathSpec.PathType pathtype = 5 [(sem_type) = {
+      description: "Path type to glob in.",
+    }, default=OS];
+}
+
+message ApiStartRobotGetFilesOperationResult {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the 'get files' operation."
+    }];
+}
+
+message ApiGetRobotGetFilesOperationStateArgs {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the 'get files' operation."
+    }];
+}
+
+message ApiGetRobotGetFilesOperationStateResult {
+  optional ApiFlow.State state = 1 [(sem_type) = {
+      description: "The state of the 'get files' operation."
+    }];
+  optional uint64 result_count = 2 [(sem_type) = {
+      description: "Number of files found and downloaded."
+    }];
+};
