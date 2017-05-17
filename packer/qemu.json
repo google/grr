@@ -1,0 +1,55 @@
+{
+"provisioners": [
+    {
+      "type": "shell",
+      "scripts": [
+        "scripts/qemu.sh"
+      ],
+        "override": {
+            "qemu": {
+            "execute_command": "echo 's3cur3password' | sudo -S bash '{{ .Path }}'"
+            }
+        }
+    }
+  ],
+  "builders": [
+    {
+      "type": "qemu",
+      "iso_url": "http://releases.ubuntu.com/14.04/ubuntu-14.04.2-server-amd64.iso",
+      "iso_checksum": "83aabd8dcf1e8f469f3c72fff2375195",
+      "iso_checksum_type": "md5",
+      "output_directory": "qemu/",
+      "shutdown_command": "echo 's3cur3password' | sudo -E -S shutdown -P now",
+      "disk_size": 40000,
+      "format": "qcow2",
+      "headless": false,
+      "accelerator": "kvm",
+      "http_directory": "http",
+      "http_port_min": 10082,
+      "http_port_max": 10089,
+      "ssh_host_port_min": 2222,
+      "ssh_host_port_max": 2229,
+      "ssh_username": "grruser",
+      "ssh_password": "s3cur3password",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "90m",
+      "vm_name": "qemu-ubuntu14-base",
+      "net_device": "virtio-net",
+      "disk_interface": "virtio",
+      "boot_wait": "5s",
+      "boot_command":
+      [
+                "<esc><esc><enter><wait>",
+                "/install/vmlinuz ",
+                "preseed/url=http://{{.HTTPIP}}:{{.HTTPPort}}/preseed.cfg ",
+                "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+                "hostname={{.Name}} ",
+                "fb=false debconf/frontend=noninteractive ",
+                "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+                "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+                "initrd=/install/initrd.gz -- <enter>"
+      ]
+    }
+  ]
+}
+
