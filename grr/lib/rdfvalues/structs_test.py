@@ -642,6 +642,47 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertFalse(t.nested.HasField("foobar"))
     self.assertTrue(t.nested.HasField("int"))
 
+  def testConversionToPrimitiveDictNoSerialization(self):
+    test_struct = TestStruct(
+        foobar="foo",
+        int=2,
+        repeated=["value0", "value1"],
+        nested=TestStruct(int=567),
+        repeat_nested=[TestStruct(int=568)])
+    expected_dict = {
+        "foobar": "foo",
+        "int": 2,
+        "repeated": ["value0", "value1"],
+        "nested": {
+            "int": 567
+        },
+        "repeat_nested": [{
+            "int": 568
+        }]
+    }
+    self.assertEqual(test_struct.ToPrimitiveDict(), expected_dict)
+
+  def testConversionToPrimitiveDictWithSerialization(self):
+    test_struct = TestStruct(
+        foobar="foo",
+        int=2,
+        repeated=["value0", "value1"],
+        nested=TestStruct(int=567),
+        repeat_nested=[TestStruct(int=568)])
+    expected_dict = {
+        "foobar": "foo",
+        "int": "2",  # Serialized
+        "repeated": ["value0", "value1"],
+        "nested": {
+            "int": "567"  # Serialized
+        },
+        "repeat_nested": [{
+            "int": "568"  # Serialized
+        }]
+    }
+    self.assertEqual(
+        test_struct.ToPrimitiveDict(serialize_leaf_fields=True), expected_dict)
+
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)

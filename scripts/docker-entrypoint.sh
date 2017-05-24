@@ -32,8 +32,8 @@ if [ ${APPLICATION} = 'grr' ]; then
     # testing and very small deployments.
     initialize
     echo "Admin UI gui is at http://${EXTERNAL_HOSTNAME}:8000, clients will poll to http://${EXTERNAL_HOSTNAME}:8080"
-    run_component http_server &
-    run_component ui &
+    run_component frontend &
+    run_component admin_ui &
     run_component worker &
     run_component worker &
     run_component worker &

@@ -15,6 +15,8 @@ elif platform.system() == "Windows":
   submodule = windows
 elif platform.system() == "Darwin":
   from grr.client.client_actions.osx import osx
+  import grr.client.client_actions.osx.local  # pylint: disable=unused-import
+
   submodule = osx
 
 # pylint: enable=g-import-not-at-top

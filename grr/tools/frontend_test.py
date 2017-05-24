@@ -31,7 +31,7 @@ from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.tools import http_server
+from grr.tools import frontend
 
 
 class GRRHTTPServerTest(test_lib.GRRBaseTest):
@@ -46,8 +46,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     # Bring up a local server for testing.
     port = portpicker.PickUnusedPort()
     ip = utils.ResolveHostnameToIP("localhost", port)
-    cls.httpd = http_server.GRRHTTPServer((ip, port),
-                                          http_server.GRRHTTPServerHandler)
+    cls.httpd = frontend.GRRHTTPServer((ip, port),
+                                       frontend.GRRHTTPServerHandler)
 
     if ipaddr.IPAddress(ip).version == 6:
       cls.address_family = socket.AF_INET6
@@ -97,9 +97,9 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         """
         return self.client_id
 
-      with utils.MultiStubber(
-          (standard.UploadFile, "SendReply", MockSendReply),
-          (rdf_client.ClientURN, "FromPrivateKey", FromPrivateKey)):
+      with utils.MultiStubber((standard.UploadFile, "SendReply", MockSendReply),
+                              (rdf_client.ClientURN, "FromPrivateKey",
+                               FromPrivateKey)):
         action = standard.UploadFile(client.client_worker)
         action.Run(args)
 
@@ -230,7 +230,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       self.assertEqual(aff4_obj.Read(100), data[:100])
 
       for hash_obj in [
-          r.uploaded_file.hash, aff4_obj.Get(aff4_obj.Schema.HASH)
+          r.uploaded_file.hash,
+          aff4_obj.Get(aff4_obj.Schema.HASH)
       ]:
         self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
         self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())

@@ -1955,29 +1955,37 @@ class RDFProtoStruct(RDFStruct):
       nested_value.FromDict(dictionary[dynamic_field.name])
       self.Set(dynamic_field.name, nested_value)
 
-  def ToPrimitiveDict(self):
-    return self._ToPrimitive(self.AsDict())
+  def ToPrimitiveDict(self, serialize_leaf_fields=False):
+    return self._ToPrimitive(self.AsDict(), serialize_leaf_fields)
 
-  def _ToPrimitive(self, value):
+  def _ToPrimitive(self, value, serialize_leaf_fields):
     if isinstance(value, RepeatedFieldHelper):
-      return list(self._ToPrimitive(v) for v in value)
+      return list(self._ToPrimitive(v, serialize_leaf_fields) for v in value)
     # Hack to avoid dependency loop. Safe because if value is a protodict.Dict,
     # then protodict has already been loaded.
     # TODO(user): remove this hack
     elif "Dict" in rdfvalue.RDFValue.classes and isinstance(
         value, rdfvalue.RDFValue.classes["Dict"]):
-      new_val = value.ToDict()
-      return dict((k, self._ToPrimitive(v)) for k, v in new_val.items())
+      primitive_dict = {}
+      for k, v in value.ToDict().items():
+        primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
+      return primitive_dict
     elif isinstance(value, dict):
-      return dict((k, self._ToPrimitive(v)) for k, v in value.items())
+      primitive_dict = {}
+      for k, v in value.items():
+        primitive_dict[k] = self._ToPrimitive(v, serialize_leaf_fields)
+      return primitive_dict
     elif isinstance(value, RDFProtoStruct):
-      return self._ToPrimitive(value.AsDict())
+      return self._ToPrimitive(value.AsDict(), serialize_leaf_fields)
     elif isinstance(value, (EnumNamedValue)):
       return str(value)
     elif isinstance(value, rdfvalue.RDFBytes):
       return base64.encodestring(value.SerializeToString())
     else:
-      return value
+      if serialize_leaf_fields:
+        return utils.SmartStr(value)
+      else:
+        return value
 
   def __nonzero__(self):
     return bool(self._data)

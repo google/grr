@@ -63,5 +63,5 @@ from grr.lib.local import tests
 from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
 
-from grr.tools import http_server_test
+from grr.tools import frontend_test
 # pylint: enable=unused-import,g-import-not-at-top

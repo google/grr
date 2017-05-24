@@ -13,3 +13,4 @@ except ImportError:
 
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.output_plugins import email_plugin
+from grr.lib.output_plugins import yaml_plugin

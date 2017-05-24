@@ -333,7 +333,6 @@ class FrontEndServer(object):
     now = time.time()
     with queue_manager.QueueManager(
         token=self.token, store=self.data_store) as manager:
-      sessions_handled = []
       for session_id, msgs in utils.GroupBy(
           messages, operator.attrgetter("session_id")).iteritems():
 
@@ -342,9 +341,6 @@ class FrontEndServer(object):
 
         if not unprocessed_msgs:
           continue
-
-        # Keep track of all the flows we handled in this request.
-        sessions_handled.append(session_id)
 
         for msg in unprocessed_msgs:
           manager.QueueResponse(session_id, msg)
@@ -362,7 +358,7 @@ class FrontEndServer(object):
             # has finished processing this request. We therefore can de-queue it
             # from the client queue. msg.task_id will raise if the task id is
             # not set (message originated at the client, there was no request on
-            # the server) so we have to use .Get() instead.
+            # the server), so we have to check .HasTaskID() first.
             if msg.HasTaskID():
               manager.DeQueueClientRequest(client_id, msg.task_id)
 

@@ -9,3 +9,4 @@ except ImportError:
 
 from grr.lib.output_plugins import csv_plugin_test
 from grr.lib.output_plugins import email_plugin_test
+from grr.lib.output_plugins import yaml_plugin_test

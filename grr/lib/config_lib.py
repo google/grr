@@ -409,6 +409,7 @@ class ConfigFileParser(ConfigParser.RawConfigParser, GRRConfigParser):
     return raw_data
 
 
+# TODO(user): Move this class to utils.py
 class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
   """A class which produces an ordered dict."""
   yaml_tag = "tag:yaml.org,2002:map"

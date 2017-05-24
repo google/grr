@@ -14,11 +14,12 @@ from grr.lib import server_plugins
 from grr.gui import admin_ui
 from grr.lib import flags
 from grr.server.data_server import data_server
-from grr.tools import http_server
+from grr.tools import frontend
 from grr.worker import worker
 
-flags.DEFINE_string("component", None,
-                    "Component to start: [http_server|ui|worker|dataserver].")
+flags.DEFINE_string(
+    "component", None,
+    "Component to start: [frontend|admin_ui|worker|dataserver].")
 
 
 def main(argv):
@@ -31,12 +32,12 @@ def main(argv):
   if flags.FLAGS.component.startswith("worker"):
     worker.main([argv])
 
-  # Start as a HTTP server that clients communicate with.
-  elif flags.FLAGS.component.startswith("http_server"):
-    http_server.main([argv])
+  # Start as a frontend that clients communicate with.
+  elif flags.FLAGS.component.startswith("frontend"):
+    frontend.main([argv])
 
   # Start as an AdminUI.
-  elif flags.FLAGS.component.startswith("ui"):
+  elif flags.FLAGS.component.startswith("admin_ui"):
     admin_ui.main([argv])
 
   # Start as the data server master. There can only be one master

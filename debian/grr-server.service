@@ -9,9 +9,9 @@ Documentation=https://github.com/google/grr
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecReload=/bin/systemctl --no-block reload grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
-ExecStart=/bin/systemctl --no-block start grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
-ExecStop=/bin/systemctl --no-block stop grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
+ExecReload=/bin/systemctl --no-block reload grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
+ExecStart=/bin/systemctl --no-block start grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
+ExecStop=/bin/systemctl --no-block stop grr-server@admin_ui.service grr-server@frontend.service grr-server@worker.service grr-server@worker2.service
 
 [Install]
 WantedBy=multi-user.target

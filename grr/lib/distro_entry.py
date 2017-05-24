@@ -82,10 +82,10 @@ def GrrServer():
   flags.StartMain(grr_server.main)
 
 
-def GrrFrontEnd():
-  from grr.tools import http_server
+def GrrFrontend():
+  from grr.tools import frontend
   SetConfigOptions()
-  flags.StartMain(http_server.main)
+  flags.StartMain(frontend.main)
 
 
 def EndToEndTests():

@@ -39,6 +39,10 @@ class GrrApi(object):
   def ListHuntApprovals(self):
     return hunt.ListHuntApprovals(context=self._context)
 
+  @property
+  def username(self):
+    return self._context.username
+
 
 def InitHttp(api_endpoint=None, page_size=None, auth=None):
   """Inits an GRR API object with a HTTP connector."""
