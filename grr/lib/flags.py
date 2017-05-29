@@ -61,7 +61,7 @@ def DEFINE_list(longopt, default, help):
       "--%s" % longopt, default=default, action=ListParser, help=help)
 
 
-DEFINE_bool("verbose", default=False, help="Turn of verbose logging.")
+DEFINE_bool("verbose", default=False, help="Turn on verbose logging.")
 
 DEFINE_bool(
     "debug",
