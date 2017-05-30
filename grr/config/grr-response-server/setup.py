@@ -82,6 +82,7 @@ setup_args = dict(
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.9.5",
+        "oauth2client==4.1.0",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "python-crontab==2.0.1",
