@@ -18,3 +18,5 @@ from grr.endtoend_tests import network
 from grr.endtoend_tests import processes
 from grr.endtoend_tests import registry
 from grr.endtoend_tests import transfer
+
+import grr.endtoend_tests.local

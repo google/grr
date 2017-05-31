@@ -1,6 +1,16 @@
 grr-download-collection-as {
-  .export-label {
-    margin-left: 2em;
-    margin-right: .5em;
+  .export-well {
+    display: inline-block;
+  }
+
+  span.control-label,
+  select.form-control {
+    width: auto;
+  }
+
+  select.form-control,
+  button.btn-default {
+    margin-left: 3px;
+    float: left;
   }
 }

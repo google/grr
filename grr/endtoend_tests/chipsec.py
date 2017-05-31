@@ -3,7 +3,6 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import flow_runner
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -27,8 +26,7 @@ class TestDumpFlashImage(base.AutomatedTest):
       if "No path returned. Skipping host" in log.log_message:
         return
 
-    flash_list = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    flash_list = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
 
     # There should be exactly one path
     self.assertEqual(len(flash_list), 1)

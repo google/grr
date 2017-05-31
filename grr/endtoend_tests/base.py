@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flow
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -185,30 +186,27 @@ class ClientTestBase(unittest.TestCase):
     data = fd.Read(10)
     self.assertEqual(data[:2], "MZ")
 
-  def CheckCollectionNotEmptyWithRetry(self, collection_urn, token):
+  def CheckResultCollectionNotEmptyWithRetry(self, flow_urn):
     """Check collection for results, return list if they exist.
 
     Args:
-      collection_urn: URN of the collection
-      token: User token
-
+      flow_urn: URN of the flow
     Returns:
       The collection contents as a list
     Raises:
       ErrorEmptyCollection: if the collection has no results after
       self.RESULTS_SLA_SECONDS
     """
-    coll = aff4.FACTORY.Open(collection_urn, mode="r", token=token)
+    coll = flow.GRRFlow.ResultCollectionForFID(flow_urn, token=self.token)
     coll_list = list(coll)
     if not coll_list:
-
       for _ in range(self.RESULTS_SLA_SECONDS):
         time.sleep(1)
         coll_list = list(coll)
         if coll_list:
           return coll_list
       raise ErrorEmptyCollection("No values in %s after SLA: %s seconds" %
-                                 (collection_urn, self.RESULTS_SLA_SECONDS))
+                                 (flow_urn, self.RESULTS_SLA_SECONDS))
     return coll_list
 
   def OpenFDWithRetry(self, file_urn, token):

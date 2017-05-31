@@ -123,7 +123,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results_names = artifact_registry.REGISTRY.GetArtifactNames(
         os_name="Darwin", provides=["users.username"])
-    self.assertItemsEqual(set(["OSXUsers"]), results_names)
+    self.assertIn("OSXUsers", results_names)
 
   def testSearchDependencies(self):
     # Just use the test artifacts to verify dependency correctness so we

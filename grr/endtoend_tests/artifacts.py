@@ -4,7 +4,6 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import flow_runner
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -16,8 +15,8 @@ class TestDarwinPersistenceMechanisms(base.AutomatedTest):
   args = {"artifact_list": ["DarwinPersistenceMechanisms"]}
 
   def CheckFlow(self):
-    persistence_list = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    persistence_list = self.CheckResultCollectionNotEmptyWithRetry(
+        self.session_id)
     self.assertGreater(len(persistence_list), 5)
     launchservices = "/System/Library/CoreServices/launchservicesd"
 
@@ -35,8 +34,7 @@ class TestRootDiskVolumeUsage(base.AutomatedTest):
   args = {"artifact_list": ["RootDiskVolumeUsage"]}
 
   def CheckFlow(self):
-    volume_list = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    volume_list = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
     self.assertEqual(volume_list[0].unixvolume.mount_point, "/")
     self.assertTrue(isinstance(volume_list[0].FreeSpacePercent(), float))
 
@@ -67,8 +65,8 @@ class TestParserDependency(base.AutomatedTest):
     super(TestParserDependency, self).setUp()
 
   def CheckFlow(self):
-    self.collection = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    self.collection = self.CheckResultCollectionNotEmptyWithRetry(
+        self.session_id)
 
   def tearDown(self):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)

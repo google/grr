@@ -3,7 +3,6 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import flow_runner
 
 
 class TestProcessListing(base.AutomatedTest):
@@ -14,8 +13,7 @@ class TestProcessListing(base.AutomatedTest):
   output_path = "analysis/ListProcesses/testing"
 
   def CheckFlow(self):
-    procs = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    procs = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
     self.assertGreater(len(procs), 5)
     expected_name = self.GetGRRBinaryName()
     for p in procs:

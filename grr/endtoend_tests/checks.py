@@ -3,7 +3,6 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import flow_runner
 from grr.lib.checks import checks as rdf_checks
 
 
@@ -18,8 +17,7 @@ class TestCheckRunner(base.AutomatedTest):
   args = {"restrict_checks": check_ids}
 
   def CheckFlow(self):
-    results = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    results = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
     checks_run = [
         r.check_id for r in results if isinstance(r, rdf_checks.CheckResult)
     ]

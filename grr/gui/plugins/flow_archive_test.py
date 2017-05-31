@@ -146,14 +146,33 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
       self.Click("css=button.DownloadButton")
       self.WaitUntil(self.IsTextPresent,
                      "Can't generate archive: Unknown error")
-      self.WaitUntil(self.IsUserNotificationPresent,
-                     "Archive generation failed for flow %s" %
-                     flow_urn.Basename())
+      self.WaitUntil(
+          self.IsUserNotificationPresent,
+          "Archive generation failed for flow %s" % flow_urn.Basename())
 
   @mock.patch.object(api_call_router_with_approval_checks.
                      ApiCallRouterWithApprovalChecksWithRobotAccess,
                      "GetExportedFlowResults")
   def testClickingOnDownloadAsCsvZipStartsDownload(self, mock_method):
+    self.checkClickingOnDownloadAsStartsDownloadForType(mock_method, "csv-zip",
+                                                        "CSV (Zipped)")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedFlowResults")
+  def testClickingOnDownloadAsYamlZipStartsDownload(self, mock_method):
+    self.checkClickingOnDownloadAsStartsDownloadForType(
+        mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedFlowResults")
+  def testClickingOnDownloadAsSqliteZipStartsDownload(self, mock_method):
+    self.checkClickingOnDownloadAsStartsDownloadForType(
+        mock_method, "sqlite-zip", "SQLite Scripts (Zipped)")
+
+  def checkClickingOnDownloadAsStartsDownloadForType(self, mock_method, plugin,
+                                                     plugin_display_name):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -172,8 +191,8 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
     self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
     self.Click("link=Results")
-
-    self.Click("css=grr-download-collection-as button[name='csv-zip']")
+    self.Select("id=plugin-select", plugin_display_name)
+    self.Click("css=grr-download-collection-as button[name='download-as']")
 
     def MockMethodIsCalled():
       try:
@@ -181,7 +200,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
             api_flow.ApiGetExportedFlowResultsArgs(
                 client_id=self.client_id.Basename(),
                 flow_id=flow_urn.Basename(),
-                plugin_name="csv-zip"),
+                plugin_name=plugin),
             token=mock.ANY)
 
         return True

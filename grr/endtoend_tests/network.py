@@ -3,7 +3,6 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import flow_runner
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -13,8 +12,7 @@ class TestNetstat(base.AutomatedTest):
   flow = "Netstat"
 
   def CheckFlow(self):
-    netstat_list = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    netstat_list = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
     self.assertGreater(len(netstat_list), 5)
     num_ips = set()
     for netstat in netstat_list:

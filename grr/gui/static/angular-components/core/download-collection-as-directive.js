@@ -31,6 +31,16 @@ grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsController = functi
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @type {Object} */
+  this.pluginToDisplayName = {
+    'csv-zip': 'CSV (Zipped)',
+    'flattened-yaml-zip': 'Flattened YAML (Zipped)',
+    'sqlite-zip': 'SQLite Scripts (Zipped)'
+  };
+
+  /** @type {string} */
+  this.selectedPlugin = 'csv-zip';
 };
 var DownloadCollectionAsController =
     grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsController;

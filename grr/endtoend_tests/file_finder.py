@@ -6,7 +6,6 @@
 from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib import flow
-from grr.lib import flow_runner
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -127,8 +126,7 @@ class TestFileFinderOSHomedir(base.AutomatedTest):
   }
 
   def CheckFlow(self):
-    self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
 
 
 class UnicodeTestFlow(flow.GRRFlow):
@@ -176,5 +174,4 @@ class TestUnicode(base.LocalClientTest):
   flow = "UnicodeTestFlow"
 
   def CheckFlow(self):
-    self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    self.CheckResultCollectionNotEmptyWithRetry(self.session_id)

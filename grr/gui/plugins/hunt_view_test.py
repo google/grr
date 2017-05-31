@@ -209,8 +209,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntNotificationIsShownAndClickable(self):
     with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"))
+      hunt = self.CreateSampleHunt(path=os.path.join(self.base_path,
+                                                     "test.plist"))
 
       self.GrantHuntApproval(hunt.urn)
 
@@ -254,9 +254,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
-      self.WaitUntilNot(self.IsTextPresent,
-                        "File %s transferred successfully." %
-                        str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntilNot(self.IsTextPresent, "File %s transferred successfully."
+                        % str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     with self.ACLChecksDisabled():
@@ -400,17 +399,37 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                      ApiCallRouterWithApprovalChecksWithRobotAccess,
                      "GetExportedHuntResults")
   def testHuntResultsCanBeDownloadedAsCsv(self, mock_method):
+    self.checkHuntResultsCanBeDownloadedAsType(mock_method, "csv-zip",
+                                               "CSV (Zipped)")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedHuntResults")
+  def testHuntResultsCanBeDownloadedAsYaml(self, mock_method):
+    self.checkHuntResultsCanBeDownloadedAsType(
+        mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetExportedHuntResults")
+  def testHuntResultsCanBeDownloadedAsSqlite(self, mock_method):
+    self.checkHuntResultsCanBeDownloadedAsType(mock_method, "sqlite-zip",
+                                               "SQLite Scripts (Zipped)")
+
+  def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
+                                            plugin_display_name):
     with self.ACLChecksDisabled():
       hunt_urn = self.CreateGenericHuntWithCollection()
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
-    self.Click("css=grr-download-collection-as button[name='csv-zip']")
+    self.Select("id=plugin-select", plugin_display_name)
+    self.Click("css=grr-download-collection-as button[name='download-as']")
 
     def MockMethodIsCalled():
       try:
         mock_method.assert_called_once_with(
             api_hunt.ApiGetExportedHuntResultsArgs(
-                hunt_id=hunt_urn.Basename(), plugin_name="csv-zip"),
+                hunt_id=hunt_urn.Basename(), plugin_name=plugin),
             token=mock.ANY)
 
         return True

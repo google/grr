@@ -7,7 +7,6 @@ from grr.client.components.rekall_support import rekall_types as rdf_rekall_type
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import flow_runner
 
 
 class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
@@ -42,8 +41,8 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
     super(AbstractTestAnalyzeClientMemory, self).tearDown()
 
   def CheckFlow(self):
-    self.responses = self.CheckCollectionNotEmptyWithRetry(
-        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+    self.responses = self.CheckResultCollectionNotEmptyWithRetry(
+        self.session_id)
 
   def OpenFlow(self):
     """Returns the flow used on this test."""

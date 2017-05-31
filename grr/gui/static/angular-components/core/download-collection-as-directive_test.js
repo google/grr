@@ -36,15 +36,25 @@ describe('"download collection as" panel', function() {
     return element;
   };
 
-  it('sends correct request when "CSV (zipped)" button is clicked', function() {
-    var deferred = $q.defer();
-    spyOn(grrApiService, 'downloadFile').and.returnValue(deferred.promise);
+  var testDownloadAsType = function(plugin) {
+    return function() {
+      var deferred = $q.defer();
+      spyOn(grrApiService, 'downloadFile').and.returnValue(deferred.promise);
 
-    var element = renderTestTemplate();
-    browserTrigger(element.find('button[name="csv-zip"]'), 'click');
+      var element = renderTestTemplate();
+      element.find('#plugin-select').val('string:' + plugin).change();
+      browserTrigger(element.find('button[name="download-as"]'), 'click');
 
-    expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        'foo/bar/csv-zip');
-  });
+      expect(grrApiService.downloadFile).toHaveBeenCalledWith(
+          'foo/bar/' + plugin);
+    };
+  };
 
+  it('sends correct request for CSV download', testDownloadAsType('csv-zip'));
+
+  it('sends correct request for flattened YAML download',
+     testDownloadAsType('flattened-yaml-zip'));
+
+  it('sends correct request for sqlite download',
+      testDownloadAsType('sqlite-zip'));
 });
