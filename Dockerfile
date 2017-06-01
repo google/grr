@@ -33,10 +33,15 @@ ENV PROTOC /usr/share/protobuf/bin/protoc
 # environment.
 # Pull dependencies and templates from pypi and build wheels so docker can cache
 # them. This just makes the actual install go faster.
+#
+# TODO(ogaro) Stop hard-coding the node version to install
+# when a Linux node-sass binary compatible with node v8.0.0 is
+# available: https://github.com/sass/node-sass/pull/1969
 RUN echo '{ "allow_root": true }' > /root/.bowerrc && \
 . /usr/share/grr-server/bin/activate && \
+pip install six && \
 pip install nodeenv && \
-nodeenv -p --prebuilt && \
+nodeenv -p --prebuilt --node=7.10.0 && \
 . /usr/share/grr-server/bin/activate && \
 mkdir /wheelhouse && \
 pip wheel --wheel-dir=/wheelhouse --pre grr-response-server && \
