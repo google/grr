@@ -5,12 +5,13 @@
 set -e
 
 source "${HOME}/INSTALL/bin/activate"
-pip install --upgrade pip wheel setuptools
+pip install --upgrade pip wheel six
+pip install --upgrade setuptools
 pip install nodeenv
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
-nodeenv -p --prebuilt
+# nodeenv -p --prebuilt
 
 # This is a temporary hack to un-break the Travis
 # build.
