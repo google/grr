@@ -52,8 +52,8 @@ def main(_):
     # Address looks like an IPv4 address.
     ThreadedServer.address_family = socket.AF_INET
 
-  max_port = config_lib.CONFIG.Get("AdminUI.port_max",
-                                   config_lib.CONFIG["AdminUI.port"])
+  max_port = (config_lib.CONFIG["AdminUI.port_max"] +
+              config_lib.CONFIG["AdminUI.port"])
 
   for port in range(config_lib.CONFIG["AdminUI.port"], max_port + 1):
     # Make a simple reference implementation WSGI server
