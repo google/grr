@@ -281,8 +281,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
 def CreateServer(frontend=None):
   """Start frontend http server."""
-  max_port = config_lib.CONFIG.Get("Frontend.port_max",
-                                   config_lib.CONFIG["Frontend.bind_port"])
+  max_port = config_lib.CONFIG.Get("Frontend.port_max") +
+                                   config_lib.CONFIG["Frontend.bind_port"]
 
   for port in range(config_lib.CONFIG["Frontend.bind_port"], max_port + 1):
 
