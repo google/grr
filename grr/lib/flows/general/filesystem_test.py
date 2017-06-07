@@ -38,15 +38,13 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS)
 
     # Make sure the flow raises.
-    self.assertRaises(
-        RuntimeError,
-        list,
-        test_lib.TestFlowHelper(
-            "ListDirectory",
-            client_mock,
-            client_id=self.client_id,
-            pathspec=pb,
-            token=self.token))
+    self.assertRaises(RuntimeError, list,
+                      test_lib.TestFlowHelper(
+                          "ListDirectory",
+                          client_mock,
+                          client_id=self.client_id,
+                          pathspec=pb,
+                          token=self.token))
 
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
@@ -336,9 +334,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     if platform.system() == "Linux":
       expected_results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
     self._RunGlob(paths)
-    self.assertItemsEqual(
-        self.flow_replies,
-        [utils.JoinPath(self.temp_dir, x) for x in expected_results])
+    self.assertItemsEqual(self.flow_replies, [
+        utils.JoinPath(self.temp_dir, x) for x in expected_results
+    ])
 
   def testGlobWithInvalidStarStar(self):
     client_mock = action_mocks.GlobClientMock()
@@ -347,16 +345,14 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(self.base_path, "test_img.dd", "**", "**", "foo")]
 
     # Make sure the flow raises.
-    self.assertRaises(
-        ValueError,
-        list,
-        test_lib.TestFlowHelper(
-            "Glob",
-            client_mock,
-            client_id=self.client_id,
-            paths=paths,
-            pathtype=rdf_paths.PathSpec.PathType.OS,
-            token=self.token))
+    self.assertRaises(ValueError, list,
+                      test_lib.TestFlowHelper(
+                          "Glob",
+                          client_mock,
+                          client_id=self.client_id,
+                          paths=paths,
+                          pathtype=rdf_paths.PathSpec.PathType.OS,
+                          token=self.token))
 
   def testGlobWithWildcardsInsideTSKFile(self):
     client_mock = action_mocks.GlobClientMock()
@@ -470,11 +466,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     kb = client.Get(client.Schema.KNOWLEDGE_BASE)
     kb.MergeOrAddUser(
-        rdf_client.User(
-            username="test", appdata="test_data/index.dat"))
+        rdf_client.User(username="test", appdata="test_data/index.dat"))
     kb.MergeOrAddUser(
-        rdf_client.User(
-            username="test2", appdata="test_data/History"))
+        rdf_client.User(username="test2", appdata="test_data/History"))
     # This is a record which means something to the interpolation system. We
     # should not process this especially.
     kb.MergeOrAddUser(rdf_client.User(username="test3", appdata="%%PATH%%"))
@@ -882,8 +876,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         if isinstance(reply, rdf_client.Volume):
           results.append(reply)
 
-      self.assertItemsEqual([x.unixvolume.mount_point for x in results],
-                            ["/", "/usr"])
+      self.assertItemsEqual([x.unixvolume.mount_point
+                             for x in results], ["/", "/usr"])
       self.assertEqual(len(results), 2)
 
   def testDiskVolumeInfoWindows(self):
@@ -910,8 +904,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
         # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
         # C and Z are present, so we should just get C.
-        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
-                              ["C:"])
+        self.assertItemsEqual([x.windowsvolume.drive_letter
+                               for x in results], ["C:"])
         self.assertEqual(len(results), 1)
 
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
@@ -929,9 +923,67 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
               reply, rdf_client.Volume):
             results.append(reply)
 
-        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
-                              ["Z:"])
+        self.assertItemsEqual([x.windowsvolume.drive_letter
+                               for x in results], ["Z:"])
         self.assertEqual(len(results), 1)
+
+  def testGlobBackslashHandlingNoRegex(self):
+    self._Touch("foo.txt")
+    self._Touch("foo.txt~")
+    paths = [
+        utils.JoinPath(self.temp_dir, "foo.txt"),
+
+        # The backslash in the path will be replaced by a forward-slash when
+        # building a tree representing all the paths (this behavior isn't
+        # particularly correct). Note that the tilde does not need to be
+        # escaped.
+        utils.JoinPath(self.temp_dir, r"foo.txt\~"),
+    ]
+    expected_paths = [utils.JoinPath(self.temp_dir, "foo.txt")]
+    self._RunGlob(paths)
+    self.assertItemsEqual(expected_paths, self.flow_replies)
+
+  def testGlobBackslashHandlingWithRegex(self):
+    os.mkdir(utils.JoinPath(self.temp_dir, "1"))
+    self._Touch("1/foo.txt")
+    self._Touch("1/foo.txt~")
+    paths = [
+        utils.JoinPath(self.temp_dir, "*/foo.txt"),
+
+        # The backslash in the path will be replaced by a forward-slash when
+        # building a tree representing all the paths (this behavior isn't
+        # particularly correct). Note that the tilde does not need to be
+        # escaped.
+        utils.JoinPath(self.temp_dir, r"*/foo.txt\~"),
+    ]
+    expected_paths = [utils.JoinPath(self.temp_dir, "1/foo.txt")]
+    self._RunGlob(paths)
+    self.assertItemsEqual(expected_paths, self.flow_replies)
+
+  def testGlobBackslashHandlingWithRecursion(self):
+    os.makedirs(utils.JoinPath(self.temp_dir, "1/2"))
+    self._Touch("1/foo.txt")
+    self._Touch("1/foo.txt~")
+    self._Touch("1/2/foo.txt")
+    self._Touch("1/2/foo.txt~")
+    paths = [
+        utils.JoinPath(self.temp_dir, "**2/foo.txt"),
+
+        # The backslash in the path will be replaced by a forward-slash when
+        # building a tree representing all the paths (this behavior isn't
+        # particularly correct). Note that the tilde does not need to be
+        # escaped.
+        utils.JoinPath(self.temp_dir, r"**2/foo.txt\~"),
+    ]
+    expected_paths = [
+        utils.JoinPath(self.temp_dir, "1/foo.txt"),
+        utils.JoinPath(self.temp_dir, "1/2/foo.txt"),
+    ]
+    self._RunGlob(paths)
+    self.assertItemsEqual(expected_paths, self.flow_replies)
+
+  def _Touch(self, relative_path):
+    open(utils.JoinPath(self.temp_dir, relative_path), "wb").close()
 
 
 def main(argv):

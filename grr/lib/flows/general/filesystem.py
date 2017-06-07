@@ -601,6 +601,11 @@ class GlobMixin(object):
     for path in paths:
       patterns.extend(path.Interpolate(client=client))
 
+    # Sort the patterns so that if there are files whose paths conflict with
+    # directory paths, the files get handled after the conflicting directories
+    # have been added to the component tree.
+    patterns.sort(key=len, reverse=True)
+
     # Expand each glob pattern into a list of components. A component is either
     # a wildcard or a literal component.
     # e.g. /usr/lib/*.exe -> ['/usr/lib', '.*.exe']
@@ -613,10 +618,19 @@ class GlobMixin(object):
     # Note: The component tree contains serialized pathspecs in dicts.
     for pattern in patterns:
       # The root node.
-      node = self.state.component_tree
+      curr_node = self.state.component_tree
 
-      for component in self.ConvertGlobIntoPathComponents(pattern):
-        node = node.setdefault(component.SerializeToString(), {})
+      components = self.ConvertGlobIntoPathComponents(pattern)
+      for i, curr_component in enumerate(components):
+        is_last_component = i == len(components) - 1
+        next_node = curr_node.get(curr_component.SerializeToString(), {})
+        if is_last_component and next_node:
+          # There is a conflicting directory already existing in the tree.
+          # Replace the directory node with a node representing this file.
+          curr_node[curr_component.SerializeToString()] = {}
+        else:
+          curr_node = curr_node.setdefault(curr_component.SerializeToString(),
+                                           {})
 
     root_path = self.state.component_tree.keys()[0]
     self.CallStateInline(
@@ -821,9 +835,9 @@ class GlobMixin(object):
         # This reduces the number of TSK opens on the client that may
         # sometimes lead to instabilities due to bugs in the library.
 
-        if response and (
-            not (stat.S_ISDIR(response.st_mode) or not base_wildcard or
-                 self.state.process_non_regular_files)):
+        if response and (not (stat.S_ISDIR(response.st_mode) or
+                              not base_wildcard or
+                              self.state.process_non_regular_files)):
           continue
 
         if component.path_options == component.Options.RECURSIVE:
@@ -847,8 +861,9 @@ class GlobMixin(object):
             # Check for the existence of the last node.
             request = rdf_client.ListDirRequest(pathspec=pathspec)
 
-            if (response is None or (response and (
-                response.st_mode == 0 or not stat.S_ISREG(response.st_mode)))):
+            if (response is None or (response and
+                                     (response.st_mode == 0 or
+                                      not stat.S_ISREG(response.st_mode)))):
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there. There is a special case
               # here where this pathspec points to a file/directory in the root
@@ -877,8 +892,8 @@ class GlobMixin(object):
           base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
 
         for depth, recursions in recursions_to_get.iteritems():
-          path_regex = "(?i)^" + "$|^".join(
-              set([c.path for c in recursions])) + "$"
+          path_regex = "(?i)^" + "$|^".join(set([c.path
+                                                 for c in recursions])) + "$"
 
           findspec = rdf_client.FindSpec(
               pathspec=base_pathspec,
@@ -999,8 +1014,8 @@ class DiskVolumeInfo(flow.GRRFlow):
         # rather than raise.
         self.Log("Error collecting SystemRoot artifact: %s", responses.status)
       else:
-        raise flow.FlowError("Error collecting SystemRoot artifact: %s" %
-                             responses.status)
+        raise flow.FlowError(
+            "Error collecting SystemRoot artifact: %s" % responses.status)
 
     drive = str(responses.First())[0:2]
     if drive:

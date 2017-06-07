@@ -5,6 +5,7 @@ Includes functions that are used by interactive console utilities such as
 approval or token handling.
 """
 
+import csv
 import getpass
 import os
 import time
@@ -561,3 +562,46 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
           pool.Flush()
     logging.info("%s: kept %d and cleared %d", client, kept, cleared)
   pool.Flush()
+
+
+def ExportClientsByKeywords(keywords, filename, token=None):
+  r"""A script to export clients summaries selected by a keyword search.
+
+  This script does a client search for machines matching all of keywords and
+  writes a .csv summary of the results to filename. Multi-value fields are '\n'
+  separated.
+
+  Args:
+    keywords: a list of keywords to search for
+
+    filename: the name of the file to write to, will be replaced if already
+      present
+
+    token: datastore token.
+  """
+  index = client_index.CreateClientIndex(token=token)
+  client_list = index.LookupClients(keywords)
+  logging.info("found %d clients", len(client_list))
+  if not client_list:
+    return
+
+  result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
+  with open(filename, "wb") as csv_out:
+    writer = csv.DictWriter(csv_out, [
+        "client_id", "hostname", "last_seen", "os", "os_release", "os_version",
+        "users", "ips", "macs"
+    ])
+    writer.writeheader()
+    for client in result_set:
+      s = client.Schema
+      writer.writerow({
+          "client_id": client.urn.Basename(),
+          "hostname": client.Get(s.HOSTNAME),
+          "os": client.Get(s.SYSTEM),
+          "os_release": client.Get(s.OS_RELEASE),
+          "os_version": client.Get(s.OS_VERSION),
+          "ips": client.Get(s.HOST_IPS),
+          "macs": client.Get(s.MAC_ADDRESS),
+          "users": "\n".join(client.Get(s.USERNAMES, [])),
+          "last_seen": client.Get(s.PING),
+      })
