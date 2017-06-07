@@ -61,6 +61,10 @@ pip install --find-links=/wheelhouse /sdists/core/*.tar.gz && \
 pip install --find-links=/wheelhouse /sdists/server/*.tar.gz && \
 pip install --find-links=/wheelhouse grr_response_templates
 
+# Add bin path to PATH so it can run commands like grr_config_updater or grr_console
+RUN export PATH=$PATH:/usr/share/grr-server/bin/
+RUN echo 'export PATH=$PATH:/usr/share/grr-server/bin/' >> /root/.profile
+
 COPY scripts/docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
