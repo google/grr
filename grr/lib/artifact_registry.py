@@ -324,7 +324,7 @@ class ArtifactRegistry(object):
     if not result:
       raise ArtifactNotRegisteredError(
           "Artifact %s missing from registry. You may need "
-          "to sync the artifact repo by running make in the artifact "
+          "to sync the artifact repo by running makefile.py in the artifacts "
           "directory." % name)
     return result
 
