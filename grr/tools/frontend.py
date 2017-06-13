@@ -302,13 +302,6 @@ def CreateServer(frontend=None):
   return httpd
 
 
-def Serve(server):
-  try:
-    server.serve_forever()
-  except KeyboardInterrupt:
-    pass
-
-
 def main(unused_argv):
   """Main."""
   config_lib.CONFIG.AddContext("HTTPServer Context")

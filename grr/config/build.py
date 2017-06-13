@@ -436,6 +436,16 @@ config_lib.DEFINE_string(
     help="Path to OS X package maker binary.")
 
 config_lib.DEFINE_string(
+    "ClientBuilder.signing_cert_name",
+    default=None,
+    help="Name of a Darwin signing cert.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.signing_keychain_file",
+    default=None,
+    help="Path to a keychain file to be used to sign Darwin binaries.")
+
+config_lib.DEFINE_string(
     "ClientBuilder.target_dir",
     default=None,
     help="ClientBuilder target directory.")

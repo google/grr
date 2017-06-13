@@ -111,9 +111,28 @@ class DarwinClientBuilder(build.ClientBuilder):
       shutil.move(self.template_binary_dir, self.target_binary_dir)
     shutil.move(
         os.path.join(self.target_binary_dir, "grr-client"),
-        os.path.join(
-            self.target_binary_dir,
-            config_lib.CONFIG.Get("Client.binary_name", context=self.context)))
+        os.path.join(self.target_binary_dir,
+                     config_lib.CONFIG.Get(
+                         "Client.binary_name", context=self.context)))
+
+  def SignGRRPyinstallerBinaries(self):
+    cert_name = config_lib.CONFIG.Get(
+        "ClientBuilder.signing_cert_name", context=self.context)
+    keychain_file = config_lib.CONFIG.Get(
+        "ClientBuilder.signing_keychain_file", context=self.context)
+    if not keychain_file:
+      print("No keychain file specified in the config, skipping "
+            "binaries signing...")
+      return
+
+    print "Signing binaries with keychain: %s" % keychain_file
+    subprocess.check_call([
+        "codesign", "--verbose", "--deep", "--force", "--sign", cert_name,
+        "--keychain", keychain_file,
+        os.path.join(self.target_binary_dir,
+                     config_lib.CONFIG.Get(
+                         "Client.binary_name", context=self.context))
+    ])
 
   def CreateInstallDirs(self):
     utils.EnsureDirExists(self.build_dir)
@@ -152,9 +171,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     pkg_id = "%s.%s.%s_%s" % (self.pkg_org, self.client_name, self.client_name,
                               self.version)
     command = [
-        "pkgbuild", "--root=%s" % self.pkg_root, "--identifier", pkg_id,
-        "--scripts", self.script_dir, "--version", self.version,
-        self.pkgbuild_out_binary
+        "pkgbuild",
+        "--root=%s" % self.pkg_root, "--identifier", pkg_id, "--scripts",
+        self.script_dir, "--version", self.version, self.pkgbuild_out_binary
     ]
     self.RunCmd(command)
 
@@ -177,6 +196,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.CreateInstallDirs()
     self.InterpolateFiles()
     self.RenameGRRPyinstallerBinaries()
+    self.SignGRRPyinstallerBinaries()
     self.WriteClientConfig()
     self.Set755Permissions()
     self.RunPkgBuild()

@@ -195,15 +195,15 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = (
-        flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token))
+    self.well_known_flows = (flow.WellKnownFlow.GetAllWellKnownFlows(
+        token=self.token))
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
         del self.well_known_flows[well_known_flow]
 
-    self.well_known_flows_blacklist = set(config_lib.CONFIG[
-        "Frontend.DEBUG_well_known_flows_blacklist"])
+    self.well_known_flows_blacklist = set(
+        config_lib.CONFIG["Frontend.DEBUG_well_known_flows_blacklist"])
 
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
@@ -261,7 +261,7 @@ class FrontEndServer(object):
 
     return source, len(messages)
 
-  def DrainTaskSchedulerQueueForClient(self, client, max_count):
+  def DrainTaskSchedulerQueueForClient(self, client, max_count=None):
     """Drains the client's Task Scheduler queue.
 
     1) Get all messages in the client queue.
@@ -274,11 +274,15 @@ class FrontEndServer(object):
 
        max_count: The maximum number of messages we will issue for the
                   client.
+                  If not given, uses self.max_queue_size .
 
     Returns:
        The tasks respresenting the messages returned. If we can not send them,
        we can reschedule them for later.
     """
+    if max_count is None:
+      max_count = self.max_queue_size
+
     if max_count <= 0:
       return []
 
@@ -319,7 +323,7 @@ class FrontEndServer(object):
 
     return result
 
-  def ReceiveMessages(self, client_id, messages):
+  def ReceiveMessages(self, client_id, messages, fleetspeak_client_id=None):
     """Receives and processes the messages from the source.
 
     For each message we update the request object, and place the
@@ -329,7 +333,10 @@ class FrontEndServer(object):
     Args:
       client_id: The client which sent the messages.
       messages: A list of GrrMessage RDFValues.
+      fleetspeak_client_id: If the client is FS enabled, this should be set to
+        its FS ID.
     """
+
     now = time.time()
     with queue_manager.QueueManager(
         token=self.token, store=self.data_store) as manager:
@@ -451,8 +458,8 @@ class FrontEndServer(object):
     if rdfvalue.RDFDatetime.Now() > policy.expires:
       raise IOError("Client upload policy is too old.")
 
-    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
-        "Frontend.upload_store"])()
+    upload_store = file_store.UploadFileStore.GetPlugin(
+        config_lib.CONFIG["Frontend.upload_store"])()
 
     filestore_fd = upload_store.CreateFileStoreFile()
     out_fd = uploads.GunzipWrapper(filestore_fd)
