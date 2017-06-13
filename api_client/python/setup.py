@@ -86,6 +86,7 @@ def compile_protos():
 
   # Create __init__ files for generated protobuf files.
   create_package_file(protos_out, "grr", "proto")
+  create_package_file(protos_out, "grr", "proto", "api")
   create_package_file(protos_out, "grr", "client", "components",
                       "chipsec_support", "actions")
   create_package_file(protos_out, "grr", "client", "components",
@@ -145,7 +146,7 @@ setup_args = dict(
     },
     install_requires=[
         "ipython==5.0.0",
-        "protobuf==3.2.0",
+        "protobuf==3.3.0",
         "requests==2.9.1",
         "Werkzeug==0.11.3",
     ],

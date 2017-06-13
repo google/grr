@@ -33,6 +33,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
+from grr.lib.flows.general import processes_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.proto import jobs_pb2
@@ -155,6 +156,33 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(len(list(children)), 1)
     result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
+
+  def testListResultsForListProcessesFlow(self):
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        RSS_size=42)
+
+    client_urn = self.SetupClients(1)[0]
+    client_mock = processes_test.ListProcessesMock([process])
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=client_urn, token=self.token):
+      pass
+
+    result_flow = self.api.Client(
+        client_id=client_urn.Basename()).Flow(flow_urn.Basename())
+    results = list(result_flow.ListResults())
+
+    self.assertEqual(len(results), 1)
+    self.assertEqual(process.AsPrimitiveProto(), results[0].payload)
 
 
 class ApiClientLibVfsTest(ApiE2ETest):

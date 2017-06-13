@@ -26,7 +26,7 @@ function install_homebrew() {
 }
 
 function install_proto_compiler {
-  VERSION=3.2.0
+  VERSION=3.3.0
   PROTO_DIR=${HOME}/protobuf
   if [ ! -d "${PROTO_DIR}/bin" ]; then
     cwd=$(pwd)

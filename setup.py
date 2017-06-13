@@ -118,8 +118,8 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
   def finalize_options(self):
     if (self.config_file is not None and
         not os.access(self.config_file, os.R_OK)):
-      raise RuntimeError("Default config file %s is not readable." %
-                         self.config_file)
+      raise RuntimeError(
+          "Default config file %s is not readable." % self.config_file)
 
     install.finalize_options(self)
 
@@ -178,7 +178,7 @@ setup_args = dict(
         "pytsk3==20160721",
         "pytz==2016.4",
         "requests==2.9.1",
-        "protobuf==3.2.0",
+        "protobuf==3.3.0",
         "Werkzeug==0.11.3",
         "wheel==0.29",
         "virtualenv==15.0.3",
