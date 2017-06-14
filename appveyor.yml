@@ -8,7 +8,7 @@ platform:
 clone_folder: C:\grr_src
 
 cache:
-  - '%LOCALAPPDATA%\pip\Cache'
+  - '%LOCALAPPDATA%\pip\Cache' -> **\install_for_build.bat
 
 install:
   - cmd: C:\grr_src\vagrant\windows\install_for_build.bat
