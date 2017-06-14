@@ -88,9 +88,13 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
       parser: argparse.ArgumentParser-compatible object.
       value_class: Class that inherits from RDFValue.
     """
+    if not hasattr(value_class, "type_infos"):
+      return
+
     for type_descriptor in value_class.type_infos:
-      if (not type_descriptor.hidden and type_descriptor.proto_type_name in
-          ["string", "bool", "uint64", "float"]):
+      if (not type_descriptor.hidden and type_descriptor.proto_type_name in [
+          "string", "bool", "uint64", "float"
+      ]):
         kwargs = dict(
             help=type_descriptor.description,
             default=type_descriptor.default,
@@ -121,8 +125,9 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
     args = dict()
     for type_descriptor in value_class.type_infos:
       if (not type_descriptor.hidden and type_descriptor.name in parsed_args and
-          type_descriptor.proto_type_name in
-          ["string", "bool", "uint64", "float"]):
+          type_descriptor.proto_type_name in [
+              "string", "bool", "uint64", "float"
+          ]):
         args[type_descriptor.name] = getattr(parsed_args, type_descriptor.name)
     return value_class(**args)
 
@@ -153,8 +158,8 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
       output_plugin_args = self._InitRdfValueFromParsedArgs(
           output_plugin_class.args_type, args)
       if hasattr(output_plugin_args, "export_options"):
-        export_options = self._InitRdfValueFromParsedArgs(export.ExportOptions,
-                                                          args)
+        export_options = self._InitRdfValueFromParsedArgs(
+            export.ExportOptions, args)
         output_plugin_args.export_options = export_options
     else:
       output_plugin_args = None

@@ -10,6 +10,7 @@ import zipfile
 import logging
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -140,6 +141,17 @@ class OutputPlugin(object):
     NOTE: This method doesn't have to be thread-safe as it's called once
     after a series of ProcessResponses() calls is complete.
     """
+
+
+class UnknownOutputPlugin(OutputPlugin):
+  """Stub plugin used when original plugin class can't be found."""
+
+  name = "unknown"
+  description = "Original plugin class couldn't be found."
+  args_type = rdfvalue.RDFBytes
+
+  def ProcessResponses(self, responses):
+    pass
 
 
 class MultiVerifyHuntOutputError(Error):
@@ -284,8 +296,7 @@ class OutputPluginWithOutputStreams(OutputPlugin):
       Dictionary with "stream name" -> "stream object" key-value pairs.
     """
     urn_to_names = {
-        self.state.output_base_urn.Add(name):
-            name
+        self.state.output_base_urn.Add(name): name
         for name in self.stream_objects
     }
     streams = aff4.FACTORY.MultiOpen(
@@ -315,7 +326,9 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
     if self.plugin_name:
       plugin_cls = OutputPlugin.classes.get(self.plugin_name)
       if plugin_cls is None:
-        raise KeyError("Unknown output plugin %s" % self.plugin_name)
+        logging.warn("Unknown output plugin %s", self.plugin_name)
+        return UnknownOutputPlugin
+
       return plugin_cls
 
   def GetPluginArgsClass(self):

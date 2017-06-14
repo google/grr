@@ -7,8 +7,41 @@ from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
+
+
+class TestOutputPluginWithArgs(output_plugin.OutputPlugin):
+
+  args_type = rdf_flows.FlowRunnerArgs
+
+  def ProcessResponses(self, responses):
+    pass
+
+
+class OutputPluginTest(test_lib.GRRBaseTest):
+
+  def testGetPluginArgsHandlesMissingPluginsCorrectly(self):
+    descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name="TestOutputPluginWithArgs",
+        plugin_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"))
+    serialized = descriptor.SerializeToString()
+
+    deserialized = output_plugin.OutputPluginDescriptor()
+    deserialized.ParseFromString(serialized)
+    self.assertEqual(deserialized, descriptor)
+    self.assertEqual(deserialized.GetPluginClass(), TestOutputPluginWithArgs)
+
+    with utils.Stubber(output_plugin.OutputPlugin, "classes", {}):
+      deserialized = output_plugin.OutputPluginDescriptor()
+      deserialized.ParseFromString(serialized)
+
+      self.assertTrue(deserialized.GetPluginClass(),
+                      output_plugin.UnknownOutputPlugin)
+      # UnknownOutputPlugin should just return serialized arguments as bytes.
+      self.assertEqual(deserialized.plugin_args,
+                       descriptor.plugin_args.SerializeToString())
 
 
 class TestOutputPlugin(output_plugin.OutputPlugin):
