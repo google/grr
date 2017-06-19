@@ -57,10 +57,10 @@ class SqliteConnectionCache(utils.FastStore):
     cursor = conn.cursor()
     cursor.execute("PRAGMA count_changes = OFF")
     cursor.execute("PRAGMA cache_size = 10000")
-    cursor.execute("PRAGMA journal_mode = OFF")
-    # Make sure the database is fully written to disk.
-    cursor.execute("PRAGMA synchronous = ON")
     cursor.execute("PRAGMA page_size = %d" % SQLITE_PAGE_SIZE)
+    # It is not possible to change page_size in WAL mode.
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA synchronous = NORMAL")
     # The linter and pyformat can't agree on how to format this
     # pylint: disable=bad-continuation
     query = """CREATE TABLE IF NOT EXISTS tbl (
@@ -257,8 +257,8 @@ class SqliteConnection(object):
                                 SQLITE_CACHED_STATEMENTS)
     self.conn.text_factory = str
     self.cursor = self.conn.cursor()
-    self.Execute("PRAGMA synchronous = OFF")
-    self.Execute("PRAGMA journal_mode = OFF")
+    self.Execute("PRAGMA synchronous = NORMAL")
+    self.Execute("PRAGMA journal_mode = WAL")
     self.Execute("PRAGMA count_changes = OFF")
     self.Execute("PRAGMA cache_size = 10000")
     self.lock = threading.RLock()
