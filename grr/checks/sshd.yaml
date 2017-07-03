@@ -1,3 +1,4 @@
+# CIS checks 2.03
 check_id: 'CIS-SSH-PROTOCOL'
 method:
   - target: {os: ['Linux', 'Darwin']}

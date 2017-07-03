@@ -1,4 +1,5 @@
 check_id: 'CIS-PATH-UNSAFE-VALUE'
+# CIS checks 9.07
 hint:
   problem: 'Paths include unsafe values.'
   format: '{config} sets {name} to {vals}'
@@ -11,6 +12,7 @@ method:
             expression: 'vals contains "."'
 ---
 check_id: 'CIS-DOTFILE-FILE-PERMISSIONS'
+# CIS checks 9.07
 hint:
   problem: 'Dotfile permissions allow modification by others.'
   format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'
@@ -29,6 +31,7 @@ method:
             expression: 'mode:0020 mask:7020 file_type:REGULAR'
 ---
 check_id: 'CIS-DOTFILE-FILE-OWNERS'
+# CIS checks 9.07
 hint:
   problem: 'Dotfiles are not owned by the root user.'
   format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'

@@ -81,6 +81,7 @@ import os
 import pdb
 import posixpath
 import Queue
+import signal
 import sys
 import threading
 import time
@@ -1144,29 +1145,41 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
     self.OnStartup()
 
-    while True:
-      message = self._in_queue.get()
+    try:
+      while True:
+        message = self._in_queue.get()
 
-      # A message of None is our terminal message.
-      if message is None:
-        break
+        # A message of None is our terminal message.
+        if message is None:
+          break
 
-      try:
-        self.HandleMessage(message)
-        # Catch any errors and keep going here
-      except Exception as e:  # pylint: disable=broad-except
-        logging.warn("%s", e)
-        self.SendReply(
-            rdf_flows.GrrStatus(
-                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                error_message=utils.SmartUnicode(e)),
-            request_id=message.request_id,
-            response_id=1,
-            session_id=message.session_id,
-            task_id=message.task_id,
-            message_type=rdf_flows.GrrMessage.Type.STATUS)
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
+        try:
+          self.HandleMessage(message)
+          # Catch any errors and keep going here
+        except Exception as e:  # pylint: disable=broad-except
+          logging.warn("%s", e)
+          self.SendReply(
+              rdf_flows.GrrStatus(
+                  status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+                  error_message=utils.SmartUnicode(e)),
+              request_id=message.request_id,
+              response_id=1,
+              session_id=message.session_id,
+              task_id=message.task_id,
+              message_type=rdf_flows.GrrMessage.Type.STATUS)
+          if flags.FLAGS.debug:
+            pdb.post_mortem()
+
+    except Exception as e:  # pylint: disable=broad-except
+      logging.error("Exception outside of the processing loop: %r", e)
+    finally:
+      # There's no point in running the client if it's broken out of the
+      # processing loop and it should be restarted shortly anyway.
+      logging.fatal("The client has broken out of its processing loop.")
+
+      # The binary (Python threading library, perhaps) has proven in tests to be
+      # very persistent to termination calls, so we kill it with fire.
+      os.kill(os.getpid(), signal.SIGKILL)
 
 
 class GRRHTTPClient(object):

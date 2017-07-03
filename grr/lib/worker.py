@@ -49,10 +49,6 @@ class GRRWorker(object):
   # A class global threadpool to be used for all workers.
   thread_pool = None
 
-  # This is a timed cache of locked flows. If this worker encounters a lock
-  # failure on a flow, it will not attempt to grab this flow until the timeout.
-  queued_flows = None
-
   def __init__(self,
                queues=queues_config.WORKER_LIST,
                threadpool_prefix="grr_threadpool",
@@ -71,20 +67,24 @@ class GRRWorker(object):
     """
     logging.info("started worker with queues: " + str(queues))
     self.queues = queues
+
+    # self.queued_flows is a timed cache of locked flows. If this worker
+    # encounters a lock failure on a flow, it will not attempt to grab this flow
+    # until the timeout.
     self.queued_flows = utils.TimeBasedCache(max_size=10, max_age=60)
 
     if token is None:
       raise RuntimeError("A valid ACLToken is required.")
 
     # Make the thread pool a global so it can be reused for all workers.
-    if GRRWorker.thread_pool is None:
+    if self.__class__.thread_pool is None:
       if threadpool_size is None:
         threadpool_size = config_lib.CONFIG["Threadpool.size"]
 
-      GRRWorker.thread_pool = threadpool.ThreadPool.Factory(
+      self.__class__.thread_pool = threadpool.ThreadPool.Factory(
           threadpool_prefix, min_threads=2, max_threads=threadpool_size)
 
-      GRRWorker.thread_pool.Start()
+      self.__class__.thread_pool.Start()
 
     self.token = token
     self.last_active = 0
@@ -120,7 +120,7 @@ class GRRWorker(object):
 
     except KeyboardInterrupt:
       logging.info("Caught interrupt, exiting.")
-      self.thread_pool.Join()
+      self.__class__.thread_pool.Join()
 
   def RunOnce(self):
     """Processes one set of messages from Task Scheduler.
@@ -235,7 +235,7 @@ class GRRWorker(object):
 
         processed += 1
         self.queued_flows.Put(notification.session_id, 1)
-        self.thread_pool.AddTask(
+        self.__class__.thread_pool.AddTask(
             target=self._ProcessMessages,
             args=(notification, queue_manager.Copy()),
             name=self.__class__.__name__)
@@ -255,7 +255,7 @@ class GRRWorker(object):
 
     runner = flow_obj.GetRunner()
     try:
-      runner.ProcessCompletedRequests(notification, self.thread_pool)
+      runner.ProcessCompletedRequests(notification, self.__class__.thread_pool)
     except Exception as e:  # pylint: disable=broad-except
       # Something went wrong - log it in the flow.
       runner.context.state = rdf_flows.FlowContext.State.ERROR
@@ -308,7 +308,7 @@ class GRRWorker(object):
         with flow_obj:
           responses = flow_obj.FetchAndRemoveRequestsAndResponses(session_id)
 
-        flow_obj.ProcessResponses(responses, self.thread_pool)
+        flow_obj.ProcessResponses(responses, self.__class__.thread_pool)
 
       else:
         with flow_obj:

@@ -1,4 +1,5 @@
 check_id: 'CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT'
+# CIS checks 2.06
 method:
   - target: {os: ['Linux']}
   - probe:

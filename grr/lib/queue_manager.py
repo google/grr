@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """This is the manager for the various queues."""
 
-
-
 import collections
 import os
 import random
@@ -27,6 +25,30 @@ class Error(Exception):
 
 class MoreDataException(Error):
   """Raised when there is more data available."""
+
+
+def GetClientIdFromQueue(q):
+  """Returns q's client id, if q is a client task queue, otherwise None.
+
+  Args:
+    q: rdfvalue.RDFURN
+
+  Returns:
+    string or None
+  """
+  split = q.Split()
+  if not split or len(split) < 2:
+    return None
+
+  # Normalize to uppercase.
+  split = [s.upper() for s in split]
+
+  str_client_id, tasks_marker = split
+
+  if str_client_id[:2] != "C." or tasks_marker != "TASKS":
+    return None
+
+  return str_client_id
 
 
 class QueueManager(object):
@@ -115,9 +137,8 @@ class QueueManager(object):
     queue_name = str(queue)
     QueueManager.notification_shard_counters.setdefault(queue_name, 0)
     QueueManager.notification_shard_counters[queue_name] += 1
-    notification_shard_index = (
-        QueueManager.notification_shard_counters[queue_name] %
-        self.num_notification_shards)
+    notification_shard_index = (QueueManager.notification_shard_counters[
+        queue_name] % self.num_notification_shards)
     if notification_shard_index > 0:
       return queue.Add(str(notification_shard_index))
     else:
@@ -235,8 +256,7 @@ class QueueManager(object):
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     completed_requests = collections.deque(
-        self.FetchCompletedRequests(
-            session_id, timestamp=timestamp))
+        self.FetchCompletedRequests(session_id, timestamp=timestamp))
 
     total_size = 0
     while True:
@@ -526,6 +546,7 @@ class QueueManager(object):
     for queue, queued_tasks in utils.GroupBy(tasks,
                                              lambda x: x.queue).iteritems():
       if queue:
+
         to_schedule = dict([(self._TaskIdToColumn(task.task_id),
                              [task.SerializeToString()])
                             for task in queued_tasks])

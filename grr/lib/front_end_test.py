@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Unittest for grr frontend server."""
 
-import mock
-
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -70,7 +68,7 @@ class GRRFEServerTestBase(test_lib.FlowTestsBaseclass):
 class GRRFEServerTest(GRRFEServerTestBase):
   """Tests the GRRFEServer."""
 
-  def testReceiveMessages(self, *unused_mocks):
+  def testReceiveMessages(self):
     """Test Receiving messages with no status."""
     flow_obj = self.FlowSetup("FlowOrderTest")
 
@@ -84,7 +82,6 @@ class GRRFEServerTest(GRRFEServerTestBase):
     ]
 
     self.server.ReceiveMessages(self.client_id, messages)
-
 
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
@@ -373,7 +370,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     we have no certificate for, the messages are requeued when sending fails.
     """
     # Make a new fake client
-    client_id = rdf_client.ClientURN("C." + "2" * 16)
+    client_id, = self.SetupClients(1)
 
     class MockCommunicator(object):
       """A fake that simulates an unenrolled client."""

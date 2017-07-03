@@ -1,4 +1,5 @@
 check_id: CIS-INETD-WITH-NO-SERVICES
+# CIS check 4.01
 method:
   - target: {os:['Linux']}
     hint:
@@ -19,6 +20,7 @@ method:
             expression: start_mode is "XINETD"
 ---
 check_id: CIS-SERVICE-LEGACY-SERVICE-ENABLED
+# CIS checks 3.01, 3.03, 3.04, 3.05, 3.06, 3.09
 method:
   - target: {os:['Linux']}
     hint:
@@ -62,6 +64,7 @@ method:
                           "rsh", "ident","nis","ypserv"]
 ---
 check_id: CIS-SERVICE-SHOULD-NOT-RUN
+# CIS check 4.14
 method:
   - target: {os:['Linux']}
     hint:
@@ -87,6 +90,7 @@ method:
               name inset ["snmp","webmin"]
 ---
 check_id: CIS-SERVICE-SHOULD-RUN
+# CIS check 3.02
 method:
   - target: {os:['Linux']}
     hint:

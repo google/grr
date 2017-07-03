@@ -1,4 +1,5 @@
 check_id: 'CIS-CRON-PERMISSIONS'
+# CIS checks 8.05
 method:
   - target: {os: ['Linux']}
     probe:
@@ -41,6 +42,7 @@ method:
             expression: 'mode:0002 mask:7002'
 ---
 check_id: 'CIS-AT-CRON-ALLOW-DOES-NOT-EXIST'
+# CIS checks 8.04
 method:
   - target: {os: ['Linux']}
     probe:
@@ -64,6 +66,7 @@ method:
             expression: 'path_re:"/etc/at\.allow"'
 ---
 check_id: 'CIS-AT-CRON-DENY-EXISTS'
+# CIS checks 8.04
 method:
   - target: {os: ['Linux']}
     probe:
@@ -91,6 +94,7 @@ method:
             expression: 'path_re:"/etc/at\.deny"'
 ---
 check_id: 'CIS-CRON-AT-ALLOW-ONLY-CONTAINS-ROOT'
+# CIS checks 8.04
 method:
   - target: {os: ['Linux']}
     probe:

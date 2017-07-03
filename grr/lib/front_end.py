@@ -323,7 +323,7 @@ class FrontEndServer(object):
 
     return result
 
-  def ReceiveMessages(self, client_id, messages, fleetspeak_client_id=None):
+  def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.
 
     For each message we update the request object, and place the
@@ -333,10 +333,7 @@ class FrontEndServer(object):
     Args:
       client_id: The client which sent the messages.
       messages: A list of GrrMessage RDFValues.
-      fleetspeak_client_id: If the client is FS enabled, this should be set to
-        its FS ID.
     """
-
     now = time.time()
     with queue_manager.QueueManager(
         token=self.token, store=self.data_store) as manager:

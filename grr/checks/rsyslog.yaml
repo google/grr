@@ -1,4 +1,5 @@
 check_id: 'CIS-LOGGING-AUTH-REMOTE'
+# CIS checks 6.04
 hint:
   problem: 'No remote destination for auth logs.'
   fix: 'Modify log configurations to log authentication events, e.g. in rsyslog:
@@ -16,6 +17,7 @@ method:
             expression: 'targets.transport inset ["TCP", "UDP"]'
 ---
 check_id: 'CIS-LOGGING-FILE-PERMISSIONS'
+# CIS checks 6.03
 hint:
   problem: 'Log configurations can be modified by non-privileged users.'
   format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'

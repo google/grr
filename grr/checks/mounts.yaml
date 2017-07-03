@@ -1,6 +1,6 @@
-#7.1 Add 'nodev' Option To Appropriate Partitions In /etc/fstab
-#7.2 Add 'nosuid' and 'nodev' Option To Removable Media in /etc/fstab
-#7.3 Disable User-Mounted Removable File Systems
+# CIS checks 7.01 Add 'nodev' Option To Appropriate Partitions In /etc/fstab
+# CIS checks 7.02 Add 'nosuid' and 'nodev' Option To Removable Media in /etc/fstab
+# CIS checks 7.03 Disable User-Mounted Removable File Systems
 check_id: 'CIS-MOUNT-OPTION-NO-DEV'
 hint:
   format: '{mount_point}: {device} mounted with {options}'

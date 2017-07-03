@@ -46,6 +46,10 @@ class VFSGRRClient(standard.VFSDirectory):
     """The schema for the client."""
     client_index = rdfvalue.RDFURN("aff4:/index/client")
 
+    FLEETSPEAK_ENABLED = aff4.Attribute(
+        "metadata:IsFleetspeak", rdfvalue.RDFBool,
+        "Whether this client uses Fleetspeak for comms.")
+
     CERT = aff4.Attribute("metadata:cert", rdf_crypto.RDFX509Cert,
                           "The PEM encoded cert of the client.")
 

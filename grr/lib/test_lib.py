@@ -1276,6 +1276,7 @@ class MockClient(object):
 
     self.status_message_enforced = getattr(client_mock,
                                            "STATUS_MESSAGE_ENFORCED", True)
+    self._mock_task_queue = getattr(client_mock, "mock_task_queue", [])
     self.client_id = client_id
     self.client_mock = client_mock
     self.token = token
@@ -1315,6 +1316,10 @@ class MockClient(object):
     with queue_manager.QueueManager(token=self.token) as manager:
       request_tasks = manager.QueryAndOwn(
           self.client_id.Queue(), limit=1, lease_seconds=10000)
+
+      request_tasks.extend(self._mock_task_queue)
+      self._mock_task_queue[:] = []  # Clear the referenced list.
+
       for message in request_tasks:
         status = None
         response_id = 1

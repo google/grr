@@ -3,7 +3,7 @@
 
 
 import time
-
+import mock
 
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -72,18 +72,17 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         response_id = None
         for response_id in range(1, 10):
           # Normal message.
-          manager.QueueResponse(
-              session_id,
-              rdf_flows.GrrMessage(
-                  request_id=request_id, response_id=response_id))
+          manager.QueueResponse(session_id,
+                                rdf_flows.GrrMessage(
+                                    request_id=request_id,
+                                    response_id=response_id))
 
         # And a status message.
-        manager.QueueResponse(
-            session_id,
-            rdf_flows.GrrMessage(
-                request_id=request_id,
-                response_id=response_id + 1,
-                type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(session_id,
+                              rdf_flows.GrrMessage(
+                                  request_id=request_id,
+                                  response_id=response_id + 1,
+                                  type=rdf_flows.GrrMessage.Type.STATUS))
 
     completed_requests = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed_requests), 3)
@@ -141,19 +140,17 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
         # Don't queue any actual responses, just a status message with a
         # fake response_id.
-        manager.QueueResponse(
-            session_id,
-            rdf_flows.GrrMessage(
-                request_id=request_id,
-                response_id=1000,
-                type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(session_id,
+                              rdf_flows.GrrMessage(
+                                  request_id=request_id,
+                                  response_id=1000,
+                                  type=rdf_flows.GrrMessage.Type.STATUS))
 
     # Check that even though status message for every request indicates 1000
     # responses, only the actual response count is used to apply the limit
     # when FetchCompletedResponses is called.
     completed_response = list(
-        manager.FetchCompletedResponses(
-            session_id, limit=5))
+        manager.FetchCompletedResponses(session_id, limit=5))
     self.assertEqual(len(completed_response), 5)
     for i, (request, responses) in enumerate(completed_response):
       self.assertEqual(request.id, i)
@@ -172,9 +169,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(
-          session_id, rdf_flows.GrrMessage(
-              request_id=1, response_id=1))
+      manager.QueueResponse(session_id,
+                            rdf_flows.GrrMessage(request_id=1, response_id=1))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -199,9 +195,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(
-          session_id, rdf_flows.GrrMessage(
-              request_id=1, response_id=1))
+      manager.QueueResponse(session_id,
+                            rdf_flows.GrrMessage(request_id=1, response_id=1))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -210,8 +205,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure the rows are in the data store:
     self.assertEqual(
-        data_store.DB.ResolveRow(
-            session_id.Add("state"), token=self.token)[0][0],
+        data_store.DB.ResolveRow(session_id.Add("state"),
+                                 token=self.token)[0][0],
         "flow:request:00000001")
 
     self.assertEqual(
@@ -231,8 +226,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
             session_id.Add("state/request:00000001"), token=self.token), [])
 
     self.assertEqual(
-        data_store.DB.ResolveRow(
-            session_id.Add("state"), token=self.token), [])
+        data_store.DB.ResolveRow(session_id.Add("state"), token=self.token), [])
 
   def testSchedule(self):
     """Test the ability to schedule a task."""
@@ -435,8 +429,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     # Now for Query.
     tasks = manager.Query(test_queue, limit=100)
     self.assertEqual(len(tasks), 10)
-    self.assertEqual([task.priority for task in tasks],
-                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
+    self.assertEqual([task.priority
+                      for task in tasks], [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
 
   def testUsesFrozenTimestampWhenDeletingAndFetchingNotifications(self):
     # When used in "with" statement QueueManager uses the frozen timestamp
@@ -516,9 +510,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
   def setUp(self):
     super(MultiShardedQueueManagerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({
-        "Worker.queue_shards": 2
-    })
+    self.config_overrider = test_lib.ConfigOverrider({"Worker.queue_shards": 2})
     self.config_overrider.Start()
 
   def tearDown(self):
@@ -639,6 +631,37 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
           self.assertEqual(len(notifications), 0)
+
+  def testGetClientIdFromQueue(self):
+
+    def MockQueue(path):
+      return mock.MagicMock(Split=lambda: path.split("/")[1:])
+
+    # Returns None if the path can't be parsed.
+    self.assertIsNone(
+        queue_manager.GetClientIdFromQueue(MockQueue("arbitrary string")))
+
+    # Returns None if the queue isn't a client queue.
+    self.assertIsNone(
+        queue_manager.GetClientIdFromQueue(MockQueue("/H.FEDCBA98")))
+    self.assertIsNone(
+        queue_manager.GetClientIdFromQueue(MockQueue("/H.01234567/tasks")))
+
+    # Returns None if the object isn't a queue.
+    self.assertIsNone(
+        queue_manager.GetClientIdFromQueue(MockQueue("/C.0123456789ABCDEF0")))
+    # Returns client ID if the queue is a client queue.
+    self.assertEqual("C.ABCDEFABCDEFABCDE",
+                     queue_manager.GetClientIdFromQueue(
+                         MockQueue("/C.ABCDEFABCDEFABCDE/tasks")))
+
+    # Letter case doesn't matter. The return value is always uppercase.
+    self.assertEqual("C.0123456789ABCDEF0",
+                     queue_manager.GetClientIdFromQueue(
+                         MockQueue("/C.0123456789AbCdEF0/TasKS")))
+    self.assertEqual("C.ABCDEFABCDEFABCDE",
+                     queue_manager.GetClientIdFromQueue(
+                         MockQueue("/c.abcdefabcdefabcde/tasks")))
 
 
 def main(argv):

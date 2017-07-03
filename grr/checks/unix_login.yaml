@@ -15,6 +15,7 @@ method:
             expression: "pw_entry.hash_type inset ['DES','MD5','NTHASH','UNUSED']"
 ---
 check_id: 'CIS-LOGIN-UNIX-EMPTY'
+# CIS checks 9.02
 method:
   - target: {os: ['Linux']}
     hint:
@@ -51,6 +52,7 @@ method:
             expression: pw_entry.max_age > 365
 ---
 check_id: 'CIS-LOGIN-UNIX-NIS-MARKER'
+# CIS checks 9.04
 match: ANY
 method:
   - target: {os: ['Linux']}
