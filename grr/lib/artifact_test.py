@@ -47,7 +47,8 @@ WMI_SAMPLE = [
         u"Description": u"Google Chrome",
         u"IdentifyingNumber": u"{35790B21-ACFE-33F5-B320-9DA320D96682}",
         u"InstallDate": u"20130710"
-    }), rdf_protodict.Dict({
+    }),
+    rdf_protodict.Dict({
         u"Version": u"7.0.1",
         u"InstallDate2": u"",
         u"Name": u"Parity Agent",
@@ -55,7 +56,8 @@ WMI_SAMPLE = [
         u"Description": u"Parity Agent",
         u"IdentifyingNumber": u"{ADC7EB41-4CC2-4FBA-8FBE-9338A9FB7666}",
         u"InstallDate": u"20130710"
-    }), rdf_protodict.Dict({
+    }),
+    rdf_protodict.Dict({
         u"Version": u"8.0.61000",
         u"InstallDate2": u"",
         u"Name": u"Microsoft Visual C++ 2005 Redistributable (x64)",
@@ -215,15 +217,15 @@ class GRRArtifactTest(ArtifactTest):
 
       if aff4_type not in aff4.AFF4Object.classes:
         raise artifact_registry.ArtifactDefinitionError(
-            "Bad RDFMapping, invalid AFF4 Object %s in %s" %
-            (aff4_type, rdf_name))
+            "Bad RDFMapping, invalid AFF4 Object %s in %s" % (aff4_type,
+                                                              rdf_name))
 
       attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
                      aff4_attribute)()
       if not isinstance(attr, rdfvalue.RDFValue):
         raise artifact_registry.ArtifactDefinitionError(
-            "Bad RDFMapping, bad attribute %s for %s" %
-            (aff4_attribute, rdf_name))
+            "Bad RDFMapping, bad attribute %s for %s" % (aff4_attribute,
+                                                         rdf_name))
 
   def testUploadArtifactYamlFileAndDumpToYaml(self):
     artifact_registry.REGISTRY.ClearRegistry()
@@ -432,8 +434,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           ["LinuxPasswdHomedirs"], client_mock=self.client_mock)
 
       self.assertEqual(len(fd), 3)
-      self.assertItemsEqual([x.username for x in fd],
-                            [u"exomemory", u"gevulot", u"gogol"])
+      self.assertItemsEqual([x.username
+                             for x in fd], [u"exomemory", u"gevulot", u"gogol"])
       for user in fd:
         if user.username == u"exomemory":
           self.assertEqual(user.full_name, u"Never Forget (admin)")
@@ -661,9 +663,9 @@ class GrrKbWindowsTest(GrrKbTest):
       no_deps = collect_obj.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, ["DepsControlSet"])
-      self.assertItemsEqual(
-          collect_obj.state.all_deps,
-          ["environ_windir", "users.username", "current_control_set"])
+      self.assertItemsEqual(collect_obj.state.all_deps, [
+          "environ_windir", "users.username", "current_control_set"
+      ])
       self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
                             ["DepsWindir", "DepsWindirRegex"])
     finally:
@@ -700,9 +702,9 @@ class GrrKbWindowsTest(GrrKbTest):
             "users.homedir", "users.desktop", "users.username",
             "environ_windir", "current_control_set"
         ])
-        self.assertItemsEqual(
-            kb_init.state.awaiting_deps_artifacts,
-            ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"])
+        self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts, [
+            "DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"
+        ])
     finally:
       artifact.ArtifactLoader().RunOnce()
 
@@ -750,8 +752,9 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base":
-              ["LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"],
+          "Artifacts.knowledge_base": [
+              "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"
+          ],
           "Artifacts.knowledge_base_additions": [],
           "Artifacts.knowledge_base_skip": []
       }):
@@ -768,8 +771,8 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp.
-        self.assertItemsEqual([x.username for x in kb.users],
-                              ["user1", "user2", "user3"])
+        self.assertItemsEqual([x.username
+                               for x in kb.users], ["user1", "user2", "user3"])
         user = kb.GetUser(username="user1")
         self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
         self.assertEqual(user.homedir, "/home/user1")
@@ -817,7 +820,7 @@ class GrrKbDarwinTest(GrrKbTest):
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
     self.ClearKB()
-    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["OSXUsers"]}):
+    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["MacOSUsers"]}):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                  test_lib.ClientVFSHandlerFixture):
 

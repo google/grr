@@ -9,13 +9,26 @@ config_lib.DEFINE_list("Artifacts.artifact_dirs", [
 ], "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list("Artifacts.knowledge_base", [
-    "AllUsersAppDataEnvironmentVariable", "AllUsersProfileEnvironmentVariable",
-    "CurrentControlSet", "ProgramFiles", "ProgramFilesx86",
-    "SystemDriveEnvironmentVariable", "SystemRoot", "TempEnvironmentVariable",
-    "UserShellFolders", "WinCodePage", "WinDirEnvironmentVariable",
-    "WinDomainName", "WinPathEnvironmentVariable", "WinTimeZone",
-    "WindowsRegistryProfiles", "WMIProfileUsersHomeDir",
-    "WMIAccountUsersDomain", "OSXUsers", "LinuxUserProfiles", "LinuxRelease"
+    "LinuxRelease",
+    "LinuxUserProfiles",
+    "MacOSUsers",
+    "WindowsCodePage",
+    "WindowsDomainName",
+    "WindowsEnvironmentVariableAllUsersAppData",
+    "WindowsEnvironmentVariableAllUsersProfile",
+    "WindowsEnvironmentVariablePath",
+    "WindowsEnvironmentVariableProgramFiles",
+    "WindowsEnvironmentVariableProgramFilesX86",
+    "WindowsEnvironmentVariableSystemDrive",
+    "WindowsEnvironmentVariableSystemRoot",
+    "WindowsEnvironmentVariableTemp",
+    "WindowsEnvironmentVariableWinDir",
+    "WindowsRegistryCurrentControlSet",
+    "WindowsRegistryProfiles",
+    "WindowsUserShellFolders",
+    "WindowsTimezone",
+    "WMIAccountUsersDomain",
+    "WMIProfileUsersHomeDir",
 ], "List of artifacts that are collected regularly by"
                        " interrogate and used for interpolation of client-side"
                        " variables. Includes artifacts for all supported OSes. "

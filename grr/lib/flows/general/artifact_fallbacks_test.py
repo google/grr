@@ -23,7 +23,7 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=self.client_id,
           token=self.token,
-          artifact_name="SystemRoot"):
+          artifact_name="WindowsEnvironmentVariableSystemRoot"):
         session_id = s
 
       output_fd = flow.GRRFlow.ResultCollectionForFID(

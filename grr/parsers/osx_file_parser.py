@@ -17,7 +17,7 @@ class OSXUsersParser(parsers.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
   output_types = ["User"]
-  supported_artifacts = ["OSXUsers"]
+  supported_artifacts = ["MacOSUsers"]
   blacklist = ["Shared"]
 
   def Parse(self, stat_entries, knowledge_base, path_type):
@@ -63,7 +63,9 @@ class OSXLaunchdPlistParser(parsers.FileParser):
   """Parse Launchd plist files into LaunchdPlist objects."""
 
   output_types = ["LaunchdPlist"]
-  supported_artifacts = ["OSXLaunchAgents", "OSXLaunchDaemons"]
+  supported_artifacts = [
+      "MacOSLaunchAgentsPlistFiles", "MacOSLaunchDaemonsPlistFiles"
+  ]
 
   def Parse(self, statentry, file_object, knowledge_base):
     """Parse the Plist file."""
@@ -151,8 +153,7 @@ class OSXLaunchdPlistParser(parsers.FileParser):
       kwargs["EnvironmentVariables"] = []
       for envvar in envvars:
         kwargs["EnvironmentVariables"].append(
-            rdf_plist.PlistStringDictEntry(
-                name=envvar, value=envvars[envvar]))
+            rdf_plist.PlistStringDictEntry(name=envvar, value=envvars[envvar]))
 
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:

@@ -23,8 +23,8 @@ class TestDarwinPersistenceMechanisms(base.AutomatedTest):
     for p in persistence_list:
       if p.pathspec.path == launchservices:
         return
-    self.fail("Service listing does not contain launchservices: %s." %
-              launchservices)
+    self.fail(
+        "Service listing does not contain launchservices: %s." % launchservices)
 
 
 class TestRootDiskVolumeUsage(base.AutomatedTest):
@@ -44,7 +44,7 @@ class TestParserDependency(base.AutomatedTest):
   platforms = ["Windows"]
   flow = "ArtifactCollectorFlow"
   args = {
-      "artifact_list": ["WinPathEnvironmentVariable"],
+      "artifact_list": ["WindowsEnvironmentVariablePath"],
       "dependencies": "FETCH_NOW"
   }
 
@@ -84,20 +84,23 @@ class TestParserDependency(base.AutomatedTest):
 
 class TestParserDependencyWinDir(TestParserDependency):
   args = {
-      "artifact_list": ["WinDirEnvironmentVariable"],
+      "artifact_list": ["WindowsEnvironmentVariableWinDir"],
       "dependencies": "FETCH_NOW"
   }
 
 
 class TestParserDependencyTemp(TestParserDependency):
   args = {
-      "artifact_list": ["TempEnvironmentVariable"],
+      "artifact_list": ["WindowsEnvironmentVariableTemp"],
       "dependencies": "FETCH_NOW"
   }
 
 
 class TestParserDependencyUserShellFolders(TestParserDependency):
-  args = {"artifact_list": ["UserShellFolders"], "dependencies": "FETCH_NOW"}
+  args = {
+      "artifact_list": ["WindowsUserShellFolders"],
+      "dependencies": "FETCH_NOW"
+  }
 
   def CheckFlow(self):
     super(TestParserDependencyUserShellFolders, self).CheckFlow()

@@ -186,9 +186,9 @@ class ArtifactRegistry(object):
     artifact_name = artifact_rdfvalue.name
     if artifact_name in self._artifacts:
       if not overwrite_if_exists:
-        raise ArtifactDefinitionError("Artifact named %s already exists and "
-                                      "overwrite_if_exists is set to False." %
-                                      artifact_name)
+        raise ArtifactDefinitionError(
+            "Artifact named %s already exists and "
+            "overwrite_if_exists is set to False." % artifact_name)
       elif not overwrite_system_artifacts:
         artifact_obj = self._artifacts[artifact_name]
         if not artifact_obj.loaded_from.startswith("datastore:"):
@@ -220,8 +220,8 @@ class ArtifactRegistry(object):
     for dir_path in self._sources.get("dirs", set()):
       try:
         for file_name in os.listdir(dir_path):
-          if (file_name.endswith(".json") or file_name.endswith(".yaml") and
-              not file_name.startswith("test")):
+          if (file_name.endswith(".json") or
+              file_name.endswith(".yaml") and not file_name.startswith("test")):
             files_to_load.add(os.path.join(dir_path, file_name))
       except (IOError, OSError):
         logging.warn("Artifact directory not found: %s", dir_path)
@@ -346,7 +346,7 @@ class ArtifactRegistry(object):
       os_name: operating system string
       artifact_name_list: list of artifact names to find dependencies for.
       existing_artifact_deps: existing dependencies to add to, for recursion,
-        e.g. set(["WindowsRegistryProfiles", "WinPathEnvironmentVariable"])
+        e.g. set(["WindowsRegistryProfiles", "WindowsEnvironmentVariablePath"])
       existing_expansion_deps: existing expansion dependencies to add to, for
         recursion, e.g. set(["users.userprofile", "users.homedir"])
     Returns:
@@ -518,8 +518,8 @@ class ArtifactSource(structs.RDFProtoStruct):
     missing_attributes = set(required_attributes).difference(
         self.attributes.keys())
     if missing_attributes:
-      raise ArtifactDefinitionError("Missing required attributes: %s." %
-                                    missing_attributes)
+      raise ArtifactDefinitionError(
+          "Missing required attributes: %s." % missing_attributes)
 
 
 class ArtifactName(rdfvalue.RDFString):
@@ -781,8 +781,9 @@ class Artifact(structs.RDFProtoStruct):
         of = objectfilter.Parser(condition).Parse()
         of.Compile(objectfilter.BaseFilterImplementation)
       except ConditionError as e:
-        raise ArtifactDefinitionError("Artifact %s has invalid condition %s. %s"
-                                      % (cls_name, condition, e))
+        raise ArtifactDefinitionError(
+            "Artifact %s has invalid condition %s. %s" % (cls_name, condition,
+                                                          e))
 
     for label in self.labels:
       if label not in self.ARTIFACT_LABELS:
@@ -830,8 +831,8 @@ class Artifact(structs.RDFProtoStruct):
       for dependency in self.GetArtifactDependencies():
         dependency_obj = REGISTRY.GetArtifact(dependency)
         if dependency_obj.error_message:
-          raise ArtifactDefinitionError("Dependency %s has an error!" %
-                                        dependency)
+          raise ArtifactDefinitionError(
+              "Dependency %s has an error!" % dependency)
     except ArtifactNotRegisteredError as e:
       raise ArtifactDefinitionError(e)
 
@@ -886,8 +887,8 @@ def DeleteArtifactsFromDatastore(artifact_names,
 
   if len(found_artifact_names) != len(to_delete):
     not_found = to_delete - found_artifact_names
-    raise ValueError("Artifact(s) to delete (%s) not found." %
-                     ",".join(not_found))
+    raise ValueError(
+        "Artifact(s) to delete (%s) not found." % ",".join(not_found))
 
   # TODO(user): this is ugly and error- and race-condition- prone.
   # We need to store artifacts not in a *Collection, which is an

@@ -57,8 +57,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
   def _LoadAllArtifacts(self):
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
-    artifact_registry.REGISTRY.AddDirSources(config_lib.CONFIG[
-        "Artifacts.artifact_dirs"])
+    artifact_registry.REGISTRY.AddDirSources(
+        config_lib.CONFIG["Artifacts.artifact_dirs"])
 
   def testGetArtifacts(self):
     self._LoadAllArtifacts()
@@ -73,8 +73,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
         name_list=["TestAggregationArtifact", "TestFileArtifact"])
 
     # TestFileArtifact doesn't match the OS criteria
-    self.assertItemsEqual([x.name for x in results],
-                          ["TestAggregationArtifact"])
+    self.assertItemsEqual([x.name
+                           for x in results], ["TestAggregationArtifact"])
     for result in results:
       self.assertTrue("Windows" in result.supported_os or
                       not result.supported_os)
@@ -123,7 +123,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results_names = artifact_registry.REGISTRY.GetArtifactNames(
         os_name="Darwin", provides=["users.username"])
-    self.assertIn("OSXUsers", results_names)
+    self.assertIn("MacOSUsers", results_names)
 
   def testSearchDependencies(self):
     # Just use the test artifacts to verify dependency correctness so we
@@ -214,9 +214,9 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     self.assertEqual(list(paths), ["c:\\programdata\\a"])
 
     # Check a bad attribute raises
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError, list,
-        artifact_utils.InterpolateKbAttributes("%%nonexistent%%\\a", kb))
+    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError, list,
+                      artifact_utils.InterpolateKbAttributes(
+                          "%%nonexistent%%\\a", kb))
 
     # Empty values should also raise
     kb.Set("environ_allusersprofile", "")
@@ -249,8 +249,8 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
     for processor in parsers.Parser.classes.values():
       if (not hasattr(processor, "output_types") or
           not isinstance(processor.output_types, (list, tuple))):
-        raise parsers.ParserDefinitionError("Missing output_types on %s" %
-                                            processor)
+        raise parsers.ParserDefinitionError(
+            "Missing output_types on %s" % processor)
 
       for output_type in processor.output_types:
         if output_type not in rdfvalue.RDFValue.classes:
@@ -271,8 +271,7 @@ class UserMergeTest(test_lib.GRRBaseTest):
     self.assertEqual(len(kb.users), 2)
 
     _, conflicts = kb.MergeOrAddUser(
-        rdf_client.User(
-            sid="5678", username="test2"))
+        rdf_client.User(sid="5678", username="test2"))
     self.assertEqual(len(kb.users), 2)
     self.assertEqual(conflicts[0], ("username", "test1", "test2"))
     self.assertEqual(kb.GetUser(sid="5678").username, "test2")
@@ -283,8 +282,7 @@ class UserMergeTest(test_lib.GRRBaseTest):
 
     # This should create a new user since the sid is different.
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdf_client.User(
-            username="test2", sid="12345", temp="/blah"))
+        rdf_client.User(username="test2", sid="12345", temp="/blah"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs,
                           ["users.username", "users.temp", "users.sid"])
@@ -314,8 +312,7 @@ class UserMergeTest(test_lib.GRRBaseTest):
 
     # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdf_client.User(
-            username="newblake", desktop="/home/blakey/Desktop"))
+        rdf_client.User(username="newblake", desktop="/home/blakey/Desktop"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
     self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",
@@ -366,9 +363,9 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
         urls=["http://blah"],
         sources=sources)
 
-    self.assertItemsEqual(
-        [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
-        ["REGISTRY_KEY", "WMI", "GREP"])
+    self.assertItemsEqual([
+        x["type"] for x in artifact.ToPrimitiveDict()["sources"]
+    ], ["REGISTRY_KEY", "WMI", "GREP"])
 
     class Parser1(object):
       knowledgebase_dependencies = ["appdata", "sid"]

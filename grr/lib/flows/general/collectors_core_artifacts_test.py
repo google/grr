@@ -44,7 +44,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
-        artifact_list=["SystemDriveEnvironmentVariable"],
+        artifact_list=["WindowsEnvironmentVariableSystemDrive"],
         token=self.token,
         client_id=self.client_id):
       session_id = s
@@ -56,7 +56,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
-        artifact_list=["SystemRoot"],
+        artifact_list=["WindowsEnvironmentVariableSystemRoot"],
         token=self.token,
         client_id=self.client_id):
       session_id = s
@@ -82,7 +82,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow",
           BrokenClientMock(),
-          artifact_list=["SystemDriveEnvironmentVariable"],
+          artifact_list=["WindowsEnvironmentVariableSystemDrive"],
           token=self.token,
           client_id=self.client_id):
         pass
@@ -138,8 +138,8 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         artifact_list=["WMILogicalDisks"],
         token=self.token,
         client_id=self.client_id,
-        dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-        IGNORE_DEPS,
+        dependencies=(
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS),
         store_results_in_aff4=True):
       pass
 
@@ -174,8 +174,8 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         artifact_list=["WMIActiveScriptEventConsumer"],
         token=self.token,
         client_id=self.client_id,
-        dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-        IGNORE_DEPS):
+        dependencies=(
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
       pass
 
     # Make sure the artifact's base_object made it into the WmiQuery call.
@@ -193,15 +193,15 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
         client_mock = action_mocks.ActionMock(standard.StatFile)
 
-        artifact_list = ["WinDirEnvironmentVariable"]
+        artifact_list = ["WindowsEnvironmentVariableWinDir"]
         for s in test_lib.TestFlowHelper(
             "ArtifactCollectorFlow",
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
             client_id=self.client_id,
-            dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-            FETCH_NOW):
+            dependencies=(
+                artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW)):
           session_id = s
 
         output = flow.GRRFlow.ResultCollectionForFID(

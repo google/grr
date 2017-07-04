@@ -1000,7 +1000,7 @@ class DiskVolumeInfo(flow.GRRFlow):
       if self.state.system_root_required:
         self.CallFlow(
             "ArtifactCollectorFlow",
-            artifact_list=["SystemRoot"],
+            artifact_list=["WindowsEnvironmentVariableSystemRoot"],
             next_state="StoreSystemRoot")
         return
 

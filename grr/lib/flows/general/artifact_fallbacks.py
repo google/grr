@@ -18,12 +18,15 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
   """Flow that attempts to guess systemroot and systemdrive.
 
-  This is the fallback flow for the SystemRoot and
-  SystemDriveEnvironmentVariable artifacts.  These values underpin many other
-  artifact values so we want to make an educated guess if we can't collect by
-  normal means.
+  This is the fallback flow for the WindowsEnvironmentVariableSystemRoot and
+  WindowsEnvironmentVariableSystemDrive artifacts. These values underpin many
+  other artifact values so we want to make an educated guess if we cannot
+  collect by normal means.
   """
-  artifacts = ["SystemRoot", "SystemDriveEnvironmentVariable"]
+  artifacts = [
+      "WindowsEnvironmentVariableSystemRoot",
+      "WindowsEnvironmentVariableSystemDrive"
+  ]
 
   @flow.StateHandler()
   def Start(self):

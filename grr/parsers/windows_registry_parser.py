@@ -20,8 +20,9 @@ class CurrentControlSetKBParser(parsers.RegistryValueParser):
   """Parser for CurrentControlSet value."""
 
   output_types = ["RDFString"]
+  # TODO(user): remove CurrentControlSet after artifact cleanup.
   supported_artifacts = [
-      "CurrentControlSet", "WindowsRegistryCurrentControlSet"
+      "WindowsRegistryCurrentControlSet", "CurrentControlSet"
   ]
 
   def Parse(self, stat, unused_knowledge_base):
@@ -29,10 +30,10 @@ class CurrentControlSetKBParser(parsers.RegistryValueParser):
     value = stat.registry_data.GetValue()
 
     if not str(value).isdigit() or int(value) > 999 or int(value) < 0:
-      raise parsers.ParseError("Invalid value for CurrentControlSet key %s" %
-                               value)
-    yield rdfvalue.RDFString("HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet%03d" %
-                             int(value))
+      raise parsers.ParseError(
+          "Invalid value for CurrentControlSet key %s" % value)
+    yield rdfvalue.RDFString(
+        "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet%03d" % int(value))
 
 
 class WinEnvironmentParser(parsers.RegistryValueParser):
@@ -40,11 +41,10 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
 
   output_types = ["RDFString"]
   supported_artifacts = [
-      "WinPathEnvironmentVariable", "WindowsEnvironmentVariablePath",
-      "WinDirEnvironmentVariable", "WindowsEnvironmentVariableWinDir",
-      "TempEnvironmentVariable", "WindowsEnvironmentVariableTemp",
-      "AllUsersAppDataEnvironmentVariable",
-      "WindowsEnvironmentVariableAllUsersAppData"
+      "WindowsEnvironmentVariableAllUsersAppData",
+      "WindowsEnvironmentVariablePath",
+      "WindowsEnvironmentVariableTemp",
+      "WindowsEnvironmentVariableWinDir",
   ]
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
@@ -54,8 +54,8 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
     value = stat.registry_data.GetValue()
     if not value:
       raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
-    value = artifact_utils.ExpandWindowsEnvironmentVariables(value,
-                                                             knowledge_base)
+    value = artifact_utils.ExpandWindowsEnvironmentVariables(
+        value, knowledge_base)
     if value:
       yield rdfvalue.RDFString(value)
 
@@ -64,14 +64,10 @@ class WinSystemDriveParser(parsers.RegistryValueParser):
   """Parser for SystemDrive environment variable."""
 
   output_types = ["RDFString"]
-  supported_artifacts = [
-      "SystemDriveEnvironmentVariable", "WindowsEnvironmentVariableSystemDrive"
-  ]
+  supported_artifacts = ["WindowsEnvironmentVariableSystemDrive"]
 
   def Parse(self, stat, _):
-    """Parse the key currentcontrolset output."""
-    # SystemDriveEnvironmentVariable produces a statentry,
-    # WindowsEnvironmentVariableSystemDrive produces a string
+    """Parses a SystemDrive environment variable."""
     if isinstance(stat, rdf_client.StatEntry):
       value = stat.registry_data.GetValue()
     elif isinstance(stat, rdfvalue.RDFString):
@@ -83,15 +79,15 @@ class WinSystemDriveParser(parsers.RegistryValueParser):
     if re.match(r"^[A-Za-z]:$", systemdrive):
       yield rdfvalue.RDFString(systemdrive)
     else:
-      raise parsers.ParseError("Bad drive letter for key %s" %
-                               stat.pathspec.path)
+      raise parsers.ParseError(
+          "Bad drive letter for key %s" % stat.pathspec.path)
 
 
 class WinSystemRootParser(parsers.RegistryValueParser):
   """Parser for SystemRoot environment variables."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["SystemRoot", "WindowsEnvironmentVariableSystemRoot"]
+  supported_artifacts = ["WindowsEnvironmentVariableSystemRoot"]
 
   def Parse(self, stat, _):
     value = stat.registry_data.GetValue()
@@ -105,7 +101,7 @@ class CodepageParser(parsers.RegistryValueParser):
   """Parser for Codepage values."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["WinCodePage", "WindowsCodePage"]
+  supported_artifacts = ["WindowsCodePage"]
 
   def Parse(self, stat, knowledge_base):
     _ = knowledge_base
@@ -120,10 +116,7 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
   if one or the registry values doesn't exist.
   """
   output_types = ["RDFString"]
-  supported_artifacts = [
-      "AllUsersProfileEnvironmentVariable",
-      "WindowsEnvironmentVariableAllUsersProfile"
-  ]
+  supported_artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
   process_together = True
@@ -192,7 +185,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
   http://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
   """
   output_types = ["User"]
-  supported_artifacts = ["UserShellFolders", "WindowsUserShellFolders"]
+  supported_artifacts = ["WindowsUserShellFolders"]
   process_together = True
   # Required for environment variable expansion
   knowledgebase_dependencies = [
@@ -338,7 +331,7 @@ class WinTimezoneParser(parsers.RegistryValueParser):
   """Parser for TimeZoneKeyName value."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["WinTimeZone", "WindowsTimezone"]
+  supported_artifacts = ["WindowsTimezone"]
 
   def Parse(self, stat, knowledge_base):
     """Convert the timezone to Olson format."""

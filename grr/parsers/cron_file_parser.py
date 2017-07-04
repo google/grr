@@ -13,7 +13,7 @@ class CronTabParser(parsers.FileParser):
   """Parser for crontab files."""
 
   output_types = ["CronTabFile"]
-  supported_artifacts = ["OSXCronTabs", "LinuxCronTabs"]
+  supported_artifacts = ["LinuxCronTabs", "MacOSCronTabs"]
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the crontab file."""
