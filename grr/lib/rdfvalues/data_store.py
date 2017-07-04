@@ -24,14 +24,6 @@ class DataStoreResponse(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreResponse
 
 
-class QueryASTNode(structs.RDFProtoStruct):
-  protobuf = data_store_pb2.QueryASTNode
-
-
-class DataStoreQuery(structs.RDFProtoStruct):
-  protobuf = data_store_pb2.DataStoreQuery
-
-
 class ResultSet(structs.RDFProtoStruct):
   protobuf = data_store_pb2.ResultSet
 
@@ -54,5 +46,4 @@ class ResultSet(structs.RDFProtoStruct):
     #   '"\\udc7c"'
     # and json.loads('"\\udc7c"') raises "Unpaired low surrogate" error.
     self.serialized_result = utils.SmartStr(
-        json.dumps(
-            value, ensure_ascii=False))
+        json.dumps(value, ensure_ascii=False))

@@ -64,28 +64,6 @@ message DataStoreRequest {
   optional uint32 limit = 8;
 };
 
-message QueryASTNode {
-  optional string name = 1;
-  repeated bytes args = 2;
-  repeated QueryASTNode children = 3;
-};
-
-message DataStoreQuery {
-  repeated string attributes = 1;
-  optional QueryASTNode filter = 2;
-  optional string subject_prefix = 3;
-  repeated string subjects = 4  [(sem_type) = {
-      type: "RDFURN",
-      description: "The AFF4 objects we query for."
-    }];
-
-  optional uint32 limit = 5;
-  optional uint32 limit_start = 6;
-  optional ACLToken token = 7;
-
-  optional TimestampSpec timestamp = 8;
-}
-
 message ResultSet {
   optional string subject = 1 [(sem_type) = {
       type: "RDFURN",
