@@ -42,6 +42,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetClient(self, args, token=None):
     return api_client.ApiGetClientHandler()
 
+  def GetClientVersions(self, args, token=None):
+    return api_client.ApiGetClientVersionsHandler()
+
   def GetClientVersionTimes(self, args, token=None):
     return api_client.ApiGetClientVersionTimesHandler()
 

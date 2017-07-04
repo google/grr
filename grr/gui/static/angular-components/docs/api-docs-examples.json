@@ -77,9 +77,14 @@
             "value": "really important reason!"
           },
           "subject": {
-            "age": 42000000,
+            "age": 0,
             "type": "ApiClient",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
@@ -178,6 +183,7 @@
         ],
         "reason": "really important reason!",
         "subject": {
+          "age": 42000000,
           "agent_info": {
             "client_name": "GRR Monitor"
           },
@@ -930,9 +936,14 @@
             "value": "foo"
           },
           "subject": {
-            "age": 42000000,
+            "age": 0,
             "type": "ApiClient",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
@@ -1028,6 +1039,7 @@
         ],
         "reason": "foo",
         "subject": {
+          "age": 42000000,
           "agent_info": {
             "client_name": "GRR Monitor"
           },
@@ -1096,9 +1108,14 @@
             "value": "bar"
           },
           "subject": {
-            "age": 42000000,
+            "age": 0,
             "type": "ApiClient",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
@@ -1194,6 +1211,7 @@
         ],
         "reason": "bar",
         "subject": {
+          "age": 42000000,
           "agent_info": {
             "client_name": "GRR Monitor"
           },
@@ -1225,9 +1243,14 @@
       "api_method": "GetClient",
       "method": "GET",
       "response": {
-        "age": 42000000,
+        "age": 0,
         "type": "ApiClient",
         "value": {
+          "age": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
           "agent_info": {
             "age": 42000000,
             "type": "ClientInformation",
@@ -1314,6 +1337,7 @@
       },
       "test_class": "ApiGetClientHandlerRegressionTest_http_v1",
       "type_stripped_response": {
+        "age": 42000000,
         "agent_info": {
           "client_name": "GRR Monitor"
         },
@@ -1376,6 +1400,936 @@
       },
       "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
+    }
+  ],
+  "ApiGetClientVersionsHandler": [
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          },
+          {
+            "age": 45000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=44000000&mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 45000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "age": 0,
+                "type": "ClientInformation",
+                "value": {}
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          },
+          {
+            "age": 45000000,
+            "agent_info": {},
+            "client_id": "C.1000000000000000",
+            "hardware_info": {},
+            "labels": [],
+            "last_seen_at": 0,
+            "os_info": {
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 42000000,
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
+            "labels": [],
+            "last_seen_at": 0,
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=44000000&mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "age": 0,
+                "type": "ClientInformation",
+                "value": {}
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 45000000,
+            "agent_info": {},
+            "client_id": "C.1000000000000000",
+            "hardware_info": {},
+            "labels": [],
+            "last_seen_at": 0,
+            "os_info": {
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [
@@ -6825,9 +7779,14 @@
             "value": "foo"
           },
           "subject": {
-            "age": 42000000,
+            "age": 0,
             "type": "ApiClient",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
@@ -6923,6 +7882,7 @@
         ],
         "reason": "foo",
         "subject": {
+          "age": 42000000,
           "agent_info": {
             "client_name": "GRR Monitor"
           },
@@ -7884,9 +8844,14 @@
                 "value": "Running tests"
               },
               "subject": {
-                "age": 42000000,
+                "age": 0,
                 "type": "ApiClient",
                 "value": {
+                  "age": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
                   "agent_info": {
                     "age": 42000000,
                     "type": "ClientInformation",
@@ -8008,9 +8973,14 @@
                 "value": "Running tests"
               },
               "subject": {
-                "age": 42000000,
+                "age": 0,
                 "type": "ApiClient",
                 "value": {
+                  "age": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
                   "agent_info": {
                     "age": 42000000,
                     "type": "ClientInformation",
@@ -8110,6 +9080,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": 42000000,
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
@@ -8146,6 +9117,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": 42000000,
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
@@ -8218,9 +9190,14 @@
                 "value": "Running tests"
               },
               "subject": {
-                "age": 42000000,
+                "age": 0,
                 "type": "ApiClient",
                 "value": {
+                  "age": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
                   "agent_info": {
                     "age": 42000000,
                     "type": "ClientInformation",
@@ -8320,6 +9297,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": 42000000,
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
@@ -14839,9 +15817,14 @@
       "response": {
         "items": [
           {
-            "age": 42000000,
+            "age": 0,
             "type": "ApiClient",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
@@ -14927,6 +15910,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "age": 42000000,
             "agent_info": {
               "client_name": "GRR Monitor"
             },

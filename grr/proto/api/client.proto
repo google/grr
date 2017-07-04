@@ -120,6 +120,36 @@ message ApiGetClientArgs {
     }];
 }
 
+message ApiGetClientVersionsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timerange start (timerange is a closed interval)."
+    }];
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timerange end (timerange is a closed interval)."
+    }];
+
+  enum Mode {
+    UNSET = 0; // will default to FULL
+    FULL = 1;
+    DIFF = 2;
+  }
+  optional Mode mode = 4 [(sem_type) = {
+      description: "Mode to be used: FULL to return full versions for "
+      "every timestamp, DIFF to return only differences between subsequent "
+      "versions."
+    }];
+}
+
+message ApiGetClientVersionsResult {
+  repeated ApiClient items = 1;
+}
+
 message ApiGetClientVersionTimesArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ApiClientId",

@@ -67,6 +67,49 @@ class ApiGetClientHandlerRegressionTest(
         args=client_plugin.ApiGetClientArgs(client_id=client_ids[0].Basename()))
 
 
+class ApiGetClientVersionsRegressionTest(
+    api_regression_test_lib.ApiRegressionTest):
+
+  api_method = "GetClientVersions"
+  handler = client_plugin.ApiGetClientVersionsHandler
+
+  def Run(self):
+    # Fix the time to avoid regressions.
+    with test_lib.FakeTime(42):
+      client_id = self.SetupClients(1)[0]
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as grr_client:
+        grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+
+    with test_lib.FakeTime(45):
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as grr_client:
+        grr_client.Set(grr_client.Schema.HOSTNAME("some-other-hostname.org"))
+
+    with test_lib.FakeTime(47):
+      for mode in ["FULL", "DIFF"]:
+        self.Check(
+            "GetClientVersions",
+            args=client_plugin.ApiGetClientVersionsArgs(
+                client_id=client_id.Basename(), mode=mode))
+        self.Check(
+            "GetClientVersions",
+            args=client_plugin.ApiGetClientVersionsArgs(
+                client_id=client_id.Basename(),
+                end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
+                mode=mode))
+        self.Check(
+            "GetClientVersions",
+            args=client_plugin.ApiGetClientVersionsArgs(
+                client_id=client_id.Basename(),
+                start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
+                end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(46),
+                mode=mode))
+
+
 class ApiGetLastClientIPAddressHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest):
 

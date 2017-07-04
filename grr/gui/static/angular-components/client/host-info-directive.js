@@ -117,7 +117,7 @@ HostInfoController.prototype.fetchClientDetails_ = function() {
 
   this.grrApiService_.get(url, params).then(function success(response) {
     this.client = response.data;
-    this.clientVersion = response.data['age'];
+    this.clientVersion = response.data['value']['age']['value'];
   }.bind(this));
 };
 

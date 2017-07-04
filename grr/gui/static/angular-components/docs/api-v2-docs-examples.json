@@ -42,6 +42,7 @@
         ],
         "reason": "really important reason!",
         "subject": {
+          "age": "42000000",
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
@@ -257,6 +258,7 @@
         ],
         "reason": "foo",
         "subject": {
+          "age": "42000000",
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
@@ -295,6 +297,7 @@
         ],
         "reason": "bar",
         "subject": {
+          "age": "42000000",
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
@@ -324,6 +327,7 @@
       "api_method": "GetClient",
       "method": "GET",
       "response": {
+        "age": "42000000",
         "agentInfo": {
           "clientName": "GRR Monitor"
         },
@@ -384,6 +388,224 @@
       },
       "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
+    }
+  ],
+  "ApiGetClientVersionsHandler": [
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          },
+          {
+            "age": "45000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=44000000&mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "45000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          },
+          {
+            "age": "45000000",
+            "agentInfo": {},
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {},
+            "lastSeenAt": "0",
+            "osInfo": {
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "0",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=44000000&mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "45000000",
+            "agentInfo": {},
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {},
+            "lastSeenAt": "0",
+            "osInfo": {
+              "node": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [
@@ -3662,6 +3884,7 @@
         ],
         "reason": "foo",
         "subject": {
+          "age": "42000000",
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
@@ -3959,6 +4182,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": "42000000",
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
@@ -3991,6 +4215,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": "42000000",
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
@@ -4033,6 +4258,7 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "age": "42000000",
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
@@ -5652,6 +5878,7 @@
       "response": {
         "items": [
           {
+            "age": "42000000",
             "agentInfo": {
               "clientName": "GRR Monitor"
             },

@@ -104,7 +104,9 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
     type_obj = client_obj.Get(client_obj.Schema.TYPE)
     if type_obj:
-      self.age = type_obj.age
+      # Without self.Set self.age would reference "age" attribute instead of a
+      # protobuf field.
+      self.Set("age", type_obj.age)
 
     self.cloud_instance = client_obj.Get(client_obj.Schema.CLOUD_INSTANCE)
     return self
@@ -221,6 +223,40 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
         token=token)
 
     return ApiClient().InitFromAff4Object(client)
+
+
+class ApiGetClientVersionsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiGetClientVersionsArgs
+
+
+class ApiGetClientVersionsResult(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiGetClientVersionsResult
+
+
+class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves a multiple versions of a given client."""
+
+  args_type = ApiGetClientVersionsArgs
+  result_type = ApiGetClientVersionsResult
+
+  def Handle(self, args, token=None):
+    end_time = args.end or rdfvalue.RDFDatetime.Now()
+    start_time = args.start or end_time - rdfvalue.Duration("3m")
+    diffs_only = args.mode == args.Mode.DIFF
+
+    all_clients = aff4.FACTORY.OpenDiscreteVersions(
+        args.client_id.ToClientURN(),
+        mode="r",
+        age=(start_time.AsMicroSecondsFromEpoch(),
+             end_time.AsMicroSecondsFromEpoch()),
+        diffs_only=diffs_only,
+        token=token)
+
+    items = []
+    for fd in all_clients:
+      items.append(ApiClient().InitFromAff4Object(fd))
+
+    return ApiGetClientVersionsResult(items=items)
 
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):

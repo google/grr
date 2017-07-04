@@ -61,7 +61,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(
         self.pool.urns_for_deletion,
-        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")]))
+        set([rdfvalue.RDFURN("aff4:/a"),
+             rdfvalue.RDFURN("aff4:/b")]))
 
   def testMarkForDeletionAddsChildrenToDeletionSet(self):
     self._CreateObject("aff4:/a", aff4.AFF4MemoryStream)
@@ -71,15 +72,18 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(
         self.pool.urns_for_deletion,
-        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b")]))
+        set([rdfvalue.RDFURN("aff4:/a"),
+             rdfvalue.RDFURN("aff4:/a/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsToDeletionSet(self):
     self.pool.MultiMarkForDeletion(
-        [rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")])
+        [rdfvalue.RDFURN("aff4:/a"),
+         rdfvalue.RDFURN("aff4:/b")])
 
     self.assertEqual(
         self.pool.urns_for_deletion,
-        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")]))
+        set([rdfvalue.RDFURN("aff4:/a"),
+             rdfvalue.RDFURN("aff4:/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsAndChildrenToDeletionSet(self):
     self._CreateObject("aff4:/a", aff4.AFF4MemoryStream)
@@ -89,7 +93,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/c/e", aff4.AFF4MemoryStream)
 
     self.pool.MultiMarkForDeletion(
-        [rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/c")])
+        [rdfvalue.RDFURN("aff4:/a"),
+         rdfvalue.RDFURN("aff4:/c")])
 
     self.assertEqual(self.pool.urns_for_deletion,
                      set([
@@ -116,7 +121,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(
         self.pool.root_urns_for_deletion,
-        set([rdfvalue.RDFURN("aff4:/a/b"), rdfvalue.RDFURN("aff4:/b/c")]))
+        set([rdfvalue.RDFURN("aff4:/a/b"),
+             rdfvalue.RDFURN("aff4:/b/c")]))
 
   def testReturnsCorrectRootsForShuffledMarkForDeletionCalls(self):
     urns = [
@@ -130,7 +136,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
       self.assertEqual(
           pool.root_urns_for_deletion,
-          set([rdfvalue.RDFURN("aff4:/a/b"), rdfvalue.RDFURN("aff4:/a/f")]))
+          set([rdfvalue.RDFURN("aff4:/a/b"),
+               rdfvalue.RDFURN("aff4:/a/f")]))
 
   def testOpenCachesObjectBasedOnUrnAndMode(self):
     self._CreateObject("aff4:/obj", aff4.AFF4MemoryStream)
@@ -267,10 +274,10 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     # Check that cached children lists are not refetched.
     result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
-    self.assertEqual(
-        result,
-        {"aff4:/a": ["aff4:/a/b"],
-         "aff4:/b": ["aff4:/b/bar", "aff4:/b/c"]})
+    self.assertEqual(result, {
+        "aff4:/a": ["aff4:/a/b"],
+        "aff4:/b": ["aff4:/b/bar", "aff4:/b/c"]
+    })
 
   def testRecursiveMultiListChildrenResultsAreCached(self):
     result = self.pool.RecursiveMultiListChildren(["aff4:/a", "aff4:/b"])
@@ -657,18 +664,23 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         self.client_id, aff4_grr.VFSFile, mode="w", token=self.token)
     vfsfile.Flush()
 
-    ver_list = list(
-        aff4.FACTORY.OpenDiscreteVersions(
-            self.client_id, token=self.token))
-    self.assertEqual(len(ver_list), 3)
-    v1, v2, v3 = ver_list
+    for diffs_only in [False, True]:
+      ver_list = list(
+          aff4.FACTORY.OpenDiscreteVersions(
+              self.client_id, diffs_only=diffs_only, token=self.token))
+      self.assertEqual(len(ver_list), 3)
+      v1, v2, v3 = ver_list
 
-    self.assertTrue(isinstance(v1, aff4_grr.VFSFile))
-    self.assertTrue(isinstance(v3, aff4_grr.VFSGRRClient))
-    self.assertTrue(
-        int(v1.Get(v1.Schema.TYPE).age) > int(v2.Get(v2.Schema.TYPE).age))
-    self.assertEqual(v2.Get(v2.Schema.TYPE), "VFSGRRClient")
-    self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
+      self.assertTrue(isinstance(v1, aff4_grr.VFSGRRClient))
+      self.assertTrue(isinstance(v2, aff4_grr.VFSGRRClient))
+      self.assertTrue(isinstance(v3, aff4_grr.VFSFile))
+      self.assertTrue(
+          int(v1.Get(v1.Schema.TYPE).age) < int(v2.Get(v2.Schema.TYPE).age))
+      self.assertTrue(
+          int(v2.Get(v1.Schema.TYPE).age) < int(v3.Get(v2.Schema.TYPE).age))
+      self.assertEqual(str(v1.Get(v1.Schema.HOSTNAME)), "client1")
+      self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
+      self.assertFalse(v3.Schema.HOSTNAME)
 
   def _CheckAFF4AttributeDefaults(self, client):
     self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
@@ -1295,8 +1307,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     root = aff4.FACTORY.Open(root_urn, token=self.token)
     all_children = list(
-        aff4.FACTORY.MultiOpen(
-            root.ListChildren(), token=self.token))
+        aff4.FACTORY.MultiOpen(root.ListChildren(), token=self.token))
     self.assertListEqual(
         sorted([x.urn for x in all_children]),
         [root_urn.Add("some1"), root_urn.Add("some2")])
@@ -1316,7 +1327,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     all_children = sorted(list(root.ListChildren()))
 
     self.assertListEqual(
-        sorted(all_children), [root_urn.Add("some1"), root_urn.Add("some2")])
+        sorted(all_children), [root_urn.Add("some1"),
+                               root_urn.Add("some2")])
 
   def testMultiListChildren(self):
     client1_urn = rdfvalue.RDFURN("C.%016X" % 0)
@@ -1351,7 +1363,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     children = aff4.FACTORY.ListChildren(client_urn, token=self.token)
     self.assertListEqual(
-        sorted(children), [client_urn.Add("some1"), client_urn.Add("some2")])
+        sorted(children), [client_urn.Add("some1"),
+                           client_urn.Add("some2")])
 
   def testIndexNotUpdatedWhenWrittenWithinIntermediateCacheAge(self):
     with utils.Stubber(time, "time", lambda: 100):
@@ -1892,11 +1905,12 @@ class ForemanTests(test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule")
 
       # Matches Windows boxes
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-          rdf_foreman.ForemanClientRule(
-              rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-              os=rdf_foreman.ForemanOsClientRule(os_windows=True))
-      ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
+          rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+                  os=rdf_foreman.ForemanOsClientRule(os_windows=True))
+          ])
 
       # Will run Test Flow
       rule.actions.Append(
@@ -1970,15 +1984,16 @@ class ForemanTests(test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(old)")
 
       # Matches the old client
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-          rdf_foreman.ForemanClientRule(
-              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-              integer=rdf_foreman.ForemanIntegerClientRule(
-                  attribute_name=fd.Schema.INSTALL_DATE.name,
-                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                  LESS_THAN,
-                  value=int(1336480583077736 - 3600 * 1e6)))
-      ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
+          rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+                  integer=rdf_foreman.ForemanIntegerClientRule(
+                      attribute_name=fd.Schema.INSTALL_DATE.name,
+                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                      LESS_THAN,
+                      value=int(1336480583077736 - 3600 * 1e6)))
+          ])
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
@@ -1994,15 +2009,16 @@ class ForemanTests(test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(new)")
 
       # Matches the newer clients
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-          rdf_foreman.ForemanClientRule(
-              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-              integer=rdf_foreman.ForemanIntegerClientRule(
-                  attribute_name=fd.Schema.INSTALL_DATE.name,
-                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                  GREATER_THAN,
-                  value=int(1336480583077736 - 3600 * 1e6)))
-      ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
+          rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+                  integer=rdf_foreman.ForemanIntegerClientRule(
+                      attribute_name=fd.Schema.INSTALL_DATE.name,
+                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                      GREATER_THAN,
+                      value=int(1336480583077736 - 3600 * 1e6)))
+          ])
 
       new_flow = "Test flow for newer clients"
 
@@ -2017,14 +2033,16 @@ class ForemanTests(test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(eq)")
 
       # Note that this also tests the handling of nonexistent attributes.
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-          rdf_foreman.ForemanClientRule(
-              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-              integer=rdf_foreman.ForemanIntegerClientRule(
-                  attribute_name=fd.Schema.LAST_BOOT_TIME.name,
-                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
-                  value=1336300000000000))
-      ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
+          rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+                  integer=rdf_foreman.ForemanIntegerClientRule(
+                      attribute_name=fd.Schema.LAST_BOOT_TIME.name,
+                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                      EQUAL,
+                      value=1336300000000000))
+          ])
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
 
@@ -2093,13 +2111,14 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule_set = foreman.Schema.RULES()
       for rule in rules:
         # Add some regex that does not match the client.
-        rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-                regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name=fd.Schema.SYSTEM.name,
-                    attribute_regex="XXX"))
-        ])
+        rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
+            rules=[
+                rdf_foreman.ForemanClientRule(
+                    rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                    regex=rdf_foreman.ForemanRegexClientRule(
+                        attribute_name=fd.Schema.SYSTEM.name,
+                        attribute_regex="XXX"))
+            ])
         rule_set.Append(rule)
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()

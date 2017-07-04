@@ -98,6 +98,16 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
     return self.delegate.GetClient(args, token=token)
 
+  def GetClientVersions(self, args, token=None):
+    self.CheckClientLabels(args.client_id, token=token)
+
+    return self.delegate.GetClientVersions(args, token=token)
+
+  def GetClientVersionTimes(self, args, token=None):
+    self.CheckClientLabels(args.client_id, token=token)
+
+    return self.delegate.GetClientVersionTimes(args, token=token)
+
   # Virtual file system methods.
   # ============================
   #

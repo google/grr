@@ -808,7 +808,7 @@ class GRRClientWorker(object):
       self._send_stats_on_check = True
 
   def QueueMessages(self, messages):
-    """Queue a message from the server for processing.
+    """Queue messages from the server for processing.
 
     We maintain all the incoming messages in a queue. These messages
     are consumed until the outgoing queue fills to the allowable
@@ -832,8 +832,8 @@ class GRRClientWorker(object):
 
     # As long as our output queue has some room we can process some
     # input messages:
-    while self._in_queue and (
-        self._out_queue_size < config_lib.CONFIG["Client.max_out_queue"]):
+    while self._in_queue and (self._out_queue_size <
+                              config_lib.CONFIG["Client.max_out_queue"]):
       message = self._in_queue.pop(0)
 
       try:
@@ -1021,19 +1021,23 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
   waiting on network latency.
   """
 
-  def __init__(self, start_worker_thread=True, client=None):
-    super(GRRThreadedWorker, self).__init__(client=client)
+  def __init__(self, start_worker_thread=True, client=None, out_queue=None):
+    GRRClientWorker.__init__(self, client=client)
+    threading.Thread.__init__(self)
 
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
     self._in_queue = utils.HeartbeatQueue(
         callback=self.nanny_controller.Heartbeat, maxsize=1024)
 
-    # The size of the output queue controls the worker thread. Once this queue
-    # is too large, the worker thread will block until the queue is drained.
-    self._out_queue = SizeQueue(
-        maxsize=config_lib.CONFIG["Client.max_out_queue"],
-        nanny=self.nanny_controller)
+    if out_queue is not None:
+      self._out_queue = out_queue
+    else:
+      # The size of the output queue controls the worker thread. Once this queue
+      # is too large, the worker thread will block until the queue is drained.
+      self._out_queue = SizeQueue(
+          maxsize=config_lib.CONFIG["Client.max_out_queue"],
+          nanny=self.nanny_controller)
 
     self.daemon = True
 
@@ -1090,7 +1094,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     self._out_queue.Put(message, priority=priority, block=blocking)
 
   def QueueMessages(self, messages):
-    """Push the message to the input queue."""
+    """Push messages to the input queue."""
     # Push all the messages to our input queue
     for message in messages:
       self._in_queue.put(message, block=True)
@@ -1658,8 +1662,8 @@ class ClientCommunicator(communicator.Communicator):
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
     kwargs["api_version"] = config_lib.CONFIG["Network.api"]
-    return super(ClientCommunicator, self).EncodeMessages(message_list, result,
-                                                          **kwargs)
+    return super(ClientCommunicator, self).EncodeMessages(
+        message_list, result, **kwargs)
 
   def _GetRemotePublicKey(self, common_name):
 

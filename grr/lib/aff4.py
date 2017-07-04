@@ -268,8 +268,8 @@ def _ValidateAFF4Type(aff4_type):
   if not isinstance(aff4_type, type):
     raise TypeError("aff4_type=%s must be a type" % aff4_type)
   if not issubclass(aff4_type, AFF4Object):
-    raise TypeError("aff4_type=%s must be a subclass of AFF4Object." %
-                    aff4_type)
+    raise TypeError(
+        "aff4_type=%s must be a subclass of AFF4Object." % aff4_type)
   return aff4_type
 
 
@@ -430,8 +430,9 @@ class Factory(object):
       pool.DeleteAttributes(dirname,
                             ["index:dir/%s" % utils.SmartStr(basename)])
       to_set = {
-          AFF4Object.SchemaCls.LAST:
-              [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
+          AFF4Object.SchemaCls.LAST: [
+              rdfvalue.RDFDatetime.Now().SerializeToDataStore()
+          ]
       }
       pool.MultiSet(dirname, to_set, replace=True)
       if mutation_pool is None:
@@ -810,6 +811,7 @@ class Factory(object):
                            token=None,
                            local_cache=None,
                            age=ALL_TIMES,
+                           diffs_only=False,
                            follow_symlinks=True):
     """Returns all the versions of the object as AFF4 objects.
 
@@ -822,6 +824,8 @@ class Factory(object):
 
       age: The age policy used to build this object. Should be one of
          ALL_TIMES or a time range
+      diffs_only: If True, will return only diffs between the versions (instead
+         of full objects).
       follow_symlinks: If object opened is a symlink, follow it.
 
     Yields:
@@ -841,10 +845,7 @@ class Factory(object):
     """
     if age == NEWEST_TIME or len(age) == 1:
       raise IOError("Bad age policy NEWEST_TIME for OpenDiscreteVersions.")
-    if len(age) == 2:
-      oldest_age = age[1]
-    else:
-      oldest_age = 0
+
     aff4object = FACTORY.Open(
         urn,
         mode=mode,
@@ -856,29 +857,54 @@ class Factory(object):
     # TYPE is always written last so we trust it to bound the version.
     # Iterate from newest to oldest.
     type_iter = aff4object.GetValuesForAttribute(aff4object.Schema.TYPE)
-    version_list = [(t.age, str(t)) for t in type_iter]
-    version_list.append((oldest_age, None))
+    versions = sorted(t.age for t in type_iter)
 
-    for i in range(0, len(version_list) - 1):
-      age_range = (version_list[i + 1][0], version_list[i][0])
+    additional_aff4object = None
+    if diffs_only:
+      versions.insert(0, rdfvalue.RDFDatetime(0))
+      pairs = zip(versions, versions[1:])
+    else:
+      # If we want full versions of the object, age != ALL_TIMES and we're
+      # dealing with a time range with a start != 0, then we need to fetch
+      # the version of the object corresponding to the start of the time
+      # range and use its attributes when doing filtering below.
+      if len(age) == 2 and age[0]:
+        additional_aff4object = FACTORY.Open(
+            urn, mode=mode, token=token, local_cache=local_cache, age=age[0])
+      pairs = [(rdfvalue.RDFDatetime(0), v) for v in versions]
+
+    for start, end in pairs:
       # Create a subset of attributes for use in the new object that represents
       # this version.
       clone_attrs = {}
-      for k, values in aff4object.synced_attributes.iteritems():
+
+      if additional_aff4object:
+        # Attributes are supposed to be in the decreasing timestamp
+        # order (see aff4.FACTORY.GetAttributes as a reference). Therefore
+        # appending additional_aff4object to the end (since it corresponds
+        # to the earliest version of the object).
+        attributes = itertools.chain(
+            aff4object.synced_attributes.iteritems(),
+            additional_aff4object.synced_attributes.iteritems())
+      else:
+        attributes = aff4object.synced_attributes.iteritems()
+
+      for k, values in attributes:
         reduced_v = []
         for v in values:
-          if v.age > age_range[0] and v.age <= age_range[1]:
+          if v.age > start and v.age <= end:
             reduced_v.append(v)
         clone_attrs.setdefault(k, []).extend(reduced_v)
 
-      obj_cls = AFF4Object.classes[version_list[i][1]]
+      cur_type = clone_attrs[aff4object.Schema.TYPE][0].ToRDFValue()
+      obj_cls = AFF4Object.classes[str(cur_type)]
       new_obj = obj_cls(
           urn,
           mode=mode,
           parent=aff4object.parent,
           clone=clone_attrs,
           token=token,
-          age=age_range,
+          age=(start, end),
           local_cache=local_cache,
           follow_symlinks=follow_symlinks)
       new_obj.Initialize()  # This is required to set local attributes.
@@ -1429,8 +1455,8 @@ class AFF4Attribute(rdfvalue.RDFString):
     try:
       Attribute.GetAttributeByName(self._value)
     except (AttributeError, KeyError):
-      raise type_info.TypeValueError("Value %s is not an AFF4 attribute name" %
-                                     self._value)
+      raise type_info.TypeValueError(
+          "Value %s is not an AFF4 attribute name" % self._value)
 
 
 class ClassProperty(property):
@@ -1775,8 +1801,8 @@ class AFF4Object(object):
                  expired.
     """
     if not self.locked:
-      raise LockError("Object must be locked to update the lease: %s." %
-                      self.urn)
+      raise LockError(
+          "Object must be locked to update the lease: %s." % self.urn)
 
     if self.CheckLease() == 0:
       raise LockError("Can not update lease that has already expired.")
@@ -1867,9 +1893,10 @@ class AFF4Object(object):
       # object version. The type of an object is versioned and represents a
       # version point in the life of the object.
       if self._new_version:
-        to_set[self.Schema.TYPE] = [(
-            utils.SmartUnicode(self.__class__.__name__),
-            rdfvalue.RDFDatetime.Now())]
+        to_set[self.Schema.TYPE] = [
+            (utils.SmartUnicode(self.__class__.__name__),
+             rdfvalue.RDFDatetime.Now())
+        ]
 
       # We only update indexes if the schema does not forbid it and we are not
       # sure that the object already exists.
@@ -2058,8 +2085,8 @@ class AFF4Object(object):
     # specified. It is ok to read new attributes though.
     if "r" not in self.mode and (attribute not in self.new_attributes and
                                  attribute not in self.synced_attributes):
-      raise IOError("Fetching %s from object not opened for reading." %
-                    attribute)
+      raise IOError(
+          "Fetching %s from object not opened for reading." % attribute)
 
     for result in self.GetValuesForAttribute(attribute, only_one=True):
       try:
@@ -2271,8 +2298,8 @@ class AttributeExpression(lexer.Expression):
     operators = attribute_type.operators
 
     # Do we have such an operator?
-    self.number_of_args, self.operator_method = operators.get(operator,
-                                                              (0, None))
+    self.number_of_args, self.operator_method = operators.get(
+        operator, (0, None))
 
     if self.operator_method is None:
       raise lexer.ParseError("Operator %s not defined on attribute '%s'" %

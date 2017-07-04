@@ -244,6 +244,15 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Clients")
+  @ArgsType(api_client.ApiGetClientVersionsArgs)
+  @ResultType(api_client.ApiGetClientVersionsResult)
+  @Http("GET", "/api/clients/<client_id>/versions")
+  def GetClientVersions(self, args, token=None):
+    """Get different client versions in a given time range."""
+
+    raise NotImplementedError()
+
+  @Category("Clients")
   @ArgsType(api_client.ApiGetClientVersionTimesArgs)
   @ResultType(api_client.ApiGetClientVersionTimesResult)
   @Http("GET", "/api/clients/<client_id>/version-times")

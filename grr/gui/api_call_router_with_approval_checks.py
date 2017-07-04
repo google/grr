@@ -58,8 +58,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     user_managers.CheckUserForLabels(token.username, ["admin"], token=token)
 
   def __init__(self, params=None, legacy_manager=None, delegate=None):
-    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess,
-          self).__init__(params=params)
+    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__(
+        params=params)
 
     if not legacy_manager:
       legacy_manager = self._GetFullAccessControlManager()
@@ -99,6 +99,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody is allowed to get information about a particular client.
 
     return self.delegate.GetClient(args, token=token)
+
+  def GetClientVersions(self, args, token=None):
+    # Everybody is allowed to get historical information about a client.
+
+    return self.delegate.GetClientVersions(args, token=token)
 
   def GetClientVersionTimes(self, args, token=None):
     # Everybody is allowed to get the versions of a particular client.

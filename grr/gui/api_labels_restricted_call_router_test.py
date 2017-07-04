@@ -96,6 +96,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     # Clients methods
     self.CheckMethod(c.SearchClients)
     self.CheckMethod(c.GetClient, client_id=self.client_id)
+    self.CheckMethod(c.GetClientVersions, client_id=self.client_id)
     self.CheckMethod(c.GetClientVersionTimes, client_id=self.client_id)
     self.CheckMethod(c.InterrogateClient, client_id=self.client_id)
     self.CheckMethod(c.GetInterrogateOperationState)
@@ -258,6 +259,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
@@ -272,6 +275,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
@@ -300,6 +305,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval",
 
@@ -320,6 +327,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval",
 
@@ -356,6 +365,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval",
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
@@ -372,6 +383,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
         "SearchClients",
         "ListClientApprovals",
         "GetClient",
+        "GetClientVersions",
+        "GetClientVersionTimes",
         "CreateClientApproval",
         "GetClientApproval",
 
