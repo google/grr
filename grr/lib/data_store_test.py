@@ -1810,7 +1810,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "DeleteAttributes", "MultiDeleteAttributes", "DeleteSubject",
         "DeleteSubjects", "MultiResolvePrefix", "MultiSet", "Resolve",
         "ResolveMulti", "ResolvePrefix", "ScanAttribute", "ScanAttributes",
-        "Set", "DBSubjectLock"
+        "Set", "DBSubjectLock", "CreateNotifications", "DeleteNotifications",
+        "GetNotifications"
     ]
 
     implementation = data_store.DB
@@ -2636,8 +2637,9 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     time_used = time.time() - start_time
 
-    self.AddResult("Generate Messages (%d clients, %d files)" % (
-        self.nr_clients, self.nr_dirs * self.files_per_dir), time_used, 1)
+    self.AddResult("Generate Messages (%d clients, %d files)" %
+                   (self.nr_clients,
+                    self.nr_dirs * self.files_per_dir), time_used, 1)
 
     my_worker = worker.GRRWorker(queues=[self.queue], token=self.token)
 
@@ -2780,8 +2782,9 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Set, (
-          subject_template % i, "task:threadedflow", value, None, self.token))
+      self.tp.AddTask(data_store.DB.Set,
+                      (subject_template % i, "task:threadedflow", value, None,
+                       self.token))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2851,8 +2854,9 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Resolve, (
-          "aff4:/somerowthreaded", predicate_template % i, self.token))
+      self.tp.AddTask(data_store.DB.Resolve,
+                      ("aff4:/somerowthreaded", predicate_template % i,
+                       self.token))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2873,8 +2877,9 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.small_n):
-      self.tp.AddTask(self.ResolvePrefixAndCheck, (
-          "aff4:/threadedlargerow%d" % i, "task:largeflowthreaded", 1))
+      self.tp.AddTask(self.ResolvePrefixAndCheck,
+                      ("aff4:/threadedlargerow%d" % i, "task:largeflowthreaded",
+                       1))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()

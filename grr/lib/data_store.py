@@ -50,6 +50,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
@@ -116,6 +117,8 @@ class MutationPool(object):
     self.set_requests = []
     self.delete_attributes_requests = []
 
+    self.new_notifications = []
+
   def DeleteSubjects(self, subjects):
     self.delete_subject_requests.extend(subjects)
 
@@ -167,6 +170,10 @@ class MutationPool(object):
         self.set_requests):
       DB.Flush()
 
+    for queue, notification_map in self.new_notifications:
+      DB.CreateNotifications(queue, notification_map, token=self.token)
+    self.new_notifications = []
+
     self.delete_subject_requests = []
     self.set_requests = []
     self.delete_attributes_requests = []
@@ -181,6 +188,10 @@ class MutationPool(object):
     return (len(self.delete_subject_requests) + len(self.set_requests) +
             len(self.delete_attributes_requests))
 
+  # Notification handling
+  def CreateNotifications(self, queue, notification_map):
+    self.new_notifications.append((queue, notification_map))
+
 
 class DataStore(object):
   """Abstract database access."""
@@ -192,6 +203,9 @@ class DataStore(object):
   NEWEST_TIMESTAMP = "NEWEST_TIMESTAMP"
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
   LEASE_ATTRIBUTE = "aff4:lease"
+
+  NOTIFY_PREDICATE_PREFIX = "notify:"
+  NOTIFY_PREDICATE_TEMPLATE = NOTIFY_PREDICATE_PREFIX + "%s"
 
   mutation_pool_cls = MutationPool
 
@@ -589,8 +603,9 @@ class DataStore(object):
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
       if not after_urn.startswith(subject_prefix):
-        raise RuntimeError("after_urn \"%s\" does not begin with prefix \"%s\""
-                           % (after_urn, subject_prefix))
+        raise RuntimeError(
+            "after_urn \"%s\" does not begin with prefix \"%s\"" %
+            (after_urn, subject_prefix))
     return after_urn
 
   @abc.abstractmethod
@@ -672,6 +687,60 @@ class DataStore(object):
 
   def GetMutationPool(self, token=None):
     return self.mutation_pool_cls(token=token)
+
+  def CreateNotifications(self, queue_shard, notification_map, token=None):
+    values = {}
+    for session_id, notification_list in notification_map.iteritems():
+      for notification, timestamp in notification_list:
+        values[self.NOTIFY_PREDICATE_TEMPLATE % session_id] = [
+            (notification.SerializeToString(), timestamp)
+        ]
+    self.MultiSet(queue_shard, values, replace=False, token=token)
+
+  def DeleteNotifications(self,
+                          queue_shards,
+                          session_ids,
+                          start,
+                          end,
+                          token=None):
+    attributes = [
+        self.NOTIFY_PREDICATE_TEMPLATE % session_id
+        for session_id in session_ids
+    ]
+    self.MultiDeleteAttributes(
+        queue_shards, attributes, start=start, end=end, sync=True, token=token)
+
+  def GetNotifications(self, queue_shard, end, limit=10000, token=None):
+    for predicate, serialized_notification, ts in self.ResolvePrefix(
+        queue_shard,
+        self.NOTIFY_PREDICATE_PREFIX,
+        timestamp=(0, end),
+        token=token,
+        limit=limit):
+      try:
+        # Parse the notification.
+        notification = rdf_flows.GrrNotification.FromSerializedString(
+            serialized_notification)
+      except Exception:  # pylint: disable=broad-except
+        logging.exception("Can't unserialize notification, deleting it: "
+                          "predicate=%s, ts=%d", predicate, ts)
+        self.DeleteAttributes(
+            queue_shard,
+            [predicate],
+            token=token,
+            # Make the time range narrow, but be sure to include the needed
+            # notification.
+            start=ts,
+            end=ts,
+            sync=True)
+        continue
+
+      # Strip the prefix from the predicate to get the session_id.
+      session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX):]
+      notification.session_id = session_id
+      notification.timestamp = ts
+
+      yield notification
 
 
 class DBSubjectLock(object):

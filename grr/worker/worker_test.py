@@ -227,9 +227,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(GrrWorkerTest, self).setUp()
     WorkerStuckableTestFlow.Reset()
-    self.patch_get_notifications = mock.patch.object(queue_manager,
-                                                     "QueueManager",
-                                                     ShardedQueueManager)
+    self.patch_get_notifications = mock.patch.object(
+        queue_manager, "QueueManager", ShardedQueueManager)
     self.patch_get_notifications.start()
 
     # Clear the results global
@@ -252,14 +251,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     else:
       request_id, response_id = request_id or 1, 1
     with queue_manager.QueueManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(
-          session_id,
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=session_id,
-              payload=data,
-              request_id=request_id,
-              response_id=response_id))
+      flow_manager.QueueResponse(session_id,
+                                 rdf_flows.GrrMessage(
+                                     source=client_id,
+                                     session_id=session_id,
+                                     payload=data,
+                                     request_id=request_id,
+                                     response_id=response_id))
       if not well_known:
         # For normal flows we have to send a status as well.
         flow_manager.QueueResponse(
@@ -325,12 +323,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
-    self.assertEqual(
-        (None, 0),
-        data_store.DB.Resolve(
-            session_id_1.Add("state"),
-            manager.FLOW_REQUEST_TEMPLATE % 1,
-            token=self.token))
+    self.assertEqual((None, 0),
+                     data_store.DB.Resolve(
+                         session_id_1.Add("state"),
+                         manager.FLOW_REQUEST_TEMPLATE % 1,
+                         token=self.token))
 
     # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
@@ -379,7 +376,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       manager = queue_manager.QueueManager(token=self.token)
       notification = rdf_flows.GrrNotification(
           session_id=session_id, last_status=1)
-      manager.NotifyQueue(notification)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        manager.NotifyQueue(notification, mutation_pool=pool)
 
       notifications = manager.GetNotifications(queues.FLOWS)
       # Check the notification is there.
@@ -472,8 +470,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -511,8 +509,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -555,10 +553,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
-    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.stuck_flows_timeout"])
-    lease_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.flow_lease_time"])
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+    lease_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.flow_lease_time"])
 
     WorkerStuckableTestFlow.Reset(heartbeat=True)
     try:
@@ -612,8 +610,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-        "Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(
+        config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
     with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
       session_id = flow.GRRFlow.StartFlow(
@@ -674,8 +672,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdf_client.ClientURN("C.1100110011001100")
     self.SendResponse(
-        rdfvalue.SessionID(
-            queue=queues.STATS, flow_name="Stats"),
+        rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
         data=rdf_client.ClientStats(RSS_size=1234),
         client_id=client_id,
         well_known=True)
@@ -703,7 +700,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
     notification = rdf_flows.GrrNotification(session_id=session_id)
-    manager.NotifyQueue(notification)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.NotifyQueue(notification, mutation_pool=pool)
 
     notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
         notification.priority, [])
@@ -739,10 +737,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         token=self.token)
     # Overwrite the type of the object such that opening it will now fail.
-    data_store.DB.Set(session_id,
-                      "aff4:type",
-                      "DeprecatedClass",
-                      token=self.token)
+    data_store.DB.Set(
+        session_id, "aff4:type", "DeprecatedClass", token=self.token)
 
     # Starting a new flow schedules notifications for the worker already but
     # this test actually checks that there are none. Thus, we have to delete
@@ -772,7 +768,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # the notification.
     notification = rdf_flows.GrrNotification(
         session_id=session_id, last_status=1)
-    manager.NotifyQueue(notification)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.NotifyQueue(notification, mutation_pool=pool)
 
     notifications = manager.GetNotifications(queues.FLOWS)
     # Check the notification is there.
@@ -826,14 +823,14 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     flow_manager = queue_manager.QueueManager(token=self.token)
     flow_manager.FreezeTimestamp()
 
-    flow_manager.QueueResponse(
-        session_id,
-        rdf_flows.GrrMessage(
-            source=self.client_id,
-            session_id=session_id,
-            payload=rdf_protodict.DataBlob(string="Response 2"),
-            request_id=request_id,
-            response_id=response_id))
+    flow_manager.QueueResponse(session_id,
+                               rdf_flows.GrrMessage(
+                                   source=self.client_id,
+                                   session_id=session_id,
+                                   payload=rdf_protodict.DataBlob(
+                                       string="Response 2"),
+                                   request_id=request_id,
+                                   response_id=response_id))
 
     status = rdf_flows.GrrMessage(
         source=self.client_id,

@@ -101,8 +101,6 @@ class QueueManager(object):
 
   TASK_PREDICATE_PREFIX = "task:"
   TASK_PREDICATE_TEMPLATE = TASK_PREDICATE_PREFIX + "%s"
-  NOTIFY_PREDICATE_PREFIX = "notify:"
-  NOTIFY_PREDICATE_TEMPLATE = NOTIFY_PREDICATE_PREFIX + "%s"
 
   STUCK_PRIORITY = "Flow stuck"
 
@@ -627,7 +625,7 @@ class QueueManager(object):
     """
     notifications_by_session_id = {}
     for queue_shard in self.GetAllNotificationShards(queue):
-      notifications_by_session_id = self._GetUnsortedNotifications(
+      self._GetUnsortedNotifications(
           queue_shard, notifications_by_session_id=notifications_by_session_id)
 
     notifications = notifications_by_session_id.values()
@@ -651,35 +649,8 @@ class QueueManager(object):
     if notifications_by_session_id is None:
       notifications_by_session_id = {}
     end_time = self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
-    for predicate, serialized_notification, ts in self.data_store.ResolvePrefix(
-        queue_shard,
-        self.NOTIFY_PREDICATE_PREFIX,
-        timestamp=(0, end_time),
-        token=self.token,
-        limit=10000):
-
-      # Parse the notification.
-      try:
-        notification = rdf_flows.GrrNotification.FromSerializedString(
-            serialized_notification)
-      except Exception:  # pylint: disable=broad-except
-        logging.exception("Can't unserialize notification, deleting it: "
-                          "predicate=%s, ts=%d", predicate, ts)
-        self.data_store.DeleteAttributes(
-            queue_shard,
-            [predicate],
-            token=self.token,
-            # Make the time range narrow, but be sure to include the needed
-            # notification.
-            start=ts,
-            end=ts,
-            sync=True)
-        continue
-
-      # Strip the prefix from the predicate to get the session_id.
-      session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX):]
-      notification.session_id = session_id
-      notification.timestamp = ts
+    for notification in self.data_store.GetNotifications(
+        queue_shard, end_time, token=self.token):
 
       existing = notifications_by_session_id.get(notification.session_id)
       if existing:
@@ -705,19 +676,13 @@ class QueueManager(object):
     self._MultiNotifyQueue(notification.session_id.Queue(), [notification],
                            **kwargs)
 
-  def MultiNotifyQueue(self,
-                       notifications,
-                       timestamp=None,
-                       sync=True,
-                       mutation_pool=None):
+  def MultiNotifyQueue(self, notifications, timestamp=None, mutation_pool=None):
     """This is the same as NotifyQueue but for several session_ids at once.
 
     Args:
       notifications: A list of notifications.
       timestamp: An optional timestamp for this notification.
-      sync: If True, sync to the data_store immediately.
-      mutation_pool: An optional MutationPool object to schedule Notifications
-                     on. If not given, self.data_store is used directly.
+      mutation_pool: A MutationPool object to schedule Notifications on.
 
     Raises:
       RuntimeError: An invalid session_id was passed.
@@ -729,17 +694,15 @@ class QueueManager(object):
           queue,
           notifications,
           timestamp=timestamp,
-          sync=sync,
           mutation_pool=mutation_pool)
 
   def _MultiNotifyQueue(self,
                         queue,
                         notifications,
                         timestamp=None,
-                        sync=True,
                         mutation_pool=None):
     """Does the actual queuing."""
-    serialized_notifications = {}
+    notification_map = {}
     now = rdfvalue.RDFDatetime.Now()
     expiry_time = config_lib.CONFIG["Worker.notification_expiry_time"]
     for notification in notifications:
@@ -756,22 +719,11 @@ class QueueManager(object):
       # Don't serialize session ids to save some bytes.
       notification.session_id = None
       notification.timestamp = None
-      serialized_notifications[session_id] = notification.SerializeToString()
 
-    values = {}
-    for session_id, data in serialized_notifications.iteritems():
-      values[self.NOTIFY_PREDICATE_TEMPLATE % session_id] = [(data, timestamp)]
+      notification_map[session_id] = [(notification, timestamp)]
 
-    if mutation_pool:
-      mutation_pool.MultiSet(
-          self.GetNotificationShard(queue), values, replace=False)
-    else:
-      self.data_store.MultiSet(
-          self.GetNotificationShard(queue),
-          values,
-          sync=sync,
-          replace=False,
-          token=self.token)
+    mutation_pool.CreateNotifications(
+        self.GetNotificationShard(queue), notification_map)
 
   def DeleteNotification(self, session_id, start=None, end=None):
     self.DeleteNotifications([session_id], start=start, end=end)
@@ -797,13 +749,8 @@ class QueueManager(object):
     for queue, ids in utils.GroupBy(
         session_ids, lambda session_id: session_id.Queue()).iteritems():
       queue_shards = self.GetAllNotificationShards(queue)
-      self.data_store.MultiDeleteAttributes(
-          queue_shards,
-          [self.NOTIFY_PREDICATE_TEMPLATE % session_id for session_id in ids],
-          token=self.token,
-          start=start,
-          end=end,
-          sync=True)
+      self.data_store.DeleteNotifications(
+          queue_shards, ids, start, end, token=self.token)
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.
@@ -885,7 +832,7 @@ class QueueManager(object):
     # Only grab attributes with timestamps in the past.
     delete_attrs = set()
     serialized_tasks_dict = {}
-    for predicate, task, timestamp in data_store.DB.ResolvePrefix(
+    for predicate, task, timestamp in self.data_store.ResolvePrefix(
         subject,
         self.TASK_PREDICATE_PREFIX,
         timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now()),
@@ -912,7 +859,7 @@ class QueueManager(object):
     if delete_attrs or serialized_tasks_dict:
       # Update the timestamp on claimed tasks to be in the future and decrement
       # their TTLs, delete tasks with expired ttls.
-      data_store.DB.MultiSet(
+      self.data_store.MultiSet(
           subject,
           serialized_tasks_dict,
           replace=True,
