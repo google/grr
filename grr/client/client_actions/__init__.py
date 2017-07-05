@@ -21,3 +21,6 @@ from grr.client.client_actions import plist
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles
+
+# Former GRR component, now a built-in part of the client.
+from grr.client.components.rekall_support import grr_rekall

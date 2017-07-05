@@ -13,7 +13,6 @@ from grr.client import client_plugins
 from grr.client import comms
 from grr.client import installer
 from grr.config import contexts
-from grr.client import stdlib
 from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags

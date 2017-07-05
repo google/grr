@@ -9,12 +9,9 @@ from grr.client.client_actions import file_finder
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import worker_mocks
-from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -89,42 +86,26 @@ class MemoryClientMock(ActionMock):
   """A mock of client state including memory actions."""
 
   def __init__(self, *args, **kwargs):
-    super(MemoryClientMock, self).__init__(components.LoadComponent,
-                                           standard.HashBuffer,
-                                           standard.HashFile, standard.StatFile,
-                                           standard.TransferBuffer, *args,
-                                           **kwargs)
-
-    # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create(
-        "aff4:/config/components/grr-rekall_0.1",
-        collects.ComponentObject,
-        mode="w",
-        token=access_control.ACLToken(
-            username="test", reason="reason"))
-    fd.Set(fd.Schema.COMPONENT(name="grr-rekall", version="0.1"))
-    fd.Close()
+    super(MemoryClientMock, self).__init__(
+        components.LoadComponent, standard.HashBuffer, standard.HashFile,
+        standard.StatFile, standard.TransferBuffer, *args, **kwargs)
 
 
 class GetFileClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(GetFileClientMock, self).__init__(standard.HashBuffer,
-                                            standard.StatFile,
-                                            standard.TransferBuffer, *args,
-                                            **kwargs)
+    super(GetFileClientMock,
+          self).__init__(standard.HashBuffer, standard.StatFile,
+                         standard.TransferBuffer, *args, **kwargs)
 
 
 class FileFinderClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderClientMock, self).__init__(file_fingerprint.FingerprintFile,
-                                               searching.Find, searching.Grep,
-                                               standard.HashBuffer,
-                                               standard.HashFile,
-                                               standard.StatFile,
-                                               standard.TransferBuffer, *args,
-                                               **kwargs)
+    super(FileFinderClientMock, self).__init__(
+        file_fingerprint.FingerprintFile, searching.Find, searching.Grep,
+        standard.HashBuffer, standard.HashFile, standard.StatFile,
+        standard.TransferBuffer, *args, **kwargs)
 
 
 class ClientFileFinderClientMock(ActionMock):
@@ -137,18 +118,17 @@ class ClientFileFinderClientMock(ActionMock):
 class MultiGetFileClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(MultiGetFileClientMock, self).__init__(
-        standard.HashFile, standard.StatFile, standard.HashBuffer,
-        standard.TransferBuffer, file_fingerprint.FingerprintFile, *args,
-        **kwargs)
+    super(MultiGetFileClientMock,
+          self).__init__(standard.HashFile, standard.StatFile,
+                         standard.HashBuffer, standard.TransferBuffer,
+                         file_fingerprint.FingerprintFile, *args, **kwargs)
 
 
 class ListDirectoryClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(ListDirectoryClientMock, self).__init__(standard.ListDirectory,
-                                                  standard.StatFile, *args,
-                                                  **kwargs)
+    super(ListDirectoryClientMock, self).__init__(
+        standard.ListDirectory, standard.StatFile, *args, **kwargs)
 
 
 class GlobClientMock(ActionMock):
@@ -161,11 +141,10 @@ class GlobClientMock(ActionMock):
 class GrepClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(GrepClientMock, self).__init__(file_fingerprint.FingerprintFile,
-                                         searching.Find, searching.Grep,
-                                         standard.HashBuffer, standard.StatFile,
-                                         standard.TransferBuffer, *args,
-                                         **kwargs)
+    super(GrepClientMock,
+          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
+                         searching.Grep, standard.HashBuffer, standard.StatFile,
+                         standard.TransferBuffer, *args, **kwargs)
 
 
 class InterrogatedClient(ActionMock):
@@ -294,12 +273,13 @@ class UnixVolumeClientMock(ListDirectoryClientMock):
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50,
-          total_allocation_units=100), rdf_client.Volume(
-              unixvolume=unix_home,
-              bytes_per_sector=4096,
-              sectors_per_allocation_unit=1,
-              actual_available_allocation_units=10,
-              total_allocation_units=100)
+          total_allocation_units=100),
+      rdf_client.Volume(
+          unixvolume=unix_home,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=10,
+          total_allocation_units=100)
   ]
 
   def StatFS(self, _):
@@ -316,12 +296,13 @@ class WindowsVolumeClientMock(ListDirectoryClientMock):
           bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50,
-          total_allocation_units=100), rdf_client.Volume(
-              windowsvolume=windows_c,
-              bytes_per_sector=4096,
-              sectors_per_allocation_unit=1,
-              actual_available_allocation_units=10,
-              total_allocation_units=100)
+          total_allocation_units=100),
+      rdf_client.Volume(
+          windowsvolume=windows_c,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=10,
+          total_allocation_units=100)
   ]
 
   def WmiQuery(self, query):

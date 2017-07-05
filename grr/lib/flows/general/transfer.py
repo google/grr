@@ -97,8 +97,8 @@ class GetFile(flow.GRRFlow):
     self.state.max_chunk_number = (self.state.file_size / self.CHUNK_SIZE) + 1
 
     self.FetchWindow(
-        min(self.WINDOW_SIZE, self.state.max_chunk_number - self.state[
-            "current_chunk_number"]))
+        min(self.WINDOW_SIZE, self.state.max_chunk_number -
+            self.state["current_chunk_number"]))
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""

@@ -84,7 +84,9 @@ config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
     default=r"""
+import capstone
 import os
+import sys
 
 # By default build in one dir mode.
 client_path = r"%(%(grr.client.client|module_path)|fixpathsep)"
@@ -115,11 +117,33 @@ exe = EXE\(
     version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),
     icon=os.path.join\(r"%(PyInstaller.build_dir)", "grr.ico"\)\)
 
+LIBCAPSTONE = None
+for name in ["capstone", "libcapstone"]:
+  for ext in [".so", ".dylib", ".dll"]:
+    path = os.path.join\(capstone.__path__[0], name + ext\)
+    if os.path.exists\(path\):
+      LIBCAPSTONE = path
+
+if not LIBCAPSTONE:
+  raise RuntimeError\("Can't find libcasptone"\)
+
+RESOURCES_PREFIX = os.path.join\(sys.prefix, "resources"\)
+
 coll = COLLECT\(
     exe,
-    a.binaries,
+    # Forcing PyInstaller to see libcapstone built by rekall-capstone.
+    a.binaries + [\(os.path.basename\(LIBCAPSTONE\), LIBCAPSTONE, "BINARY"\)],
     a.zipfiles,
-    a.datas,
+    # Forcing PyInstaller to copy Pmem drivers from Rekall resources.
+    a.datas + [\(os.path.join\("resources", "MacPmem.kext.tgz"\),
+                 os.path.join\(RESOURCES_PREFIX, "MacPmem.kext.tgz"\),
+                 "DATA"\),
+               \(os.path.join\("resources", "WinPmem", "winpmem_x64.sys"\),
+                 os.path.join\(RESOURCES_PREFIX, "WinPmem", "winpmem_x64.sys"\),
+                 "DATA"\),
+               \(os.path.join\("resources", "WinPmem", "winpmem_x86.sys"\),
+                 os.path.join\(RESOURCES_PREFIX, "WinPmem", "winpmem_x86.sys"\),
+                 "DATA"\)],
     strip=False,
     upx=False,
     name="grr-client"

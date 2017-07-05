@@ -9,6 +9,7 @@ ancient versions of linux to build clients.
 """
 import ConfigParser
 import os
+import platform
 import shutil
 from setuptools import setup
 from setuptools.command.sdist import sdist
@@ -73,7 +74,7 @@ setup_args = dict(
     data_files=["version.ini"],
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "pyinstaller==3.2.1"
-    ])
+        "rekall-core==1.6.0", "pyinstaller==3.2.1"
+    ] + (["chipsec==1.2.4"] if platform.system() == "Linux" else []),)
 
 setup(**setup_args)
