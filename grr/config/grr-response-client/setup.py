@@ -9,7 +9,6 @@ ancient versions of linux to build clients.
 """
 import ConfigParser
 import os
-import platform
 import shutil
 from setuptools import setup
 from setuptools.command.sdist import sdist
@@ -72,11 +71,9 @@ setup_args = dict(
     },
     cmdclass={"sdist": Sdist},
     data_files=["version.ini"],
-    # TODO(user): Test the latest version of pyinstaller on Linux and Mac
-    # and use it for all platforms (not just Windows).
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-    ] + (["pyinstaller==3.2"]
-         if (platform.system() != "Windows") else ["pyinstaller==3.2.1"]),)
+        "pyinstaller==3.2.1"
+    ])
 
 setup(**setup_args)
