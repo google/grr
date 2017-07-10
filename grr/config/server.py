@@ -20,10 +20,9 @@ config_lib.DEFINE_integer("Source.version_revision", VERSION["revision"],
 config_lib.DEFINE_integer("Source.version_release", VERSION["release"],
                           "Release number of client binary.")
 
-config_lib.DEFINE_string("Source.version_string",
-                         "%(version_major).%(version_minor)."
-                         "%(version_revision).%(version_release)",
-                         "Version string of the client.")
+config_lib.DEFINE_string(
+    "Source.version_string", "%(version_major).%(version_minor)."
+    "%(version_revision).%(version_release)", "Version string of the client.")
 
 config_lib.DEFINE_integer("Source.version_numeric",
                           "%(version_major)%(version_minor)"
@@ -310,3 +309,4 @@ config_lib.DEFINE_string(
     default="retain",
     help="Inactive clients marked with "
     "this label will be retained forever.")
+

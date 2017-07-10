@@ -23,9 +23,10 @@ def main(unused_argv):
   config_lib.CONFIG.AddContext(contexts.WORKER_CONTEXT,
                                "Context applied when running a worker.")
 
-
-  # Initialise flows
+  # Initialise flows and config_lib
   server_startup.Init()
+
+
   token = access_control.ACLToken(username="GRRWorker").SetUID()
   worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()

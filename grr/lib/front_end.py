@@ -4,11 +4,11 @@
 import operator
 import time
 
-
 import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -16,12 +16,14 @@ from grr.lib import events
 from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import queue_manager
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import uploads
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -322,6 +324,7 @@ class FrontEndServer(object):
                     len(result), client, time.time() - start_time)
 
     return result
+
 
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.

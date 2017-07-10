@@ -639,28 +639,28 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
     # Returns None if the path can't be parsed.
     self.assertIsNone(
-        queue_manager.GetClientIdFromQueue(MockQueue("arbitrary string")))
+        queue_manager._GetClientIdFromQueue(MockQueue("arbitrary string")))
 
     # Returns None if the queue isn't a client queue.
     self.assertIsNone(
-        queue_manager.GetClientIdFromQueue(MockQueue("/H.FEDCBA98")))
+        queue_manager._GetClientIdFromQueue(MockQueue("/H.FEDCBA98")))
     self.assertIsNone(
-        queue_manager.GetClientIdFromQueue(MockQueue("/H.01234567/tasks")))
+        queue_manager._GetClientIdFromQueue(MockQueue("/H.01234567/tasks")))
 
     # Returns None if the object isn't a queue.
     self.assertIsNone(
-        queue_manager.GetClientIdFromQueue(MockQueue("/C.0123456789ABCDEF0")))
+        queue_manager._GetClientIdFromQueue(MockQueue("/C.0123456789ABCDEF0")))
     # Returns client ID if the queue is a client queue.
     self.assertEqual("C.ABCDEFABCDEFABCDE",
-                     queue_manager.GetClientIdFromQueue(
+                     queue_manager._GetClientIdFromQueue(
                          MockQueue("/C.ABCDEFABCDEFABCDE/tasks")))
 
     # Letter case doesn't matter. The return value is always uppercase.
     self.assertEqual("C.0123456789ABCDEF0",
-                     queue_manager.GetClientIdFromQueue(
+                     queue_manager._GetClientIdFromQueue(
                          MockQueue("/C.0123456789AbCdEF0/TasKS")))
     self.assertEqual("C.ABCDEFABCDEFABCDE",
-                     queue_manager.GetClientIdFromQueue(
+                     queue_manager._GetClientIdFromQueue(
                          MockQueue("/c.abcdefabcdefabcde/tasks")))
 
 

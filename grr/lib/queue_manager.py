@@ -27,7 +27,7 @@ class MoreDataException(Error):
   """Raised when there is more data available."""
 
 
-def GetClientIdFromQueue(q):
+def _GetClientIdFromQueue(q):
   """Returns q's client id, if q is a client task queue, otherwise None.
 
   Args:
