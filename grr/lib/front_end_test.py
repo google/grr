@@ -88,17 +88,15 @@ class GRRFEServerTest(GRRFEServerTestBase):
     tasks_on_client_queue = manager.Query(self.client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
+    stored_messages = data_store.DB.ReadResponsesForRequestId(
+        session_id, 1, token=self.token)
+
+    self.assertEqual(len(stored_messages), len(messages))
+
+    stored_messages.sort(key=lambda m: m.response_id)
     # Check that messages were stored correctly
-    for message in messages:
-      stored_message, _ = data_store.DB.Resolve(
-          session_id.Add("state/request:00000001"),
-          manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
-          token=self.token)
-
-      stored_message = rdf_flows.GrrMessage.FromSerializedString(stored_message)
+    for stored_message, message in zip(stored_messages, messages):
       self.assertRDFValuesEqual(stored_message, message)
-
-    return messages
 
   def testReceiveMessagesWithStatus(self):
     """Receiving a sequence of messages with a status."""
@@ -132,14 +130,14 @@ class GRRFEServerTest(GRRFEServerTestBase):
     tasks_on_client_queue = manager.Query(self.client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
-    # Check that messages were stored correctly
-    for message in messages:
-      stored_message, _ = data_store.DB.Resolve(
-          session_id.Add("state/request:00000001"),
-          manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
-          token=self.token)
+    stored_messages = data_store.DB.ReadResponsesForRequestId(
+        session_id, 1, token=self.token)
 
-      stored_message = rdf_flows.GrrMessage.FromSerializedString(stored_message)
+    self.assertEqual(len(stored_messages), len(messages))
+
+    stored_messages.sort(key=lambda m: m.response_id)
+    # Check that messages were stored correctly
+    for stored_message, message in zip(stored_messages, messages):
       self.assertRDFValuesEqual(stored_message, message)
 
   def testReceiveUnsolicitedClientMessage(self):
@@ -308,7 +306,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     notifications = manager.GetNotificationsForAllShards(session_id1.Queue())
 
     # Flow 1 was proecessed on the frontend, no queued responses available.
-    responses = list(manager.FetchRequestsAndResponses(session_id1))
+    responses = list(manager.FetchResponses(session_id1))
     self.assertEqual(responses, [])
     # And also no notifications.
     self.assertNotIn(session_id1, [
@@ -316,7 +314,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     ])
 
     # But for Flow 2 there should be some responses + a notification.
-    responses = list(manager.FetchRequestsAndResponses(session_id2))
+    responses = list(manager.FetchResponses(session_id2))
     self.assertEqual(len(responses), 4)
     self.assertIn(session_id2,
                   [notification.session_id for notification in notifications])
@@ -332,22 +330,23 @@ class GRRFEServerTest(GRRFEServerTestBase):
     tasks = manager.Query(self.client_id, 100)
     self.assertEqual(len(tasks), 10)
 
+    requests_by_id = {}
+
+    for request, _ in data_store.DB.ReadRequestsAndResponses(
+        session_id, token=self.token):
+      requests_by_id[request.id] = request
+
     # Check that the response state objects have the correct ts_id set
     # in the client_queue:
     for task in tasks:
       request_id = task.request_id
 
       # Retrieve the request state for this request_id
-      request_state, _ = data_store.DB.Resolve(
-          session_id.Add("state"),
-          manager.FLOW_REQUEST_TEMPLATE % request_id,
-          token=self.token)
-
-      request_state = rdf_flows.RequestState.FromSerializedString(request_state)
+      request = requests_by_id[request_id]
 
       # Check that task_id for the client message is correctly set in
       # request_state.
-      self.assertEqual(request_state.request.task_id, task.task_id)
+      self.assertEqual(request.request.task_id, task.task_id)
 
     # Now ask the server to drain the outbound messages into the
     # message list.
@@ -419,17 +418,15 @@ class GRRFEServerTest(GRRFEServerTestBase):
   def _ScheduleResponseAndStatus(self, client_id, flow_id):
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       # Schedule a response.
-      flow_manager.QueueResponse(flow_id,
-                                 rdf_flows.GrrMessage(
-                                     source=client_id,
-                                     session_id=flow_id,
-                                     payload=rdf_protodict.DataBlob(
-                                         string="Helllo"),
-                                     request_id=1,
-                                     response_id=1))
+      flow_manager.QueueResponse(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=flow_id,
+              payload=rdf_protodict.DataBlob(string="Helllo"),
+              request_id=1,
+              response_id=1))
       # And a STATUS message.
       flow_manager.QueueResponse(
-          flow_id,
           rdf_flows.GrrMessage(
               source=client_id,
               session_id=flow_id,

@@ -365,6 +365,7 @@ message ClientCrash {
     }];
   optional string crash_message = 6;
   optional string backtrace = 7;
+  optional string nanny_status = 8;
 }
 
 message HuntNotification {

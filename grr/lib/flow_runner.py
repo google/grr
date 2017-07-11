@@ -466,7 +466,7 @@ class FlowRunner(object):
           # Not the request we are looking for - we have seen it before
           # already.
           if request.id < self.context.next_processed_request:
-            self.queue_manager.DeleteFlowRequestStates(self.session_id, request)
+            self.queue_manager.DeleteRequest(request)
             continue
 
           if not responses:
@@ -495,7 +495,7 @@ class FlowRunner(object):
 
           # At this point we have processed this request - we can remove it and
           # its responses from the queue.
-          self.queue_manager.DeleteFlowRequestStates(self.session_id, request)
+          self.queue_manager.DeleteRequest(request)
           self.context.next_processed_request += 1
           self.DecrementOutstandingRequests()
 
@@ -669,8 +669,8 @@ class FlowRunner(object):
 
     if action_cls.in_rdfvalue is None:
       if request:
-        raise RuntimeError("Client action %s does not expect args." %
-                           action_cls.__name__)
+        raise RuntimeError(
+            "Client action %s does not expect args." % action_cls.__name__)
     else:
       if request is None:
         # Create a new rdf request.
@@ -861,7 +861,7 @@ class FlowRunner(object):
           args_age=int(response.age))
 
       # Queue the response now
-      self.queue_manager.QueueResponse(request_state.session_id, msg)
+      self.queue_manager.QueueResponse(msg)
 
       if self.runner_args.write_intermediate_results:
         self.QueueReplyForResultCollection(response)
@@ -997,7 +997,7 @@ class FlowRunner(object):
 
       try:
         # Queue the response now
-        self.queue_manager.QueueResponse(request_state.session_id, msg)
+        self.queue_manager.QueueResponse(msg)
       finally:
         self.QueueNotification(session_id=request_state.session_id)
 
@@ -1042,8 +1042,7 @@ class FlowRunner(object):
       self.queue_manager.QueueClientMessage(
           request.request, timestamp=timestamp)
 
-    self.queue_manager.QueueRequest(
-        self.session_id, request, timestamp=timestamp)
+    self.queue_manager.QueueRequest(request, timestamp=timestamp)
 
   def IncrementOutstandingRequests(self):
     with self.outbound_lock:
@@ -1062,8 +1061,7 @@ class FlowRunner(object):
     self._QueueRequest(request, timestamp=timestamp)
 
   def QueueResponse(self, response, timestamp=None):
-    self.queue_manager.QueueResponse(
-        self.session_id, response, timestamp=timestamp)
+    self.queue_manager.QueueResponse(response, timestamp=timestamp)
 
   def QueueNotification(self, *args, **kw):
     self.queue_manager.QueueNotification(*args, **kw)

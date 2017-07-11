@@ -89,6 +89,18 @@ class HuntResult(object):
     return utils.UnpackAny(self.data.payload)
 
 
+class HuntError(object):
+  """Wrapper class for hunt errors."""
+
+  def __init__(self, data=None, context=None):
+    self.data = data
+
+    self.client = client.ClientRef(
+        client_id=utils.UrnStringToClientId(data.client_id), context=context)
+    self.log_message = self.data.log_message
+    self.backtrace = self.data.backtrace
+
+
 class HuntBase(object):
   """Base class for HuntRef and Hunt."""
 
@@ -166,6 +178,12 @@ class HuntBase(object):
     items = self._context.SendIteratorRequest("ListHuntResults", args)
     return utils.MapItemsIterator(
         lambda data: HuntResult(data=data, context=self._context), items)
+
+  def ListErrors(self):
+    args = hunt_pb2.ApiListHuntErrorsArgs(hunt_id=self.hunt_id)
+    items = self._context.SendIteratorRequest("ListHuntErrors", args)
+    return utils.MapItemsIterator(
+        lambda data: HuntError(data=data, context=self._context), items)
 
   def GetFilesArchive(self):
     args = hunt_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id)

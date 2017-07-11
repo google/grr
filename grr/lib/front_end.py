@@ -350,7 +350,7 @@ class FrontEndServer(object):
           continue
 
         for msg in unprocessed_msgs:
-          manager.QueueResponse(session_id, msg)
+          manager.QueueResponse(msg)
 
         for msg in unprocessed_msgs:
           # Messages for well known flows should notify even though they don't
@@ -377,8 +377,19 @@ class FrontEndServer(object):
             stat = rdf_flows.GrrStatus(msg.payload)
             if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
               # A client crashed while performing an action, fire an event.
-              events.Events.PublishEvent(
-                  "ClientCrash", rdf_flows.GrrMessage(msg), token=self.token)
+              crash_details = rdf_client.ClientCrash(
+                  client_id=client_id,
+                  session_id=session_id,
+                  backtrace=stat.backtrace,
+                  crash_message=stat.error_message,
+                  nanny_status=stat.nanny_status,
+                  timestamp=rdfvalue.RDFDatetime.Now())
+              msg = rdf_flows.GrrMessage(
+                  source=client_id,
+                  payload=crash_details,
+                  auth_state=(
+                      rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED))
+              events.Events.PublishEvent("ClientCrash", msg, token=self.token)
 
     logging.debug("Received %s messages from %s in %s sec",
                   len(messages), client_id, time.time() - now)

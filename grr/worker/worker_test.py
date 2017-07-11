@@ -251,17 +251,16 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     else:
       request_id, response_id = request_id or 1, 1
     with queue_manager.QueueManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(session_id,
-                                 rdf_flows.GrrMessage(
-                                     source=client_id,
-                                     session_id=session_id,
-                                     payload=data,
-                                     request_id=request_id,
-                                     response_id=response_id))
+      flow_manager.QueueResponse(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=session_id,
+              payload=data,
+              request_id=request_id,
+              response_id=response_id))
       if not well_known:
         # For normal flows we have to send a status as well.
         flow_manager.QueueResponse(
-            session_id,
             rdf_flows.GrrMessage(
                 source=client_id,
                 session_id=session_id,
@@ -323,11 +322,12 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
-    self.assertEqual((None, 0),
-                     data_store.DB.Resolve(
-                         session_id_1.Add("state"),
-                         manager.FLOW_REQUEST_TEMPLATE % 1,
-                         token=self.token))
+    outstanding_requests = list(
+        data_store.DB.ReadRequestsAndResponses(session_id_1, token=self.token))
+
+    self.assertEqual(len(outstanding_requests), 9)
+    for request, _ in outstanding_requests:
+      self.assertNotEqual(request.request.request_id, 0)
 
     # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
@@ -823,14 +823,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     flow_manager = queue_manager.QueueManager(token=self.token)
     flow_manager.FreezeTimestamp()
 
-    flow_manager.QueueResponse(session_id,
-                               rdf_flows.GrrMessage(
-                                   source=self.client_id,
-                                   session_id=session_id,
-                                   payload=rdf_protodict.DataBlob(
-                                       string="Response 2"),
-                                   request_id=request_id,
-                                   response_id=response_id))
+    flow_manager.QueueResponse(
+        rdf_flows.GrrMessage(
+            source=self.client_id,
+            session_id=session_id,
+            payload=rdf_protodict.DataBlob(string="Response 2"),
+            request_id=request_id,
+            response_id=response_id))
 
     status = rdf_flows.GrrMessage(
         source=self.client_id,
@@ -842,12 +841,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         type=rdf_flows.GrrMessage.Type.STATUS)
 
     # Now we write half the status information.
-    subject = session_id.Add("state")
-    queue = flow_manager.to_write.setdefault(subject, {})
-    queue.setdefault(flow_manager.FLOW_STATUS_TEMPLATE % request_id, []).append(
-        (status.SerializeToString(), None))
-
-    flow_manager.Flush()
+    data_store.DB.StoreRequestsAndResponses(
+        new_responses=[(status, None)], token=self.token)
 
     # We make the race even a bit harder by saying the new notification gets
     # written right before the old one gets deleted. If we are not careful here,
@@ -895,7 +890,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(RESULTS, ["Response 1"])
 
     # The last missing piece of request 2 is the actual status message.
-    flow_manager.QueueResponse(session_id, status)
+    flow_manager.QueueResponse(status)
     flow_manager.Flush()
 
     # Now make sure request 2 runs as expected.
@@ -914,23 +909,19 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     frozen_timestamp = int(self.SendResponse(session_id, "Hey"))
 
     request_id = 1
-    with queue_manager.QueueManager(token=self.token) as manager:
-      request_urn = session_id.Add("state")
-      res = data_store.DB.ResolvePrefix(
-          request_urn, "flow:status:00000001", token=self.token)
-      self.assertTrue(res)
-      self.assertEqual(res[0][2], frozen_timestamp)
+    request_urn = session_id.Add("state")
+    res = data_store.DB.ResolvePrefix(
+        request_urn, "flow:status:00000001", token=self.token)
+    self.assertTrue(res)
+    self.assertEqual(res[0][2], frozen_timestamp)
 
-      response_urn = manager.GetFlowResponseSubject(session_id, request_id)
-      res = data_store.DB.ResolvePrefix(
-          response_urn, "flow:response:00000001:", token=self.token)
-      self.assertTrue(res)
+    response_urn = data_store.DB.GetFlowResponseSubject(session_id, request_id)
+    res = data_store.DB.ResolvePrefix(
+        response_urn, "flow:response:00000001:", token=self.token)
+    self.assertTrue(res)
 
-      for (_, _, timestamp) in res:
-        self.assertEqual(timestamp, frozen_timestamp)
-
-      for (_, _, timestamp) in res:
-        self.assertEqual(timestamp, frozen_timestamp)
+    for (_, _, timestamp) in res:
+      self.assertEqual(timestamp, frozen_timestamp)
 
   def testEqualTimestampNotifications(self):
     frontend_server = front_end.FrontEndServer(

@@ -143,8 +143,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=td:contains(GetFile)")
     self.Click("css=li[heading=Requests]")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td:contains(flow:request:00000001)")
+    self.WaitUntil(self.IsElementPresent, "css=td:contains(1)")
 
     # Check that a StatFile client action was issued as part of the GetFile
     # flow.

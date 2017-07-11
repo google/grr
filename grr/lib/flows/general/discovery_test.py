@@ -26,7 +26,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 class DiscoveryTestEventListener(flow.EventListener):
   """A test listener to receive new client discoveries."""
-  well_known_session_id = rdfvalue.SessionID(flow_name="discovery_test")
+  well_known_session_id = rdfvalue.SessionID(flow_name="discoverytest")
   EVENTS = ["Discovery"]
 
   # For this test we just write the event as a class attribute.
@@ -228,8 +228,9 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base":
-              ["LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"],
+          "Artifacts.knowledge_base": [
+              "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
+          ],
           "Artifacts.interrogate_store_in_aff4": [],
           "Artifacts.netgroup_filter_regexes": [r"^login$"]
       }):
@@ -275,8 +276,9 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base":
-              ["LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"],
+          "Artifacts.knowledge_base": [
+              "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
+          ],
           "Artifacts.interrogate_store_in_aff4": [],
           "Artifacts.netgroup_filter_regexes": [r"^login$"]
       }):

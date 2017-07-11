@@ -289,9 +289,9 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
       if request.id == 0:
         continue
 
+      # TODO(user): The request_id field should be an int.
       api_request = ApiFlowRequest(
-          request_id=manager.FLOW_REQUEST_TEMPLATE % request.id,
-          request_state=request)
+          request_id=str(request.id), request_state=request)
 
       if responses:
         api_request.responses = responses

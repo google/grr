@@ -425,15 +425,17 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(c.LengthByType(rdfvalue.RDFString.__name__), 2)
     self.assertEqual(c.LengthByType(rdfvalue.RDFURN.__name__), 3)
 
-    self.assertListEqual(
-        [v.payload for _, v in c.ScanByType(rdfvalue.RDFInteger.__name__)],
-        [rdfvalue.RDFInteger(42)])
-    self.assertListEqual(
-        [v.payload for _, v in c.ScanByType(rdfvalue.RDFString.__name__)],
-        [rdfvalue.RDFString("foo bar"), rdfvalue.RDFString("foo1 bar1")])
+    self.assertListEqual([
+        v.payload for _, v in c.ScanByType(rdfvalue.RDFInteger.__name__)
+    ], [rdfvalue.RDFInteger(42)])
+    self.assertListEqual([
+        v.payload for _, v in c.ScanByType(rdfvalue.RDFString.__name__)
+    ], [rdfvalue.RDFString("foo bar"),
+        rdfvalue.RDFString("foo1 bar1")])
     self.assertListEqual(
         [v.payload for _, v in c.ScanByType(rdfvalue.RDFURN.__name__)], [
-            rdfvalue.RDFURN("foo/bar"), rdfvalue.RDFURN("foo1/bar1"),
+            rdfvalue.RDFURN("foo/bar"),
+            rdfvalue.RDFURN("foo1/bar1"),
             rdfvalue.RDFURN("foo2/bar2")
         ])
 
@@ -475,7 +477,7 @@ class FlowTest(BasicFlowTest):
   def SendMessage(self, message):
     # Now messages are set in the data store
     with queue_manager.QueueManager(token=self.token) as manager:
-      manager.QueueResponse(message.session_id, message)
+      manager.QueueResponse(message)
 
   def SendOKStatus(self, response_id, session_id):
     """Send a message to the flow."""
@@ -490,23 +492,6 @@ class FlowTest(BasicFlowTest):
     message.payload = status
 
     self.SendMessage(message)
-
-    # Now also set the state on the RequestState
-    request_state, _ = data_store.DB.Resolve(
-        message.session_id.Add("state"),
-        queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        token=self.token)
-
-    request_state = rdf_flows.RequestState.FromSerializedString(request_state)
-    request_state.status = status
-
-    data_store.DB.Set(
-        message.session_id.Add("state"),
-        queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
-        request_state,
-        token=self.token)
-
-    return message
 
   def testReordering(self):
     """Check that out of order client messages are reordered."""
@@ -959,11 +944,13 @@ class GeneralFlowsTest(BasicFlowTest):
     worker_mock = test_lib.MockWorker(check_flow_errors=True, token=self.token)
 
     # Start some flows with different priorities.
+    # pyformat: disable
     args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
             (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
             (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
             (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
             (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+    # pyformat: enable
 
     for (priority, msg) in args:
       flow.GRRFlow.StartFlow(
@@ -998,11 +985,13 @@ class GeneralFlowsTest(BasicFlowTest):
     worker_mock = test_lib.MockWorker(check_flow_errors=True, token=self.token)
 
     # Start some flows with different priorities.
+    # pyformat: disable
     args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
             (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
             (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
             (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
             (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+    # pyformat: enable
 
     server_result = []
     PriorityFlow.storage = server_result

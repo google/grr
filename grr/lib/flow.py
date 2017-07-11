@@ -164,8 +164,8 @@ class Responses(object):
       is_client_request = True
       client_action_name = self.request.request.name
       if client_action_name not in action_registry:
-        raise RuntimeError("Got unknown client action: %s." %
-                           client_action_name)
+        raise RuntimeError(
+            "Got unknown client action: %s." % client_action_name)
       expected_response_classes = action_registry[
           client_action_name].out_rdfvalues
 
@@ -193,9 +193,10 @@ class Responses(object):
             elif args_rdf_name not in [
                 x.__name__ for x in expected_response_classes
             ]:
-              raise RuntimeError("Response type was %s but expected %s for %s."
-                                 % (args_rdf_name, expected_response_classes,
-                                    client_action_name))
+              raise RuntimeError(
+                  "Response type was %s but expected %s for %s." %
+                  (args_rdf_name, expected_response_classes,
+                   client_action_name))
 
         yield self.message.payload
 
@@ -215,16 +216,16 @@ class Responses(object):
     token = access_control.ACLToken(username="GRRWorker", reason="Logging")
     token.supervisor = True
 
-    logging.error(
-        "No valid Status message.\nState:\n%s\n%s\n%s",
-        data_store.DB.ResolvePrefix(
-            session_id.Add("state"), "flow:", token=token),
-        data_store.DB.ResolvePrefix(
-            session_id.Add("state/request:%08X" % responses[0].request_id),
-            "flow:",
-            token=token),
-        data_store.DB.ResolvePrefix(
-            queues.FLOWS, "notify:%s" % session_id, token=token))
+    logging.error("No valid Status message.\nState:\n%s\n%s\n%s",
+                  data_store.DB.ResolvePrefix(
+                      session_id.Add("state"), "flow:", token=token),
+                  data_store.DB.ResolvePrefix(
+                      session_id.Add(
+                          "state/request:%08X" % responses[0].request_id),
+                      "flow:",
+                      token=token),
+                  data_store.DB.ResolvePrefix(
+                      queues.FLOWS, "notify:%s" % session_id, token=token))
 
 
 class FakeResponses(Responses):
@@ -1161,8 +1162,7 @@ class GRRFlow(FlowBase):
 
   @classmethod
   def LogCollectionForFID(cls, flow_id, token=None):
-    return grr_collections.LogCollection(
-        flow_id.Add(LOGS_SUFFIX), token=token)
+    return grr_collections.LogCollection(flow_id.Add(LOGS_SUFFIX), token=token)
 
   def LogCollection(self):
     return self.LogCollectionForFID(self.session_id, token=self.token)
@@ -1244,9 +1244,9 @@ class WellKnownFlow(GRRFlow):
     """Removes WellKnownFlow messages from the queue and returns them."""
     messages = []
     with queue_manager.WellKnownQueueManager(token=self.token) as manager:
-      for _, responses in manager.FetchRequestsAndResponses(session_id):
-        messages.extend(responses)
-        manager.DeleteWellKnownFlowResponses(session_id, responses)
+      for response in manager.FetchResponses(session_id):
+        messages.append(response)
+      manager.DeleteWellKnownFlowResponses(session_id, messages)
 
     return messages
 
@@ -1288,8 +1288,8 @@ class WellKnownFlow(GRRFlow):
 
     if action_cls.in_rdfvalue is None:
       if request:
-        raise RuntimeError("Client action %s does not expect args." %
-                           action_cls.__name__)
+        raise RuntimeError(
+            "Client action %s does not expect args." % action_cls.__name__)
     else:
       if request is None:
         # Create a new rdf request.

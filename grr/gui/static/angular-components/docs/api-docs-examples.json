@@ -10869,7 +10869,7 @@
               "request_id": {
                 "age": 0,
                 "type": "unicode",
-                "value": "flow:request:00000001"
+                "value": "1"
               },
               "request_state": {
                 "age": 0,
@@ -11045,7 +11045,7 @@
       "type_stripped_response": {
         "items": [
           {
-            "request_id": "flow:request:00000001",
+            "request_id": "1",
             "request_state": {
               "client_id": "aff4:/C.1000000000000000",
               "id": 1,

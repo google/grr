@@ -173,7 +173,7 @@ class HuntRunner(object):
 
           # At this point we have processed this request - we can remove it and
           # its responses from the queue.
-          self.queue_manager.DeleteFlowRequestStates(self.session_id, request)
+          self.queue_manager.DeleteRequest(request)
           self.context.next_processed_request += 1
 
         # We are done here.
@@ -235,9 +235,9 @@ class HuntRunner(object):
       try:
         method = getattr(self.hunt_obj, method)
       except AttributeError:
-        raise flow_runner.FlowRunnerError(
-            "Flow %s has no state method %s" %
-            (self.hunt_obj.__class__.__name__, method))
+        raise flow_runner.FlowRunnerError("Flow %s has no state method %s" %
+                                          (self.hunt_obj.__class__.__name__,
+                                           method))
 
       method(
           direct_response=direct_response, request=request, responses=responses)
@@ -423,16 +423,14 @@ class HuntRunner(object):
       self.queue_manager.QueueClientMessage(
           request.request, timestamp=timestamp)
 
-    self.queue_manager.QueueRequest(
-        self.session_id, request, timestamp=timestamp)
+    self.queue_manager.QueueRequest(request, timestamp=timestamp)
 
   def QueueRequest(self, request, timestamp=None):
     # Remember the new request for later
     self._QueueRequest(request, timestamp=timestamp)
 
   def QueueResponse(self, response, timestamp=None):
-    self.queue_manager.QueueResponse(
-        self.session_id, response, timestamp=timestamp)
+    self.queue_manager.QueueResponse(response, timestamp=timestamp)
 
   def QueueNotification(self, *args, **kw):
     self.queue_manager.QueueNotification(*args, **kw)
@@ -628,8 +626,8 @@ class HuntRunner(object):
     foreman_rule = rdf_foreman.ForemanRule(
         created=rdfvalue.RDFDatetime.Now(),
         expires=self.context.expires,
-        description="Hunt %s %s" %
-        (self.session_id, self.runner_args.hunt_name),
+        description="Hunt %s %s" % (self.session_id,
+                                    self.runner_args.hunt_name),
         client_rule_set=self.runner_args.client_rule_set)
 
     foreman_rule.actions.Append(
@@ -1113,8 +1111,8 @@ class GRRHunt(flow.FlowBase):
       cls.FilterArgsFromSemanticProtobuf(args, kwargs)
 
     if hunt_obj.args_type and not isinstance(args, hunt_obj.args_type):
-      raise RuntimeError("Hunt args must be instance of %s" %
-                         hunt_obj.args_type)
+      raise RuntimeError(
+          "Hunt args must be instance of %s" % hunt_obj.args_type)
 
     if kwargs:
       raise type_info.UnknownArg("Unknown parameters to StartHunt: %s" % kwargs)
@@ -1174,7 +1172,7 @@ class GRRHunt(flow.FlowBase):
             next_state="AddClient")
 
         # Queue the new request.
-        flow_manager.QueueRequest(hunt_id, state)
+        flow_manager.QueueRequest(state)
 
         # Send a response.
         msg = rdf_flows.GrrMessage(
@@ -1185,7 +1183,7 @@ class GRRHunt(flow.FlowBase):
             type=rdf_flows.GrrMessage.Type.STATUS,
             payload=rdf_flows.GrrStatus())
 
-        flow_manager.QueueResponse(hunt_id, msg)
+        flow_manager.QueueResponse(msg)
 
         # And notify the worker about it.
         flow_manager.QueueNotification(session_id=hunt_id)
@@ -1311,9 +1309,8 @@ class GRRHunt(flow.FlowBase):
           args=plugin_descriptor.plugin_args,
           token=self.token)
 
-      state["%s_%d" % (plugin_descriptor.plugin_name, index)] = [
-          plugin_descriptor, plugin_obj.state
-      ]
+      state["%s_%d" % (plugin_descriptor.plugin_name,
+                       index)] = [plugin_descriptor, plugin_obj.state]
 
     return state
 
@@ -1357,11 +1354,12 @@ class GRRHunt(flow.FlowBase):
 
     collections_dict = dict(
         (urn, col_type(urn, token=self.token))
-        for urn, col_type in [(
-            self.all_clients_collection_urn, grr_collections.ClientUrnCollection
-        ), (self.completed_clients_collection_urn, grr_collections.
-            ClientUrnCollection), (self.clients_errors_collection_urn,
-                                   grr_collections.HuntErrorCollection)])
+        for urn, col_type in [(self.all_clients_collection_urn,
+                               grr_collections.ClientUrnCollection), (
+                                   self.completed_clients_collection_urn,
+                                   grr_collections.ClientUrnCollection), (
+                                       self.clients_errors_collection_urn,
+                                       grr_collections.HuntErrorCollection)])
 
     def CollectionLen(collection_urn):
       if collection_urn in collections_dict:

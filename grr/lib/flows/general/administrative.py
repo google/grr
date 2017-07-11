@@ -408,8 +408,9 @@ class OnlineNotification(flow.GRRFlow):
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
-    return cls.args_type(email="%s@%s" % (
-        token.username, config_lib.CONFIG.Get("Logging.domain")))
+    return cls.args_type(email="%s@%s" %
+                         (token.username,
+                          config_lib.CONFIG.Get("Logging.domain")))
 
   @flow.StateHandler()
   def Start(self):
@@ -425,8 +426,8 @@ class OnlineNotification(flow.GRRFlow):
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
 
-      url = urllib.urlencode((("c", self.client_id),
-                              ("main", "HostInformation")))
+      url = urllib.urlencode((("c", self.client_id), ("main",
+                                                      "HostInformation")))
 
       subject = "GRR Client on %s became available." % hostname
 
@@ -657,15 +658,20 @@ P.S. The state of the failing flow was:
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
     _ = event
-    client_id = message.source
     nanny_msg = ""
 
-    flow_obj = aff4.FACTORY.Open(message.session_id, token=self.token)
+    crash_details = message.payload
+    client_id = crash_details.client_id
+
+    # The session id of the flow that crashed.
+    session_id = crash_details.session_id
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
 
     # Log.
     logging.info("Client crash reported, client %s.", client_id)
 
-    # Only kill the flow it is does not handle its own crashes. Some flows
+    # Only kill the flow if it does not handle its own crashes. Some flows
     # restart the client and therefore expect to get a crash notification.
     if flow_obj.handles_crashes:
       return
@@ -677,24 +683,18 @@ P.S. The state of the failing flow was:
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    status = rdf_flows.GrrStatus(message.payload)
-    crash_details = rdf_client.ClientCrash(
-        client_id=client_id,
-        session_id=message.session_id,
-        client_info=client_info,
-        crash_message=status.error_message,
-        timestamp=rdfvalue.RDFDatetime.Now(),
-        crash_type=self.well_known_session_id)
+    crash_details.client_info = client_info
+    crash_details.crash_type = self.well_known_session_id
 
     self.WriteAllCrashDetails(
-        client_id, crash_details, flow_session_id=message.session_id)
+        client_id, crash_details, flow_session_id=session_id)
 
     # Also send email.
     to_send = []
 
     try:
-      hunt_session_id = self._ExtractHuntId(message.session_id)
-      if hunt_session_id and hunt_session_id != message.session_id:
+      hunt_session_id = self._ExtractHuntId(session_id)
+      if hunt_session_id and hunt_session_id != session_id:
         hunt_obj = aff4.FACTORY.Open(
             hunt_session_id, aff4_type=implementation.GRRHunt, token=self.token)
         email = hunt_obj.runner_args.crash_alert_email
@@ -708,8 +708,8 @@ P.S. The state of the failing flow was:
       to_send.append(email)
 
     for email_address in to_send:
-      if status.nanny_status:
-        nanny_msg = "Nanny status: %s" % status.nanny_status
+      if crash_details.nanny_status:
+        nanny_msg = "Nanny status: %s" % crash_details.nanny_status
 
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
@@ -744,7 +744,7 @@ P.S. The state of the failing flow was:
 
     # Now terminate the flow.
     flow.GRRFlow.TerminateFlow(
-        message.session_id, reason=msg, token=self.token, force=True)
+        session_id, reason=msg, token=self.token, force=True)
 
 
 class ClientStartupHandler(flow.EventListener):

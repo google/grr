@@ -440,8 +440,8 @@ class RDFDatetime(RDFInteger):
       self._value = int(initializer)
 
     elif initializer is not None:
-      raise InitializeError("Unknown initializer for RDFDateTime: %s." %
-                            type(initializer))
+      raise InitializeError(
+          "Unknown initializer for RDFDateTime: %s." % type(initializer))
 
   @classmethod
   def Now(cls):
@@ -574,9 +574,9 @@ class Duration(RDFInteger):
   """Duration value stored in seconds internally."""
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = collections.OrderedDict((
-      ("w", 60 * 60 * 24 * 7), ("d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60),
-      ("s", 1)))
+  DIVIDERS = collections.OrderedDict(
+      (("w", 60 * 60 * 24 * 7), ("d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60),
+       ("s", 1)))
 
   def __init__(self, initializer=None, age=None):
     super(Duration, self).__init__(None, age)
@@ -591,8 +591,8 @@ class Duration(RDFInteger):
     elif initializer is None:
       self._value = 0
     else:
-      raise InitializeError("Unknown initializer for Duration: %s." %
-                            type(initializer))
+      raise InitializeError(
+          "Unknown initializer for Duration: %s." % type(initializer))
 
   @classmethod
   def FromSeconds(cls, seconds):
@@ -703,8 +703,8 @@ class Duration(RDFInteger):
     try:
       self._value = int(timestring) * multiplicator
     except ValueError:
-      raise InitializeError("Could not parse expiration time '%s'." %
-                            orig_string)
+      raise InitializeError(
+          "Could not parse expiration time '%s'." % orig_string)
 
 
 class ByteSize(RDFInteger):
@@ -716,14 +716,8 @@ class ByteSize(RDFInteger):
   """
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = dict((
-      ("", 1),
-      ("k", 1000),
-      ("m", 1000**2),
-      ("g", 1000**3),
-      ("ki", 1024),
-      ("mi", 1024**2),
-      ("gi", 1024**3),))
+  DIVIDERS = dict((("", 1), ("k", 1000), ("m", 1000**2), ("g", 1000**3),
+                   ("ki", 1024), ("mi", 1024**2), ("gi", 1024**3),))
 
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
 
@@ -740,8 +734,8 @@ class ByteSize(RDFInteger):
     elif initializer is None:
       self._value = 0
     else:
-      raise InitializeError("Unknown initializer for ByteSize: %s." %
-                            type(initializer))
+      raise InitializeError(
+          "Unknown initializer for ByteSize: %s." % type(initializer))
 
   def __str__(self):
     size_token = ""

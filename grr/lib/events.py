@@ -170,7 +170,9 @@ class Events(object):
 
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:
-            manager.QueueResponse(event_urn, msg)
+            tmp_msg = msg.Copy()
+            tmp_msg.session_id = event_urn
+            manager.QueueResponse(tmp_msg)
             manager.QueueNotification(
                 rdf_flows.GrrNotification(
                     session_id=event_urn,

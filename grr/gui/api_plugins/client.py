@@ -29,7 +29,6 @@ from grr.lib.flows.general import discovery
 
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto.api import client_pb2
@@ -545,19 +544,11 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
       return []
 
     request_message = request_messages[0]
-    state_queue = request_message.session_id.Add(
-        "state/request:%08X" % request_message.request_id)
 
-    result = []
-    predicate_pre = (
-        manager.FLOW_RESPONSE_PREFIX + "%08X" % request_message.request_id)
-    # Get all the responses for this request.
-    for _, serialized_message, _ in data_store.DB.ResolvePrefix(
-        state_queue, predicate_pre, token=manager.token):
-      result.append(
-          rdf_flows.GrrMessage.FromSerializedString(serialized_message))
-
-    return result
+    return data_store.DB.ReadResponsesForRequestId(
+        request_message.session_id,
+        request_message.request_id,
+        token=manager.token)
 
   def Handle(self, args, token=None):
     manager = queue_manager.QueueManager(token=token)

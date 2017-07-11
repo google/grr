@@ -722,56 +722,105 @@ class GRRBaseTest(unittest.TestCase):
         delegate=token.username,
         token=approver_token)
 
+  def _SetupClientImpl(self,
+                       client_nr,
+                       index=None,
+                       system=None,
+                       os_version=None,
+                       arch=None):
+    client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
+
+    with aff4.FACTORY.Create(
+        client_id_urn, aff4_grr.VFSGRRClient, mode="rw",
+        token=self.token) as fd:
+      cert = self.ClientCertFromPrivateKey(
+          config_lib.CONFIG["Client.private_key"])
+      fd.Set(fd.Schema.CERT, cert)
+
+      info = fd.Schema.CLIENT_INFO()
+      info.client_name = "GRR Monitor"
+      fd.Set(fd.Schema.CLIENT_INFO, info)
+      fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime.Now())
+      fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
+      fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
+      fd.Set(
+          fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (client_nr,
+                                                                    client_nr)))
+      fd.Set(
+          fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (client_nr,
+                                                              client_nr)))
+
+      if system:
+        fd.Set(fd.Schema.SYSTEM(system))
+      if os_version:
+        fd.Set(fd.Schema.OS_VERSION(os_version))
+      if arch:
+        fd.Set(fd.Schema.ARCH(arch))
+
+      kb = rdf_client.KnowledgeBase()
+      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+      fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
+
+      hardware_info = fd.Schema.HARDWARE_INFO()
+      hardware_info.system_manufacturer = ("System-Manufacturer-%x" % client_nr)
+      hardware_info.bios_version = ("Bios-Version-%x" % client_nr)
+      fd.Set(fd.Schema.HARDWARE_INFO, hardware_info)
+
+      fd.Flush()
+
+      index.AddClient(fd)
+
+    return client_id_urn
+
+  def SetupClient(self,
+                  client_nr,
+                  index=None,
+                  system=None,
+                  os_version=None,
+                  arch=None):
+    """Prepares a test client mock to be used.
+
+    Args:
+      client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd
+                     in canonical representation.
+      index: client_index.ClientIndex
+      system: string
+      os_version: string
+      arch: string
+
+    Returns:
+      rdf_client.ClientURN
+    """
+    if index is not None:
+      # `with:' is expected to be used in the calling function.
+      client_id_urn = self._SetupClientImpl(client_nr, index, system,
+                                            os_version, arch)
+    else:
+      with client_index.CreateClientIndex(token=self.token) as index:
+        client_id_urn = self._SetupClientImpl(client_nr, index, system,
+                                              os_version, arch)
+
+    return client_id_urn
+
   def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
-    client_ids = []
+    """Prepares nr_clients test client mocks to be used."""
     with client_index.CreateClientIndex(token=self.token) as index:
+      client_ids = [
+          self.SetupClient(client_nr, index, system, os_version, arch)
+          for client_nr in xrange(nr_clients)
+      ]
 
-      for i in range(nr_clients):
-        client_id = rdf_client.ClientURN("C.1%015d" % i)
-        client_ids.append(client_id)
-
-        with aff4.FACTORY.Create(
-            client_id, aff4_grr.VFSGRRClient, mode="rw",
-            token=self.token) as fd:
-          cert = self.ClientCertFromPrivateKey(
-              config_lib.CONFIG["Client.private_key"])
-          fd.Set(fd.Schema.CERT, cert)
-
-          info = fd.Schema.CLIENT_INFO()
-          info.client_name = "GRR Monitor"
-          fd.Set(fd.Schema.CLIENT_INFO, info)
-          fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime.Now())
-          fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
-          fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-          fd.Set(
-              fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
-          fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
-
-          if system:
-            fd.Set(fd.Schema.SYSTEM(system))
-          if os_version:
-            fd.Set(fd.Schema.OS_VERSION(os_version))
-          if arch:
-            fd.Set(fd.Schema.ARCH(arch))
-
-          kb = rdf_client.KnowledgeBase()
-          artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
-          fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
-
-          hardware_info = fd.Schema.HARDWARE_INFO()
-          hardware_info.system_manufacturer = ("System-Manufacturer-%s" % i)
-          hardware_info.bios_version = ("Bios-Version-%s" % i)
-          fd.Set(fd.Schema.HARDWARE_INFO, hardware_info)
-
-          fd.Flush()
-
-          index.AddClient(fd)
     return client_ids
 
+  def DeleteClient(self, client_nr):
+    """Cleans up a test client mock."""
+    client_id = rdf_client.ClientURN("C.1%015x" % client_nr)
+    data_store.DB.DeleteSubject(client_id, token=self.token)
+
   def DeleteClients(self, nr_clients):
-    for i in range(nr_clients):
-      client_id = rdf_client.ClientURN("C.1%015d" % i)
-      data_store.DB.DeleteSubject(client_id, token=self.token)
+    """Cleans up test client mocks. Analogous to .SetupClients(nr_clients) ."""
+    for client_nr in xrange(nr_clients):
+      self.DeleteClient(client_nr)
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)
@@ -898,9 +947,12 @@ class FlowTestsBaseclass(GRRBaseTest):
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
 
-  def FlowSetup(self, name):
+  def FlowSetup(self, name, client_id_urn=None):
+    if client_id_urn is None:
+      client_id_urn = self.client_id
+
     session_id = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name=name, token=self.token)
+        client_id=client_id_urn, flow_name=name, token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
@@ -1309,7 +1361,7 @@ class MockClient(object):
 
       return
 
-    manager.QueueResponse(message.session_id, message)
+    manager.QueueResponse(message)
 
   def Next(self):
     # Grab tasks for us from the server's queue.
@@ -1641,21 +1693,19 @@ class CrashClientMock(object):
     self.token = token
 
   def HandleMessage(self, message):
-    status = rdf_flows.GrrStatus(
-        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
-        error_message="Client killed during transaction")
+
+    crash_details = rdf_client.ClientCrash(
+        client_id=self.client_id,
+        session_id=message.session_id,
+        crash_message="Client killed during transaction",
+        timestamp=rdfvalue.RDFDatetime.Now())
 
     msg = rdf_flows.GrrMessage(
-        request_id=message.request_id,
-        response_id=1,
-        session_id=message.session_id,
-        type=rdf_flows.GrrMessage.Type.STATUS,
-        payload=status,
+        payload=crash_details,
         source=self.client_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     self.flow_id = message.session_id
-
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
     events.Events.PublishEvent("ClientCrash", msg, token=self.token)

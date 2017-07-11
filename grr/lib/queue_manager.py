@@ -40,13 +40,16 @@ def _GetClientIdFromQueue(q):
   if not split or len(split) < 2:
     return None
 
-  # Normalize to uppercase.
-  split = [s.upper() for s in split]
+  # Normalize to lowercase.
+  split = [s.lower() for s in split]
 
   str_client_id, tasks_marker = split
 
-  if str_client_id[:2] != "C." or tasks_marker != "TASKS":
+  if not str_client_id.startswith("c.") or tasks_marker != "tasks":
     return None
+
+  # The "C." prefix should be uppercase.
+  str_client_id = "C" + str_client_id[1:]
 
   return str_client_id
 
@@ -83,22 +86,6 @@ class QueueManager(object):
     queue_manager.UnfreezeTimestamp()
   """
 
-  # These attributes are related to a flow's internal data structures Requests
-  # are protobufs of type RequestState. They have a constant prefix followed by
-  # the request number:
-  FLOW_REQUEST_PREFIX = "flow:request:"
-  FLOW_REQUEST_TEMPLATE = FLOW_REQUEST_PREFIX + "%08X"
-
-  # When a status message is received from the client, we write it with the
-  # request using the following template.
-  FLOW_STATUS_TEMPLATE = "flow:status:%08X"
-  FLOW_STATUS_PREFIX = "flow:status:"
-
-  # Each request may have any number of responses. Responses are kept in their
-  # own subject object. The subject name is derived from the session id.
-  FLOW_RESPONSE_PREFIX = "flow:response:"
-  FLOW_RESPONSE_TEMPLATE = FLOW_RESPONSE_PREFIX + "%08X:%08X"
-
   TASK_PREDICATE_PREFIX = "task:"
   TASK_PREDICATE_TEMPLATE = TASK_PREDICATE_PREFIX + "%s"
 
@@ -116,9 +103,9 @@ class QueueManager(object):
 
     self.data_store = store
 
-    # We cache all these and write/delete in one operation.
-    self.to_write = {}
-    self.to_delete = {}
+    self.request_queue = []
+    self.response_queue = []
+    self.requests_to_delete = []
 
     # A queue of client messages to remove. Keys are client ids, values are
     # lists of task ids.
@@ -190,10 +177,6 @@ class QueueManager(object):
     self.Flush()
     self.UnfreezeTimestamp()
 
-  def GetFlowResponseSubject(self, session_id, request_id):
-    """The subject used to carry all the responses for a specific request_id."""
-    return session_id.Add("state/request:%08X" % request_id)
-
   def DeQueueClientRequest(self, client_id, task_id):
     """Remove the message from the client queue that this request forms."""
     # Check this request was actually bound for a client.
@@ -202,50 +185,23 @@ class QueueManager(object):
 
       self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
 
-  def MultiCheckStatus(self, messages):
-    """Checks if there is a client status queued for a number of requests."""
-    subjects = [m.session_id.Add("state") for m in messages]
-
-    statuses_found = {}
-
-    for subject, result in self.data_store.MultiResolvePrefix(
-        subjects, self.FLOW_STATUS_PREFIX, token=self.token):
-      for predicate, _, _ in result:
-        request_nr = int(predicate.split(":")[-1], 16)
-        statuses_found.setdefault(subject, set()).add(request_nr)
-
-    status_available = set()
-    for m in messages:
-      if m.request_id in statuses_found.get(m.session_id.Add("state"), set()):
-        status_available.add(m)
-    return status_available
+  def MultiCheckStatus(self, requests):
+    """Checks if there is a status message queued for a number of requests."""
+    return self.data_store.CheckRequestsForCompletion(
+        requests, token=self.token)
 
   def FetchCompletedRequests(self, session_id, timestamp=None):
     """Fetch all the requests with a status message queued for them."""
-    subject = session_id.Add("state")
-    requests = {}
-    status = {}
 
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
-    for predicate, serialized, _ in self.data_store.ResolvePrefix(
-        subject, [self.FLOW_REQUEST_PREFIX, self.FLOW_STATUS_PREFIX],
-        token=self.token,
+    for request, status in self.data_store.ReadCompletedRequests(
+        session_id,
+        timestamp=timestamp,
         limit=self.request_limit,
-        timestamp=timestamp):
-
-      parts = predicate.split(":", 3)
-      request_id = parts[2]
-      if parts[1] == "status":
-        status[request_id] = serialized
-      else:
-        requests[request_id] = serialized
-
-    for request_id, serialized in sorted(requests.items()):
-      if request_id in status:
-        yield (rdf_flows.RequestState.FromSerializedString(serialized),
-               rdf_flows.GrrMessage.FromSerializedString(status[request_id]))
+        token=self.token):
+      yield request, status
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
@@ -257,10 +213,7 @@ class QueueManager(object):
         self.FetchCompletedRequests(session_id, timestamp=timestamp))
 
     total_size = 0
-    while True:
-      # No completed requests left, so finish processing.
-      if not completed_requests:
-        break
+    while completed_requests:
 
       # Size reported in the status messages may be different from actual
       # number of responses read from the database. Example: hunt responses
@@ -268,33 +221,22 @@ class QueueManager(object):
       # deleting the request. Then status.response_id will be >0, but no
       # responses will be read from the DB.
       projected_total_size = total_size
-      response_subjects = {}
+      request_list = []
       while completed_requests:
         request, status = completed_requests.popleft()
 
         # Make sure at least one response is fetched.
-        response_subject = self.GetFlowResponseSubject(session_id, request.id)
-        response_subjects[response_subject] = request
+        request_list.append(request)
 
         # Quit if there are too many responses.
         projected_total_size += status.response_id
         if projected_total_size > limit:
           break
 
-      response_data = dict(
-          self.data_store.MultiResolvePrefix(
-              response_subjects,
-              self.FLOW_RESPONSE_PREFIX,
-              token=self.token,
-              timestamp=timestamp))
-      for response_urn, request in sorted(response_subjects.items()):
-        responses = []
-        for _, serialized, _ in response_data.get(response_urn, []):
-          responses.append(
-              rdf_flows.GrrMessage.FromSerializedString(serialized))
+      for request, responses in self.data_store.ReadResponses(
+          request_list, token=self.token):
 
-        yield (request, sorted(responses, key=lambda msg: msg.response_id))
-
+        yield (request, responses)
         total_size += len(responses)
         if total_size > limit:
           raise MoreDataException()
@@ -307,7 +249,7 @@ class QueueManager(object):
 
     Args:
       session_id: The session_id to get the requests/responses for.
-      timestamp: Tupe (start, end) with a time range. Fetched requests and
+      timestamp: Tuple (start, end) with a time range. Fetched requests and
                  responses will have timestamp in this range.
 
     Yields:
@@ -318,104 +260,58 @@ class QueueManager(object):
       MoreDataException: When there is more data available than read by the
                          limited query.
     """
-    subject = session_id.Add("state")
-    requests = {}
-
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
-    # Get some requests.
-    for predicate, serialized, _ in self.data_store.ResolvePrefix(
-        subject,
-        self.FLOW_REQUEST_PREFIX,
-        token=self.token,
-        limit=self.request_limit,
-        timestamp=timestamp):
+    num_requests = 0
+    for request, responses in self.data_store.ReadRequestsAndResponses(
+        session_id,
+        timestamp=timestamp,
+        request_limit=self.request_limit,
+        response_limit=self.response_limit,
+        token=self.token):
+      yield (request, responses)
+      num_requests += 1
 
-      request_id = predicate.split(":", 1)[1]
-      requests[str(subject.Add(request_id))] = serialized
-
-    # And the responses for them.
-    response_data = dict(
-        self.data_store.MultiResolvePrefix(
-            requests.keys(),
-            self.FLOW_RESPONSE_PREFIX,
-            limit=self.response_limit,
-            token=self.token,
-            timestamp=timestamp))
-
-    for urn, request_data in sorted(requests.items()):
-      request = rdf_flows.RequestState.FromSerializedString(request_data)
-      responses = []
-      for _, serialized, _ in response_data.get(urn, []):
-        responses.append(rdf_flows.GrrMessage.FromSerializedString(serialized))
-
-      yield (request, sorted(responses, key=lambda msg: msg.response_id))
-
-    if len(requests) >= self.request_limit:
+    if num_requests >= self.request_limit:
       raise MoreDataException()
 
-  def DeleteFlowRequestStates(self, session_id, request_state):
+  def DeleteRequest(self, request):
     """Deletes the request and all its responses from the flow state queue."""
-    queue = self.to_delete.setdefault(session_id.Add("state"), [])
-    queue.append(self.FLOW_REQUEST_TEMPLATE % request_state.id)
-    queue.append(self.FLOW_STATUS_TEMPLATE % request_state.id)
+    self.requests_to_delete.append(request)
 
-    if request_state and request_state.HasField("request"):
-      self.DeQueueClientRequest(request_state.client_id,
-                                request_state.request.task_id)
+    if request and request.HasField("request"):
+      self.DeQueueClientRequest(request.client_id, request.request.task_id)
 
-    # Efficiently drop all responses to this request.
-    response_subject = self.GetFlowResponseSubject(session_id, request_state.id)
-    self.data_store.DeleteSubject(response_subject, token=self.token)
+    data_store.DB.DeleteRequest(request, token=self.token)
 
   def DestroyFlowStates(self, session_id):
     """Deletes all states in this flow and dequeues all client messages."""
-    self.MultiDestroyFlowStates([session_id])
+    return self.MultiDestroyFlowStates([session_id])
 
   def MultiDestroyFlowStates(self, session_ids):
     """Deletes all states in multiple flows and dequeues all client messages."""
-    subjects = [session_id.Add("state") for session_id in session_ids]
-    to_delete = []
+    deleted_requests = self.data_store.MultiDestroyFlowStates(
+        session_ids, request_limit=self.request_limit, token=self.token)
 
-    for subject, values in self.data_store.MultiResolvePrefix(
-        subjects,
-        self.FLOW_REQUEST_PREFIX,
-        token=self.token,
-        limit=self.request_limit):
-      for _, serialized, _ in values:
-
-        request = rdf_flows.RequestState.FromSerializedString(serialized)
-
-        # Drop all responses to this request.
-        response_subject = self.GetFlowResponseSubject(request.session_id,
-                                                       request.id)
-        to_delete.append(response_subject)
-
-        if request.HasField("request"):
-          # Client request dequeueing is cached so we can call it directly.
-          self.DeQueueClientRequest(request.client_id, request.request.task_id)
-
-      # Mark the request itself for deletion.
-      to_delete.append(subject)
-
-    # Drop them all at once.
-    self.data_store.DeleteSubjects(to_delete, token=self.token)
+    for request in deleted_requests:
+      if request.HasField("request"):
+        # Client request dequeueing is cached so we can call it directly.
+        self.DeQueueClientRequest(request.client_id, request.request.task_id)
 
   def Flush(self):
     """Writes the changes in this object to the datastore."""
-    session_ids = set(self.to_write) | set(self.to_delete)
+
+    self.data_store.StoreRequestsAndResponses(
+        new_requests=self.request_queue,
+        new_responses=self.response_queue,
+        requests_to_delete=self.requests_to_delete,
+        token=self.token)
 
     # We need to make sure that notifications are written after the requests so
     # we flush after writing all requests and only notify afterwards.
     mutation_pool = self.data_store.GetMutationPool(token=self.token)
     with mutation_pool:
-      for session_id in session_ids:
-        mutation_pool.MultiSet(
-            session_id,
-            self.to_write.get(session_id, {}),
-            to_delete=self.to_delete.get(session_id, []))
-
       for client_id, messages in self.client_messages_to_delete.iteritems():
         self.Delete(client_id.Queue(), messages, mutation_pool=mutation_pool)
 
@@ -429,46 +325,30 @@ class QueueManager(object):
               mutation_pool=mutation_pool)
 
     if self.notifications:
-      for notification, timestamp in self.notifications.itervalues():
-        self.NotifyQueue(
-            notification, timestamp=timestamp, mutation_pool=mutation_pool)
+      for notification in self.notifications.itervalues():
+        self.NotifyQueue(notification, mutation_pool=mutation_pool)
 
       mutation_pool.Flush()
 
-    self.to_write = {}
-    self.to_delete = {}
+    self.request_queue = []
+    self.response_queue = []
+    self.requests_to_delete = []
+
     self.client_messages_to_delete = {}
     self.notifications = {}
     self.new_client_messages = []
 
-  def QueueResponse(self, session_id, response, timestamp=None):
+  def QueueResponse(self, response, timestamp=None):
     """Queues the message on the flow's state."""
     if timestamp is None:
       timestamp = self.frozen_timestamp
+    self.response_queue.append((response, timestamp))
 
-    # Status messages cause their requests to be marked as complete. This allows
-    # us to quickly enumerate all the completed requests - it is essentially an
-    # index for completed requests.
-    if response.type == rdf_flows.GrrMessage.Type.STATUS:
-      subject = session_id.Add("state")
-      queue = self.to_write.setdefault(subject, {})
-      queue.setdefault(self.FLOW_STATUS_TEMPLATE % response.request_id,
-                       []).append((response.SerializeToString(), timestamp))
-
-    subject = self.GetFlowResponseSubject(session_id, response.request_id)
-    queue = self.to_write.setdefault(subject, {})
-    queue.setdefault(QueueManager.FLOW_RESPONSE_TEMPLATE %
-                     (response.request_id, response.response_id), []).append(
-                         (response.SerializeToString(), timestamp))
-
-  def QueueRequest(self, session_id, request_state, timestamp=None):
+  def QueueRequest(self, request_state, timestamp=None):
     if timestamp is None:
       timestamp = self.frozen_timestamp
 
-    subject = session_id.Add("state")
-    queue = self.to_write.setdefault(subject, {})
-    queue.setdefault(self.FLOW_REQUEST_TEMPLATE % request_state.id, []).append(
-        (request_state.SerializeToString(), timestamp))
+    self.request_queue.append((request_state, timestamp))
 
   def QueueClientMessage(self, msg, timestamp=None):
     if timestamp is None:
@@ -487,6 +367,8 @@ class QueueManager(object):
       if timestamp is None:
         timestamp = self.frozen_timestamp
 
+      notification.timestamp = timestamp
+
       # We must not store more than one notification per session id and
       # timestamp or there will be race conditions. We therefore only keep
       # the one with the highest request number (indicated by last_status).
@@ -499,10 +381,10 @@ class QueueManager(object):
       key = "%s!%s" % (session_id, ts_str)
       existing = self.notifications.get(key)
       if existing is not None:
-        if existing[0].last_status < notification.last_status:
-          self.notifications[key] = (notification, timestamp)
+        if existing.last_status < notification.last_status:
+          self.notifications[key] = notification
       else:
-        self.notifications[key] = (notification, timestamp)
+        self.notifications[key] = notification
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
@@ -676,12 +558,11 @@ class QueueManager(object):
     self._MultiNotifyQueue(notification.session_id.Queue(), [notification],
                            **kwargs)
 
-  def MultiNotifyQueue(self, notifications, timestamp=None, mutation_pool=None):
+  def MultiNotifyQueue(self, notifications, mutation_pool=None):
     """This is the same as NotifyQueue but for several session_ids at once.
 
     Args:
       notifications: A list of notifications.
-      timestamp: An optional timestamp for this notification.
       mutation_pool: A MutationPool object to schedule Notifications on.
 
     Raises:
@@ -690,19 +571,11 @@ class QueueManager(object):
     extract_queue = lambda notification: notification.session_id.Queue()
     for queue, notifications in utils.GroupBy(notifications,
                                               extract_queue).iteritems():
-      self._MultiNotifyQueue(
-          queue,
-          notifications,
-          timestamp=timestamp,
-          mutation_pool=mutation_pool)
+      self._MultiNotifyQueue(queue, notifications, mutation_pool=mutation_pool)
 
-  def _MultiNotifyQueue(self,
-                        queue,
-                        notifications,
-                        timestamp=None,
-                        mutation_pool=None):
+  def _MultiNotifyQueue(self, queue, notifications, mutation_pool=None):
     """Does the actual queuing."""
-    notification_map = {}
+    notification_list = []
     now = rdfvalue.RDFDatetime.Now()
     expiry_time = config_lib.CONFIG["Worker.notification_expiry_time"]
     for notification in notifications:
@@ -715,15 +588,11 @@ class QueueManager(object):
           # This notification has been around for too long, we drop it.
           logging.debug("Dropping notification: %s", str(notification))
           continue
-      session_id = notification.session_id
-      # Don't serialize session ids to save some bytes.
-      notification.session_id = None
-      notification.timestamp = None
 
-      notification_map[session_id] = [(notification, timestamp)]
+      notification_list.append(notification)
 
     mutation_pool.CreateNotifications(
-        self.GetNotificationShard(queue), notification_map)
+        self.GetNotificationShard(queue), notification_list)
 
   def DeleteNotification(self, session_id, start=None, end=None):
     self.DeleteNotifications([session_id], start=start, end=end)
@@ -879,46 +748,28 @@ class WellKnownQueueManager(QueueManager):
 
   response_limit = 10000
 
+  def FetchRequestsAndResponses(self, *args, **kw):
+    raise NotImplementedError("For well known flows use FetchResponses.")
+
   def DeleteWellKnownFlowResponses(self, session_id, responses):
     """Deletes given responses from the flow state queue."""
-    subject = session_id.Add("state/request:00000000")
-    predicates = []
-    for response in responses:
-      predicates.append(QueueManager.FLOW_RESPONSE_TEMPLATE %
-                        (response.request_id, response.response_id))
+    self.data_store.DeleteWellKnownFlowResponses(
+        session_id, responses, token=self.token)
 
-    self.data_store.DeleteAttributes(
-        subject, predicates, sync=True, start=0, token=self.token)
-
-  def FetchRequestsAndResponses(self, session_id):
-    """Well known flows do not have real requests.
-
-    This manages retrieving all the responses without requiring corresponding
-    requests.
+  def FetchResponses(self, session_id):
+    """Retrieves responses for a well known flow.
 
     Args:
       session_id: The session_id to get the requests/responses for.
 
     Yields:
-      A tuple of request (None) and responses.
+      The retrieved responses.
     """
-    subject = session_id.Add("state/request:00000000")
+    timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
-    # Get some requests
-    for _, serialized, _ in sorted(
-        self.data_store.ResolvePrefix(
-            subject,
-            self.FLOW_RESPONSE_PREFIX,
-            token=self.token,
-            limit=self.response_limit,
-            timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
-                      ))):
-
-      # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
-      # known flows both request_id and response_id are randomized.
-      response = rdf_flows.GrrMessage.FromSerializedString(serialized)
-
-      yield rdf_flows.RequestState(id=0), [response]
+    for response in self.data_store.FetchResponsesForWellKnownFlow(
+        session_id, self.response_limit, timestamp=timestamp, token=self.token):
+      yield response
 
 
 class QueueManagerInit(registry.InitHook):

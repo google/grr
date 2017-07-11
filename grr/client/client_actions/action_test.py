@@ -18,7 +18,6 @@ import psutil
 from grr.client import client_plugins
 from grr.client import client_utils
 from grr.client.client_actions import standard
-from grr.client.client_actions.linux import linux
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr.client import actions
@@ -29,6 +28,12 @@ from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+
+if platform.system() == "Linux":
+  # pylint: disable=g-import-not-at-top
+  # Trying to import this module on non-Linux platforms won't work.
+  from grr.client.client_actions.linux import linux
+  # pylint: enable=g-import-not-at-top
 
 # pylint: mode=test
 

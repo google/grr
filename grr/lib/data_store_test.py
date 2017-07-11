@@ -2478,7 +2478,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
             payload=payload)
         if isinstance(payload, rdf_flows.GrrStatus):
           msg.type = 1
-        flow_manager.QueueResponse(flow_id, msg)
+        flow_manager.QueueResponse(msg)
 
   nr_clients = 4
   nr_dirs = 4

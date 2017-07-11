@@ -47,7 +47,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
-      manager.QueueRequest(session_id, request)
+      manager.QueueRequest(request)
 
     # We only have one unanswered request on the queue.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -67,22 +67,24 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
             next_state="TestState",
             session_id=session_id)
 
-        manager.QueueRequest(session_id, request)
+        manager.QueueRequest(request)
 
         response_id = None
         for response_id in range(1, 10):
           # Normal message.
-          manager.QueueResponse(session_id,
-                                rdf_flows.GrrMessage(
-                                    request_id=request_id,
-                                    response_id=response_id))
+          manager.QueueResponse(
+              rdf_flows.GrrMessage(
+                  session_id=session_id,
+                  request_id=request_id,
+                  response_id=response_id))
 
         # And a status message.
-        manager.QueueResponse(session_id,
-                              rdf_flows.GrrMessage(
-                                  request_id=request_id,
-                                  response_id=response_id + 1,
-                                  type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(
+            rdf_flows.GrrMessage(
+                session_id=session_id,
+                request_id=request_id,
+                response_id=response_id + 1,
+                type=rdf_flows.GrrMessage.Type.STATUS))
 
     completed_requests = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed_requests), 3)
@@ -136,15 +138,16 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
             next_state="TestState",
             session_id=session_id)
 
-        manager.QueueRequest(session_id, request)
+        manager.QueueRequest(request)
 
         # Don't queue any actual responses, just a status message with a
         # fake response_id.
-        manager.QueueResponse(session_id,
-                              rdf_flows.GrrMessage(
-                                  request_id=request_id,
-                                  response_id=1000,
-                                  type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(
+            rdf_flows.GrrMessage(
+                session_id=session_id,
+                request_id=request_id,
+                response_id=1000,
+                type=rdf_flows.GrrMessage.Type.STATUS))
 
     # Check that even though status message for every request indicates 1000
     # responses, only the actual response count is used to apply the limit
@@ -157,7 +160,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
       # Responses contain just the status message.
       self.assertEqual(len(responses), 1)
 
-  def testDeleteFlowRequestStates(self):
+  def testDeleteRequest(self):
     """Check that we can efficiently destroy a single flow request."""
     session_id = rdfvalue.SessionID(flow_name="test3")
 
@@ -168,9 +171,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
-      manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id,
-                            rdf_flows.GrrMessage(request_id=1, response_id=1))
+      manager.QueueRequest(request)
+      manager.QueueResponse(
+          rdf_flows.GrrMessage(
+              session_id=session_id, request_id=1, response_id=1))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -178,7 +182,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(all_requests[0][0], request)
 
     with queue_manager.QueueManager(token=self.token) as manager:
-      manager.DeleteFlowRequestStates(session_id, request)
+      manager.DeleteRequest(request)
 
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
     self.assertEqual(len(all_requests), 0)
@@ -194,9 +198,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
-      manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id,
-                            rdf_flows.GrrMessage(request_id=1, response_id=1))
+      manager.QueueRequest(request)
+      manager.QueueResponse(
+          rdf_flows.GrrMessage(
+              request_id=1, response_id=1, session_id=session_id))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -503,6 +508,38 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     self._current_mock_time += 10
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
 
+  def testGetClientIdFromQueue(self):
+
+    def MockQueue(path):
+      return mock.MagicMock(Split=lambda: path.split("/")[1:])
+
+    # Returns None if the path can't be parsed.
+    self.assertIsNone(
+        queue_manager._GetClientIdFromQueue(MockQueue("arbitrary string")))
+
+    # Returns None if the queue isn't a client queue.
+    self.assertIsNone(
+        queue_manager._GetClientIdFromQueue(MockQueue("/H.fedcba98")))
+    self.assertIsNone(
+        queue_manager._GetClientIdFromQueue(MockQueue("/H.01234567/tasks")))
+
+    # Returns None if the object isn't a queue.
+    self.assertIsNone(
+        queue_manager._GetClientIdFromQueue(MockQueue("/C.0123456789abcdef0")))
+    # Returns client ID if the queue is a client queue.
+    self.assertEqual("C.abcdefabcdefabcde",
+                     queue_manager._GetClientIdFromQueue(
+                         MockQueue("/C.ABCDefabcdefabcde/tasks")))
+
+    # Letter case doesn't matter. The return value is always lowercase, except
+    # for the capital "C" in the front.
+    self.assertEqual("C.0123456789abcdef0",
+                     queue_manager._GetClientIdFromQueue(
+                         MockQueue("/C.0123456789AbCdEF0/TasKS")))
+    self.assertEqual("C.abcdefabcdefabcde",
+                     queue_manager._GetClientIdFromQueue(
+                         MockQueue("/c.ABCDEFABCDEFABCDE/tasks")))
+
 
 class MultiShardedQueueManagerTest(QueueManagerTest):
   """Test for QueueManager with multiple notification shards enabled."""
@@ -631,37 +668,6 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)
           self.assertEqual(len(notifications), 0)
-
-  def testGetClientIdFromQueue(self):
-
-    def MockQueue(path):
-      return mock.MagicMock(Split=lambda: path.split("/")[1:])
-
-    # Returns None if the path can't be parsed.
-    self.assertIsNone(
-        queue_manager._GetClientIdFromQueue(MockQueue("arbitrary string")))
-
-    # Returns None if the queue isn't a client queue.
-    self.assertIsNone(
-        queue_manager._GetClientIdFromQueue(MockQueue("/H.FEDCBA98")))
-    self.assertIsNone(
-        queue_manager._GetClientIdFromQueue(MockQueue("/H.01234567/tasks")))
-
-    # Returns None if the object isn't a queue.
-    self.assertIsNone(
-        queue_manager._GetClientIdFromQueue(MockQueue("/C.0123456789ABCDEF0")))
-    # Returns client ID if the queue is a client queue.
-    self.assertEqual("C.ABCDEFABCDEFABCDE",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/C.ABCDEFABCDEFABCDE/tasks")))
-
-    # Letter case doesn't matter. The return value is always uppercase.
-    self.assertEqual("C.0123456789ABCDEF0",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/C.0123456789AbCdEF0/TasKS")))
-    self.assertEqual("C.ABCDEFABCDEFABCDE",
-                     queue_manager._GetClientIdFromQueue(
-                         MockQueue("/c.abcdefabcdefabcde/tasks")))
 
 
 def main(argv):
