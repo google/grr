@@ -110,9 +110,9 @@ class TestMultiGetFile(base.AutomatedTest):
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()
     self.assertFalse(runner.context.backtrace)
-    self.assertEqual(runner.GetState(), rdf_flows.FlowContext.State.TERMINATED,
-                     "Expected TERMINATED state, got %s" %
-                     flow_obj.context.state)
+    self.assertEqual(
+        runner.GetState(), rdf_flows.FlowContext.State.TERMINATED,
+        "Expected TERMINATED state, got %s" % flow_obj.context.state)
 
 
 #########
@@ -185,8 +185,7 @@ class TestSendFile(base.LocalClientTest):
   args = dict(
       host="127.0.0.1",
       port=12345,
-      pathspec=rdf_paths.PathSpec(
-          pathtype=0, path="/bin/ls"),
+      pathspec=rdf_paths.PathSpec(pathtype=0, path="/bin/ls"),
       key=key,
       iv=iv)
 

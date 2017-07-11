@@ -44,14 +44,12 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
     elif isinstance(value, (list, tuple)):
       self.list.content.Extend([
-          DataBlob().SetValue(
-              v, raise_on_error=raise_on_error) for v in value
+          DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value
       ])
 
     elif isinstance(value, set):
       self.set.content.Extend([
-          DataBlob().SetValue(
-              v, raise_on_error=raise_on_error) for v in value
+          DataBlob().SetValue(v, raise_on_error=raise_on_error) for v in value
       ])
 
     elif isinstance(value, dict):
@@ -160,10 +158,8 @@ class Dict(rdf_structs.RDFProtoStruct):
     self._values = {}
     for key, value in dictionary.iteritems():
       self._values[key] = KeyValue(
-          k=DataBlob().SetValue(
-              key, raise_on_error=raise_on_error),
-          v=DataBlob().SetValue(
-              value, raise_on_error=raise_on_error))
+          k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
+          v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
     self.dat = self._values.values()
     return self
 
@@ -218,10 +214,8 @@ class Dict(rdf_structs.RDFProtoStruct):
     """
     self.dat.dirty = True
     self._values[key] = KeyValue(
-        k=DataBlob().SetValue(
-            key, raise_on_error=raise_on_error),
-        v=DataBlob().SetValue(
-            value, raise_on_error=raise_on_error))
+        k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
+        v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
     self.dat.dirty = True

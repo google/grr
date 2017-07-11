@@ -127,15 +127,15 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       pass
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
-    self._CheckOSStats(
-        "All", histogram,
-        [0, 0, {
+    self._CheckOSStats("All", histogram, [
+        0, 0, {
             "Linux": 10,
             "Windows": 10
         }, {
             "Linux": 10,
             "Windows": 10
-        }])
+        }
+    ])
     self._CheckOSStats("Label1", histogram,
                        [0, 0, {
                            "Windows": 10
@@ -158,9 +158,9 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     data = [(x.x_value, x.y_value) for x in histogram]
 
     self.assertEqual(data, [(86400000000L, 0L), (172800000000L, 0L),
-                            (259200000000L, 0L), (604800000000L, 0L),
-                            (1209600000000L, count), (2592000000000L, count),
-                            (5184000000000L, count)])
+                            (259200000000L, 0L), (604800000000L,
+                                                  0L), (1209600000000L, count),
+                            (2592000000000L, count), (5184000000000L, count)])
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -248,8 +248,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       test_lib.TestHuntHelperWithMultipleMocks(
           {}, check_flow_errors=False, token=self.token)
       hunt_ids = list(
-          aff4.FACTORY.Open(
-              "aff4:/hunts", token=self.token).ListChildren())
+          aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
       # We have only created one hunt, and we should have started with a clean
       # aff4 space.
       self.assertEqual(len(hunt_ids), 1)

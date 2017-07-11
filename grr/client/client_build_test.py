@@ -74,10 +74,10 @@ class MultiRepackTest(ClientBuildTests):
     self.pool_patcher.stop()
 
   def testMultipleRepackingNoSigning(self):
-    self.client_build.MultiTemplateRepacker().RepackTemplates(
-        [self.label1_config, self.label2_config],
-        [self.deb_template, self.exe_template, self.xar_template],
-        self.output_dir)
+    self.client_build.MultiTemplateRepacker().RepackTemplates([
+        self.label1_config, self.label2_config
+    ], [self.deb_template, self.exe_template, self.xar_template],
+                                                              self.output_dir)
 
     # (3 templates + 1 debug) x 2 labels = 8 repacks
     self.assertEqual(self.pool_obj.apply_async.call_count, 8)

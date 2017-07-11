@@ -39,6 +39,7 @@ class Sockaddrll(ctypes.Structure):
       ("sll_addr", ctypes.c_ubyte * 8),
   ]
 
+
 # struct sockaddr_in {
 #   sa_family_t           sin_family;     /* Address family               */
 #   __be16                sin_port;       /* Port number                  */

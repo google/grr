@@ -193,8 +193,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
                    message.get("level", ""), message["message"])
       if (message.get("source", "") == "javascript" and
           message.get("level", "") == "SEVERE"):
-        self.fail("Javascript error ecountered during test: %s" %
-                  message["message"])
+        self.fail(
+            "Javascript error ecountered during test: %s" % message["message"])
 
   def WaitUntil(self, condition_cb, *args):
     self.CheckJavascriptErrors()

@@ -120,8 +120,8 @@ class ConnectionPool(object):
       self.connections.put(MySQLConnection(self.database_name))
 
   def GetConnection(self):
-    if self.connections.empty() and (
-        self.connections.unfinished_tasks < self.pool_max_size):
+    if self.connections.empty() and (self.connections.unfinished_tasks <
+                                     self.pool_max_size):
       self.connections.put(MySQLConnection(self.database_name))
     connection = self.connections.get(block=True)
     return connection
@@ -733,11 +733,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         aff4_q["args"].append(int(timestamp[1]))
 
       attributes_q = {
-          "query":
-              "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
-              "aff4.attribute_hash=attributes.hash "
-              "WHERE attributes.hash=unhex(md5(%s)) "
-              "AND aff4.attribute_hash IS NULL",
+          "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
+                   "aff4.attribute_hash=attributes.hash "
+                   "WHERE attributes.hash=unhex(md5(%s)) "
+                   "AND aff4.attribute_hash IS NULL",
           "args": [attribute]
       }
       # If only attribute is being deleted we will not check to clean up

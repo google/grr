@@ -33,15 +33,17 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     with aff4.FACTORY.Create(
         path1, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello1")
-      fd.Set(fd.Schema.HASH,
-             rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
+      fd.Set(
+          fd.Schema.HASH,
+          rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
     path2 = self.client_id.Add(u"fs/os/foo/bar/中国新闻网新闻中.txt")
     with aff4.FACTORY.Create(
         path2, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello2")
-      fd.Set(fd.Schema.HASH,
-             rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
+      fd.Set(
+          fd.Schema.HASH,
+          rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
 
     self.stat_entries = []
     self.paths = [path1, path2]
@@ -219,8 +221,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     manifest_name = "test_prefix/MANIFEST"
 
     # Link 2 should be present, but the contents should be missing.
-    self.assertEqual(
-        names, sorted([link1_name, link1_dest, link2_name, manifest_name]))
+    self.assertEqual(names,
+                     sorted([link1_name, link1_dest, link2_name,
+                             manifest_name]))
 
     link_info = zip_fd.getinfo(link1_name)
     self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
@@ -244,8 +247,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
             0,
         "failed_files":
             1,
-        "failed_files_list":
-            [u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"]
+        "failed_files_list": [
+            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+        ]
     })
 
   def testIgnoresFilesNotMatchingPredicate(self):
@@ -273,8 +277,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
             1,
         "failed_files":
             0,
-        "ignored_files_list":
-            [u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"]
+        "ignored_files_list": [
+            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+        ]
     })
 
 

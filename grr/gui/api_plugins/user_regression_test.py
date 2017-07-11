@@ -589,8 +589,9 @@ class ApiGetGrrUserHandlerRegresstionTest(
           aff4_type=aff4_users.GRRUser,
           mode="w",
           token=self.token) as user_fd:
-        user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                    aff4_users.GUISettings(canary_mode=True))
+        user_fd.Set(
+            user_fd.Schema.GUI_SETTINGS,
+            aff4_users.GUISettings(canary_mode=True))
 
     self.Check("GetGrrUser")
 

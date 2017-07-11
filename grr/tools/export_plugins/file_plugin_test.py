@@ -52,8 +52,8 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
     with utils.TempDirectory() as tmpdir:
       plugin.Run(
           parser.parse_args(args=[
-              "--no_legacy_warning_pause", "--path", str(
-                  self.out.Add("testfile1")), "--output", tmpdir
+              "--no_legacy_warning_pause", "--path",
+              str(self.out.Add("testfile1")), "--output", tmpdir
           ]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
@@ -76,8 +76,8 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
     with utils.TempDirectory() as tmpdir:
       plugin.Run(
           parser.parse_args(args=[
-              "--no_legacy_warning_pause", "--path", str(
-                  self.out.Add("testdir")), "--output", tmpdir
+              "--no_legacy_warning_pause", "--path",
+              str(self.out.Add("testdir")), "--output", tmpdir
           ]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Add("testdir").Path()[1:])

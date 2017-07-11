@@ -373,8 +373,8 @@ class CloudBigTableDataStore(data_store.DataStore):
     if sync:
       self.CallWithRetry(row.commit, "write")
     else:
-      self.pool.map_async(self._WrapCallWithRetry,
-                          [((row.commit, "write"), {})])
+      self.pool.map_async(self._WrapCallWithRetry, [((row.commit, "write"),
+                                                     {})])
 
   def DeleteAttributes(self,
                        subject,
@@ -418,8 +418,8 @@ class CloudBigTableDataStore(data_store.DataStore):
       if sync:
         self.CallWithRetry(row.commit, "delete")
       else:
-        self.pool.map_async(self._WrapCallWithRetry,
-                            [((row.commit, "delete"), {})])
+        self.pool.map_async(self._WrapCallWithRetry, [((row.commit, "delete"),
+                                                       {})])
 
   def _TimestampRangeFromTuple(self, ts_tuple):
     start, end = ts_tuple
@@ -637,8 +637,8 @@ class CloudBigTableDataStore(data_store.DataStore):
       if max_results <= 0:
         break
       if result:
-        subject_results, max_results = self._GetSubjectResults(result,
-                                                               max_results)
+        subject_results, max_results = self._GetSubjectResults(
+            result, max_results)
         yield original_subject_map[
             result.row_key], self._SortResultsByAttrTimestampValue(
                 subject_results)
@@ -800,8 +800,8 @@ class CloudBigTableDataStore(data_store.DataStore):
         subject_results[attribute] = []
         for cell in cells:
           subject_results[attribute].append(
-              (self.DatetimeToMicroseconds(cell.timestamp),
-               self.Decode(attribute, cell.value)))
+              (self.DatetimeToMicroseconds(cell.timestamp), self.Decode(
+                  attribute, cell.value)))
 
           subject_results[attribute] = sorted(
               subject_results[attribute], key=lambda x: -x[0])

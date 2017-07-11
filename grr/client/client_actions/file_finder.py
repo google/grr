@@ -425,15 +425,15 @@ class FileFinderOS(actions.ActionPlugin):
 
   def ModificationTimeCondition(self, condition_obj, path, stat_obj, result):
     params = condition_obj.modification_time
-    return (
-        params.min_last_modified_time.AsSecondsFromEpoch() <= stat_obj.st_mtime
-        <= params.max_last_modified_time.AsSecondsFromEpoch())
+    return (params.min_last_modified_time.AsSecondsFromEpoch() <=
+            stat_obj.st_mtime <=
+            params.max_last_modified_time.AsSecondsFromEpoch())
 
   def AccessTimeCondition(self, condition_obj, path, stat_obj, result):
     params = condition_obj.access_time
-    return (
-        params.min_last_access_time.AsSecondsFromEpoch() <= stat_obj.st_atime <=
-        params.max_last_access_time.AsSecondsFromEpoch())
+    return (params.min_last_access_time.AsSecondsFromEpoch() <=
+            stat_obj.st_atime <=
+            params.max_last_access_time.AsSecondsFromEpoch())
 
   def InodeChangeTimeCondition(self, condition_obj, path, stat_obj, result):
     params = condition_obj.inode_change_time

@@ -65,7 +65,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     with utils.TempDirectory() as tmpdir:
       plugin.Run(
           parser.parse_args(args=[
-              "--path", str(collection_path), "--output", tmpdir,
+              "--path",
+              str(collection_path), "--output", tmpdir,
               "--no_legacy_warning_pause"
           ]))
 

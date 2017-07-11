@@ -82,8 +82,8 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
-                              (config, "Get", mock["Get"]),
+    return utils.MultiStubber((config, "GetRaw",
+                               mock["GetRaw"]), (config, "Get", mock["Get"]),
                               (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfig(self, sections):
@@ -143,8 +143,8 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
-                              (config, "Get", mock["Get"]),
+    return utils.MultiStubber((config, "GetRaw",
+                               mock["GetRaw"]), (config, "Get", mock["Get"]),
                               (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfigOption(self, stub_sections, name):

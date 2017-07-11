@@ -1494,8 +1494,7 @@ class GRRHTTPClient(object):
     client to exit.
     """
     while True:
-      if self.http_manager.consecutive_connection_errors > config_lib.CONFIG[
-          "Client.connection_error_limit"]:
+      if self.http_manager.consecutive_connection_errors > config_lib.CONFIG["Client.connection_error_limit"]:
         return
 
       # Check if there is a message from the nanny to be sent.

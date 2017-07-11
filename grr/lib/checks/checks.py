@@ -523,9 +523,9 @@ class CheckRegistry(object):
   def RegisterCheck(cls, check, source="unknown", overwrite_if_exists=False):
     """Adds a check to the registry, refresh the trigger to check map."""
     if not overwrite_if_exists and check.check_id in cls.checks:
-      raise DefinitionError("Check named %s already exists and "
-                            "overwrite_if_exists is set to False." %
-                            check.check_id)
+      raise DefinitionError(
+          "Check named %s already exists and "
+          "overwrite_if_exists is set to False." % check.check_id)
     check.loaded_from = source
     cls.checks[check.check_id] = check
     cls.triggers.Update(check.triggers, check)

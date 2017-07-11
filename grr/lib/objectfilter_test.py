@@ -317,11 +317,13 @@ class ObjectFilterTest(unittest.TestCase):
         objectfilter.InvalidNumberOfOperands,
         objectfilter.Context,
         arguments=[
-            "context", objectfilter.Equals(
+            "context",
+            objectfilter.Equals(
                 arguments=["path", "value"],
-                value_expander=self.value_expander), objectfilter.Equals(
-                    arguments=["another_path", "value"],
-                    value_expander=self.value_expander)
+                value_expander=self.value_expander),
+            objectfilter.Equals(
+                arguments=["another_path", "value"],
+                value_expander=self.value_expander)
         ],
         value_expander=self.value_expander)
     # "One imported_dll imports 2 functions AND one imported_dll imports
@@ -329,9 +331,10 @@ class ObjectFilterTest(unittest.TestCase):
     arguments = [
         objectfilter.Equals(
             ["imported_dlls.num_imported_functions", 1],
-            value_expander=self.value_expander), objectfilter.Contains(
-                ["imported_dlls.imported_functions", "RegQueryValueEx"],
-                value_expander=self.value_expander)
+            value_expander=self.value_expander),
+        objectfilter.Contains(
+            ["imported_dlls.imported_functions", "RegQueryValueEx"],
+            value_expander=self.value_expander)
     ]
     condition = objectfilter.AndFilter(arguments=arguments)
     # Without context, it matches because both filters match separately
@@ -357,9 +360,10 @@ class ObjectFilterTest(unittest.TestCase):
     condition = objectfilter.AndFilter(arguments=[
         objectfilter.Equals(
             arguments=["num_imported_functions", 1],
-            value_expander=self.value_expander), objectfilter.Contains(
-                ["imported_functions", "RegQueryValueEx"],
-                value_expander=self.value_expander)
+            value_expander=self.value_expander),
+        objectfilter.Contains(
+            ["imported_functions", "RegQueryValueEx"],
+            value_expander=self.value_expander)
     ])
     # "The same DLL imports 1 function AND it"s RegQueryValueEx"
     context = objectfilter.Context(
@@ -493,6 +497,7 @@ class ObjectFilterTest(unittest.TestCase):
   )
 )
 """
+
   # Altogether
   # There's an imported dll that imports OpenFileA AND
   # an imported DLL matching advapi32.dll that imports RegQueryValueExA AND

@@ -87,8 +87,8 @@ class HashList(rdfvalue.RDFBytes):
       yield self[i]
 
   def __getitem__(self, idx):
-    return rdfvalue.HashDigest(self._value[idx * self.HASH_SIZE:(idx + 1) *
-                                           self.HASH_SIZE])
+    return rdfvalue.HashDigest(
+        self._value[idx * self.HASH_SIZE:(idx + 1) * self.HASH_SIZE])
 
 
 class BlobImage(aff4.AFF4ImageBase):

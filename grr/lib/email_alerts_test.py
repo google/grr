@@ -104,8 +104,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertItemsEqual(from_address, c_from)
         self.assertItemsEqual(to_address_expected, c_to)
-        self.assertTrue("CC: testcc@%s,testcc2@%s" %
-                        (testdomain, testdomain) in message)
+        self.assertTrue("CC: testcc@%s,testcc2@%s" % (testdomain,
+                                                      testdomain) in message)
         self.assertTrue("Message-ID: %s" % email_msg_id)
 
       # Multiple address types, two cc, no default domain
@@ -124,8 +124,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertItemsEqual(from_address, c_from)
         self.assertItemsEqual(to_address_expected, c_to)
-        self.assertTrue("CC: testcc@%s,testcc2@%s" %
-                        (testdomain, testdomain) in message)
+        self.assertTrue("CC: testcc@%s,testcc2@%s" % (testdomain,
+                                                      testdomain) in message)
     finally:
       self.smtp_patcher.stop()
 

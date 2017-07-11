@@ -164,8 +164,8 @@ class CloudBigTableDataStoreTest(test_lib.GRRBaseTest):
 
   def testCommitWithRetryCompleteFailure(self):
     mock_operation = mock.MagicMock()
-    mock_operation.commit = mock.Mock(
-        side_effect=face.AbortionError(None, None, None, None))
+    mock_operation.commit = mock.Mock(side_effect=face.AbortionError(
+        None, None, None, None))
     with self.assertRaises(cloud_bigtable_data_store.AccessError):
       with mock.patch.object(time, "sleep") as mock_time:
         self.db.CallWithRetry(mock_operation.commit, "write")
@@ -201,8 +201,8 @@ class CloudBigTableDataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(result.end.tzname(), "UTC")
 
   def testTimestampRangeFromTuple(self):
-    result = self.db._TimestampRangeFromTuple(
-        (1477405013716002, 1477415013716002))
+    result = self.db._TimestampRangeFromTuple((1477405013716002,
+                                               1477415013716002))
     self.assertEqual(result.start.isoformat(),
                      "2016-10-25T14:16:53.716000+00:00")
     self.assertEqual(result.start.tzname(), "UTC")

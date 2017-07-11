@@ -68,8 +68,8 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
                                            ("main", "HostInformation")))
 
     if emails_left == 0:
-      additional_message = (self.too_many_mails_msg %
-                            self.state.args.emails_limit)
+      additional_message = (
+          self.too_many_mails_msg % self.state.args.emails_limit)
     else:
       additional_message = ""
 

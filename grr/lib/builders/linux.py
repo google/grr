@@ -56,8 +56,8 @@ class LinuxClientBuilder(build.ClientBuilder):
     shutil.copy(config_lib.Resource().Filter(
         "install_data/debian/dpkg_client/nanny.sh.in"), self.output_dir)
 
-    dpkg_dir = config_lib.CONFIG.Get("PyInstaller.dpkg_root",
-                                     context=self.context)
+    dpkg_dir = config_lib.CONFIG.Get(
+        "PyInstaller.dpkg_root", context=self.context)
 
     # Copy files needed for dpkg-buildpackage.
     shutil.copytree(
@@ -108,8 +108,8 @@ class CentosClientBuilder(LinuxClientBuilder):
   def CopyFiles(self):
     """This sets up the template directory."""
 
-    build_dir = config_lib.CONFIG.Get("PyInstaller.dpkg_root",
-                                      context=self.context)
+    build_dir = config_lib.CONFIG.Get(
+        "PyInstaller.dpkg_root", context=self.context)
     # Copy files needed for rpmbuild.
     shutil.move(
         os.path.join(build_dir, "debian"), os.path.join(build_dir, "rpmbuild"))

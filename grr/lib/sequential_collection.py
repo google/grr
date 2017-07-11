@@ -346,8 +346,8 @@ class IndexedSequentialCollection(SequentialCollection):
     if i > self._max_indexed and i % self.INDEX_SPACING == 0:
       # We only write the index if the timestamp is more than 5 minutes in the
       # past: hacky defense against a late write changing the count.
-      if ts[0] < (rdfvalue.RDFDatetime.Now() - self.INDEX_WRITE_DELAY
-                 ).AsMicroSecondsFromEpoch():
+      if ts[0] < (rdfvalue.RDFDatetime.Now() -
+                  self.INDEX_WRITE_DELAY).AsMicroSecondsFromEpoch():
         # We may be used in contexts were we don't have write access, so simply
         # give up in that case. TODO(user): Remove this when the ACL
         # system allows.

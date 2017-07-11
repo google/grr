@@ -80,8 +80,8 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
     wmi_dict = result.ToDict()
 
     try:
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join(
-          [chr(i) for i in wmi_dict["CreatorSID"]]))
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(
+          "".join([chr(i) for i in wmi_dict["CreatorSID"]]))
     except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
@@ -321,20 +321,20 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     _ = query, knowledge_base
 
     args = {"ifname": result["Description"]}
-    args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(":",
-                                                                          ""))
+    args["mac_address"] = binascii.unhexlify(
+        result["MACAddress"].replace(":", ""))
 
-    self._ConvertIPs([("IPAddress", "addresses"),
-                      ("DefaultIPGateway", "ip_gateway_list"),
+    self._ConvertIPs([("IPAddress", "addresses"), ("DefaultIPGateway",
+                                                   "ip_gateway_list"),
                       ("DHCPServer", "dhcp_server_list")], result, args)
 
     if "DHCPLeaseExpires" in result:
-      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(result[
-          "DHCPLeaseExpires"])
+      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
+          result["DHCPLeaseExpires"])
 
     if "DHCPLeaseObtained" in result:
-      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(result[
-          "DHCPLeaseObtained"])
+      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
+          result["DHCPLeaseObtained"])
 
     yield rdf_client.Interface(**args)
 

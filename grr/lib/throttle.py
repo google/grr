@@ -83,9 +83,8 @@ class FlowThrottler(object):
 
           # Raise if either the args are the same, or the args were empty, to
           # which None is the equivalent.
-          if flow_obj.args == flow_args or (
-              isinstance(flow_obj.args, flow.EmptyFlowArgs) and
-              flow_args is None):
+          if flow_obj.args == flow_args or (isinstance(
+              flow_obj.args, flow.EmptyFlowArgs) and flow_args is None):
             raise ErrorFlowDuplicate(
                 "Identical %s already run on %s at %s" %
                 (flow_name, client_id, flow_context.create_time),

@@ -162,8 +162,8 @@ class FileStoreHash(rdfvalue.RDFURN):
     relative_name = self.RelativeName(HashFileStore.PATH)
     if not relative_name:
       raise ValueError("URN %s is not a hash file store urn. Hash file store "
-                       "urn should start with %s." %
-                       (str(self), str(HashFileStore.PATH)))
+                       "urn should start with %s." % (str(self),
+                                                      str(HashFileStore.PATH)))
     relative_path = relative_name.split("/")
     if (len(relative_path) != 3 or
         relative_path[0] not in HashFileStore.HASH_TYPES or
@@ -583,8 +583,7 @@ class NSRLFileStore(HashFileStore):
     urns = {self.PATH.Add(h): h for h in hashes}
     return {
         urns[obj.urn]: obj
-        for obj in aff4.FACTORY.MultiOpen(
-            urns, token=self.token)
+        for obj in aff4.FACTORY.MultiOpen(urns, token=self.token)
     }
 
   def CheckHashes(self, hashes, unused_external=True):

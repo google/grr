@@ -389,8 +389,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.default_output_plugin":
-            "DummyOutputPlugin"
+        "AdminUI.new_hunt_wizard.default_output_plugin": "DummyOutputPlugin"
     }):
       self.Open("/#main=ManageHunts")
       self.Click("css=button[name=NewHunt]")
@@ -513,12 +512,13 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.TSK,)),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(
-                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-                regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client", attribute_regex="GRR"))
-        ]),
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(
+            rules=[
+                rdf_foreman.ForemanClientRule(
+                    rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                    regex=rdf_foreman.ForemanRegexClientRule(
+                        attribute_name="GRR client", attribute_regex="GRR"))
+            ]),
         output_plugins=[
             output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
@@ -830,11 +830,12 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt",
               pathtype=rdf_paths.PathSpec.PathType.TSK,)),
-          client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
-              rdf_foreman.ForemanClientRule(
-                  rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                  os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
-          ]),
+          client_rule_set=rdf_foreman.ForemanClientRuleSet(
+              rules=[
+                  rdf_foreman.ForemanClientRule(
+                      rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+                      os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+              ]),
           token=self.token)
 
     self.Open("/#main=ManageHunts")

@@ -438,12 +438,13 @@ class PackedVersionedCollection(RDFValueCollection):
   @classmethod
   def ScheduleNotification(cls, urn, sync=False, token=None):
     """Schedule notification for a given urn."""
-    data_store.DB.Set(cls.notification_queue,
-                      cls.index_format % urn,
-                      urn,
-                      replace=True,
-                      token=token,
-                      sync=sync)
+    data_store.DB.Set(
+        cls.notification_queue,
+        cls.index_format % urn,
+        urn,
+        replace=True,
+        token=token,
+        sync=sync)
 
   @classmethod
   def QueryNotifications(cls, timestamp=None, token=None):
@@ -768,8 +769,8 @@ class PackedVersionedCollection(RDFValueCollection):
       compacted_count += 1
 
       if len(current_batch) >= self.COMPACTION_BATCH_SIZE:
-        batch_urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" %
-                                                     utils.PRNG.GetULong())
+        batch_urn = rdfvalue.RDFURN("aff4:/tmp").Add(
+            "%X" % utils.PRNG.GetULong())
         batches_urns.append(batch_urn)
 
         buf = cStringIO.StringIO()

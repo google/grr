@@ -525,7 +525,8 @@ class ExportTest(ExportTestBase):
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET,
                     packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
-                ), rdf_client.NetworkAddress(
+                ),
+                rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET,
                     packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
                 rdf_client.NetworkAddress(
@@ -551,8 +552,8 @@ class ExportTest(ExportTestBase):
         addresses=[
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
-            ), rdf_client.NetworkAddress(
+                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),),
+            rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
                 packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
             rdf_client.NetworkAddress(

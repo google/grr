@@ -157,13 +157,11 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
       self.AddFile("/Ext2IFS_1_10b.exe")
 
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=41e6))
+        filestore.HashFileStore.ListHashes(token=self.token, age=41e6))
     self.assertEqual(len(hashes), 0)
 
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=43e6))
+        filestore.HashFileStore.ListHashes(token=self.token, age=43e6))
     self.assertEqual(len(hashes), 5)
 
     hashes = list(filestore.HashFileStore.ListHashes(token=self.token))
@@ -172,8 +170,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
   def testHashAgeUpdatedWhenNewHitAddedWithinAFF4IndexCacheAge(self):
     # Check that there are no hashes.
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(41e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
@@ -185,12 +182,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
           token=self.token)
 
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(41e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
     self.assertTrue(hashes)
     hits = list(
-        filestore.HashFileStore.GetClientsForHash(
-            hashes[0], token=self.token))
+        filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
@@ -204,21 +199,18 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     # Check that now we have two hits for the previosly added hash.
     hits = list(
-        filestore.HashFileStore.GetClientsForHash(
-            hashes[0], token=self.token))
+        filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
     self.assertEqual(len(hits), 2)
 
     # Check that new hit doesn't affect hash age.
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(43e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(43e6, 1e10)))
     self.assertFalse(hashes)
 
   def testHashAgeUpdatedWhenNewHitAddedAfterAFF4IndexCacheAge(self):
     # Check that there are no hashes.
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(41e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
@@ -230,12 +222,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
           token=self.token)
 
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(41e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
     self.assertTrue(hashes)
     hits = list(
-        filestore.HashFileStore.GetClientsForHash(
-            hashes[0], token=self.token))
+        filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
@@ -249,15 +239,13 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     # Check that now we have two hits for the previosly added hash.
     hits = list(
-        filestore.HashFileStore.GetClientsForHash(
-            hashes[0], token=self.token))
+        filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
 
     self.assertEqual(len(hits), 2)
 
     # Check that new hit affects hash age.
     hashes = list(
-        filestore.HashFileStore.ListHashes(
-            token=self.token, age=(43e6, 1e10)))
+        filestore.HashFileStore.ListHashes(token=self.token, age=(43e6, 1e10)))
     self.assertTrue(hashes)
 
   def testGetClientsForHash(self):
@@ -328,12 +316,12 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
             [hash1, hash2], token=self.token))
     self.assertEqual(len(hits), 2)
     self.assertListEqual(hits[hash1], [
-        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
-            "winexec_img.dd/Ext2IFS_1_10b.exe")
+        self.client_id.Add("fs/tsk").Add(
+            self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")
     ])
     self.assertListEqual(hits[hash2], [
-        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
-            "winexec_img.dd/idea.dll")
+        self.client_id.Add("fs/tsk").Add(
+            self.base_path).Add("winexec_img.dd/idea.dll")
     ])
 
   def testGetClientsForHashesWithAge(self):
@@ -495,8 +483,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     hits = dict(nsrl_fs.GetClientsForHashes([self.sha1_hash], token=self.token))
     self.assertEqual(len(hits), 1)
     self.assertListEqual(hits[self.sha1_hash], [
-        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
-            "winexec_img.dd/idea.dll")
+        self.client_id.Add("fs/tsk").Add(
+            self.base_path).Add("winexec_img.dd/idea.dll")
     ])
 
 

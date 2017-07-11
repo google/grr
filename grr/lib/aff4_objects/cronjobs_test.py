@@ -242,8 +242,8 @@ class CronTest(test_lib.AFF4ObjectTest):
       now = rdfvalue.RDFDatetime.Now()
 
       with mock.patch.object(
-          random, "randint",
-          side_effect=[100 * 1000 * 1000, 123 * 1000 * 1000]):
+          random, "randint", side_effect=[100 * 1000 * 1000,
+                                          123 * 1000 * 1000]):
         start1 = cronjobs.GetStartTime(TestSystemCron)
         start2 = cronjobs.GetStartTime(TestSystemCron)
 

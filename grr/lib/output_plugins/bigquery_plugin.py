@@ -122,8 +122,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
     if delimiter:
-      output_file.write("{0}{1}".format(delimiter,
-                                        json.dumps(self._GetNestedDict(value))))
+      output_file.write(
+          "{0}{1}".format(delimiter, json.dumps(self._GetNestedDict(value))))
     else:
       output_file.write(json.dumps(self._GetNestedDict(value)))
 
@@ -159,8 +159,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteToAFF4(self, job_id, schema, gzip_filehandle_parent, token):
     """When upload to bigquery fails, write to AFF4."""
-    with self._CreateOutputStream(".".join((job_id, "schema"
-                                           ))) as schema_stream:
+    with self._CreateOutputStream(
+        ".".join((job_id, "schema"))) as schema_stream:
 
       logging.error("Upload to bigquery failed, will write schema to %s",
                     schema_stream.urn)
@@ -206,8 +206,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       else:
         self.state.output_jobids[tracker.output_type] = job_id
 
-      if self.state.failure_count >= config_lib.CONFIG[
-          "BigQuery.max_upload_failures"]:
+      if self.state.failure_count >= config_lib.CONFIG["BigQuery.max_upload_failures"]:
         logging.error("Exceeded BigQuery.max_upload_failures for %s. Giving up "
                       "on BigQuery and writing to AFF4.", self.state.source_urn)
         self._WriteToAFF4(job_id, tracker.schema,
@@ -236,14 +235,10 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # Nested structures are indicated by setting type "RECORD"
       if type_info.__class__.__name__ == "ProtoEmbedded":
         fields_array.append({
-            "name":
-                type_info.name,
-            "type":
-                "RECORD",
-            "description":
-                type_info.description,
-            "fields":
-                self.RDFValueToBigQuerySchema(value.Get(type_info.name))
+            "name": type_info.name,
+            "type": "RECORD",
+            "description": type_info.description,
+            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name))
         })
       else:
         # If we don't have a specific map use string.

@@ -36,6 +36,7 @@ class Error(Exception):
 class UnsupportedOSVersionError(Error):
   """This action not supported on this os version."""
 
+
 # struct sockaddr_dl {
 #       u_char  sdl_len;        /* Total length of sockaddr */
 #       u_char  sdl_family;     /* AF_LINK */
@@ -64,6 +65,7 @@ class Sockaddrdl(ctypes.Structure):
       ("sdl_slen", ctypes.c_ubyte),
       ("sdl_data", ctypes.c_ubyte * 24),
   ]
+
 
 # struct sockaddr_in {
 #         __uint8_t       sin_len;

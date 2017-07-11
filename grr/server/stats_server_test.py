@@ -47,8 +47,8 @@ class StatsServerTest(test_lib.GRRBaseTest):
     self.assertEqual(varz_json["api_method_latency"]["value"].keys(),
                      ["Foo:http:SUCCESS"])
     self.assertEqual(
-        set(varz_json["api_method_latency"]["value"]["Foo:http:SUCCESS"].keys(
-        )), set(["sum", "bins_heights", "counter"]))
+        set(varz_json["api_method_latency"]["value"]["Foo:http:SUCCESS"]
+            .keys()), set(["sum", "bins_heights", "counter"]))
 
 
 def main(args):

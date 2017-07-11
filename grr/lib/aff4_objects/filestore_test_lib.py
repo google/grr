@@ -30,8 +30,7 @@ def AddFileToFileStore(pathspec=None, client_id=None, token=None):
   auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
   events.Events.PublishEvent(
       "FileStore.AddFileToStore",
-      rdf_flows.GrrMessage(
-          payload=urn, auth_state=auth_state),
+      rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
       token=token)
   worker = test_lib.MockWorker(token=token)
   worker.Simulate()

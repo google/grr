@@ -230,8 +230,7 @@ class UpdateConfiguration(actions.ActionPlugin):
                       ",".join(disallowed_fields))
 
     filtered_arg = {
-        field:
-            value
+        field: value
         for field, value in smart_arg.items()
         if field in UpdateConfiguration.UPDATABLE_FIELDS
     }
@@ -335,8 +334,7 @@ class GetClientStatsAuto(GetClientStats):
       response.DownSample()
     self.grr_worker.SendReply(
         response,
-        session_id=rdfvalue.SessionID(
-            queue=queues.STATS, flow_name="Stats"),
+        session_id=rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
         response_id=0,
         request_id=0,
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,

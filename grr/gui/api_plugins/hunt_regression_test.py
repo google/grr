@@ -187,9 +187,8 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
   def Run(self):
     client_ids = self.SetupClients(1)
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
-                                                              self.token))
-                         for client_id in client_ids])
+    client_mocks = dict([(client_id, test_lib.CrashClientMock(
+        client_id, self.token)) for client_id in client_ids])
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:

@@ -125,9 +125,9 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertFalse(event is None)
 
     self.assertEqual(event.user, self.token.username)
-    self.assertEqual(
-        event.description, "%s.drei,%s.ein,%s.zwei" %
-        (self.token.username, self.token.username, self.token.username))
+    self.assertEqual(event.description, "%s.drei,%s.ein,%s.zwei" %
+                     (self.token.username, self.token.username,
+                      self.token.username))
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):

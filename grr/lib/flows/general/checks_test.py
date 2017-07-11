@@ -72,8 +72,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
     results = {
-        r.check_id:
-            r
+        r.check_id: r
         for _, r in send_reply.args if isinstance(r, checks.CheckResult)
     }
     return session, results

@@ -249,8 +249,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "CreateGlobalFlow"])  # pyformat: disable
 
   def testAllGlobalFlowsMethodsAreAccessChecked(self):
-    args = api_flow.ApiCreateFlowArgs(
-        flow=api_flow.ApiFlow(name="ListProcesses"))
+    args = api_flow.ApiCreateFlowArgs(flow=api_flow.ApiFlow(
+        name="ListProcesses"))
     self.CheckMethodIsAccessChecked(
         self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
 

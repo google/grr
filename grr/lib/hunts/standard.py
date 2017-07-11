@@ -214,9 +214,9 @@ class ModifyHuntFlow(flow.GRRFlow):
                                                     self.args.expiry_time))
 
       if runner.runner_args.client_limit != self.args.client_limit:
-        changes.append(
-            "Client Limit: Old=%s, New=%s" %
-            (runner.runner_args.client_limit, self.args.client_limit))
+        changes.append("Client Limit: Old=%s, New=%s" %
+                       (runner.runner_args.client_limit,
+                        self.args.client_limit))
 
       description = ", ".join(changes)
       event = events.AuditEvent(
@@ -388,8 +388,8 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
               (plugin_id, plugin_descriptor, plugin_obj, hunt))
         else:
           for cls in plugin_verifiers_classes:
-            results.setdefault(cls, []).append(
-                (plugin_id, plugin_descriptor, plugin_obj, hunt))
+            results.setdefault(cls, []).append((plugin_id, plugin_descriptor,
+                                                plugin_obj, hunt))
 
     return results
 

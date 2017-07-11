@@ -52,7 +52,7 @@ args = parser.parse_args()
 
 
 class WindowsTemplateBuilder(object):
-  """Build windows templates and components."""
+  """Build windows templates."""
 
   # Python paths chosen to match appveyor:
   # http://www.appveyor.com/docs/installed-software#python
@@ -88,12 +88,9 @@ class WindowsTemplateBuilder(object):
     os.makedirs(self.BUILDDIR)
     os.makedirs(args.output_dir)
 
-    # Create virtualenvs and make sure virtualenv itself is installed inside
-    # them (otherwise component build fails).
+    # Create virtualenvs.
     subprocess.check_call([self.VIRTUALENV_BIN64, self.VIRTUALENV64])
     subprocess.check_call([self.VIRTUALENV_BIN32, self.VIRTUALENV32])
-    subprocess.check_call([self.PIP64, "install", "--upgrade", "virtualenv"])
-    subprocess.check_call([self.PIP32, "install", "--upgrade", "virtualenv"])
 
     # Currently this should do nothing as we will already have a modern pip
     # installed, but we leave this here so if we get broken by pip again it's
@@ -121,8 +118,8 @@ class WindowsTemplateBuilder(object):
         "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs", "--no-make-ui-files",
         "--no-sync-artifacts"
     ])
-    return glob.glob(os.path.join(self.BUILDDIR,
-                                  "grr-response-core-*.zip")).pop()
+    return glob.glob(
+        os.path.join(self.BUILDDIR, "grr-response-core-*.zip")).pop()
 
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
@@ -130,8 +127,8 @@ class WindowsTemplateBuilder(object):
         self.VIRTUALENV_PYTHON64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % self.BUILDDIR
     ])
-    return glob.glob(os.path.join(self.BUILDDIR,
-                                  "grr-response-client-*.zip")).pop()
+    return glob.glob(
+        os.path.join(self.BUILDDIR, "grr-response-client-*.zip")).pop()
 
   def CopySdistsFromCloudStorage(self):
     """Use gsutil to copy sdists from cloud storage."""
@@ -140,8 +137,8 @@ class WindowsTemplateBuilder(object):
         "gs://%s/grr-response-core-*.zip" % args.cloud_storage_sdist_bucket,
         self.BUILDDIR
     ])
-    core = glob.glob(os.path.join(self.BUILDDIR,
-                                  "grr-response-core-*.zip")).pop()
+    core = glob.glob(
+        os.path.join(self.BUILDDIR, "grr-response-core-*.zip")).pop()
 
     subprocess.check_call([
         args.gsutil, "cp",
@@ -171,24 +168,14 @@ class WindowsTemplateBuilder(object):
         args.output_dir
     ])
 
-  def BuildComponents(self):
-    subprocess.check_call([
-        self.GRR_CLIENT_BUILD64, "--verbose", "build_components", "--output",
-        args.output_dir
-    ])
-    subprocess.check_call([
-        self.GRR_CLIENT_BUILD32, "--verbose", "build_components", "--output",
-        args.output_dir
-    ])
-
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
     dummy_config = os.path.join(
         args.grr_src, "grr/config/grr-response-test/test_data/dummyconfig.yaml")
-    template_i386 = glob.glob(os.path.join(args.output_dir, "*_i386*.zip")).pop(
-    )
-    template_amd64 = glob.glob(os.path.join(args.output_dir,
-                                            "*_amd64*.zip")).pop()
+    template_i386 = glob.glob(
+        os.path.join(args.output_dir, "*_i386*.zip")).pop()
+    template_amd64 = glob.glob(
+        os.path.join(args.output_dir, "*_amd64*.zip")).pop()
 
     # We put the installers in the output dir so they get stored as build
     # artifacts and we can test the 32bit build manually.
@@ -250,7 +237,7 @@ class WindowsTemplateBuilder(object):
                           ["gs://%s/" % args.cloud_storage_output_bucket])
 
   def Build(self):
-    """Build templates and components."""
+    """Build templates."""
     self.Clean()
     if args.cloud_storage_sdist_bucket:
       core_sdist, client_sdist = self.CopySdistsFromCloudStorage()
@@ -262,7 +249,6 @@ class WindowsTemplateBuilder(object):
     self.InstallGRR(core_sdist)
     self.InstallGRR(client_sdist)
     self.BuildTemplates()
-    self.BuildComponents()
     if args.test_repack_install:
       self._RepackTemplates()
       self._InstallInstallers()

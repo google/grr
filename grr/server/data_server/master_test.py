@@ -153,11 +153,11 @@ class MasterTest(test_lib.GRRBaseTest):
     self.assertTrue(m.AllRegistered())
 
     for port in self.ports:
-      for response_sequence in [
-          [constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_AUTHORIZED],
-          [constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_ALLOWED],
-          [constants.RESPONSE_OK, constants.RESPONSE_NOT_MASTER_SERVER]
-      ]:
+      for response_sequence in [[
+          constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_AUTHORIZED
+      ], [constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_ALLOWED], [
+          constants.RESPONSE_OK, constants.RESPONSE_NOT_MASTER_SERVER
+      ]]:
 
         response_mocks = []
         for response_status in response_sequence:

@@ -303,8 +303,8 @@ class GRRUser(aff4.AFF4Object):
         token=self.token)
     current_notifications = storage.GetNotifications()
 
-    shown_notifications = self.Get(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS,
-                                   default=GlobalNotificationSet())
+    shown_notifications = self.Get(
+        self.Schema.SHOWN_GLOBAL_NOTIFICATIONS, default=GlobalNotificationSet())
 
     result = []
     for notification in current_notifications:

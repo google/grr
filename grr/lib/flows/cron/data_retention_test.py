@@ -46,8 +46,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
           token=self.token)
 
     hunts_urns = list(
-        aff4.FACTORY.Open(
-            "aff4:/hunts", token=self.token).ListChildren())
+        aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
     self.assertEqual(len(hunts_urns), 10)
 
   def testDeletesHuntsWithExpirationDateOlderThanGivenAge(self):
@@ -62,8 +61,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       hunts_urns = list(
-          aff4.FACTORY.Open(
-              "aff4:/hunts", token=self.token).ListChildren())
+          aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
       self.assertEqual(len(hunts_urns), 2)
 
       for hunt_urn in hunts_urns:
@@ -121,8 +119,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
             token=self.token)
 
       hunts_urns = list(
-          aff4.FACTORY.Open(
-              "aff4:/hunts", token=self.token).ListChildren())
+          aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
       self.assertEqual(len(hunts_urns), 3)
 
 
@@ -248,8 +245,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
           token=self.token)
 
     tmp_urns = list(
-        aff4.FACTORY.Open(
-            "aff4:/tmp", token=self.token).ListChildren())
+        aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
     self.assertEqual(len(tmp_urns), 10)
 
   def testDeletesTempWithAgeOlderThanGivenAge(self):
@@ -265,8 +261,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
         latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       tmp_urns = list(
-          aff4.FACTORY.Open(
-              "aff4:/tmp", token=self.token).ListChildren())
+          aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
       self.assertEqual(len(tmp_urns), 5)
 
       for tmp_urn in tmp_urns:
@@ -293,8 +288,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
             token=self.token)
 
       tmp_urns = list(
-          aff4.FACTORY.Open(
-              "aff4:/tmp", token=self.token).ListChildren())
+          aff4.FACTORY.Open("aff4:/tmp", token=self.token).ListChildren())
       self.assertEqual(len(tmp_urns), 3)
 
 

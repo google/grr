@@ -40,8 +40,8 @@ class FileStoreAFF4Object(aff4.AFF4Stream):
   def file_handle(self):
     if self._file_handle is None:
       file_id = self.Get(self.Schema.FILE_ID)
-      file_store = UploadFileStore.GetPlugin(config_lib.CONFIG[
-          "Frontend.upload_store"])()
+      file_store = UploadFileStore.GetPlugin(
+          config_lib.CONFIG["Frontend.upload_store"])()
       self._file_handle = file_store.OpenForReading(file_id)
     return self._file_handle
 

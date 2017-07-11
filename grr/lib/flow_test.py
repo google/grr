@@ -946,10 +946,12 @@ class GeneralFlowsTest(BasicFlowTest):
     # Start some flows with different priorities.
     # pyformat: disable
     args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
-            (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
-            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+             "medium priority"), (rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
+                                  "low priority2"),
+            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY,
+             "high priority"), (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+                                "medium priority2")]
     # pyformat: enable
 
     for (priority, msg) in args:
@@ -987,10 +989,12 @@ class GeneralFlowsTest(BasicFlowTest):
     # Start some flows with different priorities.
     # pyformat: disable
     args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
-            (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
-            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
-            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+             "medium priority"), (rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
+                                  "low priority2"),
+            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY,
+             "high priority"), (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+                                "medium priority2")]
     # pyformat: enable
 
     server_result = []

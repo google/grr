@@ -164,8 +164,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       # TODO(user): Collect this during discovery from the registry.
       # HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\
       # Value: SystemRoot
-      "systemroot":
-          "c:\\Windows"
+      "systemroot": "c:\\Windows"
   }
 
   # Override any system formatters with path_args.

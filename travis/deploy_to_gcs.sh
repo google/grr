@@ -27,7 +27,6 @@ set -e
 source "${HOME}/INSTALL/bin/activate"
 
 grr_client_build build --output built_templates
-grr_client_build build_components --output built_templates
 
 # We only have one template on linux or OS X so using *.zip is safe here
 grr_client_build --verbose --secondary_configs grr/config/grr-response-test/test_data/dummyconfig.yaml repack --template built_templates/*.zip --output_dir built_templates/

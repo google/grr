@@ -51,8 +51,8 @@ def _ZeroPad(addr_string):
   chunks = addr_string.split(":")
   total_length = len(chunks)
   if total_length > 8:
-    raise socket.error("Too many address chunks in %s, expected 8" %
-                       addr_string)
+    raise socket.error(
+        "Too many address chunks in %s, expected 8" % addr_string)
 
   double_colon = False
   addr_array = []
@@ -172,6 +172,7 @@ def InetNtoP(protocol, packed_bytes):
       result_str = result_str.replace(largest_zero_str, "::", 1)
 
   return result_str
+
 
 # If the implementation supports it, just use the native functions.
 # pylint: disable=invalid-name

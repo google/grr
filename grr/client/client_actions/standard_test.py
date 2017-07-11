@@ -214,8 +214,8 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         dest_dir=self.temp_dir,
         gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
-    hash_out = hashlib.sha1(open(result.dest_path.path, "rb").read()).hexdigest(
-    )
+    hash_out = hashlib.sha1(
+        open(result.dest_path.path, "rb").read()).hexdigest()
     self.assertEqual(self.hash_in, hash_out)
 
   def testCopyPathToFileLimitLength(self):

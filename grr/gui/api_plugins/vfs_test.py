@@ -688,11 +688,10 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         next_chunk = next(result.GenerateContent()).strip()
         timestamp = rdfvalue.RDFDatetime.Now()
         if i == 4:  # The first row includes the column headings.
-          self.assertEqual(next_chunk,
-                           "Timestamp,Datetime,Message,Timestamp_desc\r\n"
-                           "%d,%s,%s,MODIFICATION" %
-                           (timestamp.AsMicroSecondsFromEpoch(), str(timestamp),
-                            self.file_path))
+          self.assertEqual(
+              next_chunk, "Timestamp,Datetime,Message,Timestamp_desc\r\n"
+              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicroSecondsFromEpoch(),
+                                         str(timestamp), self.file_path))
         else:
           self.assertEqual(next_chunk, "%d,%s,%s,MODIFICATION" %
                            (timestamp.AsMicroSecondsFromEpoch(), str(timestamp),

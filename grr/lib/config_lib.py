@@ -259,8 +259,8 @@ class Resource(ConfigFilter):
     if target and os.access(target, os.R_OK):
       return target
 
-    raise FilterError("Unable to find resource %s while interpolating: " %
-                      filename_spec)
+    raise FilterError(
+        "Unable to find resource %s while interpolating: " % filename_spec)
 
 
 
@@ -704,8 +704,8 @@ class StringInterpolator(lexer.Lexer):
     # This function is called when we see close ) and the stack depth has to
     # exactly match the number of (.
     if len(self.stack) <= 1:
-      raise lexer.ParseError("Unbalanced parenthesis: Can not expand '%s'" %
-                             self.processed_buffer)
+      raise lexer.ParseError(
+          "Unbalanced parenthesis: Can not expand '%s'" % self.processed_buffer)
 
     # This is the full parameter name: e.g. Logging.path
     parameter_name = self.stack.pop(-1)
@@ -927,8 +927,8 @@ class GrrConfigManager(object):
     """
     if context_string not in self.context:
       if context_string not in self.valid_contexts:
-        raise InvalidContextError("Invalid context specified: %s" %
-                                  context_string)
+        raise InvalidContextError(
+            "Invalid context specified: %s" % context_string)
 
       self.context.append(context_string)
       self.context_descriptions[context_string] = description
@@ -951,8 +951,8 @@ class GrrConfigManager(object):
     if self.writeback is None:
       logging.warn("Attempting to modify a read only config object.")
     if name in self.constants:
-      raise ConstModificationError("Attempting to modify constant value %s" %
-                                   name)
+      raise ConstModificationError(
+          "Attempting to modify constant value %s" % name)
 
     self.writeback_data[name] = value
     self.FlushCache()
@@ -976,8 +976,8 @@ class GrrConfigManager(object):
       logging.warn("Attempting to modify a read only config object for %s.",
                    name)
     if name in self.constants:
-      raise ConstModificationError("Attempting to modify constant value %s" %
-                                   name)
+      raise ConstModificationError(
+          "Attempting to modify constant value %s" % name)
 
     writeback_data = self.writeback_data
 
@@ -1170,8 +1170,8 @@ class GrrConfigManager(object):
       clone_parser = clone.LoadSecondaryConfig(file_to_load)
       # If an include file is specified but it was not found, raise an error.
       if not clone_parser.parsed:
-        raise ConfigFileNotFound("Unable to load include file %s" %
-                                 file_to_load)
+        raise ConfigFileNotFound(
+            "Unable to load include file %s" % file_to_load)
 
     self.MergeData(clone.raw_data)
     self.files.extend(clone.files)

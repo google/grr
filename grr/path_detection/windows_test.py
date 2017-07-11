@@ -79,10 +79,7 @@ class EnvVarsPostProcessorTest(test_lib.GRRBaseTest):
 
   def testReplacesTwoVariables(self):
     """Test it correctly replaces two variables."""
-    processor = windows.EnvVarsPostProcessor({
-        "foo": "bar",
-        "blah": "blahblah"
-    })
+    processor = windows.EnvVarsPostProcessor({"foo": "bar", "blah": "blahblah"})
     self.assertEqual(
         processor.Process(r"C:\WINDOWS\%foo%\%blah%\something"),
         [r"C:\WINDOWS\bar\blahblah\something"])
@@ -171,7 +168,9 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
 
   def testReplacesEnvironmentVariable(self):
     """Test it replaces environment variables."""
-    mapping = {"programfiles": r"C:\Program Files",}
+    mapping = {
+        "programfiles": r"C:\Program Files",
+    }
     fixture = [(r"%ProgramFiles%\Realtek\Audio\blah.exe -s",
                 r"C:\Program Files\Realtek\Audio\blah.exe"),
                (r"'%ProgramFiles%\Realtek\Audio\blah.exe' -s",

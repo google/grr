@@ -65,8 +65,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(100, len(results_1))
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
-        "45m")):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                           rdfvalue.Duration("45m")):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
         results_2 = queue.ClaimRecords()
@@ -92,8 +92,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
     # Wait past the default claim length, to make sure that delete actually did
     # something.
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
-        "45m")):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                           rdfvalue.Duration("45m")):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
         results = queue.ClaimRecords()
@@ -177,26 +177,24 @@ class QueueTest(test_lib.AFF4ObjectTest):
           subject, [queue.VALUE_ATTRIBUTE], token=self.token)
     data_store.DB.Flush()
 
-    self.assertEqual(
-        100,
-        sum(1
-            for _ in data_store.DB.ScanAttribute(
-                queue.urn.Add("Records"),
-                queue.LOCK_ATTRIBUTE,
-                token=self.token)))
+    self.assertEqual(100,
+                     sum(1
+                         for _ in data_store.DB.ScanAttribute(
+                             queue.urn.Add("Records"),
+                             queue.LOCK_ATTRIBUTE,
+                             token=self.token)))
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       queue.ClaimRecords()
     data_store.DB.Flush()
 
-    self.assertEqual(
-        0,
-        sum(1
-            for _ in data_store.DB.ScanAttribute(
-                queue.urn.Add("Records"),
-                queue.LOCK_ATTRIBUTE,
-                token=self.token)))
+    self.assertEqual(0,
+                     sum(1
+                         for _ in data_store.DB.ScanAttribute(
+                             queue.urn.Add("Records"),
+                             queue.LOCK_ATTRIBUTE,
+                             token=self.token)))
 
 
 def main(argv):

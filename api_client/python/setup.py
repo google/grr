@@ -70,8 +70,7 @@ def compile_protos():
   # Only compile protobufs if we're inside GRR source tree.
   if (not os.path.exists(
       os.path.join(THIS_DIRECTORY, "..", "..", "makefile.py")) or
-      not os.path.exists(
-          os.path.join(THIS_DIRECTORY, "..", "..", "..", "grr"))):
+      not os.path.exists(os.path.join(THIS_DIRECTORY, "..", "..", "..", "grr"))):
     return
 
   # Clean and recompile the protobufs.

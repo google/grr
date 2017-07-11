@@ -25,8 +25,8 @@ class TestRekallViewer(gui_test_lib.GRRSeleniumTest,
     request.plugins = [
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
-            plugin="pslist",
-            args=dict(method=["PsActiveProcessHead", "CSRSS"])),
+            plugin="pslist", args=dict(method=["PsActiveProcessHead",
+                                               "CSRSS"])),
         rdf_rekall_types.PluginRequest(plugin="modules")
     ]
 

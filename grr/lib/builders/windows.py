@@ -93,28 +93,26 @@ class WindowsClientBuilder(build.ClientBuilder):
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
     self.nanny_dir = os.path.join(self.build_dir, "grr", "client", "nanny")
-    nanny_src_dir = config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
-                                          context=self.context)
+    nanny_src_dir = config_lib.CONFIG.Get(
+        "ClientBuilder.nanny_source_dir", context=self.context)
     logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
                  self.nanny_dir)
 
     shutil.copytree(
-        config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
-                              context=self.context),
+        config_lib.CONFIG.Get(
+            "ClientBuilder.nanny_source_dir", context=self.context),
         self.nanny_dir)
 
-    build_type = config_lib.CONFIG.Get("ClientBuilder.build_type",
-                                       context=self.context)
+    build_type = config_lib.CONFIG.Get(
+        "ClientBuilder.build_type", context=self.context)
 
-    vs_arch = config_lib.CONFIG.Get("ClientBuilder.vs_arch",
-                                    default=None,
-                                    context=self.context)
+    vs_arch = config_lib.CONFIG.Get(
+        "ClientBuilder.vs_arch", default=None, context=self.context)
 
     # We have to set up the Visual Studio environment first and then call
     # msbuild.
-    env_script = config_lib.CONFIG.Get("ClientBuilder.vs_env_script",
-                                       default=None,
-                                       context=self.context)
+    env_script = config_lib.CONFIG.Get(
+        "ClientBuilder.vs_env_script", default=None, context=self.context)
 
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
       # Visual Studio is not installed. We just use pre-built binaries in that

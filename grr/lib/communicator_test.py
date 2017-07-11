@@ -102,10 +102,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(1, 11):
-      self.assertEqual(
-          decoded_messages[i - 1].session_id,
-          rdfvalue.SessionID(
-              base="aff4:/flows", queue=queues.FLOWS, flow_name=i))
+      self.assertEqual(decoded_messages[i - 1].session_id,
+                       rdfvalue.SessionID(
+                           base="aff4:/flows", queue=queues.FLOWS, flow_name=i))
 
     return decoded_messages
 
@@ -170,8 +169,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     new_client = self.MakeClientAFF4Record()
     self.assertEqual(
         stats.STATS.GetMetricValue(
-            "client_pings_by_label", fields=["testlabel"]),
-        0)
+            "client_pings_by_label", fields=["testlabel"]), 0)
 
     with aff4.FACTORY.Open(
         new_client.urn, mode="rw", token=self.token) as client_object:
@@ -183,8 +181,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.ClientServerCommunicate(timestamp=now)
       self.assertEqual(
           stats.STATS.GetMetricValue(
-              "client_pings_by_label", fields=["testlabel"]),
-          1)
+              "client_pings_by_label", fields=["testlabel"]), 1)
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""
@@ -328,8 +325,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
 
-    certificate = self.ClientCertFromPrivateKey(config_lib.CONFIG[
-        "Client.private_key"])
+    certificate = self.ClientCertFromPrivateKey(
+        config_lib.CONFIG["Client.private_key"])
     self.server_serial_number = 0
 
     self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]

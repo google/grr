@@ -42,8 +42,8 @@ class DataServer(object):
     logging.info("Configured DataServer on %s:%d", self.Address(), self.Port())
 
   def SetInitialInterval(self, num_servers):
-    self.server_info.interval = sutils.CreateStartInterval(self.Index(),
-                                                           num_servers)
+    self.server_info.interval = sutils.CreateStartInterval(
+        self.Index(), num_servers)
 
   def IsRegistered(self):
     return self.registered

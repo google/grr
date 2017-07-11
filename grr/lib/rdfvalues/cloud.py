@@ -122,8 +122,8 @@ def ConvertCloudMetadataResponsesToCloudInstance(metadata_responses):
     cloud_instance = AmazonCloudInstance()
     result = CloudInstance(cloud_type="AMAZON", amazon=cloud_instance)
   else:
-    raise ValueError("Unknown cloud instance type: %s" %
-                     metadata_responses.instance_type)
+    raise ValueError(
+        "Unknown cloud instance type: %s" % metadata_responses.instance_type)
 
   for cloud_metadata in metadata_responses.responses:
     setattr(cloud_instance, cloud_metadata.label, cloud_metadata.text)

@@ -43,8 +43,7 @@ class ApiGetGrrBinaryHandlerRegressionTest(
 
     self.Check(
         "GetGrrBinary",
-        args=config_plugin.ApiGetGrrBinaryArgs(
-            type="PYTHON_HACK", path="test"))
+        args=config_plugin.ApiGetGrrBinaryArgs(type="PYTHON_HACK", path="test"))
     self.Check(
         "GetGrrBinary",
         args=config_plugin.ApiGetGrrBinaryArgs(

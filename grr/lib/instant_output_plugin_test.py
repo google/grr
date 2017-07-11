@@ -181,7 +181,8 @@ class InstantOutputPluginWithExportConversionTest(
 
   def testWorksCorrectlyWithTwoSourceValueAndTwoExportedValuesEach(self):
     lines = self.ProcessValuesToLines({
-        DummySrcValue2: [DummySrcValue2("foo"), DummySrcValue2("bar")]
+        DummySrcValue2: [DummySrcValue2("foo"),
+                         DummySrcValue2("bar")]
     })
     self.assertListEqual(lines, [
         "Start",

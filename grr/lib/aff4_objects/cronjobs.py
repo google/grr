@@ -473,9 +473,10 @@ class CronJob(aff4.AFF4Volume):
     if current_flow_urn:
       flow.GRRFlow.TerminateFlow(
           current_flow_urn, reason=reason, force=force, token=self.token)
-      self.Set(self.Schema.LAST_RUN_STATUS,
-               rdf_cronjobs.CronJobRunStatus(
-                   status=rdf_cronjobs.CronJobRunStatus.Status.TIMEOUT))
+      self.Set(
+          self.Schema.LAST_RUN_STATUS,
+          rdf_cronjobs.CronJobRunStatus(
+              status=rdf_cronjobs.CronJobRunStatus.Status.TIMEOUT))
       self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
       self.Flush()
 
@@ -525,15 +526,17 @@ class CronJob(aff4.AFF4Volume):
       runner = current_flow.GetRunner()
       if not runner.IsRunning():
         if runner.context.state == rdf_flows.FlowContext.State.ERROR:
-          self.Set(self.Schema.LAST_RUN_STATUS,
-                   rdf_cronjobs.CronJobRunStatus(
-                       status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
+          self.Set(
+              self.Schema.LAST_RUN_STATUS,
+              rdf_cronjobs.CronJobRunStatus(
+                  status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
           stats.STATS.IncrementCounter(
               "cron_job_failure", fields=[self.urn.Basename()])
         else:
-          self.Set(self.Schema.LAST_RUN_STATUS,
-                   rdf_cronjobs.CronJobRunStatus(
-                       status=rdf_cronjobs.CronJobRunStatus.Status.OK))
+          self.Set(
+              self.Schema.LAST_RUN_STATUS,
+              rdf_cronjobs.CronJobRunStatus(
+                  status=rdf_cronjobs.CronJobRunStatus.Status.OK))
 
           start_time = self.Get(self.Schema.LAST_RUN_TIME)
           elapsed = time.time() - start_time.AsSecondsFromEpoch()

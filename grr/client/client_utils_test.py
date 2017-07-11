@@ -87,8 +87,8 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     # pylint: enable=g-import-not-at-top
 
     testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\", "\\\\?\\Volume{11111}", "/")]
+                (r"C:\\Windows\\", "\\\\?\\Volume{11111}",
+                 "/Windows"), (r"C:\\", "\\\\?\\Volume{11111}", "/")]
 
     for filename, expected_device, expected_path in testdata:
       raw_pathspec, path = client_utils_windows.WinGetRawDevice(filename)
@@ -139,15 +139,15 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     self.assertEqual(stderr, "Execution disallowed by whitelist.")
 
     # "echo 1" is
-    (stdout, stderr, status, _) = client_utils_common.Execute("/bin/echo",
-                                                              ["1"])
+    (stdout, stderr, status, _) = client_utils_common.Execute(
+        "/bin/echo", ["1"])
     self.assertEqual(status, 0)
     self.assertEqual(stdout, "1\n")
     self.assertEqual(stderr, "")
 
     # but not "echo 11"
-    (stdout, stderr, status, _) = client_utils_common.Execute("/bin/echo",
-                                                              ["11"])
+    (stdout, stderr, status, _) = client_utils_common.Execute(
+        "/bin/echo", ["11"])
     self.assertEqual(status, -1)
     self.assertEqual(stdout, "")
     self.assertEqual(stderr, "Execution disallowed by whitelist.")

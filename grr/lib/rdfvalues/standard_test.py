@@ -16,11 +16,12 @@ class URITests(test_base.RDFValueTestCase):
     return rdf_standard.URI(transport="http", host="%s.example.com" % number)
 
   def testURI(self):
-    sample = rdf_standard.URI(transport="http",
-                              host="google.com",
-                              path="/index",
-                              query="q=hi",
-                              fragment="anchor1")
+    sample = rdf_standard.URI(
+        transport="http",
+        host="google.com",
+        path="/index",
+        query="q=hi",
+        fragment="anchor1")
     self.assertEqual(sample.transport, "http")
     self.assertEqual(sample.host, "google.com")
     self.assertEqual(sample.path, "/index")

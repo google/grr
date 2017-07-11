@@ -425,8 +425,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt.urn.Basename(),
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
-        timestamp=original_result.age - self.handler.MAX_RECORDS_TO_CHECK *
-        rdfvalue.Duration("1s"))
+        timestamp=original_result.age -
+        self.handler.MAX_RECORDS_TO_CHECK * rdfvalue.Duration("1s"))
 
     self.handler.Handle(args, token=self.token)
 

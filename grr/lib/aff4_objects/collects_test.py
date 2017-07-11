@@ -193,6 +193,9 @@ class TestCollections(test_lib.AFF4ObjectTest):
 class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   """Test for PackedVersionedCollection."""
 
+  # TODO(user): Check if we still need PackedVersionedCollection, or if
+  # this can be deleted.
+
   collection_urn = rdfvalue.RDFURN("aff4:/test/packed_collection")
 
   def setUp(self):
@@ -200,10 +203,12 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
     # For the sake of test's performance, make COMPACTION_BATCH_SIZE and
     # MAX_REVERSED_RESULTS reasonably small.
+    # pyformat: disable
     self.stubber = utils.MultiStubber(
         (collects.PackedVersionedCollection, "COMPACTION_BATCH_SIZE", 100),
         (collects.PackedVersionedCollection, "MAX_REVERSED_RESULTS", 100),
         (collects.PackedVersionedCollection, "INDEX_INTERVAL", 100))
+    # pyformat: enable
     self.stubber.Start()
 
   def tearDown(self):
@@ -249,7 +254,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         mode="w",
         token=self.token) as fd:
       fd.AddAll([
-          rdf_flows.GrrMessage(request_id=1), rdf_flows.GrrMessage(request_id=1)
+          rdf_flows.GrrMessage(request_id=1),
+          rdf_flows.GrrMessage(request_id=1)
       ])
 
     # Check that items are stored in the versions.
@@ -522,8 +528,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
   def testIndexIsUsedWhenRandomAccessIsUsed(self):
     with utils.MultiStubber(
-        (collects.PackedVersionedCollection, "COMPACTION_BATCH_SIZE", 100),
-        (collects.PackedVersionedCollection, "INDEX_INTERVAL", 1)):
+        (collects.PackedVersionedCollection, "COMPACTION_BATCH_SIZE",
+         100), (collects.PackedVersionedCollection, "INDEX_INTERVAL", 1)):
 
       with aff4.FACTORY.Create(
           self.collection_urn,
@@ -730,11 +736,13 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(index), 2)
 
-    self.assertEqual(index[0], (1, collection.fd.size / (
-        collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)))
-    self.assertEqual(index[1], (
-        collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1,
-        collection.fd.size))
+    self.assertEqual(
+        index[0],
+        (1, collection.fd.size /
+         (collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)))
+    self.assertEqual(
+        index[1], (collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1,
+                   collection.fd.size))
 
   def testIndexIsWrittenAtMostOncePerCompactionBatch(self):
     collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE = 100
@@ -752,11 +760,13 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     # compaction batch is written to a stream.
     self.assertEqual(len(index), 2)
 
-    self.assertEqual(index[0], (1, collection.fd.size / (
-        collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)))
-    self.assertEqual(index[1], (
-        collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1,
-        collection.fd.size))
+    self.assertEqual(
+        index[0],
+        (1, collection.fd.size /
+         (collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)))
+    self.assertEqual(
+        index[1], (collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1,
+                   collection.fd.size))
 
   def testCompactsVeryLargeCollectionSuccessfully(self):
     # When number of versioned attributes is too big, compaction

@@ -38,13 +38,11 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(
-              source=self.client_id, payload=response))
+          rdf_flows.GrrMessage(source=self.client_id, payload=response))
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(
-          dict(
-              address=address, sender=sender, title=title, message=message))
+          dict(address=address, sender=sender, title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       if process_responses_separately:

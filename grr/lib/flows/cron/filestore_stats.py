@@ -38,8 +38,8 @@ class ClassFileSizeCounter(ClassCounter):
 
   def ProcessFile(self, fd):
     classname = fd.__class__.__name__
-    self.value_dict[classname] = self.value_dict.get(classname,
-                                                     0) + fd.Get(fd.Schema.SIZE)
+    self.value_dict[classname] = self.value_dict.get(
+        classname, 0) + fd.Get(fd.Schema.SIZE)
 
   def Save(self, fd):
     for classname, count in self.value_dict.items():

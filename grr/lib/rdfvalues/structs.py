@@ -410,9 +410,10 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self):
-    return "<Field %s (%s) of %s: field_number: %s>" % (
-        self.name, self.__class__.__name__, self.owner.__name__,
-        self.field_number)
+    return "<Field %s (%s) of %s: field_number: %s>" % (self.name,
+                                                        self.__class__.__name__,
+                                                        self.owner.__name__,
+                                                        self.field_number)
 
   def SetOwner(self, owner):
     self.owner = owner
@@ -1032,12 +1033,12 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       wrapped_data = wrapper_cls()
       wrapped_data.value = value.SerializeToDataStore()
 
-      type_name = ("type.googleapis.com/google.protobuf.%s" %
-                   wrapper_cls.__name__)
+      type_name = (
+          "type.googleapis.com/google.protobuf.%s" % wrapper_cls.__name__)
       data = wrapped_data.SerializeToString()
     else:
-      raise ValueError("Can't convert value %s to an protobuf.Any value." %
-                       value)
+      raise ValueError(
+          "Can't convert value %s to an protobuf.Any value." % value)
 
     any_value = AnyValue(type_url=type_name, value=data)
     output = SerializeEntries(any_value.GetRawData().itervalues())
@@ -1411,8 +1412,8 @@ class ProtoRDFValue(ProtoType):
     return python_format.dirty
 
   def Definition(self):
-    return ("\n  // Semantic Type: %s" % self.type.__name__
-           ) + self.primitive_desc.Definition()
+    return ("\n  // Semantic Type: %s" %
+            self.type.__name__) + self.primitive_desc.Definition()
 
   def Validate(self, value, **_):
     # Try to coerce into the correct type:
@@ -1847,8 +1848,9 @@ class RDFStruct(rdfvalue.RDFValue):
   @classmethod
   def AddDescriptor(cls, field_desc):
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
-                                     % (cls.__name__, field_desc.name))
+      raise type_info.TypeValueError(
+          "%s field '%s' should be of type ProtoType" % (cls.__name__,
+                                                         field_desc.name))
 
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
@@ -1949,9 +1951,9 @@ class RDFProtoStruct(RDFStruct):
     for dynamic_field in dynamic_fields:
       nested_value = dynamic_field.GetDefault(container=self)
       if nested_value is None:
-        raise RuntimeError("Can't initialize dynamic field %s, probably some "
-                           "necessary fields weren't supplied." %
-                           dynamic_field.name)
+        raise RuntimeError(
+            "Can't initialize dynamic field %s, probably some "
+            "necessary fields weren't supplied." % dynamic_field.name)
       nested_value.FromDict(dictionary[dynamic_field.name])
       self.Set(dynamic_field.name, nested_value)
 
@@ -2160,8 +2162,9 @@ class RDFProtoStruct(RDFStruct):
   def AddDescriptor(cls, field_desc):
     """Register this descriptor with the Proto Struct."""
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
-                                     % (cls.__name__, field_desc.name))
+      raise type_info.TypeValueError(
+          "%s field '%s' should be of type ProtoType" % (cls.__name__,
+                                                         field_desc.name))
 
     # Ensure the field descriptor knows the class that owns it.
     field_desc.SetOwner(cls)
@@ -2176,8 +2179,8 @@ class RDFProtoStruct(RDFStruct):
     # Ensure this field number is unique:
     if field_desc.field_number in cls.type_infos_by_field_number:
       raise type_info.TypeValueError(
-          "Field number %s for field %s is not unique in %s" % (
-              field_desc.field_number, field_desc.name, cls.__name__))
+          "Field number %s for field %s is not unique in %s" %
+          (field_desc.field_number, field_desc.name, cls.__name__))
 
     # We store an index of the type info by tag values to speed up parsing.
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc

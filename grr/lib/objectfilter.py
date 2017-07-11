@@ -350,8 +350,8 @@ class Regexp(GenericBinaryOperator):
     try:
       self.compiled_re = re.compile(utils.SmartUnicode(self.right_operand))
     except re.error:
-      raise ValueError("Regular expression \"%s\" is malformed." %
-                       self.right_operand)
+      raise ValueError(
+          "Regular expression \"%s\" is malformed." % self.right_operand)
 
   def Operation(self, x, y):
     try:
@@ -838,6 +838,7 @@ class Parser(lexer.SearchParser):
         self.stack[i] = None
 
     self.stack = filter(None, self.stack)
+
 
 # FILTER IMPLEMENTATIONS
 

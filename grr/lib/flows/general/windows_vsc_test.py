@@ -76,8 +76,7 @@ class TestClient(object):
       mock_pathspec = pathspec.Copy()
       mock_pathspec.last.path = "/file %s" % i
       result.append(
-          rdf_client.StatEntry(
-              pathspec=mock_pathspec, st_mode=stat.S_IFDIR))
+          rdf_client.StatEntry(pathspec=mock_pathspec, st_mode=stat.S_IFDIR))
 
     return result
 

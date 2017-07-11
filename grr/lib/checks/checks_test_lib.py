@@ -122,8 +122,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
       An iterator of check results.
     """
     return {
-        r.check_id:
-            r
+        r.check_id: r
         for r in checks.CheckHost(
             host_data, labels=labels, restrict_checks=restrict_checks)
     }
@@ -481,8 +480,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     # the findings didn't match up.
     others = "\n".join([str(a) for a in chk.anomaly])
     self.fail("Findings don't match for symptom '%s':\nExpected:\n  %s\n"
-              "Got:\n  %s\nFrom:\n%s" %
-              (sym, ", ".join(findings), ", ".join(found), others))
+              "Got:\n  %s\nFrom:\n%s" % (sym, ", ".join(findings),
+                                         ", ".join(found), others))
 
   def assertCheckUndetected(self, check_id, results):
     """Assert a check_id was performed, and resulted in no anomalies."""

@@ -76,8 +76,7 @@ class DictTest(test_base.RDFProtoTestCase):
         key3=u"\u4f60\u597d",  # Unicode.
         key5=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/11"),  # RDFValue.
         key6=None,  # Support None Encoding.
-        key7=structs.EnumNamedValue(
-            5, name="Test"),  # Enums.
+        key7=structs.EnumNamedValue(5, name="Test"),  # Enums.
     )
 
     # Initialize through keywords.

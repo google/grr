@@ -352,12 +352,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
         path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
     writable = self._GenStat(
         path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
-    cfg = {
-        "path": "/etc/shadow",
-        "st_uid": 0,
-        "st_gid": 0,
-        "st_mode": 0100640
-    }
+    cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")

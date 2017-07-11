@@ -40,10 +40,10 @@ class BarReportPlugin(report_plugin_base.ReportPluginBase):
         rdf_report_plugins.ApiReportDataSeries2D(
             label="Bar",
             points=[
-                rdf_report_plugins.ApiReportDataPoint2D(
-                    x=x, y=y) for (t, (x, y)) in sorted(database.iteritems())
-                if get_report_args.start_time <= t and t <
-                get_report_args.start_time + get_report_args.duration
+                rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                for (t, (x, y)) in sorted(database.iteritems())
+                if get_report_args.start_time <= t and
+                t < get_report_args.start_time + get_report_args.duration
             ])
     ]
 

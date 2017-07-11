@@ -248,8 +248,9 @@ class FirefoxHistory(flow.GRRFlow):
 BROWSER_PATHS = {
     "Linux": {
         "Firefox": ["/home/{username}/.mozilla/firefox/"],
-        "Chrome":
-            ["{homedir}/.config/google-chrome/", "{homedir}/.config/chromium/"]
+        "Chrome": [
+            "{homedir}/.config/google-chrome/", "{homedir}/.config/chromium/"
+        ]
     },
     "Windows": {
         "Chrome": [
@@ -257,8 +258,9 @@ BROWSER_PATHS = {
             "{local_app_data}\\Chromium\\User Data\\"
         ],
         "Firefox": ["{local_app_data}\\Mozilla\\Firefox\\Profiles\\"],
-        "IE":
-            ["{cache}\\", "{cache}\\Low\\", "{app_data}\\Microsoft\\Windows\\"]
+        "IE": [
+            "{cache}\\", "{cache}\\Low\\", "{app_data}\\Microsoft\\Windows\\"
+        ]
     },
     "Darwin": {
         "Firefox": ["{homedir}/Library/Application Support/Firefox/Profiles/"],

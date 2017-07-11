@@ -72,9 +72,9 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
 
-      super(MemoryCollectorClientMock, self).__init__(
-          file_fingerprint.FingerprintFile, searching.Find,
-          server_stubs.WmiQuery, standard.ListDirectory)
+      super(MemoryCollectorClientMock,
+            self).__init__(file_fingerprint.FingerprintFile, searching.Find,
+                           server_stubs.WmiQuery, standard.ListDirectory)
 
   def DeleteGRRTempFiles(self, request):
     self.delete_request = request
@@ -90,7 +90,8 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
             json_messages="""
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
-            plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")
+            plugin="aff4acquire"),
+        rdf_client.Iterator(state="FINISHED")
     ]
 
 
@@ -191,9 +192,9 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
   """Client with real file actions and mocked-out RekallAction."""
 
   def __init__(self, process_list=None):
-    super(ListVADBinariesActionMock, self).__init__(
-        file_fingerprint.FingerprintFile, searching.Find,
-        standard.ListDirectory, server_stubs.WmiQuery)
+    super(ListVADBinariesActionMock,
+          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
+                         standard.ListDirectory, server_stubs.WmiQuery)
     self.process_list = process_list or []
 
   def RekallAction(self, _):

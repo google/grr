@@ -52,8 +52,9 @@ class LoggedACL(object):
                         utils.SmartUnicode(self.access_type),
                         utils.SmartUnicode(this.__class__.__name__),
                         utils.SmartUnicode(token and token.username),
-                        utils.SmartUnicode(token and token.supervisor and
-                                           " (supervisor)" or ""),
+                        utils.SmartUnicode(
+                            token and token.supervisor and " (supervisor)" or
+                            ""),
                         utils.SmartUnicode(args),
                         utils.SmartUnicode(kwargs),
                         utils.SmartUnicode(token and token.reason))
@@ -65,8 +66,9 @@ class LoggedACL(object):
                         utils.SmartUnicode(self.access_type),
                         utils.SmartUnicode(this.__class__.__name__),
                         utils.SmartUnicode(token and token.username),
-                        utils.SmartUnicode(token and token.supervisor and
-                                           " (supervisor)" or ""),
+                        utils.SmartUnicode(
+                            token and token.supervisor and " (supervisor)" or
+                            ""),
                         utils.SmartUnicode(args),
                         utils.SmartUnicode(kwargs),
                         utils.SmartUnicode(token and token.reason))
@@ -98,6 +100,7 @@ class NullAccessControlManager(access_control.AccessControlManager):
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     """Allow all access."""
     return True
+
   # pylint: enable=unused-argument
 
 
@@ -184,8 +187,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
 
     # Only return if all the authorized_labels are found in the user's
     # label list, otherwise raise UnauthorizedAccess.
-    if (authorized_labels.intersection(user.GetLabelsNames()) ==
-        authorized_labels):
+    if (authorized_labels.intersection(
+        user.GetLabelsNames()) == authorized_labels):
       return True
     else:
       raise access_control.UnauthorizedAccess(
@@ -289,8 +292,9 @@ class BasicAccessControlManager(access_control.AccessControlManager):
   @LoggedACL("can_start_flow")
   def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
     """Check labels, ACL_ENFORCED attribute, and validate the token."""
-    return ValidateToken(token, [flow_name]) and (
-        token.supervisor or CheckFlowAuthorizedLabels(token, flow_name))
+    return ValidateToken(token, [
+        flow_name
+    ]) and (token.supervisor or CheckFlowAuthorizedLabels(token, flow_name))
 
   @LoggedACL("data_store_access")
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
@@ -691,8 +695,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Client urn can't be empty.")
     client_urn = rdf_client.ClientURN(client_urn)
 
-    return ValidateToken(token, [client_urn]) and (
-        token.supervisor or self._CheckApprovals(token, client_urn))
+    return ValidateToken(token, [
+        client_urn
+    ]) and (token.supervisor or self._CheckApprovals(token, client_urn))
 
   @LoggedACL("hunt_access")
   @stats.Timed("acl_check_time", fields=["hunt_access"])
@@ -701,8 +706,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Hunt urn can't be empty.")
     hunt_urn = rdfvalue.RDFURN(hunt_urn)
 
-    return ValidateToken(token, [hunt_urn]) and (
-        token.supervisor or self._CheckApprovals(token, hunt_urn))
+    return ValidateToken(token, [
+        hunt_urn
+    ]) and (token.supervisor or self._CheckApprovals(token, hunt_urn))
 
   @LoggedACL("cron_job_access")
   @stats.Timed("acl_check_time", fields=["cron_job_access"])
@@ -711,8 +717,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
       raise ValueError("Cron job urn can't be empty.")
     cron_job_urn = rdfvalue.RDFURN(cron_job_urn)
 
-    return ValidateToken(token, [cron_job_urn]) and (
-        token.supervisor or self._CheckApprovals(token, cron_job_urn))
+    return ValidateToken(token, [
+        cron_job_urn
+    ]) and (token.supervisor or self._CheckApprovals(token, cron_job_urn))
 
   @LoggedACL("can_start_flow")
   @stats.Timed("acl_check_time", fields=["can_start_flow"])
@@ -725,9 +732,10 @@ class FullAccessControlManager(access_control.AccessControlManager):
     else:
       can_start_flow = CheckFlowCanBeStartedAsGlobal
 
-    return ValidateToken(token, [flow_name]) and (token.supervisor or (
-        can_start_flow(flow_name) and
-        CheckFlowAuthorizedLabels(token, flow_name)))
+    return ValidateToken(
+        token, [flow_name]) and (token.supervisor or
+                                 (can_start_flow(flow_name) and
+                                  CheckFlowAuthorizedLabels(token, flow_name)))
 
   @LoggedACL("data_store_access")
   @stats.Timed("acl_check_time", fields=["data_store_access"])

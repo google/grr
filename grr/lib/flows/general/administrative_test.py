@@ -192,9 +192,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           client, [self.client_id], token=self.token, check_flow_errors=False)
 
     self.assertEqual(len(self.email_messages), 2)
-    self.assertListEqual(
-        [self.email_messages[0]["address"], self.email_messages[1]["address"]],
-        ["crashes@example.com", config_lib.CONFIG["Monitoring.alert_email"]])
+    self.assertListEqual([
+        self.email_messages[0]["address"], self.email_messages[1]["address"]
+    ], ["crashes@example.com", config_lib.CONFIG["Monitoring.alert_email"]])
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"

@@ -91,10 +91,11 @@ def _StartServers():
       threading.Thread(
           target=data_server.Start,
           args=(HTTP_DB[0], PORT[0], af, True, StoppableHTTPServer,
-                MockRequestHandler1)), threading.Thread(
-                    target=data_server.Start,
-                    args=(HTTP_DB[1], PORT[1], af, False, StoppableHTTPServer,
-                          MockRequestHandler2))
+                MockRequestHandler1)),
+      threading.Thread(
+          target=data_server.Start,
+          args=(HTTP_DB[1], PORT[1], af, False, StoppableHTTPServer,
+                MockRequestHandler2))
   ]
   STARTED_SERVER[0].start()
   STARTED_SERVER[1].start()

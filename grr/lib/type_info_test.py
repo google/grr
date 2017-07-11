@@ -75,8 +75,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
   def testTypeDescriptorSet(self):
 
     type_infos = [
-        type_info.String(
-            name="output", default="analysis/{p}/{u}-{t}"),
+        type_info.String(name="output", default="analysis/{p}/{u}-{t}"),
         type_info.String(
             description="Profile to use.", name="profile", default=""),
         type_info.String(
@@ -90,11 +89,14 @@ class TypeInfoTest(test_lib.GRRBaseTest):
         type_infos[1],
         type_infos[2],)
 
-    new_info = type_info.TypeDescriptorSet(type_infos[0],)
+    new_info = type_info.TypeDescriptorSet(
+        type_infos[0],)
 
-    updated_info = new_info + type_info.TypeDescriptorSet(type_infos[1],)
+    updated_info = new_info + type_info.TypeDescriptorSet(
+        type_infos[1],)
 
-    updated_info += type_info.TypeDescriptorSet(type_infos[2],)
+    updated_info += type_info.TypeDescriptorSet(
+        type_infos[2],)
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))

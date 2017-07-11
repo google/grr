@@ -149,9 +149,9 @@ class _Metric(object):
     if (self.fields_defs is not None and fields is not None and
         len(self.fields_defs) != len(fields)):
       raise ValueError("Metric was registered with %d fields (%s), but "
-                       "%d fields were provided (%s)." % (len(self.fields_defs),
-                                                          self.fields_defs,
-                                                          len(fields), fields))
+                       "%d fields were provided (%s)." %
+                       (len(self.fields_defs), self.fields_defs, len(fields),
+                        fields))
 
     try:
       return self._values[self._FieldsToKey(fields)]
@@ -338,8 +338,7 @@ class StatsCollector(object):
         raise ValueError("Unknown field type: %s" % field_type)
 
       result.append(
-          MetricFieldDefinition(
-              field_name=field_name, field_type=field_type))
+          MetricFieldDefinition(field_name=field_name, field_type=field_type))
     return result
 
   @utils.Synchronized
@@ -557,6 +556,7 @@ class StatsCollector(object):
       means "with an API matching the API of the Distribution object".
     """
     return self._metrics[varname].Get(fields)
+
 
 # A global store of statistics.
 STATS = None

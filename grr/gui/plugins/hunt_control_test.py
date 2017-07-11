@@ -236,8 +236,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
       # approval dialog.
       hunt = self.CreateSampleHunt(
           stopped=True,
-          token=access_control.ACLToken(
-              username="random user", reason="test"))
+          token=access_control.ACLToken(username="random user", reason="test"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")

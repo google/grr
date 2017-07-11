@@ -86,37 +86,31 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="GRR"))
     self.assertEqual(len(labels_list.labels), 2)
 
   def testAddLabelDoesNotAddLabelWithSameNameAndOwner(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
   def testStringifiedValueIsLabelsNamesWithoutOwners(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="bar", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="bar", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
@@ -124,11 +118,9 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="bar", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="bar", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
@@ -136,14 +128,11 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="bar", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="bar", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
@@ -151,17 +140,13 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="ein", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="ein", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="zwei", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="zwei", owner="test"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="drei", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="drei", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="vier", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="vier", owner="test"))
 
     self.assertTrue(
         re.match(
@@ -184,11 +169,9 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="ein", owner="GRR"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="ein", owner="GRR"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="zwei", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="zwei", owner="test"))
     self.assertFalse(
         re.match(
             aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
@@ -210,14 +193,11 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo", owner="test"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="test"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo2", owner="test2"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo2", owner="test2"))
     labels_list.AddLabel(
-        aff4_rdfvalues.AFF4ObjectLabel(
-            name="foo3", owner="test2"))
+        aff4_rdfvalues.AFF4ObjectLabel(name="foo3", owner="test2"))
 
     self.assertItemsEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
     self.assertItemsEqual(

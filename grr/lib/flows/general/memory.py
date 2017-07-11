@@ -133,8 +133,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   def ComponentLoaded(self, responses):
     # We no longer support old clients with no components installed.
     if not responses.success:
-      raise flow.FlowError("Component load failed: %s" %
-                           responses.status.error_message)
+      raise flow.FlowError(
+          "Component load failed: %s" % responses.status.error_message)
 
     self.state.component_version = responses.First().summary.version
     self.CallStateInline(next_state=responses.request_data["next_state"])

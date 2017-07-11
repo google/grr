@@ -32,8 +32,8 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
         "dsyslog", "inetutils-syslogd"
     ], result.start_after)
     self.assertItemsEqual(
-        ["rsyslog", "sysklogd", "syslog-ng", "dsyslog", "inetutils-syslogd"],
-        result.stop_after)
+        ["rsyslog", "sysklogd", "syslog-ng", "dsyslog",
+         "inetutils-syslogd"], result.stop_after)
 
   def testSkipBadLSBInit(self):
     """Bad Init entries fail gracefully."""

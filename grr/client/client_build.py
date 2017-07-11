@@ -34,12 +34,6 @@ class ErrorDuringRepacking(Error):
   pass
 
 
-try:
-  # pylint: disable=g-import-not-at-top
-  from grr.lib.builders import component
-except ImportError:
-  component = None
-
 parser = flags.PARSER
 
 # Initialize sub parsers and their arguments.
@@ -156,22 +150,6 @@ parser_signer.add_argument(
     required=True,
     help="Where to write the new template with signed libs.")
 
-if component:
-  parser_build_component = subparsers.add_parser(
-      "build_component", help="Build a client component.")
-
-  parser_build_component.add_argument(
-      "setup_file", help="Path to the setup.py file for the component.")
-
-  parser_build_component.add_argument(
-      "output", help="Path to store the compiled component.")
-
-  parser_build_components = subparsers.add_parser(
-      "build_components", help="Builds all client components.")
-
-  parser_build_components.add_argument(
-      "--output", default="", help="Path to store the compiled component.")
-
 args = parser.parse_args()
 
 
@@ -226,10 +204,10 @@ class TemplateBuilder(object):
 
     template_path = None
     if output:
-      template_path = os.path.join(
-          output,
-          config_lib.CONFIG.Get("PyInstaller.template_filename",
-                                context=context))
+      template_path = os.path.join(output,
+                                   config_lib.CONFIG.Get(
+                                       "PyInstaller.template_filename",
+                                       context=context))
 
     builder_obj = self.GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
@@ -322,10 +300,8 @@ class MultiTemplateRepacker(object):
 
         print "Calling %s" % " ".join(repack_args)
         results.append(
-            pool.apply_async(
-                SpawnProcess, (repack_args,),
-                dict(
-                    signing=signing, passwd=passwd)))
+            pool.apply_async(SpawnProcess, (repack_args,),
+                             dict(signing=signing, passwd=passwd)))
 
         # Also build debug if it's windows.
         if template.endswith(".exe.zip"):
@@ -334,10 +310,8 @@ class MultiTemplateRepacker(object):
           debug_args.append("--debug_build")
           print "Calling %s" % " ".join(debug_args)
           results.append(
-              pool.apply_async(
-                  SpawnProcess, (debug_args,),
-                  dict(
-                      signing=signing, passwd=passwd)))
+              pool.apply_async(SpawnProcess, (debug_args,),
+                               dict(signing=signing, passwd=passwd)))
 
     try:
       pool.close()
@@ -412,11 +386,6 @@ def main(_):
         config=args.config,
         sign=args.sign,
         signed_template=args.signed_template)
-  elif args.subparser_name == "build_components":
-    component.BuildComponents(output_dir=flags.FLAGS.output)
-  elif args.subparser_name == "build_component":
-    component.BuildComponent(
-        flags.FLAGS.setup_file, output_dir=flags.FLAGS.output)
   elif args.subparser_name == "sign_template":
     repacking.TemplateRepacker().SignTemplate(
         args.template, args.output_file, context=context)

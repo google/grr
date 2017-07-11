@@ -177,9 +177,9 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     self.assertTrue("EMPTY" in result)
     self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
     # Now with data.
-    result = self.GenFileData(
-        "FILES", {"/tmp/foo": """blah""",
-                  "/tmp/bar": """meh"""}, parser)
+    result = self.GenFileData("FILES",
+                              {"/tmp/foo": """blah""",
+                               "/tmp/bar": """meh"""}, parser)
     self.assertTrue("FILES" in result)
     # No parser information should be generated.
     self.assertEquals([], result["FILES"]["PARSER"])

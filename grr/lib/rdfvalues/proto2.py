@@ -116,8 +116,8 @@ def DefineFromProtobuf(cls, protobuf):
                "%s: Should be %s") % (cls.__name__, field.name,
                                       rdf_type.data_store_type))
 
-      type_descriptor = classes_dict["ProtoRDFValue"](rdf_type=options.type,
-                                                      **kwargs)
+      type_descriptor = classes_dict["ProtoRDFValue"](
+          rdf_type=options.type, **kwargs)
 
     # A semantic protobuf is already a semantic value so it is an error to
     # specify it in two places.
@@ -247,8 +247,8 @@ def DefineFromProtobuf(cls, protobuf):
       # If the field is repeated, wrap it in a ProtoList.
       if field.label == LABEL_REPEATED:
         options = field.GetOptions().Extensions[semantic_pb2.sem_type]
-        type_descriptor = classes_dict["ProtoList"](type_descriptor,
-                                                    labels=list(options.label))
+        type_descriptor = classes_dict["ProtoList"](
+            type_descriptor, labels=list(options.label))
 
       try:
         cls.AddDescriptor(type_descriptor)

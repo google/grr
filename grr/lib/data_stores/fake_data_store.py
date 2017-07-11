@@ -142,13 +142,14 @@ class FakeDataStore(data_store.DataStore):
         else:
           element_timestamp = timestamp
 
-        self.Set(subject,
-                 k,
-                 v,
-                 timestamp=element_timestamp,
-                 token=token,
-                 replace=replace,
-                 sync=sync)
+        self.Set(
+            subject,
+            k,
+            v,
+            timestamp=element_timestamp,
+            token=token,
+            replace=replace,
+            sync=sync)
 
   @utils.Synchronized
   def DeleteAttributes(self,

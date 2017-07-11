@@ -99,7 +99,8 @@ class DetectorTest(test_lib.GRRBaseTest):
   def testReturnsCombinedResultsFromTwoExtractors(self):
     """Test it returns combined results from two extractors."""
     detector = core.Detector(
-        extractors=[TestExtractor(multiplier=2), TestExtractor(multiplier=3)])
+        extractors=[TestExtractor(multiplier=2),
+                    TestExtractor(multiplier=3)])
     self.assertEqual(detector.Detect("a b"), set(["b_0", "b_1", "b_2"]))
 
   def testAppliesPostProcessorToExtractedPaths(self):
@@ -113,8 +114,7 @@ class DetectorTest(test_lib.GRRBaseTest):
     """Test the post processor may return multiple processed paths."""
     detector = core.Detector(
         extractors=[TestExtractor(multiplier=2)],
-        post_processors=[TestPostProcessor(
-            "_bar", count=2)])
+        post_processors=[TestPostProcessor("_bar", count=2)])
     self.assertEqual(
         detector.Detect("a b"),
         set(["b_0_bar", "b_1_bar", "b_0_bar_bar", "b_1_bar_bar"]))
@@ -123,7 +123,8 @@ class DetectorTest(test_lib.GRRBaseTest):
     """Test it applies mutliple post processors to extracted paths."""
     detector = core.Detector(
         extractors=[TestExtractor(multiplier=2)],
-        post_processors=[TestPostProcessor("_foo"), TestPostProcessor("_bar")])
+        post_processors=[TestPostProcessor("_foo"),
+                         TestPostProcessor("_bar")])
     self.assertEqual(
         detector.Detect("a b"), set(["b_0_foo_bar", "b_1_foo_bar"]))
 

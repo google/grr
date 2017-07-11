@@ -16,8 +16,7 @@ from grr.lib.rdfvalues import plist as rdf_plist
 
 # This variable holds the same contents as the ondisk test plist
 test_plist_dict = {
-    "date":
-        978307200000000,
+    "date": 978307200000000,
     "nested1": {
         "nested11": {
             "data113": "\xde\xad\xbe\xef",

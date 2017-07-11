@@ -64,12 +64,12 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
   def EncodeToJsonSafe(self, item, **options):
     object_renderer = self.ForTarget(item, "DataExportRenderer")
     return object_renderer(
-        renderer=self.renderer,
-        session=self.session).EncodeToJsonSafe(item, **options)
+        renderer=self.renderer, session=self.session).EncodeToJsonSafe(
+            item, **options)
 
   def DecodeFromJsonSafe(self, value, options):
-    return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(value,
-                                                                     options)
+    return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(
+        value, options)
 
   def RawHTML(self, item, **options):
     raise NotImplementedError("Not producing HTML on the client.")

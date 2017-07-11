@@ -68,9 +68,9 @@ class TriggersTest(test_lib.GRRBaseTest):
     t.Add("GoodAI", target_1)
     t.Add("BadAI", target_2)
     # Searches return no results if query data doesn't match.
-    self.assertEqual(
-        [], t.Search(
-            artifact="GoodAI", os_name="TermOS", label="t1000"))
+    self.assertEqual([],
+                     t.Search(
+                         artifact="GoodAI", os_name="TermOS", label="t1000"))
     # Searches return results if query data matches.
     self.assertEqual([good_ai], [c.attr for c in t.Search(artifact="GoodAI")])
     self.assertItemsEqual(

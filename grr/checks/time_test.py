@@ -40,9 +40,9 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
 
     found = ["Expected state was not found"]
     bad = [("foo", 233, ["/usr/local/foo", "-flags"])]
-    good = [(
-        "ntpd", 42,
-        ["/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid", "-g", "-u", "117:125"])]
+    good = [("ntpd", 42, [
+        "/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid", "-g", "-u", "117:125"
+    ])]
 
     # Check for when it is not running.
 

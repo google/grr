@@ -126,8 +126,8 @@ class RekallTests(RekallTestSuite):
     request.plugins = [
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
-            plugin="pslist",
-            args=dict(method=["PsActiveProcessHead", "CSRSS"])),
+            plugin="pslist", args=dict(method=["PsActiveProcessHead",
+                                               "CSRSS"])),
         rdf_rekall_types.PluginRequest(plugin="modules")
     ]
     session_id = self.LaunchRekallPlugin(request)

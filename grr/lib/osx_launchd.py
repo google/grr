@@ -38,6 +38,7 @@ class FakeCFDict(object):
     else:
       obj = default
     return obj
+
   # pylint: enable=g-bad-name
 
 
@@ -70,7 +71,9 @@ JOB = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/CoreServices/FileSyncAgent.app/Contents/MacOS/FileSyncAgent'
-            ), FakeCFObject('-launchedByLaunchd'), FakeCFObject('-PHDPlist')
+            ),
+            FakeCFObject('-launchedByLaunchd'),
+            FakeCFObject('-PHDPlist')
         ],
         'TimeOut':
             FakeCFObject(30),
@@ -96,11 +99,13 @@ JOBS = [
             FakeCFObject(
                 '/Library/Application '
                 'Support/Google/GoogleTalkPlugin.app/Contents/Frameworks/GoogleBreakpad.framework/Versions/A/Resources/Inspector'
-            ), FakeCFObject('com.Google.BreakpadInspector32298')
+            ),
+            FakeCFObject('com.Google.BreakpadInspector32298')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c23570.mach_init.crash_inspector',
         'LastExitStatus':
@@ -121,23 +126,19 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            'com.apple.coreservices.appleid.authentication',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': 'com.apple.coreservices.appleid.authentication',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.coreservices.appleid.authentication': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
-        'Program':
-            '/System/Library/CoreServices/AppleIDAuthAgent',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'OnDemand': FakeCFObject(1),
+        'Program': '/System/Library/CoreServices/AppleIDAuthAgent',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d30310.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[35271].subset.440',
@@ -145,7 +146,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c23ae0.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32282].subset.281',
@@ -153,7 +155,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d30610.mach_init.crash_inspector',
         'LastExitStatus':
@@ -174,24 +177,20 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            'com.apple.systemprofiler',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': 'com.apple.systemprofiler',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.systemprofiler': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
-        'Program':
-            '/Applications/Utilities/System '
-            'Information.app/Contents/MacOS/System Information',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'OnDemand': FakeCFObject(1),
+        'Program': '/Applications/Utilities/System '
+                   'Information.app/Contents/MacOS/System Information',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2b140.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -199,49 +198,38 @@ JOBS = [
         'PID': FakeCFObject(69813),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d318d0.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d318d0.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(60522),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(60522),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d1fb70.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d1fb70.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(32285),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(32285),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c22f60.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32284].subset.584',
@@ -249,7 +237,8 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -270,7 +259,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d1d200.mach_init.crash_inspector',
         'LastExitStatus':
@@ -291,7 +281,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.UserNotificationCenterAgent',
         'LastExitStatus':
@@ -310,7 +301,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d30f40.anonymous.Google Chrome C',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60520].subset.399',
@@ -318,7 +310,8 @@ JOBS = [
         'PID': FakeCFObject(60513),
         'Program': 'Google Chrome C',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.bluetoothUIServer',
         'LastExitStatus':
@@ -334,7 +327,8 @@ JOBS = [
             '/System/Library/CoreServices/BluetoothUIServer.app/Contents/MacOS/BluetoothUIServer',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -345,13 +339,15 @@ JOBS = [
             'Aqua',
         'OnDemand':
             FakeCFObject(1),
-        'ProgramArguments':
-            [FakeCFObject('/System/Library/CoreServices/SubmitDiagInfo')],
+        'ProgramArguments': [
+            FakeCFObject('/System/Library/CoreServices/SubmitDiagInfo')
+        ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions': 1,
         'Label': 'com.apple.gssd-agent',
         'LastExitStatus': FakeCFObject(0),
@@ -364,7 +360,8 @@ JOBS = [
         'ProgramArguments': [FakeCFObject('gssd-agent')],
         'TimeOut': FakeCFObject(30),
         'TransactionCount': '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '[0x0-0x4d44d4].com.google.GoogleTalkPluginD',
         'LastExitStatus':
@@ -386,11 +383,13 @@ JOBS = [
             FakeCFObject(
                 '/Library/Application '
                 'Support/Google/GoogleTalkPlugin.app/Contents/MacOS/GoogleTalkPlugin'
-            ), FakeCFObject('-psn_0_5063892')
+            ),
+            FakeCFObject('-psn_0_5063892')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -413,7 +412,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2fda0.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -421,29 +421,24 @@ JOBS = [
         'PID': FakeCFObject(83461),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759c12410.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759c12410.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(32297),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(32297),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.CFPasteboardClient': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2cec0.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -451,7 +446,8 @@ JOBS = [
         'PID': FakeCFObject(73991),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c24ca0.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -459,7 +455,8 @@ JOBS = [
         'PID': FakeCFObject(24592),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c17720.mach_init.crash_inspector',
         'LastExitStatus':
@@ -480,7 +477,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d1cf00.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -488,7 +486,8 @@ JOBS = [
         'PID': FakeCFObject(38234),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2e870.anonymous.configd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -496,7 +495,8 @@ JOBS = [
         'PID': FakeCFObject(17),
         'Program': 'configd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c23de0.mach_init.crash_inspector',
         'LastExitStatus':
@@ -517,7 +517,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions': 1,
         'Label': 'com.apple.spindump_agent',
         'LastExitStatus': FakeCFObject(0),
@@ -529,7 +530,8 @@ JOBS = [
         'ProgramArguments': [FakeCFObject('/usr/libexec/spindump_agent')],
         'TimeOut': FakeCFObject(30),
         'TransactionCount': '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c16550.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -537,7 +539,8 @@ JOBS = [
         'PID': FakeCFObject(73954),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2f1a0.anonymous.configd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -545,7 +548,8 @@ JOBS = [
         'PID': FakeCFObject(17),
         'Program': 'configd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -563,34 +567,31 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/CoreServices/ZoomWindow.app/Contents/MacOS/ZoomWindowStarter'
-            ), FakeCFObject('launchd'), FakeCFObject('-s')
+            ),
+            FakeCFObject('launchd'),
+            FakeCFObject('-s')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759c17a30.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759c17a30.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(35104),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(35104),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.syncservices.uihandler',
         'LastExitStatus':
@@ -606,7 +607,8 @@ JOBS = [
             '/System/Library/PrivateFrameworks/SyncServicesUI.framework/Versions/Current/Resources/syncuid.app/Contents/MacOS/syncuid',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c17110.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[35104].subset.553',
@@ -614,7 +616,8 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.DictionaryPanelHelper',
         'LastExitStatus':
@@ -631,7 +634,8 @@ JOBS = [
             '/Applications/Dictionary.app/Contents/SharedSupport/DictionaryPanelHelper.app/Contents/MacOS/DictionaryPanelHelper',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1d630.anonymous.Python',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -639,36 +643,29 @@ JOBS = [
         'PID': FakeCFObject(69592),
         'Program': 'python',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'EnableTransactions':
-            1,
-        'Label':
-            'com.apple.talagent',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'EnableTransactions': 1,
+        'Label': 'com.apple.talagent',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.window_proxies': 0,
             'com.apple.window_proxies.startup': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(639),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(639),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.CFPasteboardClient': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            '/System/Library/CoreServices/talagent',
-        'TimeOut':
-            FakeCFObject(30),
-        'TransactionCount':
-            0,
-    }), FakeCFDict({
+        'Program': '/System/Library/CoreServices/talagent',
+        'TimeOut': FakeCFObject(30),
+        'TransactionCount': 0,
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1f7f0.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60522].subset.309',
@@ -679,7 +676,8 @@ JOBS = [
         'PID': FakeCFObject(60522),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.speech.recognitionserver',
         'LastExitStatus':
@@ -695,7 +693,8 @@ JOBS = [
             '/System/Library/Frameworks/Carbon.framework/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognitionServer.app/Contents/MacOS/SpeechRecognitionServer',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2faa0.anonymous.Python',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -703,7 +702,8 @@ JOBS = [
         'PID': FakeCFObject(82320),
         'Program': 'python',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -720,13 +720,15 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/CVMCompiler'
-            ), FakeCFObject('1')
+            ),
+            FakeCFObject('1')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c23270.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32284].subset.584',
@@ -734,7 +736,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d30c30.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60520].subset.399',
@@ -745,7 +748,8 @@ JOBS = [
         'PID': FakeCFObject(60520),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -768,7 +772,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d29b20.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -776,7 +781,8 @@ JOBS = [
         'PID': FakeCFObject(46172),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -797,7 +803,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -814,15 +821,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.1')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '[0x0-0x21021].com.google.GoogleDrive',
         'LastExitStatus':
@@ -848,7 +860,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -865,13 +878,15 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/CVMCompiler'
-            ), FakeCFObject('1')
+            ),
+            FakeCFObject('1')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2b8b0.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32284].subset.584',
@@ -882,28 +897,23 @@ JOBS = [
         'PID': FakeCFObject(32284),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d1f860.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d1f860.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(32283),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(32283),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -921,13 +931,16 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOver'
-            ), FakeCFObject('launchd'), FakeCFObject('-s')
+            ),
+            FakeCFObject('launchd'),
+            FakeCFObject('-s')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2e7b0.anonymous.tail',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -935,7 +948,8 @@ JOBS = [
         'PID': FakeCFObject(74455),
         'Program': 'tail',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.PreferenceSyncAgent',
         'LastExitStatus':
@@ -947,11 +961,14 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/CoreServices/PreferenceSyncClient.app/Contents/MacOS/PreferenceSyncClient'
-            ), FakeCFObject('--sync'), FakeCFObject('--periodic')
+            ),
+            FakeCFObject('--sync'),
+            FakeCFObject('--periodic')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c15a50.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -959,7 +976,8 @@ JOBS = [
         'PID': FakeCFObject(38234),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -976,8 +994,11 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker32'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker-lsb'),
-            FakeCFObject('-c'), FakeCFObject('MDSImporterWorker'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker-lsb'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
             FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.i386.framework.0')
         ],
@@ -985,7 +1006,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.launchctl.Background',
         'LastExitStatus':
@@ -995,12 +1017,15 @@ JOBS = [
         'OnDemand':
             FakeCFObject(1),
         'ProgramArguments': [
-            FakeCFObject('/bin/launchctl'), FakeCFObject('bootstrap'),
-            FakeCFObject('-S'), FakeCFObject('Background')
+            FakeCFObject('/bin/launchctl'),
+            FakeCFObject('bootstrap'),
+            FakeCFObject('-S'),
+            FakeCFObject('Background')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.speech.synthesisserver',
         'LastExitStatus':
@@ -1018,7 +1043,8 @@ JOBS = [
             '/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesisServer.app/Contents/MacOS/SpeechSynthesisServer',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d207b0.anonymous.launchd',
         'LastExitStatus':
@@ -1033,7 +1059,8 @@ JOBS = [
             'launchd',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.ATS.FontValidatorConduit',
         'LastExitStatus':
@@ -1049,7 +1076,8 @@ JOBS = [
             '/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Support/FontValidatorConduit',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1075,7 +1103,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1098,28 +1127,23 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d29e20.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d29e20.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(35271),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(35271),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d20db0.anonymous.sshd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -1127,7 +1151,8 @@ JOBS = [
         'PID': FakeCFObject(68600),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1150,28 +1175,23 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d1ebf0.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d1ebf0.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(32282),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(32282),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.installd.user',
         'LastExitStatus':
@@ -1190,7 +1210,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d33ce0.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -1198,28 +1219,23 @@ JOBS = [
         'PID': FakeCFObject(46170),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759c240f0.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759c240f0.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(32284),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(32284),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.syncdefaultsd',
         'LastExitStatus':
@@ -1239,7 +1255,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.marcoagent',
         'LastExitStatus':
@@ -1257,7 +1274,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1273,13 +1291,16 @@ JOBS = [
             FakeCFObject(1),
         'PID':
             FakeCFObject(625),
-        'ProgramArguments':
-            [FakeCFObject('/usr/sbin/distnoted'), FakeCFObject('agent')],
+        'ProgramArguments': [
+            FakeCFObject('/usr/sbin/distnoted'),
+            FakeCFObject('agent')
+        ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             42,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2eb70.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32282].subset.281',
@@ -1290,7 +1311,8 @@ JOBS = [
         'PID': FakeCFObject(32282),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d28f10.anonymous.login',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -1298,7 +1320,8 @@ JOBS = [
         'PID': FakeCFObject(83461),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1fb00.anonymous.Google Chrome C',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60522].subset.309',
@@ -1306,7 +1329,8 @@ JOBS = [
         'PID': FakeCFObject(60513),
         'Program': 'Google Chrome C',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.bluetoothAudioAgent',
         'LastExitStatus':
@@ -1325,7 +1349,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1342,15 +1367,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.framework.0')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d20190.mach_init.crash_inspector',
         'LastExitStatus':
@@ -1371,7 +1401,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1407,13 +1438,15 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Services/AppleSpell.service/Contents/MacOS/AppleSpell'
-            ), FakeCFObject('-psn_0_102425')
+            ),
+            FakeCFObject('-psn_0_102425')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d22370.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32656].subset.619',
@@ -1421,7 +1454,8 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d2f3c0.mach_init.crash_inspector',
         'LastExitStatus':
@@ -1442,7 +1476,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1459,15 +1494,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.framework.1')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1484,8 +1524,11 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker-lsb'),
-            FakeCFObject('-c'), FakeCFObject('MDSImporterWorker'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker-lsb'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
             FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.lsb.framework.0')
         ],
@@ -1493,7 +1536,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c16060.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -1501,7 +1545,8 @@ JOBS = [
         'PID': FakeCFObject(68666),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1521,7 +1566,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1538,15 +1584,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.framework.2')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.FontRegistryUIAgent',
         'LastExitStatus':
@@ -1562,7 +1613,8 @@ JOBS = [
             '/System/Library/Frameworks/ApplicationServices.framework/Frameworks/ATS.framework/Support/FontRegistryUIAgent.app/Contents/MacOS/FontRegistryUIAgent',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.softwareupdateagent',
         'LastExitStatus':
@@ -1574,11 +1626,13 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject('/System/Library/CoreServices/Software '
                          'Update.app/Contents/Resources/SoftwareUpdateCheck'),
-            FakeCFObject('-LaunchApp'), FakeCFObject('YES')
+            FakeCFObject('-LaunchApp'),
+            FakeCFObject('YES')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.ubd',
         'LastExitStatus':
@@ -1597,7 +1651,8 @@ JOBS = [
         },
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d07d60.anonymous.applepushservic',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -1605,7 +1660,8 @@ JOBS = [
         'PID': FakeCFObject(85),
         'Program': 'applepushservic',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1c700.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32291].subset.223',
@@ -1616,7 +1672,8 @@ JOBS = [
         'PID': FakeCFObject(32291),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2c7e0.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32438].subset.554',
@@ -1624,7 +1681,8 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c103c0.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -1632,7 +1690,8 @@ JOBS = [
         'PID': FakeCFObject(24593),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1649,15 +1708,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.framework.3')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1677,7 +1741,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1ab70.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32283].subset.231',
@@ -1685,7 +1750,8 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '[0x0-0x34c34c].com.google.Chrome.canary',
         'LastExitStatus':
@@ -1709,11 +1775,13 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/Applications/Google Chrome Canary.app/Contents/MacOS/Google '
-                'Chrome Canary'), FakeCFObject('-psn_0_3457868')
+                'Chrome Canary'),
+            FakeCFObject('-psn_0_3457868')
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1bde0.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32285].subset.229',
@@ -1721,7 +1789,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions': 1,
         'Label': 'com.apple.warmd_agent',
         'LastExitStatus': FakeCFObject(0),
@@ -1731,7 +1800,8 @@ JOBS = [
         'ProgramArguments': [FakeCFObject('/usr/libexec/warmd_agent')],
         'TimeOut': FakeCFObject(30),
         'TransactionCount': 0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1751,7 +1821,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c115d0.anonymous.Google Chrome C',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60518].subset.363',
@@ -1759,7 +1830,8 @@ JOBS = [
         'PID': FakeCFObject(60513),
         'Program': 'Google Chrome C',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1776,15 +1848,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.3')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c1e5a0.mach_init.crash_inspector',
         'LastExitStatus':
@@ -1805,7 +1882,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.RemoteDesktop.agent',
         'LastExitStatus':
@@ -1821,7 +1899,8 @@ JOBS = [
             '/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/MacOS/ARDAgent',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c24490.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60518].subset.363',
@@ -1829,7 +1908,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c18730.anonymous.sh',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -1837,7 +1917,8 @@ JOBS = [
         'PID': FakeCFObject(68799),
         'Program': 'sh',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2fcf0.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[35271].subset.440',
@@ -1848,7 +1929,8 @@ JOBS = [
         'PID': FakeCFObject(35271),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.FTCleanup',
         'LastExitStatus':
@@ -1858,7 +1940,9 @@ JOBS = [
         'OnDemand':
             FakeCFObject(1),
         'ProgramArguments': [
-            FakeCFObject('/bin/sh'), FakeCFObject('-c'), FakeCFObject(
+            FakeCFObject('/bin/sh'),
+            FakeCFObject('-c'),
+            FakeCFObject(
                 "if [ \"$HOME\" == \"/System\" ], then exit 0, fi, if [ -f "
                 "\"$HOME/Library/LaunchAgents/com.apple.imagent.plist\" ] , "
                 'then launchctl unload -wF '
@@ -1880,7 +1964,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1897,15 +1982,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.isolation.0')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.netauth.user.gui',
         'LastExitStatus':
@@ -1924,7 +2014,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d28310.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -1932,7 +2023,8 @@ JOBS = [
         'PID': FakeCFObject(83462),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d31250.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[60520].subset.399',
@@ -1940,7 +2032,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -1972,7 +2065,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             1,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2d1c0.anonymous.su',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -1980,7 +2074,8 @@ JOBS = [
         'PID': FakeCFObject(74539),
         'Program': 'su',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1d940.anonymous.sshd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -1988,7 +2083,8 @@ JOBS = [
         'PID': FakeCFObject(68714),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2001,8 +2097,10 @@ JOBS = [
             FakeCFObject(1),
         'PID':
             FakeCFObject(46009),
-        'ProgramArguments':
-            [FakeCFObject('/usr/bin/ssh-agent'), FakeCFObject('-l')],
+        'ProgramArguments': [
+            FakeCFObject('/usr/bin/ssh-agent'),
+            FakeCFObject('-l')
+        ],
         'Sockets': {
             'Listeners': ('-1'),
         },
@@ -2010,7 +2108,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.familycontrols.useragent',
         'LastExitStatus':
@@ -2029,7 +2128,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1b7c0.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32285].subset.229',
@@ -2040,7 +2140,8 @@ JOBS = [
         'PID': FakeCFObject(32285),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.AppStoreUpdateAgent',
         'LastExitStatus':
@@ -2056,7 +2157,8 @@ JOBS = [
             '/Applications/App Store.app/Contents/Resources/appstoreupdateagent',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.csuseragent',
         'LastExitStatus':
@@ -2068,11 +2170,13 @@ JOBS = [
         },
         'OnDemand':
             FakeCFObject(1),
-        'ProgramArguments':
-            [FakeCFObject('/System/Library/CoreServices/CSUserAgent')],
+        'ProgramArguments': [
+            FakeCFObject('/System/Library/CoreServices/CSUserAgent')
+        ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.PubSub.Agent',
         'LastExitStatus':
@@ -2095,7 +2199,8 @@ JOBS = [
         },
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2117,7 +2222,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.netauth.user.auth',
         'LastExitStatus':
@@ -2136,7 +2242,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1dc40.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2144,7 +2251,8 @@ JOBS = [
         'PID': FakeCFObject(68720),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2f7a0.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -2152,7 +2260,8 @@ JOBS = [
         'PID': FakeCFObject(75030),
         'Program': 'login',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.BezelUIServer',
         'LastExitStatus':
@@ -2171,29 +2280,24 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759c0cf00.anonymous.com.apple.dock.',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759c0cf00.anonymous.com.apple.dock.',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(652),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(652),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.CFPasteboardClient': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'com.apple.dock.',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'com.apple.dock.',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d28c10.anonymous.bash',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2201,7 +2305,8 @@ JOBS = [
         'PID': FakeCFObject(83462),
         'Program': 'bash',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions': 1,
         'Label': 'com.apple.xgridd',
         'LastExitStatus': FakeCFObject(0),
@@ -2213,7 +2318,8 @@ JOBS = [
         'ProgramArguments': [FakeCFObject('/usr/libexec/xgrid/xgridd')],
         'TimeOut': FakeCFObject(30),
         'TransactionCount': '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.reclaimspace',
         'LastExitStatus':
@@ -2229,7 +2335,8 @@ JOBS = [
             '/System/Library/CoreServices/backupd.bundle/Contents/Resources/ReclaimSpaceAgent.app/Contents/MacOS/ReclaimSpaceAgent',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d31550.mach_init.crash_inspector',
         'LastExitStatus':
@@ -2250,7 +2357,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '[0x0-0x4c54c5].com.google.Chrome',
         'LastExitStatus':
@@ -2278,7 +2386,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c0c320.anonymous.loginwindow',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2286,7 +2395,8 @@ JOBS = [
         'PID': FakeCFObject(71),
         'Program': 'loginwindow',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2303,15 +2413,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker-lsb'),
-            FakeCFObject('-c'), FakeCFObject('MDSImporterWorker'),
-            FakeCFObject('-m'), FakeCFObject('com.apple.mdworker.lsb.0')
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker-lsb'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
+            FakeCFObject('com.apple.mdworker.lsb.0')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.midiserver',
         'LastExitStatus':
@@ -2330,7 +2445,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c15d50.anonymous.eapolclient',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',
@@ -2338,7 +2454,8 @@ JOBS = [
         'PID': FakeCFObject(68168),
         'Program': 'eapolclient',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.AddressBook.SourceSync',
         'LastExitStatus':
@@ -2358,7 +2475,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2375,15 +2493,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker32'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker-lsb'),
-            FakeCFObject('-c'), FakeCFObject('MDSImporterWorker'),
-            FakeCFObject('-m'), FakeCFObject('com.apple.mdworker.i386.0')
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker-lsb'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
+            FakeCFObject('com.apple.mdworker.i386.0')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d2a8d0.mach_init.crash_inspector',
         'LastExitStatus':
@@ -2404,7 +2527,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2a130.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32656].subset.619',
@@ -2412,7 +2536,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c1c0e0.mach_init.crash_inspector',
         'LastExitStatus':
@@ -2433,7 +2558,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c15450.anonymous.sshd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2441,43 +2567,36 @@ JOBS = [
         'PID': FakeCFObject(68665),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            'com.apple.tiswitcher',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': 'com.apple.tiswitcher',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.inputswitcher.running': 0,
             'com.apple.inputswitcher.startup': 0,
             'com.apple.inputswitcher.stop': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
+        'OnDemand': FakeCFObject(1),
         'Program':
             '/System/Library/CoreServices/Menu '
             'Extras/TextInput.menu/Contents/SharedSupport/TISwitcher.app/Contents/MacOS/TISwitcher',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            'com.apple.java.InstallOnDemandAgent',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
+        'Label': 'com.apple.java.InstallOnDemandAgent',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.java.installondemand': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
+        'OnDemand': FakeCFObject(1),
         'Program':
             '/System/Library/Java/Support/CoreDeploy.bundle/Contents/Download '
             'Java Components.app/Contents/MacOS/Download Java Components',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1a860.anonymous.Google Chrome H',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32283].subset.231',
@@ -2488,7 +2607,8 @@ JOBS = [
         'PID': FakeCFObject(32283),
         'Program': 'Google Chrome H',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2511,7 +2631,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.speech.feedbackservicesserver',
         'LastExitStatus':
@@ -2527,7 +2648,8 @@ JOBS = [
             '/System/Library/Frameworks/Carbon.framework/Frameworks/SpeechRecognition.framework/Versions/A/SpeechFeedbackWindow.app/Contents/MacOS/SpeechFeedbackWindow',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759c1d020.mach_init.crash_inspector',
         'LastExitStatus':
@@ -2548,7 +2670,8 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2571,7 +2694,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.cfnetwork.AuthBrokerAgent',
         'LastExitStatus':
@@ -2583,11 +2707,13 @@ JOBS = [
         },
         'OnDemand':
             FakeCFObject(1),
-        'ProgramArguments':
-            [FakeCFObject('/System/Library/CoreServices/AuthBrokerAgent')],
+        'ProgramArguments': [
+            FakeCFObject('/System/Library/CoreServices/AuthBrokerAgent')
+        ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2623,7 +2749,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.safaridavclient',
         'LastExitStatus':
@@ -2643,33 +2770,28 @@ JOBS = [
         ],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            'com.apple.Dock.agent',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': 'com.apple.Dock.agent',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {
             'com.apple.dock.appstore': 0,
             'com.apple.dock.downloads': 0,
             'com.apple.dock.fullscreen': 0,
             'com.apple.dock.server': 0,
         },
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(638),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(638),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.coredrag': 0,
         },
-        'Program':
-            '/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': '/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label':
             'com.apple.TrustEvaluationAgent',
         'LastExitStatus':
@@ -2686,7 +2808,8 @@ JOBS = [
         'ProgramArguments': [FakeCFObject('trustevaluationagent')],
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2707,7 +2830,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2728,7 +2852,8 @@ JOBS = [
             FakeCFObject(30),
         'TransactionCount':
             '-1',
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1cd20.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32291].subset.223',
@@ -2736,7 +2861,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2eab0.anonymous.su',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2744,7 +2870,8 @@ JOBS = [
         'PID': FakeCFObject(74539),
         'Program': 'su',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c2ee80.anonymous.Google Chrome',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32282].subset.281',
@@ -2752,28 +2879,23 @@ JOBS = [
         'PID': FakeCFObject(32275),
         'Program': 'Google Chrome',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
-        'Label':
-            '0x7f8759d2f9e0.anonymous.Google Chrome H',
-        'LastExitStatus':
-            FakeCFObject(0),
-        'LimitLoadToSessionType':
-            'Aqua',
+    }),
+    FakeCFDict({
+        'Label': '0x7f8759d2f9e0.anonymous.Google Chrome H',
+        'LastExitStatus': FakeCFObject(0),
+        'LimitLoadToSessionType': 'Aqua',
         'MachServices': {},
-        'OnDemand':
-            FakeCFObject(1),
-        'PID':
-            FakeCFObject(60518),
+        'OnDemand': FakeCFObject(1),
+        'PID': FakeCFObject(60518),
         'PerJobMachServices': {
             'WakeUpProcessPort': 0,
             'com.apple.axserver': 0,
             'com.apple.tsm.portname': 0,
         },
-        'Program':
-            'Google Chrome H',
-        'TimeOut':
-            FakeCFObject(30),
-    }), FakeCFDict({
+        'Program': 'Google Chrome H',
+        'TimeOut': FakeCFObject(30),
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c16e10.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2781,7 +2903,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'EnableTransactions':
             1,
         'Label':
@@ -2803,15 +2926,20 @@ JOBS = [
         'ProgramArguments': [
             FakeCFObject(
                 '/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker'
-            ), FakeCFObject('-s'), FakeCFObject('mdworker'), FakeCFObject('-c'),
-            FakeCFObject('MDSImporterWorker'), FakeCFObject('-m'),
+            ),
+            FakeCFObject('-s'),
+            FakeCFObject('mdworker'),
+            FakeCFObject('-c'),
+            FakeCFObject('MDSImporterWorker'),
+            FakeCFObject('-m'),
             FakeCFObject('com.apple.mdworker.pool.0')
         ],
         'TimeOut':
             FakeCFObject(30),
         'TransactionCount':
             0,
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label':
             '0x7f8759d1f460.anonymous.launchd',
         'LastExitStatus':
@@ -2826,7 +2954,8 @@ JOBS = [
             'launchd',
         'TimeOut':
             FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d1e8f0.anonymous.launchd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Google Chrome H[32297].subset.637',
@@ -2834,7 +2963,8 @@ JOBS = [
         'PID': FakeCFObject(499),
         'Program': 'launchd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759c1d330.anonymous.sshd',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Background',
@@ -2842,7 +2972,8 @@ JOBS = [
         'PID': FakeCFObject(68710),
         'Program': 'sshd',
         'TimeOut': FakeCFObject(30),
-    }), FakeCFDict({
+    }),
+    FakeCFDict({
         'Label': '0x7f8759d2ba80.anonymous.sudo',
         'LastExitStatus': FakeCFObject(0),
         'LimitLoadToSessionType': 'Aqua',

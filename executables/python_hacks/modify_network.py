@@ -118,9 +118,8 @@ def main():
       # Change interface config to be unroutable.
       if return_str[interface][2] == 99:
         if all([key in py_args for key in ['ip', 'subnet', 'gw']]):
-          return_str[interface] = NetshStaticIp(interface, py_args['ip'],
-                                                py_args['subnet'],
-                                                py_args['gw'])
+          return_str[interface] = NetshStaticIp(
+              interface, py_args['ip'], py_args['subnet'], py_args['gw'])
         else:
           return_str[interface] = NetshStaticIp(interface)
 

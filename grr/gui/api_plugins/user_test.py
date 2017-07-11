@@ -98,16 +98,17 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(n.reference.client_approval.approval_id, "foo-bar")
 
   def testHuntApprovalNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("GrantAccess", "aff4:/ACL/hunts/H:123456/%s/foo-bar" %
-                          self.token.username)
+    n = self.InitFromObj_(
+        "GrantAccess",
+        "aff4:/ACL/hunts/H:123456/%s/foo-bar" % self.token.username)
     self.assertEqual(n.reference.type, "HUNT_APPROVAL")
     self.assertEqual(n.reference.hunt_approval.hunt_id, "H:123456")
     self.assertEqual(n.reference.hunt_approval.username, self.token.username)
     self.assertEqual(n.reference.hunt_approval.approval_id, "foo-bar")
 
   def testCronJobApprovalNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("GrantAccess", "aff4:/ACL/cron/FooBar/%s/foo-bar" %
-                          self.token.username)
+    n = self.InitFromObj_(
+        "GrantAccess", "aff4:/ACL/cron/FooBar/%s/foo-bar" % self.token.username)
     self.assertEqual(n.reference.type, "CRON_JOB_APPROVAL")
     self.assertEqual(n.reference.cron_job_approval.cron_job_id, "FooBar")
     self.assertEqual(n.reference.cron_job_approval.username,
@@ -203,8 +204,8 @@ class ApiCreateApprovalHandlerTestMixin(object):
       self.handler.Handle(self.args, token=self.token)
 
     self.assertEqual(len(addresses), 1)
-    self.assertEqual(addresses[0],
-                     ("approver", self.token.username, "test@example.com"))
+    self.assertEqual(addresses[0], ("approver", self.token.username,
+                                    "test@example.com"))
 
 
 class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):

@@ -63,8 +63,8 @@ class FingerprintFile(standard.ReadBuffer):
           if res:
             response.matching_types.append(finger.fp_type)
         else:
-          raise RuntimeError("Encountered unknown fingerprint type. %s" %
-                             finger.fp_type)
+          raise RuntimeError(
+              "Encountered unknown fingerprint type. %s" % finger.fp_type)
 
       # Structure of the results is a list of dicts, each containing the
       # name of the hashing method, hashes for enabled hash algorithms,

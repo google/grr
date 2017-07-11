@@ -17,8 +17,7 @@ class ConsoleUtilsTest(test_lib.FlowTestsBaseclass):
     client1.Set(client1.Schema.HOSTNAME("test1"))
     client1.Flush()
     self.assertEqual(
-        console_utils.ClientIdToHostname(
-            client1.urn, token=self.token),
+        console_utils.ClientIdToHostname(client1.urn, token=self.token),
         "test1")
 
   def testFindClonedClients(self):

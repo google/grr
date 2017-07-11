@@ -97,10 +97,10 @@ class ClientBuilder(BuilderBase):
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
     # Create the build directory and let pyinstaller loose on it.
-    self.build_dir = config_lib.CONFIG.Get("PyInstaller.build_dir",
-                                           context=self.context)
-    self.work_path = config_lib.CONFIG.Get("PyInstaller.workpath_dir",
-                                           context=self.context)
+    self.build_dir = config_lib.CONFIG.Get(
+        "PyInstaller.build_dir", context=self.context)
+    self.work_path = config_lib.CONFIG.Get(
+        "PyInstaller.workpath_dir", context=self.context)
 
     self.CleanDirectory(self.build_dir)
     self.CleanDirectory(self.work_path)
@@ -139,12 +139,14 @@ class ClientBuilder(BuilderBase):
 
     # Pyinstaller doesn't handle unicode strings.
     args = [
-        "--distpath", str(
+        "--distpath",
+        str(
             config_lib.CONFIG.Get("PyInstaller.distpath",
                                   context=self.context)), "--workpath",
         str(
-            config_lib.CONFIG.Get("PyInstaller.workpath_dir",
-                                  context=self.context)), str(self.spec_file)
+            config_lib.CONFIG.Get(
+                "PyInstaller.workpath_dir", context=self.context)),
+        str(self.spec_file)
     ]
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
@@ -163,8 +165,8 @@ class ClientBuilder(BuilderBase):
 
     version_ini = config_lib.Resource().Filter("version.ini")
     if not os.path.exists(version_ini):
-      raise RuntimeError("Couldn't find version_ini in virtual env root: %s" %
-                         version_ini)
+      raise RuntimeError(
+          "Couldn't find version_ini in virtual env root: %s" % version_ini)
     shutil.copy(version_ini, os.path.join(self.output_dir, "version.ini"))
 
     with open(os.path.join(self.output_dir, "build.yaml"), "wb") as fd:
@@ -176,18 +178,18 @@ class ClientBuilder(BuilderBase):
         "Client.build_environment":
             rdf_client.Uname.FromCurrentSystem().signature(),
         "Template.build_type":
-            config_lib.CONFIG.Get("ClientBuilder.build_type",
-                                  context=self.context),
+            config_lib.CONFIG.Get(
+                "ClientBuilder.build_type", context=self.context),
         "Template.version_major":
             config_lib.CONFIG.Get("Source.version_major", context=self.context),
         "Template.version_minor":
             config_lib.CONFIG.Get("Source.version_minor", context=self.context),
         "Template.version_revision":
-            config_lib.CONFIG.Get("Source.version_revision",
-                                  context=self.context),
+            config_lib.CONFIG.Get(
+                "Source.version_revision", context=self.context),
         "Template.version_release":
-            config_lib.CONFIG.Get("Source.version_release",
-                                  context=self.context),
+            config_lib.CONFIG.Get(
+                "Source.version_release", context=self.context),
         "Template.arch":
             config_lib.CONFIG.Get("Client.arch", context=self.context)
     }
@@ -268,10 +270,10 @@ class ClientRepacker(BuilderBase):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
       # Make sure we write the file in yaml format.
-      filename = os.path.join(
-          tmp_dir,
-          config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                context=context))
+      filename = os.path.join(tmp_dir,
+                              config_lib.CONFIG.Get(
+                                  "ClientBuilder.config_filename",
+                                  context=context))
 
       new_config = config_lib.CONFIG.MakeNewConfig()
       new_config.Initialize(reset=True, data="")
@@ -336,8 +338,8 @@ class ClientRepacker(BuilderBase):
     if key_data is None:
       errors.append("Missing Client.executable_signing_public_key.")
     elif not key_data.startswith("-----BEGIN PUBLIC"):
-      errors.append("Invalid Client.executable_signing_public_key: %s" %
-                    key_data)
+      errors.append(
+          "Invalid Client.executable_signing_public_key: %s" % key_data)
 
     certificate = config.GetRaw(
         "CA.certificate", default=None, context=self.context)
@@ -435,8 +437,8 @@ class WindowsClientRepacker(ClientRepacker):
     completed_files = []  # Track which files we've copied already.
 
     # Change the name of the main binary to the configured name.
-    client_bin_name = config_lib.CONFIG.Get("Client.binary_name",
-                                            context=context)
+    client_bin_name = config_lib.CONFIG.Get(
+        "Client.binary_name", context=context)
 
     extension = ""
     if "windows" == config_lib.CONFIG.Get("Client.platform", context=context):
@@ -477,8 +479,8 @@ class WindowsClientRepacker(ClientRepacker):
         service_bin_dat,
         console=config_lib.CONFIG.Get("ClientBuilder.console", context=context))
 
-    service_bin_name = config_lib.CONFIG.Get("Nanny.service_binary_name",
-                                             context=context)
+    service_bin_name = config_lib.CONFIG.Get(
+        "Nanny.service_binary_name", context=context)
     output_zip.writestr(service_bin_name, self.Sign(service_bin_dat.getvalue()))
     completed_files.append(service_template.filename)
 
@@ -514,8 +516,8 @@ class WindowsClientRepacker(ClientRepacker):
     output_zip = zipfile.ZipFile(
         zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
-    config_file_name = config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                             context=context)
+    config_file_name = config_lib.CONFIG.Get(
+        "ClientBuilder.config_filename", context=context)
     # Copy the rest of the files from the package to the new zip.
     for template_file in src_zip.namelist():
       if template_file != config_file_name:
@@ -542,8 +544,8 @@ class WindowsClientRepacker(ClientRepacker):
     with open(output_path, "wb") as fd:
       # First write the installer stub
       stub_data = cStringIO.StringIO()
-      unzipsfx_stub = config_lib.CONFIG.Get("ClientBuilder.unzipsfx_stub",
-                                            context=context)
+      unzipsfx_stub = config_lib.CONFIG.Get(
+          "ClientBuilder.unzipsfx_stub", context=context)
       stub_raw = open(unzipsfx_stub, "rb").read()
 
       # Check stub has been compiled with the requireAdministrator manifest.
@@ -557,8 +559,8 @@ class WindowsClientRepacker(ClientRepacker):
       # mode for easier debugging.
       SetPeSubsystem(
           stub_data,
-          console=config_lib.CONFIG.Get("ClientBuilder.console",
-                                        context=context))
+          console=config_lib.CONFIG.Get(
+              "ClientBuilder.console", context=context))
 
       # Now patch up the .rsrc section to contain the payload.
       end_of_file = zip_data.tell() + stub_data.tell()
@@ -614,13 +616,12 @@ class LinuxClientRepacker(ClientRepacker):
 
     # Rename the generated binaries to the correct name.
     template_binary_dir = os.path.join(template_path, "dist/debian/grr-client")
-    package_name = config_lib.CONFIG.Get("ClientBuilder.package_name",
-                                         context=self.context)
+    package_name = config_lib.CONFIG.Get(
+        "ClientBuilder.package_name", context=self.context)
     target_binary_dir = os.path.join(
         template_path,
-        "dist/debian/%s%s" % (package_name,
-                              config_lib.CONFIG.Get("ClientBuilder.target_dir",
-                                                    context=self.context)))
+        "dist/debian/%s%s" % (package_name, config_lib.CONFIG.Get(
+            "ClientBuilder.target_dir", context=self.context)))
     if package_name == "grr-client":
       # Need to rename the template path or the move will fail.
       shutil.move(template_binary_dir, "%s-template" % template_binary_dir)
@@ -631,9 +632,9 @@ class LinuxClientRepacker(ClientRepacker):
 
     shutil.move(
         os.path.join(target_binary_dir, "grr-client"),
-        os.path.join(
-            target_binary_dir,
-            config_lib.CONFIG.Get("Client.binary_name", context=self.context)))
+        os.path.join(target_binary_dir,
+                     config_lib.CONFIG.Get(
+                         "Client.binary_name", context=self.context)))
 
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
@@ -702,30 +703,25 @@ class LinuxClientRepacker(ClientRepacker):
 
       # We need to strip leading /'s or .join will ignore everything that comes
       # before it.
-      target_dir = config_lib.CONFIG.Get("ClientBuilder.target_dir",
-                                         context=self.context).lstrip("/")
-      agent_dir = os.path.join(
-          template_dir,
-          "debian",
-          config_lib.CONFIG.Get("ClientBuilder.package_name",
-                                context=self.context),
-          target_dir)
+      target_dir = config_lib.CONFIG.Get(
+          "ClientBuilder.target_dir", context=self.context).lstrip("/")
+      agent_dir = os.path.join(template_dir, "debian",
+                               config_lib.CONFIG.Get(
+                                   "ClientBuilder.package_name",
+                                   context=self.context), target_dir)
 
       with open(
-          os.path.join(
-              agent_dir,
-              config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                    context=self.context)),
-          "wb") as fd:
+          os.path.join(agent_dir,
+                       config_lib.CONFIG.Get(
+                           "ClientBuilder.config_filename",
+                           context=self.context)), "wb") as fd:
         fd.write(client_config_content)
 
       # Set the daemon to executable.
       os.chmod(
-          os.path.join(
-              agent_dir,
-              config_lib.CONFIG.Get("Client.binary_name",
-                                    context=self.context)),
-          0755)
+          os.path.join(agent_dir,
+                       config_lib.CONFIG.Get(
+                           "Client.binary_name", context=self.context)), 0755)
 
       arch = config_lib.CONFIG.Get("Template.arch", context=self.context)
 
@@ -748,8 +744,8 @@ class LinuxClientRepacker(ClientRepacker):
 
         filename_base = config_lib.CONFIG.Get(
             "ClientBuilder.debian_package_base", context=self.context)
-        output_base = config_lib.CONFIG.Get("ClientRepacker.output_basename",
-                                            context=self.context)
+        output_base = config_lib.CONFIG.Get(
+            "ClientRepacker.output_basename", context=self.context)
       finally:
         try:
           os.chdir(old_working_dir)
@@ -759,8 +755,9 @@ class LinuxClientRepacker(ClientRepacker):
       utils.EnsureDirExists(os.path.dirname(output_path))
 
       for extension in [
-          ".changes", config_lib.CONFIG.Get("ClientBuilder.output_extension",
-                                            context=self.context)
+          ".changes",
+          config_lib.CONFIG.Get(
+              "ClientBuilder.output_extension", context=self.context)
       ]:
         input_name = "%s%s" % (filename_base, extension)
         output_name = "%s%s" % (output_base, extension)
@@ -827,8 +824,8 @@ class CentosClientRepacker(LinuxClientRepacker):
         pass
       shutil.move(template_binary_dir, target_binary_dir)
       client_name = config_lib.CONFIG.Get("Client.name", context=self.context)
-      client_binary_name = config_lib.CONFIG.Get("Client.binary_name",
-                                                 context=self.context)
+      client_binary_name = config_lib.CONFIG.Get(
+          "Client.binary_name", context=self.context)
       if client_binary_name != "grr-client":
         shutil.move(
             os.path.join(target_binary_dir, "grr-client"),
@@ -860,9 +857,8 @@ class CentosClientRepacker(LinuxClientRepacker):
             systemd_target_filename)
 
         # Generate prelinking blacklist file
-        prelink_target_filename = os.path.join(rpm_build_dir,
-                                               "etc/prelink.conf.d",
-                                               "%s.conf" % client_name)
+        prelink_target_filename = os.path.join(
+            rpm_build_dir, "etc/prelink.conf.d", "%s.conf" % client_name)
 
         utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
         self.GenerateFile(
@@ -874,11 +870,10 @@ class CentosClientRepacker(LinuxClientRepacker):
       client_config_content = self.GetClientConfig(client_context)
 
       with open(
-          os.path.join(
-              target_binary_dir,
-              config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                    context=self.context)),
-          "wb") as fd:
+          os.path.join(target_binary_dir,
+                       config_lib.CONFIG.Get(
+                           "ClientBuilder.config_filename",
+                           context=self.context)), "wb") as fd:
         fd.write(client_config_content)
 
       # Undo all prelinking for libs or the rpm might have checksum mismatches.
@@ -910,8 +905,8 @@ class CentosClientRepacker(LinuxClientRepacker):
         logging.error(e.output)
         raise
 
-      client_version = config_lib.CONFIG.Get("Template.version_string",
-                                             context=self.context)
+      client_version = config_lib.CONFIG.Get(
+          "Template.version_string", context=self.context)
       rpm_filename = os.path.join(rpm_rpms_dir, client_arch, "%s-%s-1.%s.rpm" %
                                   (client_name, client_version, client_arch))
 

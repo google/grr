@@ -77,18 +77,18 @@ class TemplateRepacker(object):
 
     if "Target:Windows" in context:
 
-      cert = config_lib.CONFIG.Get("ClientBuilder.windows_signing_cert",
-                                   context=context)
-      key = config_lib.CONFIG.Get("ClientBuilder.windows_signing_key",
-                                  context=context)
+      cert = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_cert", context=context)
+      key = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_key", context=context)
       app_name = config_lib.CONFIG.Get(
           "ClientBuilder.windows_signing_application_name", context=context)
       return signing.WindowsCodeSigner(cert, key, passwd, app_name)
     elif "Target:LinuxRpm" in context:
       pub_keyfile = config_lib.CONFIG.Get(
           "ClientBuilder.rpm_signing_key_public_keyfile", context=context)
-      gpg_name = config_lib.CONFIG.Get("ClientBuilder.rpm_gpg_name",
-                                       context=context)
+      gpg_name = config_lib.CONFIG.Get(
+          "ClientBuilder.rpm_gpg_name", context=context)
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
   def SignTemplate(self, template_path, output_file, context=None):
@@ -149,14 +149,14 @@ class TemplateRepacker(object):
       if context:
         repack_context.extend(context)
 
-      output_path = os.path.join(
-          output_dir,
-          config_lib.CONFIG.Get("ClientRepacker.output_filename",
-                                context=repack_context))
+      output_path = os.path.join(output_dir,
+                                 config_lib.CONFIG.Get(
+                                     "ClientRepacker.output_filename",
+                                     context=repack_context))
 
       print "Using context: %s and labels: %s" % (
-          repack_context, config_lib.CONFIG.Get("Client.labels",
-                                                context=repack_context))
+          repack_context,
+          config_lib.CONFIG.Get("Client.labels", context=repack_context))
       try:
         signer = None
         if sign:
@@ -178,8 +178,8 @@ class TemplateRepacker(object):
           # pylint: disable=g-import-not-at-top
           from grr.lib import maintenance_utils
           # pylint: enable=g-import-not-at-top
-          dest = config_lib.CONFIG.Get("Executables.installer",
-                                       context=repack_context)
+          dest = config_lib.CONFIG.Get(
+              "Executables.installer", context=repack_context)
           maintenance_utils.UploadSignedConfigBlob(
               open(result_path, "rb").read(100 * 1024 * 1024),
               dest,

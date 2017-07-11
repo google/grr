@@ -41,6 +41,7 @@ class MockFuse(object):
   class FuseOSError(MockFuseOSError):
     pass
 
+
 # pylint: disable=invalid-name
 
 # If fuse is not installed, replace it with our MockFuse object.
@@ -288,8 +289,7 @@ class GRRFuseTest(GRRFuseTestBase):
         self.grr_fuse.Read(
             self.ClientPathToAFF4Path(filename),
             length=len("hunter2"),
-            offset=0),
-        "hunter2")
+            offset=0), "hunter2")
 
   def WriteFileAndList(self, filename, contents):
     path = os.path.join(self.temp_dir, filename)
@@ -304,8 +304,8 @@ class GRRFuseTest(GRRFuseTestBase):
     """Make sure the right chunks get updated when we read a sparse file."""
     with utils.MultiStubber(
         (self.grr_fuse, "force_sparse_image", True),
-        (self.grr_fuse, "max_age_before_refresh",
-         datetime.timedelta(seconds=30)), (self.grr_fuse, "size_threshold", 0)):
+        (self.grr_fuse, "max_age_before_refresh", datetime.timedelta(
+            seconds=30)), (self.grr_fuse, "size_threshold", 0)):
       self._testUpdateSparseImageChunks()
 
   def _testUpdateSparseImageChunks(self):
@@ -423,8 +423,7 @@ class GRRFuseTest(GRRFuseTestBase):
     filename = self.WriteFileAndList("password.txt", "password1")
     self.assertEqual(
         self.grr_fuse.Read(
-            self.ClientPathToAFF4Path(filename), length=5, offset=3),
-        "sword")
+            self.ClientPathToAFF4Path(filename), length=5, offset=3), "sword")
 
   def RunFakeWorkerAndClient(self, client_mock, worker_mock):
     """Runs a fake client and worker until both have empty queues.

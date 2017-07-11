@@ -65,13 +65,14 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
             instance_type="AMAZON",
             service_name_regex="SERVICE_NAME: AWSLiteAgent",
             url="http://169.254.169.254/latest/meta-data/ami-id",
-            label="amazon-ami"), rdf_cloud.CloudMetadataRequest(
-                bios_version_regex="Google",
-                instance_type="GOOGLE",
-                service_name_regex="SERVICE_NAME: GCEAgent",
-                url=self.PROJ_URL,
-                label="Google-project-id",
-                headers={"Metadata-Flavor": "Google"})
+            label="amazon-ami"),
+        rdf_cloud.CloudMetadataRequest(
+            bios_version_regex="Google",
+            instance_type="GOOGLE",
+            service_name_regex="SERVICE_NAME: GCEAgent",
+            url=self.PROJ_URL,
+            label="Google-project-id",
+            headers={"Metadata-Flavor": "Google"})
     ])
 
     with mock.patch.object(platform, "system", return_value="Windows"):
@@ -99,12 +100,13 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
             bios_version_regex=".*amazon",
             instance_type="AMAZON",
             url="http://169.254.169.254/latest/meta-data/ami-id",
-            label="amazon-ami"), rdf_cloud.CloudMetadataRequest(
-                bios_version_regex="Google",
-                instance_type="GOOGLE",
-                url=self.PROJ_URL,
-                label="Google-project-id",
-                headers={"Metadata-Flavor": "Google"})
+            label="amazon-ami"),
+        rdf_cloud.CloudMetadataRequest(
+            bios_version_regex="Google",
+            instance_type="GOOGLE",
+            url=self.PROJ_URL,
+            label="Google-project-id",
+            headers={"Metadata-Flavor": "Google"})
     ])
     with mock.patch.object(
         cloud.GetCloudVMMetadata,

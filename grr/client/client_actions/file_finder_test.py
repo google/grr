@@ -69,8 +69,7 @@ class FileFinderTest(test_lib.EmptyActionTest):
     paths = [os.path.join(self.base_path, "profiles/v1.0") + "/*"]
     results = self._RunFileFinder(paths, self.stat_action)
     self.assertEqual(
-        self._GetRelativeResults(
-            results, base_path=profiles_path),
+        self._GetRelativeResults(results, base_path=profiles_path),
         os.listdir(profiles_path))
 
   def testRecursiveGlob(self):
@@ -410,8 +409,8 @@ class FileFinderTest(test_lib.EmptyActionTest):
     paths = [lnk]
     link_size = os.lstat(lnk).st_size
     target_size = os.stat(lnk).st_size
-    for expected_size, resolve_links in [(link_size, False),
-                                         (target_size, True)]:
+    for expected_size, resolve_links in [(link_size, False), (target_size,
+                                                              True)]:
       stat_action = rdf_file_finder.FileFinderAction(
           action_type=rdf_file_finder.FileFinderAction.Action.STAT,
           stat=rdf_file_finder.FileFinderStatActionOptions(

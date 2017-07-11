@@ -162,8 +162,8 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
   rdfvalue_class = rdf_client.NetworkAddress
 
   def GenerateSample(self, number=0):
-    return rdf_client.NetworkAddress(human_readable_address="192.168.0.%s" %
-                                     number)
+    return rdf_client.NetworkAddress(
+        human_readable_address="192.168.0.%s" % number)
 
   def testIPv4(self):
     sample = rdf_client.NetworkAddress(human_readable_address="192.168.0.1")

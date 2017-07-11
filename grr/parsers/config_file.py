@@ -1004,8 +1004,8 @@ class SudoersParser(parsers.FileParser, FieldParser):
       # Check for continuation; this will either be a trailing comma or the
       # next field after this one being a comma. The lookahead here is a bit
       # nasty.
-      if not (field.endswith(",") or set(
-          fields[i + 1:i + 2]).intersection(ignores)):
+      if not (field.endswith(",") or
+              set(fields[i + 1:i + 2]).intersection(ignores)):
         break
 
     return extracted, fields[i + 1:]

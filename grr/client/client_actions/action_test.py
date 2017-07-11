@@ -60,10 +60,9 @@ class ActionTest(test_lib.EmptyActionTest):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    result = self.RunAction(
-        standard.ReadBuffer,
-        rdf_client.BufferReference(
-            pathspec=p, offset=100, length=10))[0]
+    result = self.RunAction(standard.ReadBuffer,
+                            rdf_client.BufferReference(
+                                pathspec=p, offset=100, length=10))[0]
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
@@ -348,16 +347,16 @@ class ActionTest(test_lib.EmptyActionTest):
     f_namemax = 255
 
     def MockStatFS(unused_path):
-      return posix.statvfs_result((f_bsize, f_frsize, f_blocks, f_bfree,
-                                   f_bavail, f_files, f_ffree, f_favail, f_flag,
-                                   f_namemax))
+      return posix.statvfs_result(
+          (f_bsize, f_frsize, f_blocks, f_bfree, f_bavail, f_files, f_ffree,
+           f_favail, f_flag, f_namemax))
 
     def MockIsMount(path):
       """Only return True for the root path."""
       return path == "/"
 
-    with utils.MultiStubber((os, "statvfs", MockStatFS),
-                            (os.path, "ismount", MockIsMount)):
+    with utils.MultiStubber((os, "statvfs", MockStatFS), (os.path, "ismount",
+                                                          MockIsMount)):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(

@@ -72,9 +72,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
-                                                              self.token))
-                         for client_id in client_ids])
+    client_mocks = dict([(client_id, test_lib.CrashClientMock(
+        client_id, self.token)) for client_id in client_ids])
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(

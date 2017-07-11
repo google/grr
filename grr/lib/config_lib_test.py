@@ -67,8 +67,8 @@ Windows Context:
 
     self.assertEqual(
         conf.Get(
-            "Section1.test_list",
-            context=["Client Context", "Windows Context"]), ["x", "y"])
+            "Section1.test_list", context=["Client Context",
+                                           "Windows Context"]), ["x", "y"])
 
     # Test that contexts affect option selection.
     self.assertEqual(conf.Get("Section1.test", context=["Client Context"]), 6)
@@ -814,9 +814,10 @@ Test3 Context:
     conf.DEFINE_context("Test3 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
     conf.AddContext("Test1 Context")
-    result_map = [(("linux", "amd64", "deb"), True), (
-        ("linux", "i386", "deb"), True), (("windows", "amd64", "exe"), True), (
-            ("windows", "i386", "exe"), False)]
+    result_map = [(("linux", "amd64", "deb"), True), (("linux", "i386", "deb"),
+                                                      True),
+                  (("windows", "amd64", "exe"), True), (("windows", "i386",
+                                                         "exe"), False)]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
 

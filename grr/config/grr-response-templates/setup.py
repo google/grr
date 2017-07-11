@@ -141,6 +141,8 @@ setup_args = dict(
     data_files=(find_data_files(
         "components", prefix="grr-response-templates") + find_data_files(
             "templates", prefix="grr-response-templates") + ["version.ini"]),
-    cmdclass={"sdist": Sdist,})
+    cmdclass={
+        "sdist": Sdist,
+    })
 
 setup(**setup_args)

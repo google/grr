@@ -83,8 +83,8 @@ class APIAuthorizationManager(object):
       raise ApiCallRouterNotFoundError("%s not a valid router" % name)
 
     if not router_cls.params_type and params:
-      raise ApiCallRouterDoesNotExpectParameters("%s is not configurable" %
-                                                 name)
+      raise ApiCallRouterDoesNotExpectParameters(
+          "%s is not configurable" % name)
 
     rdf_params = None
     if router_cls.params_type:
@@ -100,8 +100,8 @@ class APIAuthorizationManager(object):
     self.routers = []
     self.auth_manager = auth_manager.AuthorizationManager()
 
-    self.default_router = self._CreateRouter(config_lib.CONFIG[
-        "API.DefaultRouter"])
+    self.default_router = self._CreateRouter(
+        config_lib.CONFIG["API.DefaultRouter"])
 
     if config_lib.CONFIG["API.RouterACLConfigFile"]:
       logging.info("Using API router ACL config file: %s",
@@ -141,6 +141,7 @@ class APIAuthorizationManager(object):
     logging.debug("No router ACL rule match for user %s. Using default "
                   "router %s", username, self.default_router.__class__.__name__)
     return self.default_router
+
 
 # Set in APIACLInit
 API_AUTH_MGR = None

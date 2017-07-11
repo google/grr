@@ -89,8 +89,7 @@ class FileSizeDistributionReportPlugin(report_plugin_base.ReportPluginBase):
 
     ret.stack_chart.data = (rdf_report_plugins.ApiReportDataSeries2D(
         label=label,
-        points=[rdf_report_plugins.ApiReportDataPoint2D(
-            x=self._Log(x), y=y)])
+        points=[rdf_report_plugins.ApiReportDataPoint2D(x=self._Log(x), y=y)])
                             for label, x, y in itertools.izip(labels, xs, ys))
 
     return ret

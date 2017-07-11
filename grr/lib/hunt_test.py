@@ -269,8 +269,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       hunt.GetRunner().Start()
 
     flows = list(
-        aff4.FACTORY.Open(
-            self.client_id.Add("flows"), token=self.token).ListChildren())
+        aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+        .ListChildren())
 
     self.assertEqual(flows, [])
 
@@ -279,8 +279,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
     flows = list(
-        aff4.FACTORY.Open(
-            self.client_id.Add("flows"), token=self.token).ListChildren())
+        aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+        .ListChildren())
 
     # One flow should have been started.
     self.assertEqual(len(flows), 1)

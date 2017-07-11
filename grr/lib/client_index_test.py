@@ -33,8 +33,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
             username="Bert",
             full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
     kb.users.Append(
-        rdf_client.User(
-            username="Ernie", full_name="Steve O'Bryan"))
+        rdf_client.User(username="Ernie", full_name="Steve O'Bryan"))
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     _, keywords = index.AnalyzeClient(client)
 
@@ -152,8 +151,8 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Ignore the keyword if the date is not readable.
     self.assertEqual(
         len(
-            index.LookupClients(
-                [".", "start_date:2013-10-20", "end_date:XXXX"])), 5)
+            index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
+                                ])), 5)
 
   def testUnversionedKeywords(self):
     index = aff4.FACTORY.Create(
@@ -223,8 +222,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     urns = index.LookupClients(["+label:%s" % label])
     result = [
         utils.SmartStr(c.Get("Host")).lower()
-        for c in aff4.FACTORY.MultiOpen(
-            urns, token=self.token)
+        for c in aff4.FACTORY.MultiOpen(urns, token=self.token)
     ]
     self.assertItemsEqual(hosts, result)
 

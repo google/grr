@@ -574,9 +574,14 @@ class Duration(RDFInteger):
   """Duration value stored in seconds internally."""
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = collections.OrderedDict(
-      (("w", 60 * 60 * 24 * 7), ("d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60),
-       ("s", 1)))
+  # pyformat: disable
+  DIVIDERS = collections.OrderedDict((
+      ("w", 60 * 60 * 24 * 7),
+      ("d", 60 * 60 * 24),
+      ("h", 60 * 60),
+      ("m", 60),
+      ("s", 1)))
+  # pyformat: enable
 
   def __init__(self, initializer=None, age=None):
     super(Duration, self).__init__(None, age)

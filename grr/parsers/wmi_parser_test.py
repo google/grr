@@ -16,9 +16,10 @@ from grr.parsers import wmi_parser
 
 class WMIParserTest(test_lib.FlowTestsBaseclass):
 
-  @unittest.skipIf(platform.system() == "Darwin", (
-      "IPv6 address strings are cosmetically slightly different on OS X, "
-      "and we only expect this parsing code to run on Linux or maybe Windows"))
+  @unittest.skipIf(
+      platform.system() == "Darwin",
+      ("IPv6 address strings are cosmetically slightly different on OS X, "
+       "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testInterfaceParsing(self):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()
@@ -44,8 +45,8 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
             ])
 
         self.assertItemsEqual(
-            [x.human_readable_address for x in result.dhcp_server_list],
-            ["192.168.1.1"])
+            [x.human_readable_address
+             for x in result.dhcp_server_list], ["192.168.1.1"])
 
         self.assertEqual(result.dhcp_lease_expires.AsMicroSecondsFromEpoch(),
                          1409008979123456)
@@ -53,9 +54,9 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
                          1408994579123456)
 
       elif isinstance(result, rdf_client.DNSClientConfiguration):
-        self.assertItemsEqual(
-            result.dns_server,
-            ["192.168.1.1", "192.168.255.81", "192.168.128.88"])
+        self.assertItemsEqual(result.dns_server, [
+            "192.168.1.1", "192.168.255.81", "192.168.128.88"
+        ])
 
         self.assertItemsEqual(result.dns_suffix, [
             "blah.example.com", "ad.example.com", "internal.example.com",

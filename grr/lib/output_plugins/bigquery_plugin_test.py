@@ -45,8 +45,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(
-              source=self.client_id, payload=response))
+          rdf_flows.GrrMessage(source=self.client_id, payload=response))
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
@@ -156,7 +155,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
             rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/中国新闻网新闻中", pathtype="OS")), rdf_client.Process(pid=42)
+                path="/中国新闻网新闻中", pathtype="OS")),
+            rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
 
@@ -222,8 +222,10 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
         rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="/中国新闻网新闻中", pathtype="OS")), rdf_client.Process(pid=42),
-        rdf_client.Process(pid=43), rdf_client.SoftwarePackage(name="test.deb")
+            path="/中国新闻网新闻中", pathtype="OS")),
+        rdf_client.Process(pid=42),
+        rdf_client.Process(pid=43),
+        rdf_client.SoftwarePackage(name="test.deb")
     ]
 
     plugin = bigquery_plugin.BigQueryOutputPlugin(
@@ -237,8 +239,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(
-              source=self.client_id, payload=response))
+          rdf_flows.GrrMessage(source=self.client_id, payload=response))
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
@@ -258,12 +259,12 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
     ]:
       schema_fd = aff4.FACTORY.Open(
-          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.schema" %
-                            output_name),
+          self.base_urn.Add(
+              "C-1000000000000000_Results_%s_1445995873.schema" % output_name),
           token=self.token)
       data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.data" %
-                            output_name),
+          self.base_urn.Add(
+              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
           token=self.token)
       actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
 
@@ -303,8 +304,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
     ]:
       data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.data" %
-                            output_name),
+          self.base_urn.Add(
+              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
           token=self.token)
       actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
       self.assertEqual(

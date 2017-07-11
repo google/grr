@@ -27,10 +27,9 @@ def ConvertStringToFilename(name):
   Returns:
     A safe filename with escaped special chars.
   """
-  return re.sub(r"\W",
-                lambda x: "%%%02X" % ord(x.group(0)),
-                name,
-                flags=re.UNICODE).rstrip("/")
+  return re.sub(
+      r"\W", lambda x: "%%%02X" % ord(x.group(0)), name,
+      flags=re.UNICODE).rstrip("/")
 
 
 def Components(subject):
@@ -115,8 +114,8 @@ def EvaluatePrefix(prefix, path_regex):
                     path_regex_string)
     return "POSSIBLE"
 
-  literal_prefix = _LiteralPrefix(path_regex_string[len(
-      KNOWN_PATH_REGEX_PREFIX):])
+  literal_prefix = _LiteralPrefix(
+      path_regex_string[len(KNOWN_PATH_REGEX_PREFIX):])
   if literal_prefix.startswith(prefix):
     # There are extensions of prefix which match regex.
     return "POSSIBLE"

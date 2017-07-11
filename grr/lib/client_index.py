@@ -52,8 +52,8 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     for k in keywords:
       if k.startswith(self.START_TIME_PREFIX):
         try:
-          start_time = rdfvalue.RDFDatetime.FromHumanReadable(k[
-              self.START_TIME_PREFIX_LEN:])
+          start_time = rdfvalue.RDFDatetime.FromHumanReadable(
+              k[self.START_TIME_PREFIX_LEN:])
         except ValueError:
           pass
       elif k.startswith(self.END_TIME_PREFIX):

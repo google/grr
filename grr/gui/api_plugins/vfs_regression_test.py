@@ -25,10 +25,10 @@ class ApiListFilesHandlerRegressionTest(
     test_lib.ClientFixture(self.client_id, token=self.token, age=42)
 
   def Run(self):
-    self.Check(
-        "ListFiles",
-        vfs_plugin.ApiListFilesArgs(
-            client_id=self.client_id.Basename(), file_path="fs/tsk/c/bin"))
+    self.Check("ListFiles",
+               vfs_plugin.ApiListFilesArgs(
+                   client_id=self.client_id.Basename(),
+                   file_path="fs/tsk/c/bin"))
 
 
 class ApiGetFileTextHandlerRegressionTest(
@@ -152,12 +152,12 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
   def Run(self):
     # Create a running mock refresh operation.
-    self.running_flow_urn = self.CreateRecursiveListFlow(self.client_id,
-                                                         self.token)
+    self.running_flow_urn = self.CreateRecursiveListFlow(
+        self.client_id, self.token)
 
     # Create a mock refresh operation and complete it.
-    self.finished_flow_urn = self.CreateRecursiveListFlow(self.client_id,
-                                                          self.token)
+    self.finished_flow_urn = self.CreateRecursiveListFlow(
+        self.client_id, self.token)
     with aff4.FACTORY.Open(
         self.finished_flow_urn,
         aff4_type=flow.GRRFlow,

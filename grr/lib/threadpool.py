@@ -212,9 +212,8 @@ class ThreadPool(object):
     with cls.factory_lock:
       result = cls.POOLS.get(name)
       if result is None:
-        cls.POOLS[name] = result = cls(name,
-                                       min_threads,
-                                       max_threads=max_threads)
+        cls.POOLS[name] = result = cls(
+            name, min_threads, max_threads=max_threads)
 
       return result
 
@@ -393,9 +392,8 @@ class ThreadPool(object):
           # We should block and try again soon.
           elif blocking:
             try:
-              self._queue.put((target, args, name, time.time()),
-                              block=True,
-                              timeout=1)
+              self._queue.put(
+                  (target, args, name, time.time()), block=True, timeout=1)
               return
             except Queue.Full:
               continue

@@ -117,10 +117,10 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     """ALL operations return anomalies if input and result counts differ."""
     matcher = checks.Matcher(["ALL"], self.hint)
     will_detect = [(self.one, self.one), (self.some, self.some)]
-    not_detect = [(self.none, self.none), (self.some, self.one),
-                  (self.some, self.none)]
-    will_raise = [(self.none, self.one), (self.one, self.some),
-                  (self.none, self.some)]
+    not_detect = [(self.none, self.none), (self.some, self.one), (self.some,
+                                                                  self.none)]
+    will_raise = [(self.none, self.one), (self.one, self.some), (self.none,
+                                                                 self.some)]
     for base, result in will_detect:
       self.assertIsInstance(matcher.Detect(base, result), checks.CheckResult)
     for base, result in not_detect:
@@ -329,10 +329,11 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
             rdf_anomaly.Anomaly(
                 finding=["Java 6.0.240 is installed"],
                 symptom="Found: Old Java installation.",
-                type="ANALYSIS_ANOMALY"), rdf_anomaly.Anomaly(
-                    finding=["Adware 2.1.1 is installed"],
-                    symptom="Found: Malicious software.",
-                    type="ANALYSIS_ANOMALY")
+                type="ANALYSIS_ANOMALY"),
+            rdf_anomaly.Anomaly(
+                finding=["Adware 2.1.1 is installed"],
+                symptom="Found: Malicious software.",
+                type="ANALYSIS_ANOMALY")
         ])
 
     self.data = {

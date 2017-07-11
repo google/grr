@@ -220,7 +220,8 @@ class TypeDescriptorSet(object):
       new_descriptor_map.pop(name, None)
 
     new_descriptors = [
-        desc for desc in self.descriptors if desc in new_descriptor_map.values()
+        desc for desc in self.descriptors
+        if desc in new_descriptor_map.values()
     ]
     return TypeDescriptorSet(*new_descriptors)
 

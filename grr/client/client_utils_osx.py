@@ -260,9 +260,8 @@ def InstallDriver(kext_path):
   km = objc.KextManager()
 
   cf_kext_path = km.PyStringToCFString(kext_path)
-  kext_url = km.dll.CFURLCreateWithFileSystemPath(objc.CF_DEFAULT_ALLOCATOR,
-                                                  cf_kext_path,
-                                                  objc.POSIX_PATH_STYLE, True)
+  kext_url = km.dll.CFURLCreateWithFileSystemPath(
+      objc.CF_DEFAULT_ALLOCATOR, cf_kext_path, objc.POSIX_PATH_STYLE, True)
   status = km.iokit.KextManagerLoadKextWithURL(kext_url, None)
 
   km.dll.CFRelease(kext_url)

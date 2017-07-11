@@ -60,8 +60,7 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     events.Events.PublishEvent(
         "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(
-            payload=urn, auth_state=auth_state),
+        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=self.token)
     worker = test_lib.MockWorker(token=self.token)
     worker.Simulate()

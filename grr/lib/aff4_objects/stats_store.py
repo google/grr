@@ -153,8 +153,8 @@ class StatsStoreProcessData(aff4.AFF4Object):
                                metrics_metadata,
                                sync=False,
                                timestamp=None):
-    current_metadata = self.Get(self.Schema.METRICS_METADATA,
-                                default=StatsStoreMetricsMetadata())
+    current_metadata = self.Get(
+        self.Schema.METRICS_METADATA, default=StatsStoreMetricsMetadata())
 
     if current_metadata.AsDict() != metrics_metadata:
       store_metadata = StatsStoreMetricsMetadata(
@@ -431,8 +431,8 @@ class StatsStoreDataQuery(object):
                                                                      value))
       else:
         if hasattr(value, "sum") or hasattr(value, "count"):
-          raise ValueError("Can't treat complext type as simple value: %s" %
-                           value)
+          raise ValueError(
+              "Can't treat complext type as simple value: %s" % value)
         series.Append(value, timestamp)
 
     return series
@@ -656,6 +656,7 @@ class StatsStoreDataQuery(object):
       raise RuntimeError("Can only return mean for a single time serie.")
 
     return self.time_series[0].Mean()
+
 
 # Global StatsStore object
 STATS_STORE = None

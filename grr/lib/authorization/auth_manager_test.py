@@ -38,13 +38,10 @@ users:
 
     self.assertEqual(
         self.auth_reader.GetAuthorizationForSubject("ApiCallRobotRouter").data,
-        dict(
-            router="ApiCallRobotRouter", users=["foo", "bar"]))
+        dict(router="ApiCallRobotRouter", users=["foo", "bar"]))
     self.assertEqual(
         self.auth_reader.GetAuthorizationForSubject("ApiCallDisabledRouter")
-        .data,
-        dict(
-            router="ApiCallDisabledRouter", users=["blah"]))
+        .data, dict(router="ApiCallDisabledRouter", users=["blah"]))
 
   def testCreateAuthorizationsRaisesOnDuplicateKeys(self):
     yaml_data = """

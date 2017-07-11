@@ -88,6 +88,7 @@ class TestFindOSLinuxDarwin(base.TestVFSPathExists):
   }
   test_output_path = "/fs/os/bin/ls"
 
+
 ###########
 # Windows #
 ###########

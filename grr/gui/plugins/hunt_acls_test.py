@@ -184,10 +184,10 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
     with self.ACLChecksDisabled():
-      hunt1_id = self.CreateSampleHunt(
-          token=access_control.ACLToken(username="otheruser"))
-      hunt2_id = self.CreateSampleHunt(
-          token=access_control.ACLToken(username=self.token.username))
+      hunt1_id = self.CreateSampleHunt(token=access_control.ACLToken(
+          username="otheruser"))
+      hunt2_id = self.CreateSampleHunt(token=access_control.ACLToken(
+          username=self.token.username))
       self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
@@ -277,8 +277,8 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     #
     # Check that test user can start/stop/modify hunt2.
     #
-    self.Click("css=tr:contains('SampleHunt') td:contains('%s')" %
-               self.token.username)
+    self.Click(
+        "css=tr:contains('SampleHunt') td:contains('%s')" % self.token.username)
 
     # Modify hunt
 

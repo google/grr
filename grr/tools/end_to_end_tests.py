@@ -92,19 +92,23 @@ def RunEndToEndTests():
         continue
 
       if sysinfo.system in cls.platforms:
-        print "Running %s on %s (%s: %s, %s, %s)" % (
-            cls.__name__, client_summary.client_id, sysinfo.fqdn,
-            sysinfo.system, sysinfo.version, sysinfo.machine)
+        print "Running %s on %s (%s: %s, %s, %s)" % (cls.__name__,
+                                                     client_summary.client_id,
+                                                     sysinfo.fqdn,
+                                                     sysinfo.system,
+                                                     sysinfo.version,
+                                                     sysinfo.machine)
 
         try:
           # Mixin the unittest framework so we can use the test runner to run
           # the test and get nice output.  We don't want to depend on unitttest
           # code in the tests themselves.
-          testcase = cls(client_id=client_summary.client_id,
-                         platform=sysinfo.system,
-                         token=token,
-                         local_client=flags.FLAGS.local_client,
-                         local_worker=flags.FLAGS.local_worker)
+          testcase = cls(
+              client_id=client_summary.client_id,
+              platform=sysinfo.system,
+              token=token,
+              local_client=flags.FLAGS.local_client,
+              local_worker=flags.FLAGS.local_worker)
           results[cls.__name__] = runner.run(testcase)
         except Exception:  # pylint: disable=broad-except
           logging.exception("Failed to run test %s", cls)

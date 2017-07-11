@@ -67,8 +67,8 @@ class TestLaunchBinaries(base.ClientTestBase):
     super(TestLaunchBinaries, self).__init__(**kwargs)
     self.context = ["Platform:%s" % self.platform.title()]
     self.binary = config_lib.CONFIG.Get(
-        "Executables.aff4_path",
-        context=self.context).Add("test/%s" % self.ds_names[self.platform])
+        "Executables.aff4_path", context=self.context).Add(
+            "test/%s" % self.ds_names[self.platform])
 
     self.args = dict(binary=self.binary)
 

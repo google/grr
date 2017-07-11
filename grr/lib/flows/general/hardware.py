@@ -157,8 +157,8 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
     table_signature = responses.request.request.payload.table_signature
 
     if not responses.success:
-      self.Log("Error retrieving ACPI table with signature %s" %
-               table_signature)
+      self.Log(
+          "Error retrieving ACPI table with signature %s" % table_signature)
       return
 
     response = responses.First()
@@ -168,8 +168,8 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
 
         # TODO(user): Make this work in the UI!?
-        collection_urn = self.client_id.Add("devices/chipsec/acpi/tables/%s" %
-                                            table_signature)
+        collection_urn = self.client_id.Add(
+            "devices/chipsec/acpi/tables/%s" % table_signature)
         for acpi_table_response in response.acpi_tables:
           hardware.ACPITableDataCollection.StaticAdd(
               collection_urn,

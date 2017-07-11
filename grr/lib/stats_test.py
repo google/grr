@@ -48,38 +48,32 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.RegisterCounterMetric("test_counter", [("dimension", str)])
 
     # Test that default values for any fields values are 0."
-    self.assertEqual(
-        0, stats.STATS.GetMetricValue(
-            "test_counter", fields=["a"]))
-    self.assertEqual(
-        0, stats.STATS.GetMetricValue(
-            "test_counter", fields=["b"]))
+    self.assertEqual(0, stats.STATS.GetMetricValue(
+        "test_counter", fields=["a"]))
+    self.assertEqual(0, stats.STATS.GetMetricValue(
+        "test_counter", fields=["b"]))
 
     for _ in range(5):
       stats.STATS.IncrementCounter("test_counter", fields=["dimension_value_1"])
-    self.assertEqual(
-        5,
-        stats.STATS.GetMetricValue(
-            "test_counter", fields=["dimension_value_1"]))
+    self.assertEqual(5,
+                     stats.STATS.GetMetricValue(
+                         "test_counter", fields=["dimension_value_1"]))
 
     stats.STATS.IncrementCounter(
         "test_counter", 2, fields=["dimension_value_1"])
-    self.assertEqual(
-        7,
-        stats.STATS.GetMetricValue(
-            "test_counter", fields=["dimension_value_1"]))
+    self.assertEqual(7,
+                     stats.STATS.GetMetricValue(
+                         "test_counter", fields=["dimension_value_1"]))
 
     stats.STATS.IncrementCounter(
         "test_counter", 2, fields=["dimension_value_2"])
-    self.assertEqual(
-        2,
-        stats.STATS.GetMetricValue(
-            "test_counter", fields=["dimension_value_2"]))
+    self.assertEqual(2,
+                     stats.STATS.GetMetricValue(
+                         "test_counter", fields=["dimension_value_2"]))
     # Check that previously set values with other fields are not affected.
-    self.assertEqual(
-        7,
-        stats.STATS.GetMetricValue(
-            "test_counter", fields=["dimension_value_1"]))
+    self.assertEqual(7,
+                     stats.STATS.GetMetricValue(
+                         "test_counter", fields=["dimension_value_1"]))
 
   def testSimpleGauge(self):
     stats.STATS.RegisterGaugeMetric("test_int_gauge", int)
@@ -105,26 +99,22 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.RegisterGaugeMetric(
         "test_int_gauge", int, fields=[("dimension", str)])
 
-    self.assertEqual(
-        0,
-        stats.STATS.GetMetricValue(
-            "test_int_gauge", fields=["dimension_value_1"]))
-    self.assertEqual(
-        0,
-        stats.STATS.GetMetricValue(
-            "test_int_gauge", fields=["dimesnioN_value_2"]))
+    self.assertEqual(0,
+                     stats.STATS.GetMetricValue(
+                         "test_int_gauge", fields=["dimension_value_1"]))
+    self.assertEqual(0,
+                     stats.STATS.GetMetricValue(
+                         "test_int_gauge", fields=["dimesnioN_value_2"]))
 
     stats.STATS.SetGaugeValue("test_int_gauge", 1, fields=["dimension_value_1"])
     stats.STATS.SetGaugeValue("test_int_gauge", 2, fields=["dimension_value_2"])
 
-    self.assertEqual(
-        1,
-        stats.STATS.GetMetricValue(
-            "test_int_gauge", fields=["dimension_value_1"]))
-    self.assertEqual(
-        2,
-        stats.STATS.GetMetricValue(
-            "test_int_gauge", fields=["dimension_value_2"]))
+    self.assertEqual(1,
+                     stats.STATS.GetMetricValue(
+                         "test_int_gauge", fields=["dimension_value_1"]))
+    self.assertEqual(2,
+                     stats.STATS.GetMetricValue(
+                         "test_int_gauge", fields=["dimension_value_2"]))
 
   def testGaugeWithCallback(self):
     stats.STATS.RegisterGaugeMetric("test_int_gauge", int)
@@ -267,12 +257,11 @@ class StatsTests(test_lib.GRRBaseTest):
 
     self.assertEqual(metrics["test_int_gauge"].metric_type,
                      stats.MetricType.GAUGE)
-    self.assertEqual(
-        metrics["test_int_gauge"].fields_defs, [
-            stats.MetricFieldDefinition(
-                field_name="dimension",
-                field_type=stats.MetricFieldDefinition.FieldType.STR)
-        ])
+    self.assertEqual(metrics["test_int_gauge"].fields_defs, [
+        stats.MetricFieldDefinition(
+            field_name="dimension",
+            field_type=stats.MetricFieldDefinition.FieldType.STR)
+    ])
 
     self.assertEqual(metrics["test_event_metric"].metric_type,
                      stats.MetricType.EVENT)

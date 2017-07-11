@@ -98,9 +98,9 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
 
-      self.WaitUntil(self.IsUserNotificationPresent,
-                     "Archive generation failed for flow %s" %
-                     flow_urn.Basename())
+      self.WaitUntil(
+          self.IsUserNotificationPresent,
+          "Archive generation failed for flow %s" % flow_urn.Basename())
       # There will be no failure message, as we can't get a status from an
       # iframe that triggers the download.
       self.WaitUntilNot(self.IsTextPresent,

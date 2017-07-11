@@ -413,8 +413,8 @@ class Volume(structs.RDFProtoStruct):
 
   def FreeSpacePercent(self):
     try:
-      return (self.actual_available_allocation_units /
-              float(self.total_allocation_units)) * 100.0
+      return (self.actual_available_allocation_units / float(
+          self.total_allocation_units)) * 100.0
     except ZeroDivisionError:
       return 100
 
@@ -759,9 +759,10 @@ class Uname(structs.RDFProtoStruct):
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:
-      pep425tag = "%s%s-%s-%s" % (
-          pep425tags.get_abbr_impl(), pep425tags.get_impl_ver(),
-          str(pep425tags.get_abi_tag()).lower(), pep425tags.get_platform())
+      pep425tag = "%s%s-%s-%s" % (pep425tags.get_abbr_impl(),
+                                  pep425tags.get_impl_ver(),
+                                  str(pep425tags.get_abi_tag()).lower(),
+                                  pep425tags.get_platform())
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)

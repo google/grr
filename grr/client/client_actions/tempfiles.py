@@ -257,8 +257,7 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
       # Normalize the path, so DeleteGRRTempFile can correctly check if
       # it is within Client.tempdir.
       paths = [
-          client_utils.CanonicalPathToLocalPath(
-              utils.NormalizePath(args.path))
+          client_utils.CanonicalPathToLocalPath(utils.NormalizePath(args.path))
       ]
     else:
       paths = allowed_temp_dirs

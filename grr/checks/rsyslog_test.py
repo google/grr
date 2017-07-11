@@ -21,8 +21,7 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
     chk_id = "CIS-LOGGING-AUTH-REMOTE"
 
     test_data = {
-        "/etc/rsyslog.conf":
-            "*.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat"
+        "/etc/rsyslog.conf": "*.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat"
     }
     host_data = self.GenFileData("LinuxRsyslogConfigs", test_data, self.parser)
     results = self.RunChecks(host_data)

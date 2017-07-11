@@ -103,8 +103,9 @@ class Manager(object):
       end = serv.interval.end
       perc = float(end - start) / float(2**64)
       perc *= 100
-      print "Server %d %s:%d %d%% [%s, %s[" % (
-          i, addr, port, perc, str(start).zfill(20), str(end).zfill(20))
+      print "Server %d %s:%d %d%% [%s, %s[" % (i, addr, port, perc,
+                                               str(start).zfill(20),
+                                               str(end).zfill(20))
 
   def _ComputeMappingSize(self, mapping):
     totalsize = 0

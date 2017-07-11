@@ -86,26 +86,17 @@ def GetRunlevelsNonLSB(states):
   if not states:
     return set()
   convert_table = {
-      "0":
-          "0",
-      "1":
-          "1",
-      "2":
-          "2",
-      "3":
-          "3",
-      "4":
-          "4",
-      "5":
-          "5",
-      "6":
-          "6",
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
       # SysV, Gentoo, Solaris, HP-UX all allow an alpha variant
       # for single user. https://en.wikipedia.org/wiki/Runlevel
-      "S":
-          "1",
-      "s":
-          "1"
+      "S": "1",
+      "s": "1"
   }
   _LogInvalidRunLevels(states, convert_table)
   return set([convert_table[s] for s in states.split() if s in convert_table])
@@ -318,10 +309,9 @@ class LinuxSysVInitParser(parsers.FileParser):
       runscript = self.runscript_re.match(os.path.basename(path))
       if runlevel and runscript:
         svc = runscript.groupdict()
-        service = services.setdefault(
-            svc["name"],
-            rdf_client.LinuxServiceInformation(
-                name=svc["name"], start_mode="INIT"))
+        service = services.setdefault(svc["name"],
+                                      rdf_client.LinuxServiceInformation(
+                                          name=svc["name"], start_mode="INIT"))
         runlvl = GetRunlevelsNonLSB(runlevel.group(1))
         if svc["action"] == "S" and runlvl:
           service.start_on.append(runlvl.pop())

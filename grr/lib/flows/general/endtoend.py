@@ -37,10 +37,11 @@ class EndToEndTestFlow(flow.GRRFlow):
   def RunTest(self, test_name):
     """Run the test flow."""
     cls = base.AutomatedTest.classes[test_name]
-    test_object = cls(client_id=self.client_id,
-                      platform=self.state.client_summary.system_info.system,
-                      token=self.token,
-                      local_worker=False)
+    test_object = cls(
+        client_id=self.client_id,
+        platform=self.state.client_summary.system_info.system,
+        token=self.token,
+        local_worker=False)
 
     self.Log("Running %s on %s (%s: %s, %s, %s)",
              test_object.__class__.__name__, self.client_id,
@@ -107,8 +108,8 @@ class EndToEndTestFlow(flow.GRRFlow):
         self._AddTest(cls_name, system, client_version)
 
     if not self.state.test_set:
-      raise flow.FlowError("No applicable tests for client: %s" %
-                           self.state.client_summary)
+      raise flow.FlowError(
+          "No applicable tests for client: %s" % self.state.client_summary)
 
     # Get out of the start method before we run any tests
     self.CallState(next_state="RunFirstTest")
@@ -122,10 +123,11 @@ class EndToEndTestFlow(flow.GRRFlow):
     child_session_id = responses.status.child_session_id
     cls_name = self.state.flow_test_map[child_session_id]
     cls = base.AutomatedTest.classes[cls_name]
-    test_object = cls(client_id=self.client_id,
-                      platform=self.state.client_summary.system_info.system,
-                      token=self.token,
-                      local_worker=False)
+    test_object = cls(
+        client_id=self.client_id,
+        platform=self.state.client_summary.system_info.system,
+        token=self.token,
+        local_worker=False)
     test_object.session_id = child_session_id
 
     system = self.state.client_summary.system_info.system

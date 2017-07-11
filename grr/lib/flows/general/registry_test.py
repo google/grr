@@ -140,8 +140,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type.
+            VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
     self.AssertNoResults(session_id)
@@ -152,8 +152,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type.
+            VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 
@@ -179,8 +179,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type.
+            VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
     self.AssertNoResults(session_id)
@@ -191,8 +191,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type.
+            VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)
     ])
 
@@ -220,8 +220,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type.
+            MODIFICATION_TIME,
             modification_time=modification_time)
     ])
     self.AssertNoResults(session_id)
@@ -235,8 +235,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type.
+            MODIFICATION_TIME,
             modification_time=modification_time)
     ])
 
@@ -259,12 +259,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            condition_type=registry.RegistryFinderCondition.Type.
+            MODIFICATION_TIME,
             modification_time=modification_time),
         registry.RegistryFinderCondition(
-            condition_type=
-            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+            condition_type=registry.RegistryFinderCondition.Type.
+            VALUE_LITERAL_MATCH,
             value_literal_match=vlm)
     ])
 

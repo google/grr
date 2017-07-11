@@ -90,8 +90,8 @@ class ApiCreateCronJobHandlerRegressionTest(
         paths=["c:\\windows\\system32\\notepad.*"])
     flow_args.hunt_args.flow_runner_args.flow_name = "FileFinder"
     flow_args.hunt_runner_args.client_rule_set.rules = [
-        rdf_foreman.ForemanClientRule(
-            os=rdf_foreman.ForemanOsClientRule(os_windows=True))
+        rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
+            os_windows=True))
     ]
     flow_args.hunt_runner_args.description = "Foobar! (cron)"
 

@@ -25,10 +25,8 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=0)
     data = renderer.RenderValue(sample)
     self.assertEqual(data, {
-        "age":
-            0,
-        "type":
-            "ApiRDFProtoStructRendererSample",
+        "age": 0,
+        "type": "ApiRDFProtoStructRendererSample",
         "value": {
             "index": {
                 "age": 0,
@@ -46,10 +44,8 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     self.assertEqual(data, {
-        "age":
-            0,
-        "type":
-            "ApiRDFProtoStructRendererSample",
+        "age": 0,
+        "type": "ApiRDFProtoStructRendererSample",
         "value": {
             "index": {
                 "age": 0,
@@ -75,10 +71,8 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     self.assertEqual(data, {
-        "age":
-            0,
-        "type":
-            "ApiRDFProtoStructRendererSample",
+        "age": 0,
+        "type": "ApiRDFProtoStructRendererSample",
         "value": {
             "index": {
                 "age": 0,
@@ -111,10 +105,8 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     model_data = {
-        "age":
-            0,
-        "type":
-            "GrrMessage",
+        "age": 0,
+        "type": "GrrMessage",
         "value": {
             "task_id": {
                 "age": 0,
@@ -127,10 +119,8 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
                 "value": "ApiRDFProtoStructRendererSample"
             },
             "payload": {
-                "age":
-                    0,
-                "type":
-                    "ApiRDFProtoStructRendererSample",
+                "age": 0,
+                "type": "ApiRDFProtoStructRendererSample",
                 "value": {
                     "index": {
                         "age": 0,

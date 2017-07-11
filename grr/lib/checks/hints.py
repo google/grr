@@ -62,8 +62,8 @@ class RdfFormatter(string.Formatter):
       for k, v in obj.items():
         expanded_v = [utils.SmartUnicode(r) for r in self.FanOut(v)]
         results.append("%s:%s" % (utils.SmartUnicode(k), ",".join(expanded_v)))
-    elif isinstance(obj,
-                    (collections.Iterable, rdf_structs.RepeatedFieldHelper)):
+    elif isinstance(obj, (collections.Iterable,
+                          rdf_structs.RepeatedFieldHelper)):
       results = []
       for rslt in [self.FanOut(o, obj) for o in obj]:
         results.extend(rslt)

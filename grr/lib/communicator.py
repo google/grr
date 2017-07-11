@@ -337,8 +337,8 @@ class Communicator(object):
        RuntimeError: If we do not support this api version.
     """
     if api_version not in [3]:
-      raise RuntimeError("Unsupported api version: %s, expected 3." %
-                         api_version)
+      raise RuntimeError(
+          "Unsupported api version: %s, expected 3." % api_version)
     # TODO(user): This is actually not great, we have two
     # communicator classes already, one for the client, one for the
     # server. This should be different methods, not a single one that
@@ -495,11 +495,15 @@ class Communicator(object):
     message_list = self.DecompressMessageList(signed_message_list)
 
     # Are these messages authenticated?
-    auth_state = self.VerifyMessageSignature(response_comms,
-                                             signed_message_list, cipher,
-                                             cipher_verified,
-                                             response_comms.api_version,
-                                             remote_public_key)
+    # pyformat: disable
+    auth_state = self.VerifyMessageSignature(
+        response_comms,
+        signed_message_list,
+        cipher,
+        cipher_verified,
+        response_comms.api_version,
+        remote_public_key)
+    # pyformat: enable
 
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:

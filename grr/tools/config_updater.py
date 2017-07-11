@@ -532,8 +532,8 @@ server and the admin user interface.\n"""
       existing_frontend_urns = []
       for existing_control_urn in existing_control_urns:
         if not existing_control_urn.endswith("control"):
-          raise RuntimeError("Invalid existing control URL: %s" %
-                             existing_control_urn)
+          raise RuntimeError(
+              "Invalid existing control URL: %s" % existing_control_urn)
 
         existing_frontend_urns.append(
             existing_control_urn.rsplit("/", 1)[0] + "/")
@@ -733,8 +733,8 @@ def InitializeNoPrompt(config=None, token=None):
                                                  config.Get("AdminUI.port"))
   config_dict["Logging.domain"] = hostname
   config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
-  config_dict["Monitoring.emergency_access_email"] = ("grr-emergency@%s" %
-                                                      hostname)
+  config_dict["Monitoring.emergency_access_email"] = (
+      "grr-emergency@%s" % hostname)
 
   print "Setting configuration as:\n\n%s" % config_dict
   for key, value in config_dict.iteritems():

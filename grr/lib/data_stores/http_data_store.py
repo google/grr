@@ -216,8 +216,8 @@ class DataServerConnection(object):
                         self.Address(), self.Port())
         # Sleep for some time before trying again.
         time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
-      if time.time() - started >= config_lib.CONFIG[
-          "HTTPDataStore.reconnect_timeout"]:
+      if time.time(
+      ) - started >= config_lib.CONFIG["HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not connect to %s:%d. Giving up." %
                                  (self.Address(), self.Port()))
 
@@ -341,11 +341,11 @@ class DataServer(object):
         mapping = rdf_data_server.DataServerMapping.FromSerializedString(data)
         return mapping
 
-      if time.time() - started > config_lib.CONFIG[
-          "HTTPDataStore.reconnect_timeout"]:
+      if time.time(
+      ) - started > config_lib.CONFIG["HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not get server mapping from data "
-                                 "server at %s:%d." %
-                                 (self.Address(), self.Port()))
+                                 "server at %s:%d." % (self.Address(),
+                                                       self.Port()))
       time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
 
 
@@ -422,8 +422,8 @@ class RemoteMappingCache(utils.FastStore):
   @utils.Synchronized
   def Get(self, subject):
     """This will create the object if needed so should not fail."""
-    filename, directory = common.ResolveSubjectDestination(subject,
-                                                           self.path_regexes)
+    filename, directory = common.ResolveSubjectDestination(
+        subject, self.path_regexes)
     key = common.MakeDestinationKey(directory, filename)
     try:
       return super(RemoteMappingCache, self).Get(key)
@@ -877,8 +877,8 @@ class HTTPDBSubjectLock(data_store.DBSubjectLock):
     self.transid = self.store.LockSubject(self.subject, lease_time * 1e6,
                                           self.token)
     if not self.transid:
-      raise data_store.DBSubjectLockError("Unable to lock subject %s" %
-                                          self.subject)
+      raise data_store.DBSubjectLockError(
+          "Unable to lock subject %s" % self.subject)
     self.expires = int((time.time() + lease_time) * 1e6)
     self.locked = True
 
@@ -886,8 +886,8 @@ class HTTPDBSubjectLock(data_store.DBSubjectLock):
     ret = self.store.ExtendSubjectLock(self.subject, self.transid,
                                        duration * 1e6, self.token)
     if ret != self.transid:
-      raise data_store.DBSubjectLockError("Unable to update the lease on %s" %
-                                          self.subject)
+      raise data_store.DBSubjectLockError(
+          "Unable to update the lease on %s" % self.subject)
     self.expires = int((time.time() + duration) * 1e6)
 
   def Release(self):

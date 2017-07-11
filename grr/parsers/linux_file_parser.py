@@ -102,8 +102,8 @@ class PasswdParser(parsers.FileParser):
       return user
 
     except (IndexError, KeyError):
-      raise parsers.ParseError("Invalid passwd file at line %d. %s" % (
-          (index + 1), line))
+      raise parsers.ParseError("Invalid passwd file at line %d. %s" %
+                               ((index + 1), line))
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the passwd file."""

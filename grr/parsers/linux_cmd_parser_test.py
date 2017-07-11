@@ -67,8 +67,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     stderr = "error: rpmdbNextIterator: skipping h#"
     out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
     software = {
-        o.name:
-            o.version
+        o.name: o.version
         for o in out if isinstance(o, rdf_client.SoftwarePackage)
     }
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]

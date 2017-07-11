@@ -31,6 +31,7 @@ def CanonicalPathToLocalPath(path):
 
   return path.strip("\\")
 
+
 # _winreg is broken on Python 2.x and doesn't support unicode registry values.
 # We provide some replacement functions here.
 
@@ -44,8 +45,8 @@ ERROR_MORE_DATA = 234
 
 
 class FileTime(ctypes.Structure):
-  _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD),
-              ("dwHighDateTime", ctypes.wintypes.DWORD)]
+  _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime",
+                                                         ctypes.wintypes.DWORD)]
 
 
 RegCloseKey = advapi32["RegCloseKey"]  # pylint: disable=g-bad-name
@@ -128,7 +129,8 @@ def QueryInfoKey(key):
   regqueryinfokey.restype = ctypes.c_long
   regqueryinfokey.argtypes = [
       ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD, ctypes.POINTER(FileTime)
+      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+      ctypes.POINTER(FileTime)
   ]
 
   null = LPDWORD()
@@ -187,7 +189,8 @@ def EnumKey(key, index):
   regenumkeyex.restype = ctypes.c_long
   regenumkeyex.argtypes = [
       ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.c_wchar_p, LPDWORD,
-      LPDWORD, ctypes.c_wchar_p, LPDWORD, ctypes.POINTER(FileTime)
+      LPDWORD, ctypes.c_wchar_p, LPDWORD,
+      ctypes.POINTER(FileTime)
   ]
 
   buf = ctypes.create_unicode_buffer(257)
@@ -216,7 +219,8 @@ def EnumValue(key, index):
   regqueryinfokey.restype = ctypes.c_long
   regqueryinfokey.argtypes = [
       ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD, ctypes.POINTER(FileTime)
+      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+      ctypes.POINTER(FileTime)
   ]
 
   null = ctypes.POINTER(ctypes.wintypes.DWORD)()
@@ -447,8 +451,8 @@ class RegistryFile(vfs.VFSHandler):
       yield "%s%s" % (hive_name, top), keys, value_names
 
       for key in keys:
-        for tup in self._Walk(depth - 1, hive, hive_name,
-                              r"%s\%s" % (top, key)):
+        for tup in self._Walk(depth - 1, hive, hive_name, r"%s\%s" % (top,
+                                                                      key)):
           yield tup
 
   def RecursiveListNames(self, depth=0, unused_cross_devs=None):

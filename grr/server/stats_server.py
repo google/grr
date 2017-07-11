@@ -45,16 +45,16 @@ def BuildVarzJsonString():
     if metric_info.fields_defs:
       info_dict["fields_defs"] = []
       for field_def in metric_info.fields_defs:
-        info_dict["fields_defs"].append(
-            (field_def.field_name, utils.SmartStr(field_def.field_type)))
+        info_dict["fields_defs"].append((field_def.field_name,
+                                         utils.SmartStr(field_def.field_type)))
 
       value = {}
       all_fields = stats.STATS.GetMetricFields(name)
       for f in all_fields:
         joined_fields = ":".join(utils.SmartStr(fname) for fname in f)
-        value[joined_fields] = _JSONMetricValue(
-            metric_info, stats.STATS.GetMetricValue(
-                name, fields=f))
+        value[joined_fields] = _JSONMetricValue(metric_info,
+                                                stats.STATS.GetMetricValue(
+                                                    name, fields=f))
     else:
       value = _JSONMetricValue(metric_info, stats.STATS.GetMetricValue(name))
 

@@ -73,9 +73,10 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
     super(WindowsActionTests, self).tearDown()
     self.module_patcher.stop()
 
-  @unittest.skipIf(platform.system() == "Darwin", (
-      "IPv6 address strings are cosmetically slightly different on OS X, "
-      "and we only expect this parsing code to run on Linux or maybe Windows"))
+  @unittest.skipIf(
+      platform.system() == "Darwin",
+      ("IPv6 address strings are cosmetically slightly different on OS X, "
+       "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testEnumerateInterfaces(self):
     # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1)
     wmi_object = self.windows.wmi.WMI.return_value
@@ -150,7 +151,8 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     res = res.rstrip("/")
     parts = res.split("/")
     for cache_key in [
-        utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:]), res.lower()
+        utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:]),
+        res.lower()
     ]:
       if not cache_key.startswith("/"):
         cache_key = "/" + cache_key
@@ -239,12 +241,15 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     fixture = RegistryFake()
 
-    self.stubber = utils.MultiStubber((registry, "KeyHandle", FakeKeyHandle), (
-        registry, "OpenKey",
-        fixture.OpenKey), (registry, "QueryValueEx", fixture.QueryValueEx), (
-            registry, "QueryInfoKey", fixture.QueryInfoKey), (
-                registry, "EnumValue", fixture.EnumValue), (registry, "EnumKey",
-                                                            fixture.EnumKey))
+    self.stubber = utils.MultiStubber(
+        (registry, "KeyHandle",
+         FakeKeyHandle), (registry, "OpenKey",
+                          fixture.OpenKey), (registry, "QueryValueEx",
+                                             fixture.QueryValueEx),
+        (registry, "QueryInfoKey",
+         fixture.QueryInfoKey), (registry, "EnumValue",
+                                 fixture.EnumValue), (registry, "EnumKey",
+                                                      fixture.EnumKey))
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.
@@ -418,16 +423,17 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                               [r"Windows", r"Windows NT"], []),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows", [r"CurrentVersion"],
          []), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion",
-               [], [r"ProgramFilesDir", r"ProgramFilesDir (x86)"]), (
-                   r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT",
-                   [r"CurrentVersion"], []),
+               [], [r"ProgramFilesDir", r"ProgramFilesDir (x86)"
+                   ]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT",
+                        [r"CurrentVersion"], []),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
-         [r"ProfileList"], [r"SystemRoot"]), (
-             r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-             r"\ProfileList", [
-                 r"S-1-5-21-702227000-2140022111-3110739999-1990",
-                 r"S-1-5-21-702227068-2140022151-3110739409-1000"
-             ], [r"ProfilesDirectory", r"ProgramData"]),
+         [r"ProfileList"], [
+             r"SystemRoot"
+         ]), (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+              r"\ProfileList", [
+                  r"S-1-5-21-702227000-2140022111-3110739999-1990",
+                  r"S-1-5-21-702227068-2140022151-3110739409-1000"
+              ], [r"ProfilesDirectory", r"ProgramData"]),
         (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
          r"\ProfileList\S-1-5-21-702227000-2140022111-3110739999-1990", [], [
              r"ProfileImagePath"
@@ -437,36 +443,37 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                                        [r"ControlSet001", r"Select"], []),
         (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001", [r"Control"],
          []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control",
-               [r"Nls", r"Session Manager", r"TimeZoneInformation"], []),
-        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls", [r"CodePage"],
-         []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls\CodePage",
-               [], [r"ACP"]),
-        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager",
-         [r"Environment"], []), (
-             r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager"
-             r"\Environment", [], [r"Path", r"TEMP", r"windir"]), (
-                 r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control"
-                 r"\TimeZoneInformation", [], [r"StandardName"]), (
-                     r"HKEY_LOCAL_MACHINE\SYSTEM\Select", [], [r"Current"]), (
-                         r"HKEY_USERS", [
-                             r"S-1-5-20",
-                             r"S-1-5-21-702227000-2140022111-3110739999-1990"
-                         ], []), (r"HKEY_USERS\S-1-5-20", [r"Software"], []), (
-                             r"HKEY_USERS\S-1-5-20\Software", [r"Microsoft"],
+               [r"Nls", r"Session Manager", r"TimeZoneInformation"],
+               []), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls",
+                     [r"CodePage"], []),
+        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Nls\CodePage", [], [
+            r"ACP"
+        ]), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager",
+             [r"Environment"], []),
+        (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager"
+         r"\Environment", [],
+         [r"Path", r"TEMP", r"windir"
+         ]), (r"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control"
+              r"\TimeZoneInformation", [],
+              [r"StandardName"]), (r"HKEY_LOCAL_MACHINE\SYSTEM\Select", [], [
+                  r"Current"
+              ]), (r"HKEY_USERS", [
+                  r"S-1-5-20", r"S-1-5-21-702227000-2140022111-3110739999-1990"
+              ], []), (r"HKEY_USERS\S-1-5-20", [r"Software"],
+                       []), (r"HKEY_USERS\S-1-5-20\Software", [r"Microsoft"],
                              []), (r"HKEY_USERS\S-1-5-20\Software\Microsoft",
                                    [r"Windows"], []),
         (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows", [r"CurrentVersion"],
          []), (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows\CurrentVersion",
                [r"Run"], []),
         (r"HKEY_USERS\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\Run",
-         [], [r"MctAdmin", r"Sidebar"]), (
-             r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
-             [r"Software"], []),
-        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software", [
-            r"Microsoft"
-        ], []), (
-            r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
-            r"\Microsoft", [r"Windows"], []),
+         [], [r"MctAdmin", r"Sidebar"
+             ]), (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
+                  [r"Software"], []),
+        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software",
+         [r"Microsoft"], []),
+        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
+         r"\Microsoft", [r"Windows"], []),
         (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"
          r"\Microsoft\Windows", [r"CurrentVersion"], []),
         (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990\Software"

@@ -291,12 +291,11 @@ class RSAPublicKey(rdfvalue.RDFValue):
       raise ValueError("Can't Encrypt with empty key.")
 
     try:
-      return self._value.encrypt(
-          message,
-          padding.OAEP(
-              mgf=padding.MGF1(algorithm=hashes.SHA1()),
-              algorithm=hashes.SHA1(),
-              label=None))
+      return self._value.encrypt(message,
+                                 padding.OAEP(
+                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                     algorithm=hashes.SHA1(),
+                                     label=None))
     except ValueError as e:
       raise CipherError(e)
 
@@ -309,8 +308,10 @@ class RSAPublicKey(rdfvalue.RDFValue):
       hash_algorithm = hashes.SHA256()
 
     for padding_algorithm in [
-        padding.PSS(mgf=padding.MGF1(hash_algorithm),
-                    salt_length=padding.PSS.MAX_LENGTH), padding.PKCS1v15()
+        padding.PSS(
+            mgf=padding.MGF1(hash_algorithm),
+            salt_length=padding.PSS.MAX_LENGTH),
+        padding.PKCS1v15()
     ]:
       try:
         verifier = self._value.verifier(signature, padding_algorithm,
@@ -352,8 +353,8 @@ class RSAPrivateKey(rdfvalue.RDFValue):
     if not use_pss:
       padding_algorithm = padding.PKCS1v15()
     else:
-      padding_algorithm = padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
-                                      salt_length=padding.PSS.MAX_LENGTH)
+      padding_algorithm = padding.PSS(
+          mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
 
     signer = self._value.signer(padding_algorithm, hashes.SHA256())
     signer.update(message)
@@ -364,12 +365,11 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       raise ValueError("Can't Decrypt with empty key.")
 
     try:
-      return self._value.decrypt(
-          message,
-          padding.OAEP(
-              mgf=padding.MGF1(algorithm=hashes.SHA1()),
-              algorithm=hashes.SHA1(),
-              label=None))
+      return self._value.decrypt(message,
+                                 padding.OAEP(
+                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                     algorithm=hashes.SHA1(),
+                                     label=None))
     except ValueError as e:
       raise CipherError(e)
 
@@ -672,9 +672,10 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
     if algorithm != cls.Algorithm.AES128CBC:
       raise RuntimeError("Algorithm not supported.")
 
-    return cls(_algorithm=algorithm,
-               _key=EncryptionKey.GenerateKey(length=128),
-               _iv=EncryptionKey.GenerateKey(length=128))
+    return cls(
+        _algorithm=algorithm,
+        _key=EncryptionKey.GenerateKey(length=128),
+        _iv=EncryptionKey.GenerateKey(length=128))
 
   def _get_cipher(self):
     if self._algorithm != self.Algorithm.AES128CBC:

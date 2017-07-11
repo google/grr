@@ -62,8 +62,8 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     # Push time forward past the default claim timeout, then we should be able
     # to re-read (and re-claim).
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
-        "45m")):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                           rdfvalue.Duration("45m")):
       results_3 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
           token=self.token)
     self.assertEqual(results_3, results_1)
@@ -83,8 +83,8 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     # Push time forward past the default claim timeout, then we should still
     # read nothing.
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
-        "45m")):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                           rdfvalue.Duration("45m")):
       results_2 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
           token=self.token)
     self.assertEqual(0, len(results_2[1]))
@@ -123,8 +123,9 @@ class ResultTest(test_lib.AFF4ObjectTest):
     values_read = []
     collection_2 = hunts_results.HuntResultCollection(
         collection_urn_2, token=self.token)
-    for message in collection_2.MultiResolve([(
-        ts, suffix) for (_, ts, suffix) in results_2[1]]):
+    for message in collection_2.MultiResolve([(ts, suffix)
+                                              for (_, ts,
+                                                   suffix) in results_2[1]]):
       values_read.append(message.request_id)
     self.assertEqual(sorted(values_read), range(100, 200))
 

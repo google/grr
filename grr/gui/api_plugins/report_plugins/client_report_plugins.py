@@ -63,8 +63,8 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
       ret.line_chart.data = sorted(
           (rdf_report_plugins.ApiReportDataSeries2D(
               label=label,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(
-                  x=x, y=y) for x, y in points))
+              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                      for x, y in points))
            for label, points in categories.iteritems()),
           key=lambda series: series.label)
 
@@ -108,8 +108,8 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
         days = sample.x_value / 1000000 / 24 / 60 / 60
         if days in self.__class__.ACTIVE_DAYS_DISPLAY:
           label = "%s day active" % days
-          categories.setdefault(label, []).append(
-              (graph_series.age / 1000, sample.y_value))
+          categories.setdefault(label, []).append((graph_series.age / 1000,
+                                                   sample.y_value))
 
   def GetReportData(self, get_report_args, token):
     """Show how the last active breakdown evolved over time."""
@@ -142,8 +142,8 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
       ret.line_chart.data = sorted(
           (rdf_report_plugins.ApiReportDataSeries2D(
               label=label,
-              points=(rdf_report_plugins.ApiReportDataPoint2D(
-                  x=x, y=y) for x, y in points))
+              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                      for x, y in points))
            for label, points in categories.iteritems()),
           key=lambda series: int(series.label.split()[0]),
           reverse=True)

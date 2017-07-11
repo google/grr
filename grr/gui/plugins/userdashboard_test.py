@@ -143,10 +143,10 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients] "
                    "tr:contains('%s')" % client_id.Basename())
-    self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
-                      "div[name=RecentlyAccessedClients] "
-                      "tr:contains('%s').half-transparent" %
-                      client_id.Basename())
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients] "
+        "tr:contains('%s').half-transparent" % client_id.Basename())
 
   def testNonValidApprovalIsMarked(self):
     with self.ACLChecksDisabled():

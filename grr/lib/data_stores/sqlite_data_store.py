@@ -68,15 +68,15 @@ class SqliteConnectionCache(utils.FastStore):
               predicate TEXT NOT NULL,
               timestamp BIG INTEGER NOT NULL,
               value BLOB)""" % {
-        "subject": SQLITE_SUBJECT_SPEC
-    }
+                  "subject": SQLITE_SUBJECT_SPEC
+              }
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS lock (
                subject %(subject)s PRIMARY KEY NOT NULL,
                expires BIG INTEGER NOT NULL,
                token BIG INTEGER NOT NULL)""" % {
-        "subject": SQLITE_SUBJECT_SPEC
-    }
+                   "subject": SQLITE_SUBJECT_SPEC
+               }
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS statistics (
                name TEXT PRIMARY KEY NOT NULL,
@@ -160,8 +160,8 @@ class SqliteConnectionCache(utils.FastStore):
   @utils.Synchronized
   def Get(self, subject):
     """This will create the connection if needed so should not fail."""
-    filename, directory = common.ResolveSubjectDestination(subject,
-                                                           self.path_regexes)
+    filename, directory = common.ResolveSubjectDestination(
+        subject, self.path_regexes)
     key = common.MakeDestinationKey(directory, filename)
     try:
       return super(SqliteConnectionCache, self).Get(key)
@@ -849,8 +849,7 @@ class SqliteDataStore(data_store.DataStore):
                       subject_prefix,
                       attributes,
                       after_urn=after_urn,
-                      max_records=max_records)),
-              max_records):
+                      max_records=max_records)), max_records):
             yield r
       return
     first_connections = []
@@ -869,8 +868,7 @@ class SqliteDataStore(data_store.DataStore):
                     subject_prefix,
                     attributes,
                     after_urn=after_urn,
-                    max_records=max_records)),
-            max_records):
+                    max_records=max_records)), max_records):
           yield r
       return
     raw_results = []
@@ -883,8 +881,7 @@ class SqliteDataStore(data_store.DataStore):
           max_records=max_records):
         raw_results.append(record)
     for r in self._GroupSubjects(
-        sorted(
-            raw_results, key=lambda x: x[0]), max_records):
+        sorted(raw_results, key=lambda x: x[0]), max_records):
       yield r
 
   def ResolveMulti(self,
@@ -938,8 +935,8 @@ class SqliteDataStore(data_store.DataStore):
       return 0
     if not os.path.isdir(root_path):
       # Database should be a directory.
-      raise IOError("expected SQLite directory %s to be a directory" %
-                    root_path)
+      raise IOError(
+          "expected SQLite directory %s to be a directory" % root_path)
     size, _ = common.DatabaseDirectorySize(root_path, self.FileExtension())
     return size
 
@@ -988,8 +985,8 @@ class SqliteDBSubjectLock(data_store.DBSubjectLock):
 
       # This is currently locked by another thread.
       if locked_until and (time.time() * 1e6) < float(locked_until):
-        raise data_store.DBSubjectLockError("Subject %s is locked" %
-                                            self.subject)
+        raise data_store.DBSubjectLockError(
+            "Subject %s is locked" % self.subject)
 
       # Subject is not locked, we take a lease on it.
       self.expires = int((time.time() + lease_time) * 1e6)
@@ -1002,8 +999,8 @@ class SqliteDBSubjectLock(data_store.DBSubjectLock):
     # then probably someone was able to grab it before us.
     locked_until, stored_token = sqlite_connection.GetLock(self.subject)
     if stored_token != self.lock_token:
-      raise data_store.DBSubjectLockError("Unable to lock subject %s" %
-                                          self.subject)
+      raise data_store.DBSubjectLockError(
+          "Unable to lock subject %s" % self.subject)
 
     self.locked = True
 

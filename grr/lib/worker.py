@@ -170,10 +170,9 @@ class GRRWorker(object):
         # lot of processing time. This is a tradeoff between checking the data
         # store for current information and processing out of date
         # information.
-        processed += self.ProcessMessages(notifications_available,
-                                          queue_manager,
-                                          self.RUN_ONCE_MAX_SECONDS -
-                                          (time.time() - start_time))
+        processed += self.ProcessMessages(
+            notifications_available, queue_manager,
+            self.RUN_ONCE_MAX_SECONDS - (time.time() - start_time))
 
       # We need to keep going no matter what.
       except Exception as e:  # pylint: disable=broad-except

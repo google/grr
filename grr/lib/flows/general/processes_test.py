@@ -62,20 +62,23 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
             ppid=1,
             cmdline=["cmd.exe"],
             exe="c:\\windows\\cmd.exe",
-            ctime=long(1333718907.167083 * 1e6)), rdf_client.Process(
-                pid=3,
-                ppid=1,
-                cmdline=["cmd2.exe"],
-                exe="c:\\windows\\cmd2.exe",
-                ctime=long(1333718907.167083 * 1e6)), rdf_client.Process(
-                    pid=4,
-                    ppid=1,
-                    cmdline=["missing_exe.exe"],
-                    ctime=long(1333718907.167083 * 1e6)), rdf_client.Process(
-                        pid=5,
-                        ppid=1,
-                        cmdline=["missing2_exe.exe"],
-                        ctime=long(1333718907.167083 * 1e6))
+            ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(
+            pid=3,
+            ppid=1,
+            cmdline=["cmd2.exe"],
+            exe="c:\\windows\\cmd2.exe",
+            ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(
+            pid=4,
+            ppid=1,
+            cmdline=["missing_exe.exe"],
+            ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(
+            pid=5,
+            ppid=1,
+            cmdline=["missing2_exe.exe"],
+            ctime=long(1333718907.167083 * 1e6))
     ])
 
     flow_urn = flow.GRRFlow.StartFlow(

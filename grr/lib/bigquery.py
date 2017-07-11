@@ -37,8 +37,7 @@ def GetBigQueryClient(service_account_json=None,
                       project_id=None,
                       dataset_id=None):
   """Create a BigQueryClient."""
-  service_account_data = service_account_json or config_lib.CONFIG[
-      "BigQuery.service_acct_json"]
+  service_account_data = service_account_json or config_lib.CONFIG["BigQuery.service_acct_json"]
   project_id = project_id or config_lib.CONFIG["BigQuery.project_id"]
   dataset_id = dataset_id or config_lib.CONFIG["BigQuery.dataset_id"]
 

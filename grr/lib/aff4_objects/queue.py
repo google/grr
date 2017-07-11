@@ -61,11 +61,12 @@ class Queue(aff4.AFF4Object):
       queue_urn = rdfvalue.RDFURN(queue_urn)
 
     result_subject = cls._MakeURN(queue_urn, timestamp)
-    data_store.DB.Set(result_subject,
-                      cls.VALUE_ATTRIBUTE,
-                      rdf_value.SerializeToString(),
-                      timestamp=timestamp,
-                      token=token)
+    data_store.DB.Set(
+        result_subject,
+        cls.VALUE_ATTRIBUTE,
+        rdf_value.SerializeToString(),
+        timestamp=timestamp,
+        token=token)
 
   def Add(self, rdf_value):
     """Adds an rdf value to the queue.
@@ -146,12 +147,12 @@ class Queue(aff4.AFF4Object):
             subject, [self.LOCK_ATTRIBUTE], token=self.token)
         continue
       if self.LOCK_ATTRIBUTE in values:
-        timestamp = rdfvalue.RDFDatetime.FromSerializedString(values[
-            self.LOCK_ATTRIBUTE][1])
+        timestamp = rdfvalue.RDFDatetime.FromSerializedString(
+            values[self.LOCK_ATTRIBUTE][1])
         if timestamp > now:
           continue
-      rdf_value = self.rdf_type.FromSerializedString(values[
-          self.VALUE_ATTRIBUTE][1])
+      rdf_value = self.rdf_type.FromSerializedString(
+          values[self.VALUE_ATTRIBUTE][1])
       if record_filter(rdf_value):
         filtered_count += 1
         if max_filtered and filtered_count >= max_filtered:

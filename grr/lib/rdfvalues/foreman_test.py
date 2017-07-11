@@ -19,8 +19,7 @@ def CollectAff4Objects(paths, client_id, token):
 
   objects = {
       fd.urn: fd
-      for fd in aff4.FACTORY.MultiOpen(
-          object_urns, token=token)
+      for fd in aff4.FACTORY.MultiOpen(object_urns, token=token)
   }
   return objects
 

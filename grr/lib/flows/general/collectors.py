@@ -103,9 +103,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           next_state="StartCollection")
       return
 
-    elif (self.args.dependencies ==
-          artifact_utils.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
-              not self.state.knowledge_base):
+    elif (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs.
+          Dependency.USE_CACHED) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
@@ -164,8 +163,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                            self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s", artifact_name,
                       condition, self.client_id)
-        self.state.artifacts_skipped_due_to_condition.append(
-            (artifact_name, condition))
+        self.state.artifacts_skipped_due_to_condition.append((artifact_name,
+                                                              condition))
         return
 
     # Call the source defined action for each source.
@@ -263,8 +262,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   @flow.StateHandler()
   def ProcessFileFinderResults(self, responses):
     if not responses.success:
-      self.Log("Failed to fetch files %s" %
-               responses.request_data["artifact_name"])
+      self.Log(
+          "Failed to fetch files %s" % responses.request_data["artifact_name"])
     else:
       self.CallStateInline(
           next_state="ProcessCollected",
@@ -891,8 +890,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     result_attr = getattr(result_object.Schema, aff4_attribute, None)
     if result_attr is None:
       raise artifact_utils.ArtifactProcessingError(
-          "Failed to get attribute %s for output type %s" %
-          (aff4_attribute, output_type))
+          "Failed to get attribute %s for output type %s" % (aff4_attribute,
+                                                             output_type))
 
     return result_object, result_attr, operator
 
@@ -911,9 +910,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     response_count = self.state.get("response_count", 0)
     failed_count = self.state.get("failed_count", 0)
 
-    self.Notify("ViewObject", self.urn,
-                "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.args.artifact_list, response_count, failed_count))
+    self.Notify(
+        "ViewObject", self.urn,
+        "Completed artifact collection of %s. Collected %d. Errors %d." %
+        (self.args.artifact_list, response_count, failed_count))
 
   @flow.StateHandler()
   def End(self):
@@ -947,8 +947,9 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     # return it's pathspec - there's nothing to parse
     # and guess.
     if (isinstance(response, rdf_client.StatEntry) and
-        response.pathspec.pathtype in
-        [paths.PathSpec.PathType.TSK, paths.PathSpec.PathType.OS]):
+        response.pathspec.pathtype in [
+            paths.PathSpec.PathType.TSK, paths.PathSpec.PathType.OS
+        ]):
       return [response.pathspec]
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token)

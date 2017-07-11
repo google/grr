@@ -170,7 +170,9 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     instrumentor = RequestsInstrumentor()
     # First response good, then a 500 error, then another good response.
     instrumentor.responses = [
-        _make_200("Good"), _make_http_response(code=500), _make_200("Also Good")
+        _make_200("Good"),
+        _make_http_response(code=500),
+        _make_200("Also Good")
     ]
 
     manager = MockHTTPManager()

@@ -115,8 +115,8 @@ users:
 
   def testPassesWhenApproverAndRequesterAuthorized(self):
     self._CreateAuthCheckRequester()
-    self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
-                                    ["one", "two"], "label1")
+    self.mgr.CheckApproversForLabel(self.token, self.urn, "one", ["one", "two"],
+                                    "label1")
 
   def testRaisesWhenOnlyOneAuthorizedApprover(self):
     self._CreateAuthMultiApproval()

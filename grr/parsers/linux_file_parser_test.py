@@ -229,8 +229,8 @@ super_group3 (-,user5,) (-,user6,) group1 group2
         "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
     }):
       out = list(parser.Parse(ff_result, None))
-      self.assertItemsEqual([x.username for x in out],
-                            [u"user1", u"user5", u"user6"])
+      self.assertItemsEqual([x.username
+                             for x in out], [u"user1", u"user5", u"user6"])
 
   def testNetgroupParserBadInput(self):
     parser = linux_file_parser.NetgroupParser()
@@ -378,8 +378,10 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
             "PARSER_ANOMALY"
     }
     expected = [
-        rdf_anomaly.Anomaly(**no_grp), rdf_anomaly.Anomaly(**uid),
-        rdf_anomaly.Anomaly(**gid), rdf_anomaly.Anomaly(**no_match)
+        rdf_anomaly.Anomaly(**no_grp),
+        rdf_anomaly.Anomaly(**uid),
+        rdf_anomaly.Anomaly(**gid),
+        rdf_anomaly.Anomaly(**no_match)
     ]
 
     parser = linux_file_parser.LinuxSystemPasswdParser()

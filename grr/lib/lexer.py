@@ -264,8 +264,8 @@ class Expression(object):
 
   def Compile(self, filter_implemention):
     """Given a filter implementation, compile this expression."""
-    raise NotImplementedError("%s does not implement Compile." %
-                              self.__class__.__name__)
+    raise NotImplementedError(
+        "%s does not implement Compile." % self.__class__.__name__)
 
 
 class BinaryExpression(Expression):
@@ -287,9 +287,8 @@ class BinaryExpression(Expression):
       self.args.insert(0, lhs)
       self.args.append(rhs)
     else:
-      raise ParseError("Expected expression, got %s %s %s" % (lhs,
-                                                              self.operator,
-                                                              rhs))
+      raise ParseError("Expected expression, got %s %s %s" %
+                       (lhs, self.operator, rhs))
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)

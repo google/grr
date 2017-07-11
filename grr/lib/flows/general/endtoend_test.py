@@ -64,9 +64,9 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         if isinstance(reply, endtoend.EndToEndTestResult):
           results.append(reply)
           self.assertTrue(reply.success)
-          self.assertTrue(
-              reply.test_class_name in
-              ["TestListDirectoryOSLinuxDarwin", "MockEndToEndTest"])
+          self.assertTrue(reply.test_class_name in [
+              "TestListDirectoryOSLinuxDarwin", "MockEndToEndTest"
+          ])
           self.assertFalse(reply.log)
 
       # We only expect 2 results because we dedup test names
@@ -104,15 +104,13 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         "TestListDirectoryOSLinuxDarwin"
     ])
 
-    self.assertRaises(
-        flow.FlowError,
-        list,
-        test_lib.TestFlowHelper(
-            "EndToEndTestFlow",
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token,
-            args=args))
+    self.assertRaises(flow.FlowError, list,
+                      test_lib.TestFlowHelper(
+                          "EndToEndTestFlow",
+                          self.client_mock,
+                          client_id=self.client_id,
+                          token=self.token,
+                          args=args))
 
   def testRunSuccessAndFail(self):
     args = endtoend.EndToEndTestFlowArgs()
@@ -148,28 +146,24 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def testRunBadSetUp(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestBadSetUp"])
 
-    self.assertRaises(
-        RuntimeError,
-        list,
-        test_lib.TestFlowHelper(
-            "EndToEndTestFlow",
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token,
-            args=args))
+    self.assertRaises(RuntimeError, list,
+                      test_lib.TestFlowHelper(
+                          "EndToEndTestFlow",
+                          self.client_mock,
+                          client_id=self.client_id,
+                          token=self.token,
+                          args=args))
 
   def testRunBadTearDown(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestBadTearDown"])
 
-    self.assertRaises(
-        RuntimeError,
-        list,
-        test_lib.TestFlowHelper(
-            "EndToEndTestFlow",
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token,
-            args=args))
+    self.assertRaises(RuntimeError, list,
+                      test_lib.TestFlowHelper(
+                          "EndToEndTestFlow",
+                          self.client_mock,
+                          client_id=self.client_id,
+                          token=self.token,
+                          args=args))
 
   def testRunBadFlow(self):
     """Test behaviour when test flow raises in Start.
@@ -181,15 +175,13 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     args = endtoend.EndToEndTestFlowArgs(
         test_names=["MockEndToEndTestBadFlow", "MockEndToEndTest"])
 
-    self.assertRaises(
-        RuntimeError,
-        list,
-        test_lib.TestFlowHelper(
-            "EndToEndTestFlow",
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token,
-            args=args))
+    self.assertRaises(RuntimeError, list,
+                      test_lib.TestFlowHelper(
+                          "EndToEndTestFlow",
+                          self.client_mock,
+                          client_id=self.client_id,
+                          token=self.token,
+                          args=args))
 
   def testEndToEndTestFailure(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestFailure"])

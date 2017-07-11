@@ -627,9 +627,9 @@ class NtpParserTests(test_lib.GRRBaseTest):
     results = results[0]
 
     # Check all the expected "simple" config keywords are present.
-    expected_config_keywords = set(
-        ["driftfile", "statsdir", "filegen", "ttl",
-         "broadcastdelay"]) | set(parser._defaults.keys())
+    expected_config_keywords = set([
+        "driftfile", "statsdir", "filegen", "ttl", "broadcastdelay"
+    ]) | set(parser._defaults.keys())
     self.assertEqual(expected_config_keywords, set(results.config.keys()))
 
     # Check all the expected "keyed" config keywords are present.
@@ -716,10 +716,8 @@ class SudoersParserTest(test_lib.GRRBaseTest):
                 "users": ["d", "e", "f"],
             },
             {
-                "name":
-                    "complex",
-                "type":
-                    "USER",
+                "name": "complex",
+                "type": "USER",
                 "users": ["#1000", "%group", "%#1001", "%:nonunix", "%:#1002"],
             },
         ],

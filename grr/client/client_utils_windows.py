@@ -111,9 +111,8 @@ def WinChmod(filename, acl_list, user=None):
   # Tell windows to set the acl and mark it as explicitly set
   security_descriptor.SetSecurityDescriptorDacl(DACL_PRESENT, dacl,
                                                 DACL_DEFAULT)
-  win32security.SetFileSecurity(filename,
-                                win32security.DACL_SECURITY_INFORMATION,
-                                security_descriptor)
+  win32security.SetFileSecurity(
+      filename, win32security.DACL_SECURITY_INFORMATION, security_descriptor)
 
 
 def WinFindProxies():
@@ -370,16 +369,19 @@ class RtlOSVersionInfoExw(ctypes.Structure):
   See: https://msdn.microsoft.com/en-us/library/
   windows/hardware/ff563620(v=vs.85).aspx .
   """
-  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong),
-              ("dwMajorVersion", ctypes.c_ulong),
-              ("dwMinorVersion", ctypes.c_ulong),
-              ("dwBuildNumber", ctypes.c_ulong),
-              ("dwPlatformId", ctypes.c_ulong),
-              ("szCSDVersion", ctypes.c_wchar * 128),
-              ("wServicePackMajor", ctypes.c_ushort),
-              ("wServicePackMinor", ctypes.c_ushort),
-              ("wSuiteMask", ctypes.c_ushort), ("wProductType", ctypes.c_byte),
-              ("wReserved", ctypes.c_byte)]
+  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong), ("dwMajorVersion",
+                                                        ctypes.c_ulong),
+              ("dwMinorVersion",
+               ctypes.c_ulong), ("dwBuildNumber",
+                                 ctypes.c_ulong), ("dwPlatformId",
+                                                   ctypes.c_ulong),
+              ("szCSDVersion",
+               ctypes.c_wchar * 128), ("wServicePackMajor",
+                                       ctypes.c_ushort), ("wServicePackMinor",
+                                                          ctypes.c_ushort),
+              ("wSuiteMask", ctypes.c_ushort), ("wProductType",
+                                                ctypes.c_byte), ("wReserved",
+                                                                 ctypes.c_byte)]
 
   def __init__(self, **kwargs):
     kwargs["dwOSVersionInfoSize"] = ctypes.sizeof(self)

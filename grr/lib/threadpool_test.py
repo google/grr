@@ -236,8 +236,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     self.now = 0
     with utils.MultiStubber((time, "time", lambda: self.now),
                             (threading, "_time", lambda: self.now),
-                            (Queue, "_time", lambda: self.now),
-                            (self.test_pool, "CPUUsage", lambda: 0)):
+                            (Queue, "_time",
+                             lambda: self.now), (self.test_pool, "CPUUsage",
+                                                 lambda: 0)):
       done_event = threading.Event()
 
       res = []

@@ -47,8 +47,8 @@ class CAEnroler(flow.GRRFlow):
     # to a client URN.
     self.cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
     if self.cn != csr.GetCN():
-      raise IOError("CSR CN %s does not match public key %s." %
-                    (csr.GetCN(), self.cn))
+      raise IOError("CSR CN %s does not match public key %s." % (csr.GetCN(),
+                                                                 self.cn))
 
     logging.info("Will sign CSR for: %s", self.cn)
 

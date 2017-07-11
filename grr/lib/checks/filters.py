@@ -60,8 +60,8 @@ class BaseHandler(object):
       except DefinitionError as e:
         bad_filters.append("%s: %s" % (f.expression, e))
     if bad_filters:
-      raise DefinitionError("Filters with invalid expressions: %s" %
-                            ", ".join(bad_filters))
+      raise DefinitionError(
+          "Filters with invalid expressions: %s" % ", ".join(bad_filters))
 
   def Parse(self, results):
     """Take the results and yield results that passed through the filters."""
@@ -521,8 +521,8 @@ class StatFilter(Filter):
 
     if self.cfg.file_type:
       if len(self.cfg.file_type) > 1:
-        raise DefinitionError("Too many file types defined: %s" %
-                              self.cfg.file_type)
+        raise DefinitionError(
+            "Too many file types defined: %s" % self.cfg.file_type)
       file_type = self.cfg.file_type[0].upper()
       if file_type not in self._TYPES:
         raise DefinitionError("Unsupported file type %s" % file_type)

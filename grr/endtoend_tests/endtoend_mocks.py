@@ -11,8 +11,7 @@ class MockEndToEndTest(base.AutomatedTest):
   flow = "ListDirectory"
   args = {
       "pathspec":
-          paths.PathSpec(
-              path="/bin", pathtype=paths.PathSpec.PathType.OS)
+          paths.PathSpec(path="/bin", pathtype=paths.PathSpec.PathType.OS)
   }
 
   output_path = "/fs/os/bin"

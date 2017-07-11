@@ -82,8 +82,7 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     self.args["request"].plugins = [
         rdf_rekall_types.PluginRequest(
             plugin="dlllist",
-            args=dict(
-                proc_regex=self.binaryname, method="PsActiveProcessHead"))
+            args=dict(proc_regex=self.binaryname, method="PsActiveProcessHead"))
     ]
 
   def CheckFlow(self):
@@ -220,8 +219,7 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
     signature = open(sig_path, "rb").read().strip()
     args = {"scan_kernel": True, "signature": [signature]}
     self.args["request"].plugins = [
-        rdf_rekall_types.PluginRequest(
-            plugin="sigscan", args=args)
+        rdf_rekall_types.PluginRequest(plugin="sigscan", args=args)
     ]
 
   def CheckFlow(self):

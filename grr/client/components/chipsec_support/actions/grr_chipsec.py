@@ -98,7 +98,8 @@ class DumpFlashImage(actions.ActionPlugin):
       if args.log_level:
         self.LogError(err)
       tempfiles.DeleteGRRTempFile(dest_pathspec.path)
-      self.SendReply(chipsec_types.DumpFlashImageResponse(logs=["%s" % err],))
+      self.SendReply(chipsec_types.DumpFlashImageResponse(
+          logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode
@@ -167,7 +168,8 @@ class DumpACPITable(actions.ActionPlugin):
       # error message.
       if args.logging:
         self.LogError(err)
-      self.SendReply(chipsec_types.DumpACPITableResponse(logs=["%s" % err],))
+      self.SendReply(chipsec_types.DumpACPITableResponse(
+          logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode
@@ -177,8 +179,8 @@ class DumpACPITable(actions.ActionPlugin):
       raise
 
     if not acpi_tables:
-      self.logs.append("No ACPI table with signature %s." %
-                       args.table_signature)
+      self.logs.append(
+          "No ACPI table with signature %s." % args.table_signature)
     else:
       self.logs.append(
           "ACPI table with signature %s has been successfully dumped." %

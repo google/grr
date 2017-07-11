@@ -116,12 +116,11 @@ class Approval(aff4.AFF4Object):
     if not username:
       username = token.username
 
-    approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(object_urn.Path()).Add(
-        username)
+    approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(
+        object_urn.Path()).Add(username)
 
     children_urns = list(
-        aff4.FACTORY.ListChildren(
-            approvals_root_urn, token=token))
+        aff4.FACTORY.ListChildren(approvals_root_urn, token=token))
     if not children_urns:
       raise access_control.UnauthorizedAccess(
           "No approval found for user %s" % utils.SmartStr(username),
@@ -595,8 +594,7 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
     approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(
         self.args.subject_urn.Path()).Add(self.args.delegate)
     children_urns = list(
-        aff4.FACTORY.ListChildren(
-            approvals_root_urn, token=self.token))
+        aff4.FACTORY.ListChildren(approvals_root_urn, token=self.token))
     if not children_urns:
       raise access_control.UnauthorizedAccess(
           "No approval found for user %s" % utils.SmartStr(self.token.username),
@@ -607,10 +605,9 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
     found_approval_urn = None
     for approval in approvals:
       approval_reason = approval.Get(approval.Schema.REASON)
-      if (utils.SmartUnicode(approval_reason) ==
-          utils.SmartUnicode(self.args.reason) and
-          (not found_approval_urn or
-           approval_reason.age > found_approval_urn.age)):
+      if (utils.SmartUnicode(approval_reason) == utils.SmartUnicode(
+          self.args.reason) and (not found_approval_urn or
+                                 approval_reason.age > found_approval_urn.age)):
         found_approval_urn = approval.urn
         found_approval_urn.age = approval_reason.age
 
@@ -837,8 +834,8 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode((("c", self.subject_urn),
-                             ("main", "HostInformation")))
+    return urllib.urlencode((("c", self.subject_urn), ("main",
+                                                       "HostInformation")))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""

@@ -1356,8 +1356,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     field_number = 1
     output_class.AddDescriptor(
         rdf_structs.ProtoEmbedded(
-            name="metadata", field_number=field_number, nested=
-            ExportedMetadata))
+            name="metadata", field_number=field_number,
+            nested=ExportedMetadata))
 
     field_number += 1
     output_class.AddDescriptor(

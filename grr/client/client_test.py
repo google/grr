@@ -139,10 +139,10 @@ class BasicContextTests(test_lib.GRRBaseTest):
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)
-    self.assertEqual([m.priority for m in message_list],
-                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
-    self.assertEqual([m.require_fastpoll for m in message_list],
-                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    self.assertEqual([m.priority
+                      for m in message_list], [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
+    self.assertEqual([m.require_fastpoll
+                      for m in message_list], [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
 
   def testSizeQueue(self):
 

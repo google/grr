@@ -139,8 +139,8 @@ class ClientTestBase(unittest.TestCase):
         # just one path anyway.
         aff4.FACTORY.Open(urn, aff4_type=aff4.AFF4Volume, token=self.token)
     except aff4.InstantiationError:
-      raise TestStateUncleanError("Path wasn't deleted: %s" %
-                                  traceback.format_exc())
+      raise TestStateUncleanError(
+          "Path wasn't deleted: %s" % traceback.format_exc())
 
   def DeleteUrn(self, urn):
     """Deletes an object from the db and the index, and flushes the caches."""

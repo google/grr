@@ -246,6 +246,7 @@ class VFSHandler(object):
   def GetMetadata(self):
     return self.metadata
 
+
 # A registry of all VFSHandler registered
 VFS_HANDLERS = {}
 

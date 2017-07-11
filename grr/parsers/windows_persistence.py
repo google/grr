@@ -28,8 +28,8 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
       return []
 
     return [
-        rdf_paths.PathSpec(
-            path=path, pathtype=pathtype) for path in path_guesses
+        rdf_paths.PathSpec(path=path, pathtype=pathtype)
+        for path in path_guesses
     ]
 
   def Parse(self, persistence, knowledge_base, download_pathtype):

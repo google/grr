@@ -123,15 +123,13 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
 
     # check when both files don't exist - two hits
     results = self.GenResults([artifact], [data3])
-    self._CheckMultipleSymPerCheck(check_id, results,
-                                   [sym_cron_allow, sym_at_allow],
-                                   [found, found])
+    self._CheckMultipleSymPerCheck(
+        check_id, results, [sym_cron_allow, sym_at_allow], [found, found])
 
     # Provide empty host data - check both files don't exist - two hits
     results = self.GenResults([artifact], [None])
-    self._CheckMultipleSymPerCheck(check_id, results,
-                                   [sym_cron_allow, sym_at_allow],
-                                   [found, found])
+    self._CheckMultipleSymPerCheck(
+        check_id, results, [sym_cron_allow, sym_at_allow], [found, found])
 
   def testCronDenyExistCheck(self):
     """Ensure cron/at deny check detects if /etc/(at|cron).deny exists."""

@@ -122,8 +122,8 @@ class DataStoreService(object):
         if value.HasField("timestamp"):
           timestamp = self.FromTimestampSpec(value.timestamp)
 
-        values.setdefault(value.attribute, []).append(
-            (value.value.GetValue(), timestamp))
+        values.setdefault(value.attribute, []).append((value.value.GetValue(),
+                                                       timestamp))
 
     self.db.MultiSet(
         request.subject[0],

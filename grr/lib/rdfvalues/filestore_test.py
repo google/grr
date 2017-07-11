@@ -25,9 +25,9 @@ class FileStoreHashTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=0):
     """Make a sample FileStoreHash instance."""
-    return filestore.FileStoreHash("aff4:/files/hash/pecoff/sha1/"
-                                   "eb875812858d27b22cb2b75f992dffadc1b05c6%d" %
-                                   number)
+    return filestore.FileStoreHash(
+        "aff4:/files/hash/pecoff/sha1/"
+        "eb875812858d27b22cb2b75f992dffadc1b05c6%d" % number)
 
   def testHashIsInferredCorrectlyFromTheURN(self):
     """Test we can initialized a hash from the HashFileStore urn."""

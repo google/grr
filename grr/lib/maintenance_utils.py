@@ -75,11 +75,11 @@ def UploadSignedConfigBlob(content,
   config_lib.CONFIG.Validate(
       parameters="PrivateKeys.executable_signing_private_key")
 
-  sig_key = config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key",
-                                  context=client_context)
+  sig_key = config_lib.CONFIG.Get(
+      "PrivateKeys.executable_signing_private_key", context=client_context)
 
-  ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
-                                  context=client_context)
+  ver_key = config_lib.CONFIG.Get(
+      "Client.executable_signing_public_key", context=client_context)
 
   urn = collects.GRRSignedBlob.NewFromContent(
       content,
@@ -123,8 +123,7 @@ def CreateBinaryConfigPaths(token=None):
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
     existing_urns = [
-        x["urn"] for x in aff4.FACTORY.Stat(
-            list(required_urns), token=token)
+        x["urn"] for x in aff4.FACTORY.Stat(list(required_urns), token=token)
     ]
 
     missing_urns = required_urns - set(existing_urns)
@@ -218,18 +217,18 @@ def SignComponent(component_filename, overwrite=False, token=None):
       "Arch:%s" % component.build_system.arch
   ]
 
-  sig_key = config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key",
-                                  context=client_context)
+  sig_key = config_lib.CONFIG.Get(
+      "PrivateKeys.executable_signing_private_key", context=client_context)
 
-  ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
-                                  context=client_context)
+  ver_key = config_lib.CONFIG.Get(
+      "Client.executable_signing_public_key", context=client_context)
 
   # For each platform specific component, we have a component summary object
   # which contains high level information in common to all components of this
   # specific version.
   component_urn = config_lib.CONFIG.Get("Config.aff4_root").Add(
-      "components").Add("%s_%s" %
-                        (component.summary.name, component.summary.version))
+      "components").Add("%s_%s" % (component.summary.name,
+                                   component.summary.version))
 
   component_fd = aff4.FACTORY.Create(
       component_urn, collects.ComponentObject, mode="rw", token=token)
@@ -240,9 +239,9 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
     component_summary = component.summary
     component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
-    component_summary.url = (
-        config_lib.CONFIG.Get("Client.component_url_stem",
-                              context=client_context) + component_summary.seed)
+    component_summary.url = (config_lib.CONFIG.Get(
+        "Client.component_url_stem", context=client_context) +
+                             component_summary.seed)
 
     component_fd.Set(component_fd.Schema.COMPONENT, component_summary)
     component_fd.Close()
@@ -341,8 +340,8 @@ def AddUser(username, password=None, labels=None, token=None):
   fd = aff4.FACTORY.Create(user_urn, users.GRRUser, mode="rw", token=token)
   # Note this accepts blank passwords as valid.
   if password is None:
-    password = getpass.getpass(prompt="Please enter password for user '%s': " %
-                               username)
+    password = getpass.getpass(
+        prompt="Please enter password for user '%s': " % username)
   fd.SetPassword(password)
 
   if labels:
@@ -354,8 +353,7 @@ def AddUser(username, password=None, labels=None, token=None):
 
   events.Events.PublishEvent(
       "Audit",
-      events.AuditEvent(
-          user=token.username, action="USER_ADD", urn=user_urn),
+      events.AuditEvent(user=token.username, action="USER_ADD", urn=user_urn),
       token=token)
 
 

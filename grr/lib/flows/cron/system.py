@@ -67,8 +67,8 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       self.categories[active_time].setdefault(label, {})
       if (now - age).seconds < active_time * 24 * 60 * 60:
-        self.categories[active_time][label][category] = self.categories[
-            active_time][label].get(category, 0) + 1
+        self.categories[active_time][label][
+            category] = self.categories[active_time][label].get(category, 0) + 1
 
   def Save(self, cron_flow):
     """Generate a histogram object and store in the specified attribute."""
