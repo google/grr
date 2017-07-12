@@ -76,6 +76,22 @@ class ClientApproval(ClientApprovalBase):
     self.data = data
 
 
+class ClientCrash(object):
+  """Wrapper class for client crashes."""
+
+  def __init__(self, data=None, context=None):
+    super(ClientCrash, self).__init__()
+
+    self.data = data
+
+    self.timestamp = data.timestamp
+    self.crash_message = data.crash_message
+    self.backtrace = data.backtrace
+
+    self.client = ClientRef(
+        client_id=utils.UrnStringToClientId(data.client_id), context=context)
+
+
 class ClientBase(object):
   """Base class for Client and ClientRef."""
 

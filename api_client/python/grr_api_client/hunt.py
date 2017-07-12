@@ -93,12 +93,38 @@ class HuntError(object):
   """Wrapper class for hunt errors."""
 
   def __init__(self, data=None, context=None):
+    super(HuntError, self).__init__()
+
     self.data = data
+    self.log_message = self.data.log_message
+    self.backtrace = self.data.backtrace
 
     self.client = client.ClientRef(
         client_id=utils.UrnStringToClientId(data.client_id), context=context)
+
+
+class HuntLog(object):
+  """Wrapper class for hunt logs."""
+
+  def __init__(self, data=None, context=None):
+    super(HuntLog, self).__init__()
+
+    self.data = data
     self.log_message = self.data.log_message
-    self.backtrace = self.data.backtrace
+
+    self.client = None
+    if data.client_id:
+      self.client = client.ClientRef(
+          client_id=utils.UrnStringToClientId(data.client_id), context=context)
+
+
+class HuntClient(client.ClientRef):
+  """Wrapper class for hunt clients."""
+
+  def __init__(self, data=None, context=None):
+    super(HuntClient, self).__init__(client_id=data.client_id, context=context)
+
+    self.data = data
 
 
 class HuntBase(object):
@@ -161,6 +187,10 @@ class HuntBase(object):
     data = self._context.SendRequest("ModifyHunt", args)
     return Hunt(data=data, context=self._context)
 
+  def Delete(self):
+    args = hunt_pb2.ApiDeleteHuntArgs(hunt_id=self.hunt_id)
+    self._context.SendRequest("DeleteHunt", args)
+
   def Start(self):
     args = hunt_pb2.ApiModifyHuntArgs(
         hunt_id=self.hunt_id, state=hunt_pb2.ApiHunt.STARTED)
@@ -179,15 +209,52 @@ class HuntBase(object):
     return utils.MapItemsIterator(
         lambda data: HuntResult(data=data, context=self._context), items)
 
+  def ListLogs(self):
+    args = hunt_pb2.ApiListHuntLogsArgs(hunt_id=self.hunt_id)
+    items = self._context.SendIteratorRequest("ListHuntLogs", args)
+    return utils.MapItemsIterator(
+        lambda data: HuntLog(data=data, context=self._context), items)
+
   def ListErrors(self):
     args = hunt_pb2.ApiListHuntErrorsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntErrors", args)
     return utils.MapItemsIterator(
         lambda data: HuntError(data=data, context=self._context), items)
 
+  def ListCrashes(self):
+    args = hunt_pb2.ApiListHuntCrashesArgs(hunt_id=self.hunt_id)
+    items = self._context.SendIteratorRequest("ListHuntCrashes", args)
+    return utils.MapItemsIterator(
+        lambda data: client.ClientCrash(data=data, context=self._context),
+        items)
+
+  CLIENT_STATUS_STARTED = hunt_pb2.ApiListHuntClientsArgs.STARTED
+  CLIENT_STATUS_OUTSTANDING = hunt_pb2.ApiListHuntClientsArgs.OUTSTANDING
+  CLIENT_STATUS_COMPLETED = hunt_pb2.ApiListHuntClientsArgs.COMPLETED
+
+  def ListClients(self, client_status):
+    args = hunt_pb2.ApiListHuntClientsArgs(
+        hunt_id=self.hunt_id, client_status=client_status)
+    items = self._context.SendIteratorRequest("ListHuntClients", args)
+    return utils.MapItemsIterator(
+        lambda data: HuntClient(data=data, context=self._context), items)
+
+  def GetClientCompletionStats(self):
+    args = hunt_pb2.ApiGetHuntClientCompletionStatsArgs(hunt_id=self.hunt_id)
+    return self._context.SendRequest("GetHuntClientCompletionStats", args)
+
+  def GetStats(self):
+    args = hunt_pb2.ApiGetHuntStatsArgs(hunt_id=self.hunt_id)
+    return self._context.SendRequest("GetHuntStats", args).stats
+
   def GetFilesArchive(self):
     args = hunt_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id)
     return self._context.SendStreamingRequest("GetHuntFilesArchive", args)
+
+  def GetExportedResults(self, plugin_name):
+    args = hunt_pb2.ApiGetExportedHuntResultsArgs(
+        hunt_id=self.hunt_id, plugin_name=plugin_name)
+    return self._context.SendStreamingRequest("GetExportedHuntResults", args)
 
 
 class HuntRef(HuntBase):
