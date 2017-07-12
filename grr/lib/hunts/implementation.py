@@ -602,9 +602,6 @@ class HuntRunner(object):
     if self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "STARTED":
       return
 
-    data_store.DB.security_manager.CheckHuntAccess(self.hunt_obj.token,
-                                                   self.session_id)
-
     # Determine when this hunt will expire.
     self.context.expires = self.runner_args.expiry_time.Expiry()
 
@@ -669,10 +666,6 @@ class HuntRunner(object):
     if not self.IsHuntStarted():
       return
 
-    # Make sure the user is allowed to pause this hunt.
-    data_store.DB.security_manager.CheckHuntAccess(self.hunt_obj.token,
-                                                   self.session_id)
-
     self._RemoveForemanRule()
 
     self.hunt_obj.Set(self.hunt_obj.Schema.STATE("PAUSED"))
@@ -682,10 +675,6 @@ class HuntRunner(object):
 
   def Stop(self):
     """Cancels the hunt (removes Foreman rules, resets expiry time to 0)."""
-    # Make sure the user is allowed to stop this hunt.
-    data_store.DB.security_manager.CheckHuntAccess(self.hunt_obj.token,
-                                                   self.session_id)
-
     self._RemoveForemanRule()
     self.hunt_obj.Set(self.hunt_obj.Schema.STATE("STOPPED"))
     self.hunt_obj.Flush()

@@ -32,7 +32,6 @@ class MysqlAdvancedTestMixin(object):
         data_store.DB = mysql_advanced_data_store.MySQLAdvancedDataStore()
         data_store.DB.Initialize()
         data_store.DB.flusher_thread.Stop()
-        data_store.DB.security_manager = test_lib.MockSecurityManager()
         data_store.DB.RecreateTables()
       except Exception as e:
         logging.debug("Error while connecting to MySQL db: %s.", e)

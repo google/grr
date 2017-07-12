@@ -393,8 +393,10 @@ class HttpRequestHandler(object):
                         request.method, e)
 
       additional_headers = {
-          "X-GRR-Unauthorized-Access-Reason": utils.SmartStr(e.message),
-          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Reason":
+              utils.SmartStr(e.message).replace("\n", ""),
+          "X-GRR-Unauthorized-Access-Subject":
+              utils.SmartStr(e.subject)
       }
       return self._BuildResponse(
           403,
@@ -485,8 +487,10 @@ class HttpRequestHandler(object):
                         request.method, method_metadata.name, e)
 
       additional_headers = {
-          "X-GRR-Unauthorized-Access-Reason": utils.SmartStr(e.message),
-          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Reason":
+              utils.SmartStr(e.message).replace("\n", ""),
+          "X-GRR-Unauthorized-Access-Subject":
+              utils.SmartStr(e.subject)
       }
       return self._BuildResponse(
           403,

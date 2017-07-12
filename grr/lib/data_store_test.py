@@ -22,7 +22,6 @@ import time
 
 import mock
 
-from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -914,16 +913,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     ]
     self.assertEqual(sorted(values), ["h1", "h2", "h3", "h4", "h5", "h6", "h7"])
 
-  def testScanAttributeRequiresReadAccess(self):
-    self._InstallACLChecks("r")
-    v = data_store.DB.ScanAttribute("aff4:/", "aff4:hash", token=self.token)
-    self.assertRaises(access_control.UnauthorizedAccess, v.next)
-
-  def testScanAttributeRequiresQueryAccess(self):
-    self._InstallACLChecks("q")
-    v = data_store.DB.ScanAttribute("aff4:/", "aff4:hash", token=self.token)
-    self.assertRaises(access_control.UnauthorizedAccess, v.next)
-
   def testScanAttributes(self):
     for i in range(0, 7):
       data_store.DB.Set(
@@ -1595,15 +1584,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Make sure all threads got it eventually.
     self.assertEqual(len(self.results), self.OPEN_WITH_LOCK_NUM_THREADS)
 
-  def _InstallACLChecks(self, forbidden_access):
-    if self.acls_installed:
-      raise RuntimeError("Seems like _InstallACLChecks was called twice in one "
-                         "test")
-
-    self.acls_installed = True
-    data_store.DB.security_manager = test_lib.MockSecurityManager(
-        forbidden_datastore_access=forbidden_access)
-
   def _ListedMultiResolvePrefix(self, *args, **kwargs):
     return list(data_store.DB.MultiResolvePrefix(*args, **kwargs))
 
@@ -1618,145 +1598,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # we flush data store when testing it.
     data_store.DB.DeleteSubject(*args, **kwargs)
     data_store.DB.Flush()
-
-  def testSetChecksWriteAccess(self):
-    self._InstallACLChecks("w")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.Set,
-        self.test_row,
-        "task:00000001",
-        rdf_flows.GrrMessage(),
-        token=self.token)
-
-  @DeletionTest
-  def testDeleteSubjectChecksWriteAccess(self):
-    self._InstallACLChecks("w")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._FlushedDeleteSubject,
-        self.test_row,
-        token=self.token)
-
-  def testMultiSetChecksWriteAccess(self):
-    self._InstallACLChecks("w")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.MultiSet,
-        self.test_row, {"aff4:size": [(1, 100)],
-                        "aff4:stored": [("foo", 200)]},
-        token=self.token)
-
-  @DeletionTest
-  def testDeleteAttributesChecksWriteAccess(self):
-    self._InstallACLChecks("w")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.DeleteAttributes,
-        self.test_row, ["metadata:predicate"],
-        sync=True,
-        token=self.token)
-
-  def testMultiResolvePrefixChecksReadAccess(self):
-    self._InstallACLChecks("r")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedMultiResolvePrefix, [self.test_row], ["task:"],
-        token=self.token)
-
-  def testMultiResolvePrefixChecksQueryAccessWhenAccessingIndex(self):
-    self._InstallACLChecks("q")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedMultiResolvePrefix, [self.test_row], ["index:"],
-        token=self.token)
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedMultiResolvePrefix, [self.test_row], ["task:", "index:"],
-        token=self.token)
-
-    # Check that simple resolve doesn't require query access.
-    self._ListedMultiResolvePrefix([self.test_row], ["task:"], token=self.token)
-
-  def testResolveMultiChecksReadAccess(self):
-    self._InstallACLChecks("r")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedResolveMulti,
-        self.test_row, ["task:000000001"],
-        token=self.token)
-
-  def testResolveMultiChecksQueryAccessWhenAccessingIndex(self):
-    self._InstallACLChecks("q")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedResolveMulti,
-        self.test_row, ["index:dir/foo"],
-        token=self.token)
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedResolveMulti,
-        self.test_row, ["task:00000001", "index:dir/foo"],
-        token=self.token)
-
-    # Check that simple resolve doesn't require query access.
-    self._ListedResolveMulti(self.test_row, ["task:00000001"], token=self.token)
-
-  def testResolvePrefixChecksReadAccess(self):
-    self._InstallACLChecks("r")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedResolvePrefix,
-        self.test_row,
-        "task:",
-        token=self.token)
-
-  def testResolvePrefixChecksQueryAccessWhenAccessingIndex(self):
-    self._InstallACLChecks("q")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._ListedResolvePrefix,
-        self.test_row,
-        "index:",
-        token=self.token)
-
-    # Check that simple resolve doesn't require query access.
-    self._ListedResolvePrefix(self.test_row, "task:", token=self.token)
-
-  def testResolveChecksReadAccess(self):
-    self._InstallACLChecks("r")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.Resolve,
-        self.test_row,
-        "task:000000001",
-        token=self.token)
-
-  def testResolveChecksQueryAccessWhenAccessingIndex(self):
-    self._InstallACLChecks("q")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.Resolve,
-        self.test_row,
-        "index:dir/foo",
-        token=self.token)
-
-    # Check that simple resolve doesn't require query access.
-    data_store.DB.Resolve(self.test_row, "task:00000001", token=self.token)
 
   def testLimits(self):
     # Create 10 rows with 10 attributes each.

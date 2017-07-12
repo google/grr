@@ -348,8 +348,6 @@ class UpdateVFSFile(flow.GRRFlow):
   """A flow to update VFS file."""
   args_type = UpdateVFSFileArgs
 
-  ACL_ENFORCED = False
-
   def Init(self):
     self.state.get_file_flow_urn = None
 
@@ -357,11 +355,6 @@ class UpdateVFSFile(flow.GRRFlow):
   def Start(self):
     """Calls the Update() method of a given VFSFile/VFSDirectory object."""
     self.Init()
-
-    client_id = rdf_client.ClientURN(self.args.vfs_file_urn.Split()[0])
-    data_store.DB.security_manager.CheckClientAccess(self.token.RealUID(),
-                                                     client_id)
-
     fd = aff4.FACTORY.Open(self.args.vfs_file_urn, mode="rw", token=self.token)
 
     # Account for implicit directories.
@@ -469,6 +462,7 @@ class GRRForeman(aff4.AFF4Object):
     new_rules = self.Schema.RULES()
     now = time.time() * 1e6
     expired_session_ids = set()
+
     for rule in rules:
       if rule.expires > now:
         new_rules.Append(rule)
@@ -478,12 +472,15 @@ class GRRForeman(aff4.AFF4Object):
             expired_session_ids.add(action.hunt_id)
 
     if expired_session_ids:
-      # Notify the worker to mark this hunt as terminated.
-      manager = queue_manager.QueueManager(token=self.token)
-      manager.MultiNotifyQueue([
-          rdf_flows.GrrNotification(session_id=session_id)
-          for session_id in expired_session_ids
-      ])
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        # Notify the worker to mark this hunt as terminated.
+        manager = queue_manager.QueueManager(token=self.token)
+        manager.MultiNotifyQueue(
+            [
+                rdf_flows.GrrNotification(session_id=session_id)
+                for session_id in expired_session_ids
+            ],
+            mutation_pool=pool)
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)

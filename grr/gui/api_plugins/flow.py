@@ -12,7 +12,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import instant_output_plugin
 from grr.lib import queue_manager
@@ -946,6 +945,10 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   client_flow_behavior = flow.FlowBehaviour("Client Flow")
   global_flow_behavior = flow.FlowBehaviour("Global Flow")
 
+  def __init__(self, legacy_security_manager=None):
+    super(ApiListFlowDescriptorsHandler, self).__init__()
+    self.legacy_security_manager = legacy_security_manager
+
   def _FlowTypeToBehavior(self, flow_type):
     if flow_type == self.args_type.FlowType.CLIENT:
       return self.client_flow_behavior
@@ -968,16 +971,18 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       # Only show flows that the user is allowed to start.
       can_be_started_on_client = False
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(
-            token, name, with_client_id=True)
+        if self.legacy_security_manager:
+          self.legacy_security_manager.CheckIfCanStartFlow(
+              token, name, with_client_id=True)
         can_be_started_on_client = True
       except access_control.UnauthorizedAccess:
         pass
 
       can_be_started_globally = False
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(
-            token, name, with_client_id=False)
+        if self.legacy_security_manager:
+          self.legacy_security_manager.CheckIfCanStartFlow(
+              token, name, with_client_id=False)
         can_be_started_globally = True
       except access_control.UnauthorizedAccess:
         pass

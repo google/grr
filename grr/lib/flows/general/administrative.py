@@ -10,10 +10,8 @@ import urllib
 
 import logging
 
-from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flow
@@ -797,13 +795,6 @@ class KeepAliveArgs(rdf_structs.RDFProtoStruct):
 class KeepAlive(flow.GRRFlow):
   """Requests that the clients stays alive for a period of time."""
 
-  # We already want to run this flow while waiting for a client approval.
-  # Note that this can potentially be abused to launch a DDOS attack against
-  # the frontend server(s) by putting all clients into fastpoll mode. The load
-  # of idle polling messages is not that high though and this can only be done
-  # by users that have a GRR account already so the risk is acceptable.
-  ACL_ENFORCED = False
-
   category = "/Administrative/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
@@ -832,34 +823,6 @@ class KeepAlive(flow.GRRFlow):
     if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
       start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
       self.CallState(next_state="SendMessage", start_time=start_time)
-
-
-class TerminateFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.TerminateFlowArgs
-
-
-class TerminateFlow(flow.GRRFlow):
-  """Terminate a flow with a given URN."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-  args_type = TerminateFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    """Terminate a flow. User has to have access to the flow."""
-    # We have to create special token here, because within the flow
-    # token has supervisor access.
-    check_token = access_control.ACLToken(
-        username=self.token.username, reason=self.token.reason)
-    # If we can read the flow, we're allowed to terminate it.
-    data_store.DB.security_manager.CheckDataStoreAccess(
-        check_token, [self.args.flow_urn], "r")
-
-    flow.GRRFlow.TerminateFlow(
-        self.args.flow_urn,
-        reason=self.args.reason,
-        token=self.token,
-        force=True)
 
 
 class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
@@ -923,9 +886,6 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
 
   # Only admins can run this flow.
   AUTHORIZED_LABELS = ["admin"]
-
-  # This flow is a SUID flow.
-  ACL_ENFORCED = False
 
   args_type = aff4_users.GlobalNotification
 

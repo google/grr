@@ -659,7 +659,6 @@ class SqliteDataStore(data_store.DataStore):
                to_delete=None,
                token=None):
     """Set multiple values at once."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     # All operations are synchronized.
     _ = sync
     if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
@@ -697,7 +696,6 @@ class SqliteDataStore(data_store.DataStore):
                        sync=True,
                        token=None):
     """Remove some attributes from a subject."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
 
     if isinstance(attributes, basestring):
@@ -720,7 +718,6 @@ class SqliteDataStore(data_store.DataStore):
 
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     with self.cache.Get(subject) as sqlite_connection:
       sqlite_connection.DeleteSubject(subject)
@@ -774,8 +771,6 @@ class SqliteDataStore(data_store.DataStore):
                     limit=None,
                     token=None):
     """Resolve all attributes for a subject matching a prefix."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
     if isinstance(attribute_prefix, str):
       attribute_prefix = [attribute_prefix]
@@ -837,7 +832,6 @@ class SqliteDataStore(data_store.DataStore):
                      relaxed_order=False):
     subject_prefix = self._CleanSubjectPrefix(subject_prefix)
     after_urn = self._CleanAfterURN(after_urn, subject_prefix)
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
 
     connection_iter = self.cache.GetPrefix(subject_prefix)
     if relaxed_order:
@@ -891,9 +885,6 @@ class SqliteDataStore(data_store.DataStore):
                    limit=None,
                    token=None):
     """Resolve multiple attributes for a subject."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attributes))
-
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
     results = []
@@ -924,7 +915,6 @@ class SqliteDataStore(data_store.DataStore):
     return results
 
   def DumpDatabase(self, token=None):
-    self.security_manager.CheckDataStoreAccess(token, [], "r")
     for _, sql_connection in self.cache:
       sql_connection.PrettyPrint()
 

@@ -77,7 +77,6 @@ class FakeDataStore(data_store.DataStore):
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     subject = utils.SmartUnicode(subject)
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     try:
       del self.subjects[subject]
     except KeyError:
@@ -103,7 +102,6 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
 
     _ = sync
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     attribute = utils.SmartUnicode(attribute)
 
@@ -130,7 +128,6 @@ class FakeDataStore(data_store.DataStore):
                sync=True,
                to_delete=None):
     subject = utils.SmartUnicode(subject)
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
@@ -160,7 +157,6 @@ class FakeDataStore(data_store.DataStore):
                        token=None,
                        sync=None):
     _ = sync  # Unimplemented.
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if isinstance(attributes, basestring):
       raise ValueError(
@@ -205,7 +201,6 @@ class FakeDataStore(data_store.DataStore):
       subject_prefix += "/"
     if after_urn:
       after_urn = utils.SmartUnicode(after_urn)
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "qr")
     subjects = []
     for s in self.subjects.keys():
       if s.startswith(subject_prefix) and s > after_urn:
@@ -235,8 +230,6 @@ class FakeDataStore(data_store.DataStore):
                    limit=None,
                    token=None):
     subject = utils.SmartUnicode(subject)
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attributes))
 
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
@@ -297,15 +290,9 @@ class FakeDataStore(data_store.DataStore):
                          token=None,
                          timestamp=None,
                          limit=None):
-    required_access = self.GetRequiredResolveAccess(attribute_prefix)
-
     unicode_to_orig = {utils.SmartUnicode(s): s for s in subjects}
     result = {}
     for unicode_subject, orig_subject in unicode_to_orig.iteritems():
-
-      # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [unicode_subject],
-                                                 required_access)
 
       values = self.ResolvePrefix(
           unicode_subject,
@@ -341,9 +328,6 @@ class FakeDataStore(data_store.DataStore):
                     limit=None):
     """Resolve all attributes for a subject starting with a prefix."""
     subject = utils.SmartUnicode(subject)
-
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
     if timestamp in [None, self.NEWEST_TIMESTAMP, self.ALL_TIMESTAMPS]:
       start, end = 0, (2**63) - 1

@@ -7,10 +7,6 @@ from grr.lib import rdfvalue
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 15 * 1024 * 1024,
                           "Maximum blob size we may store in the datastore.")
 
-config_lib.DEFINE_string("Datastore.security_manager",
-                         "NullAccessControlManager",
-                         "The ACL manager for controlling access to data.")
-
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
 

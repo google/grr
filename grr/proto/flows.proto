@@ -578,19 +578,6 @@ message KeepAliveArgs {
 }
 
 // Next field ID: 3
-message TerminateFlowArgs {
-  optional string flow_urn = 1 [(sem_type) = {
-      type: "SessionID",
-      description: "The URN of the flow to terminate.",
-    }];
-
-  optional string reason = 2 [(sem_type) = {
-      description: "Reason for termination.",
-    }];
-}
-
-
-// Next field ID: 3
 message LaunchBinaryArgs {
   optional string binary = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1111,44 +1098,6 @@ message CreateCronJobFlowArgs {
 
 }
 
-// Next field ID: 4
-message ModifyHuntFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the hunt to pause.",
-    }];
-
-  optional uint64 client_limit = 2;
-
-  optional uint64 expiry_time = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When should this hunt expire?",
-    }];
-}
-
-// Next field ID: 3
-message ManageCronJobFlowArgs {
-  enum Action {
-    NOOP = 0 [(description) = "Do nothing (but still check "
-              "access permissions.)"];
-
-    DISABLE = 1 [(description) = "Disable ths cron job"];
-
-    ENABLE = 2 [(description) = "Enable the cron job"];
-
-    DELETE = 3 [(description) = "Delete the cron job"];
-
-    RUN = 4 [(description) = "Force the cron job to run now"];
-  }
-
-  optional string urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the cron job"
-    }];
-
-  optional Action action = 2 [default=NOOP];
-}
-
 // Next field ID: 2
 message PlistValueFilterArgs {
   optional PlistRequest request = 1 [(sem_type) = {
@@ -1234,38 +1183,6 @@ message GrantApprovalWithReasonFlowArgs {
   optional string subject_urn = 3 [(sem_type) = {
       type: "RDFURN",
       description: "URN of the object that approval is required for.",
-    }];
-}
-
-// Next field ID: 2
-message StartHuntFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the hunt to execute.",
-    }];
-}
-
-// Next field ID: 2
-message DeleteHuntFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the hunt to delete.",
-    }];
-}
-
-// Next field ID: 2
-message StopHuntFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the hunt to stop.",
-    }];
-}
-
-// Next field ID: 2
-message CheckHuntAccessFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the hunt to check.",
     }];
 }
 

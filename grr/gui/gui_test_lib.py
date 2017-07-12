@@ -27,14 +27,12 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import client_index
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
-from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -115,21 +113,21 @@ def SeleniumAction(f):
   return Decorator
 
 
+# TODO(user): This is a stub now. Remove.
 class ACLChecksEnabledContextManager(object):
   """Enable ACL Checks."""
 
   def __enter__(self):
-    self.Start()
-
-  def Start(self):
-    self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = user_managers.FullAccessControlManager()
+    pass
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Stop()
+    pass
+
+  def Start(self):
+    pass
 
   def Stop(self):
-    data_store.DB.security_manager = self.old_security_manager
+    pass
 
 
 class GRRSeleniumTest(test_lib.GRRBaseTest):
@@ -470,9 +468,6 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
                        (data, target))
 
   def _MakeFixtures(self):
-    # Install the mock security manager so we can trap errors in interactive
-    # mode.
-    data_store.DB.security_manager = test_lib.MockSecurityManager()
     token = access_control.ACLToken(username="test", reason="Make fixtures.")
     token = token.SetUID()
 

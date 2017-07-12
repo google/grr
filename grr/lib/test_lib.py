@@ -73,8 +73,8 @@ from grr.lib import worker_mocks
 
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
+from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import standard as aff4_standard
-from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 
 # pylint: disable=unused-import
@@ -291,45 +291,6 @@ class WellKnownSessionTest2(WellKnownSessionTest):
       queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId2")
 
 
-class MockSecurityManager(user_managers.BasicAccessControlManager):
-  """A simple in memory ACL manager which enforces the Admin label.
-
-  It also guarantees that the correct access token has been passed to the
-  security manager. It can also optionally limit datastore access for
-  certain access types.
-
-  Note: No user management, we assume a single test user.
-  """
-
-  def __init__(self, forbidden_datastore_access=""):
-    """Constructor.
-
-    Args:
-      forbidden_datastore_access: String designating datastore
-          permissions. Permissions specified in this argument
-          will not be granted when checking for datastore access.
-
-          Known permissions are:
-            "r" - for reading,
-            "w" - for writing,
-            "q" - for querying.
-          forbidden_datastore_access should be a combination of the above. By
-          default all types of access are permitted.
-    """
-    super(MockSecurityManager, self).__init__()
-
-    self.forbidden_datastore_access = forbidden_datastore_access
-
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    for access in requested_access:
-      if access in self.forbidden_datastore_access:
-        raise access_control.UnauthorizedAccess(
-            "%s access is is not allowed" % access)
-
-    return super(MockSecurityManager, self).CheckDataStoreAccess(
-        token, subjects, requested_access=requested_access)
-
-
 # pylint: disable=g-bad-name
 class MockWindowsProcess(object):
   """A mock windows process."""
@@ -410,8 +371,6 @@ class MockWindowsProcess(object):
 class GRRBaseTest(unittest.TestCase):
   """This is the base class for all GRR tests."""
 
-  install_mock_acl = True
-
   __metaclass__ = registry.MetaclassRegistry
 
   # The type of this test.
@@ -447,11 +406,6 @@ class GRRBaseTest(unittest.TestCase):
 
     config_lib.CONFIG.SetWriteBack(
         os.path.join(self.temp_dir, "writeback.yaml"))
-
-    if self.install_mock_acl:
-      # Enforce checking that security tokens are propagated to the data store
-      # but no actual ACLs.
-      data_store.DB.security_manager = MockSecurityManager()
 
     logging.info("Starting test: %s.%s", self.__class__.__name__,
                  self._testMethodName)
@@ -635,7 +589,7 @@ class GRRBaseTest(unittest.TestCase):
     """Create an approval request to be sent to approver."""
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=security.RequestClientApprovalFlow.__name__,
         reason=token.reason,
         subject_urn=rdf_client.ClientURN(client_id),
         approver=approver,
@@ -1030,20 +984,20 @@ class VFSOverrider(object):
       del vfs.VFS_HANDLERS[self._vfs_type]
 
 
+# TODO(user): This is a stub now. Remove.
 class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):
-    self.Start()
+    pass
 
   def Start(self):
-    self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = user_managers.NullAccessControlManager()
+    pass
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Stop()
+    pass
 
   def Stop(self):
-    data_store.DB.security_manager = self.old_security_manager
+    pass
 
 
 class FakeTime(object):

@@ -222,52 +222,11 @@ class DataStore(object):
   monitor_thread = None
 
   def __init__(self):
-    security_manager = access_control.AccessControlManager.GetPlugin(
-        config_lib.CONFIG["Datastore.security_manager"])()
-    self.security_manager = security_manager
-    logging.info("Using security manager %s", security_manager)
     # Start the flusher thread.
     self.flusher_thread = utils.InterruptableThread(
         name="DataStore flusher thread", target=self.Flush, sleep_time=0.5)
     self.flusher_thread.start()
     self.monitor_thread = None
-
-  def GetRequiredResolveAccess(self, attribute_prefix):
-    """Returns required level of access for resolve operations.
-
-    Args:
-      attribute_prefix: A string (single attribute) or a list of
-                        strings (multiple attributes).
-
-    Returns:
-      "r" when only read access is needed for resolve operation to succeed.
-      Read operation allows reading the object when its URN is known.
-      "rq" when both read and query access is needed for resolve operation to
-      succeed. Query access allows reading indices, and thus traversing
-      trees of objects (see AFF4Volume.ListChildren for details).
-    """
-
-    if isinstance(attribute_prefix, basestring):
-      attribute_prefix = [utils.SmartStr(attribute_prefix)]
-    else:
-      attribute_prefix = [utils.SmartStr(x) for x in attribute_prefix]
-
-    for prefix in attribute_prefix:
-      if not prefix:
-        return "rq"
-
-      # Extract the column family
-      try:
-        column_family, _ = prefix.split(":", 1)
-      except ValueError:
-        raise RuntimeError("The attribute prefix must contain the column "
-                           "family: %s" % prefix)
-
-      # Columns with index require the query permission.
-      if column_family.startswith("index"):
-        return "rq"
-
-    return "r"
 
   def InitializeBlobstore(self):
     blobstore_name = config_lib.CONFIG.Get("Blobstore.implementation")
@@ -1129,8 +1088,6 @@ class DataStoreInit(registry.InitHook):
 
   Depends on the stats module being initialized.
   """
-
-  pre = ["UserManagersInit"]
 
   def _ListStorageOptions(self):
     for name, cls in DataStore.classes.items():

@@ -398,7 +398,7 @@ class FlowBehaviour(Behaviour):
       "Client Flow":
           "This flow works on a client.",
       "Global Flow":
-          "This flow works without a client.",
+          "Global flow (this is to be deprecated).",
 
       # OS Support.
       "OSX":
@@ -576,20 +576,6 @@ class FlowBase(aff4.AFF4Volume):
     # If no token is specified, raise.
     if not token:
       raise access_control.UnauthorizedAccess("A token must be specified.")
-
-    # Make sure we are allowed to run this flow. If not, we raise here. We
-    # respect SUID (supervisor) if it is already set. SUID cannot be set by the
-    # user since it isn't part of the ACLToken proto.
-    data_store.DB.security_manager.CheckIfCanStartFlow(
-        token, runner_args.flow_name, with_client_id=runner_args.client_id)
-
-    flow_cls = GRRFlow.GetPlugin(runner_args.flow_name)
-    # If client id was specified and flow doesn't have exemption from ACL
-    # checking policy, then check that the user has access to the client
-    # where the flow is going to run.
-    if flow_cls.ACL_ENFORCED and runner_args.client_id:
-      data_store.DB.security_manager.CheckClientAccess(token,
-                                                       runner_args.client_id)
 
     # For the flow itself we use a supervisor token.
     token = token.SetUID()
@@ -838,10 +824,6 @@ class GRRFlow(FlowBase):
   # the labels given.
   AUTHORIZED_LABELS = []
 
-  # Should ACLs be enforced on this flow? This implies the user must have full
-  # access to the client before they can run this flow.
-  ACL_ENFORCED = True
-
   # Behaviors set attributes of this flow. See FlowBehavior() above.
   behaviours = FlowBehaviour("Client Flow", "ADVANCED")
 
@@ -1013,13 +995,6 @@ class GRRFlow(FlowBase):
 
       if reason is None:
         reason = "Manual termination by console."
-
-      # Make sure we are only allowed to terminate this flow, if we are
-      # allowed to start it. The fact that we could open the flow object
-      # means that we have access to the client (if it's not a global
-      # flow).
-      data_store.DB.security_manager.CheckIfCanStartFlow(
-          token, flow_obj.Name(), with_client_id=runner.runner_args.client_id)
 
       # This calls runner.Terminate to kill the flow
       runner.Error(reason, status=status)

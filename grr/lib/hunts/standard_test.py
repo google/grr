@@ -13,7 +13,6 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
@@ -23,7 +22,6 @@ from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import user_managers
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import implementation
@@ -1200,90 +1198,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # but they are not UnauthorizedAccess.
     for e in errors:
       self.assertTrue("UnauthorizedAccess" not in e.backtrace)
-
-  def _CreateHunt(self, token):
-    return hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(
-            rules=[
-                rdf_foreman.ForemanClientRule(
-                    rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-                    regex=rdf_foreman.ForemanRegexClientRule(
-                        attribute_name="GRR client", attribute_regex="GRR"))
-            ]),
-        client_rate=0,
-        token=token)
-
-  def _CheckHuntIsDeleted(self, hunt_urn, token=None):
-    with self.assertRaises(aff4.InstantiationError):
-      aff4.FACTORY.Open(
-          hunt_urn, aff4_type=implementation.GRRHunt, token=token or self.token)
-
-  def testDeleteHuntFlow(self):
-    # We'll need two users for this test.
-    self.CreateUser("user1")
-    token1 = access_control.ACLToken(username="user1", reason="testing")
-    self.CreateUser("user2")
-    token2 = access_control.ACLToken(username="user2", reason="testing")
-
-    manager = user_managers.FullAccessControlManager()
-    with utils.Stubber(data_store.DB, "security_manager", manager):
-
-      # Let user1 create a hunt and delete it, this should work.
-      hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(
-          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
-
-      flow.GRRFlow.StartFlow(
-          flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
-      self._CheckHuntIsDeleted(hunt.urn)
-
-      # Let user1 create a hunt and user2 delete it, this should fail.
-      hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(
-          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
-
-      with self.assertRaises(access_control.UnauthorizedAccess):
-        flow.GRRFlow.StartFlow(
-            flow_name="DeleteHuntFlow", token=token2, hunt_urn=hunt.urn)
-      # Hunt is still there.
-      aff4.FACTORY.Open(
-          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
-
-      # If user2 gets an approval, deletion is ok though.
-      self.GrantHuntApproval(hunt.urn, token=token2)
-      flow.GRRFlow.StartFlow(
-          flow_name="DeleteHuntFlow", token=token2, hunt_urn=hunt.urn)
-
-      self._CheckHuntIsDeleted(hunt.urn)
-
-      # Let user1 create a hunt and run it. We are not allowed to delete
-      # running hunts.
-      hunt = self._CreateHunt(token1.SetUID())
-      hunt.Run()
-      hunt.Flush()
-
-      aff4.FACTORY.Open(
-          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
-
-      with self.assertRaises(RuntimeError):
-        flow.GRRFlow.StartFlow(
-            flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
-
-      # The same is true if the hunt was scheduled on at least one client.
-      hunt = self._CreateHunt(token1.SetUID())
-      hunt.Set(hunt.Schema.CLIENT_COUNT(1))
-      hunt.Flush()
-
-      aff4.FACTORY.Open(
-          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
-
-      with self.assertRaises(RuntimeError):
-        flow.GRRFlow.StartFlow(
-            flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
 
 
 class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,

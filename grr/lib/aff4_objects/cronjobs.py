@@ -11,7 +11,6 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import master
 from grr.lib import queue_manager
@@ -324,46 +323,6 @@ class CronWorker(object):
     self.running_thread.daemon = True
     self.running_thread.start()
     return self.running_thread
-
-
-class ManageCronJobFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ManageCronJobFlowArgs
-
-
-class ManageCronJobFlow(flow.GRRFlow):
-  """Manage an already created cron job."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
-  args_type = ManageCronJobFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    data_store.DB.security_manager.CheckCronJobAccess(self.token.RealUID(),
-                                                      self.args.urn)
-
-    if self.args.action == self.args_type.Action.DISABLE:
-      CRON_MANAGER.DisableJob(self.args.urn, token=self.token)
-    elif self.args.action == self.args_type.Action.ENABLE:
-      CRON_MANAGER.EnableJob(self.args.urn, token=self.token)
-    elif self.args.action == self.args_type.Action.DELETE:
-      CRON_MANAGER.DeleteJob(self.args.urn, token=self.token)
-    elif self.args.action == self.args_type.Action.RUN:
-      CRON_MANAGER.RunOnce(urns=[self.args.urn], token=self.token, force=True)
-
-
-class CreateCronJobFlow(flow.GRRFlow):
-  """Create a new cron job."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
-  args_type = CreateCronJobFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    # Anyone can create a cron job but they need to get approval to start it.
-    CRON_MANAGER.ScheduleFlow(
-        cron_args=self.args, disabled=True, token=self.token)
 
 
 class CronJob(aff4.AFF4Volume):

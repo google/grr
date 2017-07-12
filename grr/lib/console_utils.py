@@ -264,7 +264,7 @@ def ApprovalCreateRaw(aff4_path,
   approval_request.Close(sync=True)
 
 
-def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
+def ApprovalRevokeRaw(aff4_path, token):
   """Revokes an approval for a given token.
 
   This method requires raw datastore access to manipulate approvals directly.
@@ -272,8 +272,6 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
   Args:
     aff4_path: The aff4_path or client id the approval should be created for.
     token: The token that should be revoked.
-    remove_from_cache: If True, also remove the approval from the
-                       security_manager cache.
   """
   try:
     urn = rdf_client.ClientURN(aff4_path)
@@ -290,10 +288,6 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
       approval_urn, mode="rw", token=super_token)
   approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
   approval_request.Close()
-
-  if remove_from_cache:
-    data_store.DB.security_manager.acl_cache.ExpireObject(
-        utils.SmartUnicode(approval_urn))
 
 
 # TODO(user): remove as soon as migration is complete.

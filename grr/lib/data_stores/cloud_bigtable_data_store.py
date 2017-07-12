@@ -235,8 +235,6 @@ class CloudBigTableDataStore(data_store.DataStore):
     self.DeleteSubjects([subject], sync=sync, token=token)
 
   def DeleteSubjects(self, subjects, sync=False, token=None):
-    self.security_manager.CheckDataStoreAccess(token, subjects, "w")
-
     # Currently there is no multi-row mutation support, but it exists in the
     # RPC API.
     # https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2411
@@ -339,7 +337,6 @@ class CloudBigTableDataStore(data_store.DataStore):
                sync=True,
                to_delete=None,
                token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     row = self.table.row(utils.SmartStr(subject))
     if to_delete:
       self._DeleteAllTimeStamps(row, to_delete)
@@ -395,7 +392,6 @@ class CloudBigTableDataStore(data_store.DataStore):
                             token=None):
 
     subjects = [utils.SmartStr(subject) for subject in subjects]
-    self.security_manager.CheckDataStoreAccess(token, subjects, "w")
 
     if isinstance(attributes, basestring):
       raise ValueError(
@@ -575,9 +571,6 @@ class CloudBigTableDataStore(data_store.DataStore):
       AccessError: if anything goes wrong.
       ValueError: if we get a string instead of a list of subjects.
     """
-    self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(attribute_prefix))
-
     if isinstance(subjects, basestring):
       raise ValueError("Expected list of subjects, got string: %s" % subjects)
 
@@ -666,8 +659,6 @@ class CloudBigTableDataStore(data_store.DataStore):
       AccessError: if anything goes wrong.
     """
     subject = utils.SmartStr(subject)
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute))
 
     attribute = utils.SmartStr(attribute)
     family, column = self.GetFamilyColumn(attribute)
@@ -716,8 +707,6 @@ class CloudBigTableDataStore(data_store.DataStore):
       AccessError: if anything goes wrong.
     """
     subject = utils.SmartStr(subject)
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attributes))
 
     if isinstance(attributes, basestring):
       attributes = [utils.SmartStr(attributes)]
@@ -820,7 +809,6 @@ class CloudBigTableDataStore(data_store.DataStore):
     after_urn = self._CleanAfterURN(after_urn, subject_prefix)
     # Turn subject prefix into an actual regex
     subject_prefix += ".*"
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
 
     subject_filter = row_filters.RowKeyRegexFilter(
         utils.SmartStr(subject_prefix))

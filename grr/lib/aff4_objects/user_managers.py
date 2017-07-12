@@ -78,32 +78,6 @@ class LoggedACL(object):
     return Decorated
 
 
-class NullAccessControlManager(access_control.AccessControlManager):
-  """An ACL manager which does not enforce any ACLs or check user privilege."""
-
-  def CheckClientAccess(self, token, client_urn):
-    """Allow all access."""
-    return True
-
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Allow all access."""
-    return True
-
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    """Allow all access."""
-    return True
-
-  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
-    """Allow all access."""
-    return True
-
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access."""
-    return True
-
-  # pylint: enable=unused-argument
-
-
 def ValidateToken(token, targets):
   """Does basic token validation.
 
@@ -201,12 +175,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
 def CheckFlowCanBeStartedOnClient(flow_name):
   """Checks if flow can be started on a particular client.
 
-  Two kinds of flows can be started on clients by unprivileged users:
-  1) ACL_ENFORCED=False flows, because they're expected to do their own ACL
-     checking and are often used by AdminUI to execute code with elevated
-     privileges.
-  2) Flows with a category. Having a category means that the flow will be
-     accessible from the UI.
+  Only flows with a category can bestarted. Having a category means that the
+  flow will be accessible from the UI.
 
   Args:
     flow_name: Name of the flow to check access for.
@@ -217,7 +187,7 @@ def CheckFlowCanBeStartedOnClient(flow_name):
   """
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
-  if not flow_cls.ACL_ENFORCED or flow_cls.category:
+  if flow_cls.category:
     return True
   else:
     raise access_control.UnauthorizedAccess(
@@ -227,12 +197,9 @@ def CheckFlowCanBeStartedOnClient(flow_name):
 def CheckFlowCanBeStartedAsGlobal(flow_name):
   """Checks if flow can be started without a client id.
 
-  Two kinds of flows can be started on clients by unprivileged users:
-  1) ACL_ENFORCED=False flows, because they're expected to do their own ACL
-     checking and are often used by AdminUI to execute code with elevated
-     privileges.
-  2) Flows inherited from GRRGlobalFlow, with a category. Having a category
-     means that the flow will be accessible from the UI.
+  Single kind of flows can be started on clients by unprivileged users:
+  Flows inherited from GRRGlobalFlow, with a category. Having a category
+  means that the flow will be accessible from the UI.
 
   Args:
     flow_name: Name of the flow to check access for.
@@ -243,8 +210,7 @@ def CheckFlowCanBeStartedAsGlobal(flow_name):
   """
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
-  if (not flow_cls.ACL_ENFORCED or
-      aff4.issubclass(flow_cls, flow.GRRGlobalFlow) and flow_cls.category):
+  if aff4.issubclass(flow_cls, flow.GRRGlobalFlow) and flow_cls.category:
     return True
   else:
     raise access_control.UnauthorizedAccess(
@@ -260,47 +226,6 @@ def CheckFlowAuthorizedLabels(token, flow_name):
         token.username, flow_cls.AUTHORIZED_LABELS, token=token)
   else:
     return True
-
-
-class BasicAccessControlManager(access_control.AccessControlManager):
-  """Basic ACL manager that does identity and user labels checks only.
-
-  When accessing clients/hunts/cron jobs/data store, BasicAccessControlManager
-  just checks that the token is valid and requested access is valid and,
-  basically, grants access to everybody.
-
-  When checking if one can start a flow, it does checks against user labels if
-  flow has AUTHORIZED_LABELS attribute set. If flow has no AUTHORIZED_LABELS
-  set, it grants permission to start the flow for anyone with a valid token.
-  """
-
-  @LoggedACL("client_access")
-  def CheckClientAccess(self, token, client_urn):
-    """Allow all access if token is valid."""
-    return ValidateToken(token, [client_urn])
-
-  @LoggedACL("hunt_access")
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Allow all access if token is valid."""
-    return ValidateToken(token, [hunt_urn])
-
-  @LoggedACL("cron_job_access")
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    """Allow all access if token is valid."""
-    return ValidateToken(token, [cron_job_urn])
-
-  @LoggedACL("can_start_flow")
-  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
-    """Check labels, ACL_ENFORCED attribute, and validate the token."""
-    return ValidateToken(token, [
-        flow_name
-    ]) and (token.supervisor or CheckFlowAuthorizedLabels(token, flow_name))
-
-  @LoggedACL("data_store_access")
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access if token and requested access are valid."""
-    return (ValidateAccessAndSubjects(requested_access, subjects) and
-            ValidateToken(token, subjects))
 
 
 class CheckAccessHelper(object):

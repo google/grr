@@ -214,7 +214,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                        token=None):
     """Remove some attributes from a subject."""
     _ = sync  # Unused
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     if not attributes:
       return
 
@@ -230,8 +229,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     queries = self._BuildDelete(subject)
     self._ExecuteQueries(queries)
 
@@ -242,9 +239,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                    limit=None,
                    token=None):
     """Resolves multiple attributes at once for one subject."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attributes))
-
     for attribute in attributes:
       query, args = self._BuildQuery(subject, attribute, timestamp, limit)
       result, _ = self.ExecuteQuery(query, args)
@@ -294,9 +288,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                     limit=None,
                     token=None):
     """ResolvePrefix."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
-
     if isinstance(attribute_prefix, basestring):
       attribute_prefix = [attribute_prefix]
 
@@ -320,8 +311,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                      after_urn=None,
                      limit=None,
                      token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "qr")
-
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
@@ -397,7 +386,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                to_delete=None,
                token=None):
     """Set multiple attributes' values for this subject in one operation."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
 
     # Prepare a bulk insert operation.

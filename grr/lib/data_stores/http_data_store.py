@@ -535,8 +535,6 @@ class HTTPDataStore(data_store.DataStore):
                        end=None,
                        sync=True,
                        token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(subject=[subject])
 
     if isinstance(attributes, basestring):
@@ -565,8 +563,6 @@ class HTTPDataStore(data_store.DataStore):
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
   def DeleteSubject(self, subject, sync=False, token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     if token:
       request.token = token
@@ -606,9 +602,6 @@ class HTTPDataStore(data_store.DataStore):
                          limit=None,
                          token=None):
     """MultiResolvePrefix."""
-    self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(attribute_prefix))
-
     typ = rdf_data_server.DataStoreCommand.Command.MULTI_RESOLVE_PREFIX
     results = {}
     remaining_limit = limit
@@ -648,8 +641,6 @@ class HTTPDataStore(data_store.DataStore):
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
 
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
-
     typ = rdf_data_server.DataStoreCommand.Command.SCAN_ATTRIBUTES
     subjects = [subject_prefix]
     if after_urn:
@@ -683,8 +674,6 @@ class HTTPDataStore(data_store.DataStore):
                to_delete=None,
                token=None):
     """MultiSet."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(sync=sync)
     token = token or data_store.default_token
     if token:
@@ -736,9 +725,6 @@ class HTTPDataStore(data_store.DataStore):
                    limit=None,
                    token=None):
     """ResolveMulti."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attributes))
-
     request = self._MakeRequest(
         [subject], attributes, timestamp=timestamp, limit=limit, token=token)
 
@@ -771,8 +757,6 @@ class HTTPDataStore(data_store.DataStore):
 
   def LockSubject(self, subject, lease_time, token):
     """Locks a specific subject."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
     request.timestamp = rdf_data_store.TimestampSpec(
@@ -793,8 +777,6 @@ class HTTPDataStore(data_store.DataStore):
 
   def ExtendSubjectLock(self, subject, transid, lease_time, token):
     """Extends lock of subject."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
     request.timestamp = rdf_data_store.TimestampSpec(
@@ -818,8 +800,6 @@ class HTTPDataStore(data_store.DataStore):
 
   def UnlockSubject(self, subject, transid, token):
     """Unlocks subject using lock id."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     if token:
       request.token = token

@@ -8,7 +8,6 @@ import operator
 import logging
 
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
@@ -41,8 +40,6 @@ class CreateGenericHuntFlow(flow.GRRFlow):
   perform any kind of modifications. This flow delegates ACL checks to
   access control manager.
   """
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
 
   args_type = CreateGenericHuntFlowArgs
 
@@ -86,169 +83,6 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
 
       self.Log("User %s created a new %s hunt (%s)", self.token.username,
                hunt.args.flow_runner_args.flow_name, hunt.urn)
-
-
-class StartHuntFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.StartHuntFlowArgs
-
-
-class StartHuntFlow(flow.GRRFlow):
-  """Start already created hunt with given id.
-
-  As direct write access to the data store is forbidden, we have to use flows to
-  perform any kind of modifications. This flow delegates ACL checks to
-  access control manager.
-  """
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-  args_type = StartHuntFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    """Find a hunt, perform a permissions check and run it."""
-    # Check permissions first, and if ok, just proceed.
-    data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
-                                                   self.args.hunt_urn)
-
-    with aff4.FACTORY.Open(
-        self.args.hunt_urn,
-        aff4_type=implementation.GRRHunt,
-        mode="rw",
-        token=self.token) as hunt:
-
-      hunt.Run()
-
-
-class DeleteHuntFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.DeleteHuntFlowArgs
-
-
-class DeleteHuntFlow(flow.GRRFlow):
-  """Delete an existing hunt, if it hasn't done anything yet."""
-  ACL_ENFORCED = False
-  args_type = DeleteHuntFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    with aff4.FACTORY.Open(
-        self.args.hunt_urn,
-        aff4_type=implementation.GRRHunt,
-        mode="rw",
-        token=self.token) as hunt:
-      # Check for approval if the hunt was created by somebody else.
-      if self.token.username != hunt.creator:
-        data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
-                                                       self.args.hunt_urn)
-      if hunt.GetRunner().IsHuntStarted():
-        raise RuntimeError("Unable to delete a running hunt.")
-      if (not config_lib.CONFIG["AdminUI.allow_hunt_results_delete"] and
-          hunt.client_count):
-        raise RuntimeError("Unable to delete a hunt with results while "
-                           "AdminUI.allow_hunt_results_delete is disabled.")
-    aff4.FACTORY.Delete(self.args.hunt_urn, token=self.token)
-
-
-class StopHuntFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.StopHuntFlowArgs
-
-
-class StopHuntFlow(flow.GRRFlow):
-  """Run already created hunt with given id."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-  args_type = StopHuntFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    """Find a hunt, perform a permissions check and pause it."""
-    # Check permissions first, and if ok, just proceed.
-    data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
-                                                   self.args.hunt_urn)
-
-    with aff4.FACTORY.Open(
-        self.args.hunt_urn,
-        aff4_type=implementation.GRRHunt,
-        mode="rw",
-        token=self.token) as hunt:
-
-      hunt.Stop()
-
-
-class ModifyHuntFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ModifyHuntFlowArgs
-
-
-class ModifyHuntFlow(flow.GRRFlow):
-  """Modify already created hunt with given id.
-
-  As direct write access to the data store is forbidden, we have to use flows to
-  perform any kind of modifications. This flow delegates ACL checks to
-  access control manager.
-  """
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
-  args_type = ModifyHuntFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    """Find a hunt, perform a permissions check and modify it."""
-    with aff4.FACTORY.Open(
-        self.args.hunt_urn,
-        aff4_type=implementation.GRRHunt,
-        mode="rw",
-        token=self.token) as hunt:
-
-      runner = hunt.GetRunner()
-      data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
-                                                     hunt.urn)
-
-      # Make sure the hunt is not running:
-      if runner.IsHuntStarted():
-        raise RuntimeError("Unable to modify a running hunt.")
-
-      # Record changes in the audit event
-      changes = []
-      if runner.context.expires != self.args.expiry_time:
-        changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
-                                                    self.args.expiry_time))
-
-      if runner.runner_args.client_limit != self.args.client_limit:
-        changes.append("Client Limit: Old=%s, New=%s" %
-                       (runner.runner_args.client_limit,
-                        self.args.client_limit))
-
-      description = ", ".join(changes)
-      event = events.AuditEvent(
-          user=self.token.username,
-          action="HUNT_MODIFIED",
-          urn=self.args.hunt_urn,
-          description=description)
-      events.Events.PublishEvent("Audit", event, token=self.token)
-
-      # Just go ahead and change the hunt now.
-      runner.context.expires = self.args.expiry_time
-      runner.runner_args.client_limit = self.args.client_limit
-
-
-class CheckHuntAccessFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.CheckHuntAccessFlowArgs
-
-
-class CheckHuntAccessFlow(flow.GRRFlow):
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-  args_type = CheckHuntAccessFlowArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    if not self.args.hunt_urn:
-      raise RuntimeError("hunt_urn was not provided.")
-    if self.args.hunt_urn.Split()[0] != "hunts":
-      raise RuntimeError("invalid namespace in the hunt urn")
-
-    data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
-                                                   self.args.hunt_urn)
 
 
 class SampleHuntArgs(rdf_structs.RDFProtoStruct):

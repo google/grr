@@ -7,6 +7,7 @@ from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
 
+from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import user as api_user
 
 from grr.lib import access_control
@@ -666,7 +667,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   def ListFlowDescriptors(self, args, token=None):
     # Everybody can list flow descritors.
 
-    return self.delegate.ListFlowDescriptors(args, token=token)
+    return api_flow.ApiListFlowDescriptorsHandler(
+        legacy_security_manager=self.legacy_manager)
 
   def ListAff4AttributeDescriptors(self, args, token=None):
     # Everybody can list aff4 attribute descriptors.

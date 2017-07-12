@@ -15,6 +15,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -2079,6 +2080,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
   def testRuleExpiration(self):
     with test_lib.FakeTime(1000):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      hunt_id = rdfvalue.SessionID("aff4:/hunts/foremantest")
 
       rules = []
       rules.append(
@@ -2100,7 +2102,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
           rdf_foreman.ForemanRule(
               created=1000 * 1000000,
               expires=1300 * 1000000,
-              description="Test rule4"))
+              description="Test rule4",
+              actions=[rdf_foreman.ForemanRuleAction(hunt_id=hunt_id)]))
 
       client_id = "C.0000000000000021"
       fd = aff4.FACTORY.Create(
@@ -2133,6 +2136,12 @@ class ForemanTests(test_lib.AFF4ObjectTest):
         foreman.AssignTasksToClient(client_id)
         rules = foreman.Get(foreman.Schema.RULES)
         self.assertEqual(len(rules), num_rules)
+
+    # Expiring rules that trigger hunts creates a notification for that hunt.
+    with queue_manager.QueueManager(token=self.token) as manager:
+      notifications = manager.GetNotificationsForAllShards(hunt_id.Queue())
+      self.assertEqual(len(notifications), 1)
+      self.assertEqual(notifications[0].session_id, hunt_id)
 
 
 def main(argv):

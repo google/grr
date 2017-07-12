@@ -334,6 +334,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.router.GetGrrBinary(None, token=self.token)
 
   ACCESS_CHECKED_METHODS.extend([
+      "ListFlowDescriptors",
+  ])
+
+  def testListFlowDescriptorsIsAccessChecked(self):
+    handler = self.router.ListFlowDescriptors(None, token=self.token)
+    # Check that correct security manager got passed into the handler.
+    self.assertEqual(handler.legacy_security_manager,
+                     self.router.legacy_manager)
+
+  ACCESS_CHECKED_METHODS.extend([
       "GetGrrUser"])  # pyformat: disable
 
   def testGetGrrUserReturnsFullTraitsForAdminUser(self):

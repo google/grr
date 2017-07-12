@@ -765,9 +765,6 @@ This access has been logged and granted for 24 hours.
 
 class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
   """A flow to request approval to access a client."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = ClientApproval
 
   @property
@@ -809,9 +806,6 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
 class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
   """Grant the approval requested."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = ClientApproval
 
   @property
@@ -846,9 +840,6 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
 class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
   """Grant an approval in an emergency."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = ClientApproval
 
   def BuildApprovalUrn(self, approval_id):
@@ -872,9 +863,6 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
 
 class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
   """A flow to request approval to access a client."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = HuntApproval
 
   def BuildApprovalUrn(self, approval_id):
@@ -913,9 +901,6 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
 
 class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
   """Grant the approval requested."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = HuntApproval
 
   def BuildApprovalUrn(self, approval_id):
@@ -945,9 +930,6 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
 
 class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
   """A flow to request approval to manage a cron job."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = CronJobApproval
 
   def BuildApprovalUrn(self, approval_id):
@@ -986,9 +968,6 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
 class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
   """Grant approval to manage a cron job."""
-  # This flow can run on any client without ACL enforcement (an SUID flow).
-  ACL_ENFORCED = False
-
   approval_type = CronJobApproval
 
   def BuildApprovalUrn(self):
