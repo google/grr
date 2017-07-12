@@ -28,7 +28,6 @@ from grr.lib import utils
 from grr.parsers import tests
 from grr.path_detection import tests
 from grr.server import tests
-from grr.tools.export_plugins import tests
 from grr.worker import worker_test
 # pylint: enable=unused-import,g-bad-import-order
 

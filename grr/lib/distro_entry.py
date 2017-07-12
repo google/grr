@@ -94,13 +94,6 @@ def EndToEndTests():
   flags.StartMain(end_to_end_tests.main)
 
 
-def Export():
-  from grr.tools import export
-  export.AddPluginsSubparsers()
-  SetConfigOptions()
-  flags.StartMain(export.main)
-
-
 def Worker():
   from grr.worker import worker
   SetConfigOptions()

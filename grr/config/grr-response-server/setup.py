@@ -68,7 +68,6 @@ setup_args = dict(
             "grr_frontend = grr.lib.distro_entry:GrrFrontend",
             "grr_server = grr.lib.distro_entry:GrrServer",
             "grr_end_to_end_tests = grr.lib.distro_entry:EndToEndTests",
-            "grr_export = grr.lib.distro_entry:Export",
             "grr_worker = grr.lib.distro_entry:Worker",
             "grr_admin_ui = grr.lib.distro_entry:AdminUI",
             "grr_fuse = grr.lib.distro_entry:GRRFuse",
