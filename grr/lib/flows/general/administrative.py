@@ -26,7 +26,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
-from grr.lib.aff4_objects import reports
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import implementation
@@ -914,39 +913,6 @@ class LaunchBinary(flow.GRRFlow):
       self.Log("Stderr: %s" % self._TruncateResult(response.stderr))
 
       self.SendReply(response)
-
-
-class RunReportFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.RunReportFlowArgs
-
-
-class RunReport(flow.GRRGlobalFlow):
-  """Run a report and send the result via email."""
-
-  category = "/Reporting/"
-
-  args_type = RunReportFlowArgs
-  behaviours = flow.GRRGlobalFlow.behaviours + "BASIC"
-
-  ACL_ENFORCED = False
-
-  # Only admins are allows to run reports.
-  AUTHORIZED_LABELS = ["admin"]
-
-  @flow.StateHandler()
-  def Start(self):
-    if self.args.report_name not in reports.Report.classes:
-      raise flow.FlowError("No such report %s" % self.args.report_name)
-    else:
-      self.CallState(next_state="RunReport")
-
-  @flow.StateHandler()
-  def RunReport(self):
-    """Run the report."""
-    report_cls = reports.Report.GetPlugin(self.args.report_name)
-    report_obj = report_cls(token=self.token)
-    report_obj.Run()
-    report_obj.MailReport(self.args.email)
 
 
 class SetGlobalNotification(flow.GRRGlobalFlow):

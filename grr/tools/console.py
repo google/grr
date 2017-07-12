@@ -46,7 +46,6 @@ from grr.lib import utils
 from grr.lib import worker
 
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import reports
 from grr.lib.aff4_objects import security
 
 # All the functions in this lib we want in local namespace.

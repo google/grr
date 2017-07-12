@@ -4511,20 +4511,6 @@
             },
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
             "name": "ListProcesses"
-          },
-          {
-            "argsType": "RunReportFlowArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Global Flow"
-            ],
-            "category": "Reporting",
-            "defaultArgs": {
-              "@type": "type.googleapis.com/RunReportFlowArgs"
-            },
-            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "name": "RunReport"
           }
         ]
       },
@@ -4576,24 +4562,7 @@
     {
       "api_method": "ListFlowDescriptors",
       "method": "GET",
-      "response": {
-        "items": [
-          {
-            "argsType": "RunReportFlowArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Global Flow"
-            ],
-            "category": "Reporting",
-            "defaultArgs": {
-              "@type": "type.googleapis.com/RunReportFlowArgs"
-            },
-            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "name": "RunReport"
-          }
-        ]
-      },
+      "response": {},
       "test_class": "ApiListFlowDescriptorsHandlerRegressionTest_http_v2",
       "url": "/api/v2/flows/descriptors?flow_type=global"
     }

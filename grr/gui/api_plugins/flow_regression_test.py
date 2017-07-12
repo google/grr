@@ -15,7 +15,6 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.flows.general import administrative
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
@@ -431,7 +430,6 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
     with utils.Stubber(flow.GRRFlow, "classes", {
         "ListProcesses": processes.ListProcesses,
         "FileFinder": file_finder.FileFinder,
-        "RunReport": administrative.RunReport
     }):
       # RunReport flow is only shown for admins.
       self.CreateAdminUser("test")

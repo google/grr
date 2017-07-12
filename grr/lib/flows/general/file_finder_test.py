@@ -18,6 +18,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
+from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -168,7 +169,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     send_reply = test_lib.Instrument(flow.GRRFlow, "SendReply")
     with send_reply:
       for s in test_lib.TestFlowHelper(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
           paths=paths or [self.path],

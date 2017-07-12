@@ -7,6 +7,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
+from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 
 
@@ -122,13 +123,13 @@ class ThrottleTest(test_lib.GRRBaseTest):
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           args,
           token=self.token)
 
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name="FileFinder",
+          flow_name=file_finder.FileFinder.__name__,
           token=self.token,
           paths=["/tmp/1", "/tmp/2"],
           action=rdf_file_finder.FileFinderAction(action_type="STAT"))
@@ -137,7 +138,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
-            "FileFinder",
+            file_finder.FileFinder.__name__,
             args,
             token=self.token)
 
@@ -149,7 +150,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           args,
           token=self.token)
 

@@ -11,6 +11,7 @@ from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -212,7 +213,7 @@ class Interrogate(flow.GRRFlow):
     artifact_list = self._GetExtraArtifactsForCollection()
     if artifact_list:
       self.CallFlow(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           artifact_list=artifact_list,
           next_state="ProcessArtifactResponses",
           store_results_in_aff4=True)
