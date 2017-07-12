@@ -13,91 +13,86 @@ class TestContentView(gui_test_lib.SearchClientTestBase):
   """Tests the main content view."""
 
   def testGlobalNotificationIsShownWhenSet(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
   def testNotificationsOfDifferentTypesAreShownTogether(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"))
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.INFO,
-                header="Nothing to worry about!",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
     self.WaitUntil(self.IsTextPresent, "Nothing to worry about!")
 
   def testNewNotificationReplacesPreviousNotificationOfTheSameType(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                content="Too late to do anything!",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              content="Too late to do anything!",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Too late to do anything!")
     self.assertFalse(self.IsTextPresent("Houston, Houston, we have a prob..."))
 
   def testGlobalNotificationDisappearsAfterClosing(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -110,23 +105,22 @@ class TestContentView(gui_test_lib.SearchClientTestBase):
     self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
   def testClosingOneNotificationLeavesAnotherIntact(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type=aff4_users.GlobalNotificationStorage,
-          mode="rw",
-          token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"))
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.INFO,
-                header="Nothing to worry about!",
-                link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -140,8 +134,7 @@ class TestContentView(gui_test_lib.SearchClientTestBase):
     self.assertFalse(self.IsTextPresent("Houston, Houston, we have a prob..."))
 
   def testGlobalNotificationIsSetViaGlobalFlow(self):
-    with self.ACLChecksDisabled():
-      self.CreateAdminUser(self.token.username)
+    self.CreateAdminUser(self.token.username)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")

@@ -18,26 +18,21 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestFlowExport, self).setUp()
 
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      with aff4.FACTORY.Open(
-          self.client_id, mode="rw", token=self.token) as client:
-        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
-      self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.FileFinderClientMock()
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.action_mock = action_mocks.FileFinderClientMock()
 
   def testExportCommandIsShownForStatEntryResults(self):
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-          client_id=self.client_id,
-          token=self.token)
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+        client_id=self.client_id,
+        token=self.token)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
@@ -53,13 +48,12 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          gui_test_lib.RecursiveTestFlow.__name__,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        gui_test_lib.RecursiveTestFlow.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('RecursiveTestFlow')")
@@ -69,13 +63,12 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          "FlowWithOneNetworkConnectionResult",
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneNetworkConnectionResult",
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")

@@ -54,8 +54,7 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
 
   # TODO(user): uncomment as soon as number of instances is back.
   # def testServerLoadPageShowsCorrectNumberOfInstances(self):
-  #   with self.ACLChecksDisabled():
-  #     self.SetupSampleMetrics(token=self.token)
+  #   self.SetupSampleMetrics(token=self.token)
 
   #   self.Open("/#main=ServerLoadView")
   #   self.WaitUntil(self.IsTextPresent, "Frontend (1 instances)")

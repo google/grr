@@ -25,13 +25,12 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestTimeline, self).setUp()
     # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      test_lib.ClientFixture("C.0000000000000001", token=self.token)
-      self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt", self.token)
-      self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/other.txt", self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    test_lib.ClientFixture("C.0000000000000001", token=self.token)
+    self.CreateFileWithTimeline(
+        "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt", self.token)
+    self.CreateFileWithTimeline(
+        "aff4:/C.0000000000000001/fs/os/c/proc/other.txt", self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
   @staticmethod
   def CreateFileWithTimeline(file_path, token):
@@ -189,10 +188,9 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
                         "css=grr-file-timeline tbody tr")
 
     # Add a new file with several versions.
-    with self.ACLChecksDisabled():
-      self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt",
-          token=self.token)
+    self.CreateFileWithTimeline(
+        "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt",
+        token=self.token)
 
     # Click on tree again.
     self.Click("link=proc")

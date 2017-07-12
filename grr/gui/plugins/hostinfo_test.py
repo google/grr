@@ -20,30 +20,26 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     super(TestHostInformation, self).setUp()
     self.client_id = "C.0000000000000001"
 
-    with self.ACLChecksDisabled():
-      test_lib.ClientFixture(self.client_id, token=self.token)
-      self.RequestAndGrantClientApproval(self.client_id)
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
-      with test_lib.FakeTime(gui_test_lib.TIME_0):
-        with aff4.FACTORY.Open(
-            self.client_id, mode="rw", token=self.token) as fd:
-          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
-          fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
-          fd.Set(fd.Schema.MEMORY_SIZE(4294967296))
+    with test_lib.FakeTime(gui_test_lib.TIME_0):
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
+        fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
+        fd.Set(fd.Schema.MEMORY_SIZE(4294967296))
 
-      with test_lib.FakeTime(gui_test_lib.TIME_1):
-        with aff4.FACTORY.Open(
-            self.client_id, mode="rw", token=self.token) as fd:
-          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
-          fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
-          fd.Set(fd.Schema.MEMORY_SIZE(8589934592))
+    with test_lib.FakeTime(gui_test_lib.TIME_1):
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
+        fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
+        fd.Set(fd.Schema.MEMORY_SIZE(8589934592))
 
-      with test_lib.FakeTime(gui_test_lib.TIME_2):
-        with aff4.FACTORY.Open(
-            self.client_id, mode="rw", token=self.token) as fd:
-          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
-          fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
-          fd.Set(fd.Schema.MEMORY_SIZE(12884901888))
+    with test_lib.FakeTime(gui_test_lib.TIME_2):
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
+        fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
+        fd.Set(fd.Schema.MEMORY_SIZE(12884901888))
 
   def testClickingOnInterrogateStartsInterrogateFlow(self):
     self.Open("/#c=" + self.client_id)
@@ -57,21 +53,20 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                    "css=button:contains('Interrogate') i")
 
     # Get the started flow and finish it, this will re-enable the button.
-    with self.ACLChecksDisabled():
-      client_id = rdf_client.ClientURN(self.client_id)
+    client_id = rdf_client.ClientURN(self.client_id)
 
-      fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-      flows = list(fd.ListChildren())
+    fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(fd.ListChildren())
 
-      client_mock = action_mocks.ActionMock()
-      for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn,
-            client_mock,
-            client_id=client_id,
-            token=self.token,
-            check_flow_errors=False):
-          pass
+    client_mock = action_mocks.ActionMock()
+    for flow_urn in flows:
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          client_mock,
+          client_id=client_id,
+          token=self.token,
+          check_flow_errors=False):
+        pass
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button:contains('Interrogate')[disabled]")

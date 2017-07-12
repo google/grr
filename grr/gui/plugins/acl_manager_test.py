@@ -143,12 +143,12 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(len(self.emails_sent), 3)
 
   def testRecentReasonBox(self):
-    test_reason = u"ástæða"
     self.Open("/")
-    with self.ACLChecksDisabled():
-      token = access_control.ACLToken(
-          username=self.token.username, reason=test_reason)
-      self.RequestAndGrantClientApproval("C.0000000000000006", token=token)
+
+    test_reason = u"ástæða"
+    token = access_control.ACLToken(
+        username=self.token.username, reason=test_reason)
+    self.RequestAndGrantClientApproval("C.0000000000000006", token=token)
 
     self.Type("client_query", "C.0000000000000006")
     self.Click("client_query_submit")

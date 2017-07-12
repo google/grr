@@ -25,8 +25,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -38,8 +37,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                       "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection([])
+    self.CreateGenericHuntWithCollection([])
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -55,8 +53,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -73,8 +70,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -89,8 +85,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Click("link=Show export command")
@@ -102,8 +97,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
 
   def testExportCommandIsNotShownWhenNoResults(self):
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection([])
+    hunt_urn = self.CreateGenericHuntWithCollection([])
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.WaitUntil(self.IsElementPresent,
@@ -113,8 +107,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testExportCommandIsNotShownForNonFileResults(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.WaitUntil(self.IsElementPresent,
@@ -126,8 +119,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -142,9 +134,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection(values=values)
-      self.GrantHuntApproval(hunt_urn)
+    hunt_urn = self.CreateGenericHuntWithCollection(values=values)
+    self.GrantHuntApproval(hunt_urn)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -157,8 +148,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -174,8 +164,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -194,8 +183,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield "foo"
@@ -219,8 +207,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDoesNotShowPerFileDownloadButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -237,8 +224,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -256,8 +242,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection(values=values)
+    self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -281,12 +266,11 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    with self.ACLChecksDisabled():
-      results = hunt.ResultCollection()
-      fd = aff4.FACTORY.Open(
-          flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
+    results = hunt.ResultCollection()
+    fd = aff4.FACTORY.Open(
+        flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -300,14 +284,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    with self.ACLChecksDisabled():
-      results = hunt.ResultCollection()
-      aff4_path = flow_export.CollectionItemToAff4Path(results[0])
-      with aff4.FACTORY.Create(
-          aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:
-        pass
+    results = hunt.ResultCollection()
+    aff4_path = flow_export.CollectionItemToAff4Path(results[0])
+    with aff4.FACTORY.Create(
+        aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:
+      pass
 
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")

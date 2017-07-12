@@ -50,8 +50,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.assertEqual(all_count, min(client_count, client_limit))
 
   def testPageTitleReflectsSelectedHunt(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(stopped=True)
+    hunt = self.CreateSampleHunt(stopped=True)
 
     self.Open("/#/hunts")
     self.WaitUntilEqual("GRR | Hunts", self.GetPageTitle)
@@ -61,8 +60,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntView(self):
     """Test that we can see all the hunt data."""
-    with self.ACLChecksDisabled():
-      self.SetupTestHuntView()
+    self.SetupTestHuntView()
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -127,11 +125,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
-    with self.ACLChecksDisabled():
-      with self.CreateSampleHunt() as hunt:
-        hunt_stats = hunt.context.usage_stats
-        hunt_stats.user_cpu_stats.sum = 5000
-        hunt_stats.network_bytes_sent_stats.sum = 1000000
+    with self.CreateSampleHunt() as hunt:
+      hunt_stats = hunt.context.usage_stats
+      hunt_stats.user_cpu_stats.sum = 5000
+      hunt_stats.network_bytes_sent_stats.sum = 1000000
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
@@ -147,8 +144,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1,000,000b")
 
   def testHuntResultsView(self):
-    with self.ACLChecksDisabled():
-      self.CreateGenericHuntWithCollection()
+    self.CreateGenericHuntWithCollection()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -165,16 +161,14 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                    "aff4:/C.0000000000000001/fs/os/c/bin/bash")
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Click("link=aff4:/C.0000000000000001/fs/os/c/bin/bash")
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 
   def testHuntStatsView(self):
-    with self.ACLChecksDisabled():
-      self.SetupTestHuntView()
+    self.SetupTestHuntView()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -208,11 +202,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testHuntNotificationIsShownAndClickable(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(path=os.path.join(self.base_path,
-                                                     "test.plist"))
+    hunt = self.CreateSampleHunt(path=os.path.join(self.base_path,
+                                                   "test.plist"))
 
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
 
@@ -224,8 +217,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, str(hunt.urn))
 
   def testLogsTabShowsLogsFromAllClients(self):
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView(failrate=-1)
+    self.SetupHuntDetailView(failrate=-1)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -237,8 +229,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                      str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabFiltersLogsByString(self):
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView(failrate=-1)
+    self.SetupHuntDetailView(failrate=-1)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -258,10 +249,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                         % str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
-    with self.ACLChecksDisabled():
-      with self.CreateSampleHunt() as hunt:
-        with test_lib.FakeTime(42):
-          hunt.Log("I do log.")
+    with self.CreateSampleHunt() as hunt:
+      with test_lib.FakeTime(42):
+        hunt.Log("I do log.")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -270,8 +260,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testErrorsTabShowsErrorsFromAllClients(self):
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView(failrate=1)
+    self.SetupHuntDetailView(failrate=1)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -281,12 +270,11 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, str(client_id))
 
   def testErrorsTabShowsDatesInUTC(self):
-    with self.ACLChecksDisabled():
-      with self.CreateSampleHunt() as hunt:
-        with test_lib.FakeTime(42):
-          # Log an error just with some random traceback.
-          hunt.LogClientError(self.client_ids[0], "Client Error 1",
-                              traceback.format_exc())
+    with self.CreateSampleHunt() as hunt:
+      with test_lib.FakeTime(42):
+        # Log an error just with some random traceback.
+        hunt.LogClientError(self.client_ids[0], "Client Error 1",
+                            traceback.format_exc())
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -295,8 +283,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testErrorsTabFiltersErrorsByString(self):
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView(failrate=1)
+    self.SetupHuntDetailView(failrate=1)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -312,8 +299,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
 
   def testCrashesTabShowsNoErrorWhenCrashesAreMissing(self):
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView()
+    self.SetupHuntDetailView()
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -323,13 +309,12 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=button#show_backtrace")
 
   def testShowsResultsTabForIndividualFlowsOnClients(self):
-    with self.ACLChecksDisabled():
-      # Create and run the hunt.
-      self.CreateSampleHunt(stopped=False)
-      client_mock = test_lib.SampleHuntMock(failrate=-1)
-      test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    # Create and run the hunt.
+    self.CreateSampleHunt(stopped=False)
+    client_mock = test_lib.SampleHuntMock(failrate=-1)
+    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-      self.RequestAndGrantClientApproval(self.client_ids[0])
+    self.RequestAndGrantClientApproval(self.client_ids[0])
 
     self.Open("/#c=" + self.client_ids[0].Basename())
     self.Click("css=a:contains('Manage launched flows')")
@@ -342,9 +327,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
 
   def testClientsTabShowsCompletedAndOutstandingClients(self):
-    with self.ACLChecksDisabled():
-      # Create some clients and a hunt to view.
-      self.CreateSampleHunt()
+    # Create some clients and a hunt to view.
+    self.CreateSampleHunt()
 
     # Run the hunt on half the clients.
     finished_client_ids = self.client_ids[5:]
@@ -368,9 +352,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                              "css=.tab-content")
 
   def testContextTabShowsHuntContext(self):
-    with self.ACLChecksDisabled():
-      # Create some clients and a hunt to view.
-      self.CreateSampleHunt()
+    # Create some clients and a hunt to view.
+    self.CreateSampleHunt()
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -387,8 +370,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         "~ td.proto_value")
 
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection([])
+    hunt_urn = self.CreateGenericHuntWithCollection([])
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
 
@@ -418,8 +400,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
                                             plugin_display_name):
-    with self.ACLChecksDisabled():
-      hunt_urn = self.CreateGenericHuntWithCollection()
+    hunt_urn = self.CreateGenericHuntWithCollection()
 
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Select("id=plugin-select", plugin_display_name)

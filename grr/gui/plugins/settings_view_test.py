@@ -35,8 +35,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
 
   def setUp(self):
     super(TestManageBinariesView, self).setUp()
-    with self.ACLChecksDisabled():
-      self.SetUpBinaries()
+    self.SetUpBinaries()
 
   def testNotAccessibleForNonAdmins(self):
     self.Open("/")
@@ -45,8 +44,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                    "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
 
   def testEachBinaryIsCorrectlyShown(self):
-    with self.ACLChecksDisabled():
-      self.CreateAdminUser("test")
+    self.CreateAdminUser("test")
 
     self.Open("/#/manage-binaries")
 

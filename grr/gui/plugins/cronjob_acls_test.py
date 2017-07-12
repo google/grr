@@ -19,11 +19,9 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def testCronJobACLWorkflow(self):
-    with self.ACLChecksDisabled():
-      cronjobs.ScheduleSystemCronFlows(
-          names=[cron_system.OSBreakDown.__name__], token=self.token)
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.ScheduleSystemCronFlows(
+        names=[cron_system.OSBreakDown.__name__], token=self.token)
+    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")
@@ -132,8 +130,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
-    with self.ACLChecksDisabled():
-      self.CreateAdminUser("approver")
+    self.CreateAdminUser("approver")
 
     # And try again
     self.Open("/")

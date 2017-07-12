@@ -21,13 +21,12 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
 
   def setUp(self):
     super(TestFlowCreateHunt, self).setUp()
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      with aff4.FACTORY.Open(
-          self.client_id, mode="rw", token=self.token) as client:
-        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
-      self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.FileFinderClientMock()
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.action_mock = action_mocks.FileFinderClientMock()
 
   def testCreateHuntFromFlow(self):
     email_descriptor = output_plugin.OutputPluginDescriptor(

@@ -39,9 +39,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
                    "You do not have an approval for this client.")
 
   def testClientCrashedFlow(self):
-    with self.ACLChecksDisabled():
-      self.SetUpCrashedFlow()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.SetUpCrashedFlow()
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/")
 
@@ -97,8 +96,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
     return client_ids
 
   def testClientCrashedFlowInHunt(self):
-    with self.ACLChecksDisabled():
-      client_ids = self.SetUpCrashedFlowInHunt()
+    client_ids = self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
 
@@ -118,8 +116,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
                         "css=span[type=subject]")
@@ -138,8 +135,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
     ])
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):
-    with self.ACLChecksDisabled():
-      self.SetUpCrashedFlowInHunt()
+    self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
 

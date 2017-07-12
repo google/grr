@@ -32,13 +32,12 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def setUp(self):
     super(TestFlowManagement, self).setUp()
 
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      with aff4.FACTORY.Open(
-          self.client_id, mode="rw", token=self.token) as client:
-        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
-      self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.FileFinderClientMock()
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.action_mock = action_mocks.FileFinderClientMock()
 
   def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
     self.Open("/#/clients/C.0000000000000002/flows/")
@@ -116,11 +115,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    with self.ACLChecksDisabled():
-      flow.GRRFlow.StartFlow(
-          client_id="aff4:/C.0000000000000001",
-          flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-          token=self.token)
+    flow.GRRFlow.StartFlow(
+        client_id="aff4:/C.0000000000000001",
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
 
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -151,13 +149,12 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
   def testOverviewIsShownForNestedFlows(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          gui_test_lib.RecursiveTestFlow.__name__,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        gui_test_lib.RecursiveTestFlow.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -178,17 +175,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.assertTrue("/" in flow_id)
 
   def testOverviewIsShownForNestedHuntFlows(self):
-    with self.ACLChecksDisabled():
-      with hunts.GRRHunt.StartHunt(
-          hunt_name=standard.GenericHunt.__name__,
-          flow_runner_args=rdf_flows.FlowRunnerArgs(
-              flow_name=gui_test_lib.RecursiveTestFlow.__name__),
-          client_rate=0,
-          token=self.token) as hunt:
-        hunt.Run()
+    with hunts.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=gui_test_lib.RecursiveTestFlow.__name__),
+        client_rate=0,
+        token=self.token) as hunt:
+      hunt.Run()
 
-      self.AssignTasksToClients(client_ids=[self.client_id])
-      self.RunHunt(client_ids=[self.client_id])
+    self.AssignTasksToClients(client_ids=[self.client_id])
+    self.RunHunt(client_ids=[self.client_id])
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -210,7 +206,22 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
-    with self.ACLChecksDisabled():
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneLogStatement",
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=td:contains('FlowWithOneLogStatement')")
+    self.Click("css=li[heading=Log]")
+
+    self.WaitUntil(self.IsTextPresent, "I do log.")
+
+  def testLogTimestampsArePresentedInUTC(self):
+    with test_lib.FakeTime(42):
       for _ in test_lib.TestFlowHelper(
           "FlowWithOneLogStatement",
           self.action_mock,
@@ -223,33 +234,15 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
 
-    self.WaitUntil(self.IsTextPresent, "I do log.")
-
-  def testLogTimestampsArePresentedInUTC(self):
-    with self.ACLChecksDisabled():
-      with test_lib.FakeTime(42):
-        for _ in test_lib.TestFlowHelper(
-            "FlowWithOneLogStatement",
-            self.action_mock,
-            client_id=self.client_id,
-            token=self.token):
-          pass
-
-    self.Open("/#c=C.0000000000000001")
-    self.Click("css=a[grrtarget='client.flows']")
-    self.Click("css=td:contains('FlowWithOneLogStatement')")
-    self.Click("css=li[heading=Log]")
-
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult",
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneStatEntryResult",
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -260,12 +253,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "aff4:/C.0000000000000001/fs/os/some/unique/path")
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
-    with self.ACLChecksDisabled():
-      flow.GRRFlow.StartFlow(
-          flow_name="FlowWithOneStatEntryResult",
-          client_id=self.client_id,
-          sync=False,
-          token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="FlowWithOneStatEntryResult",
+        client_id=self.client_id,
+        sync=False,
+        token=self.token)
 
     self.Open("/#c=" + self.client_id.Basename())
     self.Click("css=a[grrtarget='client.flows']")
@@ -276,13 +268,12 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "th:contains('Value')")
 
   def testHashesAreDisplayedCorrectly(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          "FlowWithOneHashEntryResult",
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneHashEntryResult",
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -297,11 +288,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testApiExampleIsShown(self):
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-          client_id=self.client_id,
-          token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+        client_id=self.client_id,
+        token=self.token)
 
     flow_id = flow_urn.Basename()
     self.Open("/#/clients/C.0000000000000001/flows/%s/api" % flow_id)
@@ -314,11 +304,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, '"name": "FlowWithOneStatEntryResult"')
 
   def testChangingTabUpdatesUrl(self):
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-          client_id=self.client_id,
-          token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+        client_id=self.client_id,
+        token=self.token)
 
     flow_id = flow_urn.Basename()
     base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id
@@ -341,11 +330,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(base_url + "/api", self.GetCurrentUrlPath)
 
   def testDirectLinksToFlowsTabsWorkCorrectly(self):
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
-          client_id=self.client_id,
-          token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
+        client_id=self.client_id,
+        token=self.token)
 
     flow_id = flow_urn.Basename()
     base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id

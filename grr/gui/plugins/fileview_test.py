@@ -23,11 +23,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      test_lib.ClientFixture(self.client_id, self.token)
-      gui_test_lib.CreateFileVersions(self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    test_lib.ClientFixture(self.client_id, self.token)
+    gui_test_lib.CreateFileVersions(self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
     self.Open("/#/clients/C.0000000000000002/vfs/")

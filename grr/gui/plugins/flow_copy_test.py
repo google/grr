@@ -34,12 +34,11 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     super(TestFlowCopy, self).setUp()
 
     # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      # This attribute is used by StandardHuntTestMixin.
-      self.client_ids = [self.client_id]
-      test_lib.ClientFixture(self.client_id, self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    # This attribute is used by StandardHuntTestMixin.
+    self.client_ids = [self.client_id]
+    test_lib.ClientFixture(self.client_id, self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.email_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
@@ -173,27 +172,25 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
-    with self.ACLChecksDisabled():
-      fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
-      flows = sorted(fd.ListChildren(), key=lambda x: x.age)
-      fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+    flows = sorted(fd.ListChildren(), key=lambda x: x.age)
+    fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
 
-      self.assertEqual(fobj.args,
-                       flows_processes.ListProcessesArgs(
-                           filename_regex="somethingElse*",))
-      self.assertListEqual(
-          list(fobj.runner_args.output_plugins), [
-              output_plugin.OutputPluginDescriptor(
-                  plugin_name=DummyOutputPlugin.__name__,
-                  plugin_args=flows_processes.ListProcessesArgs(
-                      filename_regex="foobar!")), self.email_descriptor
-          ])
+    self.assertEqual(fobj.args,
+                     flows_processes.ListProcessesArgs(
+                         filename_regex="somethingElse*",))
+    self.assertListEqual(
+        list(fobj.runner_args.output_plugins), [
+            output_plugin.OutputPluginDescriptor(
+                plugin_name=DummyOutputPlugin.__name__,
+                plugin_args=flows_processes.ListProcessesArgs(
+                    filename_regex="foobar!")), self.email_descriptor
+        ])
 
   def testCopyingHuntFlowWorks(self):
-    with self.ACLChecksDisabled():
-      self.StartHunt(description="demo hunt")
-      self.AssignTasksToClients(client_ids=[self.client_id])
-      self.RunHunt(failrate=-1)
+    self.StartHunt(description="demo hunt")
+    self.AssignTasksToClients(client_ids=[self.client_id])
+    self.RunHunt(failrate=-1)
 
     # Navigate to client and select newly created hunt flow.
     self.Open("/#/clients/%s" % self.client_id.Basename())

@@ -26,25 +26,24 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
 
   def testReports(self):
     """Test the reports interface."""
-    with self.ACLChecksDisabled():
-      with test_lib.FakeTime(
-          rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-        AddFakeAuditLog(
-            "Fake audit description 14 Dec.",
-            "C.123",
-            "User123",
-            token=self.token)
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          "Fake audit description 14 Dec.",
+          "C.123",
+          "User123",
+          token=self.token)
 
-      with test_lib.FakeTime(
-          rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-        AddFakeAuditLog(
-            "Fake audit description 22 Dec.",
-            "C.456",
-            "User456",
-            token=self.token)
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      AddFakeAuditLog(
+          "Fake audit description 22 Dec.",
+          "C.456",
+          "User456",
+          token=self.token)
 
-      # Make "test" user an admin.
-      self.CreateAdminUser("test")
+    # Make "test" user an admin.
+    self.CreateAdminUser("test")
 
     self.Open("/#/stats/")
 
@@ -62,11 +61,10 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsTextPresent("User123"))
 
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
-    with self.ACLChecksDisabled():
-      client_id, = self.SetupClients(1)
+    client_id, = self.SetupClients(1)
 
-      with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-        client.AddLabels("bar", owner="owner")
+    with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
+      client.AddLabels("bar", owner="owner")
 
     self.Open("/#/stats/")
 

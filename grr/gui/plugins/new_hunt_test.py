@@ -77,17 +77,15 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestNewHuntWizard, self).setUp()
 
-    with self.ACLChecksDisabled():
-      # Create a Foreman with an empty rule set.
-      with aff4.FACTORY.Create(
-          "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
-          token=self.token) as self.foreman:
-        self.foreman.Set(self.foreman.Schema.RULES())
-        self.foreman.Close()
+    # Create a Foreman with an empty rule set.
+    with aff4.FACTORY.Create(
+        "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
+        token=self.token) as self.foreman:
+      self.foreman.Set(self.foreman.Schema.RULES())
+      self.foreman.Close()
 
   def testNewHuntWizard(self):
-    with self.ACLChecksDisabled():
-      self.CreateHuntFixtureWithTwoClients()
+    self.CreateHuntFixtureWithTwoClients()
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -279,13 +277,11 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     # Note that hunt ACL controls are already tested in acl_manager_test.py.
 
     # Run the hunt.
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
-        hunt.Run()
+    with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+      hunt.Run()
 
     # Check that the hunt was created with correct rules
-    with self.ACLChecksDisabled():
-      hunt_rules = self.FindForemanRules(hunt, token=self.token)
+    hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
     self.assertEqual(len(hunt_rules), 1)
     f = 14 * 24 * 60 * 60
@@ -404,14 +400,13 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsTextPresent, "DummyOutputPlugin")
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open(
-          "C.0000000000000001",
-          aff4_type=aff4_grr.VFSGRRClient,
-          mode="rw",
-          token=self.token) as client:
-        client.AddLabels("foo", owner="owner1")
-        client.AddLabels("bar", owner="owner2")
+    with aff4.FACTORY.Open(
+        "C.0000000000000001",
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token) as client:
+      client.AddLabels("foo", owner="owner1")
+      client.AddLabels("bar", owner="owner2")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -442,18 +437,16 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
                    "select option:not(:selected)[label=foo]")
 
   def testLabelsHuntRuleMatchesCorrectClients(self):
-    with self.ACLChecksDisabled():
-      client_ids = self.SetupClients(10)
+    client_ids = self.SetupClients(10)
 
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open(
-          client_ids[1], mode="rw", token=self.token) as client:
-        client.AddLabels("foo", owner="owner1")
-        client.AddLabels("bar", owner="owner2")
+    with aff4.FACTORY.Open(
+        client_ids[1], mode="rw", token=self.token) as client:
+      client.AddLabels("foo", owner="owner1")
+      client.AddLabels("bar", owner="owner2")
 
-      with aff4.FACTORY.Open(
-          client_ids[7], mode="rw", token=self.token) as client:
-        client.AddLabels("bar", owner="GRR")
+    with aff4.FACTORY.Open(
+        client_ids[7], mode="rw", token=self.token) as client:
+      client.AddLabels("bar", owner="GRR")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -488,20 +481,19 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    with self.ACLChecksDisabled():
-      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-      hunts_list = list(hunts_root.OpenChildren(mode="rw"))
-      hunt = hunts_list[0]
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = list(hunts_root.OpenChildren(mode="rw"))
+    hunt = hunts_list[0]
 
-      hunt.Run()  # Run the hunt so that rules are added to the foreman.
+    hunt.Run()  # Run the hunt so that rules are added to the foreman.
 
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      for client_id in client_ids:
-        tasks_assigned = foreman.AssignTasksToClient(client_id)
-        if client_id in [client_ids[1], client_ids[7]]:
-          self.assertTrue(tasks_assigned)
-        else:
-          self.assertFalse(tasks_assigned)
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      tasks_assigned = foreman.AssignTasksToClient(client_id)
+      if client_id in [client_ids[1], client_ids[7]]:
+        self.assertTrue(tasks_assigned)
+      else:
+        self.assertFalse(tasks_assigned)
 
   @staticmethod
   def CreateSampleHunt(description, token=None):
@@ -529,8 +521,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
         token=token)
 
   def testCopyHuntPrefillsNewHuntWizard(self):
-    with self.ACLChecksDisabled():
-      self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt", token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -601,8 +592,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "60")
 
   def testCopyHuntCreatesExactCopyWithChangedDescription(self):
-    with self.ACLChecksDisabled():
-      self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt", token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -627,34 +617,32 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    with self.ACLChecksDisabled():
-      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
 
-      self.assertEqual(len(hunts_list), 2)
+    self.assertEqual(len(hunts_list), 2)
 
-      first_hunt = aff4.FACTORY.Open(hunts_list[0], token=self.token)
-      last_hunt = aff4.FACTORY.Open(hunts_list[1], token=self.token)
+    first_hunt = aff4.FACTORY.Open(hunts_list[0], token=self.token)
+    last_hunt = aff4.FACTORY.Open(hunts_list[1], token=self.token)
 
-      # Check that generic hunt arguments are equal.
-      self.assertEqual(first_hunt.args, last_hunt.args)
+    # Check that generic hunt arguments are equal.
+    self.assertEqual(first_hunt.args, last_hunt.args)
 
-      # Check that hunts runner arguments are equal except for the description.
-      # Hunt copy has ' (copy)' added to the description.
-      first_runner_args = first_hunt.runner_args
-      last_runner_args = last_hunt.runner_args
+    # Check that hunts runner arguments are equal except for the description.
+    # Hunt copy has ' (copy)' added to the description.
+    first_runner_args = first_hunt.runner_args
+    last_runner_args = last_hunt.runner_args
 
-      self.assertEqual(first_runner_args.description + " (copy)",
-                       last_runner_args.description)
-      self.assertEqual(first_runner_args.client_rate,
-                       last_runner_args.client_rate)
-      self.assertEqual(first_runner_args.hunt_name, last_runner_args.hunt_name)
-      self.assertEqual(first_runner_args.client_rule_set,
-                       last_runner_args.client_rule_set)
+    self.assertEqual(first_runner_args.description + " (copy)",
+                     last_runner_args.description)
+    self.assertEqual(first_runner_args.client_rate,
+                     last_runner_args.client_rate)
+    self.assertEqual(first_runner_args.hunt_name, last_runner_args.hunt_name)
+    self.assertEqual(first_runner_args.client_rule_set,
+                     last_runner_args.client_rule_set)
 
   def testCopyHuntRespectsUserChanges(self):
-    with self.ACLChecksDisabled():
-      self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt", token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -717,65 +705,63 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    with self.ACLChecksDisabled():
-      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
 
-      self.assertEqual(len(hunts_list), 2)
-      last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
+    self.assertEqual(len(hunts_list), 2)
+    last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
 
-      self.assertEqual(last_hunt.args.flow_args.pathspec.path,
-                       "/tmp/very-evil.txt")
-      self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
-      self.assertEqual(last_hunt.args.flow_runner_args.flow_name, "GetFile")
+    self.assertEqual(last_hunt.args.flow_args.pathspec.path,
+                     "/tmp/very-evil.txt")
+    self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
+    self.assertEqual(last_hunt.args.flow_runner_args.flow_name, "GetFile")
 
-      self.assertEqual(len(last_hunt.runner_args.output_plugins), 2)
-      self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
-                       "DummyOutputPlugin")
-      self.assertEqual(
-          last_hunt.runner_args.output_plugins[0].plugin_args.filename_regex,
-          "foobar!")
-      self.assertEqual(
-          last_hunt.runner_args.output_plugins[0].plugin_args.fetch_binaries,
-          False)
-      self.assertEqual(last_hunt.runner_args.output_plugins[1].plugin_name,
-                       "DummyOutputPlugin")
-      self.assertEqual(
-          last_hunt.runner_args.output_plugins[1].plugin_args.filename_regex,
-          "blah!")
-      self.assertEqual(
-          last_hunt.runner_args.output_plugins[1].plugin_args.fetch_binaries,
-          True)
+    self.assertEqual(len(last_hunt.runner_args.output_plugins), 2)
+    self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
+                     "DummyOutputPlugin")
+    self.assertEqual(
+        last_hunt.runner_args.output_plugins[0].plugin_args.filename_regex,
+        "foobar!")
+    self.assertEqual(
+        last_hunt.runner_args.output_plugins[0].plugin_args.fetch_binaries,
+        False)
+    self.assertEqual(last_hunt.runner_args.output_plugins[1].plugin_name,
+                     "DummyOutputPlugin")
+    self.assertEqual(
+        last_hunt.runner_args.output_plugins[1].plugin_args.filename_regex,
+        "blah!")
+    self.assertEqual(
+        last_hunt.runner_args.output_plugins[1].plugin_args.fetch_binaries,
+        True)
 
-      runner_args = last_hunt.runner_args
-      self.assertAlmostEqual(runner_args.client_rate, 42)
-      self.assertEqual(runner_args.description, "my personal copy")
-      self.assertEqual(
-          runner_args.client_rule_set,
-          rdf_foreman.ForemanClientRuleSet(rules=[
-              rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
-                  os_darwin=True))
-          ]))
+    runner_args = last_hunt.runner_args
+    self.assertAlmostEqual(runner_args.client_rate, 42)
+    self.assertEqual(runner_args.description, "my personal copy")
+    self.assertEqual(
+        runner_args.client_rule_set,
+        rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
+                os_darwin=True))
+        ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
     literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         literal="foo\x0d\xc8bar")
 
-    with self.ACLChecksDisabled():
-      hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt",
-          description="model hunt",
-          flow_runner_args=rdf_flows.FlowRunnerArgs(
-              flow_name=file_finder.FileFinder.__name__),
-          flow_args=rdf_file_finder.FileFinderArgs(
-              conditions=[
-                  rdf_file_finder.FileFinderCondition(
-                      condition_type="CONTENTS_LITERAL_MATCH",
-                      contents_literal_match=literal_match)
-              ],
-              paths=["/tmp/evil.txt"]),
-          token=self.token)
+    hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        description="model hunt",
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            conditions=[
+                rdf_file_finder.FileFinderCondition(
+                    condition_type="CONTENTS_LITERAL_MATCH",
+                    contents_literal_match=literal_match)
+            ],
+            paths=["/tmp/evil.txt"]),
+        token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -822,21 +808,20 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
                      .contents_literal_match.literal, "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
-    with self.ACLChecksDisabled():
-      hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt",
-          description="model hunt",
-          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
-          flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-              path="/tmp/evil.txt",
-              pathtype=rdf_paths.PathSpec.PathType.TSK,)),
-          client_rule_set=rdf_foreman.ForemanClientRuleSet(
-              rules=[
-                  rdf_foreman.ForemanClientRule(
-                      rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                      os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
-              ]),
-          token=self.token)
+    hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        description="model hunt",
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+            path="/tmp/evil.txt",
+            pathtype=rdf_paths.PathSpec.PathType.TSK,)),
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(
+            rules=[
+                rdf_foreman.ForemanClientRule(
+                    rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+                    os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+            ]),
+        token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")

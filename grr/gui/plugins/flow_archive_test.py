@@ -28,22 +28,20 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestFlowArchive, self).setUp()
 
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      with aff4.FACTORY.Open(
-          self.client_id, mode="rw", token=self.token) as client:
-        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
-      self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.FileFinderClientMock()
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.action_mock = action_mocks.FileFinderClientMock()
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          "FlowWithOneNetworkConnectionResult",
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneNetworkConnectionResult",
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -55,13 +53,12 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
                       "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          gui_test_lib.RecursiveTestFlow.__name__,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        gui_test_lib.RecursiveTestFlow.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -76,14 +73,13 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flows_transfer.GetFile.__name__,
-          self.action_mock,
-          client_id=self.client_id,
-          pathspec=pathspec,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -97,14 +93,13 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flows_transfer.GetFile.__name__,
-          self.action_mock,
-          client_id=self.client_id,
-          pathspec=pathspec,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flows_transfer.GetFile.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -125,13 +120,9 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -176,18 +167,14 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=flows_transfer.GetFile.__name__,
-          client_id=self.client_id,
-          pathspec=pathspec,
-          token=self.token)
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=flows_transfer.GetFile.__name__,
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
     self.Click("link=Results")
@@ -210,17 +197,13 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(MockMethodIsCalled)
 
   def testDoesNotShowDownloadAsPanelIfCollectionIsEmpty(self):
-    with self.ACLChecksDisabled():
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=gui_test_lib.RecursiveTestFlow.__name__,
-          client_id=self.client_id,
-          token=self.token)
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        client_id=self.client_id,
+        token=self.token)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
     self.Click("link=Results")

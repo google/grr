@@ -19,8 +19,6 @@ class TestRekallViewer(gui_test_lib.GRRSeleniumTest,
   def setUp(self):
     super(TestRekallViewer, self).setUp()
 
-    self.UninstallACLChecks()
-
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.

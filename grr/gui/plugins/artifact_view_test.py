@@ -38,13 +38,11 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestArtifactRender, self).setUp()
-    with self.ACLChecksDisabled():
-      self.client_id = self.SetupClients(1, system="linux")[0]
-      self.RequestAndGrantClientApproval(self.client_id)
+    self.client_id = self.SetupClients(1, system="linux")[0]
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testArtifactRendering(self):
-    with self.ACLChecksDisabled():
-      self._LoadSystemArtifacts()
+    self._LoadSystemArtifacts()
 
     self.Open("/")
 
@@ -89,8 +87,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "TestCmdProcessor")
 
   def testSystemArtifactsAreNotMarkedInStartFlowForm(self):
-    with self.ACLChecksDisabled():
-      self._LoadSystemArtifacts()
+    self._LoadSystemArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
@@ -101,8 +98,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
                       "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
-    with self.ACLChecksDisabled():
-      self._UploadCustomArtifacts()
+    self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
@@ -112,8 +108,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
                    "span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
-    with self.ACLChecksDisabled():
-      self._UploadCustomArtifacts()
+    self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
@@ -128,8 +123,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
                       "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testCustomArtifactsAreMarkedInFlowArguments(self):
-    with self.ACLChecksDisabled():
-      self._UploadCustomArtifacts()
+    self._UploadCustomArtifacts()
 
     self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")

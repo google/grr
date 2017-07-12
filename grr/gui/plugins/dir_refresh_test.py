@@ -19,41 +19,39 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(DirRefreshTest, self).setUp()
     # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      test_lib.ClientFixture(self.client_id, self.token)
-      gui_test_lib.CreateFileVersions(self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    test_lib.ClientFixture(self.client_id, self.token)
+    gui_test_lib.CreateFileVersions(self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def _RunUpdateFlow(self, client_id):
     # Get the flows that should have been started and finish them.
-    with self.ACLChecksDisabled():
-      fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
-      flows = list(fd.ListChildren())
+    fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(fd.ListChildren())
 
-      gui_test_lib.CreateFileVersion(
-          client_id.Add("fs/os/c/a.txt"),
-          "Hello World",
-          timestamp=gui_test_lib.TIME_0,
-          token=self.token)
-      gui_test_lib.CreateFolder(
-          client_id.Add("fs/os/c/TestFolder"),
-          timestamp=gui_test_lib.TIME_0,
-          token=self.token)
-      gui_test_lib.CreateFolder(
-          client_id.Add("fs/os/c/bin/TestBinFolder"),
-          timestamp=gui_test_lib.TIME_0,
-          token=self.token)
+    gui_test_lib.CreateFileVersion(
+        client_id.Add("fs/os/c/a.txt"),
+        "Hello World",
+        timestamp=gui_test_lib.TIME_0,
+        token=self.token)
+    gui_test_lib.CreateFolder(
+        client_id.Add("fs/os/c/TestFolder"),
+        timestamp=gui_test_lib.TIME_0,
+        token=self.token)
+    gui_test_lib.CreateFolder(
+        client_id.Add("fs/os/c/bin/TestBinFolder"),
+        timestamp=gui_test_lib.TIME_0,
+        token=self.token)
 
-      client_mock = action_mocks.ActionMock()
-      for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn,
-            client_mock,
-            client_id=client_id,
-            token=self.token,
-            check_flow_errors=False):
-          pass
+    client_mock = action_mocks.ActionMock()
+    for flow_urn in flows:
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          client_mock,
+          client_id=client_id,
+          token=self.token,
+          check_flow_errors=False):
+        pass
 
   def testRefreshFileStartsFlow(self):
     self.Open("/")
@@ -85,43 +83,42 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     # Create a new file version (that would have been created by the flow
     # otherwise) and finish the flow.
-    with self.ACLChecksDisabled():
-      client_id = rdf_client.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
-      fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
 
-      # Make sure that the flow has started (when button is clicked, the HTTP
-      # API request is sent asynchronously).
-      def MultiGetFileStarted():
-        return "MultiGetFile" in list(x.__class__.__name__
-                                      for x in fd.OpenChildren())
+    # Make sure that the flow has started (when button is clicked, the HTTP
+    # API request is sent asynchronously).
+    def MultiGetFileStarted():
+      return "MultiGetFile" in list(x.__class__.__name__
+                                    for x in fd.OpenChildren())
 
-      self.WaitUntil(MultiGetFileStarted)
+    self.WaitUntil(MultiGetFileStarted)
 
-      flows = list(fd.ListChildren())
+    flows = list(fd.ListChildren())
 
-      client_mock = action_mocks.MultiGetFileClientMock()
-      for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn,
-            client_mock,
-            client_id=client_id,
-            check_flow_errors=False,
-            token=self.token):
-          pass
+    client_mock = action_mocks.MultiGetFileClientMock()
+    for flow_urn in flows:
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          client_mock,
+          client_id=client_id,
+          check_flow_errors=False,
+          token=self.token):
+        pass
 
-      time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h")
-      # We have to make sure that the new version will not be within a second
-      # from the current one, otherwise the previous one and the new one will
-      # be indistinguishable in the UI (as it has a 1s precision when
-      # displaying versions).
-      with test_lib.FakeTime(time_in_future):
-        with aff4.FACTORY.Open(
-            "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-            aff4_type=aff4_grr.VFSFile,
-            mode="rw",
-            token=self.token) as fd:
-          fd.Write("The newest version!")
+    time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h")
+    # We have to make sure that the new version will not be within a second
+    # from the current one, otherwise the previous one and the new one will
+    # be indistinguishable in the UI (as it has a 1s precision when
+    # displaying versions).
+    with test_lib.FakeTime(time_in_future):
+      with aff4.FACTORY.Open(
+          "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+          aff4_type=aff4_grr.VFSFile,
+          mode="rw",
+          token=self.token) as fd:
+        fd.Write("The newest version!")
 
     # Once the flow has finished, the file view should update and add the
     # newly created, latest version of the file to the list. The selected
@@ -365,9 +362,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntil(self.IsElementPresent, "link=bin")
 
-    with self.ACLChecksDisabled():
-      aff4.FACTORY.Delete(
-          "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
+    aff4.FACTORY.Delete(
+        "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
 
     self.Click("link=c")
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
@@ -379,9 +375,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntil(self.IsElementPresent, "link=bin")
 
-    with self.ACLChecksDisabled():
-      aff4.FACTORY.Delete(
-          "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
+    aff4.FACTORY.Delete(
+        "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
 
     # Click on the arrow icon, it should close the tree branch.
     self.Click("css=#_fs-os-c i.jstree-icon")

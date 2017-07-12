@@ -32,26 +32,24 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def AddJobStatus(self, job_urn, status):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.OpenWithLock(job_urn, token=self.token) as job:
-        job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
-        job.Set(job.Schema.LAST_RUN_STATUS(status=status))
+    with aff4.FACTORY.OpenWithLock(job_urn, token=self.token) as job:
+      job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
+      job.Set(job.Schema.LAST_RUN_STATUS(status=status))
 
   def setUp(self):
     super(TestCronView, self).setUp()
 
-    with self.ACLChecksDisabled():
-      for flow_name in [
-          cron_system.GRRVersionBreakDown.__name__,
-          cron_system.OSBreakDown.__name__, cron_system.LastAccessStats.__name__
-      ]:
-        cron_args = cronjobs.CreateCronJobFlowArgs(
-            periodicity="7d", lifetime="1d")
-        cron_args.flow_runner_args.flow_name = flow_name
-        cronjobs.CRON_MANAGER.ScheduleFlow(
-            cron_args, job_name=flow_name, token=self.token)
+    for flow_name in [
+        cron_system.GRRVersionBreakDown.__name__,
+        cron_system.OSBreakDown.__name__, cron_system.LastAccessStats.__name__
+    ]:
+      cron_args = cronjobs.CreateCronJobFlowArgs(
+          periodicity="7d", lifetime="1d")
+      cron_args.flow_runner_args.flow_name = flow_name
+      cronjobs.CRON_MANAGER.ScheduleFlow(
+          cron_args, job_name=flow_name, token=self.token)
 
-      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+    cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def testCronView(self):
     self.Open("/")
@@ -107,9 +105,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Outstanding requests")
 
   def testToolbarStateForDisabledCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -123,8 +119,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testToolbarStateForEnabledCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -139,9 +134,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testEnableCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -162,8 +155,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    with self.ACLChecksDisabled():
-      self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
@@ -187,8 +179,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                    "css=tr:contains('OSBreakDown') *[state=ENABLED]")
 
   def testDisableCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -207,8 +198,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    with self.ACLChecksDisabled():
-      self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Click on Disable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
@@ -232,8 +222,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                    "css=tr:contains('OSBreakDown') *[state=DISABLED]")
 
   def testDeleteCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -252,8 +241,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    with self.ACLChecksDisabled():
-      self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
@@ -278,8 +266,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                       "td:contains('OSBreakDown')")
 
   def testForceRunCronJob(self):
-    with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
@@ -302,8 +289,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       # Wait for dialog to disappear.
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-      with self.ACLChecksDisabled():
-        self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
@@ -470,9 +456,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                       "css=tr.danger td:contains('GRRVersionBreakDown')")
 
   def testCronJobNotificationIsShownAndClickable(self):
-    with self.ACLChecksDisabled():
-      self._SendNotification("ViewObject", "aff4:/cron/OSBreakDown",
-                             "Test CronJob notification")
+    self._SendNotification("ViewObject", "aff4:/cron/OSBreakDown",
+                           "Test CronJob notification")
 
     self.Open("/")
 

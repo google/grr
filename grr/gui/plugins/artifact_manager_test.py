@@ -65,8 +65,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
                    "System artifact TestDrivers cannot be overwritten.")
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     # Test that we have no TestDrivers.
     self.Open("/#/clients/C.0000000000000001/launch-flow")
@@ -120,10 +119,9 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "TestDrivers")
 
   def testArtifactRemovedFromFormsImmediatelyAfterDeletion(self):
-    with self.ACLChecksDisabled():
-      with open(self.json_file, "rb") as fd:
-        artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    with open(self.json_file, "rb") as fd:
+      artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     # Test that we have TestDrivers available.
     self.Open("/#/clients/C.0000000000000001/launch-flow")

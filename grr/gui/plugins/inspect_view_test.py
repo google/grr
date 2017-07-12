@@ -35,15 +35,13 @@ class TestClientLoadView(TestInspectViewBase):
       manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
 
   def testNoClientActionIsDisplayed(self):
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
   def testNoClientActionIsDisplayedWhenFlowIsStarted(self):
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
@@ -54,9 +52,8 @@ class TestClientLoadView(TestInspectViewBase):
         token=self.token)
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
-      self.CreateLeasedClientRequest(token=self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.CreateLeasedClientRequest(token=self.token)
 
     self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
@@ -69,18 +66,17 @@ class TestDebugClientRequestsView(TestInspectViewBase):
 
   def testInspect(self):
     """Test the inspect UI."""
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClients(1)[0]
 
-      self.RequestAndGrantClientApproval(client_id)
+    self.RequestAndGrantClientApproval(client_id)
 
-      flow.GRRFlow.StartFlow(
-          client_id=client_id,
-          flow_name=flow_discovery.Interrogate.__name__,
-          token=self.token)
-      mock = test_lib.MockClient(client_id, None, token=self.token)
-      while mock.Next():
-        pass
+    flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name=flow_discovery.Interrogate.__name__,
+        token=self.token)
+    mock = test_lib.MockClient(client_id, None, token=self.token)
+    while mock.Next():
+      pass
 
     self.Open("/#/clients/%s/debug-requests" % client_id.Basename())
 

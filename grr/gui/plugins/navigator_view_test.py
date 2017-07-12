@@ -18,13 +18,12 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     if last_ping is None:
       last_ping = rdfvalue.RDFDatetime.Now()
 
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
-        client_obj.Set(client_obj.Schema.PING(last_ping))
+    client_id = self.SetupClients(1)[0]
+    with aff4.FACTORY.Open(
+        client_id, mode="rw", token=self.token) as client_obj:
+      client_obj.Set(client_obj.Schema.PING(last_ping))
 
-      self.RequestAndGrantClientApproval(client_id)
+    self.RequestAndGrantClientApproval(client_id)
 
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
@@ -41,16 +40,15 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
         pass
 
   def CreateClientWithVolumes(self, available=50):
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
-        volume = rdf_client.Volume(
-            total_allocation_units=100,
-            actual_available_allocation_units=available)
-        client_obj.Set(client_obj.Schema.VOLUMES([volume]))
+    client_id = self.SetupClients(1)[0]
+    with aff4.FACTORY.Open(
+        client_id, mode="rw", token=self.token) as client_obj:
+      volume = rdf_client.Volume(
+          total_allocation_units=100,
+          actual_available_allocation_units=available)
+      client_obj.Set(client_obj.Schema.VOLUMES([volume]))
 
-      self.RequestAndGrantClientApproval(client_id)
+    self.RequestAndGrantClientApproval(client_id)
 
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
@@ -118,9 +116,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testCrashIsDisplayedInClientStatus(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    with self.ACLChecksDisabled():
-      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
-      self.RequestAndGrantClientApproval(client_id)
+    self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
+    self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Last crash")
@@ -130,10 +127,9 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testOnlyTheLatestCrashIsDisplayed(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    with self.ACLChecksDisabled():
-      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("2h"))
-      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
-      self.RequestAndGrantClientApproval(client_id)
+    self.RecordCrash(client_id, timestamp - rdfvalue.Duration("2h"))
+    self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
+    self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Last crash")
@@ -143,9 +139,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testOnlyCrashesHappenedInPastWeekAreDisplayed(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    with self.ACLChecksDisabled():
-      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
-      self.RequestAndGrantClientApproval(client_id)
+    self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
+    self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
@@ -168,9 +163,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testCrashIconDoesNotAppearInClientSearchIfClientCrashedLongTimeAgo(self):
     client_id = self.CreateClient()
-    with self.ACLChecksDisabled():
-      self.RecordCrash(client_id,
-                       rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("25h"))
+    self.RecordCrash(client_id,
+                     rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("25h"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())
@@ -186,8 +180,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient()
-    with self.ACLChecksDisabled():
-      self.RecordCrash(client_id, timestamp)
+    self.RecordCrash(client_id, timestamp)
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())

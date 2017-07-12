@@ -40,8 +40,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
       return hunt.session_id
 
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
-    with self.ACLChecksDisabled():
-      client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClients(1)[0]
 
     messages_sent = []
 
@@ -74,8 +73,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Host-0")
 
   def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
-    with self.ACLChecksDisabled():
-      hunt_id = self.CreateSampleHunt()
+    hunt_id = self.CreateSampleHunt()
 
     messages_sent = []
 
@@ -107,11 +105,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
-    with self.ACLChecksDisabled():
-      cronjobs.ScheduleSystemCronFlows(
-          names=[cron_system.OSBreakDown.__name__], token=self.token)
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    cronjobs.ScheduleSystemCronFlows(
+        names=[cron_system.OSBreakDown.__name__], token=self.token)
+    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     messages_sent = []
 

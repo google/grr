@@ -113,23 +113,6 @@ def SeleniumAction(f):
   return Decorator
 
 
-# TODO(user): This is a stub now. Remove.
-class ACLChecksEnabledContextManager(object):
-  """Enable ACL Checks."""
-
-  def __enter__(self):
-    pass
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    pass
-
-  def Start(self):
-    pass
-
-  def Stop(self):
-    pass
-
-
 class GRRSeleniumTest(test_lib.GRRBaseTest):
   """Baseclass for selenium UI tests."""
 
@@ -145,22 +128,16 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
   # Base url of the Admin UI
   base_url = None
 
-  # Also indicates whether InstallACLChecks() was called during the test.
-  acl_manager = None
-
   def InstallACLChecks(self):
     """Installs AccessControlManager and stubs out SendEmail."""
-    # Clear the cache of the approvals-based router.
-    (api_call_router_with_approval_checks.
-     ApiCallRouterWithApprovalChecksWithRobotAccess).ClearCache()
+    acrwac = api_call_router_with_approval_checks
 
-    if self.acl_manager:
+    # Clear the cache of the approvals-based router.
+    acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.ClearCache()
+
+    if self.config_override:
       return
 
-    self.acl_manager = ACLChecksEnabledContextManager()
-    self.acl_manager.Start()
-
-    acrwac = api_call_router_with_approval_checks
     name = acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.__name__
     self.config_override = test_lib.ConfigOverrider({"API.DefaultRouter": name})
     self.config_override.Start()
@@ -169,11 +146,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
 
   def UninstallACLChecks(self):
     """Deinstall previously installed ACL checks."""
-    if not self.acl_manager:
+    if not self.config_override:
       return
-
-    self.acl_manager.Stop()
-    self.acl_manager = None
 
     self.config_override.Stop()
     self.config_override = None
@@ -181,9 +155,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
     # Make sure ApiAuthManager is initialized with update configuration
     # setting (i.e. without overrides).
     api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def ACLChecksDisabled(self):
-    return test_lib.ACLChecksDisabledContextManager()
 
   def CheckJavascriptErrors(self):
     for message in self.driver.get_log("browser"):
@@ -482,6 +453,9 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
 
+    # Used by InstallACLChecks/UninstallACLChecks
+    self.config_override = None
+
     self.token.username = "gui_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
@@ -501,10 +475,6 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
         [aff4.ROOT_URN.Add("artifact_store")])
 
     self.InstallACLChecks()
-
-  def tearDown(self):
-    self.UninstallACLChecks()
-    super(GRRSeleniumTest, self).tearDown()
 
   def DoAfterTestCheck(self):
     super(GRRSeleniumTest, self).DoAfterTestCheck()
@@ -529,14 +499,13 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
   """Common functionality for hunt gui tests."""
 
   def _CreateHuntWithDownloadedFile(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"), client_count=1)
+    hunt = self.CreateSampleHunt(
+        path=os.path.join(self.base_path, "test.plist"), client_count=1)
 
-      action_mock = action_mocks.FileFinderClientMock()
-      test_lib.TestHuntHelper(action_mock, self.client_ids, False, self.token)
+    action_mock = action_mocks.FileFinderClientMock()
+    test_lib.TestHuntHelper(action_mock, self.client_ids, False, self.token)
 
-      return hunt
+    return hunt
 
   def CheckState(self, state):
     self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)

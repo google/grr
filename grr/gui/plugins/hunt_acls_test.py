@@ -35,8 +35,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
       return hunt.session_id
 
   def testHuntACLWorkflow(self):
-    with self.ACLChecksDisabled():
-      hunt_id = self.CreateSampleHunt()
+    hunt_id = self.CreateSampleHunt()
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -149,8 +148,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
-    with self.ACLChecksDisabled():
-      self.CreateAdminUser("approver")
+    self.CreateAdminUser("approver")
 
     # Check if we see that the approval has already been granted.
     self.Open("/")
@@ -183,12 +181,11 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   def Create2HuntsForDifferentUsers(self):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
-    with self.ACLChecksDisabled():
-      hunt1_id = self.CreateSampleHunt(token=access_control.ACLToken(
-          username="otheruser"))
-      hunt2_id = self.CreateSampleHunt(token=access_control.ACLToken(
-          username=self.token.username))
-      self.CreateAdminUser("approver")
+    hunt1_id = self.CreateSampleHunt(token=access_control.ACLToken(
+        username="otheruser"))
+    hunt2_id = self.CreateSampleHunt(token=access_control.ACLToken(
+        username=self.token.username))
+    self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
     flow.GRRFlow.StartFlow(
@@ -221,8 +218,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         token=token)
 
   def testHuntApprovalsArePerHunt(self):
-    with self.ACLChecksDisabled():
-      self.Create2HuntsForDifferentUsers()
+    self.Create2HuntsForDifferentUsers()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")

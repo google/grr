@@ -23,13 +23,12 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowNotifications, self).setUp()
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      with aff4.FACTORY.Open(
-          self.client_id, mode="rw", token=self.token) as client:
-        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
-      self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.FileFinderClientMock()
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.action_mock = action_mocks.FileFinderClientMock()
 
   def testNotificationPointingToFlowIsShownOnFlowCompletion(self):
     self.Open("/")
@@ -43,13 +42,9 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     # Clicking on this should show the notifications table.
     self.Click("css=button[id=notification_button]")
@@ -76,13 +71,9 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield "foo"
@@ -116,13 +107,9 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
-          flow_urn,
-          self.action_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
+      pass
 
     self.Open("/#c=C.0000000000000001")
 

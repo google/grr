@@ -594,10 +594,9 @@ class GRRBaseTest(unittest.TestCase):
         subject_urn=rdf_client.ClientURN(client_id),
         approver=approver,
         token=token)
-    with ACLChecksDisabledContextManager():
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      return flow_fd.state.approval_urn
+    flow_fd = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, token=self.token)
+    return flow_fd.state.approval_urn
 
   def GrantClientApproval(self,
                           client_id,
@@ -982,22 +981,6 @@ class VFSOverrider(object):
       vfs.VFS_HANDLERS[self._vfs_type] = self._old_handler
     else:
       del vfs.VFS_HANDLERS[self._vfs_type]
-
-
-# TODO(user): This is a stub now. Remove.
-class ACLChecksDisabledContextManager(object):
-
-  def __enter__(self):
-    pass
-
-  def Start(self):
-    pass
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    pass
-
-  def Stop(self):
-    pass
 
 
 class FakeTime(object):

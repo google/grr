@@ -15,8 +15,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt start/stop/delete functionality."""
 
   def testToolbarStateForStoppedHunt(self):
-    with self.ACLChecksDisabled():
-      self.CreateSampleHunt(stopped=True)
+    self.CreateSampleHunt(stopped=True)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -38,8 +37,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
                    "css=button[name=ModifyHunt]:not([disabled])")
 
   def testToolbarStateForRunningHunt(self):
-    with self.ACLChecksDisabled():
-      self.CreateSampleHunt(stopped=False)
+    self.CreateSampleHunt(stopped=False)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -61,8 +59,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
                    "css=button[name=ModifyHunt][disabled]")
 
   def testRunHunt(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(stopped=True)
+    hunt = self.CreateSampleHunt(stopped=True)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -86,8 +83,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.urn)
+    self.GrantHuntApproval(hunt.urn)
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
@@ -111,8 +107,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.CheckState("STARTED")
 
   def testStopHunt(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(stopped=False)
+    hunt = self.CreateSampleHunt(stopped=False)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -137,8 +132,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.session_id)
+    self.GrantHuntApproval(hunt.session_id)
 
     # Click on Stop and wait for dialog again.
     self.Click("css=button[name=StopHunt]")
@@ -162,8 +156,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.CheckState("STOPPED")
 
   def testModifyHunt(self):
-    with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(stopped=True)
+    hunt = self.CreateSampleHunt(stopped=True)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -198,8 +191,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.session_id)
+    self.GrantHuntApproval(hunt.session_id)
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
@@ -231,12 +223,11 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, expiry_time)
 
   def testDeleteHunt(self):
-    with self.ACLChecksDisabled():
-      # This needs to be created by a different user so we can test the
-      # approval dialog.
-      hunt = self.CreateSampleHunt(
-          stopped=True,
-          token=access_control.ACLToken(username="random user", reason="test"))
+    # This needs to be created by a different user so we can test the
+    # approval dialog.
+    hunt = self.CreateSampleHunt(
+        stopped=True,
+        token=access_control.ACLToken(username="random user", reason="test"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -260,8 +251,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
-    with self.ACLChecksDisabled():
-      self.GrantHuntApproval(hunt.session_id)
+    self.GrantHuntApproval(hunt.session_id)
 
     # Select a hunt again, as it's deselected after approval dialog
     # disappears. TODO(user): if this behavior is not convenient, fix it.

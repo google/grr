@@ -20,11 +20,10 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(VFSViewTest, self).setUp()
     # Prepare our fixture.
-    with self.ACLChecksDisabled():
-      self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      test_lib.ClientFixture(self.client_id, self.token)
-      gui_test_lib.CreateFileVersions(self.token)
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    test_lib.ClientFixture(self.client_id, self.token)
+    gui_test_lib.CreateFileVersions(self.token)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testUnicodeContentIsShownInTree(self):
     # Open VFS view for client 1 on a specific location.
@@ -45,12 +44,11 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
 
   def testUrlSensitiveCharactersAreShownInTree(self):
-    with self.ACLChecksDisabled():
-      gui_test_lib.CreateFileVersion(
-          "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
-          "Hello World",
-          timestamp=gui_test_lib.TIME_1,
-          token=self.token)
+    gui_test_lib.CreateFileVersion(
+        "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+        "Hello World",
+        timestamp=gui_test_lib.TIME_1,
+        token=self.token)
 
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
@@ -73,12 +71,11 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Hello World", self.GetText, "css=div.monospace pre")
 
   def testFolderPathCanContainUrlSensitiveCharacters(self):
-    with self.ACLChecksDisabled():
-      gui_test_lib.CreateFileVersion(
-          "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
-          "Hello World",
-          timestamp=gui_test_lib.TIME_1,
-          token=self.token)
+    gui_test_lib.CreateFileVersion(
+        "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+        "Hello World",
+        timestamp=gui_test_lib.TIME_1,
+        token=self.token)
 
     # Open VFS view for client 1 on a location containing unicode characters.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"

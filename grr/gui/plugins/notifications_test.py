@@ -53,10 +53,9 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     super(TestNotifications, self).setUp()
 
     # Have something for us to look at.
-    with self.ACLChecksDisabled():
-      self.client_id = self.SetupClients(1)[0]
-      self.session_id = self.GenerateNotifications(self.client_id, self.token)
-      self.RequestAndGrantClientApproval(self.client_id)
+    self.client_id = self.SetupClients(1)[0]
+    self.session_id = self.GenerateNotifications(self.client_id, self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testNotifications(self):
     """Test the notifications interface."""

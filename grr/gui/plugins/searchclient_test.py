@@ -17,8 +17,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
   def setUp(self):
     super(TestClientSearch, self).setUp()
-    with self.ACLChecksDisabled():
-      self._CreateClients()
+    self._CreateClients()
 
   def _CreateClients(self):
     # To test all search keywords, we can rely on SetupClients
@@ -165,8 +164,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchingForHuntIdOpensHunt(self):
-    with self.ACLChecksDisabled():
-      hunt_id = self.CreateHunt(description="demo hunt").urn.Basename()
+    hunt_id = self.CreateHunt(description="demo hunt").urn.Basename()
 
     self.Open("/")
     self.Type("client_query", text=hunt_id, end_with_enter=True)
@@ -203,8 +201,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
                         "css=#client_query")
 
   def testBackButtonWorksAsExpected(self):
-    with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval(self.client_ids[0])
+    self.RequestAndGrantClientApproval(self.client_ids[0])
 
     client_name = self.client_ids[0].Basename()
 
@@ -238,9 +235,8 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
 
   def testDefaultGUISettingsWork(self):
-    with self.ACLChecksDisabled():  # Use the default GUI settings.
-      aff4.FACTORY.Delete(
-          aff4.ROOT_URN.Add("users/%s" % self.token.username), token=self.token)
+    aff4.FACTORY.Delete(
+        aff4.ROOT_URN.Add("users/%s" % self.token.username), token=self.token)
 
     self.Open("/")  # The ui displays an error here if the settings are invalid.
 
