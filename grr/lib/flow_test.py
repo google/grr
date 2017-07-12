@@ -6,7 +6,6 @@ import time
 
 
 from grr.client import vfs
-from grr.client.client_actions import admin
 from grr.client.client_actions import standard
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -527,45 +526,6 @@ class FlowTest(BasicFlowTest):
     self.assertEqual(message.session_id, flow_obj.session_id)
     self.assertEqual(message.request_id, 1)
     self.assertEqual(message.name, "Test")
-
-  def testCallClientWellKnown(self):
-    """Well known flows can also call the client."""
-    cls = flow.GRRFlow.classes["GetClientStatsAuto"]
-    flow_obj = cls(cls.well_known_session_id, mode="rw", token=self.token)
-
-    flow_obj.CallClient(self.client_id, server_stubs.GetClientStats)
-
-    # Check that a message went out to the client
-    manager = queue_manager.QueueManager(token=self.token)
-    tasks = manager.Query(self.client_id, limit=100)
-
-    self.assertEqual(len(tasks), 1)
-
-    message = tasks[0]
-
-    # If we don't specify where to send the replies, they go to the devnull flow
-    devnull = flow.GRRFlow.classes["IgnoreResponses"]
-    self.assertEqual(message.session_id, devnull.well_known_session_id)
-    self.assertEqual(message.request_id, 0)
-    self.assertEqual(message.name, server_stubs.GetClientStats.__name__)
-
-    messages = []
-
-    def StoreMessage(_, msg):
-      messages.append(msg)
-
-    with utils.Stubber(devnull, "ProcessMessage", StoreMessage):
-      client_mock = action_mocks.ActionMock(admin.GetClientStats)
-      for _ in test_lib.TestFlowHelper(
-          "ClientActionRunner",
-          client_mock,
-          client_id=self.client_id,
-          action="GetClientStats",
-          token=self.token):
-        pass
-
-    # Make sure the messages arrived.
-    self.assertEqual(len(messages), 1)
 
   def testAuthentication1(self):
     """Test that flows refuse to processes unauthenticated messages."""

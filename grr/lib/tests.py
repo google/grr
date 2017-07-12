@@ -5,6 +5,8 @@ This module loads and registers all the GRR library tests.
 """
 
 
+import platform
+
 # These need to register plugins
 # pylint: disable=unused-import,g-import-not-at-top
 from grr.lib import aff4_test
@@ -29,7 +31,11 @@ from grr.lib import export_utils_test
 from grr.lib import flow_test
 from grr.lib import flow_utils_test
 from grr.lib import front_end_test
-from grr.lib import fuse_mount_test
+
+if platform.system() == "Linux":
+  # Trying to import this module on non-Linux platforms won't work.
+  from grr.lib import fuse_mount_test
+
 from grr.lib import hunt_test
 from grr.lib import instant_output_plugin_test
 from grr.lib import ipv6_utils_test

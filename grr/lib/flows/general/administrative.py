@@ -791,17 +791,6 @@ class ClientStartupHandler(flow.EventListener):
     events.Events.PublishEventInline("ClientStartup", message, token=self.token)
 
 
-class IgnoreResponses(flow.WellKnownFlow):
-  """This flow exists so other well known flows can delegate their responses."""
-
-  category = None
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="DevNull")
-
-  def ProcessMessage(self, message):
-    pass
-
-
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KeepAliveArgs
 

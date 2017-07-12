@@ -1910,6 +1910,102 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         self.test_row, predicate, token=self.token)
     self.assertIsNone(stored)
 
+  def testQueueManager(self):
+    session_id = rdfvalue.SessionID(flow_name="test")
+    client_id = rdf_client.ClientURN("C.1000000000000000")
+
+    request = rdf_flows.RequestState(
+        id=1,
+        client_id=client_id,
+        next_state="TestState",
+        session_id=session_id)
+
+    with queue_manager.QueueManager(token=self.token) as manager:
+      manager.QueueRequest(request)
+
+    # We only have one unanswered request on the queue.
+    all_requests = list(manager.FetchRequestsAndResponses(session_id))
+    self.assertEqual(len(all_requests), 1)
+    self.assertEqual(all_requests[0], (request, []))
+
+    # FetchCompletedRequests should return nothing now.
+    self.assertEqual(list(manager.FetchCompletedRequests(session_id)), [])
+
+    # Now queue more requests and responses:
+    with queue_manager.QueueManager(token=self.token) as manager:
+      # Start with request 2 - leave request 1 un-responded to.
+      for request_id in range(2, 5):
+        request = rdf_flows.RequestState(
+            id=request_id,
+            client_id=client_id,
+            next_state="TestState",
+            session_id=session_id)
+
+        manager.QueueRequest(request)
+
+        response_id = None
+        for response_id in range(1, 10):
+          # Normal message.
+          manager.QueueResponse(
+              rdf_flows.GrrMessage(
+                  session_id=session_id,
+                  request_id=request_id,
+                  response_id=response_id))
+
+        # And a status message.
+        manager.QueueResponse(
+            rdf_flows.GrrMessage(
+                session_id=session_id,
+                request_id=request_id,
+                response_id=response_id + 1,
+                type=rdf_flows.GrrMessage.Type.STATUS))
+
+    completed_requests = list(manager.FetchCompletedRequests(session_id))
+    self.assertEqual(len(completed_requests), 3)
+
+    # First completed message is request_id = 2 with 10 responses.
+    self.assertEqual(completed_requests[0][0].id, 2)
+
+    # Last message is the status message.
+    self.assertEqual(completed_requests[0][-1].type,
+                     rdf_flows.GrrMessage.Type.STATUS)
+    self.assertEqual(completed_requests[0][-1].response_id, 10)
+
+    # Now fetch all the completed responses. Set the limit so we only fetch some
+    # of the responses.
+    completed_response = list(manager.FetchCompletedResponses(session_id))
+    self.assertEqual(len(completed_response), 3)
+    for i, (request, responses) in enumerate(completed_response, 2):
+      self.assertEqual(request.id, i)
+      self.assertEqual(len(responses), 10)
+
+    # Now check if the limit is enforced. The limit refers to the total number
+    # of responses to return. We ask for maximum 15 responses, so we should get
+    # a single request with 10 responses (since 2 requests will exceed the
+    # limit).
+    more_data = False
+    i = 0
+    try:
+      partial_response = manager.FetchCompletedResponses(session_id, limit=15)
+      for i, (request, responses) in enumerate(partial_response, 2):
+        self.assertEqual(request.id, i)
+        self.assertEqual(len(responses), 10)
+    except queue_manager.MoreDataException:
+      more_data = True
+
+    # Returns the first request that is completed.
+    self.assertEqual(i, 3)
+
+    # Make sure the manager told us that more data is available.
+    self.assertTrue(more_data)
+
+    with queue_manager.QueueManager(token=self.token) as manager:
+      manager.QueueNotification(
+          rdf_flows.GrrNotification(session_id=session_id, timestamp=100))
+    stored_notifications = manager.GetNotificationsForAllShards(
+        session_id.Queue())
+    self.assertEqual(len(stored_notifications), 1)
+
 
 class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   """Long running benchmarks where the results are dumped to a CSV file.

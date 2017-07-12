@@ -1355,9 +1355,9 @@ class MockClient(object):
         message.auth_state = "AUTHENTICATED"
 
         session_id = message.session_id
-
-        logging.info("Running well known flow: %s", session_id)
-        self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
+        if session_id:
+          logging.info("Running well known flow: %s", session_id)
+          self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
 
       return
 

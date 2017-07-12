@@ -1273,47 +1273,6 @@ class WellKnownFlow(GRRFlow):
             message is not authenticated.
     """
 
-  def CallClient(self,
-                 client_id,
-                 action_cls,
-                 request=None,
-                 response_session_id=None,
-                 **kwargs):
-    """Calls a client action from a well known flow."""
-
-    if client_id is None:
-      raise FlowError("CallClient needs a valid client_id.")
-
-    client_id = rdf_client.ClientURN(client_id)
-
-    if action_cls.in_rdfvalue is None:
-      if request:
-        raise RuntimeError(
-            "Client action %s does not expect args." % action_cls.__name__)
-    else:
-      if request is None:
-        # Create a new rdf request.
-        request = action_cls.in_rdfvalue(**kwargs)
-      else:
-        # Verify that the request type matches the client action requirements.
-        if not isinstance(request, action_cls.in_rdfvalue):
-          raise RuntimeError("Client action expected %s but got %s" %
-                             (action_cls.in_rdfvalue, type(request)))
-
-    if response_session_id is None:
-      cls = GRRFlow.classes["IgnoreResponses"]
-      response_session_id = cls.well_known_session_id
-
-    msg = rdf_flows.GrrMessage(
-        session_id=utils.SmartUnicode(response_session_id),
-        name=action_cls.__name__,
-        request_id=0,
-        queue=client_id.Queue(),
-        payload=request,
-        generate_task_id=True)
-
-    queue_manager.QueueManager(token=self.token).Schedule(msg)
-
   def _ValidateState(self):
     # For normal flows it's a bug to write an empty state, here it's ok.
     pass
