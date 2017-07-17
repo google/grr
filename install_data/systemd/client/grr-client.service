@@ -4,7 +4,6 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-PrivateTmp=true
 Restart=on-failure
 RestartSec=120
 LimitNOFILE=20000
