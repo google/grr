@@ -29,6 +29,8 @@ from grr.lib.flows.general import discovery
 
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import cloud
+from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto.api import client_pb2
@@ -63,7 +65,24 @@ class ApiClientId(rdfvalue.RDFString):
 
 
 class ApiClient(rdf_structs.RDFProtoStruct):
+  """API client object."""
+
   protobuf = client_pb2.ApiClient
+  rdf_deps = [
+      aff4_rdfvalues.AFF4ObjectLabel,
+      ApiClientId,
+      rdfvalue.ByteSize,
+      rdf_client.ClientInformation,
+      rdf_client.ClientURN,
+      cloud.CloudInstance,
+      rdf_client.HardwareInfo,
+      rdf_client.Interface,
+      rdf_client.KnowledgeBase,
+      rdfvalue.RDFDatetime,
+      rdf_client.Uname,
+      rdf_client.User,
+      rdf_client.Volume,
+  ]
 
   def InitFromAff4Object(self, client_obj):
     self.urn = client_obj.urn
@@ -113,6 +132,11 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
 class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiClientActionRequest
+  rdf_deps = [
+      flows.GrrMessage,
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
@@ -121,6 +145,9 @@ class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiSearchClientsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiSearchClientsResult
+  rdf_deps = [
+      ApiClient,
+  ]
 
 
 class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
@@ -201,6 +228,10 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientArgs
+  rdf_deps = [
+      ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
@@ -226,10 +257,17 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetClientVersionsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientVersionsArgs
+  rdf_deps = [
+      ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetClientVersionsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientVersionsResult
+  rdf_deps = [
+      ApiClient,
+  ]
 
 
 class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
@@ -260,10 +298,16 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientVersionTimesArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiGetClientVersionTimesResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientVersionTimesResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
@@ -284,6 +328,9 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiInterrogateClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiInterrogateClientArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiInterrogateClientResult(rdf_structs.RDFProtoStruct):
@@ -341,6 +388,9 @@ class ApiGetInterrogateOperationStateHandler(
 
 class ApiGetLastClientIPAddressArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetLastClientIPAddressArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
@@ -367,10 +417,16 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListClientCrashesArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientCrashesArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiListClientCrashesResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientCrashesResult
+  rdf_deps = [
+      rdf_client.ClientCrash,
+  ]
 
 
 class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
@@ -392,6 +448,9 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiAddClientsLabelsArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -433,6 +492,9 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiRemoveClientsLabelsArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -486,6 +548,9 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientsLabelsResult
+  rdf_deps = [
+      aff4_rdfvalues.AFF4ObjectLabel,
+  ]
 
 
 class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
@@ -522,10 +587,16 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListClientActionRequestsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientActionRequestsArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
 
 
 class ApiListClientActionRequestsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientActionRequestsResult
+  rdf_deps = [
+      ApiClientActionRequest,
+  ]
 
 
 class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
@@ -575,10 +646,17 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetClientLoadStatsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientLoadStatsArgs
+  rdf_deps = [
+      ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetClientLoadStatsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientLoadStatsResult
+  rdf_deps = [
+      api_stats.ApiStatsStoreMetricDataPoint,
+  ]
 
 
 class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):

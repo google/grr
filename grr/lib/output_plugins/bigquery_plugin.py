@@ -50,6 +50,9 @@ class TempOutputTracker(object):
 
 class BigQueryOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.BigQueryOutputPluginArgs
+  rdf_deps = [
+      export.ExportOptions,
+  ]
 
 
 class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):

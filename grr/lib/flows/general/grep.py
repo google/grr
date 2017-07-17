@@ -7,12 +7,18 @@ import stat
 from grr.lib import flow
 from grr.lib import server_stubs
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
 class SearchFileContentArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.SearchFileContentArgs
+  rdf_deps = [
+      rdf_client.BareGrepSpec,
+      paths.GlobExpression,
+      paths.PathSpec,
+  ]
 
 
 class SearchFileContent(flow.GRRFlow):

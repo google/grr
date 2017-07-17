@@ -295,8 +295,8 @@ def StateHandler(auth_required=True):
         responses = Responses(
             request=request, responses=responses, auth_required=auth_required)
 
-        if responses.status:
-          runner.SaveResourceUsage(request, responses)
+      if responses.status:
+        runner.SaveResourceUsage(request, responses)
 
       stats.STATS.IncrementCounter("grr_worker_states_run")
 
@@ -522,14 +522,13 @@ class FlowBase(aff4.AFF4Volume):
     """
 
   @classmethod
-  def StartFlow(
-      cls,
-      args=None,
-      runner_args=None,  # pylint: disable=g-bad-name
-      parent_flow=None,
-      sync=True,
-      token=None,
-      **kwargs):
+  def StartFlow(cls,
+                args=None,
+                runner_args=None,
+                parent_flow=None,
+                sync=True,
+                token=None,
+                **kwargs):
     """The main factory function for Creating and executing a new flow.
 
     Args:

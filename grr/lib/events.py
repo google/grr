@@ -19,6 +19,10 @@ from grr.proto import jobs_pb2
 
 class AuditEvent(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.AuditEvent
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
   def __init__(self, initializer=None, age=None, **kwargs):
 

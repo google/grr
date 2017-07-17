@@ -306,14 +306,17 @@ class HuntRunner(object):
 
     Returns:
        The URN of the child flow which was created.
+
+    Raises:
+       RuntimeError: In case of no cpu quota left to start more clients.
     """
     client_id = client_id or self.runner_args.client_id
 
-    # This looks very much like CallClient() above - we prepare a request state,
-    # and add it to our queue - any responses from the child flow will return to
-    # the request state and the stated next_state. Note however, that there is
-    # no client_id or actual request message here because we directly invoke the
-    # child flow rather than queue anything for it.
+    # We prepare a request state, and add it to our queue - any
+    # responses from the child flow will return to the request state
+    # and the stated next_state. Note however, that there is no
+    # client_id or actual request message here because we directly
+    # invoke the child flow rather than queue anything for it.
     state = rdf_flows.RequestState(
         id=self.GetNextOutboundId(),
         session_id=utils.SmartUnicode(self.session_id),
@@ -333,12 +336,46 @@ class HuntRunner(object):
     # the call chain.
     write_intermediate = kwargs.pop("write_intermediate_results", False)
 
+    subflow_cpu_limit = None
+
+    if self.runner_args.per_client_cpu_limit:
+      subflow_cpu_limit = self.runner_args.per_client_cpu_limit
+
+    if self.runner_args.cpu_limit:
+      cpu_usage_data = self.context.client_resources.cpu_usage
+      remaining_cpu_quota = (
+          self.runner_args.cpu_limit - cpu_usage_data.user_cpu_time -
+          cpu_usage_data.system_cpu_time)
+      if subflow_cpu_limit is None:
+        subflow_cpu_limit = remaining_cpu_quota
+      else:
+        subflow_cpu_limit = min(subflow_cpu_limit, remaining_cpu_quota)
+
+      if subflow_cpu_limit == 0:
+        raise RuntimeError("Out of CPU quota.")
+
+    subflow_network_limit = None
+
+    if self.runner_args.per_client_network_limit_bytes:
+      subflow_network_limit = self.runner_args.per_client_network_limit_bytes
+
+    if self.runner_args.network_bytes_limit:
+      remaining_network_quota = (self.runner_args.network_bytes_limit -
+                                 self.context.network_bytes_sent)
+      if subflow_network_limit is None:
+        subflow_network_limit = remaining_network_quota
+      else:
+        subflow_network_limit = min(subflow_network_limit,
+                                    remaining_network_quota)
+
     # Create the new child flow but do not notify the user about it.
     child_urn = self.hunt_obj.StartFlow(
         base_session_id=base_session_id or self.session_id,
         client_id=client_id,
+        cpu_limit=subflow_cpu_limit,
         flow_name=flow_name,
         logs_collection_urn=logs_urn,
+        network_bytes_limit=subflow_network_limit,
         notify_to_user=False,
         parent_flow=self.hunt_obj,
         queue=self.runner_args.queue,
@@ -413,7 +450,7 @@ class HuntRunner(object):
 
     if self.runner_args.network_bytes_limit:
       if (self.runner_args.network_bytes_limit <
-          self.runner_args.network_bytes_sent):
+          self.context.network_bytes_sent):
         # We have exceeded our byte limit, stop this flow.
         raise flow_runner.FlowRunnerError("Network bytes limit exceeded.")
 
@@ -558,8 +595,7 @@ class HuntRunner(object):
   def SaveResourceUsage(self, request, responses):
     """Update the resource usage of the hunt."""
     # Per client stats.
-    self.hunt_obj.ProcessClientResourcesStats(request.client_id,
-                                              responses.status)
+    self.hunt_obj.ProcessClientResourcesStats(request.client_id, responses)
     # Overall hunt resource usage.
     self.UpdateProtoResources(responses.status)
 
@@ -573,8 +609,7 @@ class HuntRunner(object):
         creator=self.token.username,
         expires=args.expiry_time.Expiry(),
         start_time=rdfvalue.RDFDatetime.Now(),
-        usage_stats=rdf_stats.ClientResourcesStats(),
-        remaining_cpu_quota=args.cpu_limit,)
+        usage_stats=rdf_stats.ClientResourcesStats())
 
     return context
 
@@ -1094,7 +1129,7 @@ class GRRHunt(flow.FlowBase):
         None, cls.classes[runner_args.hunt_name], mode="w", token=token)
 
     # Hunt is called using keyword args. We construct an args proto from the
-    # kwargs..
+    # kwargs.
     if hunt_obj.args_type and args is None:
       args = hunt_obj.args_type()
       cls.FilterArgsFromSemanticProtobuf(args, kwargs)
@@ -1328,16 +1363,23 @@ class GRRHunt(flow.FlowBase):
     self.RegisterClientError(
         client_id, log_message=log_message, backtrace=backtrace)
 
-  def ProcessClientResourcesStats(self, client_id, status):
+  def ProcessClientResourcesStats(self, client_id, responses):
     """Process status message from a client and update the stats.
-
-    This method may be implemented in the subclasses. It's called
-    once *per every hunt's state per every client*.
 
     Args:
       client_id: Client id.
-      status: Status returned from the client.
+      responses: The responses object returned from the client.
     """
+    flow_path = responses.status.child_session_id
+    status = responses.status
+
+    resources = rdf_client.ClientResources()
+    resources.client_id = client_id
+    resources.session_id = flow_path
+    resources.cpu_usage.user_cpu_time = status.cpu_time_used.user_cpu_time
+    resources.cpu_usage.system_cpu_time = status.cpu_time_used.system_cpu_time
+    resources.network_bytes_sent = status.network_bytes_sent
+    self.context.usage_stats.RegisterResources(resources)
 
   def GetClientsCounts(self):
 

@@ -21,10 +21,20 @@ from grr.proto import flows_pb2
 
 class RegistryFinderCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RegistryFinderCondition
+  rdf_deps = [
+      rdf_file_finder.FileFinderContentsLiteralMatchCondition,
+      rdf_file_finder.FileFinderContentsRegexMatchCondition,
+      rdf_file_finder.FileFinderModificationTimeCondition,
+      rdf_file_finder.FileFinderSizeCondition,
+  ]
 
 
 class RegistryFinderArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RegistryFinderArgs
+  rdf_deps = [
+      rdf_paths.GlobExpression,
+      RegistryFinderCondition,
+  ]
 
 
 class RegistryFinder(flow.GRRFlow):

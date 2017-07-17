@@ -342,6 +342,9 @@ class VFSGRRClient(standard.VFSDirectory):
 
 class UpdateVFSFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateVFSFileArgs
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class UpdateVFSFile(flow.GRRFlow):

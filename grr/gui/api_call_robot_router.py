@@ -14,12 +14,14 @@ from grr.gui.api_plugins import reflection as api_reflection
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_call_router_pb2
@@ -31,10 +33,16 @@ class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
 
 class RobotRouterFileFinderFlowParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterFileFinderFlowParams
+  rdf_deps = [
+      rdfvalue.Duration,
+  ]
 
 
 class RobotRouterArtifactCollectorFlowParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterArtifactCollectorFlowParams
+  rdf_deps = [
+      rdfvalue.Duration,
+  ]
 
 
 class RobotRouterGetFlowParams(rdf_structs.RDFProtoStruct):
@@ -47,10 +55,21 @@ class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
 
 class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterGetFlowFilesArchiveParams
+  rdf_deps = [
+      paths.GlobExpression,
+  ]
 
 
 class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.ApiCallRobotRouterParams
+  rdf_deps = [
+      RobotRouterArtifactCollectorFlowParams,
+      RobotRouterFileFinderFlowParams,
+      RobotRouterGetFlowFilesArchiveParams,
+      RobotRouterGetFlowParams,
+      RobotRouterListFlowResultsParams,
+      RobotRouterSearchClientsParams,
+  ]
 
 
 LABEL_NAME_PREFIX = "robotapi-"

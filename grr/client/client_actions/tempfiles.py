@@ -311,4 +311,5 @@ class CheckFreeGRRTempSpace(actions.ActionPlugin):
     else:
       path = GetDefaultGRRTempDirectory()
     total, used, free, _ = psutil.disk_usage(path)
-    self.SendReply(path=path, total=total, used=used, free=free)
+    self.SendReply(
+        rdf_client.DiskUsage(path=path, total=total, used=used, free=free))

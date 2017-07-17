@@ -13,6 +13,7 @@ from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
 from grr.parsers import firefox3_history
@@ -274,6 +275,9 @@ BROWSER_PATHS = {
 
 class CacheGrepArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CacheGrepArgs
+  rdf_deps = [
+      standard.RegularExpression,
+  ]
 
 
 class CacheGrep(flow.GRRFlow):

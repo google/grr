@@ -25,6 +25,7 @@ from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -107,6 +108,9 @@ class MemoryCollector(flow.GRRFlow):
 
 class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = rekall_pb2.AnalyzeClientMemoryArgs
+  rdf_deps = [
+      rekall_types.RekallRequest,
+  ]
 
 
 class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
@@ -288,6 +292,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
 class ListVADBinariesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListVADBinariesArgs
+  rdf_deps = [
+      standard.RegularExpression,
+  ]
 
 
 class ListVADBinaries(flow.GRRFlow):

@@ -42,6 +42,10 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   helpers.
   """
   protobuf = jobs_pb2.PathSpec
+  rdf_deps = [
+      rdfvalue.ByteSize,
+      "PathSpec",  # TODO(user): recursive definition.
+  ]
 
   def CopyConstructor(self, other):
     # pylint: disable=protected-access

@@ -416,6 +416,9 @@ class SeekIndex(rdf_structs.RDFProtoStruct):
   """Seek index (collection of SeekIndexPairs, essentially)."""
 
   protobuf = jobs_pb2.SeekIndex
+  rdf_deps = [
+      SeekIndexPair,
+  ]
 
 
 class PackedVersionedCollection(RDFValueCollection):

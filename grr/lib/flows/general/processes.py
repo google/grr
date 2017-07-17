@@ -5,12 +5,16 @@
 from grr.lib import flow
 from grr.lib import server_stubs
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
 class ListProcessesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListProcessesArgs
+  rdf_deps = [
+      standard.RegularExpression,
+  ]
 
 
 class ListProcesses(flow.GRRFlow):

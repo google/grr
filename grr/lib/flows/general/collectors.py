@@ -925,10 +925,18 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
 class ArtifactFilesDownloaderFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFilesDownloaderFlowArgs
+  rdf_deps = [
+      artifact_registry.ArtifactName,
+      rdfvalue.ByteSize,
+  ]
 
 
 class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFilesDownloaderResult
+  rdf_deps = [
+      paths.PathSpec,
+      rdf_client.StatEntry,
+  ]
 
   def GetOriginalResultType(self):
     if self.HasField("original_result_type"):

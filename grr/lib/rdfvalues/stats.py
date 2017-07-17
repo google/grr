@@ -6,6 +6,7 @@ import math
 import threading
 
 from grr.lib import utils
+from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import analysis_pb2
@@ -19,6 +20,9 @@ class StatsHistogramBin(rdf_structs.RDFProtoStruct):
 class StatsHistogram(rdf_structs.RDFProtoStruct):
   """Histogram with a user-provided set of bins."""
   protobuf = jobs_pb2.StatsHistogram
+  rdf_deps = [
+      StatsHistogramBin,
+  ]
 
   @classmethod
   def FromBins(cls, bins):
@@ -41,6 +45,9 @@ class StatsHistogram(rdf_structs.RDFProtoStruct):
 class RunningStats(rdf_structs.RDFProtoStruct):
   """Class for collecting running stats: mean, stdev and histogram data."""
   protobuf = jobs_pb2.RunningStats
+  rdf_deps = [
+      StatsHistogram,
+  ]
 
   def RegisterValue(self, value):
     self.num += 1
@@ -67,6 +74,10 @@ class RunningStats(rdf_structs.RDFProtoStruct):
 class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
   protobuf = jobs_pb2.ClientResourcesStats
+  rdf_deps = [
+      client.ClientResources,
+      RunningStats,
+  ]
 
   CPU_STATS_BINS = [
       0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -120,6 +131,9 @@ class SampleFloat(rdf_structs.RDFProtoStruct):
 class Graph(rdf_structs.RDFProtoStruct):
   """A Graph is a collection of sample points."""
   protobuf = analysis_pb2.Graph
+  rdf_deps = [
+      Sample,
+  ]
 
   def Append(self, **kwargs):
     self.data.Append(**kwargs)
@@ -141,6 +155,9 @@ class Graph(rdf_structs.RDFProtoStruct):
 class GraphFloat(Graph):
   """A Graph that stores sample points as floats."""
   protobuf = analysis_pb2.GraphFloat
+  rdf_deps = [
+      SampleFloat,
+  ]
 
   def __getitem__(self, item):
     return SampleFloat(self.data[item])

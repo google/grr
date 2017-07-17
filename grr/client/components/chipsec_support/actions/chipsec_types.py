@@ -4,6 +4,8 @@ __author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 import chipsec_pb2
 
+from grr.lib import rdfvalue
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 
 
@@ -15,11 +17,17 @@ class DumpFlashImageRequest(rdf_structs.RDFProtoStruct):
 class DumpFlashImageResponse(rdf_structs.RDFProtoStruct):
   """A response from Chipsec to dump the flash image (BIOS)."""
   protobuf = chipsec_pb2.DumpFlashImageResponse
+  rdf_deps = [
+      paths.PathSpec,
+  ]
 
 
 class ACPITableData(rdf_structs.RDFProtoStruct):
   """Response from Chipsec for one ACPI table."""
   protobuf = chipsec_pb2.ACPITableData
+  rdf_deps = [
+      rdfvalue.RDFBytes,
+  ]
 
 
 class DumpACPITableRequest(rdf_structs.RDFProtoStruct):
@@ -30,3 +38,6 @@ class DumpACPITableRequest(rdf_structs.RDFProtoStruct):
 class DumpACPITableResponse(rdf_structs.RDFProtoStruct):
   """A response from Chipsec to dump an ACPI table."""
   protobuf = chipsec_pb2.DumpACPITableResponse
+  rdf_deps = [
+      ACPITableData,
+  ]

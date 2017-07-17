@@ -19,6 +19,9 @@ from grr.proto import flows_pb2
 
 class CAEnrolerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CAEnrolerArgs
+  rdf_deps = [
+      rdf_crypto.Certificate,
+  ]
 
 
 class CAEnroler(flow.GRRFlow):

@@ -60,7 +60,7 @@ class GetInstallDate(actions.ActionPlugin):
                              "Software\\Microsoft\\Windows NT\\CurrentVersion",
                              0, _winreg.KEY_READ)
     install_date = _winreg.QueryValueEx(subkey, "InstallDate")
-    self.SendReply(integer=install_date[0])
+    self.SendReply(rdf_protodict.DataBlob(integer=install_date[0]))
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -90,7 +90,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
     for interface_dict in self.RunNetAdapterWMIQuery():
-      self.SendReply(**interface_dict)
+      self.SendReply(rdf_client.Interface(**interface_dict))
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -107,10 +107,11 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
           label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
           self.SendReply(
-              device=volume,
-              mount_point="/%s:/" % drive[0],
-              type=fs_type,
-              label=UnicodeFromCodePage(label))
+              rdf_client.Filesystem(
+                  device=volume,
+                  mount_point="/%s:/" % drive[0],
+                  type=fs_type,
+                  label=UnicodeFromCodePage(label)))
         except win32api.error:
           pass
 
@@ -130,9 +131,10 @@ class Uninstall(actions.ActionPlugin):
     svc_config = QueryService(config_lib.CONFIG["Nanny.service_name"])
     if svc_config[1] == win32service.SERVICE_DISABLED:
       logging.info("Disabled service successfully")
-      self.SendReply(string="Service disabled.")
+      self.SendReply(rdf_protodict.DataBlob(string="Service disabled."))
     else:
-      self.SendReply(string="Service failed to disable.")
+      self.SendReply(
+          rdf_protodict.DataBlob(string="Service failed to disable."))
 
 
 def QueryService(svc_name):

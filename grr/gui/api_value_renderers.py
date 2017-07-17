@@ -40,6 +40,9 @@ class ApiRDFAllowedEnumValueDescriptor(rdf_structs.RDFProtoStruct):
 
 class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiRDFValueFieldDescriptor
+  rdf_deps = [
+      ApiRDFAllowedEnumValueDescriptor,
+  ]
 
   def GetDefaultValueClass(self):
     return rdfvalue.RDFValue.classes.get(self.type)
@@ -47,6 +50,9 @@ class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
 
 class ApiRDFValueDescriptor(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiRDFValueDescriptor
+  rdf_deps = [
+      ApiRDFValueFieldDescriptor,
+  ]
 
   def GetDefaultValueClass(self):
     return rdfvalue.RDFValue.classes.get(self.name)

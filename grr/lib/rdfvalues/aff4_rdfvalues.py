@@ -5,6 +5,7 @@
 
 import re
 
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -16,6 +17,9 @@ from grr.proto import jobs_pb2
 class AFF4ObjectLabel(structs.RDFProtoStruct):
   """Labels are used to tag AFF4Objects."""
   protobuf = jobs_pb2.AFF4ObjectLabel
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   def __init__(self, initializer=None, age=None, **kwargs):
     super(AFF4ObjectLabel, self).__init__(
@@ -39,6 +43,9 @@ class AFF4ObjectLabelsList(structs.RDFProtoStruct):
   """List of AFF4ObjectLabels."""
 
   protobuf = jobs_pb2.AFF4ObjectLabelsList
+  rdf_deps = [
+      AFF4ObjectLabel,
+  ]
 
   @staticmethod
   def RegexForStringifiedValueMatch(label_name):

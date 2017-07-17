@@ -18,19 +18,72 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
 
+class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
+  """An rdfvalue describing the output plugin to create."""
+
+  protobuf = output_plugin_pb2.OutputPluginDescriptor
+
+  def GetPluginClass(self):
+    if self.plugin_name:
+      plugin_cls = OutputPlugin.classes.get(self.plugin_name)
+      if plugin_cls is None:
+        logging.warn("Unknown output plugin %s", self.plugin_name)
+        return UnknownOutputPlugin
+
+      return plugin_cls
+
+  def GetPluginArgsClass(self):
+    plugin_cls = self.GetPluginClass()
+    if plugin_cls:
+      return plugin_cls.args_type
+
+  def GetPluginForState(self, plugin_state):
+    cls = self.GetPluginClass()
+
+    return cls(None, state=plugin_state)
+
+  def GetPluginVerifiersClasses(self):
+    result = []
+    if self.plugin_name:
+      for cls in OutputPluginVerifier.classes.values():
+        if cls.plugin_name == self.plugin_name:
+          result.append(cls)
+
+    return result
+
+  def GetPluginVerifiers(self):
+    return [cls() for cls in self.GetPluginVerifiersClasses()]
+
+  def __str__(self):
+    result = self.plugin_name
+    if self.plugin_args:
+      result += " <%s>" % utils.SmartStr(self.plugin_args)
+    return result
+
+
 class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
   """Describes processing status of a single batch by a hunt output plugin."""
   protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
+  rdf_deps = [
+      OutputPluginDescriptor,
+  ]
 
 
 class OutputPluginVerificationResult(rdf_structs.RDFProtoStruct):
   """Describes result of an output plugin's output verification."""
   protobuf = output_plugin_pb2.OutputPluginVerificationResult
+  rdf_deps = [
+      OutputPluginDescriptor,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class OutputPluginVerificationResultsList(rdf_structs.RDFProtoStruct):
   """List of OutputPluginVerificationsResults."""
   protobuf = output_plugin_pb2.OutputPluginVerificationResultsList
+  rdf_deps = [
+      OutputPluginVerificationResult,
+  ]
 
 
 class Error(Exception):
@@ -315,46 +368,3 @@ class OutputPluginWithOutputStreams(OutputPlugin):
   def WriteSnapshotZipStream(self, fd, compression=zipfile.ZIP_DEFLATED):
     """Writes available output streams to a new zipped stream."""
     raise NotImplementedError()
-
-
-class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
-  """An rdfvalue describing the output plugin to create."""
-
-  protobuf = output_plugin_pb2.OutputPluginDescriptor
-
-  def GetPluginClass(self):
-    if self.plugin_name:
-      plugin_cls = OutputPlugin.classes.get(self.plugin_name)
-      if plugin_cls is None:
-        logging.warn("Unknown output plugin %s", self.plugin_name)
-        return UnknownOutputPlugin
-
-      return plugin_cls
-
-  def GetPluginArgsClass(self):
-    plugin_cls = self.GetPluginClass()
-    if plugin_cls:
-      return plugin_cls.args_type
-
-  def GetPluginForState(self, plugin_state):
-    cls = self.GetPluginClass()
-
-    return cls(None, state=plugin_state)
-
-  def GetPluginVerifiersClasses(self):
-    result = []
-    if self.plugin_name:
-      for cls in OutputPluginVerifier.classes.values():
-        if cls.plugin_name == self.plugin_name:
-          result.append(cls)
-
-    return result
-
-  def GetPluginVerifiers(self):
-    return [cls() for cls in self.GetPluginVerifiersClasses()]
-
-  def __str__(self):
-    result = self.plugin_name
-    if self.plugin_args:
-      result += " <%s>" % utils.SmartStr(self.plugin_args)
-    return result

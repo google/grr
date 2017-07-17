@@ -2608,11 +2608,6 @@
                 "type": "long",
                 "value": 1
               },
-              "remaining_cpu_quota": {
-                "age": 0,
-                "type": "long",
-                "value": 7200
-              },
               "session_id": {
                 "age": 0,
                 "type": "SessionID",
@@ -2687,7 +2682,6 @@
           "current_state": "Start",
           "next_outbound_id": 2,
           "outstanding_requests": 1,
-          "remaining_cpu_quota": 7200,
           "session_id": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
           "state": "RUNNING",
           "user_notified": false
@@ -2830,11 +2824,6 @@
                 "type": "long",
                 "value": 8
               },
-              "remaining_cpu_quota": {
-                "age": 0,
-                "type": "long",
-                "value": 7200
-              },
               "session_id": {
                 "age": 0,
                 "type": "SessionID",
@@ -2917,7 +2906,6 @@
           "current_state": "Start",
           "next_outbound_id": 9,
           "outstanding_requests": 8,
-          "remaining_cpu_quota": 7200,
           "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
           "state": "RUNNING",
           "user_notified": false

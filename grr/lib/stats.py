@@ -282,6 +282,9 @@ class MetricMetadata(structs.RDFProtoStruct):
   """Metric metadata for a particular metric."""
 
   protobuf = jobs_pb2.MetricMetadata
+  rdf_deps = [
+      MetricFieldDefinition,
+  ]
 
   def DefaultValue(self):
     if self.value_type == self.ValueType.INT:

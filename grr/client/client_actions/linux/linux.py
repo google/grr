@@ -170,7 +170,8 @@ class GetInstallDate(actions.ActionPlugin):
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
-    self.SendReply(integer=int(os.stat("/lost+found").st_ctime))
+    self.SendReply(
+        rdf_protodict.DataBlob(integer=int(os.stat("/lost+found").st_ctime)))
 
 
 class UtmpStruct(utils.Struct):
@@ -256,10 +257,11 @@ class EnumerateUsers(actions.ActionPlugin):
           last_login = 0
 
         self.SendReply(
-            username=utils.SmartUnicode(username),
-            homedir=utils.SmartUnicode(homedir),
-            full_name=utils.SmartUnicode(full_name),
-            last_logon=last_login * 1000000)
+            rdf_client.User(
+                username=utils.SmartUnicode(username),
+                homedir=utils.SmartUnicode(homedir),
+                full_name=utils.SmartUnicode(full_name),
+                last_logon=last_login * 1000000))
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -300,7 +302,9 @@ class EnumerateFilesystems(actions.ActionPlugin):
     self.CheckMounts("/etc/mtab")
 
     for device, (fs_type, mnt_point) in self.devices.items():
-      self.SendReply(mount_point=mnt_point, type=fs_type, device=device)
+      self.SendReply(
+          rdf_client.Filesystem(
+              mount_point=mnt_point, type=fs_type, device=device))
 
 
 class EnumerateRunningServices(actions.ActionPlugin):

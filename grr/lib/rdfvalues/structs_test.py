@@ -247,9 +247,11 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = type(
-        "DynamicTypeTestReversed", (structs.RDFProtoStruct,),
-        dict(protobuf=proto_class))
+    new_dynamic_class = type("DynamicTypeTestReversed",
+                             (structs.RDFProtoStruct,),
+                             dict(
+                                 protobuf=proto_class,
+                                 rdf_deps=[rdf_client.User]))
     new_dynamic_instance = new_dynamic_class(
         type="foo", nested=rdf_client.User(username="bar"))
     self.assertEqual(new_dynamic_instance.type, "foo")
@@ -270,8 +272,10 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
     new_dynamic_class = type(
-        "DynamicAnyValueTypeTestReversed", (structs.RDFProtoStruct,),
-        dict(protobuf=proto_class))
+        "DynamicAnyValueTypeTestReversed",
+        (structs.RDFProtoStruct,),
+        # TODO(user): We shouldn't need to specify Any here. Investigate.
+        dict(protobuf=proto_class, rdf_deps=["Any"]),)
     new_dynamic_instance = new_dynamic_class(type="foo")
     self.assertEqual(new_dynamic_instance.type, "foo")
 

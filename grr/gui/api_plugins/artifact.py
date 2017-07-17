@@ -17,6 +17,9 @@ class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.ApiListArtifactsResult
+  rdf_deps = [
+      artifact_registry.ArtifactDescriptor,
+  ]
 
 
 class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):

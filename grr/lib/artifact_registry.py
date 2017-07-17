@@ -17,6 +17,7 @@ from grr.lib import sequential_collection
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
 
@@ -408,6 +409,9 @@ REGISTRY = ArtifactRegistry()
 class ArtifactSource(structs.RDFProtoStruct):
   """An ArtifactSource."""
   protobuf = artifact_pb2.ArtifactSource
+  rdf_deps = [
+      protodict.Dict,
+  ]
 
   OUTPUT_UNDEFINED = "Undefined"
 
@@ -529,6 +533,10 @@ class ArtifactName(rdfvalue.RDFString):
 class Artifact(structs.RDFProtoStruct):
   """An RDFValue representation of an artifact."""
   protobuf = artifact_pb2.Artifact
+  rdf_deps = [
+      ArtifactName,
+      ArtifactSource,
+  ]
 
   required_repeated_fields = [
       # List of object filter rules that define whether Artifact collection
@@ -847,6 +855,10 @@ class ArtifactDescriptor(structs.RDFProtoStruct):
   """Includes artifact, its JSON source, processors and additional info."""
 
   protobuf = artifact_pb2.ArtifactDescriptor
+  rdf_deps = [
+      Artifact,
+      ArtifactProcessorDescriptor,
+  ]
 
 
 class ArtifactCollection(sequential_collection.IndexedSequentialCollection):

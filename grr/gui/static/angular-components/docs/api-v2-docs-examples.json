@@ -680,7 +680,6 @@
           "currentState": "Start",
           "nextOutboundId": "2",
           "outstandingRequests": "1",
-          "remainingCpuQuota": "7200",
           "sessionId": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
           "state": "RUNNING",
           "userNotified": false
@@ -774,7 +773,6 @@
           "currentState": "Start",
           "nextOutboundId": "9",
           "outstandingRequests": "8",
-          "remainingCpuQuota": "7200",
           "sessionId": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
           "state": "RUNNING",
           "userNotified": false

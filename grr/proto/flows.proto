@@ -58,7 +58,8 @@ message FlowContext {
   optional uint64 next_processed_request = 9 [default = 1];
   repeated OutputPluginState output_plugins_states = 10;
   optional uint64 outstanding_requests = 11;
-  optional uint64 remaining_cpu_quota = 12;
+  // DEPRECATED
+  // optional uint64 remaining_cpu_quota = 12;
   optional string session_id = 13 [(sem_type) = {
       type: "SessionID"
     }];
@@ -95,7 +96,8 @@ message HuntContext {
     }];
   optional uint64 next_outbound_id = 7 [default = 1];
   optional uint64 next_processed_request = 8 [default = 1];
-  optional uint64 remaining_cpu_quota = 9;
+  // DEPRECATED
+  // optional uint64 remaining_cpu_quota = 9;
   optional string session_id = 10 [(sem_type) = {
       type: "SessionID"
     }];
@@ -282,7 +284,7 @@ message FlowRunnerArgs {
     }];
 }
 
-// Next field ID: 23
+// Next field ID: 25
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
       description: "The name of the class implementing the hunt to run.",
@@ -315,13 +317,16 @@ message HuntRunnerArgs {
     }, default="H"];
 
   optional uint64 cpu_limit = 9 [(sem_type) = {
-      description: "A limit on the client cpu seconds used by this flow.",
+      description: "An overall limit on the client cpu seconds used by this "
+      "hunt.",
       label: ADVANCED,
+      friendly_name: "Hunt CPU Limit",
     }];
 
   optional uint64 network_bytes_limit = 13 [(sem_type) = {
-      description: "A limit on the total traffic used by this flow.",
+      description: "An overall limit on the total traffic used by this hunt.",
       label: ADVANCED,
+      friendly_name: "Hunt Network Limit (bytes)",
     }];
 
   optional uint64 client_limit = 10 [(sem_type) = {
@@ -371,6 +376,19 @@ message HuntRunnerArgs {
                    "applied to hunt results."
       friendly_name: "Output Plugins",
       label: HIDDEN,
+    }];
+
+  optional uint64 per_client_cpu_limit = 23 [(sem_type) = {
+      description: "A cpu limit imposed on each client in the hunt.",
+      label: ADVANCED,
+      friendly_name: "Per Client CPU Limit",
+    }];
+
+  optional uint64 per_client_network_limit_bytes = 24 [(sem_type) = {
+      description: "A network limit (in bytes) imposed on each client in the "
+      "hunt.",
+      label: ADVANCED,
+      friendly_name: "Per Client Network Limit (bytes)",
     }];
 };
 

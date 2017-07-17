@@ -20,6 +20,7 @@ from grr.lib import type_info
 from grr.lib import utils
 
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
@@ -153,6 +154,9 @@ class Filesystem(structs.RDFProtoStruct):
   This class describes a filesystem mounted on the client.
   """
   protobuf = sysinfo_pb2.Filesystem
+  rdf_deps = [
+      protodict.AttributedDict,
+  ]
 
 
 class Filesystems(protodict.RDFValueArray):
@@ -189,6 +193,9 @@ class ManagementAgent(structs.RDFProtoStruct):
   installed on the system.
   """
   protobuf = sysinfo_pb2.ManagementAgent
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class PwEntry(structs.RDFProtoStruct):
@@ -199,11 +206,45 @@ class PwEntry(structs.RDFProtoStruct):
 class Group(structs.RDFProtoStruct):
   """Information about system posix groups."""
   protobuf = knowledge_base_pb2.Group
+  rdf_deps = [
+      PwEntry,
+  ]
+
+
+class User(structs.RDFProtoStruct):
+  """Information about the users."""
+  protobuf = knowledge_base_pb2.User
+  rdf_deps = [
+      PwEntry,
+      rdfvalue.RDFDatetime,
+  ]
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, KnowledgeBaseUser):
+      # KnowledgeBaseUser was renamed to User, the protos are identical. This
+      # allows for backwards compatibility with clients returning KBUser
+      # objects.
+      # TODO(user): remove once all clients are newer than 3.0.7.1.
+      super(User, self).__init__(initializer=None, age=age, **kwargs)
+      self.ParseFromString(initializer.SerializeToString())
+    else:
+      super(User, self).__init__(initializer=initializer, age=age, **kwargs)
+
+
+class KnowledgeBaseUser(User):
+  """Backwards compatibility for old clients.
+
+  Linux client action EnumerateUsers previously returned KnowledgeBaseUser
+  objects.
+  """
 
 
 class KnowledgeBase(structs.RDFProtoStruct):
   """Information about the system and users."""
   protobuf = knowledge_base_pb2.KnowledgeBase
+  rdf_deps = [
+      User,
+  ]
 
   def _CreateNewUser(self, kb_user):
     self.users.Append(kb_user)
@@ -290,30 +331,6 @@ class KnowledgeBase(structs.RDFProtoStruct):
     return sorted(fields)
 
 
-class User(structs.RDFProtoStruct):
-  """Information about the users."""
-  protobuf = knowledge_base_pb2.User
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-    if isinstance(initializer, KnowledgeBaseUser):
-      # KnowledgeBaseUser was renamed to User, the protos are identical. This
-      # allows for backwards compatibility with clients returning KBUser
-      # objects.
-      # TODO(user): remove once all clients are newer than 3.0.7.1.
-      super(User, self).__init__(initializer=None, age=age, **kwargs)
-      self.ParseFromString(initializer.SerializeToString())
-    else:
-      super(User, self).__init__(initializer=initializer, age=age, **kwargs)
-
-
-class KnowledgeBaseUser(User):
-  """Backwards compatibility for old clients.
-
-  Linux client action EnumerateUsers previously returned KnowledgeBaseUser
-  objects.
-  """
-
-
 class NetworkEndpoint(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.NetworkEndpoint
 
@@ -321,6 +338,9 @@ class NetworkEndpoint(structs.RDFProtoStruct):
 class NetworkConnection(structs.RDFProtoStruct):
   """Information about a single network connection."""
   protobuf = sysinfo_pb2.NetworkConnection
+  rdf_deps = [
+      NetworkEndpoint,
+  ]
 
 
 class Connections(protodict.RDFValueArray):
@@ -336,6 +356,9 @@ class NetworkAddress(structs.RDFProtoStruct):
   v4 addresses and our own pure python implementations for IPv6.
   """
   protobuf = jobs_pb2.NetworkAddress
+  rdf_deps = [
+      rdfvalue.RDFBytes,
+  ]
 
   @property
   def human_readable_address(self):
@@ -378,6 +401,11 @@ class MacAddress(rdfvalue.RDFBytes):
 class Interface(structs.RDFProtoStruct):
   """A network interface on the client system."""
   protobuf = jobs_pb2.Interface
+  rdf_deps = [
+      MacAddress,
+      NetworkAddress,
+      rdfvalue.RDFDatetime,
+  ]
 
   def GetIPAddresses(self):
     """Return a list of IP addresses."""
@@ -407,9 +435,24 @@ class Interfaces(protodict.RDFValueArray):
     return results
 
 
+class WindowsVolume(structs.RDFProtoStruct):
+  """A disk volume on a windows client."""
+  protobuf = sysinfo_pb2.WindowsVolume
+
+
+class UnixVolume(structs.RDFProtoStruct):
+  """A disk volume on a unix client."""
+  protobuf = sysinfo_pb2.UnixVolume
+
+
 class Volume(structs.RDFProtoStruct):
   """A disk volume on the client."""
   protobuf = sysinfo_pb2.Volume
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      UnixVolume,
+      WindowsVolume,
+  ]
 
   def FreeSpacePercent(self):
     try:
@@ -445,16 +488,6 @@ class Volumes(protodict.RDFValueArray):
   rdf_type = Volume
 
 
-class WindowsVolume(structs.RDFProtoStruct):
-  """A disk volume on a windows client."""
-  protobuf = sysinfo_pb2.WindowsVolume
-
-
-class UnixVolume(structs.RDFProtoStruct):
-  """A disk volume on a unix client."""
-  protobuf = sysinfo_pb2.UnixVolume
-
-
 class HardwareInfo(structs.RDFProtoStruct):
   """Various hardware information."""
   protobuf = sysinfo_pb2.HardwareInfo
@@ -471,7 +504,11 @@ class CpuSeconds(structs.RDFProtoStruct):
 
 
 class CpuSample(structs.RDFProtoStruct):
+  """A single CPU sample."""
   protobuf = jobs_pb2.CpuSample
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   # The total number of samples this sample represents - used for running
   # averages.
@@ -494,6 +531,9 @@ class CpuSample(structs.RDFProtoStruct):
 
 class IOSample(structs.RDFProtoStruct):
   protobuf = jobs_pb2.IOSample
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   def Average(self, sample):
     """Updates this sample from the new sample."""
@@ -506,6 +546,10 @@ class IOSample(structs.RDFProtoStruct):
 class ClientStats(structs.RDFProtoStruct):
   """A client stat object."""
   protobuf = jobs_pb2.ClientStats
+  rdf_deps = [
+      CpuSample,
+      IOSample,
+  ]
 
   def DownsampleList(self, samples, interval):
     """Reduces samples at different timestamps into interval time bins."""
@@ -564,6 +608,9 @@ class ClientStats(structs.RDFProtoStruct):
 class BufferReference(structs.RDFProtoStruct):
   """Stores information about a buffer in a file on the client."""
   protobuf = jobs_pb2.BufferReference
+  rdf_deps = [
+      paths.PathSpec,
+  ]
 
   def __eq__(self, other):
     return self.data == other
@@ -572,6 +619,9 @@ class BufferReference(structs.RDFProtoStruct):
 class Process(structs.RDFProtoStruct):
   """Represent a process on the client."""
   protobuf = sysinfo_pb2.Process
+  rdf_deps = [
+      NetworkConnection,
+  ]
 
 
 class SoftwarePackage(structs.RDFProtoStruct):
@@ -642,11 +692,20 @@ class StatMode(rdfvalue.RDFInteger):
 class Iterator(structs.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
   protobuf = jobs_pb2.Iterator
+  rdf_deps = [
+      protodict.Dict,
+  ]
 
 
 class StatEntry(structs.RDFProtoStruct):
   """Represent an extended stat response."""
   protobuf = jobs_pb2.StatEntry
+  rdf_deps = [
+      protodict.DataBlob,
+      paths.PathSpec,
+      rdfvalue.RDFDatetimeSeconds,
+      StatMode,
+  ]
 
   def AFF4Path(self, client_urn):
     return self.pathspec.AFF4Path(client_urn)
@@ -655,8 +714,15 @@ class StatEntry(structs.RDFProtoStruct):
 class FindSpec(structs.RDFProtoStruct):
   """A find specification."""
   protobuf = jobs_pb2.FindSpec
-
-  dependencies = dict(RegularExpression=standard.RegularExpression)
+  rdf_deps = [
+      paths.GlobExpression,
+      Iterator,
+      paths.PathSpec,
+      rdfvalue.RDFDatetime,
+      standard.RegularExpression,
+      StatEntry,
+      StatMode,
+  ]
 
   def Validate(self):
     """Ensure the pathspec is valid."""
@@ -682,6 +748,9 @@ class EchoRequest(structs.RDFProtoStruct):
 
 class ExecuteBinaryRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteBinaryRequest
+  rdf_deps = [
+      rdf_crypto.SignedBlob,
+  ]
 
 
 class ExecuteBinaryResponse(structs.RDFProtoStruct):
@@ -690,6 +759,10 @@ class ExecuteBinaryResponse(structs.RDFProtoStruct):
 
 class ExecutePythonRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecutePythonRequest
+  rdf_deps = [
+      protodict.Dict,
+      rdf_crypto.SignedBlob,
+  ]
 
 
 class ExecutePythonResponse(structs.RDFProtoStruct):
@@ -702,15 +775,24 @@ class ExecuteRequest(structs.RDFProtoStruct):
 
 class CopyPathToFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.CopyPathToFile
+  rdf_deps = [
+      paths.PathSpec,
+  ]
 
 
 class ExecuteResponse(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteResponse
+  rdf_deps = [
+      ExecuteRequest,
+  ]
 
 
 class Uname(structs.RDFProtoStruct):
   """A protobuf to represent the current system."""
   protobuf = jobs_pb2.Uname
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   @property
   def arch(self):
@@ -781,10 +863,17 @@ class Uname(structs.RDFProtoStruct):
 
 class StartupInfo(structs.RDFProtoStruct):
   protobuf = jobs_pb2.StartupInfo
+  rdf_deps = [
+      ClientInformation,
+  ]
 
 
 class SendFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.SendFileRequest
+  rdf_deps = [
+      rdf_crypto.AES128Key,
+      paths.PathSpec,
+  ]
 
   def Validate(self):
     self.pathspec.Validate()
@@ -795,10 +884,18 @@ class SendFileRequest(structs.RDFProtoStruct):
 
 class ListDirRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ListDirRequest
+  rdf_deps = [
+      Iterator,
+      paths.PathSpec,
+  ]
 
 
 class UploadPolicy(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadPolicy
+  rdf_deps = [
+      ClientURN,
+      rdfvalue.RDFDatetime,
+  ]
 
   @classmethod
   def FromEncryptedPolicy(cls, encrypted_policy, iv):
@@ -812,6 +909,9 @@ class UploadPolicy(structs.RDFProtoStruct):
 class UploadToken(structs.RDFProtoStruct):
   """The upload token rdf class."""
   protobuf = jobs_pb2.UploadToken
+  rdf_deps = [
+      rdf_crypto.EncryptionKey,
+  ]
 
   def SetPolicy(self, policy):
     serialized_policy = policy.SerializeToString()
@@ -842,10 +942,18 @@ class UploadToken(structs.RDFProtoStruct):
 
 class UploadFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadFileRequest
+  rdf_deps = [
+      paths.PathSpec,
+      UploadToken,
+  ]
 
 
 class UploadedFile(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadedFile
+  rdf_deps = [
+      rdf_crypto.Hash,
+      StatEntry,
+  ]
 
 
 class DumpProcessMemoryRequest(structs.RDFProtoStruct):
@@ -858,6 +966,10 @@ class FingerprintTuple(structs.RDFProtoStruct):
 
 class FingerprintRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FingerprintRequest
+  rdf_deps = [
+      FingerprintTuple,
+      paths.PathSpec,
+  ]
 
   def AddRequest(self, *args, **kw):
     self.tuples.Append(*args, **kw)
@@ -866,6 +978,11 @@ class FingerprintRequest(structs.RDFProtoStruct):
 class FingerprintResponse(structs.RDFProtoStruct):
   """Proto containing dicts with hashes."""
   protobuf = jobs_pb2.FingerprintResponse
+  rdf_deps = [
+      protodict.Dict,
+      rdf_crypto.Hash,
+      paths.PathSpec,
+  ]
 
   def GetFingerprint(self, name):
     """Gets the first fingerprint type from the protobuf."""
@@ -876,6 +993,11 @@ class FingerprintResponse(structs.RDFProtoStruct):
 
 class GrepSpec(structs.RDFProtoStruct):
   protobuf = jobs_pb2.GrepSpec
+  rdf_deps = [
+      standard.LiteralExpression,
+      paths.PathSpec,
+      standard.RegularExpression,
+  ]
 
   def Validate(self):
     self.target.Validate()
@@ -884,6 +1006,10 @@ class GrepSpec(structs.RDFProtoStruct):
 class BareGrepSpec(structs.RDFProtoStruct):
   """A GrepSpec without a target."""
   protobuf = flows_pb2.BareGrepSpec
+  rdf_deps = [
+      standard.LiteralExpression,
+      standard.RegularExpression,
+  ]
 
 
 class WMIRequest(structs.RDFProtoStruct):
@@ -893,23 +1019,38 @@ class WMIRequest(structs.RDFProtoStruct):
 class WindowsServiceInformation(structs.RDFProtoStruct):
   """Windows Service."""
   protobuf = sysinfo_pb2.WindowsServiceInformation
+  rdf_deps = [
+      protodict.Dict,
+      StatEntry,
+  ]
 
 
 class OSXServiceInformation(structs.RDFProtoStruct):
   """OSX Service (launchagent/daemon)."""
   protobuf = sysinfo_pb2.OSXServiceInformation
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class LinuxServiceInformation(structs.RDFProtoStruct):
   """Linux Service (init/upstart/systemd)."""
   protobuf = sysinfo_pb2.LinuxServiceInformation
+  rdf_deps = [
+      protodict.AttributedDict,
+      SoftwarePackage,
+      StatEntry,
+  ]
 
 
 class ClientResources(structs.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
   protobuf = jobs_pb2.ClientResources
-
-  dependencies = dict(ClientURN=ClientURN, RDFURN=rdfvalue.RDFURN)
+  rdf_deps = [
+      ClientURN,
+      CpuSeconds,
+      rdfvalue.SessionID,
+  ]
 
 
 class StatFSRequest(structs.RDFProtoStruct):
@@ -929,16 +1070,33 @@ class RunKeyEntry(protodict.RDFValueArray):
 class ClientCrash(structs.RDFProtoStruct):
   """Details of a client crash."""
   protobuf = jobs_pb2.ClientCrash
+  rdf_deps = [
+      ClientInformation,
+      ClientURN,
+      rdfvalue.RDFDatetime,
+      rdfvalue.SessionID,
+  ]
 
 
 class ClientSummary(structs.RDFProtoStruct):
   """Object containing client's summary data."""
   protobuf = jobs_pb2.ClientSummary
+  rdf_deps = [
+      ClientInformation,
+      ClientURN,
+      Interface,
+      rdfvalue.RDFDatetime,
+      Uname,
+      User,
+  ]
 
 
 class GetClientStatsRequest(structs.RDFProtoStruct):
   """Request for GetClientStats action."""
   protobuf = jobs_pb2.GetClientStatsRequest
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class VersionString(rdfvalue.RDFString):
@@ -956,16 +1114,26 @@ class VersionString(rdfvalue.RDFString):
     return result
 
 
-class LoadComponent(structs.RDFProtoStruct):
-  """Request to launch a client action through a component."""
-  protobuf = jobs_pb2.LoadComponent
-
-
 class ClientComponentSummary(structs.RDFProtoStruct):
   """A client component summary."""
   protobuf = jobs_pb2.ClientComponentSummary
+  rdf_deps = [
+      rdf_crypto.SymmetricCipher,
+  ]
+
+
+class LoadComponent(structs.RDFProtoStruct):
+  """Request to launch a client action through a component."""
+  protobuf = jobs_pb2.LoadComponent
+  rdf_deps = [
+      ClientComponentSummary,
+  ]
 
 
 class ClientComponent(structs.RDFProtoStruct):
   """A client component."""
   protobuf = jobs_pb2.ClientComponent
+  rdf_deps = [
+      ClientComponentSummary,
+      Uname,
+  ]

@@ -14,6 +14,10 @@ from grr.proto import jobs_pb2
 
 class HuntResultNotification(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HuntResultNotification
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
 
 RESULT_NOTIFICATION_QUEUE = rdfvalue.RDFURN("aff4:/hunt_results_queue")

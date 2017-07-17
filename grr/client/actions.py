@@ -220,16 +220,8 @@ class ActionPlugin(object):
 
   def SendReply(self,
                 rdf_value=None,
-                message_type=rdf_flows.GrrMessage.Type.MESSAGE,
-                **kw):
+                message_type=rdf_flows.GrrMessage.Type.MESSAGE):
     """Send response back to the server."""
-    if rdf_value is None:
-      # The only client actions with multiple out_rdfvalues have them for
-      # server-side checks that allow for backwards compatibility. In the future
-      # if an action genuinely returns multiple rdfvalues it should pass them in
-      # using the rdf_value keyword.
-      rdf_value = self.out_rdfvalues[0](**kw)  # pylint: disable=not-callable
-
     self.grr_worker.SendReply(
         rdf_value,
         # This is not strictly necessary but adds context

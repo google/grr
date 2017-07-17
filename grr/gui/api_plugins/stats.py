@@ -6,6 +6,7 @@ from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.lib import stats
 from grr.lib import timeseries
 from grr.lib import utils
 from grr.lib.aff4_objects import stats_store as stats_store_lib
@@ -14,12 +15,19 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto.api import stats_pb2
 
 
-class ApiStatsStoreMetric(rdf_structs.RDFProtoStruct):
-  protobuf = stats_pb2.ApiStatsStoreMetric
-
-
 class ApiStatsStoreMetricDataPoint(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiStatsStoreMetricDataPoint
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+
+class ApiStatsStoreMetric(rdf_structs.RDFProtoStruct):
+  protobuf = stats_pb2.ApiStatsStoreMetric
+  rdf_deps = [
+      ApiStatsStoreMetricDataPoint,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
@@ -28,6 +36,9 @@ class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListStatsStoreMetricsMetadataResult(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiListStatsStoreMetricsMetadataResult
+  rdf_deps = [
+      stats.MetricMetadata,
+  ]
 
 
 class ApiListStatsStoreMetricsMetadataHandler(
@@ -57,6 +68,10 @@ class ApiListStatsStoreMetricsMetadataHandler(
 
 class ApiGetStatsStoreMetricArgs(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiGetStatsStoreMetricArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
@@ -177,6 +192,9 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListReportsResult(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiListReportsResult
+  rdf_deps = [
+      rdf_report_plugins.ApiReport,
+  ]
 
 
 class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
@@ -194,6 +212,10 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiGetReportArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):

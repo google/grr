@@ -16,6 +16,7 @@ import time
 
 import logging
 
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -166,6 +167,9 @@ class ACLInit(registry.InitHook):
 class ACLToken(rdf_structs.RDFProtoStruct):
   """The access control token."""
   protobuf = flows_pb2.ACLToken
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   # The supervisor flag enables us to bypass ACL checks. It can not be
   # serialized or controlled externally.

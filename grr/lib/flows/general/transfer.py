@@ -27,6 +27,9 @@ from grr.proto import flows_pb2
 
 class GetFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GetFileArgs
+  rdf_deps = [
+      rdf_paths.PathSpec,
+  ]
 
 
 class GetFile(flow.GRRFlow):
@@ -695,6 +698,10 @@ class MultiGetFileMixin(object):
 
 class MultiGetFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MultiGetFileArgs
+  rdf_deps = [
+      rdfvalue.ByteSize,
+      rdf_paths.PathSpec,
+  ]
 
 
 class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
@@ -730,6 +737,9 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
 class MultiUploadFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MultiUploadFileArgs
+  rdf_deps = [
+      rdf_paths.PathSpec,
+  ]
 
 
 class MultiUploadFile(flow.GRRFlow):

@@ -452,6 +452,9 @@ class AbstractApprovalWithReasonMixin(object):
 
 class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class RequestApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
@@ -574,6 +577,9 @@ here
 
 class GrantApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GrantApprovalWithReasonFlowArgs
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class GrantApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,

@@ -4,12 +4,16 @@
 
 from grr.lib import flow
 from grr.lib import server_stubs
+from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
 class PlistValueFilterArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.PlistValueFilterArgs
+  rdf_deps = [
+      plist.PlistRequest,
+  ]
 
 
 class PlistValueFilter(flow.GRRFlow):

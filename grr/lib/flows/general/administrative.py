@@ -29,6 +29,9 @@ from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import protodict
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -136,6 +139,9 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
 class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DeleteGRRTempFilesArgs
+  rdf_deps = [
+      paths.PathSpec,
+  ]
 
 
 class DeleteGRRTempFiles(flow.GRRFlow):
@@ -224,6 +230,9 @@ class Kill(flow.GRRFlow):
 
 class UpdateConfigurationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateConfigurationArgs
+  rdf_deps = [
+      protodict.Dict,
+  ]
 
 
 class UpdateConfiguration(flow.GRRFlow):
@@ -254,6 +263,9 @@ class UpdateConfiguration(flow.GRRFlow):
 
 class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecutePythonHackArgs
+  rdf_deps = [
+      protodict.Dict,
+  ]
 
 
 class ExecutePythonHack(flow.GRRFlow):
@@ -380,6 +392,9 @@ class Foreman(flow.WellKnownFlow):
 
 class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.OnlineNotificationArgs
+  rdf_deps = [
+      standard.DomainEmailAddress,
+  ]
 
 
 class OnlineNotification(flow.GRRFlow):
@@ -446,6 +461,9 @@ class OnlineNotification(flow.GRRFlow):
 
 class UpdateClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateClientArgs
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class UpdateClient(flow.GRRFlow):
@@ -790,6 +808,9 @@ class ClientStartupHandler(flow.EventListener):
 
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KeepAliveArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+  ]
 
 
 class KeepAlive(flow.GRRFlow):
@@ -827,6 +848,9 @@ class KeepAlive(flow.GRRFlow):
 
 class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.LaunchBinaryArgs
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class LaunchBinary(flow.GRRFlow):

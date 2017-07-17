@@ -11,12 +11,16 @@ from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import output_plugin
 from grr.lib import utils
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
 
 class EmailOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.EmailOutputPluginArgs
+  rdf_deps = [
+      standard.DomainEmailAddress,
+  ]
 
 
 class EmailOutputPlugin(output_plugin.OutputPlugin):

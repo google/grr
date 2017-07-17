@@ -25,6 +25,7 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import jobs_pb2
@@ -456,6 +457,10 @@ class PEMPublicKey(RSAPublicKey):
 class Hash(rdf_structs.RDFProtoStruct):
   """A hash object containing multiple digests."""
   protobuf = jobs_pb2.Hash
+  rdf_deps = [
+      standard.AuthenticodeSignedData,
+      rdfvalue.HashDigest,
+  ]
 
 
 class SignedBlob(rdf_structs.RDFProtoStruct):
@@ -666,6 +671,9 @@ class AES128CBCCipher(object):
 class SymmetricCipher(rdf_structs.RDFProtoStruct):
   """Abstract symmetric cipher operations."""
   protobuf = jobs_pb2.SymmetricCipher
+  rdf_deps = [
+      EncryptionKey,
+  ]
 
   @classmethod
   def Generate(cls, algorithm):

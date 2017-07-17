@@ -10,6 +10,7 @@ import logging
 import re
 
 from grr.lib import objectfilter
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs
 from grr.proto import flows_pb2
 
@@ -40,6 +41,11 @@ class KnowledgeBaseAttributesMissingError(Error):
 
 class ArtifactCollectorFlowArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactCollectorFlowArgs
+  rdf_deps = [
+      "ArtifactName",  # TODO(user): dependency loop.
+      rdfvalue.ByteSize,
+      "KnowledgeBase",  # TODO(user): dependency loop.
+  ]
 
   def Validate(self):
     if not self.artifact_list:

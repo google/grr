@@ -62,6 +62,7 @@ anomaly and knowledge_base using object filter syntax. E.g.
 
 """
 
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs
 from grr.proto import anomaly_pb2
 
@@ -69,3 +70,6 @@ from grr.proto import anomaly_pb2
 class Anomaly(structs.RDFProtoStruct):
   """An RDFValue representation of an artifact."""
   protobuf = anomaly_pb2.Anomaly
+  rdf_deps = [
+      paths.PathSpec,
+  ]

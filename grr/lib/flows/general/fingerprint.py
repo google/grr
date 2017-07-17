@@ -4,19 +4,29 @@
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
 class FingerprintFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileArgs
+  rdf_deps = [
+      paths.PathSpec,
+  ]
 
 
 class FingerprintFileResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileResult
+  rdf_deps = [
+      crypto.Hash,
+      rdfvalue.RDFURN,
+  ]
 
 
 class FingerprintFileMixin(object):

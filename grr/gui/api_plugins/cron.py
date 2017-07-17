@@ -9,8 +9,10 @@ from grr.gui.api_plugins import flow as api_plugins_flow
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
+from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto.api import cron_pb2
@@ -28,6 +30,12 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
   the UI and and to not expose implementation defails.
   """
   protobuf = cron_pb2.ApiCronJob
+  rdf_deps = [
+      rdfvalue.Duration,
+      flows.FlowRunnerArgs,
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
   def GetArgsClass(self):
     if self.flow_name:
@@ -92,6 +100,9 @@ class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListCronJobsResult(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiListCronJobsResult
+  rdf_deps = [
+      ApiCronJob,
+  ]
 
 
 class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
@@ -165,6 +176,9 @@ class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiGetCronJobFlowArgs
+  rdf_deps = [
+      api_plugins_flow.ApiFlowId,
+  ]
 
 
 class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):

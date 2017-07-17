@@ -7,6 +7,7 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -18,6 +19,12 @@ from grr.proto import output_plugin_pb2
 class GrrMessage(rdf_structs.RDFProtoStruct):
   """An RDFValue class to manage GRR messages."""
   protobuf = jobs_pb2.GrrMessage
+  rdf_deps = [
+      rdf_protodict.EmbeddedRDFValue,
+      rdfvalue.FlowSessionID,
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
   lock = threading.Lock()
   next_id_base = 0
@@ -132,23 +139,48 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
   traceback information for any failures on the client.
   """
   protobuf = jobs_pb2.GrrStatus
+  rdf_deps = [
+      client.CpuSeconds,
+      rdfvalue.SessionID,
+  ]
 
 
 class GrrNotification(rdf_structs.RDFProtoStruct):
   """A flow notification."""
   protobuf = jobs_pb2.GrrNotification
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.SessionID,
+  ]
 
 
 class RequestState(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.RequestState
+  rdf_deps = [
+      client.ClientURN,
+      rdf_protodict.Dict,
+      GrrMessage,
+      GrrStatus,
+      rdfvalue.SessionID,
+  ]
 
 
 class OutputPluginState(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.OutputPluginState
+  rdf_deps = [
+      rdf_protodict.AttributedDict,
+      "OutputPluginDescriptor",  # TODO(user): dependency loop.
+  ]
 
 
 class FlowContext(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowContext
+  rdf_deps = [
+      client.ClientResources,
+      OutputPluginState,
+      rdfvalue.RDFDatetime,
+      rdfvalue.SessionID,
+  ]
 
 
 class Notification(rdf_structs.RDFProtoStruct):
@@ -158,6 +190,10 @@ class Notification(rdf_structs.RDFProtoStruct):
   a link to view the results.
   """
   protobuf = jobs_pb2.Notification
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
   notification_types = [
       "Discovery",  # Link to the client object
@@ -171,6 +207,10 @@ class Notification(rdf_structs.RDFProtoStruct):
 
 class FlowNotification(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.FlowNotification
+  rdf_deps = [
+      client.ClientURN,
+      rdfvalue.SessionID,
+  ]
 
 
 class NotificationList(rdf_protodict.RDFValueArray):
@@ -180,10 +220,17 @@ class NotificationList(rdf_protodict.RDFValueArray):
 
 class SignedMessageList(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.SignedMessageList
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+  ]
 
 
 class MessageList(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.MessageList
+  rdf_deps = [
+      GrrMessage,
+  ]
 
   def __len__(self):
     return len(self.job)
@@ -192,6 +239,9 @@ class MessageList(rdf_structs.RDFProtoStruct):
 class CipherProperties(rdf_structs.RDFProtoStruct):
   """Contains information about a cipher and keys."""
   protobuf = jobs_pb2.CipherProperties
+  rdf_deps = [
+      rdf_crypto.EncryptionKey,
+  ]
 
   @classmethod
   def GetInializedKeys(cls):
@@ -214,19 +264,33 @@ class CipherProperties(rdf_structs.RDFProtoStruct):
 
 class CipherMetadata(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.CipherMetadata
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
 
 
 class FlowLog(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing flow log entries."""
   protobuf = jobs_pb2.FlowLog
+  rdf_deps = [
+      client.ClientURN,
+      rdfvalue.RDFURN,
+  ]
 
 
 class HttpRequest(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HttpRequest
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ClientCommunication(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ClientCommunication
+  rdf_deps = [
+      rdf_crypto.EncryptionKey,
+      HttpRequest,
+  ]
 
   num_messages = 0
 
@@ -238,3 +302,11 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   flows state.context.arg attribute.
   """
   protobuf = flows_pb2.FlowRunnerArgs
+  rdf_deps = [
+      client.ClientURN,
+      "OutputPluginDescriptor",  # TODO(user): dependency loop.
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+      RequestState,
+      rdfvalue.SessionID,
+  ]

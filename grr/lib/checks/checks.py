@@ -15,6 +15,7 @@ from grr.lib.checks import filters
 from grr.lib.checks import hints
 from grr.lib.checks import triggers
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import anomaly_pb2
@@ -54,9 +55,241 @@ def MatchStrToList(match=None):
   return match
 
 
+class Hint(rdf_structs.RDFProtoStruct):
+  """Human-formatted descriptions of problems, fixes and findings."""
+
+  protobuf = checks_pb2.Hint
+
+  def __init__(self, initializer=None, age=None, reformat=True, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Hint, self).__init__(initializer=initializer, age=age, **conf)
+    if not self.max_results:
+      self.max_results = config_lib.CONFIG.Get("Checks.max_results")
+    if reformat:
+      self.hinter = hints.Hinter(self.format)
+    else:
+      self.hinter = hints.Hinter()
+
+  def Render(self, rdf_data):
+    """Processes data according to formatting rules."""
+    report_data = rdf_data[:self.max_results]
+    results = [self.hinter.Render(rdf) for rdf in report_data]
+    extra = len(rdf_data) - len(report_data)
+    if extra > 0:
+      results.append("...plus another %d issues." % extra)
+    return results
+
+  def Problem(self, state):
+    """Creates an anomaly symptom/problem string."""
+    if self.problem:
+      return "%s: %s" % (state, self.problem.strip())
+
+  def Fix(self):
+    """Creates an anomaly explanation/fix string."""
+    if self.fix:
+      return self.fix.strip()
+
+  def Validate(self):
+    """Ensures that required values are set and formatting rules compile."""
+    # TODO(user): Default format string.
+    if self.problem:
+      pass
+
+
+class Filter(rdf_structs.RDFProtoStruct):
+  """Generic filter to provide an interface for different types of filter."""
+
+  protobuf = checks_pb2.Filter
+  rdf_deps = [
+      Hint,
+  ]
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    # FIXME(sebastianw): Probe seems to pass in the configuration for filters
+    # as a dict in initializer, rather than as kwargs.
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Filter, self).__init__(initializer=initializer, age=age, **conf)
+    filter_name = self.type or "Filter"
+    self._filter = filters.Filter.GetFilter(filter_name)
+
+  def Parse(self, rdf_data):
+    """Process rdf data through the filter.
+
+    Filters sift data according to filter rules. Data that passes the filter
+    rule is kept, other data is dropped.
+
+    If no filter method is provided, the data is returned as a list.
+    Otherwise, a items that meet filter conditions are returned in a list.
+
+    Args:
+      rdf_data: Host data that has already been processed by a Parser into RDF.
+
+    Returns:
+      A list containing data items that matched the filter rules.
+    """
+    if self._filter:
+      return list(self._filter.Parse(rdf_data, self.expression))
+    return rdf_data
+
+  def Validate(self):
+    """The filter exists, and has valid filter and hint expressions."""
+    if self.type not in filters.Filter.classes:
+      raise DefinitionError("Undefined filter type %s" % self.type)
+    self._filter.Validate(self.expression)
+    ValidateMultiple(self.hint, "Filter has invalid hint")
+
+
+class Probe(rdf_structs.RDFProtoStruct):
+  """The suite of filters applied to host data."""
+
+  protobuf = checks_pb2.Probe
+  rdf_deps = [
+      Filter,
+      Hint,
+      triggers.Target,
+  ]
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    conf["match"] = MatchStrToList(kwargs.get("match"))
+    super(Probe, self).__init__(initializer=initializer, age=age, **conf)
+    if self.filters:
+      handler = filters.GetHandler(mode=self.mode)
+    else:
+      handler = filters.GetHandler()
+    self.baseliner = handler(artifact=self.artifact, filters=self.baseline)
+    self.handler = handler(artifact=self.artifact, filters=self.filters)
+    hinter = Hint(conf.get("hint", {}), reformat=False)
+    self.matcher = Matcher(conf["match"], hinter)
+
+  def Parse(self, rdf_data):
+    """Process rdf data through filters. Test if results match expectations.
+
+    Processing of rdf data is staged by a filter handler, which manages the
+    processing of host data. The output of the filters are compared against
+    expected results.
+
+    Args:
+      rdf_data: An list containing 0 or more rdf values.
+
+    Returns:
+      An anomaly if data didn't match expectations.
+
+    Raises:
+      ProcessingError: If rdf_data is not a handled type.
+
+    """
+    if not isinstance(rdf_data, (list, set)):
+      raise ProcessingError("Bad host data format: %s" % type(rdf_data))
+    if self.baseline:
+      comparison = self.baseliner.Parse(rdf_data)
+    else:
+      comparison = rdf_data
+    found = self.handler.Parse(comparison)
+    results = self.hint.Render(found)
+    return self.matcher.Detect(comparison, results)
+
+  def Validate(self):
+    """Check the test set is well constructed."""
+    ValidateMultiple(self.target, "Probe has invalid target")
+    self.baseliner.Validate()
+    self.handler.Validate()
+    self.hint.Validate()
+
+
+class Method(rdf_structs.RDFProtoStruct):
+  """A specific test method using 0 or more filters to process data."""
+
+  protobuf = checks_pb2.Method
+  rdf_deps = [
+      rdf_protodict.Dict,
+      Hint,
+      Probe,
+      triggers.Target,
+  ]
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Method, self).__init__(initializer=initializer, age=age)
+    probe = conf.get("probe", {})
+    resource = conf.get("resource", {})
+    hint = conf.get("hint", {})
+    target = conf.get("target", {})
+    if hint:
+      # Add the hint to children.
+      for cfg in probe:
+        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
+    self.probe = [Probe(**cfg) for cfg in probe]
+    self.hint = Hint(hint, reformat=False)
+    self.match = MatchStrToList(kwargs.get("match"))
+    self.matcher = Matcher(self.match, self.hint)
+    self.resource = [rdf_protodict.Dict(**r) for r in resource]
+    self.target = triggers.Target(**target)
+    self.triggers = triggers.Triggers()
+    for p in self.probe:
+      # If the probe has a target, use it. Otherwise, use the method's target.
+      target = p.target or self.target
+      self.triggers.Add(p.artifact, target, p)
+
+  def Parse(self, conditions, host_data):
+    """Runs probes that evaluate whether collected data has an issue.
+
+    Args:
+      conditions: The trigger conditions.
+      host_data: A map of artifacts and rdf data.
+
+    Returns:
+      Anomalies if an issue exists.
+    """
+    processed = []
+    probes = self.triggers.Calls(conditions)
+    for p in probes:
+      # Get the data required for the probe. A probe can use a result_context
+      # (e.g. Parsers, Anomalies, Raw), to identify the data that is needed
+      # from the artifact collection results.
+      artifact_data = host_data.get(p.artifact)
+      if not p.result_context:
+        rdf_data = artifact_data["PARSER"]
+      else:
+        rdf_data = artifact_data.get(str(p.result_context))
+      try:
+        result = p.Parse(rdf_data)
+      except ProcessingError as e:
+        raise ProcessingError("Bad artifact %s: %s" % (p.artifact, e))
+      if result:
+        processed.append(result)
+    # Matcher compares the number of probes that triggered with results.
+    return self.matcher.Detect(probes, processed)
+
+  def Validate(self):
+    """Check the Method is well constructed."""
+    ValidateMultiple(self.probe, "Method has invalid probes")
+    ValidateMultiple(self.target, "Method has invalid target")
+    ValidateMultiple(self.hint, "Method has invalid hint")
+
+
 class CheckResult(rdf_structs.RDFProtoStruct):
   """Results of a single check performed on a host."""
   protobuf = checks_pb2.CheckResult
+  rdf_deps = [
+      rdf_anomaly.Anomaly,
+  ]
 
   def __nonzero__(self):
     return bool(self.anomaly)
@@ -71,6 +304,10 @@ class CheckResult(rdf_structs.RDFProtoStruct):
 class CheckResults(rdf_structs.RDFProtoStruct):
   """All results for a single host."""
   protobuf = checks_pb2.CheckResults
+  rdf_deps = [
+      CheckResult,
+      rdf_client.KnowledgeBase,
+  ]
 
   def __nonzero__(self):
     return bool(self.result)
@@ -90,6 +327,11 @@ class Check(rdf_structs.RDFProtoStruct):
   is passed to each Method, but can be overridden by more specific definitions.
   """
   protobuf = checks_pb2.Check
+  rdf_deps = [
+      Hint,
+      Method,
+      triggers.Target,
+  ]
 
   def __init__(self,
                initializer=None,
@@ -176,221 +418,6 @@ class Check(rdf_structs.RDFProtoStruct):
       raise DefinitionError("Check %s has no methods" % cls_name)
     ValidateMultiple(self.method,
                      "Check %s has invalid method definitions" % cls_name)
-
-
-class Method(rdf_structs.RDFProtoStruct):
-  """A specific test method using 0 or more filters to process data."""
-
-  protobuf = checks_pb2.Method
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-    if isinstance(initializer, dict):
-      conf = initializer
-      initializer = None
-    else:
-      conf = kwargs
-    super(Method, self).__init__(initializer=initializer, age=age)
-    probe = conf.get("probe", {})
-    resource = conf.get("resource", {})
-    hint = conf.get("hint", {})
-    target = conf.get("target", {})
-    if hint:
-      # Add the hint to children.
-      for cfg in probe:
-        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
-    self.probe = [Probe(**cfg) for cfg in probe]
-    self.hint = Hint(hint, reformat=False)
-    self.match = MatchStrToList(kwargs.get("match"))
-    self.matcher = Matcher(self.match, self.hint)
-    self.resource = [rdf_protodict.Dict(**r) for r in resource]
-    self.target = triggers.Target(**target)
-    self.triggers = triggers.Triggers()
-    for p in self.probe:
-      # If the probe has a target, use it. Otherwise, use the method's target.
-      target = p.target or self.target
-      self.triggers.Add(p.artifact, target, p)
-
-  def Parse(self, conditions, host_data):
-    """Runs probes that evaluate whether collected data has an issue.
-
-    Args:
-      conditions: The trigger conditions.
-      host_data: A map of artifacts and rdf data.
-
-    Returns:
-      Anomalies if an issue exists.
-    """
-    processed = []
-    probes = self.triggers.Calls(conditions)
-    for p in probes:
-      # Get the data required for the probe. A probe can use a result_context
-      # (e.g. Parsers, Anomalies, Raw), to identify the data that is needed
-      # from the artifact collection results.
-      artifact_data = host_data.get(p.artifact)
-      if not p.result_context:
-        rdf_data = artifact_data["PARSER"]
-      else:
-        rdf_data = artifact_data.get(str(p.result_context))
-      try:
-        result = p.Parse(rdf_data)
-      except ProcessingError as e:
-        raise ProcessingError("Bad artifact %s: %s" % (p.artifact, e))
-      if result:
-        processed.append(result)
-    # Matcher compares the number of probes that triggered with results.
-    return self.matcher.Detect(probes, processed)
-
-  def Validate(self):
-    """Check the Method is well constructed."""
-    ValidateMultiple(self.probe, "Method has invalid probes")
-    ValidateMultiple(self.target, "Method has invalid target")
-    ValidateMultiple(self.hint, "Method has invalid hint")
-
-
-class Probe(rdf_structs.RDFProtoStruct):
-  """The suite of filters applied to host data."""
-
-  protobuf = checks_pb2.Probe
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-    if isinstance(initializer, dict):
-      conf = initializer
-      initializer = None
-    else:
-      conf = kwargs
-    conf["match"] = MatchStrToList(kwargs.get("match"))
-    super(Probe, self).__init__(initializer=initializer, age=age, **conf)
-    if self.filters:
-      handler = filters.GetHandler(mode=self.mode)
-    else:
-      handler = filters.GetHandler()
-    self.baseliner = handler(artifact=self.artifact, filters=self.baseline)
-    self.handler = handler(artifact=self.artifact, filters=self.filters)
-    hinter = Hint(conf.get("hint", {}), reformat=False)
-    self.matcher = Matcher(conf["match"], hinter)
-
-  def Parse(self, rdf_data):
-    """Process rdf data through filters. Test if results match expectations.
-
-    Processing of rdf data is staged by a filter handler, which manages the
-    processing of host data. The output of the filters are compared against
-    expected results.
-
-    Args:
-      rdf_data: An list containing 0 or more rdf values.
-
-    Returns:
-      An anomaly if data didn't match expectations.
-
-    Raises:
-      ProcessingError: If rdf_data is not a handled type.
-
-    """
-    if not isinstance(rdf_data, (list, set)):
-      raise ProcessingError("Bad host data format: %s" % type(rdf_data))
-    if self.baseline:
-      comparison = self.baseliner.Parse(rdf_data)
-    else:
-      comparison = rdf_data
-    found = self.handler.Parse(comparison)
-    results = self.hint.Render(found)
-    return self.matcher.Detect(comparison, results)
-
-  def Validate(self):
-    """Check the test set is well constructed."""
-    ValidateMultiple(self.target, "Probe has invalid target")
-    self.baseliner.Validate()
-    self.handler.Validate()
-    self.hint.Validate()
-
-
-class Filter(rdf_structs.RDFProtoStruct):
-  """Generic filter to provide an interface for different types of filter."""
-
-  protobuf = checks_pb2.Filter
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-    # FIXME(sebastianw): Probe seems to pass in the configuration for filters
-    # as a dict in initializer, rather than as kwargs.
-    if isinstance(initializer, dict):
-      conf = initializer
-      initializer = None
-    else:
-      conf = kwargs
-    super(Filter, self).__init__(initializer=initializer, age=age, **conf)
-    filter_name = self.type or "Filter"
-    self._filter = filters.Filter.GetFilter(filter_name)
-
-  def Parse(self, rdf_data):
-    """Process rdf data through the filter.
-
-    Filters sift data according to filter rules. Data that passes the filter
-    rule is kept, other data is dropped.
-
-    If no filter method is provided, the data is returned as a list.
-    Otherwise, a items that meet filter conditions are returned in a list.
-
-    Args:
-      rdf_data: Host data that has already been processed by a Parser into RDF.
-
-    Returns:
-      A list containing data items that matched the filter rules.
-    """
-    if self._filter:
-      return list(self._filter.Parse(rdf_data, self.expression))
-    return rdf_data
-
-  def Validate(self):
-    """The filter exists, and has valid filter and hint expressions."""
-    if self.type not in filters.Filter.classes:
-      raise DefinitionError("Undefined filter type %s" % self.type)
-    self._filter.Validate(self.expression)
-    ValidateMultiple(self.hint, "Filter has invalid hint")
-
-
-class Hint(rdf_structs.RDFProtoStruct):
-  """Human-formatted descriptions of problems, fixes and findings."""
-
-  protobuf = checks_pb2.Hint
-
-  def __init__(self, initializer=None, age=None, reformat=True, **kwargs):
-    if isinstance(initializer, dict):
-      conf = initializer
-      initializer = None
-    else:
-      conf = kwargs
-    super(Hint, self).__init__(initializer=initializer, age=age, **conf)
-    if not self.max_results:
-      self.max_results = config_lib.CONFIG.Get("Checks.max_results")
-    if reformat:
-      self.hinter = hints.Hinter(self.format)
-    else:
-      self.hinter = hints.Hinter()
-
-  def Render(self, rdf_data):
-    """Processes data according to formatting rules."""
-    report_data = rdf_data[:self.max_results]
-    results = [self.hinter.Render(rdf) for rdf in report_data]
-    extra = len(rdf_data) - len(report_data)
-    if extra > 0:
-      results.append("...plus another %d issues." % extra)
-    return results
-
-  def Problem(self, state):
-    """Creates an anomaly symptom/problem string."""
-    if self.problem:
-      return "%s: %s" % (state, self.problem.strip())
-
-  def Fix(self):
-    """Creates an anomaly explanation/fix string."""
-    if self.fix:
-      return self.fix.strip()
-
-  def Validate(self):
-    """Ensures that required values are set and formatting rules compile."""
-    # TODO(user): Default format string.
-    if self.problem:
-      pass
 
 
 class Matcher(object):

@@ -17,6 +17,7 @@ from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib import worker
@@ -79,6 +80,53 @@ class RaisingTestFlow(WorkerSendingTestFlow):
   @flow.StateHandler(auth_required=False)
   def Incoming(self, responses):
     raise AttributeError("Some Error.")
+
+
+class CPULimitClientMock(object):
+
+  in_rdfvalue = rdf_protodict.DataBlob
+
+  def __init__(self, storage):
+    # Register us as an action plugin.
+    # TODO(user): this is a hacky shortcut and should be fixed.
+    server_stubs.ClientActionStub.classes["Store"] = self
+    self.storage = storage
+    self.__name__ = "Store"
+
+  def HandleMessage(self, message):
+    print message
+    self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
+    self.storage.setdefault("networklimit",
+                            []).append(message.network_bytes_limit)
+
+
+class CPULimitFlow(flow.GRRFlow):
+  """This flow is used to test the cpu limit."""
+
+  @flow.StateHandler()
+  def Start(self):
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"],
+        string="Hey!",
+        next_state="State1")
+
+  @flow.StateHandler()
+  def State1(self):
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"],
+        string="Hey!",
+        next_state="State2")
+
+  @flow.StateHandler()
+  def State2(self):
+    self.CallClient(
+        server_stubs.ClientActionStub.classes["Store"],
+        string="Hey!",
+        next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    pass
 
 
 class WorkerStuckableHunt(implementation.GRRHunt):
@@ -972,6 +1020,153 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       notification = my_notifications[0]
       self.assertEqual(notification.first_queued, notification.timestamp)
       self.assertEqual(notification.last_status, 10)
+
+  def testCPULimitForFlows(self):
+    """This tests that the client actions are limited properly."""
+    result = {}
+    client_mock = CPULimitClientMock(result)
+    client_mock = test_lib.MockClient(
+        self.client_id, client_mock, token=self.token)
+
+    client_mock.EnableResourceUsage(
+        user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
+
+    worker_obj = worker.GRRWorker(token=self.token)
+
+    flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="CPULimitFlow",
+        cpu_limit=1000,
+        network_bytes_limit=10000,
+        token=self.token)
+
+    self._Process([client_mock], worker_obj)
+
+    self.assertEqual(result["cpulimit"], [1000, 980, 960])
+    self.assertEqual(result["networklimit"], [10000, 9000, 8000])
+
+    return result
+
+  def _Process(self, client_mocks, worker_obj):
+    while True:
+      client_msgs_processed = 0
+      for client_mock in client_mocks:
+        client_msgs_processed += client_mock.Next()
+      worker_msgs_processed = worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+      if not client_msgs_processed and not worker_msgs_processed:
+        break
+
+  def testCPULimitForHunts(self):
+    worker_obj = worker.GRRWorker(token=self.token)
+
+    client_ids = ["C.%016X" % i for i in xrange(10, 20)]
+    result = {}
+    client_mocks = []
+    for client_id in client_ids:
+      client_mock = CPULimitClientMock(result)
+      client_mock = test_lib.MockClient(
+          rdf_client.ClientURN(client_id), client_mock, token=self.token)
+
+      client_mock.EnableResourceUsage(
+          user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
+      client_mocks.append(client_mock)
+
+    flow_runner_args = rdf_flows.FlowRunnerArgs(flow_name="CPULimitFlow")
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner_args,
+        cpu_limit=5000,
+        network_bytes_limit=1000000,
+        client_rate=0,
+        token=self.token) as hunt:
+      hunt.GetRunner().Start()
+
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    self._Process(client_mocks, worker_obj)
+
+    # The limiting factor here is the overall hunt limit of 5000 cpu
+    # seconds. Clients that finish should decrease the remaining quota
+    # and the following clients should get the reduced quota.
+    self.assertEqual(result["cpulimit"], [
+        5000.0, 4980.0, 4960.0, 4940.0, 4920.0, 4900.0, 4880.0, 4860.0, 4840.0
+    ])
+    self.assertEqual(result["networklimit"], [
+        1000000L, 999000L, 998000L, 997000L, 996000L, 995000L, 994000L, 993000L,
+        992000L
+    ])
+
+    result.clear()
+
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner_args,
+        per_client_cpu_limit=3000,
+        per_client_network_limit_bytes=3000000,
+        client_rate=0,
+        token=self.token) as hunt:
+      hunt.GetRunner().Start()
+
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    self._Process(client_mocks, worker_obj)
+
+    # This time, the per client limit is 3000s / 3000000 bytes. Every
+    # client should get the same limit.
+    self.assertEqual(result["cpulimit"], [
+        3000.0, 2980.0, 2960.0, 3000.0, 2980.0, 2960.0, 3000.0, 2980.0, 2960.0
+    ])
+    self.assertEqual(result["networklimit"], [
+        3000000, 2999000, 2998000, 3000000, 2999000, 2998000, 3000000, 2999000,
+        2998000
+    ])
+    result.clear()
+
+    for client_mock in client_mocks:
+      client_mock.EnableResourceUsage(
+          user_cpu_usage=[500], system_cpu_usage=[500], network_usage=[1000000])
+
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner_args,
+        per_client_cpu_limit=3000,
+        cpu_limit=5000,
+        per_client_network_limit_bytes=3000000,
+        network_bytes_limit=5000000,
+        client_rate=0,
+        token=self.token) as hunt:
+      hunt.GetRunner().Start()
+
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    self._Process(client_mocks, worker_obj)
+    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    self._Process(client_mocks, worker_obj)
+
+    # The first client gets the full per client limit of 3000s, and
+    # uses all of it. The hunt has a limit of just 5000 total so the
+    # second client gets started with a limit of 2000. It can only run
+    # two of three states, the last client will not be started at all
+    # due to out of quota.
+    self.assertEqual(result["cpulimit"],
+                     [3000.0, 2000.0, 1000.0, 2000.0, 1000.0])
+    self.assertEqual(result["networklimit"],
+                     [3000000, 2000000, 1000000, 2000000, 1000000])
+
+    errors = list(hunt.GetClientsErrors())
+    self.assertEqual(len(errors), 2)
+    # Client side out of cpu.
+    self.assertIn("CPU limit exceeded", errors[0].log_message)
+    # Server side out of cpu.
+    self.assertIn("Out of CPU quota", errors[1].backtrace)
 
 
 def main(_):

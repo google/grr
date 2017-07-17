@@ -10,13 +10,54 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class KeyValue(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.KeyValue
+class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
+  """An object that contains a serialized RDFValue."""
+
+  protobuf = jobs_pb2.EmbeddedRDFValue
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+  def __init__(self, initializer=None, payload=None, *args, **kwargs):
+    if (not payload and isinstance(initializer, rdfvalue.RDFValue) and
+        not isinstance(initializer, EmbeddedRDFValue)):
+      # The initializer is an RDFValue object that we can use as payload.
+      payload = initializer
+      initializer = None
+
+    super(EmbeddedRDFValue, self).__init__(
+        initializer=initializer, *args, **kwargs)
+    if payload is not None:
+      self.payload = payload
+
+  @property
+  def payload(self):
+    """Extracts and returns the serialized object."""
+    try:
+      rdf_cls = self.classes.get(self.name)
+      if rdf_cls:
+        value = rdf_cls.FromSerializedString(self.data)
+        value.age = self.embedded_age
+
+        return value
+    except TypeError:
+      return None
+
+  @payload.setter
+  def payload(self, payload):
+    self.name = payload.__class__.__name__
+    self.embedded_age = payload.age
+    self.data = payload.SerializeToString()
 
 
 class DataBlob(rdf_structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
   protobuf = jobs_pb2.DataBlob
+  rdf_deps = [
+      "BlobArray",  # TODO(user): dependency loop.
+      "Dict",  # TODO(user): dependency loop.
+      EmbeddedRDFValue,
+  ]
 
   def SetValue(self, value, raise_on_error=True):
     """Receives a value and fills it into a DataBlob.
@@ -110,6 +151,13 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       return values[0]
 
 
+class KeyValue(rdf_structs.RDFProtoStruct):
+  protobuf = jobs_pb2.KeyValue
+  rdf_deps = [
+      DataBlob,
+  ]
+
+
 class Dict(rdf_structs.RDFProtoStruct):
   """A high level interface for protobuf Dict objects.
 
@@ -118,6 +166,9 @@ class Dict(rdf_structs.RDFProtoStruct):
   or binary blobs (python string objects) as keys and values.
   """
   protobuf = jobs_pb2.Dict
+  rdf_deps = [
+      KeyValue,
+  ]
 
   _values = None
 
@@ -262,6 +313,9 @@ class AttributedDict(Dict):
   """A Dict that supports attribute indexing."""
 
   protobuf = jobs_pb2.AttributedDict
+  rdf_deps = [
+      KeyValue,
+  ]
 
   def __getattr__(self, item):
     # Pickle is checking for the presence of overrides for various builtins.
@@ -286,6 +340,9 @@ class RDFProtoDict(Dict):
 
 class BlobArray(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.BlobArray
+  rdf_deps = [
+      DataBlob,
+  ]
 
 
 class RDFValueArray(rdf_structs.RDFProtoStruct):
@@ -296,6 +353,9 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
   main reason we used this in the past).
   """
   protobuf = jobs_pb2.BlobArray
+  rdf_deps = [
+      DataBlob,
+  ]
 
   # Set this to an RDFValue class to ensure all members adhere to this type.
   rdf_type = None
@@ -368,43 +428,6 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
   def Pop(self, index=0):
     return self.content.Pop(index).GetValue()
-
-
-class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
-  """An object that contains a serialized RDFValue."""
-
-  protobuf = jobs_pb2.EmbeddedRDFValue
-
-  def __init__(self, initializer=None, payload=None, *args, **kwargs):
-    if (not payload and isinstance(initializer, rdfvalue.RDFValue) and
-        not isinstance(initializer, EmbeddedRDFValue)):
-      # The initializer is an RDFValue object that we can use as payload.
-      payload = initializer
-      initializer = None
-
-    super(EmbeddedRDFValue, self).__init__(
-        initializer=initializer, *args, **kwargs)
-    if payload is not None:
-      self.payload = payload
-
-  @property
-  def payload(self):
-    """Extracts and returns the serialized object."""
-    try:
-      rdf_cls = self.classes.get(self.name)
-      if rdf_cls:
-        value = rdf_cls.FromSerializedString(self.data)
-        value.age = self.embedded_age
-
-        return value
-    except TypeError:
-      return None
-
-  @payload.setter
-  def payload(self, payload):
-    self.name = payload.__class__.__name__
-    self.embedded_age = payload.age
-    self.data = payload.SerializeToString()
 
 
 collections.Mapping.register(Dict)

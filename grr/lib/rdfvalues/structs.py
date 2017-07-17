@@ -1899,9 +1899,11 @@ class RDFProtoStruct(RDFStruct):
   # annotated in the .proto file. This is a dict with keys being the semantic
   # names, and values being the concrete implementations for these types.
 
-  # By default include standard semantic objects. Additional objects can be
-  # added if needed.
-  _dependencies = dict(RDFURN=rdfvalue.RDFURN, RDFDatetime=rdfvalue.RDFDatetime)
+  # All RDFValue classes used by this proto have to be specified here.
+
+  # Recorded dependencies - used by update_rdf_deps script to update
+  # dependencies setting.
+  recorded_rdf_deps = None
 
   def AsPrimitiveProto(self):
     """Return an old style protocol buffer object."""

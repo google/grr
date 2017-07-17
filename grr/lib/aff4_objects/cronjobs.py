@@ -33,6 +33,11 @@ class Error(Exception):
 
 class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CreateCronJobFlowArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdf_flows.FlowRunnerArgs,
+      rdfvalue.RDFDatetime,
+  ]
 
   def GetFlowArgsClass(self):
     if self.flow_runner_args.flow_name:

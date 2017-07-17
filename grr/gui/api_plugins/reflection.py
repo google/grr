@@ -44,6 +44,9 @@ class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListRDFValueDescriptorsResult(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiListRDFValueDescriptorsResult
+  rdf_deps = [
+      api_value_renderers.ApiRDFValueDescriptor,
+  ]
 
 
 class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
@@ -69,6 +72,9 @@ class ApiAff4AttributeDescriptor(rdf_structs.RDFProtoStruct):
 
 class ApiListAff4AttributeDescriptorsResult(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiListAff4AttributeDescriptorsResult
+  rdf_deps = [
+      ApiAff4AttributeDescriptor,
+  ]
 
 
 class ApiListAff4AttributeDescriptorsHandler(
@@ -89,10 +95,16 @@ class ApiListAff4AttributeDescriptorsHandler(
 
 class ApiMethod(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiMethod
+  rdf_deps = [
+      api_value_renderers.ApiRDFValueDescriptor,
+  ]
 
 
 class ApiListApiMethodsResult(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiListApiMethodsResult
+  rdf_deps = [
+      ApiMethod,
+  ]
 
 
 class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):

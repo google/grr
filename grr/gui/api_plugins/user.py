@@ -8,6 +8,7 @@ from grr.gui import api_call_handler_base
 
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import cron as api_cron
+from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import access_control
@@ -36,6 +37,195 @@ class GlobalNotificationNotFoundError(
   """Raised when a specific global notification could not be found."""
 
 
+class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationDiscoveryReference
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
+
+
+class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationHuntReference
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
+
+
+class ApiNotificationCronReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationCronReference
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
+
+
+class ApiNotificationFlowReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationFlowReference
+  rdf_deps = [
+      api_client.ApiClientId,
+      api_flow.ApiFlowId,
+  ]
+
+
+class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationVfsReference
+  rdf_deps = [
+      api_client.ApiClientId,
+      rdfvalue.RDFURN,
+  ]
+
+
+class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationClientApprovalReference
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
+
+
+class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationHuntApprovalReference
+  rdf_deps = [
+      api_hunt.ApiHuntId,
+  ]
+
+
+class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationCronJobApprovalReference
+
+
+class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationUnknownReference
+  rdf_deps = [
+      rdfvalue.RDFURN,
+  ]
+
+
+class ApiNotificationReference(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.ApiNotificationReference
+  rdf_deps = [
+      ApiNotificationClientApprovalReference,
+      ApiNotificationCronJobApprovalReference,
+      ApiNotificationCronReference,
+      ApiNotificationDiscoveryReference,
+      ApiNotificationFlowReference,
+      ApiNotificationHuntApprovalReference,
+      ApiNotificationHuntReference,
+      ApiNotificationUnknownReference,
+      ApiNotificationVfsReference,
+  ]
+
+
+class ApiNotification(rdf_structs.RDFProtoStruct):
+  """Represents a user notification."""
+
+  protobuf = user_pb2.ApiNotification
+  rdf_deps = [
+      ApiNotificationReference,
+      rdfvalue.RDFDatetime,
+  ]
+
+  def _GetUrnComponents(self, notification):
+    # Still display if subject doesn't get set, this will appear in the GUI with
+    # a target of "None"
+    urn = "/"
+    if notification.subject is not None:
+      urn = notification.subject
+
+    path = rdfvalue.RDFURN(urn)
+    return path.Path().split("/")[1:]
+
+  def InitFromNotification(self, notification, is_pending=False):
+    """Initializes this object from an existing notification.
+
+    Args:
+      notification: A rdfvalues.flows.Notification object.
+      is_pending: Indicates whether the user has already seen
+          this notification or not.
+
+    Returns:
+      The current instance.
+    """
+    self.timestamp = notification.timestamp
+    self.message = notification.message
+    self.subject = str(notification.subject)
+    self.is_pending = is_pending
+
+    reference_type_enum = ApiNotificationReference.Type
+
+    # TODO(user): refactor notifications, so that we send a meaningful
+    # notification from the start, so that we don't have to do the
+    # bridging/conversion/guessing here.
+    components = self._GetUrnComponents(notification)
+    if notification.type == "Discovery":
+      self.reference.type = reference_type_enum.DISCOVERY
+      self.reference.discovery = ApiNotificationDiscoveryReference(
+          client_id=components[0])
+    elif notification.type == "ViewObject":
+      if len(components) >= 2 and components[0] == "hunts":
+        self.reference.type = reference_type_enum.HUNT
+        self.reference.hunt.hunt_urn = rdfvalue.RDFURN(
+            os.path.join(*components[:2]))
+      elif len(components) >= 2 and components[0] == "cron":
+        self.reference.type = reference_type_enum.CRON
+        self.reference.cron.cron_job_urn = rdfvalue.RDFURN(
+            os.path.join(*components[:2]))
+      elif len(components) >= 3 and components[1] == "flows":
+        self.reference.type = reference_type_enum.FLOW
+        self.reference.flow.flow_id = components[2]
+        self.reference.flow.client_id = components[0]
+      elif len(components) == 1 and rdf_client.ClientURN.Validate(
+          components[0]):
+        self.reference.type = reference_type_enum.DISCOVERY
+        self.reference.discovery.client_id = components[0]
+      else:
+        path = notification.subject.Path()
+        for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
+          part = "/%s%s" % (components[0], prefix)
+          if path.startswith(part):
+            self.reference.type = reference_type_enum.VFS
+            self.reference.vfs.client_id = components[0]
+            self.reference.vfs.vfs_path = prefix + path[len(part):]
+            break
+
+        if self.reference.type != reference_type_enum.VFS:
+          self.reference.type = reference_type_enum.UNKNOWN
+          self.reference.unknown.subject_urn = notification.subject
+
+    elif notification.type == "FlowStatus":
+      if not components or not rdf_client.ClientURN.Validate(components[0]):
+        self.reference.type = reference_type_enum.UNKNOWN
+        self.reference.unknown.subject_urn = notification.subject
+      else:
+        self.reference.type = reference_type_enum.FLOW
+        self.reference.flow.flow_id = notification.source.Basename()
+        self.reference.flow.client_id = components[0]
+
+    # TODO(user): refactor GrantAccess notification so that we don't have
+    # to infer approval type from the URN.
+    elif notification.type == "GrantAccess":
+      if rdf_client.ClientURN.Validate(components[1]):
+        self.reference.type = reference_type_enum.CLIENT_APPROVAL
+        self.reference.client_approval.client_id = components[1]
+        self.reference.client_approval.approval_id = components[-1]
+        self.reference.client_approval.username = components[-2]
+      elif components[1] == "hunts":
+        self.reference.type = reference_type_enum.HUNT_APPROVAL
+        self.reference.hunt_approval.hunt_id = components[2]
+        self.reference.hunt_approval.approval_id = components[-1]
+        self.reference.hunt_approval.username = components[-2]
+      elif components[1] == "cron":
+        self.reference.type = reference_type_enum.CRON_JOB_APPROVAL
+        self.reference.cron_job_approval.cron_job_id = components[2]
+        self.reference.cron_job_approval.approval_id = components[-1]
+        self.reference.cron_job_approval.username = components[-2]
+
+    else:
+      self.reference.type = reference_type_enum.UNKNOWN
+      self.reference.unknown.subject_urn = notification.subject
+      self.reference.unknown.source_urn = notification.source
+
+    return self
+
+
 class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiGrrUserInterfaceTraits
 
@@ -48,6 +238,10 @@ class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
 
 class ApiGrrUser(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiGrrUser
+  rdf_deps = [
+      ApiGrrUserInterfaceTraits,
+      aff4_users.GUISettings,
+  ]
 
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
@@ -83,6 +277,9 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 
 class ApiClientApproval(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiClientApproval
+  rdf_deps = [
+      api_client.ApiClient,
+  ]
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -98,6 +295,9 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
 
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiHuntApproval
+  rdf_deps = [
+      api_hunt.ApiHunt,
+  ]
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -112,6 +312,9 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiCronJobApproval
+  rdf_deps = [
+      api_cron.ApiCronJob,
+  ]
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -307,6 +510,10 @@ class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
 class ApiCreateClientApprovalArgs(ApiClientApprovalArgsBase):
   protobuf = user_pb2.ApiCreateClientApprovalArgs
+  rdf_deps = [
+      ApiClientApproval,
+      api_client.ApiClientId,
+  ]
 
 
 class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
@@ -334,6 +541,9 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
 
 class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):
   protobuf = user_pb2.ApiGetClientApprovalArgs
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
 
 
 class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
@@ -347,6 +557,9 @@ class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
 
 class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):
   protobuf = user_pb2.ApiGrantClientApprovalArgs
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
 
 
 class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
@@ -360,10 +573,16 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
 
 class ApiListClientApprovalsArgs(ApiClientApprovalArgsBase):
   protobuf = user_pb2.ApiListClientApprovalsArgs
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
 
 
 class ApiListClientApprovalsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListClientApprovalsResult
+  rdf_deps = [
+      ApiClientApproval,
+  ]
 
 
 class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
@@ -438,6 +657,10 @@ class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
 class ApiCreateHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = user_pb2.ApiCreateHuntApprovalArgs
+  rdf_deps = [
+      ApiHuntApproval,
+      api_hunt.ApiHuntId,
+  ]
 
 
 class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
@@ -452,6 +675,9 @@ class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
 
 class ApiGetHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = user_pb2.ApiGetHuntApprovalArgs
+  rdf_deps = [
+      api_hunt.ApiHuntId,
+  ]
 
 
 class ApiGetHuntApprovalHandler(ApiGetApprovalHandlerBase):
@@ -465,6 +691,9 @@ class ApiGetHuntApprovalHandler(ApiGetApprovalHandlerBase):
 
 class ApiGrantHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = user_pb2.ApiGrantHuntApprovalArgs
+  rdf_deps = [
+      api_hunt.ApiHuntId,
+  ]
 
 
 class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
@@ -482,6 +711,9 @@ class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
 
 class ApiListHuntApprovalsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListHuntApprovalsResult
+  rdf_deps = [
+      ApiHuntApproval,
+  ]
 
 
 class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
@@ -515,6 +747,9 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
 class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiCreateCronJobApprovalArgs
+  rdf_deps = [
+      ApiCronJobApproval,
+  ]
 
 
 class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
@@ -559,6 +794,9 @@ class ApiListCronJobApprovalsArgs(ApiCronJobApprovalArgsBase):
 
 class ApiListCronJobApprovalsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListCronJobApprovalsResult
+  rdf_deps = [
+      ApiCronJobApproval,
+  ]
 
 
 class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
@@ -651,10 +889,16 @@ class ApiGetPendingUserNotificationsCountHandler(
 
 class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListPendingUserNotificationsArgs
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiListPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListPendingUserNotificationsResult
+  rdf_deps = [
+      ApiNotification,
+  ]
 
 
 class ApiListPendingUserNotificationsHandler(
@@ -685,6 +929,9 @@ class ApiListPendingUserNotificationsHandler(
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiDeletePendingUserNotificationArgs
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiDeletePendingUserNotificationHandler(
@@ -709,154 +956,9 @@ class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListAndResetUserNotificationsResult
-
-
-class ApiNotification(rdf_structs.RDFProtoStruct):
-  """Represents a user notification."""
-
-  protobuf = user_pb2.ApiNotification
-
-  def _GetUrnComponents(self, notification):
-    # Still display if subject doesn't get set, this will appear in the GUI with
-    # a target of "None"
-    urn = "/"
-    if notification.subject is not None:
-      urn = notification.subject
-
-    path = rdfvalue.RDFURN(urn)
-    return path.Path().split("/")[1:]
-
-  def InitFromNotification(self, notification, is_pending=False):
-    """Initializes this object from an existing notification.
-
-    Args:
-      notification: A rdfvalues.flows.Notification object.
-      is_pending: Indicates whether the user has already seen
-          this notification or not.
-
-    Returns:
-      The current instance.
-    """
-    self.timestamp = notification.timestamp
-    self.message = notification.message
-    self.subject = str(notification.subject)
-    self.is_pending = is_pending
-
-    reference_type_enum = ApiNotificationReference.Type
-
-    # TODO(user): refactor notifications, so that we send a meaningful
-    # notification from the start, so that we don't have to do the
-    # bridging/conversion/guessing here.
-    components = self._GetUrnComponents(notification)
-    if notification.type == "Discovery":
-      self.reference.type = reference_type_enum.DISCOVERY
-      self.reference.discovery = ApiNotificationDiscoveryReference(
-          client_id=components[0])
-    elif notification.type == "ViewObject":
-      if len(components) >= 2 and components[0] == "hunts":
-        self.reference.type = reference_type_enum.HUNT
-        self.reference.hunt.hunt_urn = rdfvalue.RDFURN(
-            os.path.join(*components[:2]))
-      elif len(components) >= 2 and components[0] == "cron":
-        self.reference.type = reference_type_enum.CRON
-        self.reference.cron.cron_job_urn = rdfvalue.RDFURN(
-            os.path.join(*components[:2]))
-      elif len(components) >= 3 and components[1] == "flows":
-        self.reference.type = reference_type_enum.FLOW
-        self.reference.flow.flow_id = components[2]
-        self.reference.flow.client_id = components[0]
-      elif len(components) == 1 and rdf_client.ClientURN.Validate(
-          components[0]):
-        self.reference.type = reference_type_enum.DISCOVERY
-        self.reference.discovery.client_id = components[0]
-      else:
-        path = notification.subject.Path()
-        for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
-          part = "/%s%s" % (components[0], prefix)
-          if path.startswith(part):
-            self.reference.type = reference_type_enum.VFS
-            self.reference.vfs.client_id = components[0]
-            self.reference.vfs.vfs_path = prefix + path[len(part):]
-            break
-
-        if self.reference.type != reference_type_enum.VFS:
-          self.reference.type = reference_type_enum.UNKNOWN
-          self.reference.unknown.subject_urn = notification.subject
-
-    elif notification.type == "FlowStatus":
-      if not components or not rdf_client.ClientURN.Validate(components[0]):
-        self.reference.type = reference_type_enum.UNKNOWN
-        self.reference.unknown.subject_urn = notification.subject
-      else:
-        self.reference.type = reference_type_enum.FLOW
-        self.reference.flow.flow_id = notification.source.Basename()
-        self.reference.flow.client_id = components[0]
-
-    # TODO(user): refactor GrantAccess notification so that we don't have
-    # to infer approval type from the URN.
-    elif notification.type == "GrantAccess":
-      if rdf_client.ClientURN.Validate(components[1]):
-        self.reference.type = reference_type_enum.CLIENT_APPROVAL
-        self.reference.client_approval.client_id = components[1]
-        self.reference.client_approval.approval_id = components[-1]
-        self.reference.client_approval.username = components[-2]
-      elif components[1] == "hunts":
-        self.reference.type = reference_type_enum.HUNT_APPROVAL
-        self.reference.hunt_approval.hunt_id = components[2]
-        self.reference.hunt_approval.approval_id = components[-1]
-        self.reference.hunt_approval.username = components[-2]
-      elif components[1] == "cron":
-        self.reference.type = reference_type_enum.CRON_JOB_APPROVAL
-        self.reference.cron_job_approval.cron_job_id = components[2]
-        self.reference.cron_job_approval.approval_id = components[-1]
-        self.reference.cron_job_approval.username = components[-2]
-
-    else:
-      self.reference.type = reference_type_enum.UNKNOWN
-      self.reference.unknown.subject_urn = notification.subject
-      self.reference.unknown.source_urn = notification.source
-
-    return self
-
-
-class ApiNotificationReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationReference
-
-
-class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationDiscoveryReference
-
-
-class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationHuntReference
-
-
-class ApiNotificationCronReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationCronReference
-
-
-class ApiNotificationFlowReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationFlowReference
-
-
-class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationVfsReference
-
-
-class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationClientApprovalReference
-
-
-class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationHuntApprovalReference
-
-
-class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationCronJobApprovalReference
-
-
-class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationUnknownReference
+  rdf_deps = [
+      ApiNotification,
+  ]
 
 
 class ApiListAndResetUserNotificationsHandler(
@@ -908,6 +1010,9 @@ class ApiListAndResetUserNotificationsHandler(
 
 class ApiListPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListPendingGlobalNotificationsResult
+  rdf_deps = [
+      aff4_users.GlobalNotification,
+  ]
 
 
 class ApiListPendingGlobalNotificationsHandler(

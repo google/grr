@@ -54,6 +54,10 @@ _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(
     integer=TYPE_INT64,
     unsigned_integer=TYPE_UINT64,)
 
+# If True, check that protobuf dependencies are correctly mirrored in
+# RDFProtoStruct.rdf_deps field.
+CHECK_PROTOBUF_DEPENDENCIES = True
+
 
 def DefineFromProtobuf(cls, protobuf):
   """Add type info definitions from an existing protobuf.
@@ -69,6 +73,8 @@ def DefineFromProtobuf(cls, protobuf):
     protobuf: A generated proto2 protocol buffer class as produced by the
       standard Google protobuf compiler.
   """
+  cls.recorded_rdf_deps = set()
+
   # Parse message level options.
   message_options = protobuf.DESCRIPTOR.GetOptions()
   semantic_options = message_options.Extensions[semantic_pb2.semantic]
@@ -102,9 +108,17 @@ def DefineFromProtobuf(cls, protobuf):
 
     # This field is a non-protobuf semantic value.
     if options.type and field.type != TYPE_MESSAGE:
+      cls.recorded_rdf_deps.add(options.type)
 
       rdf_type = getattr(rdfvalue, options.type, None)
       if rdf_type:
+        if (CHECK_PROTOBUF_DEPENDENCIES and rdf_type not in cls.rdf_deps and
+            options.type not in cls.rdf_deps):
+          raise rdfvalue.InitializeError(
+              "%s.%s: field %s is of type %s, "
+              "but type is missing from its dependencies list" %
+              (cls.__module__, cls.__name__, field.name, options.type))
+
         # Make sure that the field type is the same as what is required by the
         # semantic type.
         required_field_type = _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE[
@@ -178,6 +192,21 @@ def DefineFromProtobuf(cls, protobuf):
       # protobuf (i.e. nested proto).
       type_descriptor = classes_dict["ProtoEmbedded"](
           nested=field.message_type.name, **kwargs)
+
+      cls.recorded_rdf_deps.add(field.message_type.name)
+      if CHECK_PROTOBUF_DEPENDENCIES:
+        found = False
+        for d in cls.rdf_deps:
+          if (hasattr(d, "__name__") and d.__name__ == field.message_type.name
+              or d == field.message_type.name):
+            found = True
+
+        if not found:
+          raise rdfvalue.InitializeError(
+              "%s.%s: TYPE_MESSAGE field %s is %s, "
+              "but type is missing from its dependencies list" %
+              (cls.__module__, cls.__name__, field.name,
+               field.message_type.name))
 
       # TODO(user): support late binding here.
       if type_descriptor.type:

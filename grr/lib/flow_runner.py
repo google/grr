@@ -227,7 +227,6 @@ class FlowRunner(object):
         creator=parent_creator or self.token.username,
         current_state="Start",
         output_plugins_states=output_plugins_states,
-        remaining_cpu_quota=args.cpu_limit,
         state=rdf_flows.FlowContext.State.RUNNING,
 
         # Have we sent a notification to the user.
@@ -704,9 +703,6 @@ class FlowRunner(object):
         payload=request,
         generate_task_id=True)
 
-    if self.context.remaining_cpu_quota:
-      msg.cpu_limit = int(self.context.remaining_cpu_quota)
-
     cpu_usage = self.context.client_resources.cpu_usage
     if self.runner_args.cpu_limit:
       msg.cpu_limit = max(self.runner_args.cpu_limit - cpu_usage.user_cpu_time -
@@ -722,7 +718,6 @@ class FlowRunner(object):
         raise FlowRunnerError("Network limit exceeded.")
 
     state.request = msg
-
     self.QueueRequest(state, timestamp=start_time)
 
   def Publish(self, event_name, msg, delay=0):
@@ -1033,7 +1028,6 @@ class FlowRunner(object):
     _ = request
     status = responses.status
     if status:
-      # Do this last since it may raise "CPU limit exceeded".
       self.UpdateProtoResources(status)
 
   def _QueueRequest(self, request, timestamp=None):

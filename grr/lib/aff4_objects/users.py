@@ -27,6 +27,10 @@ class GlobalNotification(rdf_structs.RDFProtoStruct):
   """Global notification shown to all the users of GRR."""
 
   protobuf = jobs_pb2.GlobalNotification
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdfvalue.RDFDatetime,
+  ]
 
   def __init__(self, *args, **kwargs):
     super(GlobalNotification, self).__init__(*args, **kwargs)
@@ -50,6 +54,9 @@ class GlobalNotificationSet(rdf_structs.RDFProtoStruct):
   """A set of global notifications: one notification per notification's type."""
 
   protobuf = jobs_pb2.GlobalNotificationSet
+  rdf_deps = [
+      GlobalNotification,
+  ]
 
   def AddNotification(self, new_notification):
     """Adds new notification to the set.

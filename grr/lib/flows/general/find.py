@@ -8,12 +8,16 @@ from grr.lib import flow
 from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
 class FindFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FindFilesArgs
+  rdf_deps = [
+      rdf_client.FindSpec,
+  ]
 
   def Validate(self):
     """Ensure that the request is sane."""

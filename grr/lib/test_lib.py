@@ -53,6 +53,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import events
+from grr.lib import export
 from grr.lib import flags
 from grr.lib import flow
 # pylint: disable=unused-import
@@ -1272,6 +1273,28 @@ class MockClient(object):
 
     # Well known flows are run on the front end.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
+    self.user_cpu_usage = []
+    self.system_cpu_usage = []
+    self.network_usage = []
+
+  def EnableResourceUsage(self,
+                          user_cpu_usage=None,
+                          system_cpu_usage=None,
+                          network_usage=None):
+    if user_cpu_usage:
+      self.user_cpu_usage = itertools.cycle(user_cpu_usage)
+    if system_cpu_usage:
+      self.system_cpu_usage = itertools.cycle(system_cpu_usage)
+    if network_usage:
+      self.network_usage = itertools.cycle(network_usage)
+
+  def AddResourceUsage(self, status):
+    if self.user_cpu_usage or self.system_cpu_usage:
+      status.cpu_time_used = rdf_client.CpuSeconds(
+          user_cpu_time=self.user_cpu_usage.next(),
+          system_cpu_time=self.system_cpu_usage.next())
+    if self.network_usage:
+      status.network_bytes_sent = self.network_usage.next()
 
   def PushToStateQueue(self, manager, message, **kw):
     # Assume the client is authorized
@@ -1347,6 +1370,7 @@ class MockClient(object):
         for response in responses:
           if isinstance(response, rdf_flows.GrrStatus):
             msg_type = rdf_flows.GrrMessage.Type.STATUS
+            self.AddResourceUsage(response)
             response = rdf_flows.GrrMessage(
                 session_id=message.session_id,
                 name=message.name,
@@ -1379,6 +1403,7 @@ class MockClient(object):
 
         # Status may only be None if the client reported itself as crashed.
         if status is not None:
+          self.AddResourceUsage(status)
           self.PushToStateQueue(
               manager,
               message,
@@ -2122,6 +2147,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
 class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.DataAgnosticConverterTestValue
+  rdf_deps = [export.ExportedMetadata, rdfvalue.RDFDatetime, rdfvalue.RDFURN]
 
 
 class DataAgnosticConverterTestValueWithMetadata(rdf_structs.RDFProtoStruct):

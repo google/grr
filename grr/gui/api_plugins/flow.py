@@ -6,6 +6,8 @@ import re
 
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
+
+from grr.gui.api_plugins import client
 from grr.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr.lib import access_control
@@ -14,6 +16,7 @@ from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import instant_output_plugin
+from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import throttle
@@ -149,6 +152,15 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
   the UI and and to not expose implementation defails.
   """
   protobuf = flow_pb2.ApiFlow
+  rdf_deps = [
+      api_call_handler_utils.ApiDataObject,
+      "ApiFlow",  # TODO(user): recursive dependency.
+      ApiFlowId,
+      rdf_flows.FlowContext,
+      rdf_flows.FlowRunnerArgs,
+      rdfvalue.RDFDatetime,
+      rdfvalue.SessionID,
+  ]
 
   def GetArgsClass(self):
     flow_name = self.name
@@ -213,10 +225,17 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
 
 class ApiFlowRequest(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowRequest
+  rdf_deps = [
+      rdf_flows.GrrMessage,
+      rdf_flows.RequestState,
+  ]
 
 
 class ApiFlowResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
   def GetPayloadClass(self):
     return rdfvalue.RDFValue.classes[self.payload_type]
@@ -231,6 +250,10 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
 
 class ApiGetFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -254,10 +277,17 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListFlowRequestsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowRequestsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowRequestsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowRequestsResult
+  rdf_deps = [
+      ApiFlowRequest,
+  ]
 
 
 class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
@@ -302,10 +332,17 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListFlowResultsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowResultsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowResultsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowResultsResult
+  rdf_deps = [
+      ApiFlowResult,
+  ]
 
 
 class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
@@ -328,10 +365,17 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowLogsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowLogsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowLogsResult
+  rdf_deps = [
+      rdf_flows.FlowLog,
+  ]
 
 
 class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
@@ -352,6 +396,10 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowResultsExportCommandArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiGetFlowResultsExportCommandResult(rdf_structs.RDFProtoStruct):
@@ -383,6 +431,10 @@ class ApiGetFlowResultsExportCommandHandler(
 
 class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowFilesArchiveArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
@@ -512,10 +564,17 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListFlowOutputPluginsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowOutputPluginsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginsResult
+  rdf_deps = [
+      api_output_plugin.ApiOutputPlugin,
+  ]
 
 
 class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
@@ -607,10 +666,17 @@ class ApiListFlowOutputPluginLogsHandlerBase(
 
 class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginLogsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginLogsResult
+  rdf_deps = [
+      output_plugin.OutputPluginBatchProcessingStatus,
+  ]
 
 
 class ApiListFlowOutputPluginLogsHandler(
@@ -624,10 +690,17 @@ class ApiListFlowOutputPluginLogsHandler(
 
 class ApiListFlowOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginErrorsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiListFlowOutputPluginErrorsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowOutputPluginErrorsResult
+  rdf_deps = [
+      output_plugin.OutputPluginBatchProcessingStatus,
+  ]
 
 
 class ApiListFlowOutputPluginErrorsHandler(
@@ -641,10 +714,16 @@ class ApiListFlowOutputPluginErrorsHandler(
 
 class ApiListFlowsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowsArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiListFlowsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowsResult
+  rdf_deps = [
+      ApiFlow,
+  ]
 
 
 class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
@@ -735,6 +814,10 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiStartRobotGetFilesOperationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiStartRobotGetFilesOperationArgs
+  rdf_deps = [
+      rdfvalue.ByteSize,
+      rdf_paths.GlobExpression,
+  ]
 
 
 class ApiStartRobotGetFilesOperationResult(rdf_structs.RDFProtoStruct):
@@ -873,6 +956,10 @@ class ApiGetRobotGetFilesOperationStateHandler(
 
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiCreateFlowArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlow,
+  ]
 
 
 class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -914,6 +1001,10 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiCancelFlowArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -934,6 +1025,9 @@ class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowDescriptorsResult
+  rdf_deps = [
+      ApiFlowDescriptor,
+  ]
 
 
 class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
@@ -1010,6 +1104,10 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetExportedFlowResultsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetExportedFlowResultsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
 
 
 class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):

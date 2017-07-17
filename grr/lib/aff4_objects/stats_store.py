@@ -87,6 +87,10 @@ class StatsStoreFieldValue(structs.RDFProtoStruct):
 class StatsStoreValue(structs.RDFProtoStruct):
   """RDFValue definition for stats values to be stored in the data store."""
   protobuf = jobs_pb2.StatsStoreValue
+  rdf_deps = [
+      stats.Distribution,
+      StatsStoreFieldValue,
+  ]
 
   @property
   def value(self):
@@ -123,6 +127,9 @@ class StatsStoreMetricsMetadata(structs.RDFProtoStruct):
   """Container with metadata for all the metrics in a given process."""
 
   protobuf = jobs_pb2.StatsStoreMetricsMetadata
+  rdf_deps = [
+      stats.MetricMetadata,
+  ]
 
   def AsDict(self):
     result = {}

@@ -46,7 +46,16 @@ class ExportOptions(rdf_structs.RDFProtoStruct):
 
 
 class ExportedMetadata(rdf_structs.RDFProtoStruct):
+  """ExportMetadata RDF value."""
+
   protobuf = export_pb2.ExportedMetadata
+  rdf_deps = [
+      rdf_client.ClientURN,
+      rdf_client.HardwareInfo,
+      rdfvalue.RDFDatetime,
+      rdfvalue.RDFURN,
+      rdfvalue.SessionID,
+  ]
 
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
     super(ExportedMetadata, self).__init__(
@@ -58,38 +67,72 @@ class ExportedMetadata(rdf_structs.RDFProtoStruct):
 
 class ExportedClient(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedClient
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedFile(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedFile
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFDatetimeSeconds,
+      rdfvalue.RDFURN,
+      rdf_client.StatMode,
+  ]
 
 
 class ExportedRegistryKey(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRegistryKey
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFDatetimeSeconds,
+      rdfvalue.RDFURN,
+  ]
 
 
 class ExportedProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedProcess
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedNetworkConnection(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkConnection
+  rdf_deps = [
+      ExportedMetadata,
+      rdf_client.NetworkEndpoint,
+  ]
 
 
 class ExportedDNSClientConfiguration(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedDNSClientConfiguration
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedOpenFile(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedOpenFile
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedNetworkInterface(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkInterface
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedFileStoreHash(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedFileStoreHash
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFURN,
+  ]
 
 
 class ExportedAnomaly(rdf_structs.RDFProtoStruct):
@@ -98,18 +141,34 @@ class ExportedAnomaly(rdf_structs.RDFProtoStruct):
 
 class ExportedCheckResult(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedCheckResult
+  rdf_deps = [
+      ExportedAnomaly,
+      ExportedMetadata,
+  ]
 
 
 class ExportedMatch(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedMatch
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFURN,
+  ]
 
 
 class ExportedBytes(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedBytes
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedArtifactFilesDownloaderResult
+  rdf_deps = [
+      ExportedFile,
+      ExportedMetadata,
+      ExportedRegistryKey,
+  ]
 
 
 class ExportConverter(object):
@@ -1464,38 +1523,12 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
                                    output_class)
 
 
-class ExportedYaraSignatureMatch(rdf_structs.RDFProtoStruct):
-  protobuf = export_pb2.ExportedYaraSignatureMatch
-
-
-class RekallResponseToExportedYaraSignatureMatchConverter(
-    RekallResponseConverter):
-  """Converts free-form RekallResponse to ExportedYaraSignatureMatch."""
-
-  @staticmethod
-  def HandleTableRow(metadata, message):
-    """Handles a table row, converting it if possible."""
-
-    row = message[1]
-    try:
-      row_process = row["Context"]["Process"]
-
-      process_conv_cls = RekallResponseToExportedRekallProcessConverter
-      process = process_conv_cls.EprocessToExportedRekallProcess(row_process)
-
-      result = ExportedYaraSignatureMatch(
-          metadata=metadata,
-          rule=row["Rule"],
-          hex_dump=row["HexDump"]["value"],
-          process=process)
-
-      yield result
-    except KeyError:
-      return
-
-
 class ExportedRekallProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallProcess
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
@@ -1543,8 +1576,46 @@ class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
       return
 
 
+class ExportedYaraSignatureMatch(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedYaraSignatureMatch
+  rdf_deps = [
+      ExportedMetadata,
+      ExportedRekallProcess,
+  ]
+
+
+class RekallResponseToExportedYaraSignatureMatchConverter(
+    RekallResponseConverter):
+  """Converts free-form RekallResponse to ExportedYaraSignatureMatch."""
+
+  @staticmethod
+  def HandleTableRow(metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+      row_process = row["Context"]["Process"]
+
+      process_conv_cls = RekallResponseToExportedRekallProcessConverter
+      process = process_conv_cls.EprocessToExportedRekallProcess(row_process)
+
+      result = ExportedYaraSignatureMatch(
+          metadata=metadata,
+          rule=row["Rule"],
+          hex_dump=row["HexDump"]["value"],
+          process=process)
+
+      yield result
+    except KeyError:
+      return
+
+
 class ExportedRekallWindowsLoadedModule(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallWindowsLoadedModule
+  rdf_deps = [
+      ExportedMetadata,
+      ExportedRekallProcess,
+  ]
 
 
 class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
@@ -1593,6 +1664,9 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
 
 class ExportedLinuxSyscallTableEntry(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedLinuxSyscallTableEntry
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class ExportedLinuxSyscallTableEntryConverter(RekallResponseConverter):
@@ -1624,6 +1698,10 @@ class ExportedLinuxSyscallTableEntryConverter(RekallResponseConverter):
 
 class ExportedRekallLinuxTask(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallLinuxTask
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class RekallResponseToExportedRekallLinuxTaskConverter(RekallResponseConverter):
@@ -1648,6 +1726,10 @@ class RekallResponseToExportedRekallLinuxTaskConverter(RekallResponseConverter):
 
 class ExportedRekallLinuxTaskOp(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallLinuxTaskOp
+  rdf_deps = [
+      ExportedMetadata,
+      ExportedRekallLinuxTask,
+  ]
 
 
 class RekallResponseToExportedRekallLinuxTaskOpConverter(
@@ -1683,6 +1765,9 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
 
 class ExportedRekallLinuxProcOp(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallLinuxProcOp
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class RekallResponseToExportedRekallLinuxProcOpConverter(
@@ -1712,6 +1797,9 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
 
 class ExportedRekallKernelObject(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallKernelObject
+  rdf_deps = [
+      ExportedMetadata,
+  ]
 
 
 class RekallResponseToExportedRekallKernelObjectConverter(

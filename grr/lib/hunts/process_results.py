@@ -20,6 +20,10 @@ from grr.proto import flows_pb2
 
 class ProcessHuntResultCollectionsCronFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ProcessHuntResultCollectionsCronFlowArgs
+  rdf_deps = [
+      rdfvalue.Duration,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ResultsProcessingError(Exception):

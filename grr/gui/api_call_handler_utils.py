@@ -198,19 +198,6 @@ class CollectionArchiveGenerator(object):
     yield self.archive_generator.Close()
 
 
-class ApiDataObject(rdf_structs.RDFProtoStruct):
-  """Defines a proto for returning Data Objects over the API."""
-
-  protobuf = api_utils_pb2.ApiDataObject
-
-  def InitFromDataObject(self, data_object):
-    for key, value in sorted(data_object.iteritems()):
-      item = ApiDataObjectKeyValuePair().InitFromKeyValue(key, value)
-      self.items.append(item)
-
-    return self
-
-
 class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
   """Defines a proto for returning key value pairs of data objects."""
 
@@ -245,6 +232,22 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.GetPlugin(self.type)
     except KeyError:
       raise ValueError("No class found for type %s." % self.type)
+
+
+class ApiDataObject(rdf_structs.RDFProtoStruct):
+  """Defines a proto for returning Data Objects over the API."""
+
+  protobuf = api_utils_pb2.ApiDataObject
+  rdf_deps = [
+      ApiDataObjectKeyValuePair,
+  ]
+
+  def InitFromDataObject(self, data_object):
+    for key, value in sorted(data_object.iteritems()):
+      item = ApiDataObjectKeyValuePair().InitFromKeyValue(key, value)
+      self.items.append(item)
+
+    return self
 
 
 def FilterCollection(collection, offset, count=0, filter_value=None):

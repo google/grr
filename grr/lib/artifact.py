@@ -101,6 +101,9 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
 
 class CollectArtifactDependenciesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CollectArtifactDependenciesArgs
+  rdf_deps = [
+      artifact_registry.ArtifactName,
+  ]
 
 
 class CollectArtifactDependencies(flow.GRRFlow):
@@ -577,6 +580,9 @@ def UploadArtifactYamlFile(file_content,
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFallbackCollectorArgs
+  rdf_deps = [
+      artifact_registry.ArtifactName,
+  ]
 
 
 class ArtifactFallbackCollector(flow.GRRFlow):

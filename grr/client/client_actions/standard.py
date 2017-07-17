@@ -58,7 +58,8 @@ class ReadBuffer(actions.ActionPlugin):
 
     # Now return the data to the server
     self.SendReply(
-        offset=offset, data=data, length=len(data), pathspec=fd.pathspec)
+        rdf_client.BufferReference(
+            offset=offset, data=data, length=len(data), pathspec=fd.pathspec))
 
 
 class TransferBuffer(actions.ActionPlugin):
@@ -94,7 +95,9 @@ class TransferBuffer(actions.ActionPlugin):
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
-    self.SendReply(offset=args.offset, length=len(data), data=digest)
+    self.SendReply(
+        rdf_client.BufferReference(
+            offset=args.offset, length=len(data), data=digest))
 
 
 class HashBuffer(actions.ActionPlugin):
@@ -114,7 +117,9 @@ class HashBuffer(actions.ActionPlugin):
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
-    self.SendReply(offset=args.offset, length=len(data), data=digest)
+    self.SendReply(
+        rdf_client.BufferReference(
+            offset=args.offset, length=len(data), data=digest))
 
 
 class HashFile(actions.ActionPlugin):
@@ -159,13 +164,12 @@ class HashFile(actions.ActionPlugin):
       hashers, bytes_read = self.HashFile(hash_types, file_obj,
                                           args.max_filesize)
 
-    response = rdf_client.FingerprintResponse(
-        pathspec=file_obj.pathspec,
-        bytes_read=bytes_read,
-        hash=rdf_crypto.Hash(**dict((k, v.digest())
-                                    for k, v in hashers.iteritems())))
-
-    self.SendReply(response)
+    self.SendReply(
+        rdf_client.FingerprintResponse(
+            pathspec=file_obj.pathspec,
+            bytes_read=bytes_read,
+            hash=rdf_crypto.Hash(**dict((k, v.digest())
+                                        for k, v in hashers.iteritems()))))
 
 
 class CopyPathToFile(actions.ActionPlugin):
@@ -231,12 +235,13 @@ class CopyPathToFile(actions.ActionPlugin):
         written = self._Copy(src_fd, dest_fd, length)
 
     self.SendReply(
-        offset=offset,
-        length=written,
-        src_path=args.src_path,
-        dest_dir=args.dest_dir,
-        dest_path=dest_pathspec,
-        gzip_output=args.gzip_output)
+        rdf_client.CopyPathToFileRequest(
+            offset=offset,
+            length=written,
+            src_path=args.src_path,
+            dest_dir=args.dest_dir,
+            dest_path=dest_pathspec,
+            gzip_output=args.gzip_output))
 
 
 class ListDirectory(ReadBuffer):
@@ -318,9 +323,7 @@ class StatFile(ListDirectory):
     """Sends a StatEntry for a single file."""
     try:
       fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-      res = fd.Stat()
-
-      self.SendReply(res)
+      self.SendReply(fd.Stat())
     except (IOError, OSError), e:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
       return
@@ -344,14 +347,14 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteResponse(
-        request=command,
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
-    self.SendReply(result)
+    self.SendReply(
+        rdf_client.ExecuteResponse(
+            request=command,
+            stdout=stdout,
+            stderr=stderr,
+            exit_status=status,
+            # We have to return microseconds.
+            time_used=int(1e6 * time_used)))
 
 
 class ExecuteBinaryCommand(actions.ActionPlugin):
@@ -431,14 +434,13 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteBinaryResponse(
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
-
-    self.SendReply(result)
+    self.SendReply(
+        rdf_client.ExecuteBinaryResponse(
+            stdout=stdout,
+            stderr=stderr,
+            exit_status=status,
+            # We have to return microseconds.
+            time_used=int(1e6 * time_used)))
 
 
 class ExecutePython(actions.ActionPlugin):
@@ -491,9 +493,9 @@ class ExecutePython(actions.ActionPlugin):
 
     time_used = time.time() - time_start
     # We have to return microseconds.
-    result = rdf_client.ExecutePythonResponse(
-        time_used=int(1e6 * time_used), return_val=utils.SmartStr(output))
-    self.SendReply(result)
+    self.SendReply(
+        rdf_client.ExecutePythonResponse(
+            time_used=int(1e6 * time_used), return_val=utils.SmartStr(output)))
 
 
 class Segfault(actions.ActionPlugin):
@@ -749,13 +751,13 @@ class StatFS(actions.ActionPlugin):
       # The actual_available_allocation_units attribute is set to blocks
       # available to the unprivileged user, root may have some additional
       # reserved space.
-      result = rdf_client.Volume(
-          bytes_per_sector=(st.f_frsize or st.f_bsize),
-          sectors_per_allocation_unit=1,
-          total_allocation_units=st.f_blocks,
-          actual_available_allocation_units=st.f_bavail,
-          unixvolume=unix)
-      self.SendReply(result)
+      self.SendReply(
+          rdf_client.Volume(
+              bytes_per_sector=(st.f_frsize or st.f_bsize),
+              sectors_per_allocation_unit=1,
+              total_allocation_units=st.f_blocks,
+              actual_available_allocation_units=st.f_bavail,
+              unixvolume=unix))
 
 
 class GetMemorySize(actions.ActionPlugin):

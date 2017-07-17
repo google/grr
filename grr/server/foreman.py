@@ -6,49 +6,12 @@
 import itertools
 
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
-
-
-class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
-  """This proto holds rules and the strategy used to evaluate them."""
-  protobuf = jobs_pb2.ForemanClientRuleSet
-
-  def GetPathsToCheck(self):
-    """Returns aff4 paths to be opened as objects passed to Evaluate."""
-    return set(
-        itertools.chain.from_iterable(rule.GetPathsToCheck()
-                                      for rule in self.rules))
-
-  def Evaluate(self, objects, client_id):
-    """Evaluates rules held in the rule set.
-
-    Args:
-      objects: A dict that maps fd.urn to fd for all file descriptors fd
-          corresponding to the aff4 paths returned by the GetPathsToCheck
-          method of this object.
-      client_id: An aff4 client id object.
-
-    Returns:
-      A bool value of the evaluation.
-
-    Raises:
-      ValueError: The match mode is of unknown value.
-    """
-    if self.match_mode == ForemanClientRuleSet.MatchMode.MATCH_ALL:
-      quantifier = all
-    elif self.match_mode == ForemanClientRuleSet.MatchMode.MATCH_ANY:
-      quantifier = any
-    else:
-      raise ValueError("Unexpected match mode value: %s" % self.match_mode)
-
-    return quantifier(rule.Evaluate(objects, client_id) for rule in self.rules)
-
-  def Validate(self):
-    for rule in self.rules:
-      rule.Validate()
 
 
 class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
@@ -81,20 +44,6 @@ class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
 
   def Validate(self):
     raise NotImplementedError
-
-
-class ForemanClientRule(ForemanClientRuleBase):
-  """"Base class" proto for foreman client rule protos."""
-  protobuf = jobs_pb2.ForemanClientRule
-
-  def GetPathsToCheck(self):
-    return self.UnionCast().GetPathsToCheck()
-
-  def Evaluate(self, objects, client_id):
-    return self.UnionCast().Evaluate(objects, client_id)
-
-  def Validate(self):
-    self.UnionCast().Validate()
 
 
 class ForemanOsClientRule(ForemanClientRuleBase):
@@ -150,6 +99,10 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
 class ForemanRegexClientRule(ForemanClientRuleBase):
   """The Foreman schedules flows based on these rules firing."""
   protobuf = jobs_pb2.ForemanRegexClientRule
+  rdf_deps = [
+      aff4.AFF4Attribute,
+      standard.RegularExpression,
+  ]
 
   def GetPathsToCheck(self):
     return [self.path]
@@ -178,6 +131,9 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
   """This rule will fire if the expression operator(attribute, value) is true.
   """
   protobuf = jobs_pb2.ForemanIntegerClientRule
+  rdf_deps = [
+      aff4.AFF4Attribute,
+  ]
 
   def GetPathsToCheck(self):
     return [self.path]
@@ -217,11 +173,82 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
 
 class ForemanRuleAction(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ForemanRuleAction
+  rdf_deps = [
+      rdf_protodict.Dict,
+      rdfvalue.SessionID,
+  ]
+
+
+class ForemanClientRule(ForemanClientRuleBase):
+  """"Base class" proto for foreman client rule protos."""
+  protobuf = jobs_pb2.ForemanClientRule
+  rdf_deps = [
+      ForemanIntegerClientRule,
+      ForemanLabelClientRule,
+      ForemanOsClientRule,
+      ForemanRegexClientRule,
+  ]
+
+  def GetPathsToCheck(self):
+    return self.UnionCast().GetPathsToCheck()
+
+  def Evaluate(self, objects, client_id):
+    return self.UnionCast().Evaluate(objects, client_id)
+
+  def Validate(self):
+    self.UnionCast().Validate()
+
+
+class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
+  """This proto holds rules and the strategy used to evaluate them."""
+  protobuf = jobs_pb2.ForemanClientRuleSet
+  rdf_deps = [
+      ForemanClientRule,
+  ]
+
+  def GetPathsToCheck(self):
+    """Returns aff4 paths to be opened as objects passed to Evaluate."""
+    return set(
+        itertools.chain.from_iterable(rule.GetPathsToCheck()
+                                      for rule in self.rules))
+
+  def Evaluate(self, objects, client_id):
+    """Evaluates rules held in the rule set.
+
+    Args:
+      objects: A dict that maps fd.urn to fd for all file descriptors fd
+          corresponding to the aff4 paths returned by the GetPathsToCheck
+          method of this object.
+      client_id: An aff4 client id object.
+
+    Returns:
+      A bool value of the evaluation.
+
+    Raises:
+      ValueError: The match mode is of unknown value.
+    """
+    if self.match_mode == ForemanClientRuleSet.MatchMode.MATCH_ALL:
+      quantifier = all
+    elif self.match_mode == ForemanClientRuleSet.MatchMode.MATCH_ANY:
+      quantifier = any
+    else:
+      raise ValueError("Unexpected match mode value: %s" % self.match_mode)
+
+    return quantifier(rule.Evaluate(objects, client_id) for rule in self.rules)
+
+  def Validate(self):
+    for rule in self.rules:
+      rule.Validate()
 
 
 class ForemanRule(rdf_structs.RDFProtoStruct):
   """A Foreman rule RDF value."""
   protobuf = jobs_pb2.ForemanRule
+  rdf_deps = [
+      ForemanClientRuleSet,
+      ForemanRuleAction,
+      rdfvalue.RDFDatetime,
+  ]
 
   def Validate(self):
     self.client_rule_set.Validate()

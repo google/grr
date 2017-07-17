@@ -4,12 +4,16 @@
 import hashlib
 
 from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import data_store
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import data_server_pb2
 
 
 class DataStoreCommand(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataStoreCommand
+  rdf_deps = [
+      data_store.DataStoreRequest,
+  ]
 
 
 class DataServerState(rdf_structs.RDFProtoStruct):
@@ -22,10 +26,17 @@ class DataServerInterval(rdf_structs.RDFProtoStruct):
 
 class DataServerInformation(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerInformation
+  rdf_deps = [
+      DataServerInterval,
+      DataServerState,
+  ]
 
 
 class DataServerMapping(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerMapping
+  rdf_deps = [
+      DataServerInformation,
+  ]
 
 
 class DataServerClientInformation(rdf_structs.RDFProtoStruct):
@@ -36,6 +47,9 @@ class DataServerEncryptedCreds(rdf_structs.RDFProtoStruct):
   """Protobuf to transport encrypted messages."""
 
   protobuf = data_server_pb2.DataServerEncryptedCreds
+  rdf_deps = [
+      crypto.AES128Key,
+  ]
 
   # TODO(user): Use a proper key derivation function instead of this.
   def _MakeEncryptKey(self, username, password):
@@ -70,6 +84,9 @@ class DataServerEncryptedCreds(rdf_structs.RDFProtoStruct):
 
 class DataServerClientCredentials(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerClientCredentials
+  rdf_deps = [
+      DataServerClientInformation,
+  ]
 
 
 class DataServerFileCopy(rdf_structs.RDFProtoStruct):
@@ -78,11 +95,17 @@ class DataServerFileCopy(rdf_structs.RDFProtoStruct):
 
 class DataServerRebalance(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerRebalance
-
-
-class DataStoreRegistrationRequest(rdf_structs.RDFProtoStruct):
-  protobuf = data_server_pb2.DataStoreRegistrationRequest
+  rdf_deps = [
+      DataServerMapping,
+  ]
 
 
 class DataStoreAuthToken(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataStoreAuthToken
+
+
+class DataStoreRegistrationRequest(rdf_structs.RDFProtoStruct):
+  protobuf = data_server_pb2.DataStoreRegistrationRequest
+  rdf_deps = [
+      DataStoreAuthToken,
+  ]

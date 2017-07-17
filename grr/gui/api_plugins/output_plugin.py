@@ -17,6 +17,10 @@ from grr.proto.api import reflection_pb2
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   """Output plugin API entity."""
   protobuf = output_plugin_pb2.ApiOutputPlugin
+  rdf_deps = [
+      output_plugin.OutputPluginDescriptor,
+      output_plugin.OutputPluginVerificationResult,
+  ]
 
   def GetStateClass(self):
     return rdf_protodict.AttributedDict
@@ -45,6 +49,9 @@ class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
 
 class ApiListOutputPluginDescriptorsResult(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiListOutputPluginDescriptorsResult
+  rdf_deps = [
+      ApiOutputPluginDescriptor,
+  ]
 
 
 class ApiListOutputPluginDescriptorsHandler(

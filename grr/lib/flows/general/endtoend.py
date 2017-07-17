@@ -6,6 +6,7 @@ import traceback
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -19,6 +20,9 @@ class EndToEndTestFlowArgs(rdf_structs.RDFProtoStruct):
 
 class EndToEndTestResult(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.EndToEndTestResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class EndToEndTestFlow(flow.GRRFlow):

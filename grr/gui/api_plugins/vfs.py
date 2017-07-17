@@ -10,6 +10,7 @@ import zipfile
 import logging
 
 from grr.gui import api_call_handler_base
+from grr.gui.api_plugins import client
 
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -22,6 +23,7 @@ from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -61,91 +63,24 @@ class VfsFileContentUpdateNotFoundError(
   """Raised when a file content update operation could not be found."""
 
 
-class ApiFile(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiFile
+class ApiAff4ObjectAttributeValue(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiAff4ObjectAttributeValue
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
-  def InitFromAff4Object(self, file_obj, with_details=False):
-    """Initializes the current instance from an Aff4Stream.
-
-    Args:
-      file_obj: An Aff4Stream representing a file.
-      with_details: True if all details of the Aff4Object should be included,
-        false otherwise.
-
-    Returns:
-      A reference to the current instance.
-    """
-    self.name = file_obj.urn.Basename()
-    self.path = "/".join(file_obj.urn.Path().split("/")[2:])
-    self.is_directory = "Container" in file_obj.behaviours
-    self.hash = file_obj.Get(file_obj.Schema.HASH, None)
-
-    stat = file_obj.Get(file_obj.Schema.STAT)
-    if stat:
-      self.stat = stat
-
-    if not self.is_directory:
-      try:
-        self.last_collected = file_obj.GetContentAge()
-      except AttributeError:
-        # Defensive approach - in case file-like object doesn't have
-        # GetContentAge defined.
-        logging.debug("File-like object %s doesn't have GetContentAge defined.",
-                      file_obj.__class__.__name__)
-
-      if self.last_collected:
-        self.last_collected_size = file_obj.Get(file_obj.Schema.SIZE)
-
-    type_obj = file_obj.Get(file_obj.Schema.TYPE)
-    if type_obj is not None:
-      self.type = type_obj
-      self.age = type_obj.age
-
-    if with_details:
-      self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(file_obj)
-
-    return self
+  def GetValueClass(self):
+    try:
+      return rdfvalue.RDFValue.GetPlugin(self.type)
+    except KeyError:
+      raise ValueError("No class found for type %s." % self.type)
 
 
-class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
-  """A proto-based representation of an Aff4Object used to render responses.
-
-  ApiAff4ObjectRepresentation contains all attributes of an Aff4Object,
-  structured by type. If an attribute is found multiple times, it is only
-  added once at the type where it is first encountered.
-  """
-  protobuf = vfs_pb2.ApiAff4ObjectRepresentation
-
-  def InitFromAff4Object(self, aff4_obj):
-    """Initializes the current instance from an Aff4Object.
-
-    Iterates the inheritance hierarchy of the given Aff4Object and adds a
-    ApiAff4ObjectType for each class found in the hierarchy.
-
-    Args:
-      aff4_obj: An Aff4Object as source for the initialization.
-
-    Returns:
-      A reference to the current instance.
-    """
-    attr_blacklist = []  # We use this to show attributes only once.
-
-    self.types = []
-    for aff4_cls in aff4_obj.__class__.__mro__:
-      if not hasattr(aff4_cls, "SchemaCls"):
-        continue
-
-      type_repr = ApiAff4ObjectType().InitFromAff4Object(
-          aff4_obj, aff4_cls, attr_blacklist)
-
-      if type_repr.attributes:
-        self.types.append(type_repr)
-
-      # Add all attribute names from this type representation to the
-      # blacklist to not add them to the result again.
-      attr_blacklist.extend([attr.name for attr in type_repr.attributes])
-
-    return self
+class ApiAff4ObjectAttribute(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiAff4ObjectAttribute
+  rdf_deps = [
+      ApiAff4ObjectAttributeValue,
+  ]
 
 
 class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
@@ -155,6 +90,9 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
   definied by a certain class of the inheritance hierarchy of the Aff4Object.
   """
   protobuf = vfs_pb2.ApiAff4ObjectType
+  rdf_deps = [
+      ApiAff4ObjectAttribute,
+  ]
 
   def InitFromAff4Object(self, aff4_obj, aff4_cls, attr_blacklist):
     """Initializes the current instance from an Aff4Object.
@@ -209,26 +147,115 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
     return self
 
 
-class ApiAff4ObjectAttribute(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiAff4ObjectAttribute
+class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
+  """A proto-based representation of an Aff4Object used to render responses.
+
+  ApiAff4ObjectRepresentation contains all attributes of an Aff4Object,
+  structured by type. If an attribute is found multiple times, it is only
+  added once at the type where it is first encountered.
+  """
+  protobuf = vfs_pb2.ApiAff4ObjectRepresentation
+  rdf_deps = [
+      ApiAff4ObjectType,
+  ]
+
+  def InitFromAff4Object(self, aff4_obj):
+    """Initializes the current instance from an Aff4Object.
+
+    Iterates the inheritance hierarchy of the given Aff4Object and adds a
+    ApiAff4ObjectType for each class found in the hierarchy.
+
+    Args:
+      aff4_obj: An Aff4Object as source for the initialization.
+
+    Returns:
+      A reference to the current instance.
+    """
+    attr_blacklist = []  # We use this to show attributes only once.
+
+    self.types = []
+    for aff4_cls in aff4_obj.__class__.__mro__:
+      if not hasattr(aff4_cls, "SchemaCls"):
+        continue
+
+      type_repr = ApiAff4ObjectType().InitFromAff4Object(
+          aff4_obj, aff4_cls, attr_blacklist)
+
+      if type_repr.attributes:
+        self.types.append(type_repr)
+
+      # Add all attribute names from this type representation to the
+      # blacklist to not add them to the result again.
+      attr_blacklist.extend([attr.name for attr in type_repr.attributes])
+
+    return self
 
 
-class ApiAff4ObjectAttributeValue(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiAff4ObjectAttributeValue
+class ApiFile(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiFile
+  rdf_deps = [
+      ApiAff4ObjectRepresentation,
+      crypto.Hash,
+      rdfvalue.RDFDatetime,
+      rdf_client.StatEntry,
+  ]
 
-  def GetValueClass(self):
-    try:
-      return rdfvalue.RDFValue.GetPlugin(self.type)
-    except KeyError:
-      raise ValueError("No class found for type %s." % self.type)
+  def InitFromAff4Object(self, file_obj, with_details=False):
+    """Initializes the current instance from an Aff4Stream.
+
+    Args:
+      file_obj: An Aff4Stream representing a file.
+      with_details: True if all details of the Aff4Object should be included,
+        false otherwise.
+
+    Returns:
+      A reference to the current instance.
+    """
+    self.name = file_obj.urn.Basename()
+    self.path = "/".join(file_obj.urn.Path().split("/")[2:])
+    self.is_directory = "Container" in file_obj.behaviours
+    self.hash = file_obj.Get(file_obj.Schema.HASH, None)
+
+    stat = file_obj.Get(file_obj.Schema.STAT)
+    if stat:
+      self.stat = stat
+
+    if not self.is_directory:
+      try:
+        self.last_collected = file_obj.GetContentAge()
+      except AttributeError:
+        # Defensive approach - in case file-like object doesn't have
+        # GetContentAge defined.
+        logging.debug("File-like object %s doesn't have GetContentAge defined.",
+                      file_obj.__class__.__name__)
+
+      if self.last_collected:
+        self.last_collected_size = file_obj.Get(file_obj.Schema.SIZE)
+
+    type_obj = file_obj.Get(file_obj.Schema.TYPE)
+    if type_obj is not None:
+      self.type = type_obj
+      self.age = type_obj.age
+
+    if with_details:
+      self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(file_obj)
+
+    return self
 
 
 class ApiGetFileDetailsArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileDetailsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetFileDetailsResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileDetailsResult
+  rdf_deps = [
+      ApiFile,
+  ]
 
 
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
@@ -257,10 +284,16 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiListFilesArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiListFilesResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiListFilesResult
+  rdf_deps = [
+      ApiFile,
+  ]
 
 
 class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
@@ -317,6 +350,10 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileTextArgs
+  rdf_deps = [
+      client.ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetFileTextResult(rdf_structs.RDFProtoStruct):
@@ -394,6 +431,10 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
 class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileBlobArgs
+  rdf_deps = [
+      client.ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
@@ -451,10 +492,16 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
 
 class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileVersionTimesArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetFileVersionTimesResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileVersionTimesResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
@@ -479,6 +526,9 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileDownloadCommandArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetFileDownloadCommandResult(rdf_structs.RDFProtoStruct):
@@ -528,6 +578,9 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
 class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS path."""
   protobuf = vfs_pb2.ApiCreateVfsRefreshOperationArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiCreateVfsRefreshOperationResult(rdf_structs.RDFProtoStruct):
@@ -578,6 +631,9 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a refresh operation."""
   protobuf = vfs_pb2.ApiGetVfsRefreshOperationStateArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
@@ -610,16 +666,25 @@ class ApiGetVfsRefreshOperationStateHandler(
     return result
 
 
+class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiVfsTimelineItem
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+
 class ApiGetVfsTimelineArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetVfsTimelineArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetVfsTimelineResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetVfsTimelineResult
-
-
-class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
-  protobuf = vfs_pb2.ApiVfsTimelineItem
+  rdf_deps = [
+      ApiVfsTimelineItem,
+  ]
 
 
 class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
@@ -689,6 +754,9 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetVfsTimelineAsCsvArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
@@ -730,6 +798,9 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
   """Arguments for updating a VFS file."""
   protobuf = vfs_pb2.ApiUpdateVfsFileContentArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
@@ -761,6 +832,9 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
   """Arguments for checking a file content update operation."""
   protobuf = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetVfsFileContentUpdateStateResult(rdf_structs.RDFProtoStruct):
@@ -796,6 +870,9 @@ class ApiGetVfsFileContentUpdateStateHandler(
 class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   """Arguments for GetVfsFilesArchive handler."""
   protobuf = vfs_pb2.ApiGetVfsFilesArchiveArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
 
 
 class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):

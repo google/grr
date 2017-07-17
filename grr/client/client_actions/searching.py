@@ -345,10 +345,11 @@ class Grep(actions.ActionPlugin):
 
         hits += 1
         self.SendReply(
-            offset=base_offset + start - preamble_size,
-            data=out_data,
-            length=len(out_data),
-            pathspec=fd.pathspec)
+            rdf_client.BufferReference(
+                offset=base_offset + start - preamble_size,
+                data=out_data,
+                length=len(out_data),
+                pathspec=fd.pathspec))
 
         if args.mode == rdf_client.GrepSpec.Mode.FIRST_HIT:
           return
@@ -356,7 +357,8 @@ class Grep(actions.ActionPlugin):
         if hits >= self.HIT_LIMIT:
           msg = utils.Xor("This Grep has reached the maximum number of hits"
                           " (%d)." % self.HIT_LIMIT, self.xor_out_key)
-          self.SendReply(offset=0, data=msg, length=len(msg))
+          self.SendReply(
+              rdf_client.BufferReference(offset=0, data=msg, length=len(msg)))
           return
 
       self.Progress()

@@ -44,7 +44,7 @@ class GetHostname(actions.ActionPlugin):
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
-    self.SendReply(string=socket.gethostname())
+    self.SendReply(rdf_protodict.DataBlob(string=socket.gethostname()))
 
 
 class GetPlatformInfo(actions.ActionPlugin):

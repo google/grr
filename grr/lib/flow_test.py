@@ -1333,6 +1333,7 @@ class DelayedCallStateFlow(flow.GRRFlow):
 
 class BadArgsFlow1Args(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.BadArgsFlow1Args
+  rdf_deps = [rdf_paths.PathSpec]
 
 
 class BadArgsFlow1(flow.GRRFlow):

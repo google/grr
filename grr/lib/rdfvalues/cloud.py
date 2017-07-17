@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Cloud-related rdfvalues."""
 
+from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
@@ -13,24 +14,29 @@ GOOGLE_BIOS_REGEX = "Google"
 GOOGLE_SERVICE_REGEX = "SERVICE_NAME: GCEAgent"
 
 
+class CloudMetadataRequest(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.CloudMetadataRequest
+  rdf_deps = [
+      protodict.Dict,
+  ]
+
+
 class CloudMetadataRequests(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CloudMetadataRequests
-
-
-class CloudMetadataResponses(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.CloudMetadataResponses
+  rdf_deps = [
+      CloudMetadataRequest,
+  ]
 
 
 class CloudMetadataResponse(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CloudMetadataResponse
 
 
-class CloudMetadataRequest(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.CloudMetadataRequest
-
-
-class CloudInstance(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.CloudInstance
+class CloudMetadataResponses(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.CloudMetadataResponses
+  rdf_deps = [
+      CloudMetadataResponse,
+  ]
 
 
 class GoogleCloudInstance(rdf_structs.RDFProtoStruct):
@@ -39,6 +45,14 @@ class GoogleCloudInstance(rdf_structs.RDFProtoStruct):
 
 class AmazonCloudInstance(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.AmazonCloudInstance
+
+
+class CloudInstance(rdf_structs.RDFProtoStruct):
+  protobuf = jobs_pb2.CloudInstance
+  rdf_deps = [
+      AmazonCloudInstance,
+      GoogleCloudInstance,
+  ]
 
 
 def _MakeArgs(amazon_collection_map, google_collection_map):

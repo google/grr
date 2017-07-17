@@ -9,27 +9,64 @@ import zlib
 import rekall_pb2
 
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs as rdf_structs
+
+
+class RekallProfile(rdf_structs.RDFProtoStruct):
+  protobuf = rekall_pb2.RekallProfile
+
+  @property
+  def payload(self):
+    if self.compression == "GZIP":
+      return gzip.GzipFile(fileobj=StringIO.StringIO(self.data)).read()
+
+    return self.data
+
+
+class ZippedJSONBytes(rdfvalue.RDFZippedBytes):
+  """Byte array containing zipped JSON bytes."""
 
 
 class PluginRequest(rdf_structs.RDFProtoStruct):
   """A request to the Rekall subsystem on the client."""
   protobuf = rekall_pb2.PluginRequest
+  rdf_deps = [
+      protodict.Dict,
+  ]
 
 
 class RekallRequest(rdf_structs.RDFProtoStruct):
   """A request to the Rekall subsystem on the client."""
   protobuf = rekall_pb2.RekallRequest
+  rdf_deps = [
+      protodict.Dict,
+      client.Iterator,
+      paths.PathSpec,
+      PluginRequest,
+      RekallProfile,
+  ]
 
 
 class MemoryInformation(rdf_structs.RDFProtoStruct):
   """Information about the client's memory geometry."""
   protobuf = rekall_pb2.MemoryInformation
+  rdf_deps = [
+      client.BufferReference,
+      paths.PathSpec,
+  ]
 
 
 class RekallResponse(rdf_structs.RDFProtoStruct):
   """The result of running a plugin."""
   protobuf = rekall_pb2.RekallResponse
+  rdf_deps = [
+      client.ClientURN,
+      rdfvalue.RDFURN,
+      ZippedJSONBytes,
+  ]
 
   def SerializeToString(self):
     json_messages = self.Get("json_messages")
@@ -57,18 +94,3 @@ class RekallResponse(rdf_structs.RDFProtoStruct):
 
     # Clear any compressed data the proto already has.
     self.Set("compressed_json_messages", None)
-
-
-class ZippedJSONBytes(rdfvalue.RDFZippedBytes):
-  """Byte array containing zipped JSON bytes."""
-
-
-class RekallProfile(rdf_structs.RDFProtoStruct):
-  protobuf = rekall_pb2.RekallProfile
-
-  @property
-  def payload(self):
-    if self.compression == "GZIP":
-      return gzip.GzipFile(fileobj=StringIO.StringIO(self.data)).read()
-
-    return self.data

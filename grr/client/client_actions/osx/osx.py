@@ -193,7 +193,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if address_list:
         args["addresses"] = address_list
-      self.SendReply(**args)
+      self.SendReply(rdf_client.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -204,11 +204,11 @@ class GetInstallDate(actions.ActionPlugin):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
       try:
         stat = os.stat(f)
-        self.SendReply(integer=int(stat.st_ctime))
+        self.SendReply(rdf_protodict.DataBlob(integer=int(stat.st_ctime)))
         return
       except OSError:
         pass
-    self.SendReply(integer=0)
+    self.SendReply(rdf_protodict.DataBlob(integer=0))
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -219,9 +219,10 @@ class EnumerateFilesystems(actions.ActionPlugin):
     """List all local filesystems mounted on this system."""
     for fs_struct in client_utils_osx.GetFileSystems():
       self.SendReply(
-          device=fs_struct.f_mntfromname,
-          mount_point=fs_struct.f_mntonname,
-          type=fs_struct.f_fstypename)
+          rdf_client.Filesystem(
+              device=fs_struct.f_mntfromname,
+              mount_point=fs_struct.f_mntonname,
+              type=fs_struct.f_fstypename))
 
     drive_re = re.compile("r?disk[0-9].*")
     for drive in os.listdir("/dev"):
@@ -232,14 +233,16 @@ class EnumerateFilesystems(actions.ActionPlugin):
       try:
         img_inf = pytsk3.Img_Info(path)
         # This is a volume or a partition - we send back a TSK device.
-        self.SendReply(device=path)
+        self.SendReply(rdf_client.Filesystem(device=path))
 
         vol_inf = pytsk3.Volume_Info(img_inf)
 
         for volume in vol_inf:
           if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
             offset = volume.start * vol_inf.info.block_size
-            self.SendReply(device=path + ":" + str(offset), type="partition")
+            self.SendReply(
+                rdf_client.Filesystem(
+                    device=path + ":" + str(offset), type="partition"))
 
       except (IOError, RuntimeError):
         continue
@@ -345,7 +348,7 @@ class Uninstall(actions.ActionPlugin):
     if directory:
       shutil.rmtree(directory, ignore_errors=True)
 
-    self.SendReply(string=msg)
+    self.SendReply(rdf_protodict.DataBlob(string=msg))
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):
@@ -365,10 +368,10 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteBinaryResponse(
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
-    self.SendReply(result)
+    self.SendReply(
+        rdf_client.ExecuteBinaryResponse(
+            stdout=stdout,
+            stderr=stderr,
+            exit_status=status,
+            # We have to return microseconds.
+            time_used=int(1e6 * time_used)))

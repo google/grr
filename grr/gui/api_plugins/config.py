@@ -71,10 +71,16 @@ class ApiConfigOption(rdf_structs.RDFProtoStruct):
 
 class ApiConfigSection(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiConfigSection
+  rdf_deps = [
+      ApiConfigOption,
+  ]
 
 
 class ApiGetConfigResult(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiGetConfigResult
+  rdf_deps = [
+      ApiConfigSection,
+  ]
 
 
 class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
@@ -137,10 +143,17 @@ class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGrrBinary(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiGrrBinary
+  rdf_deps = [
+      rdfvalue.ByteSize,
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiListGrrBinariesResult
+  rdf_deps = [
+      ApiGrrBinary,
+  ]
 
 
 def _GetSignedBlobsRoots():

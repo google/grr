@@ -87,6 +87,10 @@ class AuthenticodeSignedData(rdf_structs.RDFProtoStruct):
 
 class PersistenceFile(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.PersistenceFile
+  rdf_deps = [
+      "PathSpec",  # TODO(user): dependency loop.
+      rdfvalue.RDFURN,
+  ]
 
 
 class URI(rdf_structs.RDFProtoStruct):

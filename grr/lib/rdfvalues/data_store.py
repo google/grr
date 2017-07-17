@@ -3,29 +3,37 @@
 
 import json
 
+from grr.lib import access_control
+from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr.proto import data_store_pb2
 
 
 class TimestampSpec(structs.RDFProtoStruct):
   protobuf = data_store_pb2.TimestampSpec
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
 
 
 class DataStoreValue(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreValue
-
-
-class DataStoreRequest(structs.RDFProtoStruct):
-  protobuf = data_store_pb2.DataStoreRequest
-
-
-class DataStoreResponse(structs.RDFProtoStruct):
-  protobuf = data_store_pb2.DataStoreResponse
+  rdf_deps = [
+      protodict.DataBlob,
+      TimestampSpec,
+  ]
 
 
 class ResultSet(structs.RDFProtoStruct):
+  """DataStore result set."""
+
   protobuf = data_store_pb2.ResultSet
+  rdf_deps = [
+      DataStoreValue,
+      rdfvalue.RDFURN,
+  ]
 
   @property
   def payload(self):
@@ -47,3 +55,21 @@ class ResultSet(structs.RDFProtoStruct):
     # and json.loads('"\\udc7c"') raises "Unpaired low surrogate" error.
     self.serialized_result = utils.SmartStr(
         json.dumps(value, ensure_ascii=False))
+
+
+class DataStoreRequest(structs.RDFProtoStruct):
+  protobuf = data_store_pb2.DataStoreRequest
+  rdf_deps = [
+      access_control.ACLToken,
+      DataStoreValue,
+      rdfvalue.RDFURN,
+      TimestampSpec,
+  ]
+
+
+class DataStoreResponse(structs.RDFProtoStruct):
+  protobuf = data_store_pb2.DataStoreResponse
+  rdf_deps = [
+      DataStoreRequest,
+      ResultSet,
+  ]
