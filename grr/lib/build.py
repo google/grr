@@ -856,15 +856,6 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
             systemd_target_filename)
 
-        # Generate prelinking blacklist file
-        prelink_target_filename = os.path.join(
-            rpm_build_dir, "etc/prelink.conf.d", "%s.conf" % client_name)
-
-        utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
-        self.GenerateFile(
-            os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
-            prelink_target_filename)
-
       # Create a client config.
       client_context = ["Client Context"] + self.context
       client_config_content = self.GetClientConfig(client_context)
@@ -875,17 +866,6 @@ class CentosClientRepacker(LinuxClientRepacker):
                            "ClientBuilder.config_filename",
                            context=self.context)), "wb") as fd:
         fd.write(client_config_content)
-
-      # Undo all prelinking for libs or the rpm might have checksum mismatches.
-      logging.info("Undoing prelinking.")
-      prelink = "/usr/sbin/prelink"
-      if os.access(prelink, os.X_OK):
-        libs = os.path.join(target_binary_dir, "lib*")
-        # This returns non-zero if there are no prelinked binaries so we can't
-        # check_call.
-        subprocess.call("%s -u %s 2>/dev/null" % (prelink, libs), shell=True)
-      else:
-        raise RuntimeError("Can't execute %s, skipping." % prelink)
 
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)

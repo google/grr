@@ -93,7 +93,6 @@ fi
 \%attr\(755,root,root\) /etc/init.d/%(Client.name)
 \%attr\(755,root,root\) /usr/lib/systemd/system/%(Client.name).service
 \%attr\(755,root,root\) %(ClientBuilder.daemon_link)
-\%attr\(444,root,root\) /etc/prelink.conf.d/%(Client.name).conf
 
 %changelog
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
