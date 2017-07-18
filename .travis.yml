@@ -40,7 +40,6 @@ matrix:
         - CLOUDSDK_CORE_DISABLE_PROMPTS=1
       before_install:
         - /bin/bash travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
-        - brew update
         - brew install libffi
         - git clone https://github.com/MacPython/terryfy
         - source terryfy/travis_tools.sh
