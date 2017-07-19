@@ -12,8 +12,8 @@ import traceback
 
 import psutil
 
+from grr import config
 from grr.client import client_utils
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -93,7 +93,7 @@ class ActionPlugin(object):
     self.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     self._last_gc_run = rdfvalue.RDFDatetime.Now()
-    self._gc_frequency = config_lib.CONFIG["Client.gc_frequency"]
+    self._gc_frequency = config.CONFIG["Client.gc_frequency"]
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit

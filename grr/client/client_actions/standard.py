@@ -17,11 +17,11 @@ import psutil
 
 import logging
 
+from grr import config
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
-from grr.lib import config_lib
 from grr.lib import constants
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -416,7 +416,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     """Run."""
     # Verify the executable blob.
     args.executable.Verify(
-        config_lib.CONFIG["Client.executable_signing_public_key"])
+        config.CONFIG["Client.executable_signing_public_key"])
 
     path = self.WriteBlobToFile(args)
 
@@ -468,7 +468,7 @@ class ExecutePython(actions.ActionPlugin):
         self.buf.write(text)
 
     args.python_code.Verify(
-        config_lib.CONFIG["Client.executable_signing_public_key"])
+        config.CONFIG["Client.executable_signing_public_key"])
 
     # The execed code can assign to this variable if it wants to return data.
     logging.debug("exec for python code %s", args.python_code.data[0:100])

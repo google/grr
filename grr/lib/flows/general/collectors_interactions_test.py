@@ -9,9 +9,9 @@ various ways of loading artifacts.
 import os
 
 
+from grr import config
 from grr.lib import action_mocks
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -33,7 +33,7 @@ class TestArtifactCollectorsInteractions(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestArtifactCollectorsInteractions, self).setUp()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 

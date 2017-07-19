@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for email output plugin."""
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import test_lib
@@ -25,7 +25,7 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
         token=self.token).Get(aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME)
     self.results_urn = self.client_id.Add("Results")
     self.email_messages = []
-    self.email_address = "notify@%s" % config_lib.CONFIG["Logging.domain"]
+    self.email_address = "notify@%s" % config.CONFIG["Logging.domain"]
 
   def ProcessResponses(self,
                        plugin_args=None,

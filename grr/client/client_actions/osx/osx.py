@@ -17,13 +17,13 @@ import sys
 
 import pytsk3
 
+from grr import config
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
-from grr.client.osx.objc import ServiceManagement
 
-from grr.lib import config_lib
+from grr.client.osx.objc import ServiceManagement
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import osx_launchd
@@ -334,7 +334,7 @@ class Uninstall(actions.ActionPlugin):
       msg = "Could not remove binary."
 
     try:
-      os.remove(config_lib.CONFIG["Client.plist_path"])
+      os.remove(config.CONFIG["Client.plist_path"])
     except OSError:
       if "Could not" in msg:
         msg += " Could not remove plist file."

@@ -2,8 +2,8 @@
 """Eventlistener flows used to notify about AFF4 changes."""
 
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -31,7 +31,7 @@ Following path got modified: %(path)s"
     if message.auth_state != auth_state:
       return
 
-    change_email = config_lib.CONFIG.Get("AFF4.change_email")
+    change_email = config.CONFIG.Get("AFF4.change_email")
     if not change_email:
       return
 

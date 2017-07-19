@@ -9,7 +9,7 @@ import yaml
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib.checks import filters
 from grr.lib.checks import hints
@@ -68,7 +68,7 @@ class Hint(rdf_structs.RDFProtoStruct):
       conf = kwargs
     super(Hint, self).__init__(initializer=initializer, age=age, **conf)
     if not self.max_results:
-      self.max_results = config_lib.CONFIG.Get("Checks.max_results")
+      self.max_results = config.CONFIG.Get("Checks.max_results")
     if reformat:
       self.hinter = hints.Hinter(self.format)
     else:
@@ -798,6 +798,6 @@ class CheckLoader(registry.InitHook):
   # TODO(user): Add check loading from datastore.
 
   def RunOnce(self):
-    LoadChecksFromDirs(config_lib.CONFIG["Checks.config_dir"])
-    LoadChecksFromFiles(config_lib.CONFIG["Checks.config_files"])
+    LoadChecksFromDirs(config.CONFIG["Checks.config_dir"])
+    LoadChecksFromFiles(config.CONFIG["Checks.config_files"])
     logging.debug("Loaded checks: %s", ",".join(sorted(CheckRegistry.checks)))

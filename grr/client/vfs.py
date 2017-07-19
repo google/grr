@@ -2,8 +2,8 @@
 """This file implements a VFS abstraction on the client."""
 
 
+from grr import config
 from grr.client import client_utils
-from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -264,7 +264,7 @@ class VFSInit(registry.InitHook):
         VFS_HANDLERS[handler.supported_pathtype] = handler
 
     VFS_VIRTUALROOTS.clear()
-    vfs_virtualroots = config_lib.CONFIG["Client.vfs_virtualroots"]
+    vfs_virtualroots = config.CONFIG["Client.vfs_virtualroots"]
     for vfs_virtualroot in vfs_virtualroots:
       try:
         handler_string, root = vfs_virtualroot.split(":", 1)

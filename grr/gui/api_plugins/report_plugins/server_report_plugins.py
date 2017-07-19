@@ -3,11 +3,11 @@
 
 import operator
 
+from grr import config
 from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugin_base
-from grr.gui.api_plugins.report_plugins import report_utils
 
-from grr.lib import config_lib
+from grr.gui.api_plugins.report_plugins import report_utils
 from grr.lib import events
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import users as aff4_users
@@ -326,7 +326,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
       now = rdfvalue.RDFDatetime.Now()
       # TODO(user): Why is the rollover not a duration?
       start_time = now - offset - rdfvalue.Duration(
-          config_lib.CONFIG["Logging.aff4_audit_log_rollover"])
+          config.CONFIG["Logging.aff4_audit_log_rollover"])
       try:
         for fd in audit.AuditLogsForTimespan(start_time, now, token):
           for event in fd.GenerateItems():

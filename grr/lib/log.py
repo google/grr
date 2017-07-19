@@ -9,8 +9,8 @@ import os
 import socket
 import time
 
+from grr import config
 from grr.config import contexts
-from grr.lib import config_lib
 from grr.lib import flags
 
 # Global Application Logger.
@@ -117,7 +117,7 @@ VERBOSE_LOG_LEVELS = {
 def SetLogLevels():
   logger = logging.getLogger()
 
-  if config_lib.CONFIG["Logging.verbose"] or flags.FLAGS.verbose:
+  if config.CONFIG["Logging.verbose"] or flags.FLAGS.verbose:
     levels = VERBOSE_LOG_LEVELS
   else:
     levels = BASE_LOG_LEVELS
@@ -127,8 +127,8 @@ def SetLogLevels():
 
 
 def GetLogHandlers():
-  formatter = logging.Formatter(config_lib.CONFIG["Logging.format"])
-  engines = config_lib.CONFIG["Logging.engines"]
+  formatter = logging.Formatter(config.CONFIG["Logging.format"])
+  engines = config.CONFIG["Logging.engines"]
   logging.debug("Will use logging engines %s", engines)
 
   for engine in engines:
@@ -140,13 +140,13 @@ def GetLogHandlers():
 
       elif engine == "event_log":
         handler = handlers.NTEventLogHandler(
-            config_lib.CONFIG["Logging.service_name"])
+            config.CONFIG["Logging.service_name"])
         handler.setFormatter(formatter)
         yield handler
 
       elif engine == "syslog":
         # Allow the specification of UDP sockets.
-        socket_name = config_lib.CONFIG["Logging.syslog_path"]
+        socket_name = config.CONFIG["Logging.syslog_path"]
         if ":" in socket_name:
           addr, port = socket_name.split(":", 1)
           handler = RobustSysLogHandler((addr, int(port)))
@@ -158,7 +158,7 @@ def GetLogHandlers():
 
       elif engine == "file":
         # Create a logfile if needed.
-        path = config_lib.CONFIG["Logging.filename"]
+        path = config.CONFIG["Logging.filename"]
         logging.info("Writing log file to %s", path)
 
         if not os.path.isdir(os.path.dirname(path)):
@@ -181,7 +181,7 @@ def LogInit():
 
   if flags.FLAGS.verbose:
     # verbose flag just sets the logging verbosity level.
-    config_lib.CONFIG.AddContext(
+    config.CONFIG.AddContext(
         contexts.DEBUG_CONTEXT,
         "This context is to allow verbose and debug output from "
         "the binary.")

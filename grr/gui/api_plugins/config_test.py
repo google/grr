@@ -3,11 +3,11 @@
 
 
 
+from grr import config
 from grr.gui import api_test_lib
-from grr.gui.api_plugins import config as config_plugin
 
+from grr.gui.api_plugins import config as config_plugin
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import maintenance_utils
 from grr.lib import test_lib
@@ -81,10 +81,9 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
-    config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw",
-                               mock["GetRaw"]), (config, "Get", mock["Get"]),
-                              (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber((config.CONFIG, "GetRaw", mock["GetRaw"]),
+                              (config.CONFIG, "Get", mock["Get"]),
+                              (config.CONFIG, "type_infos", mock["type_infos"]))
 
   def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
@@ -142,10 +141,9 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
-    config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw",
-                               mock["GetRaw"]), (config, "Get", mock["Get"]),
-                              (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber((config.CONFIG, "GetRaw", mock["GetRaw"]),
+                              (config.CONFIG, "Get", mock["Get"]),
+                              (config.CONFIG, "type_infos", mock["type_infos"]))
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
@@ -174,14 +172,14 @@ class ApiGrrBinaryTestMixin(object):
   def SetUpBinaries(self):
     with test_lib.FakeTime(42):
       code = "I am a binary file"
-      upload_path = config_lib.CONFIG.Get("Config.aff4_root").Add(
+      upload_path = config.CONFIG.Get("Config.aff4_root").Add(
           "executables/windows/test.exe")
       maintenance_utils.UploadSignedConfigBlob(
           code, aff4_path=upload_path, token=self.token)
 
     with test_lib.FakeTime(43):
       code = "I'm a python hack"
-      upload_path = config_lib.CONFIG.Get("Config.python_hack_root").Add("test")
+      upload_path = config.CONFIG.Get("Config.python_hack_root").Add("test")
       maintenance_utils.UploadSignedConfigBlob(
           code, aff4_path=upload_path, token=self.token)
 
@@ -205,7 +203,7 @@ class ApiGrrBinaryTestMixin(object):
       return component.summary
 
   def GetBinaryBlob(self, summary):
-    blob_urn = config_lib.CONFIG.Get("Client.component_aff4_stem").Add(
+    blob_urn = config.CONFIG.Get("Client.component_aff4_stem").Add(
         summary.seed).Add("Linux_debian_64bit")
     return aff4.FACTORY.Open(blob_urn, token=self.token)
 

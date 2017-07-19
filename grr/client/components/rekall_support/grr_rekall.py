@@ -16,7 +16,7 @@ import psutil
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
 from rekall import addrspace
-from rekall import config
+from rekall import config as rekall_config
 from rekall import constants
 from rekall import io_manager
 from rekall import obj
@@ -31,10 +31,10 @@ from rekall.ui import json_renderer
 import rekall_types
 
 import logging
+from grr import config
 from grr.client import actions
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -167,7 +167,7 @@ class GrrRekallSession(session.Session):
                initial_profiles=None,
                **session_args):
     super(GrrRekallSession, self).__init__(
-        cache_dir=config_lib.CONFIG["Client.rekall_profile_cache_path"])
+        cache_dir=config.CONFIG["Client.rekall_profile_cache_path"])
 
     self.action = action
 
@@ -182,7 +182,7 @@ class GrrRekallSession(session.Session):
       for k, v in session_args.iteritems():
         self.state.Set(k, v)
 
-      for name, options in config.OPTIONS.args.iteritems():
+      for name, options in rekall_config.OPTIONS.args.iteritems():
         # We don't want to override configuration options passed via
         # **session_args.
         if name not in session_args:
@@ -191,7 +191,7 @@ class GrrRekallSession(session.Session):
     # Ensure the action's Progress() method is called when Rekall reports
     # progress.
     self.proc = psutil.Process()
-    self.memory_quota = config_lib.CONFIG["Client.rss_max"] * 1024 * 1024
+    self.memory_quota = config.CONFIG["Client.rss_max"] * 1024 * 1024
     self.progress.Register(id(self), lambda *_, **__: self._CheckQuota())
 
   def _CheckQuota(self):

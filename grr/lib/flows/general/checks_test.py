@@ -2,9 +2,9 @@
 """Test the collector flows."""
 import os
 
+from grr import config
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -81,7 +81,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     """Load the checks, returning the names of the checks that were loaded."""
     checks.CheckRegistry.Clear()
     check_configs = ("sshd.yaml", "sw.yaml", "unix_login.yaml")
-    cfg_dir = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
+    cfg_dir = os.path.join(config.CONFIG["Test.data_dir"], "checks")
     chk_files = [os.path.join(cfg_dir, f) for f in check_configs]
     checks.LoadChecksFromFiles(chk_files)
     return checks.CheckRegistry.checks.keys()

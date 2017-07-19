@@ -9,7 +9,7 @@ import time
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -116,7 +116,7 @@ class QueueManager(object):
     self.prev_frozen_timestamps = []
     self.frozen_timestamp = None
 
-    self.num_notification_shards = config_lib.CONFIG["Worker.queue_shards"]
+    self.num_notification_shards = config.CONFIG["Worker.queue_shards"]
 
   def GetNotificationShard(self, queue):
     queue_name = str(queue)
@@ -577,7 +577,7 @@ class QueueManager(object):
     """Does the actual queuing."""
     notification_list = []
     now = rdfvalue.RDFDatetime.Now()
-    expiry_time = config_lib.CONFIG["Worker.notification_expiry_time"]
+    expiry_time = config.CONFIG["Worker.notification_expiry_time"]
     for notification in notifications:
       if not notification.first_queued:
         notification.first_queued = (self.frozen_timestamp or

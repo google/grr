@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """UI report handling helper utils."""
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import rdfvalue
 from grr.lib.flows.general import audit
 
@@ -19,7 +19,7 @@ def GetAuditLogEntries(offset, now, token):
     AuditEvents created during the time range
   """
   start_time = now - offset - rdfvalue.Duration(
-      config_lib.CONFIG["Logging.aff4_audit_log_rollover"])
+      config.CONFIG["Logging.aff4_audit_log_rollover"])
 
   logs_found = False
   for fd in audit.AuditLogsForTimespan(start_time, now, token):

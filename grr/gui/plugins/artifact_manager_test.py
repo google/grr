@@ -5,11 +5,11 @@
 
 import os
 
+from grr import config
 from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import artifact
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 
 
@@ -20,7 +20,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     super(TestArtifactManagementRender, self).setUp()
 
     self.json_file = os.path.realpath(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "artifacts",
+        os.path.join(config.CONFIG["Test.data_dir"], "artifacts",
                      "test_artifact.json"))
 
   def testArtifactUpload(self):

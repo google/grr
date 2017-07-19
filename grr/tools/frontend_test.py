@@ -14,11 +14,11 @@ import requests
 
 import logging
 
+from grr import config
 from grr.client import comms
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import file_store
 from grr.lib import flags
 from grr.lib import flow
@@ -76,10 +76,10 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   def _UploadFile(self, args):
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
-          ca_cert=config_lib.CONFIG["CA.certificate"],
-          private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
+          ca_cert=config.CONFIG["CA.certificate"],
+          private_key=config.CONFIG.Get("Client.private_key", default=None))
 
-      client.server_certificate = config_lib.CONFIG["Frontend.certificate"]
+      client.server_certificate = config.CONFIG["Frontend.certificate"]
 
       def MockSendReply(_, reply):
         self.reply = reply
@@ -152,7 +152,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self._UploadFile(args)
 
       # Make sure the file is not written yet.
-      rootdir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
+      rootdir = config.CONFIG["FileUploadFileStore.root_dir"]
       target_filename = os.path.join(
           rootdir, self.client_id.Add(test_file).Path().lstrip(os.path.sep))
 
@@ -184,10 +184,10 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     client_id = client_id or self.SetupClients(1)[0]
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
-          ca_cert=config_lib.CONFIG["CA.certificate"],
-          private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
+          ca_cert=config.CONFIG["CA.certificate"],
+          private_key=config.CONFIG.Get("Client.private_key", default=None))
       client.client_worker = worker_mocks.FakeThreadedWorker(client=client)
-      client.server_certificate = config_lib.CONFIG["Frontend.certificate"]
+      client.server_certificate = config.CONFIG["Frontend.certificate"]
 
       for s in test_lib.TestFlowHelper(
           "ClientFileFinder",

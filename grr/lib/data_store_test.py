@@ -22,8 +22,8 @@ import time
 
 import mock
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import queue_manager
@@ -1102,7 +1102,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   @DBSubjectLockTest
   def testDBSubjectLockLease(self):
-    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    default_lease = config.CONFIG["Datastore.transaction_timeout"]
     # This needs to be current time or cloud bigtable server will reply with
     # deadline exceeded because the RPC is too old.
     now = int(time.time())
@@ -1129,7 +1129,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testDBSubjectLockLeaseExpiryWithExtension(self):
     now = int(time.time())
     # Cloud Bigtable RPC library doesn't like long, convert to int
-    default_lease = int(config_lib.CONFIG["Datastore.transaction_timeout"])
+    default_lease = int(config.CONFIG["Datastore.transaction_timeout"])
     with test_lib.FakeTime(now):
       lock = data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
       self.assertEqual(lock.expires, int(now + default_lease) * 1e6)
@@ -1151,7 +1151,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   @DBSubjectLockTest
   def testDBSubjectLockLeaseExpiry(self):
     now = int(time.time())
-    default_lease = int(config_lib.CONFIG["Datastore.transaction_timeout"])
+    default_lease = int(config.CONFIG["Datastore.transaction_timeout"])
     with test_lib.FakeTime(now):
       lock = data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
       self.assertEqual(lock.CheckLease(), default_lease)

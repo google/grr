@@ -5,7 +5,7 @@
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 
 
@@ -38,6 +38,6 @@ class NoGroupAccess(GroupAccessManager):
 
 
 def CreateGroupAccessManager():
-  group_mgr_cls = config_lib.CONFIG["ACL.group_access_manager_class"]
+  group_mgr_cls = config.CONFIG["ACL.group_access_manager_class"]
   logging.debug("Using group access manager: %s", group_mgr_cls)
   return GroupAccessManager.classes[group_mgr_cls]()

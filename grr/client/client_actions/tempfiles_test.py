@@ -5,8 +5,8 @@ import os
 import tempfile
 import time
 
+from grr import config
 from grr.client.client_actions import tempfiles
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -19,7 +19,7 @@ class GRRTempFileTestDirectory(test_lib.GRRBaseTest):
   def setUp(self):
     """Create fake filesystem."""
     super(GRRTempFileTestDirectory, self).setUp()
-    self.prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
+    self.prefix = config.CONFIG.Get("Client.tempfile_prefix")
     self.existsdir = os.path.join(self.temp_dir, "this/exists/")
     os.makedirs(self.existsdir)
     self.not_exists = os.path.join(self.temp_dir, "does/not/exist/")
@@ -73,7 +73,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     # For this test it has to be different from the temp directory
     # so we create a new one.
     self.client_tempdir = tempfile.mkdtemp(
-        dir=config_lib.CONFIG.Get("Client.tempdir_roots")[0])
+        dir=config.CONFIG.Get("Client.tempdir_roots")[0])
     self.tempdir_overrider = test_lib.ConfigOverrider({
         "Client.tempdir_roots": [os.path.dirname(self.client_tempdir)],
         "Client.grr_tempdir": os.path.basename(self.client_tempdir)
@@ -108,7 +108,7 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
 
   def setUp(self):
     super(DeleteGRRTempFiles, self).setUp()
-    filename = "%s_blah" % config_lib.CONFIG["Client.tempfile_prefix"]
+    filename = "%s_blah" % config.CONFIG["Client.tempfile_prefix"]
     self.tempfile = utils.JoinPath(self.temp_dir, "delete_test", filename)
     self.dirname = os.path.dirname(self.tempfile)
     os.makedirs(self.dirname)

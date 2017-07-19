@@ -5,7 +5,7 @@ import os
 
 import yaml
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import checks
@@ -17,7 +17,7 @@ from grr.parsers import config_file as config_file_parsers
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
 
-CHECKS_DIR = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
+CHECKS_DIR = os.path.join(config.CONFIG["Test.data_dir"], "checks")
 TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)
 TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
 TRIGGER_3 = ("DebianPackagesStatus", None, None, "foo")
@@ -59,7 +59,7 @@ def GetSSHDConfig():
 
   # Load an sshd config
   parser = config_file_parsers.SshdConfigParser()
-  test_data = os.path.join(config_lib.CONFIG["Test.data_dir"],
+  test_data = os.path.join(config.CONFIG["Test.data_dir"],
                            "VFSFixture/etc/ssh/sshd_config")
   with open(test_data, "rb") as f:
     SSHD_CFG.extend(parser.Parse(None, f, None))

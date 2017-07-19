@@ -14,8 +14,8 @@ import urlparse
 
 import logging
 
+from grr import config
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -105,7 +105,7 @@ class DataServerConnection(object):
 
   def _Sync(self):
     """Read responses from the pending requests."""
-    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.read_timeout"])
+    self.sock.settimeout(config.CONFIG["HTTPDataStore.read_timeout"])
     while self.requests:
       response = self._ReadReply()
       if not response:
@@ -120,7 +120,7 @@ class DataServerConnection(object):
   def _SendRequest(self, command):
     request_str = command.SerializeToString()
     request_body = sutils.SIZE_PACKER.pack(len(request_str)) + request_str
-    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.send_timeout"])
+    self.sock.settimeout(config.CONFIG["HTTPDataStore.send_timeout"])
     try:
       self.sock.sendall(request_body)
       return True
@@ -143,8 +143,8 @@ class DataServerConnection(object):
       pass
     try:
       self.conn = httplib.HTTPConnection(self.Address(), self.Port())
-      username = config_lib.CONFIG.Get("HTTPDataStore.username")
-      password = config_lib.CONFIG.Get("HTTPDataStore.password")
+      username = config.CONFIG.Get("HTTPDataStore.username")
+      password = config.CONFIG.Get("HTTPDataStore.password")
       if not username:
         raise HTTPDataStoreError("HTTPDataStore.username not provided")
       if not password:
@@ -167,7 +167,7 @@ class DataServerConnection(object):
       self.sock = self.conn.sock
       # Confirm handshake.
       self.sock.setblocking(1)
-      self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.login_timeout"])
+      self.sock.settimeout(config.CONFIG["HTTPDataStore.login_timeout"])
       ack = self._ReadExactly(3)
       if ack == "IP\n":
         raise HTTPDataStoreError("Invalid data server username/password.")
@@ -194,7 +194,7 @@ class DataServerConnection(object):
       req = self.requests[-1]
       if not self._SendRequest(req):
         return False
-      self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.replay_timeout"])
+      self.sock.settimeout(config.CONFIG["HTTPDataStore.replay_timeout"])
       response = self._ReadReply()
       if not response:
         # Could not read response. Let's exit and force a reconnection
@@ -215,9 +215,9 @@ class DataServerConnection(object):
         logging.warning("Had to connect to %s:%d but failed. Trying again...",
                         self.Address(), self.Port())
         # Sleep for some time before trying again.
-        time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
+        time.sleep(config.CONFIG["HTTPDataStore.retry_time"])
       if time.time(
-      ) - started >= config_lib.CONFIG["HTTPDataStore.reconnect_timeout"]:
+      ) - started >= config.CONFIG["HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not connect to %s:%d. Giving up." %
                                  (self.Address(), self.Port()))
 
@@ -243,7 +243,7 @@ class DataServerConnection(object):
     # At this point, we have a synchronized connection.
     while not self._SendRequest(command):
       self._RedoConnection()
-    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.read_timeout"])
+    self.sock.settimeout(config.CONFIG["HTTPDataStore.read_timeout"])
     response = self._ReadReply()
     if not response:
       # Must reconnect and resend the request.
@@ -278,7 +278,7 @@ class DataServer(object):
     self.port = port
     self.conn = httplib.HTTPConnection(self.Address(), self.Port())
     self.lock = threading.Lock()
-    self.max_connections = config_lib.CONFIG["Dataserver.max_connections"]
+    self.max_connections = config.CONFIG["Dataserver.max_connections"]
     # Start with a single connection.
     self.connections = [DataServerConnection(self)]
 
@@ -342,11 +342,11 @@ class DataServer(object):
         return mapping
 
       if time.time(
-      ) - started > config_lib.CONFIG["HTTPDataStore.reconnect_timeout"]:
+      ) - started > config.CONFIG["HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not get server mapping from data "
                                  "server at %s:%d." % (self.Address(),
                                                        self.Port()))
-      time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
+      time.sleep(config.CONFIG["HTTPDataStore.retry_time"])
 
 
 class RemoteInquirer(object):
@@ -356,7 +356,7 @@ class RemoteInquirer(object):
 
   def __init__(self):
     # Create a connection to all data servers
-    server_list = config_lib.CONFIG["Dataserver.server_list"]
+    server_list = config.CONFIG["Dataserver.server_list"]
     if not server_list:
       raise HTTPDataStoreError("List of data servers is not available.")
     self.servers = []

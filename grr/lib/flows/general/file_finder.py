@@ -5,7 +5,7 @@
 
 import stat
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import file_store
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -385,7 +385,7 @@ class ClientFileFinder(flow.GRRFlow):
 
   def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
     upload_store = file_store.UploadFileStore.GetPlugin(
-        config_lib.CONFIG["Frontend.upload_store"])()
+        config.CONFIG["Frontend.upload_store"])()
     urn = uploaded_file.stat_entry.pathspec.AFF4Path(self.client_id)
 
     with upload_store.Aff4ObjectForFileId(

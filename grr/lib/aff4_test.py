@@ -10,8 +10,8 @@ import time
 
 import mock
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
@@ -1381,7 +1381,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(children[0].age,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
-    latest_time = 100 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
+    latest_time = 100 + config.CONFIG["AFF4.intermediate_cache_age"] - 1
     with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),
@@ -1409,7 +1409,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(children[0].age,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
-    latest_time = 100 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
+    latest_time = 100 + config.CONFIG["AFF4.intermediate_cache_age"] + 1
     with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),

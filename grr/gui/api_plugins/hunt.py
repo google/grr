@@ -8,14 +8,14 @@ import re
 
 import logging
 
+from grr import config
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import output_plugin as api_output_plugin
-from grr.gui.api_plugins import vfs as api_vfs
 
+from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
@@ -463,7 +463,7 @@ class ApiGetHuntResultsExportCommandHandler(
                            args.hunt_id, output_fname)
 
     export_command_str = " ".join([
-        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        config.CONFIG["AdminUI.export_command"], "--exec_code",
         utils.ShellQuote(code_to_execute)
     ])
 
@@ -1353,7 +1353,7 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
 
         # If some clients reported back to the hunt, it can only be deleted
         # if AdminUI.allow_hunt_results_delete is True.
-        if (not config_lib.CONFIG["AdminUI.allow_hunt_results_delete"] and
+        if (not config.CONFIG["AdminUI.allow_hunt_results_delete"] and
             hunt.client_count):
           raise HuntNotDeletableError(
               "Unable to delete a hunt with results while "

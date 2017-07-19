@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Client label approvals authorization manager."""
 
+from grr import config
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib.authorization import auth_manager
 
@@ -88,7 +88,7 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
       self.reader.CreateAuthorizations(yaml_data, ClientApprovalAuthorization)
     else:
       with open(
-          config_lib.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
+          config.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
         self.reader.CreateAuthorizations(fh.read(), ClientApprovalAuthorization)
 
     for approval_spec in self.reader.GetAllAuthorizationObjects():

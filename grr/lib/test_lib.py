@@ -28,9 +28,8 @@ import pkg_resources
 
 import logging
 import unittest
-# pylint: disable=unused-import
-from grr import config as _
-# pylint: enable=unused-import
+
+from grr import config
 
 from grr.client import actions
 from grr.client import client_utils_linux
@@ -49,16 +48,12 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import client_fixture
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import export
 from grr.lib import flags
 from grr.lib import flow
-# pylint: disable=unused-import
-from grr.lib import local as _
-# pylint: enable=unused-import
 from grr.lib import maintenance_utils
 from grr.lib import queue_manager
 from grr.lib import queues as queue_config
@@ -97,6 +92,10 @@ from grr.lib.flows.general import filesystem as _
 # pylint: enable=unused-import
 
 from grr.lib.hunts import results as hunts_results
+
+# pylint: disable=unused-import
+from grr.lib.local import plugins as _
+# pylint: enable=unused-import
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -388,7 +387,7 @@ class GRRBaseTest(unittest.TestCase):
       methodName: The test method to run.
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
-    self.base_path = config_lib.CONFIG["Test.data_dir"]
+    self.base_path = config.CONFIG["Test.data_dir"]
     test_user = "test"
     users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
@@ -397,7 +396,7 @@ class GRRBaseTest(unittest.TestCase):
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 
-    tmpdir = os.environ.get("TEST_TMPDIR") or config_lib.CONFIG["Test.tmpdir"]
+    tmpdir = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
 
     if platform.system() != "Windows":
       # Make a temporary directory for test files.
@@ -405,8 +404,7 @@ class GRRBaseTest(unittest.TestCase):
     else:
       self.temp_dir = tempfile.mkdtemp()
 
-    config_lib.CONFIG.SetWriteBack(
-        os.path.join(self.temp_dir, "writeback.yaml"))
+    config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
 
     logging.info("Starting test: %s.%s", self.__class__.__name__,
                  self._testMethodName)
@@ -687,8 +685,7 @@ class GRRBaseTest(unittest.TestCase):
     with aff4.FACTORY.Create(
         client_id_urn, aff4_grr.VFSGRRClient, mode="rw",
         token=self.token) as fd:
-      cert = self.ClientCertFromPrivateKey(
-          config_lib.CONFIG["Client.private_key"])
+      cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
       fd.Set(fd.Schema.CERT, cert)
 
       info = fd.Schema.CLIENT_INFO()
@@ -923,11 +920,11 @@ class ConfigOverrider(object):
 
   def Start(self):
     for k, v in self._overrides.iteritems():
-      self._saved_values[k] = config_lib.CONFIG.Get(k)
+      self._saved_values[k] = config.CONFIG.Get(k)
       try:
-        config_lib.CONFIG.Set.old_target(k, v)
+        config.CONFIG.Set.old_target(k, v)
       except AttributeError:
-        config_lib.CONFIG.Set(k, v)
+        config.CONFIG.Set(k, v)
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
@@ -935,9 +932,9 @@ class ConfigOverrider(object):
   def Stop(self):
     for k, v in self._saved_values.iteritems():
       try:
-        config_lib.CONFIG.Set.old_target(k, v)
+        config.CONFIG.Set.old_target(k, v)
       except AttributeError:
-        config_lib.CONFIG.Set(k, v)
+        config.CONFIG.Set(k, v)
 
 
 class PreserveConfig(object):
@@ -946,18 +943,18 @@ class PreserveConfig(object):
     self.Start()
 
   def Start(self):
-    self.old_config = config_lib.CONFIG
-    config_lib.CONFIG = self.old_config.MakeNewConfig()
-    config_lib.CONFIG.initialized = self.old_config.initialized
-    config_lib.CONFIG.SetWriteBack(self.old_config.writeback.filename)
-    config_lib.CONFIG.raw_data = self.old_config.raw_data.copy()
-    config_lib.CONFIG.writeback_data = self.old_config.writeback_data.copy()
+    self.old_config = config.CONFIG
+    config.CONFIG = self.old_config.MakeNewConfig()
+    config.CONFIG.initialized = self.old_config.initialized
+    config.CONFIG.SetWriteBack(self.old_config.writeback.filename)
+    config.CONFIG.raw_data = self.old_config.raw_data.copy()
+    config.CONFIG.writeback_data = self.old_config.writeback_data.copy()
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
 
   def Stop(self):
-    config_lib.CONFIG = self.old_config
+    config.CONFIG = self.old_config
 
 
 class VFSOverrider(object):
@@ -2195,7 +2192,7 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     path = self.path
     if filename:
       path = os.path.join(path, filename)
-    return os.path.join(config_lib.CONFIG["Test.data_dir"], "VFSFixture",
+    return os.path.join(config.CONFIG["Test.data_dir"], "VFSFixture",
                         path.lstrip("/"))
 
   def Read(self, length):
@@ -2258,8 +2255,7 @@ class GrrTestProgram(unittest.TestProgram):
       raise NotImplementedError(
           "Usage of Set() is disabled, please use a configoverrider in tests.")
 
-    self.config_set_disable = utils.Stubber(config_lib.CONFIG, "Set",
-                                            DisabledSet)
+    self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
     self.config_set_disable.Start()
 
   def tearDown(self):
@@ -2301,14 +2297,14 @@ class RemotePDB(pdb.Pdb):
   def ListenForConnection(self):
     """Listens and accepts a single connection."""
     logging.warn("Remote debugger waiting for connection on %s",
-                 config_lib.CONFIG["Test.remote_pdb_port"])
+                 config.CONFIG["Test.remote_pdb_port"])
 
     RemotePDB.old_stdout = sys.stdout
     RemotePDB.old_stdin = sys.stdin
     RemotePDB.skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     RemotePDB.skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    RemotePDB.skt.bind(("127.0.0.1", config_lib.CONFIG["Test.remote_pdb_port"]))
+    RemotePDB.skt.bind(("127.0.0.1", config.CONFIG["Test.remote_pdb_port"]))
     RemotePDB.skt.listen(1)
 
     (clientsocket, address) = RemotePDB.skt.accept()
@@ -2326,7 +2322,7 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
   def GetProfileByName(self, profile_name, version="v1.0"):
     try:
       profile_data = open(
-          os.path.join(config_lib.CONFIG["Test.data_dir"], "profiles", version,
+          os.path.join(config.CONFIG["Test.data_dir"], "profiles", version,
                        profile_name + ".gz"), "rb").read()
 
       self.profiles_served += 1

@@ -12,8 +12,8 @@ import logging
 import os
 import sys
 
+from grr import config
 from grr.config import contexts
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import registry
 
@@ -37,14 +37,14 @@ def RunInstaller():
   """
 
   try:
-    os.makedirs(os.path.dirname(config_lib.CONFIG["Installer.logfile"]))
+    os.makedirs(os.path.dirname(config.CONFIG["Installer.logfile"]))
   except OSError:
     pass
 
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
   handler = logging.FileHandler(
-      config_lib.CONFIG["Installer.logfile"], mode="wb")
+      config.CONFIG["Installer.logfile"], mode="wb")
 
   handler.setLevel(logging.DEBUG)
 
@@ -57,8 +57,8 @@ def RunInstaller():
   # nothing gets overridden by local settings. We there must reload
   # the configuration from the flag and ignore the Config.writeback
   # location.
-  config_lib.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
-  config_lib.CONFIG.AddContext(
+  config.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
+  config.CONFIG.AddContext(
       contexts.INSTALLER_CONTEXT,
       "Context applied when we run the client installer.")
 

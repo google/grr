@@ -7,9 +7,9 @@ import os
 import time
 
 
+from grr import config
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -25,7 +25,7 @@ class TestExecutePython(test_lib.EmptyActionTest):
 
   def setUp(self):
     super(TestExecutePython, self).setUp()
-    self.signing_key = config_lib.CONFIG[
+    self.signing_key = config.CONFIG[
         "PrivateKeys.executable_signing_private_key"]
 
   def testExecutePython(self):

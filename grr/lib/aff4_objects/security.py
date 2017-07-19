@@ -6,9 +6,9 @@ import email
 import re
 import urllib
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flow
@@ -203,7 +203,7 @@ class ApprovalWithApproversAndReason(Approval):
 
   def GetApprovers(self, now):
     lifetime = rdfvalue.Duration(
-        self.Get(self.Schema.LIFETIME) or config_lib.CONFIG["ACL.token_expiry"])
+        self.Get(self.Schema.LIFETIME) or config.CONFIG["ACL.token_expiry"])
 
     # Check that there are enough approvers.
     approvers = set()
@@ -240,9 +240,9 @@ class ApprovalWithApproversAndReason(Approval):
 
     # Check that there are enough approvers.
     approvers = self.GetNonExpiredApprovers()
-    if len(approvers) < config_lib.CONFIG["ACL.approvers_required"]:
+    if len(approvers) < config.CONFIG["ACL.approvers_required"]:
       msg = ("Requires %s approvers for access." %
-             config_lib.CONFIG["ACL.approvers_required"])
+             config.CONFIG["ACL.approvers_required"])
       raise access_control.UnauthorizedAccess(
           msg, subject=subject_urn, requested_access=token.requested_access)
 
@@ -276,7 +276,7 @@ class ApprovalWithApproversAndReason(Approval):
     """Returns a list of usernames of approvers who approved this approval."""
 
     lifetime = rdfvalue.Duration(
-        self.Get(self.Schema.LIFETIME) or config_lib.CONFIG["ACL.token_expiry"])
+        self.Get(self.Schema.LIFETIME) or config.CONFIG["ACL.token_expiry"])
 
     # Check that there are enough approvers.
     #
@@ -434,7 +434,7 @@ class AbstractApprovalWithReasonMixin(object):
 
     for things that should be turned into links.
     """
-    for link_re in config_lib.CONFIG.Get("Email.link_regex_list"):
+    for link_re in config.CONFIG.Get("Email.link_regex_list"):
       reason = re.sub(link_re, r"""<a href="\g<link>">\g<link></a>""", reason)
     return reason
 
@@ -488,7 +488,7 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
       approval_request.Set(approval_request.Schema.EMAIL_MSG_ID(email_msg_id))
 
       cc_addresses = (self.args.email_cc_address,
-                      config_lib.CONFIG.Get("Email.approval_cc_address"))
+                      config.CONFIG.Get("Email.approval_cc_address"))
       email_cc = ",".join(filter(None, cc_addresses))
 
       # When we reply with the approval we want to cc all the people to whom the
@@ -531,7 +531,7 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
                 "Please grant access to %s" % subject_title, self.session_id)
       fd.Close()
 
-    if not config_lib.CONFIG.Get("Email.send_approval_emails"):
+    if not config.CONFIG.Get("Email.send_approval_emails"):
       return
 
     reason = self.CreateReasonHTML(self.args.reason)
@@ -554,16 +554,16 @@ here
 </body></html>"""
 
     # If you feel like it, add a funny cat picture here :)
-    image = config_lib.CONFIG["Email.approval_signature"]
+    image = config.CONFIG["Email.approval_signature"]
 
     body = template % dict(
         username=self.token.username,
         reason=reason,
-        admin_ui=config_lib.CONFIG["AdminUI.url"],
+        admin_ui=config.CONFIG["AdminUI.url"],
         subject_title=subject_title,
         approval_url=self.BuildApprovalReviewUrlPath(approval_id),
         image=image,
-        signature=config_lib.CONFIG["Email.signature"])
+        signature=config.CONFIG["Email.signature"])
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.args.approver,
@@ -660,7 +660,7 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
               (self.token.username, subject_title), self.session_id)
     fd.Close()
 
-    if not config_lib.CONFIG.Get("Email.send_approval_emails"):
+    if not config.CONFIG.Get("Email.send_approval_emails"):
       return
 
     reason = self.CreateReasonHTML(self.args.reason)
@@ -683,9 +683,9 @@ Please click <a href='%(admin_ui)s#%(subject_url)s'>here</a> to access it.
         subject_title=subject_title,
         username=self.token.username,
         reason=reason,
-        admin_ui=config_lib.CONFIG["AdminUI.url"],
+        admin_ui=config.CONFIG["AdminUI.url"],
         subject_url=access_url,
-        signature=config_lib.CONFIG["Email.signature"])
+        signature=config.CONFIG["Email.signature"])
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.
@@ -758,15 +758,15 @@ This access has been logged and granted for 24 hours.
         username=self.token.username,
         subject_title=subject_title,
         reason=self.args.reason,
-        signature=config_lib.CONFIG["Email.signature"]),
+        signature=config.CONFIG["Email.signature"]),
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        config_lib.CONFIG["Monitoring.emergency_access_email"],
+        config.CONFIG["Monitoring.emergency_access_email"],
         self.token.username,
         u"Emergency approval granted for %s." % subject_title,
         utils.SmartStr(body),
         is_html=True,
-        cc_addresses=config_lib.CONFIG["Email.approval_cc_address"])
+        cc_addresses=config.CONFIG["Email.approval_cc_address"])
 
 
 class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):

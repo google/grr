@@ -11,8 +11,8 @@ import time
 from apiclient.errors import HttpError
 import mock
 
+from grr import config
 from grr.lib import bigquery
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -33,10 +33,10 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
 
     schema_data = json.load(
         open(
-            os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+            os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                          "ExportedFile.schema"), "rb"))
     data_fd = open(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                      "ExportedFile.json.gz"), "rb")
     now = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
     job_id = "hunts_HFFE1D044_Results_%s" % now
@@ -67,9 +67,9 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
           bq_client.RetryUpload(job, job_id, error)
 
     # Make sure retry sleeps are correct.
-    max_calls = config_lib.CONFIG["BigQuery.retry_max_attempts"]
-    retry_interval = config_lib.CONFIG["BigQuery.retry_interval"]
-    multiplier = config_lib.CONFIG["BigQuery.retry_multiplier"]
+    max_calls = config.CONFIG["BigQuery.retry_max_attempts"]
+    retry_interval = config.CONFIG["BigQuery.retry_interval"]
+    multiplier = config.CONFIG["BigQuery.retry_multiplier"]
 
     self.assertEqual(job.execute.call_count, max_calls)
     mock_sleep.assert_has_calls(

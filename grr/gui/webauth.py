@@ -9,9 +9,9 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import registry
 
 from grr.lib.aff4_objects import users as aff4_users
@@ -47,7 +47,7 @@ class BaseWebAuthManager(object):
 
   def RedirectBase(self):
     """Return a redirect to the main GRR page."""
-    return werkzeug_utils.redirect(config_lib.CONFIG["AdminUI.url"])
+    return werkzeug_utils.redirect(config.CONFIG["AdminUI.url"])
 
 
 class BasicWebAuthManager(BaseWebAuthManager):
@@ -99,7 +99,7 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
   def __init__(self, *args, **kwargs):
     super(FirebaseWebAuthManager, self).__init__(*args, **kwargs)
 
-    def_router = config_lib.CONFIG["API.DefaultRouter"]
+    def_router = config.CONFIG["API.DefaultRouter"]
     if def_router != "DisabledApiCallRouter":
       raise RuntimeError("Using FirebaseWebAuthManager with API.DefaultRouter "
                          "being anything but DisabledApiCallRouter means "
@@ -119,7 +119,7 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
 
       token = auth_header[len(self.BEARER_PREFIX):]
 
-      auth_domain = config_lib.CONFIG["AdminUI.firebase_auth_domain"]
+      auth_domain = config.CONFIG["AdminUI.firebase_auth_domain"]
       project_id = auth_domain.split(".")[0]
 
       idinfo = client.verify_id_token(token, project_id, cert_uri=self.CERT_URI)
@@ -182,7 +182,7 @@ class WebAuthInit(registry.InitHook):
 
     # pylint: disable=g-bad-name
     WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
-        config_lib.CONFIG["AdminUI.webauth_manager"])()
+        config.CONFIG["AdminUI.webauth_manager"])()
 
     # pylint: enable=g-bad-name
     logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

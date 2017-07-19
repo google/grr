@@ -26,6 +26,4 @@ from grr.client import comms
 from grr.client import local
 from grr.client import vfs_handlers
 from grr.lib import log
-
-# Config definitions use Semantic Values from plugins.
-from grr import config
+# pylint: enable=g-import-not-at-top,unused-import,g-bad-import-order

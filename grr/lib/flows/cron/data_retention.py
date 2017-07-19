@@ -3,9 +3,9 @@
 
 
 
+from grr import config
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -24,12 +24,12 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    hunts_ttl = config_lib.CONFIG["DataRetention.hunts_ttl"]
+    hunts_ttl = config.CONFIG["DataRetention.hunts_ttl"]
     if not hunts_ttl:
       self.Log("TTL not set - nothing to do...")
       return
 
-    exception_label = config_lib.CONFIG[
+    exception_label = config.CONFIG[
         "DataRetention.hunts_ttl_exception_label"]
 
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
@@ -57,7 +57,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    cron_jobs_ttl = config_lib.CONFIG["DataRetention.cron_jobs_flows_ttl"]
+    cron_jobs_ttl = config.CONFIG["DataRetention.cron_jobs_flows_ttl"]
     if not cron_jobs_ttl:
       self.Log("TTL not set - nothing to do...")
       return
@@ -80,12 +80,12 @@ class CleanTemp(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    tmp_ttl = config_lib.CONFIG["DataRetention.tmp_ttl"]
+    tmp_ttl = config.CONFIG["DataRetention.tmp_ttl"]
     if not tmp_ttl:
       self.Log("TTL not set - nothing to do...")
       return
 
-    exception_label = config_lib.CONFIG["DataRetention.tmp_ttl_exception_label"]
+    exception_label = config.CONFIG["DataRetention.tmp_ttl_exception_label"]
 
     tmp_root = aff4.FACTORY.Open("aff4:/tmp", mode="r", token=self.token)
     tmp_urns = list(tmp_root.ListChildren())
@@ -114,12 +114,12 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    inactive_client_ttl = config_lib.CONFIG["DataRetention.inactive_client_ttl"]
+    inactive_client_ttl = config.CONFIG["DataRetention.inactive_client_ttl"]
     if not inactive_client_ttl:
       self.Log("TTL not set - nothing to do...")
       return
 
-    exception_label = config_lib.CONFIG[
+    exception_label = config.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
     index = client_index.CreateClientIndex(token=self.token)

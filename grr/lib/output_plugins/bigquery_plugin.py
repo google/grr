@@ -9,8 +9,8 @@ import os
 import tempfile
 
 
+from grr import config
 from grr.lib import bigquery
-from grr.lib import config_lib
 from grr.lib import export
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -209,7 +209,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       else:
         self.state.output_jobids[tracker.output_type] = job_id
 
-      if self.state.failure_count >= config_lib.CONFIG["BigQuery.max_upload_failures"]:
+      if (self.state.failure_count >=
+          config.CONFIG["BigQuery.max_upload_failures"]):
         logging.error("Exceeded BigQuery.max_upload_failures for %s. Giving up "
                       "on BigQuery and writing to AFF4.", self.state.source_urn)
         self._WriteToAFF4(job_id, tracker.schema,
@@ -280,7 +281,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       values: RDF values to export.
     """
     value_counters = {}
-    max_post_size = config_lib.CONFIG["BigQuery.max_file_post_size"]
+    max_post_size = config.CONFIG["BigQuery.max_file_post_size"]
     for value in values:
       class_name = value.__class__.__name__
       output_tracker, created = self._GetTempOutputFileHandles(class_name)

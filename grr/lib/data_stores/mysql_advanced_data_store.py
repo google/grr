@@ -13,8 +13,8 @@ from warnings import filterwarnings
 import MySQLdb
 from MySQLdb import cursors
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -76,17 +76,17 @@ class MySQLConnection(object):
   def _MakeConnection(self, database=""):
     """Repeat connection attempts to server until we get a valid connection."""
     first_attempt_time = time.time()
-    wait_time = config_lib.CONFIG["Mysql.max_connect_wait"]
+    wait_time = config.CONFIG["Mysql.max_connect_wait"]
     while wait_time == 0 or time.time() - first_attempt_time < wait_time:
       try:
         connection_args = dict(
-            user=config_lib.CONFIG["Mysql.database_username"],
+            user=config.CONFIG["Mysql.database_username"],
             db=database,
             charset="utf8",
-            passwd=config_lib.CONFIG["Mysql.database_password"],
+            passwd=config.CONFIG["Mysql.database_password"],
             cursorclass=cursors.DictCursor,
-            host=config_lib.CONFIG["Mysql.host"],
-            port=config_lib.CONFIG["Mysql.port"])
+            host=config.CONFIG["Mysql.host"],
+            port=config.CONFIG["Mysql.port"])
 
         dbh = MySQLdb.connect(**connection_args)
         return dbh
@@ -114,8 +114,8 @@ class ConnectionPool(object):
   def __init__(self, database_name):
     self.connections = SafeQueue()
     self.database_name = database_name
-    self.pool_max_size = int(config_lib.CONFIG["Mysql.conn_pool_max"])
-    self.pool_min_size = int(config_lib.CONFIG["Mysql.conn_pool_min"])
+    self.pool_max_size = int(config.CONFIG["Mysql.conn_pool_max"])
+    self.pool_min_size = int(config.CONFIG["Mysql.conn_pool_min"])
     for _ in range(self.pool_min_size):
       self.connections.put(MySQLConnection(self.database_name))
 
@@ -153,7 +153,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
-    self.database_name = config_lib.CONFIG["Mysql.database_name"]
+    self.database_name = config.CONFIG["Mysql.database_name"]
     # Use the global connection pool.
     if MySQLAdvancedDataStore.POOL is None:
       MySQLAdvancedDataStore.POOL = ConnectionPool(self.database_name)
@@ -162,7 +162,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self.to_replace = []
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
-    self.database_name = config_lib.CONFIG["Mysql.database_name"]
+    self.database_name = config.CONFIG["Mysql.database_name"]
     self.buffer_lock = threading.RLock()
     self.lock = threading.RLock()
 

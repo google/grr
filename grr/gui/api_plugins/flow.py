@@ -4,16 +4,16 @@
 import itertools
 import re
 
+from grr import config
 from grr.gui import api_call_handler_base
+
 from grr.gui import api_call_handler_utils
-
 from grr.gui.api_plugins import client
-from grr.gui.api_plugins import output_plugin as api_output_plugin
 
+from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
@@ -422,7 +422,7 @@ class ApiGetFlowResultsExportCommandHandler(
                            args.client_id, args.flow_id, output_fname)
 
     export_command_str = " ".join([
-        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        config.CONFIG["AdminUI.export_command"], "--exec_code",
         utils.ShellQuote(code_to_execute)
     ])
 
@@ -860,8 +860,8 @@ class ApiStartRobotGetFilesOperationHandler(
 
     # Check our flow throttling limits, will raise if there are problems.
     throttler = throttle.FlowThrottler(
-        daily_req_limit=config_lib.CONFIG.Get("API.DailyFlowRequestLimit"),
-        dup_interval=config_lib.CONFIG.Get("API.FlowDuplicateInterval"))
+        daily_req_limit=config.CONFIG.Get("API.DailyFlowRequestLimit"),
+        dup_interval=config.CONFIG.Get("API.FlowDuplicateInterval"))
     throttler.EnforceLimits(
         client_urn,
         token.username,

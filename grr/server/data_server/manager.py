@@ -14,8 +14,8 @@ from requests.packages import urllib3
 from grr.client import client_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr import config
 from grr.config import contexts
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
 from grr.lib import utils
@@ -31,7 +31,7 @@ class Manager(object):
   """Manage a data server group using a connection to the master."""
 
   def __init__(self):
-    servers = config_lib.CONFIG["Dataserver.server_list"]
+    servers = config.CONFIG["Dataserver.server_list"]
     if not servers:
       raise errors.DataServerError("List of data servers not available.")
     master_location = servers[0]
@@ -611,7 +611,7 @@ class Manager(object):
 def main(unused_argv):
   """Main."""
 
-  config_lib.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT)
+  config.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT)
   server_startup.Init()
 
   manager = Manager()

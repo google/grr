@@ -9,9 +9,9 @@ import traceback
 import unittest
 
 
+from grr import config as grr_config
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_utils
@@ -336,12 +336,12 @@ def GetClientTestTargets(client_ids=None,
   if client_ids:
     client_ids = set(client_ids)
   else:
-    client_ids = set(config_lib.CONFIG.Get("Test.end_to_end_client_ids"))
+    client_ids = set(grr_config.CONFIG.Get("Test.end_to_end_client_ids"))
 
   if hostnames:
     hosts = set(hostnames)
   else:
-    hosts = set(config_lib.CONFIG.Get("Test.end_to_end_client_hostnames"))
+    hosts = set(grr_config.CONFIG.Get("Test.end_to_end_client_hostnames"))
 
   if hosts:
     client_id_dict = client_index.GetClientURNsForHostnames(hosts, token=token)

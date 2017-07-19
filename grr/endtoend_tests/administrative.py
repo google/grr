@@ -5,9 +5,9 @@ import os
 
 
 import logging
+from grr import config
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import maintenance_utils
 from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import stats as aff4_stats
@@ -66,7 +66,7 @@ class TestLaunchBinaries(base.ClientTestBase):
   def __init__(self, **kwargs):
     super(TestLaunchBinaries, self).__init__(**kwargs)
     self.context = ["Platform:%s" % self.platform.title()]
-    self.binary = config_lib.CONFIG.Get(
+    self.binary = config.CONFIG.Get(
         "Executables.aff4_path", context=self.context).Add(
             "test/%s" % self.ds_names[self.platform])
 
@@ -77,7 +77,7 @@ class TestLaunchBinaries(base.ClientTestBase):
           self.binary, aff4_type=aff4_collects.GRRSignedBlob, token=self.token)
     except IOError:
       print "Uploading the test binary to the Executables area."
-      source = os.path.join(config_lib.CONFIG["Test.data_dir"],
+      source = os.path.join(config.CONFIG["Test.data_dir"],
                             self.filenames[self.platform])
 
       if not os.path.exists(source):

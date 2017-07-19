@@ -5,6 +5,7 @@
 # pylint: disable=g-import-not-at-top
 import os
 
+from grr import config
 from grr import defaults
 from grr.lib import config_lib
 from grr.lib import flags
@@ -59,7 +60,7 @@ def SetConfigOptions():
         "install_data/etc/grr-server.yaml")
 
   for option, value in config_opts.items():
-    config_lib.CONFIG.Set(option, value)
+    config.CONFIG.Set(option, value)
 
   flags.PARSER.set_defaults(**flag_defaults)
 

@@ -6,7 +6,7 @@ import os
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import config_testing_lib
 from grr.lib import flags
 from grr.lib import test_lib
@@ -17,10 +17,10 @@ class BuildConfigTests(config_testing_lib.BuildConfigTestsBase):
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""
     # Test the current loaded configuration.
-    configs = [config_lib.CONFIG]
+    configs = [config.CONFIG]
 
     # Test all the other configs in the server config dir (/etc/grr by default)
-    glob_path = os.path.join(config_lib.CONFIG["Config.directory"], "*.yaml")
+    glob_path = os.path.join(config.CONFIG["Config.directory"], "*.yaml")
     for cfg_file in glob.glob(glob_path):
       if os.access(cfg_file, os.R_OK):
         configs.append(cfg_file)

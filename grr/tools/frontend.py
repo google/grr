@@ -20,9 +20,9 @@ import logging
 from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
+from grr import config
 from grr.lib import aff4
 from grr.lib import communicator
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import front_end
 from grr.lib import log
@@ -64,7 +64,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
-    url_prefix = config_lib.CONFIG["Frontend.static_url_path_prefix"]
+    url_prefix = config.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
       self.ServerPem()
     elif self.path.startswith(url_prefix):
@@ -74,7 +74,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
 
   def ServeStatic(self, path):
-    static_aff4_prefix = config_lib.CONFIG["Frontend.static_aff4_prefix"]
+    static_aff4_prefix = config.CONFIG["Frontend.static_aff4_prefix"]
     aff4_path = rdfvalue.RDFURN(static_aff4_prefix).Add(path)
     try:
       logging.info("Serving %s", aff4_path)
@@ -259,13 +259,13 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
       self.frontend = frontend
     else:
       self.frontend = front_end.FrontEndServer(
-          certificate=config_lib.CONFIG["Frontend.certificate"],
-          private_key=config_lib.CONFIG["PrivateKeys.server_key"],
-          max_queue_size=config_lib.CONFIG["Frontend.max_queue_size"],
-          message_expiry_time=config_lib.CONFIG["Frontend.message_expiry_time"],
-          max_retransmission_time=config_lib.CONFIG[
+          certificate=config.CONFIG["Frontend.certificate"],
+          private_key=config.CONFIG["PrivateKeys.server_key"],
+          max_queue_size=config.CONFIG["Frontend.max_queue_size"],
+          message_expiry_time=config.CONFIG["Frontend.message_expiry_time"],
+          max_retransmission_time=config.CONFIG[
               "Frontend.max_retransmission_time"])
-    self.server_cert = config_lib.CONFIG["Frontend.certificate"]
+    self.server_cert = config.CONFIG["Frontend.certificate"]
 
     (address, _) = server_address
     version = ipaddr.IPAddress(address).version
@@ -281,12 +281,12 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
 def CreateServer(frontend=None):
   """Start frontend http server."""
-  max_port = config_lib.CONFIG.Get("Frontend.port_max",
-                                   config_lib.CONFIG["Frontend.bind_port"])
+  max_port = config.CONFIG.Get("Frontend.port_max",
+                               config.CONFIG["Frontend.bind_port"])
 
-  for port in range(config_lib.CONFIG["Frontend.bind_port"], max_port + 1):
+  for port in range(config.CONFIG["Frontend.bind_port"], max_port + 1):
 
-    server_address = (config_lib.CONFIG["Frontend.bind_address"], port)
+    server_address = (config.CONFIG["Frontend.bind_address"], port)
     try:
       httpd = GRRHTTPServer(
           server_address, GRRHTTPServerHandler, frontend=frontend)
@@ -304,7 +304,7 @@ def CreateServer(frontend=None):
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext("HTTPServer Context")
+  config.CONFIG.AddContext("HTTPServer Context")
 
   server_startup.Init()
 

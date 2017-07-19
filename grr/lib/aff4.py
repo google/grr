@@ -15,8 +15,8 @@ import zlib
 
 import logging
 
+from grr import config
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import lexer
 from grr.lib import rdfvalue
@@ -278,8 +278,8 @@ class Factory(object):
 
   def __init__(self):
     self.intermediate_cache = utils.AgeBasedCache(
-        max_size=config_lib.CONFIG["AFF4.intermediate_cache_max_size"],
-        max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
+        max_size=config.CONFIG["AFF4.intermediate_cache_max_size"],
+        max_age=config.CONFIG["AFF4.intermediate_cache_age"])
 
     # Create a token for system level actions. This token is used by other
     # classes such as HashFileStore and NSRLFilestore to create entries under
@@ -2543,7 +2543,7 @@ class AFF4Stream(AFF4Object):
     super(AFF4Stream, self).Initialize()
     # This is the configurable default length for allowing Read to be called
     # without a specific length.
-    self.max_unbound_read = config_lib.CONFIG["Server.max_unbound_read_size"]
+    self.max_unbound_read = config.CONFIG["Server.max_unbound_read_size"]
 
   @abc.abstractmethod
   def Read(self, length):
@@ -3114,7 +3114,7 @@ def AuditLogBase():
 def CurrentAuditLog():
   """Get the rdfurn of the current audit log."""
   now_sec = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
-  rollover = config_lib.CONFIG["Logging.aff4_audit_log_rollover"]
+  rollover = config.CONFIG["Logging.aff4_audit_log_rollover"]
   # This gives us a filename that only changes every
   # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.
   current_log = (now_sec // rollover) * rollover

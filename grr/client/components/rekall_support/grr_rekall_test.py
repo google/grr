@@ -8,13 +8,13 @@ import gzip
 import json
 import os
 
+from grr import config
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -86,7 +86,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
         session_id = s
 
       # Check that the profiles are also cached locally.
-      test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
+      test_profile_dir = os.path.join(config.CONFIG["Test.data_dir"],
                                       "profiles")
       self.assertEqual(
           json.load(gzip.open(os.path.join(self.temp_dir, "v1.0/pe.gz"))),

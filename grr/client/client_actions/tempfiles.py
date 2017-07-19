@@ -15,10 +15,10 @@ import threading
 
 import psutil
 
+from grr import config
 from grr.client import actions
 from grr.client import client_utils
 from grr.client.vfs_handlers import files
-from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -41,17 +41,17 @@ class ErrorNotAFile(Error):
 
 
 def GetTempDirForRoot(root):
-  return os.path.join(root, config_lib.CONFIG["Client.grr_tempdir"])
+  return os.path.join(root, config.CONFIG["Client.grr_tempdir"])
 
 
 def GetDefaultGRRTempDirectory():
   # Check if any of the roots exists.
-  for candidate_dir in config_lib.CONFIG["Client.tempdir_roots"]:
+  for candidate_dir in config.CONFIG["Client.tempdir_roots"]:
     if os.path.isdir(candidate_dir):
       return GetTempDirForRoot(candidate_dir)
 
   # If none of the options exist, fall back to the first directory.
-  return GetTempDirForRoot(config_lib.CONFIG["Client.tempdir_roots"][0])
+  return GetTempDirForRoot(config.CONFIG["Client.tempdir_roots"][0])
 
 
 def CreateGRRTempFile(directory=None,
@@ -114,7 +114,7 @@ def CreateGRRTempFile(directory=None,
     else:
       os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
-  prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
+  prefix = config.CONFIG.Get("Client.tempfile_prefix")
   if filename is None:
     outfile = tempfile.NamedTemporaryFile(
         prefix=prefix, suffix=suffix, dir=directory, delete=False)
@@ -207,10 +207,10 @@ def DeleteGRRTempFile(path):
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
 
-  prefix = config_lib.CONFIG["Client.tempfile_prefix"]
+  prefix = config.CONFIG["Client.tempfile_prefix"]
   directories = [
       GetTempDirForRoot(root)
-      for root in config_lib.CONFIG["Client.tempdir_roots"]
+      for root in config.CONFIG["Client.tempdir_roots"]
   ]
   if not _CheckIfPathIsValidForDeletion(
       path, prefix=prefix, directories=directories):
@@ -250,7 +250,7 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
 
     allowed_temp_dirs = [
         GetTempDirForRoot(root)
-        for root in config_lib.CONFIG["Client.tempdir_roots"]
+        for root in config.CONFIG["Client.tempdir_roots"]
     ]
 
     if args.path:

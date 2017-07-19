@@ -22,12 +22,12 @@ from werkzeug import wsgi as werkzeug_wsgi
 
 import logging
 
+from grr import config
 from grr.gui import http_api
-from grr.gui import webauth
 
+from grr.gui import webauth
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -43,10 +43,10 @@ def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
   time = time or rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
-  secret = config_lib.CONFIG.Get("AdminUI.csrf_secret_key", None)
+  secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
   # TODO(user): Django is deprecated. Remove this at some point.
   if not secret:
-    secret = config_lib.CONFIG["AdminUI.django_secret_key"]
+    secret = config.CONFIG["AdminUI.django_secret_key"]
   digester = hmac.new(utils.SmartStr(secret), digestmod=hashlib.sha256)
   digester.update(utils.SmartStr(user_id))
   digester.update(CSRF_DELIMITER)
@@ -217,28 +217,28 @@ class AdminUIApp(object):
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
-            config_lib.CONFIG["AdminUI.template_root"]),
+            config.CONFIG["AdminUI.template_root"]),
         autoescape=True)
 
     create_time = psutil.Process(os.getpid()).create_time()
     context = {
         "heading":
-            config_lib.CONFIG["AdminUI.heading"],
+            config.CONFIG["AdminUI.heading"],
         "report_url":
-            config_lib.CONFIG["AdminUI.report_url"],
+            config.CONFIG["AdminUI.report_url"],
         "help_url":
-            config_lib.CONFIG["AdminUI.help_url"],
+            config.CONFIG["AdminUI.help_url"],
         "timestamp":
             utils.SmartStr(create_time),
         "use_precompiled_js":
-            config_lib.CONFIG["AdminUI.use_precompiled_js"],
+            config.CONFIG["AdminUI.use_precompiled_js"],
         # Used in conjunction with FirebaseWebAuthManager.
         "firebase_api_key":
-            config_lib.CONFIG["AdminUI.firebase_api_key"],
+            config.CONFIG["AdminUI.firebase_api_key"],
         "firebase_auth_domain":
-            config_lib.CONFIG["AdminUI.firebase_auth_domain"],
+            config.CONFIG["AdminUI.firebase_auth_domain"],
         "firebase_auth_provider":
-            config_lib.CONFIG["AdminUI.firebase_auth_provider"]
+            config.CONFIG["AdminUI.firebase_auth_provider"]
     }
     template = env.get_template("base.html")
     response = werkzeug_wrappers.Response(
@@ -280,7 +280,7 @@ class AdminUIApp(object):
                          "possible exploit attempt." % path)
 
     target_path = os.path.join(
-        config_lib.CONFIG["AdminUI.github_docs_location"],
+        config.CONFIG["AdminUI.github_docs_location"],
         path.replace(".html", ".adoc"))
 
     # We have to redirect via JavaScript to have access to and to preserve the
@@ -331,9 +331,9 @@ window.location = '%s' + friendly_hash;
 
   def WSGIHandler(self):
     return werkzeug_wsgi.SharedDataMiddleware(self, {
-        "/static": config_lib.CONFIG["AdminUI.document_root"],
-        "/local/static": config_lib.CONFIG["AdminUI.local_document_root"],
-        "/local/help": config_lib.CONFIG["AdminUI.help_root"]
+        "/static": config.CONFIG["AdminUI.document_root"],
+        "/local/static": config.CONFIG["AdminUI.local_document_root"],
+        "/local/help": config.CONFIG["AdminUI.help_root"]
     })
 
 
@@ -346,6 +346,6 @@ class GuiPluginsInit(registry.InitHook):
     from grr.gui import gui_plugins
     # pylint: enable=unused-variable,g-import-not-at-top
 
-    if config_lib.CONFIG.Get("AdminUI.django_secret_key", None):
+    if config.CONFIG.Get("AdminUI.django_secret_key", None):
       logging.warn("The AdminUI.django_secret_key option has been deprecated, "
                    "please use AdminUI.csrf_secret_key instead.")

@@ -5,8 +5,8 @@
 
 import logging
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -52,7 +52,7 @@ class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
 
   def Compact(self, urn):
     """Run a compaction cycle on a PackedVersionedCollection."""
-    lease_time = config_lib.CONFIG["Worker.compaction_lease_time"]
+    lease_time = config.CONFIG["Worker.compaction_lease_time"]
 
     try:
       with aff4.FACTORY.OpenWithLock(

@@ -13,7 +13,7 @@ import psutil
 from google.protobuf import message
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -129,7 +129,7 @@ class NannyThread(threading.Thread):
     self.running = True
     self.daemon = True
     self.proc = psutil.Process()
-    self.memory_quota = config_lib.CONFIG["Client.rss_max_hard"] * 1024 * 1024
+    self.memory_quota = config.CONFIG["Client.rss_max_hard"] * 1024 * 1024
 
   def run(self):
     self.WriteNannyStatus("Nanny running.")
@@ -187,7 +187,7 @@ class NannyThread(threading.Thread):
 
   def WriteNannyStatus(self, status):
     try:
-      with open(config_lib.CONFIG["Nanny.statusfile"], "wb") as fd:
+      with open(config.CONFIG["Nanny.statusfile"], "wb") as fd:
         fd.write(status)
     except (IOError, OSError):
       pass
@@ -205,7 +205,7 @@ class NannyController(object):
     # The nanny thread is a singleton.
     if NannyController.nanny is None:
       if unresponsive_kill_period is None:
-        unresponsive_kill_period = config_lib.CONFIG[
+        unresponsive_kill_period = config.CONFIG[
             "Nanny.unresponsive_kill_period"]
 
       NannyController.nanny_logfile = nanny_logfile
@@ -223,7 +223,7 @@ class NannyController(object):
       self.nanny.Heartbeat()
 
   def _GetLogFilename(self):
-    return self.nanny_logfile or config_lib.CONFIG["Nanny.logfile"]
+    return self.nanny_logfile or config.CONFIG["Nanny.logfile"]
 
   def WriteTransactionLog(self, grr_message):
     """Write the message into the transaction log."""
@@ -281,7 +281,7 @@ class NannyController(object):
 
   def GetNannyStatus(self):
     try:
-      with open(config_lib.CONFIG["Nanny.statusfile"], "rb") as fd:
+      with open(config.CONFIG["Nanny.statusfile"], "rb") as fd:
         return fd.read(self.max_log_size)
     except (IOError, OSError):
       return None

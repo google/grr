@@ -8,13 +8,13 @@ windows interrogate, which is the most complex platform for interrogate.
 import os
 
 
+from grr import config
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
 from grr.lib import client_fixture
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -32,7 +32,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
   def setUp(self):
     """Add test artifacts to existing registry."""
     super(TestArtifactCollectorsRealArtifacts, self).setUp()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
     self.SetupClients(1, system="Windows", os_version="6.2")

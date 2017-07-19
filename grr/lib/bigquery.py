@@ -19,7 +19,7 @@ except ImportError:
   # Set this so mock won't complain about stubbing it.
   ServiceAccountCredentials = None
 
-from grr.lib import config_lib
+from grr import config
 # pylint: enable=g-import-not-at-top
 
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"
@@ -37,9 +37,10 @@ def GetBigQueryClient(service_account_json=None,
                       project_id=None,
                       dataset_id=None):
   """Create a BigQueryClient."""
-  service_account_data = service_account_json or config_lib.CONFIG["BigQuery.service_acct_json"]
-  project_id = project_id or config_lib.CONFIG["BigQuery.project_id"]
-  dataset_id = dataset_id or config_lib.CONFIG["BigQuery.dataset_id"]
+  service_account_data = (service_account_json or
+                          config.CONFIG["BigQuery.service_acct_json"])
+  project_id = project_id or config.CONFIG["BigQuery.project_id"]
+  dataset_id = dataset_id or config.CONFIG["BigQuery.dataset_id"]
 
   if not (service_account_data and project_id and dataset_id):
     raise RuntimeError("BigQuery.service_account_json, "
@@ -114,7 +115,7 @@ class BigQueryClient(object):
     Returns:
       boolean
     """
-    return e.resp.status in config_lib.CONFIG["BigQuery.retry_status_codes"]
+    return e.resp.status in config.CONFIG["BigQuery.retry_status_codes"]
 
   def RetryUpload(self, job, job_id, error):
     """Retry the BigQuery upload job.
@@ -135,8 +136,8 @@ class BigQueryClient(object):
     """
     if self.IsErrorRetryable(error):
       retry_count = 0
-      sleep_interval = config_lib.CONFIG["BigQuery.retry_interval"]
-      while retry_count < config_lib.CONFIG["BigQuery.retry_max_attempts"]:
+      sleep_interval = config.CONFIG["BigQuery.retry_interval"]
+      while retry_count < config.CONFIG["BigQuery.retry_max_attempts"]:
 
         time.sleep(sleep_interval.seconds)
         logging.info("Retrying job_id: %s", job_id)
@@ -147,7 +148,7 @@ class BigQueryClient(object):
           return response
         except HttpError as e:
           if self.IsErrorRetryable(e):
-            sleep_interval *= config_lib.CONFIG["BigQuery.retry_multiplier"]
+            sleep_interval *= config.CONFIG["BigQuery.retry_multiplier"]
             logging.exception("Error with job: %s, will retry in %s", job_id,
                               sleep_interval)
           else:

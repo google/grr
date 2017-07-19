@@ -2,13 +2,13 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr import config
 
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import grr_collections
@@ -226,7 +226,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                       self.client_id)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
-    knowledgebase_list = config_lib.CONFIG["Artifacts.knowledge_base"]
+    knowledgebase_list = config.CONFIG["Artifacts.knowledge_base"]
     for artifact_name in self.args.artifact_list:
       if artifact_name not in knowledgebase_list:
         return False

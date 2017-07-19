@@ -11,11 +11,11 @@ import time
 
 import psutil
 
+from grr import config
 from grr.client.client_actions import admin
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flags
@@ -76,8 +76,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     # Setting config options is disallowed in tests so we need to temporarily
     # revert this.
-    with utils.Stubber(config_lib.CONFIG, "Set",
-                       config_lib.CONFIG.Set.old_target):
+    with utils.Stubber(config.CONFIG, "Set", config.CONFIG.Set.old_target):
       # Write the config.
       for _ in test_lib.TestFlowHelper(
           "UpdateConfiguration",
@@ -131,7 +130,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # We expect the email to be sent.
     self.assertEqual(
         email_message.get("address", ""),
-        config_lib.CONFIG["Monitoring.alert_email"])
+        config.CONFIG["Monitoring.alert_email"])
     self.assertTrue(str(self.client_id) in email_message["title"])
 
     # Make sure the flow state is included in the email message.
@@ -194,7 +193,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(len(self.email_messages), 2)
     self.assertListEqual([
         self.email_messages[0]["address"], self.email_messages[1]["address"]
-    ], ["crashes@example.com", config_lib.CONFIG["Monitoring.alert_email"]])
+    ], ["crashes@example.com", config.CONFIG["Monitoring.alert_email"]])
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"
@@ -224,7 +223,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # We expect the email to be sent.
       self.assertEqual(
           self.email_message.get("address"),
-          config_lib.CONFIG["Monitoring.alert_email"])
+          config.CONFIG["Monitoring.alert_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the message is included in the email message.
@@ -263,9 +262,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     client_info = fd.Get(fd.Schema.CLIENT_INFO)
     boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
 
-    self.assertEqual(client_info.client_name, config_lib.CONFIG["Client.name"])
+    self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
     self.assertEqual(client_info.client_description,
-                     config_lib.CONFIG["Client.description"])
+                     config.CONFIG["Client.description"])
 
     # Check that the boot time is accurate.
     self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
@@ -369,7 +368,7 @@ sys.test_code_ran_here = py_args['value']
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = "I am a binary file"
-    upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
+    upload_path = config.CONFIG["Executables.aff4_path"].Add("test.exe")
 
     maintenance_utils.UploadSignedConfigBlob(
         code, aff4_path=upload_path, token=self.token)
@@ -406,13 +405,13 @@ sys.test_code_ran_here = py_args['value']
 
       # Check the command was in the tmp file.
       self.assertTrue(test_lib.Popen.running_args[0].startswith(
-          config_lib.CONFIG["Client.tempdir_roots"][0]))
+          config.CONFIG["Client.tempdir_roots"][0]))
 
   def testExecuteLargeBinaries(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = "I am a large binary file" * 100
-    upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
+    upload_path = config.CONFIG["Executables.aff4_path"].Add("test.exe")
 
     maintenance_utils.UploadSignedConfigBlob(
         code, aff4_path=upload_path, limit=100, token=self.token)
@@ -458,7 +457,7 @@ sys.test_code_ran_here = py_args['value']
 
       # Check the command was in the tmp file.
       self.assertTrue(test_lib.Popen.running_args[0].startswith(
-          config_lib.CONFIG["Client.tempdir_roots"][0]))
+          config.CONFIG["Client.tempdir_roots"][0]))
 
   def testGetClientStats(self):
 

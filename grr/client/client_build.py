@@ -10,6 +10,8 @@ import subprocess
 import sys
 
 
+from grr import config as grr_config
+
 # pylint: disable=unused-import
 from grr.client import client_plugins
 # pylint: enable=unused-import
@@ -19,11 +21,12 @@ from grr.lib import builders
 from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import repacking
 # pylint: disable=unused-import
 # Required for google_config_validator
-from grr.lib import local
+from grr.lib.local import plugins
+
 # pylint: enable=unused-import
-from grr.lib import repacking
 
 
 class Error(Exception):
@@ -205,7 +208,7 @@ class TemplateBuilder(object):
     template_path = None
     if output:
       template_path = os.path.join(output,
-                                   config_lib.CONFIG.Get(
+                                   grr_config.CONFIG.Get(
                                        "PyInstaller.template_filename",
                                        context=context))
 
@@ -333,7 +336,7 @@ def GetClientConfig(filename):
   """Write client config to filename."""
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
-  context = list(config_lib.CONFIG.context)
+  context = list(grr_config.CONFIG.context)
   context.append("Client Context")
   deployer = build.ClientRepacker()
   # Disable timestamping so we can get a reproducible and cachable config file.
@@ -353,7 +356,7 @@ def main(_):
     return
 
   # We deliberately use flags.FLAGS.context because client_startup.py pollutes
-  # config_lib.CONFIG.context with the running system context.
+  # grr_config.CONFIG.context with the running system context.
   context = flags.FLAGS.context
   context.append("ClientBuilder Context")
   client_startup.ClientInit()

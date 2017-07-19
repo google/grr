@@ -8,9 +8,9 @@ import time
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import master
 from grr.lib import queue_manager
@@ -241,14 +241,14 @@ def GetStartTime(cron_cls):
 def ScheduleSystemCronFlows(names=None, token=None):
   """Schedule all the SystemCronFlows found."""
 
-  if (config_lib.CONFIG["Cron.enabled_system_jobs"] and
-      config_lib.CONFIG["Cron.disabled_system_jobs"]):
+  if (config.CONFIG["Cron.enabled_system_jobs"] and
+      config.CONFIG["Cron.disabled_system_jobs"]):
     raise RuntimeError("Can't have both Cron.enabled_system_jobs and "
                        "Cron.disabled_system_jobs specified in the config.")
 
   # TODO(user): remove references to Cron.enabled_system_jobs by the end
   # of Q1 2016.
-  for name in config_lib.CONFIG["Cron.enabled_system_jobs"]:
+  for name in config.CONFIG["Cron.enabled_system_jobs"]:
     try:
       cls = flow.GRRFlow.classes[name]
     except KeyError:
@@ -258,7 +258,7 @@ def ScheduleSystemCronFlows(names=None, token=None):
       raise ValueError("Enabled system cron job name doesn't correspond to "
                        "a flow inherited from SystemCronFlow: %s" % name)
 
-  for name in config_lib.CONFIG["Cron.disabled_system_jobs"]:
+  for name in config.CONFIG["Cron.disabled_system_jobs"]:
     try:
       cls = flow.GRRFlow.classes[name]
     except KeyError:
@@ -283,10 +283,10 @@ def ScheduleSystemCronFlows(names=None, token=None):
 
       if cls.disabled:
         disabled = True
-      elif config_lib.CONFIG["Cron.enabled_system_jobs"]:
-        disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
+      elif config.CONFIG["Cron.enabled_system_jobs"]:
+        disabled = name not in config.CONFIG["Cron.enabled_system_jobs"]
       else:
-        disabled = name in config_lib.CONFIG["Cron.disabled_system_jobs"]
+        disabled = name in config.CONFIG["Cron.disabled_system_jobs"]
 
       CRON_MANAGER.ScheduleFlow(
           cron_args=cron_args, job_name=name, token=token, disabled=disabled)
@@ -543,7 +543,7 @@ class CronHook(registry.InitHook):
         "cron_job_latency", fields=[("cron_job_name", str)])
 
     # Start the cron thread if configured to.
-    if config_lib.CONFIG["Cron.active"]:
+    if config.CONFIG["Cron.active"]:
 
       self.cron_worker = CronWorker()
       self.cron_worker.RunAsync()

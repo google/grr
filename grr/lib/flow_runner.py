@@ -60,8 +60,8 @@ import traceback
 
 
 import logging
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import grr_collections
@@ -343,7 +343,7 @@ class FlowRunner(object):
     # will be delivered later and the stuck flow will get
     # terminated.
     stuck_flows_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+        config.CONFIG["Worker.stuck_flows_timeout"])
     kill_timestamp = (rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueNotification(
@@ -367,7 +367,7 @@ class FlowRunner(object):
             end=self.context.kill_timestamp + rdfvalue.Duration("1s"))
 
         stuck_flows_timeout = rdfvalue.Duration(
-            config_lib.CONFIG["Worker.stuck_flows_timeout"])
+            config.CONFIG["Worker.stuck_flows_timeout"])
         self.context.kill_timestamp = (
             rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
         manager.QueueNotification(
@@ -396,7 +396,7 @@ class FlowRunner(object):
         # could not process that request. This might be a race
         # condition in the data store so we reschedule the
         # notification in the future.
-        delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+        delay = config.CONFIG["Worker.notification_retry_interval"]
         notification.ttl -= 1
         if notification.ttl:
           manager.QueueNotification(

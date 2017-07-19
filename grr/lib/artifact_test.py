@@ -8,6 +8,7 @@ import gzip
 import os
 import subprocess
 
+from grr import config
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import file_fingerprint
@@ -18,7 +19,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import parsers
@@ -127,7 +127,7 @@ class RekallMock(action_mocks.MemoryClientMock):
     # Generate this file with:
     # rekal --output data -f win7_trial_64bit.raw \
     # pslist | gzip - > rekall_pslist_result.dat.gz
-    ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    ps_list_file = os.path.join(config.CONFIG["Test.data_dir"],
                                 self.result_filename)
     result = rdf_rekall_types.RekallResponse(
         json_messages=gzip.open(ps_list_file).read(10000000),
@@ -158,7 +158,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""
     artifact_registry.REGISTRY.AddFileSource(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "artifacts",
+        os.path.join(config.CONFIG["Test.data_dir"], "artifacts",
                      "test_artifacts.json"))
 
   class MockClient(action_mocks.MemoryClientMock):
@@ -234,7 +234,7 @@ class GRRArtifactTest(ArtifactTest):
 
     try:
 
-      test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
       filecontent = open(test_artifacts_file, "rb").read()
       artifact.UploadArtifactYamlFile(filecontent, token=self.token)
@@ -636,7 +636,7 @@ class GrrKbWindowsTest(GrrKbTest):
     """Test that dependencies are calculated correctly."""
     artifact_registry.REGISTRY.ClearSources()
     try:
-      test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
@@ -675,7 +675,7 @@ class GrrKbWindowsTest(GrrKbTest):
     """Test that KB dependencies are calculated correctly."""
     artifact_registry.REGISTRY.ClearSources()
     try:
-      test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 

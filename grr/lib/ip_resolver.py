@@ -6,7 +6,7 @@ import socket
 
 import ipaddr
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib import utils
 
@@ -78,7 +78,7 @@ class IPResolverInit(registry.InitHook):
 
   def RunOnce(self):
     global IP_RESOLVER
-    ip_resolver_cls_name = config_lib.CONFIG["Server.ip_resolver_class"]
+    ip_resolver_cls_name = config.CONFIG["Server.ip_resolver_class"]
     logging.debug("Using ip resolver: %s", ip_resolver_cls_name)
     cls = IPResolverBase.GetPlugin(ip_resolver_cls_name)
 

@@ -3,9 +3,10 @@
 
 import itertools
 
+from grr import config
 from grr.gui import api_call_handler_base
-from grr.gui import api_call_handler_utils
 
+from grr.gui import api_call_handler_utils
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -48,7 +49,7 @@ class ApiConfigOption(rdf_structs.RDFProtoStruct):
         return self
 
     try:
-      config_value = config_lib.CONFIG.Get(name)
+      config_value = config.CONFIG.Get(name)
     except (config_lib.Error, type_info.TypeValueError):
       self.is_invalid = True
       return self
@@ -89,8 +90,7 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetConfigResult
 
   def _ListParametersInSection(self, section):
-    for descriptor in sorted(
-        config_lib.CONFIG.type_infos, key=lambda x: x.name):
+    for descriptor in sorted(config.CONFIG.type_infos, key=lambda x: x.name):
       if descriptor.section == section:
         yield descriptor.name
 
@@ -98,7 +98,7 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
     """Build the data structure representing the config."""
 
     sections = {}
-    for descriptor in config_lib.CONFIG.type_infos:
+    for descriptor in config.CONFIG.type_infos:
       if descriptor.section in sections:
         continue
 
@@ -157,21 +157,21 @@ class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
 
 
 def _GetSignedBlobsRoots():
-  config_root = config_lib.CONFIG.Get("Config.aff4_root")
+  config_root = config.CONFIG.Get("Config.aff4_root")
   return {
       ApiGrrBinary.Type.PYTHON_HACK:
-          config_lib.CONFIG.Get("Config.python_hack_root"),
+          config.CONFIG.Get("Config.python_hack_root"),
       ApiGrrBinary.Type.EXECUTABLE:
           config_root.Add("executables")
   }
 
 
 def _GetComponentSummariesRoot():
-  return config_lib.CONFIG.Get("Config.aff4_root").Add("components")
+  return config.CONFIG.Get("Config.aff4_root").Add("components")
 
 
 def _GetComponentBlobsRoot():
-  return config_lib.CONFIG.Get("Client.component_aff4_stem")
+  return config.CONFIG.Get("Client.component_aff4_stem")
 
 
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):

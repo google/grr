@@ -14,10 +14,10 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr import config
 from grr.config import contexts
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow_utils
@@ -548,8 +548,8 @@ def Usage():
 
 
 def main(unused_argv):
-  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
-                               "Context applied for all command line tools")
+  config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
+                           "Context applied for all command line tools")
   server_startup.Init()
 
   if fuse is None:

@@ -5,11 +5,11 @@
 
 import os
 
+from grr import config
 from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import artifact
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 
@@ -25,14 +25,14 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
 
   def _UploadCustomArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     with open(test_artifacts_file, "rb") as fd:
       artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
 
   def _LoadSystemArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 

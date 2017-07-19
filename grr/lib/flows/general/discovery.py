@@ -2,9 +2,9 @@
 """These are flows designed to discover information about the host."""
 
 
+from grr import config
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -196,11 +196,11 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not get InstallDate")
 
   def _GetExtraArtifactsForCollection(self):
-    original_set = set(config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"])
+    original_set = set(config.CONFIG["Artifacts.interrogate_store_in_aff4"])
     add_set = set(
-        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
+        config.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
     skip_set = set(
-        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
+        config.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
     return original_set.union(add_set) - skip_set
 
   @flow.StateHandler()

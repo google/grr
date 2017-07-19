@@ -8,6 +8,7 @@ import stat
 import StringIO
 
 
+from grr import config
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
@@ -302,21 +303,20 @@ test = val2"""
 
   def testCopyConfig(self):
     """Check we can copy a config and use it without affecting the old one."""
-    conf = config_lib.CONFIG.CopyConfig()
+    conf = config.CONFIG.CopyConfig()
     conf.initialized = False
     conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
     conf.Set("NewSection1.new_option1", "New Value1")
     conf.initialized = True
     conf.Write()
     self.assertEqual(conf.Get("NewSection1.new_option1"), "New Value1")
-    self.assertEqual(
-        config_lib.CONFIG.Get("NewSection1.new_option1", None), None)
+    self.assertEqual(config.CONFIG.Get("NewSection1.new_option1", None), None)
 
   def testKeyConfigOptions(self):
     """Check that keys get read correctly from the config."""
     # Clone a test config object from the global config so it knows about Client
     # options.
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     conf.Initialize(data="""
 [Client]
 private_key = -----BEGIN RSA PRIVATE KEY-----
@@ -471,9 +471,9 @@ Section1.test: 2
   @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testConfigOptionsDefined(self):
     """Test that all config options in use are defined."""
-    # We need to use the actual config_lib.CONFIG variable since that is where
+    # We need to use the actual config.CONFIG variable since that is where
     # all the variables are already defined.
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
 
     # Check our actual config validates
     configpath = config_lib.Resource().Filter(
@@ -808,7 +808,7 @@ Test3 Context:
     - linux_amd64_deb
     - windows_i386_exe
 """
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     conf.DEFINE_context("Test1 Context")
     conf.DEFINE_context("Test2 Context")
     conf.DEFINE_context("Test3 Context")
@@ -832,7 +832,7 @@ Test1 Context:
     - linux_amd64_deb
     - windows_amd64_exe
 """
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     conf.DEFINE_context("Test1 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
     conf.AddContext("Test1 Context")
@@ -840,7 +840,7 @@ Test1 Context:
       conf.MatchBuildContext("linux", "amd64", "deb")
 
   def testNoUnicodeWriting(self):
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     config_file = os.path.join(self.temp_dir, "writeback.yaml")
     conf.SetWriteBack(config_file)
     conf.DEFINE_string("NewSection1.new_option1", u"Default Value", "Help")
@@ -857,11 +857,11 @@ Client.labels: [Test1]
 !!python/unicode ClientBuilder.target_platforms:
   - linux_amd64_deb
 """
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     conf.Initialize(parser=config_lib.YamlParser, data=data)
 
   def testRenameOnWritebackFailure(self):
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
     with open(writeback_file, "w") as f:
       f.write("This is a bad line of yaml{[(\n")
@@ -872,7 +872,7 @@ Client.labels: [Test1]
 
   def testNoRenameOfReadProtectedFile(self):
     """Don't rename config files we don't have permission to read."""
-    conf = config_lib.CONFIG.MakeNewConfig()
+    conf = config.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
     with open(writeback_file, "w") as f:
       f.write("...")

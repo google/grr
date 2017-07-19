@@ -13,7 +13,7 @@ import socket
 import stat
 import struct
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -899,7 +899,7 @@ class UploadPolicy(structs.RDFProtoStruct):
 
   @classmethod
   def FromEncryptedPolicy(cls, encrypted_policy, iv):
-    rsa_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    rsa_private_key = config.CONFIG["PrivateKeys.server_key"]
     aes_key = rdf_crypto.EncryptionKey.FromHex(
         hashlib.sha256(rsa_private_key.SerializeToString()).hexdigest())
     cipher = rdf_crypto.AES128CBCCipher(aes_key, iv)
@@ -915,7 +915,7 @@ class UploadToken(structs.RDFProtoStruct):
 
   def SetPolicy(self, policy):
     serialized_policy = policy.SerializeToString()
-    rsa_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    rsa_private_key = config.CONFIG["PrivateKeys.server_key"]
     aes_key = rdf_crypto.EncryptionKey.FromHex(
         hashlib.sha256(rsa_private_key.SerializeToString()).hexdigest())
     iv = rdf_crypto.EncryptionKey.GenerateRandomIV()
@@ -935,7 +935,7 @@ class UploadToken(structs.RDFProtoStruct):
   @classmethod
   def GetHMAC(cls):
     # Just get some random string.
-    private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    private_key = config.CONFIG["PrivateKeys.server_key"]
     hmac_secret = hashlib.sha256(private_key.SerializeToString()).hexdigest()
     return rdf_crypto.HMAC(hmac_secret)
 

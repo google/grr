@@ -18,6 +18,7 @@ from requests.packages import urllib3
 
 import logging
 
+from grr import config
 from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -626,7 +627,7 @@ class StandardDataServer(object):
   MASTER_RECONNECTION_TIME = 60
 
   def __init__(self, my_port, handler_cls):
-    servers = config_lib.CONFIG["Dataserver.server_list"]
+    servers = config.CONFIG["Dataserver.server_list"]
     if not servers:
       raise errors.DataServerError("List of data servers not available.")
     master_location = servers[0]
@@ -742,7 +743,7 @@ class StandardDataServer(object):
 
   def PeriodicallySendStatistics(self):
     """Periodically send statistics to master server."""
-    sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
+    sleep = config.CONFIG["Dataserver.stats_frequency"]
     self.failed = 0
     self.stat_thread = utils.InterruptableThread(
         name="DataServer stats sender",
@@ -818,7 +819,7 @@ def Start(db,
     logging.debug("Port specified was '%i'. Ignoring configuration directive "
                   "Dataserver.port.", port)
 
-  server_port = port or config_lib.CONFIG["Dataserver.port"]
+  server_port = port or config.CONFIG["Dataserver.port"]
 
   if is_master:
     logging.debug("Master server running on port '%i'", server_port)
@@ -851,12 +852,12 @@ def main(unused_argv):
   """Main."""
   # Change the startup sequence in order to set the database path, if needed.
   config_lib.SetPlatformArchContext()
-  config_lib.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT,
-                               "Context applied when running a data server.")
+  config.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT,
+                           "Context applied when running a data server.")
   config_lib.ParseConfigCommandLine()
 
   if flags.FLAGS.path:
-    config_lib.CONFIG.Set("Datastore.location", flags.FLAGS.path)
+    config.CONFIG.Set("Datastore.location", flags.FLAGS.path)
 
   log.ServerLoggingStartupInit()
   stats.STATS = stats.StatsCollector()

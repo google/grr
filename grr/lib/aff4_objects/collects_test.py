@@ -5,8 +5,8 @@
 import itertools
 import math
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -56,9 +56,9 @@ class TestCollections(test_lib.AFF4ObjectTest):
         urn,
         chunk_size=2,
         token=self.token,
-        private_key=config_lib.CONFIG[
+        private_key=config.CONFIG[
             "PrivateKeys.executable_signing_private_key"],
-        public_key=config_lib.CONFIG["Client.executable_signing_public_key"])
+        public_key=config.CONFIG["Client.executable_signing_public_key"])
 
     fd = aff4.FACTORY.Open(urn, token=self.token)
 
@@ -172,9 +172,9 @@ class TestCollections(test_lib.AFF4ObjectTest):
     collects.GRRSignedBlob.NewFromContent(
         test_string,
         urn,
-        private_key=config_lib.CONFIG[
+        private_key=config.CONFIG[
             "PrivateKeys.executable_signing_private_key"],
-        public_key=config_lib.CONFIG["Client.executable_signing_public_key"],
+        public_key=config.CONFIG["Client.executable_signing_public_key"],
         token=self.token)
 
     sample = aff4.FACTORY.Open(urn, token=self.token)

@@ -11,8 +11,8 @@ from grpc.framework.interfaces.face import face
 import mock
 
 from google.cloud import bigtable
+from grr import config
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -39,7 +39,7 @@ class CloudBigTableDataStoreMixin(object):
   def setUpClass(cls):
     """Create a test bigtable instance."""
     data_store_test._DataStoreTest.setUpClass()
-    cls.test_project_id = config_lib.CONFIG["CloudBigtable.test_project_id"]
+    cls.test_project_id = config.CONFIG["CloudBigtable.test_project_id"]
 
     if not cls.test_project_id:
       raise unittest.SkipTest("No CloudBigtable.test_project_id set, skipping.")
@@ -77,7 +77,7 @@ class CloudBigTableDataStoreMixin(object):
 
   def testBigTableExists(self):
     self.assertEqual(self.btinstance.list_tables()[0].table_id,
-                     config_lib.CONFIG["CloudBigtable.table_name"])
+                     config.CONFIG["CloudBigtable.table_name"])
 
 
 class CloudBigTableDataStoreIntegrationTest(CloudBigTableDataStoreMixin,
@@ -170,7 +170,7 @@ class CloudBigTableDataStoreTest(test_lib.GRRBaseTest):
       with mock.patch.object(time, "sleep") as mock_time:
         self.db.CallWithRetry(mock_operation.commit, "write")
         self.assertEqual(mock_time.call_count,
-                         config_lib.CONFIG["CloudBigtable.retry_max_attempts"])
+                         config.CONFIG["CloudBigtable.retry_max_attempts"])
 
   def testCommitWithRetryTemporaryFailure(self):
     mock_operation = mock.MagicMock()

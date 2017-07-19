@@ -12,11 +12,11 @@ import json
 from rekall import constants
 
 import logging
+from grr import config
 from grr.client.components.rekall_support import grr_rekall_stubs
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rekall_profile_server
 from grr.lib import server_stubs
@@ -281,7 +281,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
   def GetProfileByName(self, name, version):
     """Load the requested profile from the repository."""
-    server_type = config_lib.CONFIG["Rekall.profile_server"]
+    server_type = config.CONFIG["Rekall.profile_server"]
     logging.info("Getting missing Rekall profile '%s' from %s", name,
                  server_type)
 

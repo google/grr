@@ -8,11 +8,11 @@ import socket
 
 import mock
 
+from grr import config
 from grr.client.client_actions import admin
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -61,10 +61,10 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def _CheckClientInfo(self):
     info = self.fd.Get(self.fd.Schema.CLIENT_INFO)
-    self.assertEqual(info.client_name, config_lib.CONFIG["Client.name"])
+    self.assertEqual(info.client_name, config.CONFIG["Client.name"])
     self.assertEqual(info.client_version,
-                     int(config_lib.CONFIG["Source.version_numeric"]))
-    self.assertEqual(info.build_time, config_lib.CONFIG["Client.build_time"])
+                     int(config.CONFIG["Source.version_numeric"]))
+    self.assertEqual(info.build_time, config.CONFIG["Client.build_time"])
 
   def _CheckGRRConfig(self):
     """Check old and new client config."""
@@ -96,11 +96,11 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
                           release="5"):
     summary = self.fd.GetSummary()
     self.assertEqual(summary.client_info.client_name,
-                     config_lib.CONFIG["Client.name"])
+                     config.CONFIG["Client.name"])
     self.assertEqual(summary.client_info.client_version,
-                     int(config_lib.CONFIG["Source.version_numeric"]))
+                     int(config.CONFIG["Source.version_numeric"]))
     self.assertEqual(summary.client_info.build_time,
-                     config_lib.CONFIG["Client.build_time"])
+                     config.CONFIG["Client.build_time"])
 
     self.assertEqual(summary.system_info.system, osname)
     self.assertEqual(summary.system_info.node, "test_node")

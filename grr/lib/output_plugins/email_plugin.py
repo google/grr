@@ -6,8 +6,8 @@
 import cgi
 import urllib
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import output_plugin
 from grr.lib import utils
@@ -82,10 +82,10 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     template_args = dict(
         client_id=client_id,
         client_fragment_id=client_fragment_id,
-        admin_ui_url=config_lib.CONFIG["AdminUI.url"],
+        admin_ui_url=config.CONFIG["AdminUI.url"],
         source_urn=self.state.source_urn,
         additional_message=additional_message,
-        signature=config_lib.CONFIG["Email.signature"],
+        signature=config.CONFIG["Email.signature"],
 
         # Values that have to be escaped.
         hostname=cgi.escape(utils.SmartStr(hostname)),

@@ -6,10 +6,10 @@
 import os
 
 
+from grr import config
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 
 
@@ -21,7 +21,7 @@ class ApiListArtifacstHandlerRegressionTest(
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifact.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 

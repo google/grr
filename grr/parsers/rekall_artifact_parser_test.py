@@ -5,8 +5,8 @@
 
 import gzip
 import os
+from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
@@ -17,7 +17,7 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
   """Test parsing of the Rekall "vad" plugin output."""
 
   def testBasicParsing(self):
-    ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    ps_list_file = os.path.join(config.CONFIG["Test.data_dir"],
                                 "rekall_vad_result.dat.gz")
 
     result = rdf_rekall_types.RekallResponse(

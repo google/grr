@@ -10,9 +10,9 @@ it specifies.
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr import config
 from grr.config import contexts
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
 from grr.lib import worker
@@ -20,8 +20,8 @@ from grr.lib import worker
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext(contexts.WORKER_CONTEXT,
-                               "Context applied when running a worker.")
+  config.CONFIG.AddContext(contexts.WORKER_CONTEXT,
+                           "Context applied when running a worker.")
 
   # Initialise flows and config_lib
   server_startup.Init()

@@ -9,11 +9,11 @@ import zipfile
 
 import logging
 
+from grr import config
 from grr.gui import api_call_handler_base
-from grr.gui.api_plugins import client
 
+from grr.gui.api_plugins import client
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -552,7 +552,7 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
                                       output_fname)
 
     export_command = u" ".join([
-        config_lib.CONFIG["AdminUI.export_command"], "--exec_code",
+        config.CONFIG["AdminUI.export_command"], "--exec_code",
         utils.ShellQuote(code_to_execute)
     ])
 

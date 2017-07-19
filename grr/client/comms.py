@@ -93,11 +93,11 @@ import requests
 
 import logging
 
+from grr import config
 from grr.client import actions
 from grr.client import client_stats
 from grr.client import client_utils
 from grr.lib import communicator
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -149,17 +149,17 @@ class HTTPManager(object):
     # the connection a few times (Client.retry_error_limit) before we determine
     # that it is failed.
     self.consecutive_connection_errors = 0
-    self.retry_error_limit = config_lib.CONFIG["Client.retry_error_limit"]
+    self.retry_error_limit = config.CONFIG["Client.retry_error_limit"]
 
     self.active_base_url = None
-    self.error_poll_min = config_lib.CONFIG["Client.error_poll_min"]
+    self.error_poll_min = config.CONFIG["Client.error_poll_min"]
 
   def _GetBaseURLs(self):
     """Gathers a list of base URLs we will try."""
-    result = config_lib.CONFIG["Client.server_urls"]
+    result = config.CONFIG["Client.server_urls"]
     if not result:
       # Backwards compatibility - deduce server_urls from Client.control_urls.
-      for control_url in config_lib.CONFIG["Client.control_urls"]:
+      for control_url in config.CONFIG["Client.control_urls"]:
         result.append(posixpath.dirname(control_url) + "/")
 
     # Check the URLs for trailing /. This traps configuration errors.
@@ -178,7 +178,7 @@ class HTTPManager(object):
     result.append("")
 
     # Also try all proxies configured in the config system.
-    result.extend(config_lib.CONFIG["Client.proxy_servers"])
+    result.extend(config.CONFIG["Client.proxy_servers"])
 
     return result
 
@@ -370,7 +370,7 @@ class HTTPManager(object):
       try:
         now = time.time()
         if not timeout:
-          timeout = config_lib.CONFIG["Client.http_timeout"]
+          timeout = config.CONFIG["Client.http_timeout"]
 
         result = requests.request(**request_args)
         # By default requests doesn't raise on HTTP error codes.
@@ -437,9 +437,9 @@ class Timer(object):
 
   def __init__(self, heart_beat_cb=None):
     self.heart_beat_cb = heart_beat_cb
-    self.poll_min = config_lib.CONFIG["Client.poll_min"]
-    self.sleep_time = self.poll_max = config_lib.CONFIG["Client.poll_max"]
-    self.poll_slew = config_lib.CONFIG["Client.poll_slew"]
+    self.poll_min = config.CONFIG["Client.poll_min"]
+    self.sleep_time = self.poll_max = config.CONFIG["Client.poll_max"]
+    self.poll_slew = config.CONFIG["Client.poll_slew"]
 
   def FastPoll(self):
     """Switch to fast poll mode."""
@@ -725,7 +725,7 @@ class GRRClientWorker(object):
     # And then encrypt it.
     server_certificate = rdf_crypto.RDFX509Cert(self.client.server_certificate)
     fd = uploads.EncryptStream(server_certificate.GetPublicKey(),
-                               config_lib.CONFIG["Client.private_key"], gzip_fd)
+                               config.CONFIG["Client.private_key"], gzip_fd)
     response = self.http_manager.OpenServerEndpoint(
         u"/upload",
         data=FileGenerator(fd),
@@ -833,7 +833,7 @@ class GRRClientWorker(object):
     # As long as our output queue has some room we can process some
     # input messages:
     while self._in_queue and (self._out_queue_size <
-                              config_lib.CONFIG["Client.max_out_queue"]):
+                              config.CONFIG["Client.max_out_queue"]):
       message = self._in_queue.pop(0)
 
       try:
@@ -855,7 +855,7 @@ class GRRClientWorker(object):
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
     rss_size = self.proc.memory_info().rss
-    return rss_size / 1024 / 1024 > config_lib.CONFIG["Client.rss_max"]
+    return rss_size / 1024 / 1024 > config.CONFIG["Client.rss_max"]
 
   def InQueueSize(self):
     """Returns the number of protobufs ready to be sent in the queue."""
@@ -1036,7 +1036,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       # The size of the output queue controls the worker thread. Once this queue
       # is too large, the worker thread will block until the queue is drained.
       self._out_queue = SizeQueue(
-          maxsize=config_lib.CONFIG["Client.max_out_queue"],
+          maxsize=config.CONFIG["Client.max_out_queue"],
           nanny=self.nanny_controller)
 
     self.daemon = True
@@ -1235,7 +1235,7 @@ class GRRHTTPClient(object):
     """
     self.ca_cert = ca_cert
     if private_key is None:
-      private_key = config_lib.CONFIG.Get("Client.private_key", default=None)
+      private_key = config.CONFIG.Get("Client.private_key", default=None)
 
     # The server's PEM encoded certificate.
     self.server_certificate = None
@@ -1334,7 +1334,7 @@ class GRRHTTPClient(object):
 
     # Verify the response is as it should be from the control endpoint.
     response = self.http_manager.OpenServerEndpoint(
-        path="control?api=%s" % config_lib.CONFIG["Network.api"],
+        path="control?api=%s" % config.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
         data=data,
         headers={"Content-Type": "binary/octet-stream"})
@@ -1368,7 +1368,7 @@ class GRRHTTPClient(object):
     if self.http_manager.consecutive_connection_errors == 0:
       # Grab some messages to send
       message_list = self.client_worker.Drain(
-          max_size=config_lib.CONFIG["Client.max_post_size"])
+          max_size=config.CONFIG["Client.max_post_size"])
     else:
       message_list = rdf_flows.MessageList()
 
@@ -1494,7 +1494,8 @@ class GRRHTTPClient(object):
     client to exit.
     """
     while True:
-      if self.http_manager.consecutive_connection_errors > config_lib.CONFIG["Client.connection_error_limit"]:
+      if (self.http_manager.consecutive_connection_errors >
+          config.CONFIG["Client.connection_error_limit"]):
         return
 
       # Check if there is a message from the nanny to be sent.
@@ -1503,7 +1504,7 @@ class GRRHTTPClient(object):
       now = time.time()
       # Check with the foreman if we need to
       if (now > self.last_foreman_check +
-          config_lib.CONFIG["Client.foreman_check_frequency"]):
+          config.CONFIG["Client.foreman_check_frequency"]):
         # We must not queue messages from the comms thread with blocking=True
         # or we might deadlock. If the output queue is full, we can't accept
         # more work from the foreman anyways so it's ok to drop the message.
@@ -1605,7 +1606,7 @@ class ClientCommunicator(communicator.Communicator):
 
     # We either have an invalid key or no key. We just generate a new one.
     key = rdf_crypto.RSAPrivateKey.GenerateKey(
-        bits=config_lib.CONFIG["Client.rsa_key_length"])
+        bits=config.CONFIG["Client.rsa_key_length"])
 
     self.common_name = rdf_client.ClientURN.FromPrivateKey(key)
     logging.info("Client pending enrolment %s", self.common_name)
@@ -1627,9 +1628,9 @@ class ClientCommunicator(communicator.Communicator):
   def SavePrivateKey(self, private_key):
     """Store the new private key on disk."""
     self.private_key = private_key
-    config_lib.CONFIG.Set("Client.private_key",
-                          self.private_key.SerializeToString())
-    config_lib.CONFIG.Write()
+    config.CONFIG.Set("Client.private_key",
+                      self.private_key.SerializeToString())
+    config.CONFIG.Write()
 
   def LoadServerCertificate(self, server_certificate=None, ca_certificate=None):
     """Loads and verifies the server certificate."""
@@ -1643,15 +1644,15 @@ class ClientCommunicator(communicator.Communicator):
     # Make sure that the serial number is higher.
     server_cert_serial = server_certificate.GetSerialNumber()
 
-    if server_cert_serial < config_lib.CONFIG["Client.server_serial_number"]:
+    if server_cert_serial < config.CONFIG["Client.server_serial_number"]:
       # We can not accept this serial number...
       raise IOError("Server cert is too old.")
-    elif server_cert_serial > config_lib.CONFIG["Client.server_serial_number"]:
+    elif server_cert_serial > config.CONFIG["Client.server_serial_number"]:
       logging.info("Server serial number updated to %s", server_cert_serial)
-      config_lib.CONFIG.Set("Client.server_serial_number", server_cert_serial)
+      config.CONFIG.Set("Client.server_serial_number", server_cert_serial)
 
       # Save the new data to the config file.
-      config_lib.CONFIG.Write()
+      config.CONFIG.Write()
 
     self.server_name = server_certificate.GetCN()
     self.server_certificate = server_certificate
@@ -1660,7 +1661,7 @@ class ClientCommunicator(communicator.Communicator):
 
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
-    kwargs["api_version"] = config_lib.CONFIG["Network.api"]
+    kwargs["api_version"] = config.CONFIG["Network.api"]
     return super(ClientCommunicator, self).EncodeMessages(
         message_list, result, **kwargs)
 

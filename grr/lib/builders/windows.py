@@ -12,8 +12,8 @@ import sys
 
 import win32process
 
+from grr import config
 from grr.lib import build
-from grr.lib import config_lib
 
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.
@@ -93,25 +93,25 @@ class WindowsClientBuilder(build.ClientBuilder):
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
     self.nanny_dir = os.path.join(self.build_dir, "grr", "client", "nanny")
-    nanny_src_dir = config_lib.CONFIG.Get(
+    nanny_src_dir = config.CONFIG.Get(
         "ClientBuilder.nanny_source_dir", context=self.context)
     logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
                  self.nanny_dir)
 
     shutil.copytree(
-        config_lib.CONFIG.Get(
+        config.CONFIG.Get(
             "ClientBuilder.nanny_source_dir", context=self.context),
         self.nanny_dir)
 
-    build_type = config_lib.CONFIG.Get(
+    build_type = config.CONFIG.Get(
         "ClientBuilder.build_type", context=self.context)
 
-    vs_arch = config_lib.CONFIG.Get(
+    vs_arch = config.CONFIG.Get(
         "ClientBuilder.vs_arch", default=None, context=self.context)
 
     # We have to set up the Visual Studio environment first and then call
     # msbuild.
-    env_script = config_lib.CONFIG.Get(
+    env_script = config.CONFIG.Get(
         "ClientBuilder.vs_env_script", default=None, context=self.context)
 
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
@@ -121,7 +121,7 @@ class WindowsClientBuilder(build.ClientBuilder):
                    "Falling back to prebuilt GRRNanny binaries."
                    "If you want to build it you must have VS 2012 installed.")
 
-      binaries_dir = config_lib.CONFIG.Get(
+      binaries_dir = config.CONFIG.Get(
           "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
 
       shutil.copy(

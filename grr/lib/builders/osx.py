@@ -7,6 +7,7 @@ import StringIO
 import subprocess
 import zipfile
 
+from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import utils
@@ -32,22 +33,21 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.MakeZip(output_file, self.template_file)
 
   def SetBuildVars(self):
-    self.version = config_lib.CONFIG.Get(
+    self.version = config.CONFIG.Get(
         "Source.version_string", context=self.context)
-    self.client_name = config_lib.CONFIG.Get(
-        "Client.name", context=self.context)
+    self.client_name = config.CONFIG.Get("Client.name", context=self.context)
 
-    self.pkg_org = config_lib.CONFIG.Get(
+    self.pkg_org = config.CONFIG.Get(
         "ClientBuilder.package_maker_organization", context=self.context)
     self.pkg_name = "%s-%s.pkg" % (self.client_name, self.version)
-    self.build_root = config_lib.CONFIG.Get(
+    self.build_root = config.CONFIG.Get(
         "ClientBuilder.build_root_dir", context=self.context)
-    self.plist_name = config_lib.CONFIG.Get(
+    self.plist_name = config.CONFIG.Get(
         "Client.plist_filename", context=self.context)
-    self.output_basename = config_lib.CONFIG.Get(
+    self.output_basename = config.CONFIG.Get(
         "ClientBuilder.output_basename", context=self.context)
     self.template_binary_dir = os.path.join(
-        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
+        config.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
     self.target_binary_dir = os.path.join(
@@ -112,13 +112,13 @@ class DarwinClientBuilder(build.ClientBuilder):
     shutil.move(
         os.path.join(self.target_binary_dir, "grr-client"),
         os.path.join(self.target_binary_dir,
-                     config_lib.CONFIG.Get(
+                     config.CONFIG.Get(
                          "Client.binary_name", context=self.context)))
 
   def SignGRRPyinstallerBinaries(self):
-    cert_name = config_lib.CONFIG.Get(
+    cert_name = config.CONFIG.Get(
         "ClientBuilder.signing_cert_name", context=self.context)
-    keychain_file = config_lib.CONFIG.Get(
+    keychain_file = config.CONFIG.Get(
         "ClientBuilder.signing_keychain_file", context=self.context)
     if not keychain_file:
       print("No keychain file specified in the config, skipping "
@@ -130,7 +130,7 @@ class DarwinClientBuilder(build.ClientBuilder):
         "codesign", "--verbose", "--deep", "--force", "--sign", cert_name,
         "--keychain", keychain_file,
         os.path.join(self.target_binary_dir,
-                     config_lib.CONFIG.Get(
+                     config.CONFIG.Get(
                          "Client.binary_name", context=self.context))
     ])
 
@@ -150,7 +150,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     # Generate a config file.
     with open(
         os.path.join(self.target_binary_dir,
-                     config_lib.CONFIG.Get(
+                     config.CONFIG.Get(
                          "ClientBuilder.config_filename",
                          context=self.context)), "wb") as fd:
       fd.write(

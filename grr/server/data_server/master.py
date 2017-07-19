@@ -11,7 +11,7 @@ from requests.packages import urllib3
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import utils
 from grr.lib.rdfvalues import data_server as rdf_data_server
 
@@ -111,7 +111,7 @@ class DataMaster(object):
 
   def __init__(self, myport, service):
     self.service = service
-    stores = config_lib.CONFIG["Dataserver.server_list"]
+    stores = config.CONFIG["Dataserver.server_list"]
     if not stores:
       logging.error("Dataserver.server_list is empty: no data servers will"
                     " be available")
@@ -152,7 +152,7 @@ class DataMaster(object):
       raise DataMasterError("First server in Dataserver.server_list must be "
                             "the master.")
     # Start database measuring thread.
-    sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
+    sleep = config.CONFIG["Dataserver.stats_frequency"]
     self.periodic_thread = utils.InterruptableThread(
         name="DataServer db measuring thread",
         target=self._PeriodicThread,

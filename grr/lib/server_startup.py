@@ -4,11 +4,16 @@ import logging
 import os
 import platform
 
+from grr import config
 from grr.lib import config_lib
 from grr.lib import local
 from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
+
+# pylint: disable=unused-import
+from grr.lib.local import plugins
+# pylint: enable=unused-import
 
 # pylint: disable=g-import-not-at-top
 if platform.system() != "Windows":
@@ -18,12 +23,12 @@ if platform.system() != "Windows":
 
 def DropPrivileges():
   """Attempt to drop privileges if required."""
-  if config_lib.CONFIG["Server.username"]:
+  if config.CONFIG["Server.username"]:
     try:
-      os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
+      os.setuid(pwd.getpwnam(config.CONFIG["Server.username"]).pw_uid)
     except (KeyError, OSError):
       logging.exception("Unable to switch to user %s",
-                        config_lib.CONFIG["Server.username"])
+                        config.CONFIG["Server.username"])
       raise
 
 
@@ -64,8 +69,8 @@ def Init():
 
   # Exempt config updater from this check because it is the one responsible for
   # setting the variable.
-  if not config_lib.CONFIG.ContextApplied("ConfigUpdater Context"):
-    if not config_lib.CONFIG.Get("Server.initialized"):
+  if not config.CONFIG.ContextApplied("ConfigUpdater Context"):
+    if not config.CONFIG.Get("Server.initialized"):
       raise RuntimeError("Config not initialized, run \"grr_config_updater"
                          " initialize\". If the server is already configured,"
                          " add \"Server.initialized: True\" to your config.")

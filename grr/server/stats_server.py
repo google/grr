@@ -13,7 +13,7 @@ import threading
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
@@ -87,10 +87,10 @@ class StatsServer(object):
     """Start HTTPServer."""
     # Use the same number of available ports as the adminui is using. If we
     # have 10 available for adminui we will need 10 for the stats server.
-    adminui_max_port = config_lib.CONFIG.Get("AdminUI.port_max",
-                                             config_lib.CONFIG["AdminUI.port"])
+    adminui_max_port = config.CONFIG.Get("AdminUI.port_max",
+                                         config.CONFIG["AdminUI.port"])
 
-    additional_ports = adminui_max_port - config_lib.CONFIG["AdminUI.port"]
+    additional_ports = adminui_max_port - config.CONFIG["AdminUI.port"]
     max_port = self.port + additional_ports
 
     for port in range(self.port, max_port + 1):
@@ -122,11 +122,12 @@ class StatsServerInit(registry.InitHook):
     """
 
     # Figure out which port to use.
-    port = config_lib.CONFIG["Monitoring.http_port"]
+    port = config.CONFIG["Monitoring.http_port"]
     if port != 0:
       logging.info("Starting monitoring server on port %d.", port)
       # pylint: disable=g-import-not-at-top
-      from grr.lib import local as local_overrides
+      from grr.lib.local import plugins as _
+      local_overrides = grr.lib.local
       # pylint: enable=g-import-not-at-top
       if "stats_server" in dir(local_overrides):
         stats_server = local_overrides.stats_server.StatsServer(port)

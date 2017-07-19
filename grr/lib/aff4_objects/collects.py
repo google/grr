@@ -9,8 +9,8 @@ import struct
 
 import logging
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -554,7 +554,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
   @staticmethod
   def IsJournalingEnabled():
-    return config_lib.CONFIG[
+    return config.CONFIG[
         "Worker.enable_packed_versioned_collection_journaling"]
 
   def Flush(self, sync=True):
@@ -746,7 +746,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
     def HeartBeat():
       """Update the lock lease if needed and call the callback."""
-      lease_time = config_lib.CONFIG["Worker.compaction_lease_time"]
+      lease_time = config.CONFIG["Worker.compaction_lease_time"]
       if self.CheckLease() < lease_time / 2:
         logging.info("%s: Extending compaction lease.", self.urn)
         self.UpdateLease(lease_time)

@@ -9,10 +9,10 @@ import zlib
 from rekall import constants
 
 import logging
+from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
@@ -42,7 +42,7 @@ class CachingProfileServer(ProfileServer):
                            profile_name,
                            version=constants.PROFILE_REPOSITORY_VERSION):
 
-    cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
+    cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
 
     try:
       aff4_profile = aff4.FACTORY.Open(
@@ -55,7 +55,7 @@ class CachingProfileServer(ProfileServer):
 
   def _StoreProfile(self, profile,
                     version=constants.PROFILE_REPOSITORY_VERSION):
-    cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
+    cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
         cache_urn.Add(version).Add(profile.name),
         aff4_grr.AFF4RekallProfile,
@@ -88,7 +88,7 @@ class RekallRepositoryProfileServer(ProfileServer):
                        profile_name,
                        version=constants.PROFILE_REPOSITORY_VERSION):
     try:
-      url = "%s/%s/%s.gz" % (config_lib.CONFIG["Rekall.profile_repository"],
+      url = "%s/%s/%s.gz" % (config.CONFIG["Rekall.profile_repository"],
                              version, profile_name)
       handle = urllib2.urlopen(url, timeout=10)
       profile_data = handle.read()
@@ -143,7 +143,7 @@ class GRRRekallProfileServer(CachingProfileServer,
     inventory = json.loads(inventory_json)
 
     # Build a mapping between urns and profile names.
-    cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
+    cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
     profile_to_urn = {}
     urn_to_profile = {}
     for profile in inventory["$INVENTORY"]:

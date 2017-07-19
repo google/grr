@@ -24,10 +24,10 @@ from chipsec.hal import acpi
 from chipsec.hal import spi
 from chipsec.helper import oshelper
 
+from grr import config
 from grr.client import actions
 from grr.client.client_actions import tempfiles
 from grr.client.components.chipsec_support.actions import chipsec_types
-from grr.lib import config_lib
 
 
 class DumpFlashImage(actions.ActionPlugin):
@@ -55,8 +55,7 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog = logging.getLogger("chipsec_grr")
       syslog.setLevel(logging.INFO)
       syslog.addHandler(handlers.SysLogHandler(address="/dev/log"))
-      syslog.info("%s: Runnning DumpFlashImage",
-                  config_lib.CONFIG["Client.name"])
+      syslog.info("%s: Runnning DumpFlashImage", config.CONFIG["Client.name"])
 
     self.logs = []
     self.chipsec_log = StringIO.StringIO()
@@ -114,7 +113,7 @@ class DumpFlashImage(actions.ActionPlugin):
 
     if args.notify_syslog:
       syslog.info("%s: DumpFlashImage has completed successfully",
-                  config_lib.CONFIG["Client.name"])
+                  config.CONFIG["Client.name"])
 
     self.SendReply(
         chipsec_types.DumpFlashImageResponse(

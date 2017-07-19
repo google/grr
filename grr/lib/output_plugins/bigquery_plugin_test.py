@@ -9,9 +9,9 @@ import os
 
 import mock
 
+from grr import config
 from grr.lib import aff4
 from grr.lib import bigquery
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -62,7 +62,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def CompareSchemaToKnownGood(self, schema):
     expected_schema_data = json.load(
         open(
-            os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+            os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                          "ExportedFile.schema"), "rb"))
 
     # It's easier to just compare the two dicts but even a change to the proto
@@ -113,7 +113,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     # Compare to our stored data.
     expected_fd = open(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                      "ExportedFile.json"), "rb")
 
     # Bigquery expects a newline separarted list of JSON dicts, but this isn't
@@ -206,7 +206,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     # TODO(user): there needs to be a better way to generate these files on
     # change than breaking into the debugger.
     expected_fd = open(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+        os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                      "ExportedFile.json"), "rb")
 
     # Check that the same entries we expect are spread across the two files.

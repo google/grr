@@ -6,11 +6,11 @@ import time
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import communicator
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import file_store
@@ -193,7 +193,7 @@ class FrontEndServer(object):
     self.thread_pool = threadpool.ThreadPool.Factory(
         threadpool_prefix,
         min_threads=2,
-        max_threads=config_lib.CONFIG["Threadpool.size"])
+        max_threads=config.CONFIG["Threadpool.size"])
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
@@ -201,11 +201,11 @@ class FrontEndServer(object):
         token=self.token))
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
-      if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
+      if well_known_flow not in config.CONFIG["Frontend.well_known_flows"]:
         del self.well_known_flows[well_known_flow]
 
     self.well_known_flows_blacklist = set(
-        config_lib.CONFIG["Frontend.DEBUG_well_known_flows_blacklist"])
+        config.CONFIG["Frontend.DEBUG_well_known_flows_blacklist"])
 
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
@@ -470,11 +470,11 @@ class FrontEndServer(object):
       raise IOError("Client upload policy is too old.")
 
     upload_store = file_store.UploadFileStore.GetPlugin(
-        config_lib.CONFIG["Frontend.upload_store"])()
+        config.CONFIG["Frontend.upload_store"])()
 
     filestore_fd = upload_store.CreateFileStoreFile()
     out_fd = uploads.GunzipWrapper(filestore_fd)
-    with uploads.DecryptStream(config_lib.CONFIG["PrivateKeys.server_key"],
+    with uploads.DecryptStream(config.CONFIG["PrivateKeys.server_key"],
                                self._GetClientPublicKey(policy.client_id),
                                out_fd) as decrypt_fd:
       for data in data_generator:

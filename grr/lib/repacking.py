@@ -6,6 +6,7 @@ import os
 import sys
 import zipfile
 
+from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib.builders import signing
@@ -31,7 +32,7 @@ class RepackConfig(object):
       if not build_yaml:
         raise RuntimeError("Couldn't find build.yaml in %s" % template_path)
       with template_zip.open(build_yaml) as buildfile:
-        repack_config = config_lib.CONFIG.CopyConfig()
+        repack_config = config.CONFIG.CopyConfig()
         parser = config_lib.YamlParser(fd=buildfile)
         config_data = parser.RawData()
         self.Validate(config_data, template_path)
@@ -77,17 +78,17 @@ class TemplateRepacker(object):
 
     if "Target:Windows" in context:
 
-      cert = config_lib.CONFIG.Get(
+      cert = config.CONFIG.Get(
           "ClientBuilder.windows_signing_cert", context=context)
-      key = config_lib.CONFIG.Get(
+      key = config.CONFIG.Get(
           "ClientBuilder.windows_signing_key", context=context)
-      app_name = config_lib.CONFIG.Get(
+      app_name = config.CONFIG.Get(
           "ClientBuilder.windows_signing_application_name", context=context)
       return signing.WindowsCodeSigner(cert, key, passwd, app_name)
     elif "Target:LinuxRpm" in context:
-      pub_keyfile = config_lib.CONFIG.Get(
+      pub_keyfile = config.CONFIG.Get(
           "ClientBuilder.rpm_signing_key_public_keyfile", context=context)
-      gpg_name = config_lib.CONFIG.Get(
+      gpg_name = config.CONFIG.Get(
           "ClientBuilder.rpm_gpg_name", context=context)
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
@@ -138,25 +139,25 @@ class TemplateRepacker(object):
     Returns:
       A list of output installers generated.
     """
-    orig_config = config_lib.CONFIG
+    orig_config = config.CONFIG
     repack_config = RepackConfig()
     print "Repacking template: %s" % template_path
-    config_lib.CONFIG = repack_config.GetConfigFromTemplate(template_path)
+    config.CONFIG = repack_config.GetConfigFromTemplate(template_path)
 
     result_path = None
     try:
-      repack_context = config_lib.CONFIG["Template.build_context"]
+      repack_context = config.CONFIG["Template.build_context"]
       if context:
         repack_context.extend(context)
 
       output_path = os.path.join(output_dir,
-                                 config_lib.CONFIG.Get(
+                                 config.CONFIG.Get(
                                      "ClientRepacker.output_filename",
                                      context=repack_context))
 
       print "Using context: %s and labels: %s" % (
           repack_context,
-          config_lib.CONFIG.Get("Client.labels", context=repack_context))
+          config.CONFIG.Get("Client.labels", context=repack_context))
       try:
         signer = None
         if sign:
@@ -178,7 +179,7 @@ class TemplateRepacker(object):
           # pylint: disable=g-import-not-at-top
           from grr.lib import maintenance_utils
           # pylint: enable=g-import-not-at-top
-          dest = config_lib.CONFIG.Get(
+          dest = config.CONFIG.Get(
               "Executables.installer", context=repack_context)
           maintenance_utils.UploadSignedConfigBlob(
               open(result_path, "rb").read(100 * 1024 * 1024),
@@ -188,19 +189,19 @@ class TemplateRepacker(object):
       else:
         print "Failed to repack %s." % template_path
     finally:
-      config_lib.CONFIG = orig_config
+      config.CONFIG = orig_config
 
     return result_path
 
   def RepackAllTemplates(self, upload=False, token=None):
     """Repack all the templates in ClientBuilder.template_dir."""
-    for template in os.listdir(config_lib.CONFIG["ClientBuilder.template_dir"]):
-      template_path = os.path.join(
-          config_lib.CONFIG["ClientBuilder.template_dir"], template)
+    for template in os.listdir(config.CONFIG["ClientBuilder.template_dir"]):
+      template_path = os.path.join(config.CONFIG["ClientBuilder.template_dir"],
+                                   template)
 
       self.RepackTemplate(
           template_path,
-          os.path.join(config_lib.CONFIG["ClientBuilder.executables_dir"],
+          os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
                        "installers"),
           upload=upload,
           token=token)
@@ -209,7 +210,7 @@ class TemplateRepacker(object):
         print "Repacking as debug installer: %s." % template_path
         self.RepackTemplate(
             template_path,
-            os.path.join(config_lib.CONFIG["ClientBuilder.executables_dir"],
+            os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
                          "installers"),
             upload=upload,
             token=token,

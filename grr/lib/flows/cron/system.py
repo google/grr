@@ -7,10 +7,10 @@ import time
 
 import logging
 
+from grr import config
 from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
@@ -398,7 +398,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     # not so long that the flow lease will expire.
 
     wait_duration = rdfvalue.Duration(
-        config_lib.CONFIG.Get("Test.end_to_end_result_check_wait"))
+        config.CONFIG.Get("Test.end_to_end_result_check_wait"))
     completed_time = rdfvalue.RDFDatetime.Now() + wait_duration
 
     self.CallState(next_state="CheckResults", start_time=completed_time)

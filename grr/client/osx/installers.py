@@ -5,6 +5,7 @@ import zipfile
 
 import logging
 
+from grr import config
 from grr.client import installer
 from grr.lib import config_lib
 from grr.lib import type_info
@@ -23,7 +24,7 @@ class OSXInstaller(installer.Installer):
 
     zf = zipfile.ZipFile(pkg_path, mode="r")
     fd = zf.open("config.yaml")
-    install_dir = os.path.dirname(config_lib.CONFIG.parser.filename)
+    install_dir = os.path.dirname(config.CONFIG.parser.filename)
 
     # We write this config to disk so that Intialize can find the build.yaml
     # referenced inside the config as a relative path. This config isn't used
@@ -32,21 +33,21 @@ class OSXInstaller(installer.Installer):
     with open(installer_config, "wb") as f:
       f.write(fd.read())
 
-    packaged_config = config_lib.CONFIG.MakeNewConfig()
+    packaged_config = config.CONFIG.MakeNewConfig()
     packaged_config.Initialize(
         filename=installer_config, parser=config_lib.YamlParser)
 
-    new_config = config_lib.CONFIG.MakeNewConfig()
-    new_config.SetWriteBack(config_lib.CONFIG["Config.writeback"])
+    new_config = config.CONFIG.MakeNewConfig()
+    new_config.SetWriteBack(config.CONFIG["Config.writeback"])
 
-    for info in config_lib.CONFIG.type_infos:
+    for info in config.CONFIG.type_infos:
       try:
         new_value = packaged_config.GetRaw(info.name, None)
       except type_info.TypeValueError:
         continue
 
       try:
-        old_value = config_lib.CONFIG.GetRaw(info.name, None)
+        old_value = config.CONFIG.GetRaw(info.name, None)
 
         if not new_value or new_value == old_value:
           continue

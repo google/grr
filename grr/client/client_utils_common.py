@@ -12,7 +12,7 @@ import time
 
 import logging
 
-from grr.lib import config_lib
+from grr import config
 
 
 def HandleAlarm(process):
@@ -167,7 +167,7 @@ def IsExecutionWhitelisted(cmd, args):
   elif platform.system() == "Darwin":
     whitelist = [
         ("/bin/echo", ["1"]),
-        ("/bin/launchctl", ["unload", config_lib.CONFIG["Client.plist_path"]]),
+        ("/bin/launchctl", ["unload", config.CONFIG["Client.plist_path"]]),
         ("/usr/bin/hdiutil", ["info"]),
         ("/usr/bin/last", []),
         ("/usr/bin/who", []),

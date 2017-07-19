@@ -5,7 +5,7 @@ import os
 import re
 
 import logging
-from grr.lib import config_lib
+from grr import config
 from grr.lib import parsers
 from grr.lib import utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
@@ -204,10 +204,10 @@ class NetgroupParser(parsers.FileParser):
     users = set()
     filter_regexes = [
         re.compile(x)
-        for x in config_lib.CONFIG["Artifacts.netgroup_filter_regexes"]
+        for x in config.CONFIG["Artifacts.netgroup_filter_regexes"]
     ]
     username_regex = re.compile(cls.USERNAME_REGEX)
-    blacklist = config_lib.CONFIG["Artifacts.netgroup_user_blacklist"]
+    blacklist = config.CONFIG["Artifacts.netgroup_user_blacklist"]
     for index, line in enumerate(lines):
       if line.startswith("#"):
         continue

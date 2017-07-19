@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.security."""
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -20,7 +20,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
     super(ApprovalTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
     self.approval_expiration = rdfvalue.Duration(
-        "%ds" % config_lib.CONFIG["ACL.token_expiry"])
+        "%ds" % config.CONFIG["ACL.token_expiry"])
 
   def testGetApprovalForObjectRaisesWhenTokenIsNone(self):
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,

@@ -21,6 +21,7 @@ import pkg_resources
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr import config as grr_config
 from grr.config import contexts
 from grr.lib import access_control
 from grr.lib import aff4
@@ -279,7 +280,7 @@ def ImportConfig(filename, config):
       "Frontend.certificate"
   ]
   options_imported = 0
-  old_config = config_lib.CONFIG.MakeNewConfig()
+  old_config = grr_config.CONFIG.MakeNewConfig()
   old_config.Initialize(filename)
 
   for entry in old_config.raw_data.keys():
@@ -321,7 +322,7 @@ def GenerateKeys(config, overwrite_keys=False):
     raise RuntimeError("Config %s already has keys, use --overwrite_keys to "
                        "override." % config.parser)
 
-  length = config_lib.CONFIG["Server.rsa_key_length"]
+  length = grr_config.CONFIG["Server.rsa_key_length"]
   print "All keys will have a bit length of %d." % length
   print "Generating executable signing key"
   executable_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
@@ -384,7 +385,7 @@ accessible. By default this will be port 8080 with the URL ending in /control.
                                "http://%s:8080/" % hostname)
   config.Set("Client.server_urls", [frontend_url])
 
-  frontend_port = urlparse.urlparse(frontend_url).port or config_lib.CONFIG.Get(
+  frontend_port = urlparse.urlparse(frontend_url).port or grr_config.CONFIG.Get(
       "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
@@ -394,7 +395,7 @@ The UI URL specifies where the Administrative Web Interface can be found.
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
-  ui_port = urlparse.urlparse(ui_url).port or config_lib.CONFIG.Get(
+  ui_port = urlparse.urlparse(ui_url).port or grr_config.CONFIG.Get(
       "AdminUI.port")
   config.Set("AdminUI.port", ui_port)
 
@@ -416,7 +417,7 @@ well.
   if datastore == "1":
     config.Set("Datastore.implementation", "SqliteDataStore")
     datastore_location = RetryQuestion(
-        "Datastore Location", ".*", config_lib.CONFIG.Get("Datastore.location"))
+        "Datastore Location", ".*", grr_config.CONFIG.Get("Datastore.location"))
     if datastore_location:
       config.Set("Datastore.location", datastore_location)
 
@@ -435,20 +436,20 @@ to create the necessary database and tables using the credentials provided.
       pass
     config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
     mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
-                               config_lib.CONFIG.Get("Mysql.host"))
+                               grr_config.CONFIG.Get("Mysql.host"))
     config.Set("Mysql.host", mysql_host)
 
     mysql_port = RetryQuestion("MySQL Port (0 for local socket)", "^[0-9]+$",
-                               config_lib.CONFIG.Get("Mysql.port"))
+                               grr_config.CONFIG.Get("Mysql.port"))
     config.Set("Mysql.port", mysql_port)
 
     mysql_database = RetryQuestion("MySQL Database", "^[A-Za-z0-9-]+$",
-                                   config_lib.CONFIG.Get("Mysql.database_name"))
+                                   grr_config.CONFIG.Get("Mysql.database_name"))
     config.Set("Mysql.database_name", mysql_database)
 
     mysql_username = RetryQuestion(
         "MySQL Username", "[A-Za-z0-9-]+$",
-        config_lib.CONFIG.Get("Mysql.database_username"))
+        grr_config.CONFIG.Get("Mysql.database_username"))
     config.Set("Mysql.database_username", mysql_username)
 
     mysql_password = getpass.getpass(
@@ -463,7 +464,7 @@ Emails concerning alerts or updates must be sent to this domain.
 """
   domain = RetryQuestion("Email Domain e.g example.com",
                          "^([\\.A-Za-z0-9-]+)*$",
-                         config_lib.CONFIG.Get("Logging.domain"))
+                         grr_config.CONFIG.Get("Logging.domain"))
   config.Set("Logging.domain", domain)
 
   print """\n\n-=Alert Email Address=-
@@ -490,7 +491,7 @@ def ConfigureBaseOptions(config):
 For GRR to work each GRR server has to be able to communicate with the
 datastore.  To do this we need to configure a datastore.\n"""
 
-  existing_datastore = config_lib.CONFIG.Get("Datastore.implementation")
+  existing_datastore = grr_config.CONFIG.Get("Datastore.implementation")
 
   if not existing_datastore or existing_datastore == "FakeDataStore":
     ConfigureDatastore(config)
@@ -500,17 +501,17 @@ datastore.  To do this we need to configure a datastore.\n"""
 
     if existing_datastore == "SqliteDataStore":
       print """  Datastore Location: %s
-      """ % config_lib.CONFIG.Get("Datastore.location")
+      """ % grr_config.CONFIG.Get("Datastore.location")
 
     if existing_datastore == "MySQLAdvancedDataStore":
       print """  MySQL Host: %s
   MySQL Port: %s
   MySQL Database: %s
   MySQL Username: %s
-  """ % (config_lib.CONFIG.Get("Mysql.host"),
-         config_lib.CONFIG.Get("Mysql.port"),
-         config_lib.CONFIG.Get("Mysql.database_name"),
-         config_lib.CONFIG.Get("Mysql.database_username"))
+  """ % (grr_config.CONFIG.Get("Mysql.host"),
+         grr_config.CONFIG.Get("Mysql.port"),
+         grr_config.CONFIG.Get("Mysql.database_name"),
+         grr_config.CONFIG.Get("Mysql.database_username"))
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
@@ -522,11 +523,11 @@ this we normally need a public dns name or IP address to communicate with. In
 the standard configuration this will be used to host both the client facing
 server and the admin user interface.\n"""
 
-  existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
-  existing_frontend_urns = config_lib.CONFIG.Get("Client.server_urls")
+  existing_ui_urn = grr_config.CONFIG.Get("AdminUI.url", default=None)
+  existing_frontend_urns = grr_config.CONFIG.Get("Client.server_urls")
   if not existing_frontend_urns:
     # Port from older deprecated setting Client.control_urls.
-    existing_control_urns = config_lib.CONFIG.Get(
+    existing_control_urns = grr_config.CONFIG.Get(
         "Client.control_urls", default=None)
     if existing_control_urns is not None:
       existing_frontend_urns = []
@@ -558,11 +559,11 @@ server and the admin user interface.\n"""
   alerting functions.  The email domain will be appended to GRR user names
   when sending emails to users.\n"""
 
-  existing_log_domain = config_lib.CONFIG.Get("Logging.domain", default=None)
-  existing_al_email = config_lib.CONFIG.Get(
+  existing_log_domain = grr_config.CONFIG.Get("Logging.domain", default=None)
+  existing_al_email = grr_config.CONFIG.Get(
       "Monitoring.alert_email", default=None)
 
-  existing_em_email = config_lib.CONFIG.Get(
+  existing_em_email = grr_config.CONFIG.Get(
       "Monitoring.emergency_access_email", default=None)
   if not existing_log_domain or not existing_al_email or not existing_em_email:
     ConfigureEmails(config)
@@ -580,7 +581,7 @@ server and the admin user interface.\n"""
   config.Set("Server.initialized", True)
   config.Write()
   print("Configuration parameters set. You can edit these in %s" %
-        config_lib.CONFIG.Get("Config.writeback"))
+        grr_config.CONFIG.Get("Config.writeback"))
 
 
 def AddUsers(token=None):
@@ -743,7 +744,7 @@ def InitializeNoPrompt(config=None, token=None):
   config.Write()
 
   print("Configuration parameters set. You can edit these in %s" %
-        config_lib.CONFIG.Get("Config.writeback"))
+        grr_config.CONFIG.Get("Config.writeback"))
   AddUsers(token=token)
   ManageBinaries(config, token=token)
 
@@ -767,32 +768,32 @@ def GetToken():
 def main(unused_argv):
   """Main."""
   token = GetToken()
-  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
-  config_lib.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
+  grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
+  grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
 
   if flags.FLAGS.subparser_name == "initialize":
     config_lib.ParseConfigCommandLine()
     if flags.FLAGS.noprompt:
-      InitializeNoPrompt(config_lib.CONFIG, token=token)
+      InitializeNoPrompt(grr_config.CONFIG, token=token)
     else:
-      Initialize(config_lib.CONFIG, token=token)
+      Initialize(grr_config.CONFIG, token=token)
     return
 
   server_startup.Init()
 
   try:
-    print "Using configuration %s" % config_lib.CONFIG
+    print "Using configuration %s" % grr_config.CONFIG
   except AttributeError:
     raise RuntimeError("No valid config specified.")
 
   if flags.FLAGS.subparser_name == "generate_keys":
     try:
-      GenerateKeys(config_lib.CONFIG, overwrite_keys=flags.FLAGS.overwrite_keys)
+      GenerateKeys(grr_config.CONFIG, overwrite_keys=flags.FLAGS.overwrite_keys)
     except RuntimeError, e:
       # GenerateKeys will raise if keys exist and overwrite_keys is not set.
       print "ERROR: %s" % e
       sys.exit(1)
-    config_lib.CONFIG.Write()
+    grr_config.CONFIG.Write()
 
   elif flags.FLAGS.subparser_name == "repack_clients":
     upload = not flags.FLAGS.noupload
@@ -833,7 +834,7 @@ def main(unused_argv):
     content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
     aff4_path = flags.FLAGS.dest_path
     if not aff4_path:
-      python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
+      python_hack_root_urn = grr_config.CONFIG.Get("Config.python_hack_root")
       aff4_path = python_hack_root_urn.Add(os.path.basename(flags.FLAGS.file))
     context = ["Platform:%s" % flags.FLAGS.platform.title(), "Client Context"]
     maintenance_utils.UploadSignedConfigBlob(
@@ -846,7 +847,7 @@ def main(unused_argv):
     if flags.FLAGS.dest_path:
       dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)
     else:
-      dest_path = config_lib.CONFIG.Get(
+      dest_path = grr_config.CONFIG.Get(
           "Executables.aff4_path",
           context=context).Add(os.path.basename(flags.FLAGS.file))
 
@@ -874,7 +875,7 @@ def main(unused_argv):
     maintenance_utils.ListComponents(token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
-    config = config_lib.CONFIG
+    config = grr_config.CONFIG
     print "Setting %s to %s" % (flags.FLAGS.var, flags.FLAGS.val)
     if flags.FLAGS.val.startswith("["):  # Allow setting of basic lists.
       flags.FLAGS.val = flags.FLAGS.val[1:-1].split(",")

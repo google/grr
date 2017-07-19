@@ -9,8 +9,8 @@ import unittest
 import mock
 import requests
 
+from grr import config
 from grr.client.client_actions import cloud
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import cloud as rdf_cloud
@@ -57,7 +57,7 @@ class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
   def testWindowsServiceQuery(self):
     project = mock.Mock(text="myproject")
     sc_query_output = open(
-        os.path.join(config_lib.CONFIG["Test.data_dir"],
+        os.path.join(config.CONFIG["Test.data_dir"],
                      "scquery_output.txt")).read()
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(

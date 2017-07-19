@@ -5,7 +5,7 @@
 import time
 import mock
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import queue_manager
@@ -567,7 +567,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
           manager.DeleteNotification(session_id)
           manager.QueueNotification(notification)
 
-      expired = 1000 + config_lib.CONFIG["Worker.notification_expiry_time"]
+      expired = 1000 + config.CONFIG["Worker.notification_expiry_time"]
       with test_lib.FakeTime(expired):
         with queue_manager.QueueManager(token=self.token) as manager:
           notifications = manager.GetNotifications(queues.HUNTS)

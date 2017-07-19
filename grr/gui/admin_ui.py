@@ -11,6 +11,7 @@ from wsgiref import simple_server
 
 import ipaddr
 
+from grr import config
 from grr.config import contexts
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -18,9 +19,7 @@ from grr.gui import local
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.config import contexts
 from grr.gui import wsgiapp
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
 
@@ -31,31 +30,31 @@ class ThreadedServer(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
 
 def main(_):
   """Run the main test harness."""
-  config_lib.CONFIG.AddContext(
+  config.CONFIG.AddContext(
       contexts.ADMIN_UI_CONTEXT,
       "Context applied when running the admin user interface GUI.")
   server_startup.Init()
 
   if (not os.path.exists(
-      os.path.join(config_lib.CONFIG["AdminUI.document_root"],
+      os.path.join(config.CONFIG["AdminUI.document_root"],
                    "dist/grr-ui.bundle.js")) or not os.path.exists(
-                       os.path.join(config_lib.CONFIG["AdminUI.document_root"],
+                       os.path.join(config.CONFIG["AdminUI.document_root"],
                                     "dist/grr-ui.bundle.css"))):
     raise RuntimeError("Can't find compiled JS/CSS bundles. "
                        "Please reinstall the PIP package using "
                        "\"pip install -e .\" to rebuild the bundles.")
 
   # Start up a server in another thread
-  bind_address = config_lib.CONFIG["AdminUI.bind"]
+  bind_address = config.CONFIG["AdminUI.bind"]
   ip = ipaddr.IPAddress(bind_address)
   if ip.version == 4:
     # Address looks like an IPv4 address.
     ThreadedServer.address_family = socket.AF_INET
 
-  max_port = config_lib.CONFIG.Get("AdminUI.port_max",
-                                   config_lib.CONFIG["AdminUI.port"])
+  max_port = config.CONFIG.Get("AdminUI.port_max",
+                               config.CONFIG["AdminUI.port"])
 
-  for port in range(config_lib.CONFIG["AdminUI.port"], max_port + 1):
+  for port in range(config.CONFIG["AdminUI.port"], max_port + 1):
     # Make a simple reference implementation WSGI server
     try:
       server = simple_server.make_server(
@@ -72,12 +71,12 @@ def main(_):
 
   proto = "HTTP"
 
-  if config_lib.CONFIG["AdminUI.enable_ssl"]:
-    cert_file = config_lib.CONFIG["AdminUI.ssl_cert_file"]
+  if config.CONFIG["AdminUI.enable_ssl"]:
+    cert_file = config.CONFIG["AdminUI.ssl_cert_file"]
     if not cert_file:
       raise ValueError("Need a valid cert file to enable SSL.")
 
-    key_file = config_lib.CONFIG["AdminUI.ssl_key_file"]
+    key_file = config.CONFIG["AdminUI.ssl_key_file"]
     server.socket = ssl.wrap_socket(
         server.socket, certfile=cert_file, keyfile=key_file, server_side=True)
     proto = "HTTPS"

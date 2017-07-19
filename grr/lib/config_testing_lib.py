@@ -4,6 +4,7 @@
 
 import logging
 
+from grr import config
 from grr.lib import config_lib
 from grr.lib import test_lib
 from grr.lib import utils
@@ -32,10 +33,11 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
     if isinstance(config_file, config_lib.GrrConfigManager):
       conf_obj = config_file
     else:
-      conf_obj = config_lib.CONFIG.MakeNewConfig()
+      conf_obj = config.CONFIG.MakeNewConfig()
       conf_obj.Initialize(filename=config_file, reset=True)
 
-    with utils.Stubber(config_lib, "CONFIG", conf_obj):
+    with utils.MultiStubber((config, "CONFIG", conf_obj),
+                            (config_lib, "_CONFIG", conf_obj)):
       all_sections = conf_obj.GetSections()
       errors = conf_obj.Validate(sections=all_sections)
 

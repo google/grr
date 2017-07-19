@@ -3,9 +3,9 @@
 
 import os
 
+from grr import config
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -58,7 +58,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
     artifact_registry.REGISTRY.AddDirSources(
-        config_lib.CONFIG["Artifacts.artifact_dirs"])
+        config.CONFIG["Artifacts.artifact_dirs"])
 
   def testGetArtifacts(self):
     self._LoadAllArtifacts()

@@ -9,6 +9,8 @@ import time
 
 import logging
 
+from grr import config
+
 # pylint: disable=unused-import
 # Make sure we load the client plugins
 from grr.client import client_plugins
@@ -18,7 +20,6 @@ from grr.client import comms
 from grr.client import vfs
 from grr.config import contexts
 from grr.lib import client_startup
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -88,7 +89,7 @@ def CreateClientPool(n):
       clients.append(
           PoolGRRClient(
               private_key=certificate,
-              ca_cert=config_lib.CONFIG["CA.certificate"],
+              ca_cert=config.CONFIG["CA.certificate"],
               fast_poll=flags.FLAGS.fast_poll),)
 
     clients_loaded = True
@@ -101,11 +102,10 @@ def CreateClientPool(n):
 
   while len(clients) < n:
     # Generate a new RSA key pair for each client.
-    bits = config_lib.CONFIG["Client.rsa_key_length"]
+    bits = config.CONFIG["Client.rsa_key_length"]
     key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=bits)
     clients.append(
-        PoolGRRClient(
-            private_key=key, ca_cert=config_lib.CONFIG["CA.certificate"]))
+        PoolGRRClient(private_key=key, ca_cert=config.CONFIG["CA.certificate"]))
 
   # Start all the clients now.
   for c in clients:
@@ -160,8 +160,8 @@ def CreateClientPool(n):
 
 def CheckLocation():
   """Checks that the poolclient is not accidentally ran against production."""
-  for url in (config_lib.CONFIG["Client.server_urls"] +
-              config_lib.CONFIG["Client.control_urls"]):
+  for url in (config.CONFIG["Client.server_urls"] +
+              config.CONFIG["Client.control_urls"]):
     if "staging" in url or "localhost" in url:
       # This is ok.
       return
@@ -170,12 +170,12 @@ def CheckLocation():
 
 
 def main(unused_argv):
-  config_lib.CONFIG.AddContext(contexts.POOL_CLIENT_CONTEXT,
-                               "Context applied when we run the pool client.")
+  config.CONFIG.AddContext(contexts.POOL_CLIENT_CONTEXT,
+                           "Context applied when we run the pool client.")
 
   client_startup.ClientInit()
 
-  config_lib.CONFIG.SetWriteBack("/dev/null")
+  config.CONFIG.SetWriteBack("/dev/null")
 
   CheckLocation()
 

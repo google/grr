@@ -3,10 +3,10 @@
 
 import logging
 
+from grr import config
 from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -402,11 +402,11 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     Raises:
       RuntimeError: On bad artifact configuration parameters.
     """
-    kb_base_set = set(config_lib.CONFIG["Artifacts.knowledge_base"])
-    kb_add = set(config_lib.CONFIG["Artifacts.knowledge_base_additions"])
-    kb_skip = set(config_lib.CONFIG["Artifacts.knowledge_base_skip"])
+    kb_base_set = set(config.CONFIG["Artifacts.knowledge_base"])
+    kb_add = set(config.CONFIG["Artifacts.knowledge_base_additions"])
+    kb_skip = set(config.CONFIG["Artifacts.knowledge_base_skip"])
     if self.args.lightweight:
-      kb_skip.update(config_lib.CONFIG["Artifacts.knowledge_base_heavyweight"])
+      kb_skip.update(config.CONFIG["Artifacts.knowledge_base_heavyweight"])
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     for artifact_name in kb_set:
@@ -637,7 +637,7 @@ class ArtifactLoader(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def RunOnce(self):
-    for path in config_lib.CONFIG["Artifacts.artifact_dirs"]:
+    for path in config.CONFIG["Artifacts.artifact_dirs"]:
       artifact_registry.REGISTRY.AddDirSource(path)
 
     artifact_registry.REGISTRY.AddDatastoreSources(

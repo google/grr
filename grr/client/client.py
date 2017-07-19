@@ -6,10 +6,10 @@ import pdb
 
 import logging
 
+from grr import config
 # pylint: disable=unused-import
 from grr.client import client_plugins
 # pylint: enable=unused-import
-
 from grr.client import comms
 from grr.client import installer
 from grr.config import contexts
@@ -30,25 +30,24 @@ flags.DEFINE_bool("debug_client_actions", False,
 
 def main(unused_args):
   # Allow per platform configuration.
-  config_lib.CONFIG.AddContext(
-      contexts.CLIENT_CONTEXT,
-      "Context applied when we run the client process.")
+  config.CONFIG.AddContext(contexts.CLIENT_CONTEXT,
+                           "Context applied when we run the client process.")
 
   client_startup.ClientInit()
 
   if flags.FLAGS.install:
     installer.RunInstaller()
 
-  errors = config_lib.CONFIG.Validate(["Client", "CA", "Logging"])
+  errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 
   if errors and errors.keys() != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
 
-  enrollment_necessary = not config_lib.CONFIG.Get("Client.private_key")
+  enrollment_necessary = not config.CONFIG.Get("Client.private_key")
   # Instantiating the client will create a private_key so we need to use a flag.
   client = comms.GRRHTTPClient(
-      ca_cert=config_lib.CONFIG["CA.certificate"],
-      private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
+      ca_cert=config.CONFIG["CA.certificate"],
+      private_key=config.CONFIG.Get("Client.private_key", default=None))
 
   if enrollment_necessary:
     logging.info("No private key found, starting enrollment.")

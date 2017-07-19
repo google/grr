@@ -13,7 +13,7 @@ import re
 import smtplib
 import socket
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib.rdfvalues import standard as rdf_standard
 
@@ -28,7 +28,7 @@ class EmailAlerterBase(object):
     return p.sub("", data)
 
   def AddEmailDomain(self, address):
-    suffix = config_lib.CONFIG["Logging.domain"]
+    suffix = config.CONFIG["Logging.domain"]
     if isinstance(address, rdf_standard.DomainEmailAddress):
       address = str(address)
     if suffix and "@" not in address:
@@ -129,16 +129,16 @@ class SMTPEmailAlerter(EmailAlerterBase):
       msg.add_header(header, value)
 
     try:
-      s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
-                       int(config_lib.CONFIG["Worker.smtp_port"]))
+      s = smtplib.SMTP(config.CONFIG["Worker.smtp_server"],
+                       int(config.CONFIG["Worker.smtp_port"]))
       s.ehlo()
-      if config_lib.CONFIG["Worker.smtp_starttls"]:
+      if config.CONFIG["Worker.smtp_starttls"]:
         s.starttls()
         s.ehlo()
-      if (config_lib.CONFIG["Worker.smtp_user"] and
-          config_lib.CONFIG["Worker.smtp_password"]):
-        s.login(config_lib.CONFIG["Worker.smtp_user"],
-                config_lib.CONFIG["Worker.smtp_password"])
+      if (config.CONFIG["Worker.smtp_user"] and
+          config.CONFIG["Worker.smtp_password"]):
+        s.login(config.CONFIG["Worker.smtp_user"],
+                config.CONFIG["Worker.smtp_password"])
 
       s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
       s.quit()
@@ -146,7 +146,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
       raise RuntimeError("Could not connect to SMTP server to send email. "
                          "Please check config option Worker.smtp_server. "
                          "Currently set to %s. Error: %s" %
-                         (config_lib.CONFIG["Worker.smtp_server"], e))
+                         (config.CONFIG["Worker.smtp_server"], e))
 
 
 EMAIL_ALERTER = None
@@ -156,7 +156,7 @@ class EmailAlerterInit(registry.InitHook):
 
   def RunOnce(self):
     global EMAIL_ALERTER
-    email_alerter_cls_name = config_lib.CONFIG["Server.email_alerter_class"]
+    email_alerter_cls_name = config.CONFIG["Server.email_alerter_class"]
     logging.debug("Using email alerter: %s", email_alerter_cls_name)
     cls = EmailAlerterBase.GetPlugin(email_alerter_cls_name)
 

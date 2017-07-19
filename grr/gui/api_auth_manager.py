@@ -8,8 +8,8 @@ import yaml
 
 import logging
 
+from grr import config
 from grr.gui import api_call_router
-from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib.authorization import auth_manager
 
@@ -101,13 +101,13 @@ class APIAuthorizationManager(object):
     self.auth_manager = auth_manager.AuthorizationManager()
 
     self.default_router = self._CreateRouter(
-        config_lib.CONFIG["API.DefaultRouter"])
+        config.CONFIG["API.DefaultRouter"])
 
-    if config_lib.CONFIG["API.RouterACLConfigFile"]:
+    if config.CONFIG["API.RouterACLConfigFile"]:
       logging.info("Using API router ACL config file: %s",
-                   config_lib.CONFIG["API.RouterACLConfigFile"])
+                   config.CONFIG["API.RouterACLConfigFile"])
 
-      with open(config_lib.CONFIG["API.RouterACLConfigFile"], mode="rb") as fh:
+      with open(config.CONFIG["API.RouterACLConfigFile"], mode="rb") as fh:
         acl_list = APIAuthorization.ParseYAMLAuthorizationsList(fh.read())
 
       if not acl_list:
@@ -159,7 +159,7 @@ class APIACLInit(registry.InitHook):
     allowed_contexts = ["AdminUI Context"]
 
     for ctx in allowed_contexts:
-      if ctx in config_lib.CONFIG.context:
+      if ctx in config.CONFIG.context:
         self.InitApiAuthManager()
         return
 

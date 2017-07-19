@@ -15,7 +15,7 @@ will run into race conditions and have to disable the backup instances.
 
 
 import logging
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib import stats
 
@@ -59,7 +59,7 @@ class MasterInit(registry.InitHook):
 
     global MASTER_WATCHER  # pylint: disable=global-statement
 
-    watcher_name = config_lib.CONFIG["Server.master_watcher_class"]
+    watcher_name = config.CONFIG["Server.master_watcher_class"]
     watcher_cls = DefaultMasterWatcher.classes[watcher_name]
 
     MASTER_WATCHER = watcher_cls()

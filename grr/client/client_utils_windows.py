@@ -17,7 +17,7 @@ import win32security
 
 from google.protobuf import message
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -231,8 +231,8 @@ class NannyController(object):
   def _GetKey(self):
     """Returns the service key."""
     if self._service_key is None:
-      hive = getattr(_winreg, config_lib.CONFIG["Nanny.service_key_hive"])
-      path = config_lib.CONFIG["Nanny.service_key"]
+      hive = getattr(_winreg, config.CONFIG["Nanny.service_key_hive"])
+      path = config.CONFIG["Nanny.service_key"]
 
       # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
       self._service_key = _winreg.CreateKeyEx(hive, path, 0,
@@ -247,7 +247,7 @@ class NannyController(object):
                          _winreg.REG_DWORD, int(time.time()))
     except exceptions.WindowsError, e:
       logging.debug("Failed to heartbeat nanny at %s: %s",
-                    config_lib.CONFIG["Nanny.service_key"], e)
+                    config.CONFIG["Nanny.service_key"], e)
 
   def WriteTransactionLog(self, grr_message):
     """Write the message into the transaction log.

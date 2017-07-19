@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import utils
 from grr.lib.rdfvalues import data_server
 
@@ -26,7 +26,7 @@ class ClientCredentials(object):
     self.client_users = {}
 
   def InitializeFromConfig(self):
-    usernames = config_lib.CONFIG.Get("Dataserver.client_credentials")
+    usernames = config.CONFIG.Get("Dataserver.client_credentials")
     self.client_users = {}
     for user_spec in usernames:
       try:
@@ -113,8 +113,8 @@ class NonceStore(object):
     self.nonces = {}
     self.lock = threading.Lock()
     # Data server credentials.
-    self.server_username = config_lib.CONFIG.Get("Dataserver.server_username")
-    self.server_password = config_lib.CONFIG.Get("Dataserver.server_password")
+    self.server_username = config.CONFIG.Get("Dataserver.server_username")
+    self.server_password = config.CONFIG.Get("Dataserver.server_password")
     if not self.server_username:
       raise errors.DataServerError("Dataserver.server_username not provided")
     if not self.server_password:

@@ -7,6 +7,7 @@ import gzip
 import json
 import os
 
+from grr import config
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
@@ -14,7 +15,6 @@ from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import server_stubs
@@ -65,7 +65,7 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
 
   def __init__(self):
     # Use this file as the mock memory image.
-    self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    self.memory_file = os.path.join(config.CONFIG["Test.data_dir"],
                                     "searching/auth.log")
 
     # The data in the file.
@@ -104,7 +104,7 @@ class TestMemoryCollector(MemoryTest):
     self.key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
     self.iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
-    self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    self.memory_file = os.path.join(config.CONFIG["Test.data_dir"],
                                     "searching/auth.log")
     with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
@@ -198,7 +198,7 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
     self.process_list = process_list or []
 
   def RekallAction(self, _):
-    ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    ps_list_file = os.path.join(config.CONFIG["Test.data_dir"],
                                 "rekall_vad_result.dat.gz")
     response = rdf_rekall_types.RekallResponse(
         json_messages=gzip.open(ps_list_file, "rb").read(), plugin="pslist")

@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import zipfile
 
+from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import utils
@@ -42,12 +43,12 @@ class LinuxClientBuilder(build.ClientBuilder):
         output_file=output_file)
     self.MakeBuildDirectory()
     self.CleanDirectory(
-        config_lib.CONFIG.Get("PyInstaller.dpkg_root", context=self.context))
+        config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context))
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
     self.CopyFiles()
     self.MakeZip(
-        config_lib.CONFIG.Get("PyInstaller.dpkg_root", context=self.context),
+        config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context),
         self.template_file)
 
   def CopyFiles(self):
@@ -56,8 +57,7 @@ class LinuxClientBuilder(build.ClientBuilder):
     shutil.copy(config_lib.Resource().Filter(
         "install_data/debian/dpkg_client/nanny.sh.in"), self.output_dir)
 
-    dpkg_dir = config_lib.CONFIG.Get(
-        "PyInstaller.dpkg_root", context=self.context)
+    dpkg_dir = config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
 
     # Copy files needed for dpkg-buildpackage.
     shutil.copytree(
@@ -108,8 +108,7 @@ class CentosClientBuilder(LinuxClientBuilder):
   def CopyFiles(self):
     """This sets up the template directory."""
 
-    build_dir = config_lib.CONFIG.Get(
-        "PyInstaller.dpkg_root", context=self.context)
+    build_dir = config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
     # Copy files needed for rpmbuild.
     shutil.move(
         os.path.join(build_dir, "debian"), os.path.join(build_dir, "rpmbuild"))

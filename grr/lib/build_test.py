@@ -7,6 +7,7 @@ import StringIO
 import mock
 import yaml
 
+from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags
@@ -31,13 +32,13 @@ class BuildTests(test_lib.GRRBaseTest):
             "Release",
         "Template.build_context": ["ClientBuilder Context"] + context,
         "Template.version_major":
-            str(config_lib.CONFIG.Get("Source.version_major")),
+            str(config.CONFIG.Get("Source.version_major")),
         "Template.version_minor":
-            str(config_lib.CONFIG.Get("Source.version_minor")),
+            str(config.CONFIG.Get("Source.version_minor")),
         "Template.version_revision":
-            str(config_lib.CONFIG.Get("Source.version_revision")),
+            str(config.CONFIG.Get("Source.version_revision")),
         "Template.version_release":
-            str(config_lib.CONFIG.Get("Source.version_release")),
+            str(config.CONFIG.Get("Source.version_release")),
         "Template.arch":
             u"amd64"
     }
@@ -70,10 +71,10 @@ class BuildTests(test_lib.GRRBaseTest):
     This config is used to exercise repacking code in integration testing, here
     we just make sure it will pass validation.
     """
-    new_config = config_lib.CONFIG.MakeNewConfig()
+    new_config = config.CONFIG.MakeNewConfig()
     new_config.Initialize()
     new_config.LoadSecondaryConfig(
-        os.path.join(config_lib.CONFIG["Test.data_dir"], "dummyconfig.yaml"))
+        os.path.join(config.CONFIG["Test.data_dir"], "dummyconfig.yaml"))
     build.ClientRepacker().ValidateEndConfig(new_config)
 
 

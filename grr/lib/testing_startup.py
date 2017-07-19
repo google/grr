@@ -3,6 +3,7 @@
 
 import os
 
+from grr import config
 from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
@@ -33,13 +34,13 @@ def TestInit():
 
   # This config contains non-public settings that should be applied during
   # tests.
-  extra_test_config = config_lib.CONFIG["Test.additional_test_config"]
+  extra_test_config = config.CONFIG["Test.additional_test_config"]
   if os.path.exists(extra_test_config):
     flags.FLAGS.secondary_configs.append(extra_test_config)
 
   # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext(contexts.TEST_CONTEXT,
-                               "Context applied when we run tests.")
+  config.CONFIG.AddContext(contexts.TEST_CONTEXT,
+                           "Context applied when we run tests.")
 
   # Tests additionally add a test configuration file.
   config_lib.SetPlatformArchContext()

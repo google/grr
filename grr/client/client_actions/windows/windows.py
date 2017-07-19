@@ -20,10 +20,10 @@ import win32service
 import win32serviceutil
 import wmi
 
+from grr import config
 from grr.client import actions
-from grr.client.client_actions import standard
 
-from grr.lib import config_lib
+from grr.client.client_actions import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -126,9 +126,9 @@ class Uninstall(actions.ActionPlugin):
 
     win32serviceutil.ChangeServiceConfig(
         None,
-        config_lib.CONFIG["Nanny.service_name"],
+        config.CONFIG["Nanny.service_name"],
         startType=win32service.SERVICE_DISABLED)
-    svc_config = QueryService(config_lib.CONFIG["Nanny.service_name"])
+    svc_config = QueryService(config.CONFIG["Nanny.service_name"])
     if svc_config[1] == win32service.SERVICE_DISABLED:
       logging.info("Disabled service successfully")
       self.SendReply(rdf_protodict.DataBlob(string="Service disabled."))

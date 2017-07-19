@@ -8,9 +8,9 @@ import os
 import psutil
 import requests
 
+from grr import config
 from grr.client import comms
 from grr.client.client_actions import admin
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
@@ -40,7 +40,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     # In a real client, the writeback location should be set to something real,
     # but for this test we make it the same as the config file..
-    config_lib.CONFIG.SetWriteBack(self.config_file)
+    config.CONFIG.SetWriteBack(self.config_file)
 
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
@@ -53,7 +53,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     result = self.RunAction(admin.UpdateConfiguration, request)
 
     self.assertEqual(result, [])
-    self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
+    self.assertEqual(config.CONFIG["Client.foreman_check_frequency"], 3600)
 
     # Test the config file got written.
     data = open(self.config_file, "rb").read()
@@ -92,10 +92,10 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       self.RunAction(admin.UpdateConfiguration, request)
 
       # Location can be set.
-      self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
+      self.assertEqual(config.CONFIG["Client.server_urls"], location)
 
       # But the server serial number can not be updated.
-      self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
+      self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
     """Check GetConfig client action works."""
@@ -109,8 +109,8 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Check that our GetConfig actually gets the real data.
     self.RunAction(admin.GetConfiguration)
 
-    self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
-    self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
+    self.assertEqual(config.CONFIG["Client.foreman_check_frequency"], 3600)
+    self.assertEqual(config.CONFIG["Client.server_urls"], location)
 
 
 class MockStatsCollector(object):

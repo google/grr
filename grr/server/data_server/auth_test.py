@@ -3,7 +3,7 @@
 
 
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -83,8 +83,8 @@ class AuthTest(test_lib.GRRBaseTest):
       self.assertEqual(nonce1, store.GetNonce(nonce1))
 
   def testServerCredentials(self):
-    user = config_lib.CONFIG["Dataserver.server_username"]
-    pwd = config_lib.CONFIG["Dataserver.server_password"]
+    user = config.CONFIG["Dataserver.server_username"]
+    pwd = config.CONFIG["Dataserver.server_password"]
 
     # Use correct credentials.
     store = auth.NonceStore()
@@ -106,8 +106,8 @@ class AuthTest(test_lib.GRRBaseTest):
     self.assertFalse(store.ValidateAuthTokenServer(token))
 
   def testClientCredentials(self):
-    user = config_lib.CONFIG["Dataserver.server_username"]
-    pwd = config_lib.CONFIG["Dataserver.server_password"]
+    user = config.CONFIG["Dataserver.server_username"]
+    pwd = config.CONFIG["Dataserver.server_password"]
 
     # Check credentials.
     creds = auth.ClientCredentials()

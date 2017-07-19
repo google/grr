@@ -42,9 +42,9 @@ import time
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -682,7 +682,7 @@ class StatsStoreWorker(object):
     self.stats_store = stats_store
     self.process_id = process_id
     self.thread_name = thread_name
-    self.sleep = sleep or config_lib.CONFIG["StatsStore.write_interval"]
+    self.sleep = sleep or config.CONFIG["StatsStore.write_interval"]
 
   def _RunLoop(self):
     while True:
@@ -699,7 +699,7 @@ class StatsStoreWorker(object):
         now = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
         self.stats_store.DeleteStats(
             process_id=self.process_id,
-            timestamp=(0, now - config_lib.CONFIG["StatsStore.ttl"] * 1000000),
+            timestamp=(0, now - config.CONFIG["StatsStore.ttl"] * 1000000),
             sync=False)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(
@@ -737,7 +737,7 @@ class StatsStoreInit(registry.InitHook):
 
     # We don't need StatsStoreWorker if there's no StatsStore.process_id in
     # the config.
-    stats_process_id = config_lib.CONFIG["StatsStore.process_id"]
+    stats_process_id = config.CONFIG["StatsStore.process_id"]
     if not stats_process_id:
       return
 

@@ -17,9 +17,9 @@ import re
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -336,7 +336,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     super(FullAccessControlManager, self).__init__()
 
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
+        max_size=10000, max_age=config.CONFIG["ACL.cache_age"])
     self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
 
     self.helpers = {

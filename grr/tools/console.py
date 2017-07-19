@@ -23,13 +23,13 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr import config
 from grr.config import contexts
 from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_utils
-from grr.lib import config_lib
 from grr.lib import console_utils
 from grr.lib import data_store
 from grr.lib import export_utils
@@ -94,10 +94,9 @@ def main(unused_argv):
   """Main."""
   banner = ("\nWelcome to the GRR console\n")
 
-  config_lib.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
-  config_lib.CONFIG.AddContext(
-      contexts.CONSOLE_CONTEXT,
-      "Context applied when running the console binary.")
+  config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
+  config.CONFIG.AddContext(contexts.CONSOLE_CONTEXT,
+                           "Context applied when running the console binary.")
   server_startup.Init()
 
   # To make the console easier to use, we make a default token which will be

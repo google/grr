@@ -5,8 +5,8 @@ import zlib
 
 import logging
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import constants
 from grr.lib import data_store
 from grr.lib import file_store
@@ -775,7 +775,7 @@ class MultiUploadFile(flow.GRRFlow):
       return
 
     upload_store = file_store.UploadFileStore.GetPlugin(
-        config_lib.CONFIG["Frontend.upload_store"])()
+        config.CONFIG["Frontend.upload_store"])()
     response = responses.First()
     urn = self.client_id.Add(responses.request_data["path"])
     with upload_store.Aff4ObjectForFileId(
@@ -976,7 +976,7 @@ class LoadComponentMixin(object):
 
     # TODO(user): Remove python hack when client 3.1 is pushed.
     request_data = dict(name=name, version=version, next_state=next_state)
-    python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
+    python_hack_root_urn = config.CONFIG.Get("Config.python_hack_root")
     python_hack_path = python_hack_root_urn.Add(system).Add(
         "restart_if_component_loaded.py")
 
@@ -1007,7 +1007,7 @@ class LoadComponentMixin(object):
     next_state = request_data["next_state"]
 
     # Get the component summary.
-    component_urn = config_lib.CONFIG.Get("Config.aff4_root").Add(
+    component_urn = config.CONFIG.Get("Config.aff4_root").Add(
         "components").Add("%s_%s" % (name, version))
 
     try:

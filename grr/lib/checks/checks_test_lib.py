@@ -7,7 +7,7 @@ import StringIO
 
 import yaml
 
-from grr.lib import config_lib
+from grr import config
 from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib import type_info
@@ -47,7 +47,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     if HostCheckTest.loaded_checks is None:
       HostCheckTest.loaded_checks = {}
 
-    cfg = os.path.join(config_lib.CONFIG["Test.srcdir"], "grr", "checks",
+    cfg = os.path.join(config.CONFIG["Test.srcdir"], "grr", "checks",
                        cfg_file)
     if check_ids:
       key = "%s:%s" % (cfg, ",".join(check_ids))
@@ -69,7 +69,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
   def TestDataPath(self, file_name):
     """Generates a full path to the test data."""
-    path = os.path.join(config_lib.CONFIG["Test.data_dir"], file_name)
+    path = os.path.join(config.CONFIG["Test.data_dir"], file_name)
     if not os.path.isfile(path):
       raise test_lib.Error("Missing test data: %s" % file_name)
     return path
@@ -375,7 +375,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
   def assertValidCheckFile(self, path):
     """Tests whether a check definition has a valid configuration."""
     # Figure out the relative path of the check files.
-    prefix = os.path.commonprefix(config_lib.CONFIG["Checks.config_dir"])
+    prefix = os.path.commonprefix(config.CONFIG["Checks.config_dir"])
     relpath = os.path.relpath(path, prefix)
     # If the config can't load fail immediately.
     try:

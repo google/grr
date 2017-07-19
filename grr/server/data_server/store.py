@@ -11,8 +11,8 @@ import uuid
 
 import logging
 
+from grr import config
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import utils
 
@@ -97,7 +97,7 @@ class DataStoreService(object):
     self.db = db
     self.transaction_lock = threading.Lock()
     self.transactions = {}
-    old_pathing = config_lib.CONFIG.Get("Datastore.pathing")
+    old_pathing = config.CONFIG.Get("Datastore.pathing")
     # Need to add a fixed rule for the file where the server mapping is stored.
     new_pathing = [r"(?P<path>" + BASE_MAP_SUBJECT + ")"] + old_pathing
     self.pathing = new_pathing

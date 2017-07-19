@@ -19,8 +19,8 @@ import sqlite3
 
 import logging
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import utils
 from grr.lib.data_stores import common
@@ -135,13 +135,13 @@ class SqliteConnectionCache(utils.FastStore):
 
   def __init__(self, max_size, path):
     super(SqliteConnectionCache, self).__init__(max_size=max_size)
-    self.root_path = path or config_lib.CONFIG.Get("Datastore.location")
+    self.root_path = path or config.CONFIG.Get("Datastore.location")
     self._CreateModelDatabase()
     self.RecreatePathing()
 
   def RecreatePathing(self, pathing=None):
     if not pathing:
-      pathing = config_lib.CONFIG.Get("Datastore.pathing")
+      pathing = config.CONFIG.Get("Datastore.pathing")
     try:
       self.path_regexes = [re.compile(path) for path in pathing]
       self.pathing = pathing
@@ -265,7 +265,7 @@ class SqliteConnection(object):
     self.dirty = False
     # Counter for vacuuming purposes.
     self.deleted = 0
-    self.next_vacuum_check = config_lib.CONFIG["SqliteDatastore.vacuum_check"]
+    self.next_vacuum_check = config.CONFIG["SqliteDatastore.vacuum_check"]
 
   def Filename(self):
     return self.filename
@@ -540,7 +540,7 @@ class SqliteConnection(object):
         self.Vacuum()
         self.deleted = 0
         self.next_vacuum_check = max(
-            config_lib.CONFIG["SqliteDatastore.vacuum_check"],
+            config.CONFIG["SqliteDatastore.vacuum_check"],
             self.next_vacuum_check / 2)
       else:
         # Back-off a bit.
@@ -552,7 +552,7 @@ class SqliteConnection(object):
     if not pages_result:
       return False
     pages = int(pages_result[0])
-    vacuum_minsize = config_lib.CONFIG["SqliteDatastore.vacuum_minsize"]
+    vacuum_minsize = config.CONFIG["SqliteDatastore.vacuum_minsize"]
     if pages * SQLITE_PAGE_SIZE < vacuum_minsize:
       # Too few pages to worry about.
       return False
@@ -561,7 +561,7 @@ class SqliteConnection(object):
       return False
     free_pages = int(free_pages_result[0])
     # Return true if ratio of free pages is high enough.
-    vacuum_ratio = config_lib.CONFIG["SqliteDatastore.vacuum_ratio"]
+    vacuum_ratio = config.CONFIG["SqliteDatastore.vacuum_ratio"]
     return 100.0 * float(free_pages) / float(pages) >= vacuum_ratio
 
   def _HasRecentVacuum(self):
@@ -572,7 +572,7 @@ class SqliteConnection(object):
       return False
     try:
       last_vacuum = int(str(data[0]))
-      vacuum_frequency = config_lib.CONFIG["SqliteDatastore.vacuum_frequency"]
+      vacuum_frequency = config.CONFIG["SqliteDatastore.vacuum_frequency"]
       return time.time() - last_vacuum < vacuum_frequency
     except ValueError:
       # Should not happen.
@@ -615,7 +615,7 @@ class SqliteDataStore(data_store.DataStore):
     self._CalculateAttributeStorageTypes()
     super(SqliteDataStore, self).__init__()
     self.cache = SqliteConnectionCache(
-        config_lib.CONFIG["SqliteDatastore.connection_cache_size"], path)
+        config.CONFIG["SqliteDatastore.connection_cache_size"], path)
 
   def RecreatePathing(self, pathing):
     self.cache.RecreatePathing(pathing)

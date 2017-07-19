@@ -5,8 +5,8 @@
 
 import re
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
@@ -101,7 +101,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
               self.assertNotIn(hunt_id, utils.SmartUnicode(value))
 
   def testKeepsHuntsWithRetainLabel(self):
-    exception_label_name = config_lib.CONFIG[
+    exception_label_name = config.CONFIG[
         "DataRetention.hunts_ttl_exception_label"]
 
     for hunt_urn in self.hunts_urns[:3]:
@@ -270,7 +270,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
                                 latest_timestamp - rdfvalue.Duration("300s"))
 
   def testKeepsTempWithRetainLabel(self):
-    exception_label_name = config_lib.CONFIG[
+    exception_label_name = config.CONFIG[
         "DataRetention.tmp_ttl_exception_label"]
 
     for tmp_urn in self.tmp_urns[:3]:
@@ -349,7 +349,7 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
             latest_timestamp - rdfvalue.Duration("300s"))
 
   def testKeepsClientsWithRetainLabel(self):
-    exception_label_name = config_lib.CONFIG[
+    exception_label_name = config.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
     for client_urn in self.client_urns[:3]:

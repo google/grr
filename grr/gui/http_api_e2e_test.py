@@ -18,6 +18,7 @@ import requests
 
 import logging
 
+from grr import config
 from grr_api_client import api as grr_api
 from grr_api_client import errors as grr_api_errors
 from grr.gui import api_auth_manager
@@ -27,7 +28,6 @@ from grr.gui import wsgiapp
 from grr.gui import wsgiapp_testlib
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
@@ -1083,7 +1083,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
       # This should work now.
       self.api.Client(client_id).File("fs/os/foo").Get()
 
-    token_expiry = config_lib.CONFIG["ACL.token_expiry"]
+    token_expiry = config.CONFIG["ACL.token_expiry"]
 
     # Make sure the caches are reset.
     self.ClearCache()

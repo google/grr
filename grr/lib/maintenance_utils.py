@@ -14,9 +14,9 @@ import zipfile
 
 import logging
 
+from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import utils
@@ -64,7 +64,7 @@ def UploadSignedConfigBlob(content,
     IOError: On failure to write.
   """
   if limit is None:
-    limit = config_lib.CONFIG["Datastore.maximum_blob_size"]
+    limit = config.CONFIG["Datastore.maximum_blob_size"]
 
   # Get the values of these parameters which apply to the client running on the
   # target platform.
@@ -72,13 +72,13 @@ def UploadSignedConfigBlob(content,
     # Default to the windows client.
     client_context = ["Platform:Windows", "Client Context"]
 
-  config_lib.CONFIG.Validate(
+  config.CONFIG.Validate(
       parameters="PrivateKeys.executable_signing_private_key")
 
-  sig_key = config_lib.CONFIG.Get(
+  sig_key = config.CONFIG.Get(
       "PrivateKeys.executable_signing_private_key", context=client_context)
 
-  ver_key = config_lib.CONFIG.Get(
+  ver_key = config.CONFIG.Get(
       "Client.executable_signing_public_key", context=client_context)
 
   urn = collects.GRRSignedBlob.NewFromContent(
@@ -140,9 +140,9 @@ def CreateBinaryConfigPaths(token=None):
 def _SignWindowsComponent(component, output_filename):
   print "Enter passphrase for code signing cert:"
   passwd = getpass.getpass()
-  cert = config_lib.CONFIG.Get("ClientBuilder.windows_signing_cert")
-  key = config_lib.CONFIG.Get("ClientBuilder.windows_signing_key")
-  app_name = config_lib.CONFIG.Get(
+  cert = config.CONFIG.Get("ClientBuilder.windows_signing_cert")
+  key = config.CONFIG.Get("ClientBuilder.windows_signing_key")
+  app_name = config.CONFIG.Get(
       "ClientBuilder.windows_signing_application_name")
 
   signer = signing.WindowsCodeSigner(cert, key, passwd, app_name)
@@ -217,16 +217,16 @@ def SignComponent(component_filename, overwrite=False, token=None):
       "Arch:%s" % component.build_system.arch
   ]
 
-  sig_key = config_lib.CONFIG.Get(
+  sig_key = config.CONFIG.Get(
       "PrivateKeys.executable_signing_private_key", context=client_context)
 
-  ver_key = config_lib.CONFIG.Get(
+  ver_key = config.CONFIG.Get(
       "Client.executable_signing_public_key", context=client_context)
 
   # For each platform specific component, we have a component summary object
   # which contains high level information in common to all components of this
   # specific version.
-  component_urn = config_lib.CONFIG.Get("Config.aff4_root").Add(
+  component_urn = config.CONFIG.Get("Config.aff4_root").Add(
       "components").Add("%s_%s" % (component.summary.name,
                                    component.summary.version))
 
@@ -239,7 +239,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
     component_summary = component.summary
     component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
-    component_summary.url = (config_lib.CONFIG.Get(
+    component_summary.url = (config.CONFIG.Get(
         "Client.component_url_stem", context=client_context) +
                              component_summary.seed)
 
@@ -255,7 +255,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
   signed_component = rdf_crypto.SignedBlob()
   signed_component.Sign(component.SerializeToString(), sig_key, ver_key)
 
-  aff4_urn = config_lib.CONFIG.Get(
+  aff4_urn = config.CONFIG.Get(
       "Client.component_aff4_stem", context=client_context).Add(
           component.summary.seed).Add(component.build_system.signature())
 
@@ -269,7 +269,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
 def SignAllComponents(overwrite=False, token=None):
 
-  components_dir = config_lib.CONFIG["ClientBuilder.components_dir"]
+  components_dir = config.CONFIG["ClientBuilder.components_dir"]
   for root, _, files in os.walk(components_dir):
     for f in files:
       if os.path.splitext(f)[1] != ".bin":

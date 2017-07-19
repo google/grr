@@ -8,6 +8,7 @@ import zipfile
 
 import yaml
 
+from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags
@@ -61,7 +62,7 @@ class RepackingTests(test_lib.GRRBaseTest):
       loaded = yaml.safe_load(fd)
       loaded.pop("Config.includes")
 
-      packaged_config = config_lib.CONFIG.MakeNewConfig()
+      packaged_config = config.CONFIG.MakeNewConfig()
       packaged_config.Initialize(
           parser=config_lib.YamlParser, data=yaml.safe_dump(loaded))
       packaged_config.Validate(sections=build.ClientRepacker.CONFIG_SECTIONS)

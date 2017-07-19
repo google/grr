@@ -109,7 +109,7 @@ def SetPlatformArchContext():
   """Add the running contexts to the config system."""
 
   # Initialize the running platform context:
-  CONFIG.AddContext("Platform:%s" % platform.system().title())
+  _CONFIG.AddContext("Platform:%s" % platform.system().title())
 
   machine = platform.uname()[4]
   if machine in ["x86_64", "AMD64", "i686"]:
@@ -123,7 +123,7 @@ def SetPlatformArchContext():
   else:
     arch = machine
 
-  CONFIG.AddContext("Arch:%s" % arch)
+  _CONFIG.AddContext("Arch:%s" % arch)
 
 
 class ConfigFilter(object):
@@ -198,7 +198,7 @@ class Expand(ConfigFilter):
   name = "expand"
 
   def Filter(self, data):
-    return CONFIG.InterpolateValue(data)
+    return _CONFIG.InterpolateValue(data)
 
 
 class Flags(ConfigFilter):
@@ -789,10 +789,10 @@ class GrrConfigManager(object):
     config object because it will have an empty set of type
     descriptors (i.e. no config options will be defined). Config
     options are normally defined at import time, and then they get
-    added to the CONFIG global in this module.
+    added to the _CONFIG global in this module.
 
     To obtain a new configuration object, inheriting the regular
-    config options, this method must be called from the global CONFIG
+    config options, this method must be called from the global _CONFIG
     object, to make a copy.
 
     Returns:
@@ -1549,66 +1549,73 @@ class GrrConfigManager(object):
   def DEFINE_context(self, name):
     return self.DefineContext(name)
 
-  # pylint: enable=g-bad-name
 
-  # Global for storing the config.
+# pylint: enable=g-bad-name
 
-
-CONFIG = GrrConfigManager()
+# Global config object. This object is not supposed to be used directly,
+# since when used from config_lib, it's not going to have all the GRR
+# config options registered.
+#
+# grr.config.CONFIG should be used instead - using grr.config.CONFIG
+# guarantees that all configuration options and filters are properly
+# imported.
+_CONFIG = GrrConfigManager()
 
 
 # pylint: disable=g-bad-name,redefined-builtin
 def DEFINE_bool(name, default, help):
   """A helper for defining boolean options."""
-  CONFIG.AddOption(type_info.Bool(name=name, default=default, description=help))
+  _CONFIG.AddOption(
+      type_info.Bool(name=name, default=default, description=help))
 
 
 def DEFINE_float(name, default, help):
   """A helper for defining float options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.Float(name=name, default=default, description=help))
 
 
 def DEFINE_integer(name, default, help):
   """A helper for defining integer options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.Integer(name=name, default=default, description=help))
 
 
 def DEFINE_boolean(name, default, help):
   """A helper for defining boolean options."""
-  CONFIG.AddOption(type_info.Bool(name=name, default=default, description=help))
+  _CONFIG.AddOption(
+      type_info.Bool(name=name, default=default, description=help))
 
 
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.String(name=name, default=default or "", description=help))
 
 
 def DEFINE_bytes(name, default, help):
   """A helper for defining bytes options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.Bytes(name=name, default=default or "", description=help))
 
 
 def DEFINE_choice(name, default, choices, help):
   """A helper for defining choice string options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.Choice(
           name=name, default=default, choices=choices, description=help))
 
 
 def DEFINE_multichoice(name, default, choices, help):
   """Choose multiple options from a list."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.MultiChoice(
           name=name, default=default, choices=choices, description=help))
 
 
 def DEFINE_integer_list(name, default, help):
   """A helper for defining lists of integer options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.List(
           name=name,
           default=default,
@@ -1618,7 +1625,7 @@ def DEFINE_integer_list(name, default, help):
 
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.List(
           name=name,
           default=default,
@@ -1627,20 +1634,24 @@ def DEFINE_list(name, default, help):
 
 
 def DEFINE_semantic(semantic_type, name, default=None, description=""):
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.RDFValueType(
           rdfclass=semantic_type, name=name, default=default, help=description))
 
 
 def DEFINE_option(type_descriptor):
-  CONFIG.AddOption(type_descriptor)
+  _CONFIG.AddOption(type_descriptor)
 
 
 def DEFINE_constant_string(name, default, help):
   """A helper for defining constant strings."""
-  CONFIG.AddOption(
+  _CONFIG.AddOption(
       type_info.String(name=name, default=default or "", description=help),
       constant=True)
+
+
+def DEFINE_context(name):
+  return _CONFIG.DefineContext(name)
 
 
 # pylint: enable=g-bad-name
@@ -1670,7 +1681,7 @@ def LoadConfig(config_obj,
   """
   if config_obj is None or reset:
     # Create a new config object.
-    config_obj = CONFIG.MakeNewConfig()
+    config_obj = _CONFIG.MakeNewConfig()
 
   # Initialize the config with a filename or file like object.
   if config_file is not None:
@@ -1694,14 +1705,14 @@ def ParseConfigCommandLine():
   """Parse all the command line options which control the config system."""
   # The user may specify the primary config file on the command line.
   if flags.FLAGS.config:
-    CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
+    _CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
   else:
     raise RuntimeError("A config file is not specified.")
 
   # Allow secondary configuration files to be specified.
   if flags.FLAGS.secondary_configs:
     for config_file in flags.FLAGS.secondary_configs:
-      CONFIG.LoadSecondaryConfig(config_file)
+      _CONFIG.LoadSecondaryConfig(config_file)
 
   # Allow individual options to be specified as global overrides.
   for statement in flags.FLAGS.parameter:
@@ -1709,15 +1720,15 @@ def ParseConfigCommandLine():
       raise RuntimeError("statement %s on command line not valid." % statement)
 
     name, value = statement.split("=", 1)
-    CONFIG.global_override[name] = value
+    _CONFIG.global_override[name] = value
 
   # Load additional contexts from the command line.
   for context in flags.FLAGS.context:
     if context:
-      CONFIG.AddContext(context)
+      _CONFIG.AddContext(context)
 
-  if CONFIG["Config.writeback"]:
-    CONFIG.SetWriteBack(CONFIG["Config.writeback"])
+  if _CONFIG["Config.writeback"]:
+    _CONFIG.SetWriteBack(_CONFIG["Config.writeback"])
 
   # Does the user want to dump help? We do this after the config system is
   # initialized so the user can examine what we think the value of all the
@@ -1725,5 +1736,5 @@ def ParseConfigCommandLine():
   if flags.FLAGS.config_help:
     print "Configuration overview."
 
-    CONFIG.PrintHelp()
+    _CONFIG.PrintHelp()
     sys.exit(0)

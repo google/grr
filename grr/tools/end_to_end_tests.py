@@ -9,11 +9,11 @@ import logging
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr import config
 from grr.config import contexts
 from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import server_startup
 from grr.lib.aff4_objects import users as aff4_users
@@ -40,8 +40,8 @@ def RunEndToEndTests():
   runner = unittest.TextTestRunner()
 
   # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext(contexts.TEST_CONTEXT,
-                               "Context applied when we run tests.")
+  config.CONFIG.AddContext(contexts.TEST_CONTEXT,
+                           "Context applied when we run tests.")
   server_startup.Init()
 
   token = access_control.ACLToken(

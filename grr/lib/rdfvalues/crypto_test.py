@@ -6,6 +6,7 @@
 import hashlib
 import os
 
+from grr import config
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -21,9 +22,9 @@ class SignedBlobTest(test_base.RDFValueTestCase):
 
   def setUp(self):
     super(SignedBlobTest, self).setUp()
-    self.private_key = config_lib.CONFIG[
+    self.private_key = config.CONFIG[
         "PrivateKeys.executable_signing_private_key"]
-    self.public_key = config_lib.CONFIG["Client.executable_signing_public_key"]
+    self.public_key = config.CONFIG["Client.executable_signing_public_key"]
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()
@@ -96,21 +97,21 @@ class TestCryptoTypeInfos(CryptoTestBase):
 
   def testInvalidX509Certificates(self):
     """Deliberately try to parse an invalid certificate."""
-    config_lib.CONFIG.Initialize(data="""
+    config.CONFIG.Initialize(data="""
 [Frontend]
 certificate = -----BEGIN CERTIFICATE-----
         MIIDczCCAVugAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMFkxCzAJBgNV
         uqnFquJfg8xMWHHJmPEocDpJT8Tlmbw=
         -----END CERTIFICATE-----
 """)
-    config_lib.CONFIG.context = []
+    config.CONFIG.context = []
 
-    errors = config_lib.CONFIG.Validate("Frontend")
+    errors = config.CONFIG.Validate("Frontend")
     self.assertItemsEqual(errors.keys(), ["Frontend.certificate"])
 
   def testInvalidRSAPrivateKey(self):
     """Deliberately try to parse invalid RSA keys."""
-    config_lib.CONFIG.Initialize(data="""
+    config.CONFIG.Initialize(data="""
 [PrivateKeys]
 server_key = -----BEGIN PRIVATE KEY-----
         MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp
@@ -120,43 +121,43 @@ executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
         -----END RSA PRIVATE KEY-----
 """)
-    config_lib.CONFIG.context = []
+    config.CONFIG.context = []
 
     with self.assertRaises(config_lib.ConfigFormatError):
-      config_lib.CONFIG.Get("PrivateKeys.server_key")
+      config.CONFIG.Get("PrivateKeys.server_key")
     with self.assertRaises(config_lib.ConfigFormatError):
-      config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key")
+      config.CONFIG.Get("PrivateKeys.executable_signing_private_key")
 
   def testRSAPublicKeySuccess(self):
-    config_lib.CONFIG.Initialize(data="""
+    config.CONFIG.Initialize(data="""
 [Client]
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
     QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
     -----END PUBLIC KEY-----
 """)
-    config_lib.CONFIG.context = []
+    config.CONFIG.context = []
 
-    errors = config_lib.CONFIG.Validate("Client")
+    errors = config.CONFIG.Validate("Client")
     self.assertFalse(errors)
 
   def testRSAPublicKeyFailure(self):
     """Deliberately try to parse an invalid public key."""
-    config_lib.CONFIG.Initialize(data="""
+    config.CONFIG.Initialize(data="""
 [Client]
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
         GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
         -----END PUBLIC KEY-----
 """)
-    config_lib.CONFIG.context = []
+    config.CONFIG.context = []
 
-    errors = config_lib.CONFIG.Validate("Client")
+    errors = config.CONFIG.Validate("Client")
     self.assertItemsEqual(errors.keys(),
                           ["Client.executable_signing_public_key"])
 
   def testRSAPrivate(self):
     """Tests parsing an RSA private key."""
-    config_lib.CONFIG.Initialize(data="""
+    config.CONFIG.Initialize(data="""
 [PrivateKeys]
 executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
@@ -168,9 +169,9 @@ executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     wDcAa2GW9htKHmv9/Rzg05iAD+FYTsp8Gi2r4icV
     -----END RSA PRIVATE KEY-----
 """)
-    config_lib.CONFIG.context = []
+    config.CONFIG.context = []
     self.assertIsInstance(
-        config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key"),
+        config.CONFIG.Get("PrivateKeys.executable_signing_private_key"),
         rdf_crypto.RSAPrivateKey)
 
 
@@ -311,8 +312,8 @@ class RSATest(CryptoTestBase):
       with self.assertRaises(type_info.TypeValueError):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
-      with utils.Stubber(config_lib.CONFIG, "context",
-                         config_lib.CONFIG.context + ["Commandline Context"]):
+      with utils.Stubber(config.CONFIG, "context",
+                         config.CONFIG.context + ["Commandline Context"]):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
         # allow_prompt=False even prevents this in the Commandline Context.
@@ -446,7 +447,7 @@ class RDFX509CertTest(CryptoTestBase):
         common_name="C.0000000000000001", private_key=private_key)
     client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
-    ca_signing_key = config_lib.CONFIG["PrivateKeys.ca_key"]
+    ca_signing_key = config.CONFIG["PrivateKeys.ca_key"]
 
     csr.Verify(private_key.GetPublicKey())
     client_cert.Verify(ca_signing_key.GetPublicKey())

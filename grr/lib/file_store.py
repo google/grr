@@ -6,8 +6,8 @@ import hashlib
 import os
 import shutil
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import standard
@@ -41,7 +41,7 @@ class FileStoreAFF4Object(aff4.AFF4Stream):
     if self._file_handle is None:
       file_id = self.Get(self.Schema.FILE_ID)
       file_store = UploadFileStore.GetPlugin(
-          config_lib.CONFIG["Frontend.upload_store"])()
+          config.CONFIG["Frontend.upload_store"])()
       self._file_handle = file_store.OpenForReading(file_id)
     return self._file_handle
 
@@ -111,7 +111,7 @@ class FileUploadFileStore(UploadFileStore):
 
   @classmethod
   def PathForId(cls, file_id, prefix=""):
-    root_dir = config_lib.CONFIG["FileUploadFileStore.root_dir"]
+    root_dir = config.CONFIG["FileUploadFileStore.root_dir"]
     return os.path.join(root_dir, prefix, file_id[0], file_id[1], file_id[2],
                         file_id[3:])
 

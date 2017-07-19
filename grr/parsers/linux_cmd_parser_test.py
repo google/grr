@@ -4,9 +4,9 @@
 import os
 
 
+from grr import config
 from grr.lib import artifact
 from grr.lib import artifact_registry
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
@@ -182,7 +182,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
 
   def testPsCmdParserValidation(self):
     """Test the PsCmdParser pass Validation() method."""
-    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 

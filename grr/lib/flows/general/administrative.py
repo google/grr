@@ -10,8 +10,8 @@ import urllib
 
 import logging
 
+from grr import config
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flow
@@ -276,7 +276,7 @@ class ExecutePythonHack(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
+    python_hack_root_urn = config.CONFIG.Get("Config.python_hack_root")
     fd = aff4.FACTORY.Open(
         python_hack_root_urn.Add(self.args.hack_name), token=self.token)
 
@@ -422,7 +422,7 @@ class OnlineNotification(flow.GRRFlow):
   def GetDefaultArgs(cls, token=None):
     return cls.args_type(email="%s@%s" %
                          (token.username,
-                          config_lib.CONFIG.Get("Logging.domain")))
+                          config.CONFIG.Get("Logging.domain")))
 
   @flow.StateHandler()
   def Start(self):
@@ -449,11 +449,11 @@ class OnlineNotification(flow.GRRFlow):
           subject,
           self.template % dict(
               client_id=self.client_id,
-              admin_ui=config_lib.CONFIG["AdminUI.url"],
+              admin_ui=config.CONFIG["AdminUI.url"],
               hostname=hostname,
               urn=url,
               creator=self.token.username,
-              signature=config_lib.CONFIG["Email.signature"]),
+              signature=config.CONFIG["Email.signature"]),
           is_html=True)
     else:
       flow.FlowError("Error while pinging client.")
@@ -597,20 +597,20 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     self.WriteAllCrashDetails(client_id, crash_details)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.alert_email"]:
+    if config.CONFIG["Monitoring.alert_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id), ("main", "HostInformation")))
 
       email_alerts.EMAIL_ALERTER.SendEmail(
-          config_lib.CONFIG["Monitoring.alert_email"],
+          config.CONFIG["Monitoring.alert_email"],
           "GRR server",
           self.subject % client_id,
           self.mail_template % dict(
               client_id=client_id,
-              admin_ui=config_lib.CONFIG["AdminUI.url"],
+              admin_ui=config.CONFIG["AdminUI.url"],
               hostname=hostname,
-              signature=config_lib.CONFIG["Email.signature"],
+              signature=config.CONFIG["Email.signature"],
               urn=url,
               message=message),
           is_html=True)
@@ -718,7 +718,7 @@ P.S. The state of the failing flow was:
     except aff4.InstantiationError:
       logging.error("Failed to open hunt %s.", hunt_session_id)
 
-    email = config_lib.CONFIG["Monitoring.alert_email"]
+    email = config.CONFIG["Monitoring.alert_email"]
     if email:
       to_send.append(email)
 
@@ -741,7 +741,7 @@ P.S. The state of the failing flow was:
           "Client %s reported a crash." % client_id,
           self.mail_template % dict(
               client_id=client_id,
-              admin_ui=config_lib.CONFIG["AdminUI.url"],
+              admin_ui=config.CONFIG["AdminUI.url"],
               hostname=hostname,
               context=context_html,
               state=state_html,
@@ -749,7 +749,7 @@ P.S. The state of the failing flow was:
               runner_args=runner_args_html,
               urn=url,
               nanny_msg=nanny_msg,
-              signature=config_lib.CONFIG["Email.signature"]),
+              signature=config.CONFIG["Email.signature"]),
           is_html=True)
 
     if nanny_msg:

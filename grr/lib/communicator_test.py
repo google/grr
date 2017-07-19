@@ -11,11 +11,11 @@ import requests
 
 import logging
 
+from grr import config
 from grr.client import actions
 from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import front_end
 from grr.lib import queues
@@ -58,17 +58,17 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
 
-    self.client_private_key = config_lib.CONFIG["Client.private_key"]
+    self.client_private_key = config.CONFIG["Client.private_key"]
 
     self.server_serial_number = 0
-    self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
-    self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
+    self.server_certificate = config.CONFIG["Frontend.certificate"]
+    self.server_private_key = config.CONFIG["PrivateKeys.server_key"]
     self.client_communicator = comms.ClientCommunicator(
         private_key=self.client_private_key)
 
     self.client_communicator.LoadServerCertificate(
         server_certificate=self.server_certificate,
-        ca_certificate=config_lib.CONFIG["CA.certificate"])
+        ca_certificate=config.CONFIG["CA.certificate"])
 
     self.server_communicator = front_end.ServerCommunicator(
         certificate=self.server_certificate,
@@ -244,7 +244,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with utils.Stubber(
         rdf_crypto.RDFX509Cert, "Verify", lambda self, public_key=None: True):
       self.client_communicator.LoadServerCertificate(
-          self.server_certificate, config_lib.CONFIG["CA.certificate"])
+          self.server_certificate, config.CONFIG["CA.certificate"])
 
     def Verify(_, public_key=False):
       _ = public_key
@@ -254,7 +254,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with utils.Stubber(rdf_crypto.RDFX509Cert, "Verify", Verify):
       self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
                         self.server_certificate,
-                        config_lib.CONFIG["CA.certificate"])
+                        config.CONFIG["CA.certificate"])
 
   def testErrorDetection(self):
     """Tests the end to end encrypted communicators."""
@@ -306,7 +306,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.client_communicator = comms.ClientCommunicator()
 
     self.client_communicator.LoadServerCertificate(
-        self.server_certificate, config_lib.CONFIG["CA.certificate"])
+        self.server_certificate, config.CONFIG["CA.certificate"])
 
     # Verify that the CN is of the correct form
     csr = self.client_communicator.GetCSR()
@@ -326,11 +326,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.config_stubber.Start()
 
     certificate = self.ClientCertFromPrivateKey(
-        config_lib.CONFIG["Client.private_key"])
+        config.CONFIG["Client.private_key"])
     self.server_serial_number = 0
 
-    self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
-    self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
+    self.server_private_key = config.CONFIG["PrivateKeys.server_key"]
+    self.server_certificate = config.CONFIG["Frontend.certificate"]
 
     self.client_cn = certificate.GetCN()
 
@@ -388,7 +388,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
-        ca_cert=config_lib.CONFIG["CA.certificate"],
+        ca_cert=config.CONFIG["CA.certificate"],
         worker=comms.GRRClientWorker())
 
   def CreateNewClientObject(self):
@@ -400,7 +400,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Build a client context with preloaded server certificates
     self.client_communicator.communicator.LoadServerCertificate(
-        self.server_certificate, config_lib.CONFIG["CA.certificate"])
+        self.server_certificate, config.CONFIG["CA.certificate"])
 
     self.client_communicator.http_manager.retry_error_limit = 5
 
@@ -408,7 +408,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """A mock for url handler processing from the server's POV."""
     if "server.pem" in url:
       return MakeResponse(
-          200, utils.SmartStr(config_lib.CONFIG["Frontend.certificate"]))
+          200, utils.SmartStr(config.CONFIG["Frontend.certificate"]))
 
     _ = kwargs
     try:
@@ -609,14 +609,14 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     Also make sure we wait the correct amount of time before next poll.
     """
-    self._CheckFastPoll(False, config_lib.CONFIG["Client.poll_max"])
+    self._CheckFastPoll(False, config.CONFIG["Client.poll_max"])
 
   def testFastPoll(self):
     """Test the the fast poll True is respected on input messages.
 
     Also make sure we wait the correct amount of time before next poll.
     """
-    self._CheckFastPoll(True, config_lib.CONFIG["Client.poll_min"])
+    self._CheckFastPoll(True, config.CONFIG["Client.poll_min"])
 
   def testCorruption(self):
     """Simulate corruption of the http payload."""
@@ -837,7 +837,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         client_obj.Run()
 
         self.assertEqual(client_obj.http_manager.consecutive_connection_errors,
-                         config_lib.CONFIG["Client.connection_error_limit"] + 1)
+                         config.CONFIG["Client.connection_error_limit"] + 1)
 
 
 class ThreadedWorkerHTTPClientTests(HTTPClientTests):
@@ -848,7 +848,7 @@ class ThreadedWorkerHTTPClientTests(HTTPClientTests):
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
-        ca_cert=config_lib.CONFIG["CA.certificate"],
+        ca_cert=config.CONFIG["CA.certificate"],
         worker=comms.GRRThreadedWorker(start_worker_thread=False))
 
   def CheckClientQueue(self):

@@ -16,11 +16,11 @@ python grr/client/client_build.py \
 -p grr/client/plugins/installer_plugin.py
 
 """
+from grr.client import installer
 import pywintypes
 import win32serviceutil
-import winerror
 
-from grr.client import installer
+import winerror
 
 
 class StopOldService(installer.Installer):
