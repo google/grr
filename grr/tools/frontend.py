@@ -96,6 +96,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Args:
       path: The path the client requested.
     """
+    logging.debug("Rekall profile request from IP %s for %s",
+                  self.client_address[0], path)
     remaining_path = path[len(self.rekall_profile_path):]
     if not remaining_path.startswith("/"):
       self.Send("Error serving profile.", status=500, ctype="text/plain")

@@ -125,16 +125,15 @@ class StatsServerInit(registry.InitHook):
     port = config.CONFIG["Monitoring.http_port"]
     if port != 0:
       logging.info("Starting monitoring server on port %d.", port)
-      # pylint: disable=g-import-not-at-top
-      from grr.lib.local import plugins as _
-      local_overrides = grr.lib.local
-      # pylint: enable=g-import-not-at-top
-      if "stats_server" in dir(local_overrides):
-        stats_server = local_overrides.stats_server.StatsServer(port)
-        logging.debug("Using local StatsServer from %s", local_overrides)
-      else:
-        stats_server = StatsServer(port)
+      try:
+        # pylint: disable=g-import-not-at-top
+        from grr.lib.local import stats_server
+        # pylint: enable=g-import-not-at-top
+        server_obj = stats_server.StatsServer(port)
+        logging.debug("Using local StatsServer")
+      except ImportError:
+        server_obj = StatsServer(port)
 
-      stats_server.Start()
+      server_obj.Start()
     else:
       logging.info("Monitoring server disabled.")

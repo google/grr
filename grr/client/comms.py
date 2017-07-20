@@ -754,7 +754,7 @@ class GRRClientWorker(object):
       return None
 
     pb = rdf_rekall_types.RekallProfile.protobuf()
-    json_format.Parse(response.data, pb)
+    json_format.Parse(response.data.lstrip(")]}'\n"), pb)
     return rdf_rekall_types.RekallProfile.FromSerializedString(
         pb.SerializeToString())
 
