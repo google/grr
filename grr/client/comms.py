@@ -91,12 +91,15 @@ import traceback
 import psutil
 import requests
 
+from google.protobuf import json_format
+
 import logging
 
 from grr import config
 from grr.client import actions
 from grr.client import client_stats
 from grr.client import client_utils
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import communicator
 from grr.lib import flags
 from grr.lib import queues
@@ -742,6 +745,18 @@ class GRRClientWorker(object):
         bytes_uploaded=gzip_fd.total_read,
         file_id=response.data,
         hash=gzip_fd.HashObject(),)
+
+  def GetRekallProfile(self, profile_name, version="v1.0"):
+    response = self.http_manager.OpenServerEndpoint(u"/rekall_profiles/%s/%s" %
+                                                    (version, profile_name))
+
+    if response.code != 200:
+      return None
+
+    pb = rdf_rekall_types.RekallProfile.protobuf()
+    json_format.Parse(response.data, pb)
+    return rdf_rekall_types.RekallProfile.FromSerializedString(
+        pb.SerializeToString())
 
   @utils.Synchronized
   def ChargeBytesToSession(self, session_id, length, limit=0):

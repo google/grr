@@ -40,7 +40,7 @@ message ExportOptions {
 }
 
 message ExportedMetadata {
-  // Next field ID: 18
+  // Next field ID: 20
 
   optional string client_urn = 1 [(sem_type) = {
       type: "ClientURN",
@@ -90,6 +90,14 @@ message ExportedMetadata {
 
   optional string labels = 12 [(sem_type) = {
       description: "CSV list of client labels."
+    }];
+
+  optional string system_labels = 18 [(sem_type) = {
+      description: "Labels hardcoded into GRR clients configs."
+    }];
+
+  optional string user_labels = 19 [(sem_type) = {
+      description: "Labels assigned by GRR uses via the UI/API."
     }];
 
   optional string source_urn = 13 [(sem_type) = {

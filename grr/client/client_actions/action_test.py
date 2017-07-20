@@ -4,7 +4,6 @@
 
 import __builtin__
 import collections
-import logging
 import os
 import platform
 import posix
@@ -23,7 +22,6 @@ from grr.client import actions
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -113,92 +111,6 @@ class ActionTest(test_lib.EmptyActionTest):
       x.st_atime = y.st_atime = 0
 
       self.assertRDFValuesEqual(x, y)
-
-  def testSuspendableListDirectory(self):
-    request = rdf_client.ListDirRequest()
-    request.pathspec.path = self.base_path
-    request.pathspec.pathtype = "OS"
-    request.iterator.number = 2
-    results = []
-
-    grr_worker = worker_mocks.FakeClientWorker()
-
-    while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.RunAction(
-          standard.SuspendableListDirectory, request, grr_worker=grr_worker)
-      results.extend(responses)
-      for response in responses:
-        if isinstance(response, rdf_client.Iterator):
-          request.iterator = response
-
-    filenames = [
-        os.path.basename(r.pathspec.path) for r in results
-        if isinstance(r, rdf_client.StatEntry)
-    ]
-
-    self.assertItemsEqual(filenames, os.listdir(self.base_path))
-
-    iterators = [r for r in results if isinstance(r, rdf_client.Iterator)]
-    # One for two files plus one extra with the FINISHED status.
-    nr_files = len(os.listdir(self.base_path))
-    expected_iterators = (nr_files / 2) + 1
-    if nr_files % 2:
-      expected_iterators += 1
-    self.assertEqual(len(iterators), expected_iterators)
-
-    # Make sure the thread has been deleted.
-    self.assertEqual(grr_worker.suspended_actions, {})
-
-  def testSuspendableActionException(self):
-
-    class TestActionWorker(actions.ClientActionWorker):
-
-      def run(self):
-        try:
-          return super(TestActionWorker, self).run()
-        except Exception as e:  # pylint: disable=broad-except
-          logging.info("Expected exception: %s", e)
-
-    class RaisingListDirectory(standard.SuspendableListDirectory):
-
-      iterations = 3
-
-      def Suspend(self):
-        RaisingListDirectory.iterations -= 1
-        if not RaisingListDirectory.iterations:
-          raise IOError("Ran out of iterations.")
-
-        return super(RaisingListDirectory, self).Suspend()
-
-    p = rdf_paths.PathSpec(
-        path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    request = rdf_client.ListDirRequest(pathspec=p)
-    request.iterator.number = 2
-    results = []
-
-    grr_worker = worker_mocks.FakeClientWorker()
-    while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.ExecuteAction(
-          RaisingListDirectory,
-          request,
-          grr_worker=grr_worker,
-          action_worker_cls=TestActionWorker)
-      results.extend(responses)
-
-      for response in responses:
-        if isinstance(response, rdf_client.Iterator):
-          request.iterator = response
-
-      status = responses[-1]
-      self.assertTrue(isinstance(status, rdf_flows.GrrStatus))
-      if status.status != rdf_flows.GrrStatus.ReturnedStatus.OK:
-        break
-
-      if len(results) > 100:
-        self.fail("Endless loop detected.")
-
-    self.assertIn("Ran out of iterations", status.error_message)
-    self.assertEqual(grr_worker.suspended_actions, {})
 
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""

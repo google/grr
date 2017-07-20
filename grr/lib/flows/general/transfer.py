@@ -971,44 +971,9 @@ class LoadComponentMixin(object):
     if next_state is None:
       raise TypeError("next_state not specified.")
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    system = unicode(client.Get(client.Schema.SYSTEM) or "").lower()
-
-    # TODO(user): Remove python hack when client 3.1 is pushed.
-    request_data = dict(name=name, version=version, next_state=next_state)
-    python_hack_root_urn = config.CONFIG.Get("Config.python_hack_root")
-    python_hack_path = python_hack_root_urn.Add(system).Add(
-        "restart_if_component_loaded.py")
-
-    fd = aff4.FACTORY.Open(python_hack_path, token=self.token)
-    if not isinstance(fd, collects.GRRSignedBlob):
-      logging.info("Python hack %s not available.", python_hack_path)
-
-      self.CallStateInline(
-          next_state="LoadComponentAfterFlushOldComponent",
-          request_data=request_data)
-    else:
-      logging.info("Sending python hack %s", python_hack_path)
-
-      for python_blob in fd:
-        self.CallClient(
-            server_stubs.ExecutePython,
-            python_code=python_blob,
-            py_args=dict(name=name, version=version),
-            next_state="LoadComponentAfterFlushOldComponent",
-            request_data=request_data)
-
-  @flow.StateHandler()
-  def LoadComponentAfterFlushOldComponent(self, responses):
-    """Load the component."""
-    request_data = responses.request_data
-    name = request_data["name"]
-    version = request_data["version"]
-    next_state = request_data["next_state"]
-
     # Get the component summary.
-    component_urn = config.CONFIG.Get("Config.aff4_root").Add(
-        "components").Add("%s_%s" % (name, version))
+    component_urn = config.CONFIG.Get("Config.aff4_root").Add("components").Add(
+        "%s_%s" % (name, version))
 
     try:
       fd = aff4.FACTORY.Open(
@@ -1017,7 +982,9 @@ class LoadComponentMixin(object):
           mode="r",
           token=self.token)
     except IOError as e:
-      raise IOError("Required component not found: %s" % e)
+      logging.info("Component not found: %s", e)
+      self.CallStateInline(next_state=next_state)
+      return
 
     component_summary = fd.Get(fd.Schema.COMPONENT)
     if component_summary is None:
@@ -1034,8 +1001,8 @@ class LoadComponentMixin(object):
   def ComponentLoaded(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
-      raise flow.FlowError(responses.status.error_message)
-
-    self.Log("Loaded component %s %s",
-             responses.First().summary.name, responses.First().summary.version)
+    else:
+      self.Log("Loaded component %s %s",
+               responses.First().summary.name,
+               responses.First().summary.version)
     self.CallStateInline(next_state=responses.request_data["next_state"])

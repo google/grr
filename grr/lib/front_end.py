@@ -19,6 +19,7 @@ from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import rekall_profile_server
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import uploads
@@ -480,6 +481,24 @@ class FrontEndServer(object):
       for data in data_generator:
         decrypt_fd.write(data)
     return filestore_fd.Finalize()
+
+  def _GetRekallProfileServer(self):
+    try:
+      return self._rekall_profile_server
+    except AttributeError:
+      server_type = config.CONFIG["Rekall.profile_server"]
+      self._rekall_profile_server = rekall_profile_server.ProfileServer.classes[
+          server_type]()
+      return self._rekall_profile_server
+
+  def GetRekallProfile(self, name, version="v1.0"):
+    server = self._GetRekallProfileServer()
+
+    try:
+      return server.GetProfileByName(name, version)
+    # TODO(user): We raise too many different exceptions in profile server.
+    except Exception:  # pylint: disable=broad-except
+      return None
 
 
 class FrontendInit(registry.InitHook):

@@ -216,43 +216,19 @@ class GrrRekallSession(session.Session):
     return result
 
 
-# Short term storage for profile data.
-UPLOADED_PROFILES = {}
-
-
-class WriteRekallProfile(actions.ActionPlugin):
-  """A client action to write a Rekall profile to the local cache."""
-
-  in_rdfvalue = rekall_types.RekallProfile
-
-  def Run(self, args):
-    logging.info("Received profile for %s", args.name)
-    UPLOADED_PROFILES[args.name] = args
-
-
 class RekallIOManager(io_manager.IOManager):
   """An IO manager to talk with the GRR server."""
 
   def GetData(self, name, raw=False, default=None):
     # Cant load the profile, we need to ask the server for it.
     self.session.logging.info("Asking server for profile %s", name)
-    UPLOADED_PROFILES.pop(name, None)
+    profile = self.session.action.grr_worker.GetRekallProfile(
+        name, version=constants.PROFILE_REPOSITORY_VERSION)
 
-    self.session.action.SendReply(
-        rekall_types.RekallResponse(
-            missing_profile=name,
-            repository_version=constants.PROFILE_REPOSITORY_VERSION,))
+    if not profile:
+      return obj.NoneObject()
 
-    # Wait for the server to wake us up. When we wake up the server should
-    # have sent the profile over by calling the WriteRekallProfile.
-    self.session.action.Suspend()
-
-    # We expect the profile to be here if all went well.
-    result = UPLOADED_PROFILES.get(name, obj.NoneObject()).payload
-    if result:
-      return self.Decoder(result)
-
-    return result
+    return self.Decoder(profile.payload)
 
   def SetInventory(self, inventory):
     self._inventory = inventory
@@ -278,25 +254,25 @@ class RekallCachingIOManager(caching_url_manager.CachingManager):
     super(RekallCachingIOManager, self).CheckUpstreamRepository()
 
 
-class RekallAction(actions.SuspendableAction):
+class RekallAction(actions.ActionPlugin):
   """Runs a Rekall command on live memory."""
   in_rdfvalue = rekall_types.RekallRequest
   out_rdfvalues = [rekall_types.RekallResponse]
 
-  def Iterate(self):
+  def Run(self, args):
     """Run a Rekall plugin and return the result."""
     # Create a session and run all the plugins with it.
-    session_args = self.request.session.ToDict()
+    session_args = args.session.ToDict()
 
-    if "filename" not in session_args and self.request.device:
-      session_args["filename"] = self.request.device.path
+    if "filename" not in session_args and args.device:
+      session_args["filename"] = args.device.path
 
     rekal_session = GrrRekallSession(
-        action=self, initial_profiles=self.request.profiles, **session_args)
+        action=self, initial_profiles=args.profiles, **session_args)
 
     plugin_errors = []
 
-    for plugin_request in self.request.plugins:
+    for plugin_request in args.plugins:
       # Get the keyword args to this plugin.
       plugin_args = plugin_request.args.ToDict()
       try:

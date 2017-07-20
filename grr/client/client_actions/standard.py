@@ -294,26 +294,6 @@ class IteratedListDirectory(actions.IteratedAction):
     client_state["index"] = index + length
 
 
-class SuspendableListDirectory(actions.SuspendableAction):
-  """Lists a directory as a suspendable client action."""
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
-
-  def Iterate(self):
-    try:
-      fd = vfs.VFSOpen(self.request.pathspec, progress_callback=self.Progress)
-    except (IOError, OSError), e:
-      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
-      return
-
-    length = self.request.iterator.number
-    for group in utils.Grouper(fd.ListFiles(), length):
-      for response in group:
-        self.SendReply(response)
-
-      self.Suspend()
-
-
 class StatFile(ListDirectory):
   """Sends a StatEntry for a single file."""
   in_rdfvalue = rdf_client.ListDirRequest

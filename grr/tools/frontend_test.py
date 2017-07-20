@@ -12,11 +12,14 @@ import ipaddr
 import portpicker
 import requests
 
+from google.protobuf import json_format
+
 import logging
 
 from grr import config
 from grr.client import comms
 from grr.client.client_actions import standard
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import file_store
@@ -357,6 +360,32 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self.assertIsInstance(filestore_fd, file_store.FileStoreAFF4Object)
         # No STAT object attached.
         self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
+
+  def testRekallProfiles(self):
+    req = requests.get(self.base_url + "rekall_profiles")
+    self.assertEqual(req.status_code, 500)
+
+    req = requests.get(self.base_url + "rekall_profiles/v1.0")
+    self.assertEqual(req.status_code, 500)
+
+    known_profile = "F8E2A8B5C9B74BF4A6E4A48F180099942"
+    unknown_profile = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+
+    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                       unknown_profile)
+    self.assertEqual(req.status_code, 404)
+
+    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
+                       known_profile)
+    self.assertEqual(req.status_code, 200)
+
+    pb = rdf_rekall_types.RekallProfile.protobuf()
+    json_format.Parse(req.content.lstrip(")]}'\n"), pb)
+    profile = rdf_rekall_types.RekallProfile.FromSerializedString(
+        pb.SerializeToString())
+    self.assertEqual(profile.name, "nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942")
+    self.assertEqual(profile.version, "v1.0")
+    self.assertEqual(profile.data[:2], "\x1f\x8b")
 
 
 def main(args):

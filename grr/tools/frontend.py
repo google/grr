@@ -14,6 +14,8 @@ import threading
 
 import ipaddr
 
+from google.protobuf import json_format
+
 import logging
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -51,25 +53,79 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
            data,
            status=200,
            ctype="application/octet-stream",
+           additional_headers=None,
            last_modified=0):
+    """Sends a response to the client."""
+    if additional_headers:
+      header_strings = [
+          "%s: %s\r\n" % (name, val)
+          for name, val in additional_headers.iteritems()
+      ]
+    else:
+      header_strings = []
     data = ("HTTP/1.0 %s\r\n"
             "Server: GRR Server\r\n"
             "Content-type: %s\r\n"
             "Content-Length: %d\r\n"
             "Last-Modified: %s\r\n"
+            "%s"
             "\r\n"
             "%s") % (self.statustext[status], ctype, len(data),
-                     self.date_time_string(last_modified), data)
+                     self.date_time_string(last_modified),
+                     "".join(header_strings), data)
     self.wfile.write(data)
+
+  rekall_profile_path = "/rekall_profiles"
 
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
     url_prefix = config.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
       self.ServerPem()
+    elif self.path.startswith(self.rekall_profile_path):
+      self.ServeRekallProfile(self.path)
     elif self.path.startswith(url_prefix):
       path = self.path[len(url_prefix):]
       self.ServeStatic(path)
+
+  def ServeRekallProfile(self, path):
+    """This servers rekall profiles from the frontend server.
+
+    Format is /rekall_profiles/<version>/<profile_name>
+
+    Args:
+      path: The path the client requested.
+    """
+    remaining_path = path[len(self.rekall_profile_path):]
+    if not remaining_path.startswith("/"):
+      self.Send("Error serving profile.", status=500, ctype="text/plain")
+      return
+
+    components = remaining_path[1:].split("/", 1)
+
+    if len(components) != 2:
+      self.Send("Error serving profile.", status=500, ctype="text/plain")
+      return
+    version, name = components
+    profile = self.server.frontend.GetRekallProfile(name, version=version)
+    if not profile:
+      self.Send("Profile not found.", status=404, ctype="text/plain")
+      return
+
+    json_data = json_format.MessageToJson(profile.AsPrimitiveProto())
+
+    sanitized_data = ")]}'\n" + json_data.replace("<", r"\u003c").replace(
+        ">", r"\u003e")
+
+    additional_headers = {
+        "Content-Disposition": "attachment; filename=response.json",
+        "X-Content-Type-Options": "nosniff"
+    }
+    self.Send(
+        sanitized_data,
+        status=200,
+        ctype="application/json",
+        additional_headers=additional_headers)
 
   AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
 

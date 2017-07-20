@@ -616,6 +616,8 @@ class ExportTest(ExportTestBase):
     metadata = export.GetMetadata(self.client_id, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
     self.assertEqual(metadata.labels, u"client-label-24")
+    self.assertEqual(metadata.user_labels, u"client-label-24")
+    self.assertEqual(metadata.system_labels, u"")
     self.assertEqual(metadata.hardware_info.bios_version, u"Version 1.23v")
 
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -624,6 +626,20 @@ class ExportTest(ExportTestBase):
     metadata = export.GetMetadata(self.client_id, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
     self.assertEqual(metadata.labels, u"a,b")
+    self.assertEqual(metadata.user_labels, u"a,b")
+    self.assertEqual(metadata.system_labels, u"")
+
+  def testGetMetadataWithSystemLabels(self):
+    test_lib.ClientFixture(self.client_id, token=self.token)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabels("a", "b")
+      client.AddLabels("c", owner="GRR")
+
+    metadata = export.GetMetadata(self.client_id, token=self.token)
+    self.assertEqual(metadata.labels, u"a,b,c")
+    self.assertEqual(metadata.user_labels, u"a,b")
+    self.assertEqual(metadata.system_labels, u"c")
 
   def testGetMetadataMissingKB(self):
     newclient = aff4.FACTORY.Create(

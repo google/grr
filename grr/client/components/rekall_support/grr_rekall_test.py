@@ -9,6 +9,7 @@ import json
 import os
 
 from grr import config
+from grr.client import comms
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall
 
@@ -18,6 +19,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
 
@@ -30,14 +32,17 @@ from grr.lib.flows.general import transfer
 
 
 class RekallTestSuite(test_lib.EmptyActionTest):
-  """A test suite for testing Rekall plugins.
+  """A test suite for testing Rekall plugins."""
 
-  Note that since the Rekall plugin is a SuspendableAction it is impossible to
-  test it in isolation from the AnalyzeClientMemory Flow. The flow is needed to
-  load profiles, and allow the client action to proceed. We therefore have flow
-  tests here instead of simply a client action test (Most other client actions
-  are very simple so it is possible to test them in isolation).
-  """
+  def GetRekallProfile(self, name, version=None):
+    profile_path = os.path.join(config.CONFIG["Test.data_dir"], "profiles",
+                                version, "%s.gz" % name)
+    try:
+      fd = open(profile_path, "r")
+    except IOError:
+      return
+    return rdf_rekall_types.RekallProfile(
+        name=name, version=version, data=fd.read(), compression="GZIP")
 
   def setUp(self):
     super(RekallTestSuite, self).setUp()
@@ -45,6 +50,14 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     test_lib.WriteComponent(
         token=self.token,
         version=memory.AnalyzeClientMemoryArgs().component_version)
+
+    self.get_rekall_profile_stubber = utils.Stubber(
+        comms.GRRClientWorker, "GetRekallProfile", self.GetRekallProfile)
+    self.get_rekall_profile_stubber.Start()
+
+  def tearDown(self):
+    super(RekallTestSuite, self).tearDown()
+    self.get_rekall_profile_stubber.Stop()
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(
@@ -78,7 +91,6 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       for s in test_lib.TestFlowHelper(
           "AnalyzeClientMemory",
           action_mocks.MemoryClientMock(grr_rekall.RekallAction,
-                                        grr_rekall.WriteRekallProfile,
                                         tempfiles.DeleteGRRTempFiles),
           token=self.token,
           client_id=self.client_id,

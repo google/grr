@@ -254,13 +254,6 @@ class IteratedListDirectory(ClientActionStub):
   out_rdfvalues = [rdf_client.StatEntry]
 
 
-class SuspendableListDirectory(ClientActionStub):
-  """Lists a directory as a suspendable client action."""
-
-  in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalues = [rdf_client.StatEntry]
-
-
 class StatFile(ClientActionStub):
   """Sends a StatEntry for a single file."""
 

@@ -803,20 +803,12 @@ class EmptyActionTest(GRRBaseTest):
 
   labels = ["client_action", "small"]
 
-  def RunAction(self,
-                action_cls,
-                arg=None,
-                grr_worker=None,
-                action_worker_cls=None):
+  def RunAction(self, action_cls, arg=None, grr_worker=None):
     if arg is None:
       arg = rdf_flows.GrrMessage()
 
     self.results = []
-    action = self._GetActionInstance(
-        action_cls,
-        arg=arg,
-        grr_worker=grr_worker,
-        action_worker_cls=action_worker_cls)
+    action = self._GetActionInstance(action_cls, grr_worker=grr_worker)
 
     action.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -824,41 +816,26 @@ class EmptyActionTest(GRRBaseTest):
 
     return self.results
 
-  def ExecuteAction(self,
-                    action_cls,
-                    arg=None,
-                    grr_worker=None,
-                    action_worker_cls=None):
+  def ExecuteAction(self, action_cls, arg=None, grr_worker=None):
     message = rdf_flows.GrrMessage(
         name=action_cls.__name__, payload=arg, auth_state="AUTHENTICATED")
 
     self.results = []
-    action = self._GetActionInstance(
-        action_cls,
-        arg=arg,
-        grr_worker=grr_worker,
-        action_worker_cls=action_worker_cls)
+    action = self._GetActionInstance(action_cls, grr_worker=grr_worker)
 
     action.Execute(message)
 
     return self.results
 
-  def _GetActionInstance(self,
-                         action_cls,
-                         arg=None,
-                         grr_worker=None,
-                         action_worker_cls=None):
+  def _GetActionInstance(self, action_cls, grr_worker=None):
     """Run an action and generate responses.
 
     This basically emulates GRRClientWorker.HandleMessage().
 
     Args:
        action_cls: The action class to run.
-       arg: A protobuf to pass the action.
        grr_worker: The GRRClientWorker instance to use. If not provided we make
          a new one.
-       action_worker_cls: The action worker class to use for iterated actions.
-         If not provided we use the default.
     Returns:
       A list of response protobufs.
     """
@@ -872,17 +849,7 @@ class EmptyActionTest(GRRBaseTest):
     if grr_worker is None:
       grr_worker = worker_mocks.FakeClientWorker()
 
-    try:
-      suspended_action_id = arg.iterator.suspended_action
-      action = grr_worker.suspended_actions[suspended_action_id]
-
-    except (AttributeError, KeyError):
-      if issubclass(action_cls, actions.SuspendableAction):
-        action = action_cls(
-            grr_worker=grr_worker, action_worker_cls=action_worker_cls)
-      else:
-        action = action_cls(grr_worker=grr_worker)
-
+    action = action_cls(grr_worker=grr_worker)
     action.SendReply = types.MethodType(MockSendReply, action)
 
     return action

@@ -1870,7 +1870,19 @@ def GetMetadata(client, token=None):
   metadata.mac_address = utils.SmartUnicode(
       client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
 
-  metadata.labels = u",".join(client_fd.GetLabelsNames())
+  system_labels = set()
+  user_labels = set()
+  for l in client_fd.GetLabels():
+    if l.owner == "GRR":
+      system_labels.add(l.name)
+    else:
+      user_labels.add(l.name)
+
+  metadata.labels = u",".join(sorted(system_labels | user_labels))
+
+  metadata.system_labels = u",".join(sorted(system_labels))
+
+  metadata.user_labels = u",".join(sorted(user_labels))
 
   metadata.hardware_info = client_fd.Get(client_fd.Schema.HARDWARE_INFO)
 
