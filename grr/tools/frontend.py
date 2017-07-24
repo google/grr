@@ -77,16 +77,16 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   rekall_profile_path = "/rekall_profiles"
 
+  static_content_path = "/static/"
+
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
-    url_prefix = config.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
       self.ServerPem()
     elif self.path.startswith(self.rekall_profile_path):
       self.ServeRekallProfile(self.path)
-    elif self.path.startswith(url_prefix):
-      path = self.path[len(url_prefix):]
-      self.ServeStatic(path)
+    elif self.path.startswith(self.static_content_path):
+      self.ServeStatic(self.path[len(self.static_content_path):])
 
   def ServeRekallProfile(self, path):
     """This servers rekall profiles from the frontend server.
@@ -132,8 +132,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
 
   def ServeStatic(self, path):
-    static_aff4_prefix = config.CONFIG["Frontend.static_aff4_prefix"]
-    aff4_path = rdfvalue.RDFURN(static_aff4_prefix).Add(path)
+    aff4_path = aff4.FACTORY.GetStaticContentPath().Add(path)
     try:
       logging.info("Serving %s", aff4_path)
       fd = aff4.FACTORY.Open(aff4_path, token=aff4.FACTORY.root_token)

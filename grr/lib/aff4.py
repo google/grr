@@ -276,16 +276,20 @@ def _ValidateAFF4Type(aff4_type):
 class Factory(object):
   """A central factory for AFF4 objects."""
 
+  intermediate_cache_max_size = 2000
+  intermediate_cache_age = 600
+
   def __init__(self):
     self.intermediate_cache = utils.AgeBasedCache(
-        max_size=config.CONFIG["AFF4.intermediate_cache_max_size"],
-        max_age=config.CONFIG["AFF4.intermediate_cache_age"])
+        max_size=self.intermediate_cache_max_size,
+        max_age=self.intermediate_cache_age)
 
     # Create a token for system level actions. This token is used by other
     # classes such as HashFileStore and NSRLFilestore to create entries under
     # aff4:/files, as well as to create top level paths like aff4:/foreman
     self.root_token = access_control.ACLToken(
         username="GRRSystem", reason="Maintenance").SetUID()
+    self._InitWellKnownPaths()
 
   @classmethod
   def ParseAgeSpecification(cls, age):
@@ -1192,6 +1196,29 @@ class Factory(object):
   def Flush(self):
     data_store.DB.Flush()
     self.intermediate_cache.Flush()
+
+  # Well known AFF4 paths.
+  def _InitWellKnownPaths(self):
+    self._python_hack_root = rdfvalue.RDFURN("aff4:/config/python_hacks")
+    self._executables_root = rdfvalue.RDFURN("aff4:/config/executables")
+    self._component_summaries_root = rdfvalue.RDFURN("aff4:/config/components")
+    self._component_root = rdfvalue.RDFURN("aff4:/web/static/components")
+    self._static_content_path = rdfvalue.RDFURN("aff4:/web/static")
+
+  def GetPythonHackRoot(self):
+    return self._python_hack_root
+
+  def GetExecutablesRoot(self):
+    return self._executables_root
+
+  def GetComponentSummariesRoot(self):
+    return self._component_summaries_root
+
+  def GetComponentRoot(self):
+    return self._component_root
+
+  def GetStaticContentPath(self):
+    return self._static_content_path
 
 
 class Attribute(object):
@@ -3108,11 +3135,14 @@ def AuditLogBase():
   return ROOT_URN.Add("audit").Add("logs")
 
 
+AUDIT_ROLLOVER_TIME = rdfvalue.Duration("2w")
+
+
 def CurrentAuditLog():
   """Get the rdfurn of the current audit log."""
   now_sec = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
-  rollover = config.CONFIG["Logging.aff4_audit_log_rollover"]
+  rollover_seconds = AUDIT_ROLLOVER_TIME.seconds
   # This gives us a filename that only changes every
-  # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.
-  current_log = (now_sec // rollover) * rollover
+  # AUDIT_ROLLOVER_TIME seconds, but is still a valid timestamp.
+  current_log = (now_sec // rollover_seconds) * rollover_seconds
   return AuditLogBase().Add(str(current_log))

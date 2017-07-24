@@ -2,7 +2,6 @@
 """Configuration parameters for the client."""
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto
 
 # General Client options.
@@ -54,17 +53,6 @@ config_lib.DEFINE_string(
     help="Where the client components are installed on the client.")
 
 config_lib.DEFINE_string(
-    name="Client.component_url_stem",
-    default="%(Frontend.static_url_path_prefix)components/",
-    help="A URL path where components will be served from.")
-
-config_lib.DEFINE_semantic(
-    rdfvalue.RDFURN,
-    "Client.component_aff4_stem",
-    default="%(Frontend.static_aff4_prefix)/components/",
-    description="A common AFF4 stem where components will be served from.")
-
-config_lib.DEFINE_string(
     name="Client.rekall_profile_cache_path",
     default=r"%(Client.install_path)\\rekall_profiles",
     help="Where GRR stores cached Rekall profiles needed for memory analysis")
@@ -101,18 +89,6 @@ config_lib.DEFINE_float("Client.poll_max", 600,
 config_lib.DEFINE_float("Client.error_poll_min", 60,
                         "Minimum time between polls in seconds if the server "
                         "reported an error.")
-
-config_lib.DEFINE_float("Client.poll_slew", 1.15, "Slew of poll time.")
-
-config_lib.DEFINE_integer("Client.connection_error_limit", 60 * 24,
-                          "If the client encounters this many connection "
-                          "errors, it exits and restarts. Retries are one "
-                          "minute apart.")
-
-config_lib.DEFINE_integer("Client.retry_error_limit", 10,
-                          "If the client encounters this many connection "
-                          "errors, it searches for a new proxy/server url "
-                          "combination.")
 
 config_lib.DEFINE_list(
     name="Client.proxy_servers",
@@ -256,11 +232,6 @@ config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
 config_lib.DEFINE_integer("Network.api", 3,
                           "The version of the network protocol the client "
                           "uses.")
-
-config_lib.DEFINE_string(
-    "Network.compression",
-    default="ZCOMPRESS",
-    help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
 
 # Installer options.
 config_lib.DEFINE_string(

@@ -17,7 +17,6 @@ import re
 
 import logging
 
-from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
@@ -332,11 +331,13 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
+  approval_cache_time = 600
+
   def __init__(self):
     super(FullAccessControlManager, self).__init__()
 
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=config.CONFIG["ACL.cache_age"])
+        max_size=10000, max_age=self.approval_cache_time)
     self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
 
     self.helpers = {

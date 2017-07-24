@@ -1007,6 +1007,8 @@ class DBSubjectLock(object):
       lease_time: The minimum length of time the lock will remain valid in
         seconds. Note this will be converted to usec for storage.
       token: An ACL token which applies to all methods in this lock.
+    Raises:
+      RuntimeError: No lease time was provided.
     """
     self.subject = utils.SmartStr(subject)
     self.store = data_store
@@ -1015,8 +1017,9 @@ class DBSubjectLock(object):
     self.expires = None
     self.locked = False
     if lease_time is None:
-      lease_time = config.CONFIG["Datastore.transaction_timeout"]
+      raise RuntimeError("Trying to lock without a lease time.")
     self._Acquire(lease_time)
+    self.lease_time = lease_time
 
   def __enter__(self):
     return self

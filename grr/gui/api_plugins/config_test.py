@@ -203,7 +203,7 @@ class ApiGrrBinaryTestMixin(object):
       return component.summary
 
   def GetBinaryBlob(self, summary):
-    blob_urn = config.CONFIG.Get("Client.component_aff4_stem").Add(
+    blob_urn = aff4.FACTORY.GetComponentRoot().Add(
         summary.seed).Add("Linux_debian_64bit")
     return aff4.FACTORY.Open(blob_urn, token=self.token)
 

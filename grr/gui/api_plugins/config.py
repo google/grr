@@ -157,21 +157,10 @@ class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
 
 
 def _GetSignedBlobsRoots():
-  config_root = config.CONFIG.Get("Config.aff4_root")
   return {
-      ApiGrrBinary.Type.PYTHON_HACK:
-          config.CONFIG.Get("Config.python_hack_root"),
-      ApiGrrBinary.Type.EXECUTABLE:
-          config_root.Add("executables")
+      ApiGrrBinary.Type.PYTHON_HACK: aff4.FACTORY.GetPythonHackRoot(),
+      ApiGrrBinary.Type.EXECUTABLE: aff4.FACTORY.GetExecutablesRoot()
   }
-
-
-def _GetComponentSummariesRoot():
-  return config.CONFIG.Get("Config.aff4_root").Add("components")
-
-
-def _GetComponentBlobsRoot():
-  return config.CONFIG.Get("Client.component_aff4_stem")
 
 
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
@@ -220,7 +209,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
   def _ListComponents(self, token=None):
     components_urns = aff4.FACTORY.ListChildren(
-        _GetComponentSummariesRoot(), token=token)
+        aff4.FACTORY.GetComponentSummariesRoot(), token=token)
 
     blobs_root_urns = []
     components_fds = aff4.FACTORY.MultiOpen(
@@ -232,7 +221,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
         continue
 
       components_by_seed[desc.seed] = fd
-      blobs_root_urns.append(_GetComponentBlobsRoot().Add(desc.seed))
+      blobs_root_urns.append(aff4.FACTORY.GetComponentRoot().Add(desc.seed))
 
     blobs_urns = []
     for _, children in aff4.FACTORY.MultiListChildren(
@@ -249,7 +238,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
       items.append(
           ApiGrrBinary(
               path="%s/%s" % (component_fd.urn.Basename(), fd.urn.RelativeName(
-                  _GetComponentBlobsRoot())),
+                  aff4.FACTORY.GetComponentRoot())),
               type=ApiGrrBinary.Type.COMPONENT,
               size=fd.size,
               timestamp=fd.Get(fd.Schema.TYPE).age))
@@ -287,10 +276,11 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
       # First path component of the identifies the component summary, the
       # rest identifies the data blob.
       path_components = args.path.split("/")
-      binary_urn = _GetComponentBlobsRoot().Add("/".join(path_components[1:]))
+      binary_urn = aff4.FACTORY.GetComponentRoot().Add(
+          "/".join(path_components[1:]))
 
       component_fd = aff4.FACTORY.Open(
-          _GetComponentSummariesRoot().Add(path_components[0]),
+          aff4.FACTORY.GetComponentSummariesRoot().Add(path_components[0]),
           aff4_type=aff4_collects.ComponentObject,
           token=token)
       summary = component_fd.Get(component_fd.Schema.COMPONENT)

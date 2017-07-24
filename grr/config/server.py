@@ -33,35 +33,9 @@ config_lib.DEFINE_integer("Source.version_numeric",
 config_lib.DEFINE_integer("Threadpool.size", 50,
                           "Number of threads in the shared thread pool.")
 
-config_lib.DEFINE_integer("Worker.flow_lease_time", 7200,
-                          "Duration of a flow lease time in seconds.")
-
-config_lib.DEFINE_integer("Worker.well_known_flow_lease_time", 600,
-                          "Duration of a well known flow lease time in "
-                          "seconds.")
-
-config_lib.DEFINE_integer("Worker.compaction_lease_time", 3600,
-                          "Duration of collections lease time for compaction "
-                          "in seconds.")
-
 config_lib.DEFINE_integer("Worker.queue_shards", 5,
                           "Queue notifications will be sharded across "
                           "this number of datastore subjects.")
-
-config_lib.DEFINE_integer("Worker.notification_expiry_time", 600,
-                          "The queue manager expires stale notifications "
-                          "after this many seconds.")
-
-config_lib.DEFINE_integer("Worker.notification_retry_interval", 30,
-                          "The queue manager retries to work on requests it "
-                          "could not complete after this many seconds.")
-
-# We write a journal entry for the flow when it's about to be processed.
-# If the journal entry is there after this time, the flow will get terminated.
-config_lib.DEFINE_integer(
-    "Worker.stuck_flows_timeout", 60 * 60 * 6,
-    "Flows who got stuck in the worker for more than this time (in seconds) "
-    "are forcibly terminated")
 
 config_lib.DEFINE_list("Frontend.well_known_flows", ["TransferStore", "Stats"],
                        "Allow these well known flows to run directly on the "
@@ -71,14 +45,6 @@ config_lib.DEFINE_list("Frontend.DEBUG_well_known_flows_blacklist", [],
                        "Drop these well known flows requests without "
                        "processing. Useful as an emergency tool to reduce "
                        "the load on the system.")
-
-config_lib.DEFINE_string(
-    "Frontend.static_aff4_prefix", "aff4:/web/static/",
-    "The AFF4 URN prefix for all streams served publicly from the frontend.")
-
-config_lib.DEFINE_string(
-    "Frontend.static_url_path_prefix", "/static/",
-    "The URL prefix for all streams served publicly from the frontend.")
 
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
@@ -235,12 +201,6 @@ config_lib.DEFINE_integer(
     default=60,
     help="Time in seconds between the dumps of stats "
     "data into the stats store.")
-
-config_lib.DEFINE_integer(
-    "StatsStore.ttl",
-    default=60 * 60 * 24 * 3,
-    help="Maximum lifetime (in seconds) of data in the "
-    "stats store. Default is three days.")
 
 config_lib.DEFINE_bool(
     "AdminUI.allow_hunt_results_delete",

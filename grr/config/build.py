@@ -73,13 +73,6 @@ class PathTypeInfo(type_info.String):
 
 
 # PyInstaller build configuration.
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="PyInstaller.path",
-        must_exist=False,
-        default="c:/grr_build/pyinstaller/pyinstaller.py",
-        help="Path to the main pyinstaller.py file."))
-
 config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
@@ -481,11 +474,6 @@ config_lib.DEFINE_string(
     "ClientBuilder.package_maker_organization",
     default=None,
     help="OS X package maker organization name.")
-
-config_lib.DEFINE_string(
-    "ClientBuilder.package_maker_path",
-    default=None,
-    help="Path to OS X package maker binary.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.signing_cert_name",

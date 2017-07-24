@@ -32,19 +32,6 @@ config_lib.DEFINE_string(
     "%(Logging.path)/GRRlog.txt",
     help="Filename of the grr log file.")
 
-config_lib.DEFINE_string(
-    "Logging.format",
-    # Use a literal block here to prevent config system expansion as this should
-    # be a python format string.
-    "%{%(levelname)s:%(asctime)s %(module)s:%(lineno)s] %(message)s}",
-    help="Log line format (using python's standard logging expansions).")
-
-config_lib.DEFINE_string(
-    "Logging.service_name",
-    "GRR",
-    help="The service name that will be logged with the "
-    "event log engine.")
-
 config_lib.DEFINE_option(
     type_info.RDFValueType(
         rdfclass=standard.DomainEmailAddress,
@@ -61,7 +48,3 @@ config_lib.DEFINE_option(
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
                           "Port for stats monitoring server.")
-
-config_lib.DEFINE_integer("Logging.aff4_audit_log_rollover", 60 * 60 * 24 * 14,
-                          "Audit log rollover interval in seconds. "
-                          "Default is 2 weeks")

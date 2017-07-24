@@ -96,6 +96,8 @@ class QueueManager(object):
 
   notification_shard_counters = {}
 
+  notification_expiry_time = 600
+
   def __init__(self, store=None, token=None):
     self.token = token
     if store is None:
@@ -577,14 +579,13 @@ class QueueManager(object):
     """Does the actual queuing."""
     notification_list = []
     now = rdfvalue.RDFDatetime.Now()
-    expiry_time = config.CONFIG["Worker.notification_expiry_time"]
     for notification in notifications:
       if not notification.first_queued:
         notification.first_queued = (self.frozen_timestamp or
                                      rdfvalue.RDFDatetime.Now())
       else:
         diff = now - notification.first_queued
-        if diff.seconds >= expiry_time:
+        if diff.seconds >= self.notification_expiry_time:
           # This notification has been around for too long, we drop it.
           logging.debug("Dropping notification: %s", str(notification))
           continue
@@ -680,7 +681,8 @@ class QueueManager(object):
       user = self.token.username
     # Do the real work in a transaction
     try:
-      lock = self.data_store.LockRetryWrapper(queue, token=self.token)
+      lock = self.data_store.LockRetryWrapper(
+          queue, lease_time=lease_seconds, token=self.token)
       return self._QueryAndOwn(
           lock.subject, lease_seconds=lease_seconds, limit=limit, user=user)
     except data_store.DBSubjectLockError:

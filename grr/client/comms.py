@@ -5,12 +5,6 @@ The GRR client uses HTTP to communicate with the server.
 
 The client connections are controlled via a number of config parameters:
 
-- Client.retry_error_limit: Number of times the client will try existing
-  connections before giving up.
-
-- Client.connection_error_limit: The client will exit after this many
-  consecutive errors.
-
 - Client.error_poll_min: Time to wait between retries in an ERROR state.
 
 - Client.server_urls: A list of URLs for the base control server.
@@ -54,12 +48,12 @@ The client goes through a state machine:
    server is temporarily down. The client will switch to the RETRY state and
    retry sending the data with a fixed frequency determined by
    Client.error_poll_min to the same URL/Proxy combination. The client will
-   retry for Client.retry_error_limit times (default 10) before exiting the
+   retry for retry_error_limit times before exiting the
    CONNECTED state and returning to the INITIAL state (i.e. the client will
    start searching for a new URL/Proxy combination). If a retry is successful,
    the client will return to its designated polling frequency.
 
-7) If there are Client.connection_error_limit failures, the client will
+7) If there are connection_error_limit failures, the client will
    exit. Hopefully the nanny will restart the client.
 
 Examples:
@@ -68,7 +62,7 @@ Examples:
    combination once every Client.poll_max (default 10 minutes).
 
 2) Client connects successful but loses network connectivity. Client will re-try
-   Client.retry_error_limit (10 times) every Client.error_poll_min (1 Min) to
+   retry_error_limit (10 times) every Client.error_poll_min (1 Min) to
    resent the last message. If it does not succeed it starts searching for a new
    URL/Proxy combination as in example 1.
 
@@ -139,6 +133,14 @@ class HTTPManager(object):
   threads.
   """
 
+  # If the client encounters this many connection errors, it searches
+  # for a new proxy/server url combination.
+  retry_error_limit = 10
+
+  # If the client encounters this many connection errors, it exits and
+  # restarts. Retries are one minute apart.
+  connection_error_limit = 60 * 24
+
   def __init__(self, heart_beat_cb=None):
     self.heart_beat_cb = heart_beat_cb
     self.proxies = self._GetProxies()
@@ -149,10 +151,9 @@ class HTTPManager(object):
     self.last_base_url_index = 0
 
     # If we have connected previously but now suddenly fail to connect, we try
-    # the connection a few times (Client.retry_error_limit) before we determine
+    # the connection a few times (retry_error_limit) before we determine
     # that it is failed.
     self.consecutive_connection_errors = 0
-    self.retry_error_limit = config.CONFIG["Client.retry_error_limit"]
 
     self.active_base_url = None
     self.error_poll_min = config.CONFIG["Client.error_poll_min"]
@@ -430,6 +431,9 @@ class HTTPManager(object):
       if self.heart_beat_cb:
         self.heart_beat_cb()
 
+  def ErrorLimitReached(self):
+    return self.consecutive_connection_errors > self.connection_error_limit
+
 
 class Timer(object):
   """Implements the polling policy.
@@ -438,11 +442,13 @@ class Timer(object):
   timing policy.
   """
 
+  # Slew of poll time.
+  poll_slew = 1.15
+
   def __init__(self, heart_beat_cb=None):
     self.heart_beat_cb = heart_beat_cb
     self.poll_min = config.CONFIG["Client.poll_min"]
     self.sleep_time = self.poll_max = config.CONFIG["Client.poll_max"]
-    self.poll_slew = config.CONFIG["Client.poll_slew"]
 
   def FastPoll(self):
     """Switch to fast poll mode."""
@@ -1496,12 +1502,11 @@ class GRRHTTPClient(object):
     """The main run method of the client.
 
     This method does not normally return. Only if there have been more than
-    Client.connection_error_limit failures, the method returns and allows the
+    connection_error_limit failures, the method returns and allows the
     client to exit.
     """
     while True:
-      if (self.http_manager.consecutive_connection_errors >
-          config.CONFIG["Client.connection_error_limit"]):
+      if self.http_manager.ErrorLimitReached():
         return
 
       # Check if there is a message from the nanny to be sent.

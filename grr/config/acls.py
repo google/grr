@@ -11,9 +11,6 @@ config_lib.DEFINE_string("ACL.approvers_config_file",
 config_lib.DEFINE_integer("ACL.approvers_required", 2,
                           "The number of approvers required for access.")
 
-config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
-                          "approval objects live in the cache.")
-
 config_lib.DEFINE_string("ACL.group_access_manager_class", "NoGroupAccess",
                          "This class handles interfacing with corporate group"
                          "directories for granting access. Override with a "

@@ -44,6 +44,7 @@ class MemoryCollector(flow.GRRFlow):
   friendly_name = "Memory Collector"
   category = "/Memory/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
+
   args_type = MemoryCollectorArgs
 
   @flow.StateHandler()
@@ -122,8 +123,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   """
 
   category = "/Memory/"
-  args_type = AnalyzeClientMemoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
+
+  args_type = AnalyzeClientMemoryArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -334,6 +336,7 @@ class ListVADBinaries(flow.GRRFlow):
       some debug userland-process-dump API?) and then reading the memory.
   """
   category = "/Memory/"
+
   args_type = ListVADBinariesArgs
 
   @flow.StateHandler()

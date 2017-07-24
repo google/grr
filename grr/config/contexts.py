@@ -30,6 +30,7 @@ EXPORT_TOOL_CONTEXT = config_lib.DEFINE_context("ExportTool Context")
 HTTP_SERVER_CONTEXT = config_lib.DEFINE_context("HTTPServer Context")
 POOL_CLIENT_CONTEXT = config_lib.DEFINE_context("PoolClient Context")
 WORKER_CONTEXT = config_lib.DEFINE_context("Worker Context")
+FS_FRONTEND_CONTEXT = config_lib.DEFINE_context("FleetspeakFrontend Context")
 
 # Client building contexts.
 CLIENT_BUILD_CONTEXT = config_lib.DEFINE_context("ClientBuilder Context")

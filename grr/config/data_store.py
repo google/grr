@@ -13,11 +13,6 @@ config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
 config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobstore",
                          "Blob storage subsystem to use.")
 
-config_lib.DEFINE_integer(
-    "Datastore.transaction_timeout",
-    default=600,
-    help="How long do we wait for a transaction lock.")
-
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",

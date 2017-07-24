@@ -4,7 +4,6 @@
 
 import os
 
-from grr import config
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import events
@@ -19,7 +18,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
   def testFlowExecution(self):
     client_mock = action_mocks.ListDirectoryClientMock()
 
-    rollover = config.CONFIG["Logging.aff4_audit_log_rollover"]
+    rollover = aff4.AUDIT_ROLLOVER_TIME.seconds
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
       for _ in test_lib.TestFlowHelper(

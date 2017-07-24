@@ -76,15 +76,9 @@ ClientBuilder Context:
 
     ClientBuilder.package_maker_organization: com.google.code
 
-    ClientBuilder.package_maker_path: |
-        /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
-
     ClientBuilder.template_extension: .xar.zip
 
     Logging.path: /var/log
-
-    PyInstaller.path: |
-        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
 
     PyInstaller.distpath: |
       /Users/%(USER|env)/mac-dist
@@ -126,9 +120,6 @@ ClientBuilder Context:
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/
 
-    PyInstaller.path: |
-      %(ClientBuilder.build_root_dir)/pyinstaller/pyinstaller.py
-
     Target:LinuxRpm:
       ClientBuilder.output_extension: .rpm
 
@@ -164,9 +155,6 @@ ClientBuilder Context:
 
     ClientBuilder.vs_dir: |
       %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
-
-    # This is where the pyinstaller svn checkout lives on the build server.
-    PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
   # This indicates that we are building a client for debugging.
   DebugClientBuild Context:

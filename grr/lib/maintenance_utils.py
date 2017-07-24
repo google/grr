@@ -142,8 +142,7 @@ def _SignWindowsComponent(component, output_filename):
   passwd = getpass.getpass()
   cert = config.CONFIG.Get("ClientBuilder.windows_signing_cert")
   key = config.CONFIG.Get("ClientBuilder.windows_signing_key")
-  app_name = config.CONFIG.Get(
-      "ClientBuilder.windows_signing_application_name")
+  app_name = config.CONFIG.Get("ClientBuilder.windows_signing_application_name")
 
   signer = signing.WindowsCodeSigner(cert, key, passwd, app_name)
   with utils.TempDirectory() as temp_dir:
@@ -226,9 +225,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
   # For each platform specific component, we have a component summary object
   # which contains high level information in common to all components of this
   # specific version.
-  component_urn = config.CONFIG.Get("Config.aff4_root").Add(
-      "components").Add("%s_%s" % (component.summary.name,
-                                   component.summary.version))
+  component_urn = config.CONFIG.Get("Config.aff4_root").Add("components").Add(
+      "%s_%s" % (component.summary.name, component.summary.version))
 
   component_fd = aff4.FACTORY.Create(
       component_urn, collects.ComponentObject, mode="rw", token=token)
@@ -239,9 +237,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
     component_summary = component.summary
     component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
-    component_summary.url = (config.CONFIG.Get(
-        "Client.component_url_stem", context=client_context) +
-                             component_summary.seed)
+    component_summary.url = ("/static/components/" + component_summary.seed)
 
     component_fd.Set(component_fd.Schema.COMPONENT, component_summary)
     component_fd.Close()
@@ -255,9 +251,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
   signed_component = rdf_crypto.SignedBlob()
   signed_component.Sign(component.SerializeToString(), sig_key, ver_key)
 
-  aff4_urn = config.CONFIG.Get(
-      "Client.component_aff4_stem", context=client_context).Add(
-          component.summary.seed).Add(component.build_system.signature())
+  aff4_urn = aff4.FACTORY.GetComponentRoot().Add(component.summary.seed).Add(
+      component.build_system.signature())
 
   EPrint("Storing signed component at %s" % aff4_urn)
   with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:

@@ -49,7 +49,6 @@ import operator
 
 import logging
 
-from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
@@ -874,7 +873,7 @@ class GRRFlow(FlowBase):
 
   def HeartBeat(self):
     if self.locked:
-      lease_time = config.CONFIG["Worker.flow_lease_time"]
+      lease_time = self.transaction.lease_time
       if self.CheckLease() < lease_time / 2:
         logging.debug("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)

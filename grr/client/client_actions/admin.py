@@ -198,14 +198,12 @@ class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
   in_rdfvalue = rdf_protodict.Dict
 
-  UPDATABLE_FIELDS = {"Client.compression",
-                      "Client.foreman_check_frequency",
+  UPDATABLE_FIELDS = {"Client.foreman_check_frequency",
                       "Client.server_urls",
                       "Client.max_post_size",
                       "Client.max_out_queue",
                       "Client.poll_min",
                       "Client.poll_max",
-                      "Client.poll_slew",
                       "Client.rss_max"}  # pyformat: disable
 
   def _UpdateConfig(self, filtered_arg, config_obj):

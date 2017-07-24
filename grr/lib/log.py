@@ -126,8 +126,11 @@ def SetLogLevels():
     handler.setLevel(levels[handler.__class__.__name__])
 
 
+LOG_FORMAT = "%(levelname)s:%(asctime)s %(module)s:%(lineno)s] %(message)s"
+
+
 def GetLogHandlers():
-  formatter = logging.Formatter(config.CONFIG["Logging.format"])
+  formatter = logging.Formatter(LOG_FORMAT)
   engines = config.CONFIG["Logging.engines"]
   logging.debug("Will use logging engines %s", engines)
 
@@ -139,8 +142,7 @@ def GetLogHandlers():
         yield handler
 
       elif engine == "event_log":
-        handler = handlers.NTEventLogHandler(
-            config.CONFIG["Logging.service_name"])
+        handler = handlers.NTEventLogHandler("GRR")
         handler.setFormatter(formatter)
         yield handler
 

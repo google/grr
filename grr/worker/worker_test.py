@@ -12,6 +12,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import front_end
 from grr.lib import queue_manager
 from grr.lib import queues
@@ -407,7 +408,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.RunOnce()
       worker_obj.thread_pool.Join()
 
-    delay = config.CONFIG["Worker.notification_retry_interval"]
+    delay = flow_runner.FlowRunner.notification_retry_interval
     with test_lib.FakeTime(10000 + 100 + delay):
       manager = queue_manager.QueueManager(token=self.token)
       self.assertFalse(manager.GetNotificationsForAllShards(session_id.Queue()))
@@ -432,7 +433,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       notifications = [n for n in notifications if n.session_id == session_id]
       self.assertEqual(len(notifications), 1)
 
-    delay = config.CONFIG["Worker.notification_retry_interval"]
+    delay = flow_runner.FlowRunner.notification_retry_interval
 
     ttl = notification.ttl
     for i in xrange(ttl - 1):
@@ -519,8 +520,6 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config.CONFIG["Worker.stuck_flows_timeout"])
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -538,6 +537,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       # Set the time to max worker flow duration + 1 minute. The flow is
       # currently blocked because of the way semaphores are set up.
       # Worker should consider the flow to be stuck and terminate it.
+      stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
       future_time = (
           initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
       with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
@@ -558,8 +558,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config.CONFIG["Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -602,10 +601,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
-    stuck_flows_timeout = rdfvalue.Duration(
-        config.CONFIG["Worker.stuck_flows_timeout"])
-    lease_timeout = rdfvalue.Duration(
-        config.CONFIG["Worker.flow_lease_time"])
+    stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
+    lease_timeout = rdfvalue.Duration(worker.GRRWorker.flow_lease_time)
 
     WorkerStuckableTestFlow.Reset(heartbeat=True)
     try:
@@ -659,8 +656,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config.CONFIG["Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
 
     with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
       session_id = flow.GRRFlow.StartFlow(
@@ -829,7 +825,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    delay = config.CONFIG["Worker.notification_retry_interval"]
+    delay = flow_runner.FlowRunner.notification_retry_interval
     with test_lib.FakeTime(time.time() + 10 + delay):
       requeued_notifications = manager.GetNotifications(queues.FLOWS)
       # Check that there is a new notification.

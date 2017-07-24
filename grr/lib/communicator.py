@@ -8,7 +8,6 @@ import time
 import zlib
 
 
-from grr import config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -282,14 +281,13 @@ class Communicator(object):
     uncompressed_data = message_list.SerializeToString()
     signed_message_list.message_list = uncompressed_data
 
-    if config.CONFIG["Network.compression"] == "ZCOMPRESS":
-      compressed_data = zlib.compress(uncompressed_data)
+    compressed_data = zlib.compress(uncompressed_data)
 
-      # Only compress if it buys us something.
-      if len(compressed_data) < len(uncompressed_data):
-        signed_message_list.compression = (
-            rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
-        signed_message_list.message_list = compressed_data
+    # Only compress if it buys us something.
+    if len(compressed_data) < len(uncompressed_data):
+      signed_message_list.compression = (
+          rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
+      signed_message_list.message_list = compressed_data
 
   def _GetServerCipher(self):
     """Returns the cipher for self.server_name."""

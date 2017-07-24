@@ -4,7 +4,6 @@
 
 # pylint: disable=unused-import
 from grr.config import acls
-from grr.config import aff4
 from grr.config import api
 from grr.config import artifacts
 from grr.config import build

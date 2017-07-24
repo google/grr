@@ -213,30 +213,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(decoded_messages[0].auth_state,
                      rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED)
 
-  def testCompression(self):
-    """Tests that the compression works."""
-    with test_lib.ConfigOverrider({"Network.compression": "UNCOMPRESSED"}):
-      self.testCommunications()
-      uncompressed_len = len(self.cipher_text)
-
-    # If the client compresses, the server should still be able to
-    # parse it:
-    with test_lib.ConfigOverrider({"Network.compression": "ZCOMPRESS"}):
-      self.testCommunications()
-      compressed_len = len(self.cipher_text)
-
-      self.assertLess(compressed_len, uncompressed_len)
-
-    # If we chose a crazy compression scheme, the client should not
-    # compress.
-    with test_lib.ConfigOverrider({
-        "Network.compression": "SOMECRAZYCOMPRESSION"
-    }):
-      self.testCommunications()
-      compressed_len = len(self.cipher_text)
-
-      self.assertEqual(compressed_len, uncompressed_len)
-
   def testX509Verify(self):
     """X509 Verify can have several failure paths."""
 
@@ -388,8 +364,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
-        ca_cert=config.CONFIG["CA.certificate"],
-        worker=comms.GRRClientWorker())
+        ca_cert=config.CONFIG["CA.certificate"], worker=comms.GRRClientWorker())
 
   def CreateNewClientObject(self):
     self.CreateClientCommunicator()
@@ -407,8 +382,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def UrlMock(self, num_messages=10, url=None, data=None, **kwargs):
     """A mock for url handler processing from the server's POV."""
     if "server.pem" in url:
-      return MakeResponse(
-          200, utils.SmartStr(config.CONFIG["Frontend.certificate"]))
+      return MakeResponse(200,
+                          utils.SmartStr(config.CONFIG["Frontend.certificate"]))
 
     _ = kwargs
     try:
@@ -489,7 +464,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Clear the certificate so we can generate a new one.
     with test_lib.ConfigOverrider({
         "Client.private_key": "",
-        "Client.retry_error_limit": 5
     }):
       self.CreateNewClientObject()
 
@@ -829,15 +803,15 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.Stubber(requests, "request", self.RaiseError):
-      with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
-        # Simulate a client run. The client will retry the connection limit by
-        # itself. The Run() method will quit when connection_error_limit is
-        # reached. This will make the real client quit.
-        client_obj.Run()
+    with utils.MultiStubber((requests, "request", self.RaiseError),
+                            (client_obj.http_manager, "connection_error_limit",
+                             8)):
+      # Simulate a client run. The client will retry the connection limit by
+      # itself. The Run() method will quit when connection_error_limit is
+      # reached. This will make the real client quit.
+      client_obj.Run()
 
-        self.assertEqual(client_obj.http_manager.consecutive_connection_errors,
-                         config.CONFIG["Client.connection_error_limit"] + 1)
+      self.assertEqual(client_obj.http_manager.consecutive_connection_errors, 9)
 
 
 class ThreadedWorkerHTTPClientTests(HTTPClientTests):

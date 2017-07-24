@@ -49,6 +49,11 @@ class GRRWorker(object):
   # A class global threadpool to be used for all workers.
   thread_pool = None
 
+  # Duration of a flow lease time in seconds.
+  flow_lease_time = 3600
+  # Duration of a well known flow lease time in seconds.
+  well_known_flow_lease_time = 600
+
   def __init__(self,
                queues=queues_config.WORKER_LIST,
                threadpool_prefix="grr_threadpool",
@@ -91,9 +96,6 @@ class GRRWorker(object):
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
-    self.flow_lease_time = config.CONFIG["Worker.flow_lease_time"]
-    self.well_known_flow_lease_time = config.CONFIG[
-        "Worker.well_known_flow_lease_time"]
 
   def Run(self):
     """Event loop."""
