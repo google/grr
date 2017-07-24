@@ -11,11 +11,12 @@ from grr.lib import flags
 from grr.lib import flow
 
 # These imports populate the GRRHunt registry.
-from grr.lib import hunts
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.server import foreman as rdf_foreman
 
 
@@ -32,7 +33,7 @@ class TestHuntListener(flow.EventListener):
     self.__class__.received_events.append(message)
 
 
-class BrokenSampleHunt(hunts.SampleHunt):
+class BrokenSampleHunt(standard.SampleHunt):
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -48,7 +49,7 @@ class BrokenSampleHunt(hunts.SampleHunt):
     self.MarkClientDone(client_id)
 
 
-class DummyHunt(hunts.GRRHunt):
+class DummyHunt(implementation.GRRHunt):
   """Dummy hunt that stores client ids in a class variable."""
 
   client_ids = []
@@ -94,8 +95,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 value=1336650631137737))
     ])
 
-    hunt = hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token)
@@ -167,8 +168,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 value=1336650631137737))
     ])
 
-    hunt = hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token)
@@ -215,8 +216,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="no such attribute", attribute_regex="HUNT"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="BrokenSampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=BrokenSampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:
@@ -237,8 +238,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_limit=client_limit,
         client_rate=0,
@@ -254,7 +255,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client.Close()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    with utils.Stubber(hunts.SampleHunt, "StartClients", self.Callback):
+    with utils.Stubber(standard.SampleHunt, "StartClients", self.Callback):
       self.called = []
 
       foreman.AssignTasksToClient(client.urn)
@@ -263,8 +264,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(self.called[0][1], [client.urn])
 
   def testStartClients(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt", client_rate=0, token=self.token) as hunt:
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__, client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -274,7 +276,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(flows, [])
 
-    hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
+    implementation.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
     test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
@@ -299,8 +301,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:
@@ -319,7 +321,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         hunt.session_id,
         mode="r",
         age=aff4.ALL_TIMES,
-        aff4_type=hunts.SampleHunt,
+        aff4_type=standard.SampleHunt,
         token=self.token)
 
     started, finished, _ = hunt_obj.GetClientsCounts()
@@ -338,8 +340,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:
@@ -374,8 +376,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:
@@ -420,8 +422,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_limit=5,
         client_rule_set=client_rule_set,
         client_rate=0,
@@ -457,8 +459,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="BrokenSampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=BrokenSampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:
@@ -497,8 +499,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="BrokenSampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=BrokenSampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         notification_event="TestHuntDone",
@@ -525,8 +527,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="DummyHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=DummyHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=1,
         token=self.token) as hunt:

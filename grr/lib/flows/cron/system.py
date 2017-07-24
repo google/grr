@@ -14,7 +14,6 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -22,6 +21,7 @@ from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import discovery as flows_discovery
 from grr.lib.flows.general import endtoend as flows_endtoend
+from grr.lib.hunts import implementation as hunts_implementation
 from grr.lib.hunts import standard as hunts_standard
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as rdfstats
@@ -281,8 +281,8 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with hunts_implementation.GRRHunt.StartHunt(
+        hunt_name=hunts_standard.GenericHunt.__name__,
         client_limit=0,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="Interrogate"),
         flow_args=flows_discovery.InterrogateArgs(lightweight=False),
@@ -380,8 +380,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     hunt_args.output_plugins = self.GetOutputPlugins()
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="VariableGenericHunt",
+    with hunts_implementation.GRRHunt.StartHunt(
+        hunt_name=hunts_standard.VariableGenericHunt.__name__,
         args=hunt_args,
         client_rule_set=client_rule_set,
         client_rate=0,

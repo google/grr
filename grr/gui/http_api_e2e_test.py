@@ -30,7 +30,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -41,6 +40,8 @@ from grr.lib.authorization import client_approval_auth
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import processes_test
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.rdfvalues import client as rdf_client
@@ -1058,8 +1059,9 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt", token=self.token.SetUID()) as hunt:
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
+        token=self.token.SetUID()) as hunt:
       return hunt.session_id
 
   def testSimpleUnauthorizedAccess(self):

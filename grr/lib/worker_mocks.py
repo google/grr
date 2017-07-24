@@ -11,10 +11,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 class FakeMixin(object):
   """Worker methods that just collect SendReplys."""
 
-  # Global store of suspended actions, indexed by the unique ID of the client
-  # action.
-  suspended_actions = {}
-
   def __init__(self, *args, **kw):
     super(FakeMixin, self).__init__(*args, **kw)
     self.responses = []

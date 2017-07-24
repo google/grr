@@ -4,10 +4,10 @@
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -67,7 +67,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     output_plugins = [
         output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
     ]
-    with hunts.GRRHunt.StartHunt(
+    with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         output_plugins=output_plugins,

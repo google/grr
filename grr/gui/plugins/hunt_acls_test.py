@@ -8,7 +8,8 @@ from grr.gui import runtests_test
 from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.server import foreman as rdf_foreman
 
 
@@ -25,8 +26,8 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",
         client_rule_set=client_rule_set,

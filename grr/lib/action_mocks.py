@@ -59,15 +59,8 @@ class ActionMock(object):
       return getattr(self, message.name)(message.payload)
 
     self.RecordCall(message.name, message.payload)
-    # Try to retrieve a suspended action from the client worker.
-    try:
-      suspended_action_id = message.payload.iterator.suspended_action
-      action = self.client_worker.suspended_actions[suspended_action_id]
-
-    except (AttributeError, KeyError):
-      # Otherwise make a new action instance.
-      action_cls = self.action_classes[message.name]
-      action = action_cls(grr_worker=self.client_worker)
+    action_cls = self.action_classes[message.name]
+    action = action_cls(grr_worker=self.client_worker)
 
     action.Execute(message)
     self.action_counts[message.name] += 1

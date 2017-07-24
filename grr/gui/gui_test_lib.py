@@ -28,13 +28,14 @@ from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import client_index
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -527,8 +528,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path=path or "/tmp/evil.txt",
@@ -567,8 +568,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         client_rule_set=client_rule_set,
         output_plugins=[],
         token=self.token) as hunt:
@@ -587,8 +588,10 @@ class GRRSeleniumHuntTest(GRRSeleniumTest):
 class SearchClientTestBase(GRRSeleniumTest):
 
   def CreateSampleHunt(self, description, token=None):
-    return hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt", description=description, token=token)
+    return implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        description=description,
+        token=token)
 
 
 class CanaryModeOverrider(object):

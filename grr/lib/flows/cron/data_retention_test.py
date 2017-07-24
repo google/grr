@@ -10,13 +10,13 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.cron import data_retention
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 
 
@@ -31,7 +31,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
     self.hunts_urns = []
     with test_lib.FakeTime(40):
       for i in range(self.NUM_HUNTS):
-        hunt = hunts.GRRHunt.StartHunt(
+        hunt = implementation.GRRHunt.StartHunt(
             hunt_name=standard.SampleHunt.__name__,
             expiry_time=rdfvalue.Duration("1m") * i,
             token=self.token)

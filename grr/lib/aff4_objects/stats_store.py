@@ -720,7 +720,7 @@ class StatsStoreWorker(object):
 
 class StatsStoreInit(registry.InitHook):
   """Hook that inits global STATS_STORE object and stats store worker."""
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
     """Initializes StatsStore and StatsStoreWorker."""

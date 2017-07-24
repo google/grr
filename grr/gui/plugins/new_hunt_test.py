@@ -9,13 +9,14 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -497,8 +498,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
 
   @staticmethod
   def CreateSampleHunt(description, token=None):
-    hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         description=description,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
@@ -749,8 +750,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         literal="foo\x0d\xc8bar")
 
-    hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
@@ -808,8 +809,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
                      .contents_literal_match.literal, "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
-    hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(

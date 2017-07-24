@@ -15,7 +15,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import stats
@@ -168,8 +167,8 @@ class StandardHuntTestMixin(object):
                 regex=rdf_foreman.ForemanRegexClientRule(
                     attribute_name="GRR client", attribute_regex="GRR"))
         ]))
-    return hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    return implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         flow_args=flow_args,
         client_rule_set=client_rule_set,
@@ -288,8 +287,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertFalse(list(flows_fd.ListChildren()))
 
   def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="InfiniteFlow"),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
@@ -858,8 +857,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self._AppendFlowRequest(args.flows, 2, 2)
     self._AppendFlowRequest(args.flows, 2, 3)
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="VariableGenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.VariableGenericHunt.__name__,
         args=args,
         client_rate=0,
         token=self.token) as hunt:
@@ -892,8 +891,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
     with test_lib.FakeTime(1000, increment=1e-6):
-      with hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt",
+      with implementation.GRRHunt.StartHunt(
+          hunt_name=standard.GenericHunt.__name__,
           flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
@@ -941,8 +940,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
     with test_lib.FakeTime(1000):
-      with hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt",
+      with implementation.GRRHunt.StartHunt(
+          hunt_name=standard.GenericHunt.__name__,
           flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
@@ -994,8 +993,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
   def testHuntModificationWorksCorrectly(self):
     """This tests running the hunt on some clients."""
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
@@ -1063,8 +1062,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testResourceUsageStats(self):
     client_ids = self.SetupClients(10)
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
@@ -1126,8 +1125,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
   def testHuntCollectionLogging(self):
     """This tests running the hunt on some clients."""
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="DummyLogFlow"),
         client_rate=0,
         token=self.token) as hunt:
@@ -1142,7 +1141,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # Check logs were written to the hunt collection
     hunt_logs = implementation.GRRHunt.LogCollectionForHID(
         hunt_urn, token=self.token)
-    # Can't use len with PackedVersionCollection
     count = 0
     for log in hunt_logs:
       if log.client_id:
@@ -1154,7 +1152,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         self.assertTrue(str(hunt_urn) in str(log.urn))
       else:
         self.assertEqual(log.log_message, "Log from the hunt itself")
-        self.assertEqual(log.flow_name, "GenericHunt")
+        self.assertEqual(log.flow_name, standard.GenericHunt.__name__)
         self.assertEqual(log.urn, hunt_urn)
 
       count += 1
@@ -1169,8 +1167,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # parameters are not valid so the flow will error out but it's
     # enough to check if the flow was actually run (i.e., it passed
     # the label test).
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="UpdateClient"),
         flow_args=administrative.UpdateClientArgs(),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
@@ -1220,7 +1218,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     return sum(result.values()), result
 
   def testDoesNothingWithNonGenericHunts(self):
-    hunts.GRRHunt.StartHunt(hunt_name="SampleHunt", token=self.token)
+    implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__, token=self.token)
 
     prev_count, _ = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(

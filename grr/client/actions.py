@@ -35,10 +35,6 @@ class NetworkBytesExceededError(Error):
   """Exceeded the maximum number of bytes allowed to be sent for this action."""
 
 
-class ThreadNotFoundError(Error):
-  """A suspended thread was requested that doesn't exist on the client."""
-
-
 class ActionPlugin(object):
   """Baseclass for plugins.
 

@@ -10,8 +10,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import stats as aff4_stats
 
-# pylint: enable=unused-import
-
 
 class ClassCounter(object):
   """Populates a stats.Graph with counts of each object class."""

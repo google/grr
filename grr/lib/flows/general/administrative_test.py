@@ -19,7 +19,6 @@ from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import maintenance_utils
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -33,6 +32,8 @@ from grr.lib.aff4_objects import users
 from grr.lib.flows.general import audit as _
 from grr.lib.flows.general import discovery
 # pylint: enable=unused-import
+from grr.lib.hunts import implementation as hunts_implementation
+from grr.lib.hunts import standard as hunts_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -175,8 +176,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       self.email_messages.append(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with hunts_implementation.GRRHunt.StartHunt(
+        hunt_name=hunts_standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name="FlowWithOneClientRequest"),
         client_rate=0,

@@ -1348,7 +1348,7 @@ class EventListener(WellKnownFlow):
 class FlowInit(registry.InitHook):
   """Sets up flow-related stats."""
 
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
     # Counters defined here

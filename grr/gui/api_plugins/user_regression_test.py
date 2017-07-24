@@ -10,13 +10,14 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import users as aff4_users
 
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 
 
@@ -397,7 +398,8 @@ class ApiListHuntApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
-      hunt = hunts.GRRHunt.StartHunt(hunt_name="GenericHunt", token=self.token)
+      hunt = implementation.GRRHunt.StartHunt(
+          hunt_name=standard.GenericHunt.__name__, token=self.token)
 
     with test_lib.FakeTime(43):
       flow_urn = flow.GRRFlow.StartFlow(

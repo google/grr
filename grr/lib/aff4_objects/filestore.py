@@ -652,7 +652,7 @@ class NSRLFileStore(HashFileStore):
 class FileStoreInit(registry.InitHook):
   """Create filestore aff4 paths."""
 
-  pre = ["GRRAFF4Init"]
+  pre = [aff4_grr.GRRAFF4Init]
 
   def Run(self):
     """Create FileStore and HashFileStore namespaces."""

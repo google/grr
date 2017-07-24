@@ -20,11 +20,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import users
-from grr.lib.hunts import implementation as hunts_implementation
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -288,123 +285,6 @@ def ApprovalRevokeRaw(aff4_path, token):
       approval_urn, mode="rw", token=super_token)
   approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
   approval_request.Close()
-
-
-# TODO(user): remove as soon as migration is complete.
-def MigrateObjectsLabels(root_urn, obj_type, label_suffix=None, token=None):
-  """Migrates labels of object under given root (non-recursive)."""
-
-  root = aff4.FACTORY.Create(root_urn, aff4.AFF4Volume, mode="r", token=token)
-  children_urns = list(root.ListChildren())
-
-  if label_suffix:
-    children_urns = [urn.Add(label_suffix) for urn in children_urns]
-
-  print "Found %d children." % len(children_urns)
-
-  updated_objects = 0
-  ignored_objects = 0
-  for child in aff4.FACTORY.MultiOpen(
-      children_urns, mode="rw", token=token, age=aff4.NEWEST_TIME):
-
-    if isinstance(child, obj_type):
-      print "Current state: %d updated, %d ignored." % (updated_objects,
-                                                        ignored_objects)
-
-      old_labels = child.Get(child.Schema.DEPRECATED_LABEL, [])
-      if not old_labels:
-        ignored_objects += 1
-        continue
-
-      if label_suffix:
-        child = aff4.FACTORY.Open(child.urn.Dirname(), mode="rw", token=token)
-      labels = [utils.SmartStr(label) for label in old_labels]
-      child.AddLabels(*labels, owner="GRR")
-      child.Close(sync=False)
-      updated_objects += 1
-
-  aff4.FACTORY.Flush()
-
-
-def MigrateClientsAndUsersLabels(token=None):
-  """Migrates clients and users labels."""
-
-  print "Migrating clients."
-  MigrateObjectsLabels(aff4.ROOT_URN, aff4_grr.VFSGRRClient, token=token)
-  print "\nMigrating users."
-  MigrateObjectsLabels(
-      aff4.ROOT_URN.Add("users"),
-      users.GRRUser,
-      label_suffix="labels",
-      token=token)
-
-
-def MigrateHuntFinishedAndErrors(hunt_or_urn, token=None):
-  """Migrates given hunt to collection-stored clients/errors lists."""
-  if hasattr(hunt_or_urn, "Schema"):
-    hunt = hunt_or_urn
-    if hunt.age_policy != aff4.ALL_TIMES:
-      raise RuntimeError("Hunt object should have ALL_TIMES age policy.")
-  else:
-    hunt = aff4.FACTORY.Open(
-        hunt_or_urn,
-        aff4_type=hunts_implementation.GRRHunt,
-        token=token,
-        age=aff4.ALL_TIMES)
-
-  print "Migrating hunt %s." % hunt.urn
-
-  print "Processing all clients list."
-  aff4.FACTORY.Delete(hunt.all_clients_collection_urn, token=token)
-  with aff4.FACTORY.Create(
-      hunt.all_clients_collection_urn,
-      aff4_type=collects.PackedVersionedCollection,
-      mode="w",
-      token=token) as all_clients_collection:
-    clients = set(hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_CLIENTS))
-    for client in reversed(sorted(clients, key=lambda x: x.age)):
-      all_clients_collection.Add(client)
-
-  print "Processing completed clients list."
-  aff4.FACTORY.Delete(hunt.completed_clients_collection_urn, token=token)
-  with aff4.FACTORY.Create(
-      hunt.completed_clients_collection_urn,
-      aff4_type=collects.PackedVersionedCollection,
-      mode="w",
-      token=token) as comp_clients_collection:
-    clients = set(hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_FINISHED))
-    for client in reversed(sorted(clients, key=lambda x: x.age)):
-      comp_clients_collection.Add(client)
-
-  print "Processing errors list."
-  aff4.FACTORY.Delete(hunt.clients_errors_collection_urn, token=token)
-  with aff4.FACTORY.Create(
-      hunt.clients_errors_collection_urn,
-      aff4_type=collects.PackedVersionedCollection,
-      mode="w",
-      token=token) as errors_collection:
-    for error in hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_ERRORS):
-      errors_collection.Add(error)
-
-
-def MigrateAllHuntsFinishedAndError(token=None):
-  """Migrates all hunts to collection-stored clients/errors lists."""
-  hunts_list = list(
-      aff4.FACTORY.Open("aff4:/hunts", token=token).ListChildren())
-  all_hunts = aff4.FACTORY.MultiOpen(
-      hunts_list,
-      aff4_type=hunts_implementation.GRRHunt,
-      mode="r",
-      age=aff4.ALL_TIMES,
-      token=token)
-
-  index = 0
-  for hunt in all_hunts:
-    MigrateHuntFinishedAndErrors(hunt, token=token)
-
-    index += 1
-    print ""
-    print "Done %d out of %d hunts." % (index, len(hunts_list))
 
 
 def ClientIdToHostname(client_id, token=None):

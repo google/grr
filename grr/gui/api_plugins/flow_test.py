@@ -19,12 +19,12 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import test_plugins
@@ -87,7 +87,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
         children[0].urn)
 
   def _StartHunt(self):
-    with hunts.GRRHunt.StartHunt(
+    with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=test_lib.FlowWithOneNestedFlow.__name__),

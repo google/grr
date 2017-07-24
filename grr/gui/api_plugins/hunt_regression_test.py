@@ -11,7 +11,6 @@ from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import hunt as hunt_plugin
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -444,7 +443,7 @@ class ApiListHuntClientsHandlerRegressionTest(
     replace = {hunt_urn.Basename(): "H:123456"}
 
     # Add all sub flows to replace dict.
-    all_flows = hunts.GRRHunt.GetAllSubflowUrns(
+    all_flows = implementation.GRRHunt.GetAllSubflowUrns(
         hunt_urn, self.client_ids, token=self.token)
 
     for flow_urn in all_flows:

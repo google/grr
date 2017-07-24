@@ -11,7 +11,6 @@ from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -22,6 +21,7 @@ from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.flows.general import administrative
 
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 
@@ -475,7 +475,7 @@ class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    with hunts.GRRHunt.StartHunt(
+    with implementation.GRRHunt.StartHunt(
         hunt_name=standard.SampleHunt.__name__, token=self.token) as hunt:
       pass
 

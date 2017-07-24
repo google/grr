@@ -117,7 +117,7 @@ class HuntResultCollection(sequential_collection.GrrMessageCollection):
 
 
 class ResultQueueInitHook(registry.InitHook):
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def Run(self):
     try:

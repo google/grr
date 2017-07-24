@@ -6,7 +6,6 @@
 from grr.lib.flows.console import debugging_test
 
 # Cron tests.
-from grr.lib.flows.cron import compactors_test
 from grr.lib.flows.cron import data_retention_test
 from grr.lib.flows.cron import filestore_stats_test
 from grr.lib.flows.cron import system_test

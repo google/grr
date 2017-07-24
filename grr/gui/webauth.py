@@ -174,7 +174,6 @@ def SecurityCheck(func):
 
 
 class WebAuthInit(registry.InitHook):
-  pre = ["GuiPluginsInit"]
 
   def RunOnce(self):
     """Run this once on init."""

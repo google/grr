@@ -16,8 +16,3 @@ config_lib.DEFINE_integer(
 
 config_lib.DEFINE_integer("AFF4.intermediate_cache_max_size", 2000,
                           "Maximum size of the AFF4 index cache.")
-
-config_lib.DEFINE_string(
-    "AFF4.change_email", None,
-    "Email used by AFF4NotificationEmailListener to notify "
-    "about AFF4 changes.")

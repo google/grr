@@ -13,7 +13,6 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import front_end
-from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -23,6 +22,7 @@ from grr.lib import utils
 from grr.lib import worker
 from grr.lib.flows.general import administrative
 from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -460,12 +460,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
-        with hunts.GRRHunt.StartHunt(
-            hunt_name="WorkerStuckableHunt", client_rate=0,
+        with implementation.GRRHunt.StartHunt(
+            hunt_name=WorkerStuckableHunt.__name__,
+            client_rate=0,
             token=self.token) as hunt:
           hunt.GetRunner().Start()
 
-        hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
+        implementation.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
         # Process all messages
         while worker_obj.RunOnce():
@@ -492,7 +493,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         flow.GRRFlow.StartFlow(
-            flow_name="WorkerStuckableTestFlow",
+            flow_name=WorkerStuckableTestFlow.__name__,
             client_id=self.client_id,
             token=self.token,
             sync=False)
@@ -524,7 +525,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         session_id = flow.GRRFlow.StartFlow(
-            flow_name="WorkerStuckableTestFlow",
+            flow_name=WorkerStuckableTestFlow.__name__,
             client_id=self.client_id,
             token=self.token,
             sync=False)
@@ -563,7 +564,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         session_id = flow.GRRFlow.StartFlow(
-            flow_name="WorkerStuckableTestFlow",
+            flow_name=WorkerStuckableTestFlow.__name__,
             client_id=self.client_id,
             token=self.token,
             sync=False)
@@ -610,7 +611,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         session_id = flow.GRRFlow.StartFlow(
-            flow_name="WorkerStuckableTestFlow",
+            flow_name=WorkerStuckableTestFlow.__name__,
             client_id=self.client_id,
             token=self.token,
             sync=False)
@@ -1073,8 +1074,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       client_mocks.append(client_mock)
 
     flow_runner_args = rdf_flows.FlowRunnerArgs(flow_name="CPULimitFlow")
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         cpu_limit=5000,
         network_bytes_limit=1000000,
@@ -1082,11 +1083,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         token=self.token) as hunt:
       hunt.GetRunner().Start()
 
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
     self._Process(client_mocks, worker_obj)
 
     # The limiting factor here is the overall hunt limit of 5000 cpu
@@ -1102,8 +1103,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     result.clear()
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         per_client_cpu_limit=3000,
         per_client_network_limit_bytes=3000000,
@@ -1111,11 +1112,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         token=self.token) as hunt:
       hunt.GetRunner().Start()
 
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
     self._Process(client_mocks, worker_obj)
 
     # This time, the per client limit is 3000s / 3000000 bytes. Every
@@ -1133,8 +1134,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       client_mock.EnableResourceUsage(
           user_cpu_usage=[500], system_cpu_usage=[500], network_usage=[1000000])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         per_client_cpu_limit=3000,
         cpu_limit=5000,
@@ -1144,11 +1145,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         token=self.token) as hunt:
       hunt.GetRunner().Start()
 
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[:1])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[1:2])
     self._Process(client_mocks, worker_obj)
-    hunts.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
+    implementation.GRRHunt.StartClients(hunt.session_id, client_ids[2:3])
     self._Process(client_mocks, worker_obj)
 
     # The first client gets the full per client limit of 3000s, and

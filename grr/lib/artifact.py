@@ -634,7 +634,7 @@ class ArtifactLoader(registry.InitHook):
   Datastore gets loaded second so it can override Artifacts in the files.
   """
 
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
     for path in config.CONFIG["Artifacts.artifact_dirs"]:

@@ -12,12 +12,12 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import test_lib
 from grr.lib.flows.general import filesystem as flows_filesystem
 from grr.lib.flows.general import processes as flows_processes
 from grr.lib.flows.general import transfer as flows_transfer
 from grr.lib.flows.general import webhistory as flows_webhistory
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
@@ -175,7 +175,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.assertTrue("/" in flow_id)
 
   def testOverviewIsShownForNestedHuntFlows(self):
-    with hunts.GRRHunt.StartHunt(
+    with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),

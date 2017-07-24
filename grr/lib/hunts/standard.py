@@ -123,14 +123,14 @@ class SampleHunt(implementation.GRRHunt):
 
   Scheduling the hunt works like this:
 
-  > hunt = hunts.SampleHunt()
+  > hunt = standard.SampleHunt()
 
   # We want to schedule on clients that run windows and OS_RELEASE 7.
   > int_rule = rdf_foreman.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
                    operator=rdf_foreman.ForemanAttributeInteger.Operator.EQUAL,
                    value=7)
-  > regex_rule = hunts.GRRHunt.MATCH_WINDOWS
+  > regex_rule = implementation.GRRHunt.MATCH_WINDOWS
 
   # Run the hunt when both those rules match.
   > hunt.AddRule([int_rule, regex_rule])

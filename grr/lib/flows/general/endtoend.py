@@ -177,7 +177,7 @@ class EndToEndTestFlow(flow.GRRFlow):
 
 class EndToEndTestStatsInit(registry.InitHook):
   """Initialize EndToEndTest stats."""
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
     stats.STATS.RegisterCounterMetric(

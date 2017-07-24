@@ -19,7 +19,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -246,8 +245,8 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler = hunt_plugin.ApiGetHuntFilesArchiveHandler()
 
-    self.hunt = hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    self.hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
@@ -323,8 +322,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler = hunt_plugin.ApiGetHuntFileHandler()
 
     self.file_path = os.path.join(self.base_path, "test.plist")
-    self.hunt = hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
+    self.hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
@@ -714,7 +713,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
 
     self.handler = hunt_plugin.ApiGetExportedHuntResultsHandler()
 
-    self.hunt = hunts.GRRHunt.StartHunt(
+    self.hunt = implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=DummyFlowWithSingleReply.__name__),

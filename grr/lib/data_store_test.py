@@ -33,7 +33,6 @@ from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import worker
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -2440,67 +2439,6 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   def testCollections(self):
 
     self.rand = random.Random(42)
-
-    #
-    # Populate and exercise a packed versioned collection.
-    #
-    packed_collection_urn = rdfvalue.RDFURN("aff4:/test_packed_collection")
-    packed_collection = aff4.FACTORY.Create(
-        packed_collection_urn,
-        collects.PackedVersionedCollection,
-        mode="w",
-        token=self.token)
-    packed_collection.Close()
-
-    start_time = time.time()
-    for _ in range(self.RECORDS):
-      collects.PackedVersionedCollection.AddToCollection(
-          packed_collection_urn,
-          rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
-          token=self.token)
-    elapsed_time = time.time() - start_time
-    self.AddResult("Packed Coll. Add (size %d)" % self.RECORD_SIZE,
-                   elapsed_time, self.RECORDS)
-
-    with aff4.FACTORY.OpenWithLock(
-        packed_collection_urn, lease_time=3600,
-        token=self.token) as packed_collection:
-      start_time = time.time()
-      packed_collection.Compact()
-      elapsed_time = time.time() - start_time
-    self.AddResult("Packed Coll. Compact", elapsed_time, 1)
-
-    packed_collection = aff4.FACTORY.Create(
-        packed_collection_urn,
-        collects.PackedVersionedCollection,
-        mode="r",
-        token=self.token)
-    start_time = time.time()
-    for _ in range(self.READ_COUNT):
-      for _ in packed_collection.GenerateItems(offset=self.rand.randint(
-          0, self.RECORDS - 1)):
-        break
-    elapsed_time = time.time() - start_time
-    self.AddResult("Packed Coll. random 1 record reads", elapsed_time,
-                   self.READ_COUNT)
-
-    start_time = time.time()
-    for _ in range(self.READ_COUNT):
-      count = 0
-      for _ in packed_collection.GenerateItems(offset=self.rand.randint(
-          0, self.RECORDS - self.BIG_READ_SIZE)):
-        count += 1
-        if count >= self.BIG_READ_SIZE:
-          break
-    elapsed_time = time.time() - start_time
-    self.AddResult("Packed Coll. random %d record reads" % self.BIG_READ_SIZE,
-                   elapsed_time, self.READ_COUNT)
-
-    start_time = time.time()
-    for _ in packed_collection.GenerateItems():
-      pass
-    elapsed_time = time.time() - start_time
-    self.AddResult("Packed Coll. full sequential read", elapsed_time, 1)
 
     #
     # Populate and exercise an indexed sequential collection.

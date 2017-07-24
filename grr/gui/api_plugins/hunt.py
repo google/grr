@@ -19,7 +19,6 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -288,7 +287,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     hunt_list = []
     for hunt in fd.OpenChildren(children=children):
       # Legacy hunts may have hunt.context == None: we just want to skip them.
-      if not isinstance(hunt, hunts.GRRHunt) or not hunt.context:
+      if not isinstance(hunt, implementation.GRRHunt) or not hunt.context:
         continue
 
       hunt_list.append(hunt)
@@ -319,7 +318,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     active_children_map = {}
     for hunt in fd.OpenChildren(children=active_children):
       # Legacy hunts may have hunt.context == None: we just want to skip them.
-      if (not isinstance(hunt, hunts.GRRHunt) or not hunt.context or
+      if (not isinstance(hunt, implementation.GRRHunt) or not hunt.context or
           not filter_func(hunt)):
         continue
       active_children_map[hunt.urn] = hunt
@@ -370,7 +369,7 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       hunt = aff4.FACTORY.Open(
-          args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
+          args.hunt_id.ToURN(), aff4_type=implementation.GRRHunt, token=token)
 
       return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
     except aff4.InstantiationError:
@@ -856,7 +855,8 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     hunt_urn = args.hunt_id.ToURN()
-    hunt = aff4.FACTORY.Open(hunt_urn, aff4_type=hunts.GRRHunt, token=token)
+    hunt = aff4.FACTORY.Open(
+        hunt_urn, aff4_type=implementation.GRRHunt, token=token)
 
     hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
     description = ("Files downloaded by hunt %s (%s, '%s') created by user %s "
@@ -998,7 +998,7 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Retrieves the stats for a hunt."""
     hunt = aff4.FACTORY.Open(
-        args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
+        args.hunt_id.ToURN(), aff4_type=implementation.GRRHunt, token=token)
 
     stats = hunt.GetRunner().context.usage_stats
 
@@ -1029,7 +1029,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     all_clients_urns = [i.client_id.ToClientURN() for i in results]
     clients_to_results_map = {i.client_id: i for i in results}
 
-    all_flow_urns = hunts.GRRHunt.GetAllSubflowUrns(
+    all_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
         hunt_urn, all_clients_urns, token=token)
     flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns, token)
     client_requests = aff4_grr.VFSGRRClient.GetClientRequests(
@@ -1096,7 +1096,8 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Retrieves the clients for a hunt."""
     hunt_urn = args.hunt_id.ToURN()
-    hunt = aff4.FACTORY.Open(hunt_urn, aff4_type=hunts.GRRHunt, token=token)
+    hunt = aff4.FACTORY.Open(
+        hunt_urn, aff4_type=implementation.GRRHunt, token=token)
 
     clients_by_status = hunt.GetClientsByStatus()
     hunt_clients = clients_by_status[args.client_status.name]
@@ -1107,7 +1108,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     else:
       hunt_clients = sorted(hunt_clients)[args.offset:]
 
-    top_level_flow_urns = hunts.GRRHunt.GetAllSubflowUrns(
+    top_level_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
         hunt_urn, hunt_clients, top_level_only=True, token=token)
     top_level_flows = list(
         aff4.FACTORY.MultiOpen(
@@ -1146,7 +1147,7 @@ class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
     hunt_name = self.runner_args.hunt_name
 
     if hunt_name:
-      hunt_cls = hunts.GRRHunt.classes.get(hunt_name)
+      hunt_cls = implementation.GRRHunt.classes.get(hunt_name)
       if hunt_cls is None:
         raise ValueError(
             "Hunt %s not known by this implementation." % hunt_name)
@@ -1164,7 +1165,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Retrieves the context for a hunt."""
     hunt = aff4.FACTORY.Open(
-        args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
+        args.hunt_id.ToURN(), aff4_type=implementation.GRRHunt, token=token)
 
     if isinstance(hunt.context, rdf_hunts.HuntContext):  # New style hunt.
       # TODO(user): Hunt state will go away soon, we don't render it anymore.
@@ -1259,7 +1260,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
     hunt_urn = args.hunt_id.ToURN()
     try:
       hunt = aff4.FACTORY.Open(
-          hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+          hunt_urn, aff4_type=implementation.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
       raise HuntNotFoundError(
           "Hunt with id %s could not be found" % args.hunt_id)
@@ -1321,7 +1322,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
     hunt.Close()
 
     hunt = aff4.FACTORY.Open(
-        hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+        hunt_urn, aff4_type=implementation.GRRHunt, mode="rw", token=token)
     return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
 
 
@@ -1390,7 +1391,7 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     hunt_urn = args.hunt_id.ToURN()
     try:
       aff4.FACTORY.Open(
-          hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+          hunt_urn, aff4_type=implementation.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
       raise HuntNotFoundError(
           "Hunt with id %s could not be found" % args.hunt_id)

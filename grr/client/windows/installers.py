@@ -13,12 +13,10 @@ We also set shell=True because that seems to avoid having an extra cmd.exe
 window pop up.
 """
 import os
-import re
 import shutil
 import subprocess
 import sys
 import time
-import _winreg
 import pywintypes
 import win32process
 import win32service
@@ -28,7 +26,6 @@ import logging
 
 from grr import config
 from grr.client import installer
-from grr.lib import utils
 
 
 class CheckForWow64(installer.Installer):
@@ -43,7 +40,7 @@ class CheckForWow64(installer.Installer):
 class CopyToSystemDir(installer.Installer):
   """Copy the distribution from the temp directory to the target."""
 
-  pre = ["CheckForWow64"]
+  pre = [CheckForWow64]
 
   def StopPreviousService(self):
     """Wait until the service can be stopped."""
@@ -134,7 +131,7 @@ class CopyToSystemDir(installer.Installer):
 class WindowsInstaller(installer.Installer):
   """Install the windows client binary."""
 
-  pre = ["CopyToSystemDir", "UpdateClients"]
+  pre = [CopyToSystemDir]
 
   # These options will be copied to the registry to configure the nanny service.
   nanny_options = ("Nanny.child_binary", "Nanny.child_command_line",
@@ -164,36 +161,3 @@ class WindowsInstaller(installer.Installer):
 
   def Run(self):
     self.InstallNanny()
-
-
-class UpdateClients(installer.Installer):
-  """Copy configuration from old clients."""
-
-  def Run(self):
-    try:
-      new_config = config.CONFIG.MakeNewConfig()
-      new_config.SetWriteBack(config.CONFIG["Config.writeback"])
-
-      for mapping in config.CONFIG["Installer.old_key_map"]:
-        try:
-          src, parameter_name = mapping.split("->")
-          src_components = re.split(r"[/\\]", src.strip())
-          parameter_name = parameter_name.strip()
-
-          key_name = "\\".join(src_components[1:-1])
-          value_name = src_components[-1]
-          key = _winreg.CreateKeyEx(
-              getattr(_winreg, src_components[0]), key_name, 0,
-              _winreg.KEY_ALL_ACCESS)
-
-          value, _ = _winreg.QueryValueEx(key, value_name)
-
-          new_config.SetRaw(parameter_name, utils.SmartStr(value))
-
-          _winreg.DeleteValue(key, value_name)
-
-          logging.info("Migrated old parameter %s", src)
-        except (OSError, AttributeError, IndexError, ValueError) as e:
-          logging.debug("mapping %s ignored: %s", mapping, e)
-    finally:
-      new_config.Write()

@@ -287,9 +287,6 @@ class Factory(object):
     self.root_token = access_control.ACLToken(
         username="GRRSystem", reason="Maintenance").SetUID()
 
-    self.notification_rules = []
-    self.notification_rules_timestamp = 0
-
   @classmethod
   def ParseAgeSpecification(cls, age):
     """Parses an aff4 age and returns a datastore age specification."""
@@ -3040,7 +3037,7 @@ class AFF4UnversionedImage(AFF4ImageBase):
 # Utility functions
 class AFF4InitHook(registry.InitHook):
 
-  pre = ["ACLInit", "DataStoreInit"]
+  pre = [access_control.ACLInit, data_store.DataStoreInit]
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""

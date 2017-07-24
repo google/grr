@@ -12,11 +12,12 @@ from grr.lib import access_control
 from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.server import foreman as rdf_foreman
 
 
@@ -30,8 +31,8 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
                 attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",
         client_rule_set=client_rule_set,

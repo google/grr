@@ -551,10 +551,6 @@ class GRRClientWorker(object):
 
     self.proc = psutil.Process(os.getpid())
 
-    # We store suspended actions in this dict. We can retrieve the suspended
-    # client action from here if needed.
-    self.suspended_actions = {}
-
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.StartNanny()
@@ -792,21 +788,16 @@ class GRRClientWorker(object):
 
     Args:
         message: The GrrMessage that was delivered from the server.
+    Raises:
+        RuntimeError: The client action requested was not found.
     """
     self._is_active = True
     try:
-      # Try to retrieve a suspended action from the client worker.
-      try:
-        suspended_action_id = message.payload.iterator.suspended_action
-        action = self.suspended_actions[suspended_action_id]
+      action_cls = actions.ActionPlugin.classes.get(message.name)
+      if action_cls is None:
+        raise RuntimeError("Client action %r not known" % message.name)
 
-      except (AttributeError, KeyError):
-        # Otherwise make a new action instance.
-        action_cls = actions.ActionPlugin.classes.get(message.name)
-        if action_cls is None:
-          raise RuntimeError("Client action %r not known" % message.name)
-
-        action = action_cls(grr_worker=self)
+      action = action_cls(grr_worker=self)
 
       # Write the message to the transaction log.
       self.nanny_controller.WriteTransactionLog(message)

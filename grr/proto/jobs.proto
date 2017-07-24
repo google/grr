@@ -1672,10 +1672,11 @@ message Iterator {
   };
   optional State state = 4 [ default = RUNNING ];
 
-  optional uint64 suspended_action = 5 [(sem_type) = {
-      description: "If this is an iterator for a client action, we store "
-      "the unique action id by which it is kept on the client."
-    }];
+  // DEPRECATED: Suspended actions are not supported at this time.
+  // optional uint64 suspended_action = 5 [(sem_type) = {
+  //     description: "If this is an iterator for a client action, we store "
+  //     "the unique action id by which it is kept on the client."
+  //   }];
 };
 
 // FindAction returns these protobufs.

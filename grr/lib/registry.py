@@ -130,13 +130,7 @@ class HookRegistry(object):
 
     # Ensure all the pre execution hooks are run.
     for pre_hook in hook_cls.pre:
-      pre_hook_cls = self.classes.get(pre_hook)
-      if pre_hook_cls is None:
-        raise RuntimeError("Pre Init Hook %s in %s could not"
-                           " be found. Missing import?" % (pre_hook, hook_cls))
-
-      self._RunSingleHook(
-          self.classes[pre_hook], executed_set, required=hook_cls.__name__)
+      self._RunSingleHook(pre_hook, executed_set, required=hook_cls.__name__)
 
     # Now run this hook.
     cls_instance = hook_cls()

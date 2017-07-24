@@ -7,8 +7,9 @@ from grr.gui import runtests_test
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import test_lib
+from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
 
@@ -81,8 +82,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
                 attribute_name="GRR client", attribute_regex=""))
     ])
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="SampleHunt",
+    with implementation.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
         client_rule_set=client_rule_set,
         client_rate=0,
         token=self.token) as hunt:

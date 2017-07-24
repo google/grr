@@ -530,7 +530,7 @@ class CronJob(aff4.AFF4Volume):
 
 class CronHook(registry.InitHook):
 
-  pre = ["AFF4InitHook", "MasterInit"]
+  pre = [aff4.AFF4InitHook, master.MasterInit]
 
   def RunOnce(self):
     """Main CronHook method."""

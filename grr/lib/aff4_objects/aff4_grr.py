@@ -617,7 +617,7 @@ class GRRAFF4Init(registry.InitHook):
   """Ensure critical AFF4 objects exist for GRR."""
 
   # Must run after the AFF4 subsystem is ready.
-  pre = ["AFF4InitHook"]
+  pre = [aff4.AFF4InitHook]
 
   def Run(self):
     try:
