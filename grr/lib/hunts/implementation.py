@@ -27,6 +27,7 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -511,7 +512,7 @@ class HuntRunner(object):
       client_count = int(
           self.hunt_obj.Get(self.hunt_obj.Schema.CLIENT_COUNT, 0))
 
-      # Stop the hunt if we exceed the client limit.
+      # Pause the hunt if we exceed the client limit.
       if 0 < self.runner_args.client_limit <= client_count:
         # Remove our rules from the foreman so we dont get more clients sent to
         # this hunt. Hunt will be paused.
@@ -707,13 +708,21 @@ class HuntRunner(object):
 
     self._CreateAuditEvent("HUNT_PAUSED")
 
-  def Stop(self):
+  def Stop(self, reason=None):
     """Cancels the hunt (removes Foreman rules, resets expiry time to 0)."""
     self._RemoveForemanRule()
     self.hunt_obj.Set(self.hunt_obj.Schema.STATE("STOPPED"))
     self.hunt_obj.Flush()
 
     self._CreateAuditEvent("HUNT_STOPPED")
+
+    if reason:
+      with aff4.FACTORY.Create(
+          aff4.ROOT_URN.Add("users").Add(self.context.creator),
+          aff4_type=aff4_users.GRRUser,
+          mode="rw",
+          token=self.token) as user:
+        user.Notify("ViewObject", self.hunt_obj.urn, reason, self.hunt_obj.urn)
 
   def IsCompleted(self):
     return self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "COMPLETED"
@@ -971,6 +980,22 @@ class GRRHunt(flow.FlowBase):
   def CrashCollectionForHID(cls, hunt_id, token=None):
     return grr_collections.CrashCollection(hunt_id.Add("Crashes"), token=token)
 
+  def RegisterCrash(self, crash_details):
+    hunt_crashes = self.__class__.CrashCollectionForHID(self.urn)
+    hunt_crashes_len = hunt_crashes.CalculateLength()
+
+    hunt_crashes.Add(crash_details)
+
+    # Account for a crash detail that we've just added.
+    if 0 < self.runner_args.crash_limit <= hunt_crashes_len + 1:
+      # Remove our rules form the forman and cancel all the started flows.
+      # Hunt will be hard-stopped and it will be impossible to restart it.
+      reason = ("Hunt %s reached the crashes limit of %d "
+                "and was stopped.") % (self.urn.Basename(),
+                                       self.runner_args.crash_limit)
+      self.Stop(reason=reason)
+      self.Log(reason)
+
   # Collection for clients with errors.
   @property
   def clients_errors_collection_urn(self):
@@ -1219,9 +1244,9 @@ class GRRHunt(flow.FlowBase):
     """A shortcut method for pausing the hunt."""
     self.GetRunner().Pause()
 
-  def Stop(self):
+  def Stop(self, reason=None):
     """A shortcut method for stopping the hunt."""
-    self.GetRunner().Stop()
+    self.GetRunner().Stop(reason=reason)
 
   def AddResultsToCollection(self, responses, client_id):
     if responses.success:

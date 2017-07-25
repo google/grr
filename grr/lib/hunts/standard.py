@@ -394,8 +394,8 @@ class GenericHunt(implementation.GRRHunt):
       grr_collections.RDFUrnCollection.StaticAdd(
           self.started_flows_collection_urn, self.token, flow_urn)
 
-  def Stop(self):
-    super(GenericHunt, self).Stop()
+  def Stop(self, reason=None):
+    super(GenericHunt, self).Stop(reason=reason)
 
     started_flows = grr_collections.RDFUrnCollection(
         self.started_flows_collection_urn, token=self.token)

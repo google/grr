@@ -16,7 +16,7 @@ import "grr/proto/semantic.proto";
 // Entities.
 //
 
-// Next id: 22
+// Next id: 23
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -56,6 +56,9 @@ message ApiHunt {
     }];
   optional int64 completed_clients_count = 9 [(sem_type) = {
       description: "Count of completed clients.",
+    }];
+  optional int64 crash_limit = 22 [(sem_type) = {
+      description: "Crash limit.",
     }];
   optional int64 client_limit = 10 [(sem_type) = {
       description: "Client limit.",

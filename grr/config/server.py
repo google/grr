@@ -264,3 +264,10 @@ config_lib.DEFINE_string(
     help="Inactive clients marked with "
     "this label will be retained forever.")
 
+config_lib.DEFINE_integer(
+    "Hunt.default_crash_limit",
+    default=100,
+    help="Default value for HuntRunnerArgs.crash_limit. crash_limit is a "
+    "maximum number of clients that are allowed to crash before the hunt is "
+    "automatically hard-stopped.")
+

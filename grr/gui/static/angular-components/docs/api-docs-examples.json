@@ -381,6 +381,7 @@
                 }
               ]
             },
+            "crash_limit": 100,
             "description": "Foobar! (cron)"
           }
         },
@@ -465,6 +466,11 @@
                       ]
                     }
                   },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
                   "description": {
                     "age": 0,
                     "type": "unicode",
@@ -547,6 +553,7 @@
                 }
               ]
             },
+            "crash_limit": 100,
             "description": "Foobar! (cron)",
             "hunt_name": "GenericHunt"
           }
@@ -767,6 +774,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -840,6 +852,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "foo",
@@ -3162,6 +3175,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -3232,6 +3250,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt1",
@@ -3301,6 +3320,11 @@
                 "age": 0,
                 "type": "float",
                 "value": 0.0
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
               },
               "created": {
                 "age": 0,
@@ -3372,6 +3396,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt2",
@@ -3704,6 +3729,11 @@
             "type": "long",
             "value": 0
           },
+          "crash_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
           "created": {
             "age": 0,
             "type": "RDFDatetime",
@@ -3795,6 +3825,11 @@
                   ]
                 }
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "description": {
                 "age": 0,
                 "type": "unicode",
@@ -3861,6 +3896,7 @@
           ]
         },
         "completed_clients_count": 0,
+        "crash_limit": 100,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
@@ -3885,6 +3921,7 @@
               }
             ]
           },
+          "crash_limit": 100,
           "description": "the hunt",
           "hunt_name": "GenericHunt"
         },
@@ -8072,6 +8109,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -8142,6 +8184,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "a hunt",
@@ -11422,6 +11465,11 @@
                     "type": "float",
                     "value": 20.5
                   },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
                   "created": {
                     "age": 0,
                     "type": "RDFDatetime",
@@ -11496,6 +11544,7 @@
             "subject": {
               "client_limit": 100,
               "client_rate": 20.5,
+              "crash_limit": 100,
               "created": 42000000,
               "creator": "api_test_user",
               "description": "",
@@ -13513,6 +13562,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -13579,6 +13633,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -13640,6 +13699,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -13654,6 +13714,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -13689,6 +13750,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "created": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -13750,6 +13816,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
@@ -13784,6 +13851,11 @@
                 "age": 0,
                 "type": "float",
                 "value": 0.0
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
               },
               "created": {
                 "age": 0,
@@ -13846,6 +13918,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
@@ -15207,6 +15280,11 @@
             "type": "long",
             "value": 0
           },
+          "crash_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
           "created": {
             "age": 0,
             "type": "RDFDatetime",
@@ -15303,6 +15381,11 @@
                   ]
                 }
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "description": {
                 "age": 0,
                 "type": "unicode",
@@ -15369,6 +15452,7 @@
           ]
         },
         "completed_clients_count": 0,
+        "crash_limit": 100,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
@@ -15394,6 +15478,7 @@
               }
             ]
           },
+          "crash_limit": 100,
           "description": "the hunt",
           "hunt_name": "GenericHunt"
         },
@@ -15472,6 +15557,11 @@
             "type": "long",
             "value": 0
           },
+          "crash_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
           "created": {
             "age": 0,
             "type": "RDFDatetime",
@@ -15568,6 +15658,11 @@
                   ]
                 }
               },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
               "description": {
                 "age": 0,
                 "type": "unicode",
@@ -15634,6 +15729,7 @@
           ]
         },
         "completed_clients_count": 0,
+        "crash_limit": 100,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
@@ -15659,6 +15755,7 @@
               }
             ]
           },
+          "crash_limit": 100,
           "description": "the hunt",
           "hunt_name": "GenericHunt"
         },

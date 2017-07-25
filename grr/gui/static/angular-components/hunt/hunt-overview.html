@@ -35,6 +35,12 @@
     <dt>Status</dt>
     <dd><grr-semantic-value value="controller.hunt.value.state" /></dd>
 
+    <dt>Crash Limit</dt>
+    <dd ng-if="!controller.hunt.value.crash_limit">-</dd>
+    <dd ng-if="controller.hunt.value.crash_limit">
+      <grr-semantic-value value="controller.hunt.value.crash_limit" />
+    </dd>
+
     <dt>Client Limit</dt>
     <dd ng-if="!controller.hunt.value.client_limit">-</dd>
     <dd ng-if="controller.hunt.value.client_limit">

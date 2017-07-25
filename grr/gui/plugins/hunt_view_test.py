@@ -419,6 +419,40 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(MockMethodIsCalled)
 
+  def testHuntCreatorIsNotifiedWhenHuntIsStoppedDueToCrashes(self):
+    with self.CreateHunt(crash_limit=3, token=self.token) as hunt:
+      hunt.Run()
+
+      # Run the hunt on 3 clients, one by one. Crash detection check happens
+      # when client is scheduled, so it's important to schedule the clients
+      # one by one in the test.
+      for client_id in self.SetupClients(3):
+        self.AssignTasksToClients([client_id])
+        client_mock = test_lib.CrashClientMock(client_id, token=self.token)
+        test_lib.TestHuntHelper(
+            client_mock, [client_id], check_flow_errors=False, token=self.token)
+
+    self.Open("/")
+
+    # Wait until the notification is there and show the notifications list.
+    self.WaitUntilEqual("1", self.GetText, "css=button[id=notification_button]")
+    self.Click("css=button[id=notification_button]")
+
+    # Click on the "hunt [id] reached the crashes limit" notificaiton.
+    self.Click("css=td:contains(Hunt %s reached the crashes limit)" %
+               hunt.urn.Basename())
+
+    # Clicking on notification should shown the hunt's overview page.
+    self.WaitUntil(self.IsTextPresent, "/tmp/evil.txt")
+
+    # Go to the logs and check that a reason for hunt's stopping is the
+    # hunts logs.
+    # Click the Log Tab.
+    self.Click("css=li[heading=Log]")
+    self.WaitUntil(self.IsTextPresent,
+                   "Hunt %s reached the crashes limit of 3 and was stopped." %
+                   hunt.urn.Basename())
+
 
 def main(argv):
   # Run the full test suite

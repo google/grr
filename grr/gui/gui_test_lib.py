@@ -36,6 +36,7 @@ from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
+from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -496,7 +497,7 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     self.fail("Notification for user %s never sent." % user)
 
 
-class GRRSeleniumHuntTest(GRRSeleniumTest):
+class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
   """Common functionality for hunt gui tests."""
 
   def _CreateHuntWithDownloadedFile(self):

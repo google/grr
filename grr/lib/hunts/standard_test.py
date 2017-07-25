@@ -937,6 +937,34 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Hunts are automatically paused when they reach the client limit.
       self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
 
+  def testHuntIsStoppedIfCrashNumberOverThreshold(self):
+    with self.CreateHunt(crash_limit=3, token=self.token) as hunt:
+      hunt.Run()
+
+    # Run the hunt on 2 clients.
+    for client_id in self.client_ids[:2]:
+      self.AssignTasksToClients([client_id])
+      client_mock = test_lib.CrashClientMock(client_id, token=self.token)
+      test_lib.TestHuntHelper(
+          client_mock, [client_id], check_flow_errors=False, token=self.token)
+
+    # Hunt should still be running: 2 crashes are within the threshold.
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
+    self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STARTED")
+
+    # Run the hunt on another client.
+    client_id = self.client_ids[2]
+    client_mock = test_lib.CrashClientMock(client_id, token=self.token)
+    self.AssignTasksToClients([client_id])
+    test_lib.TestHuntHelper(
+        client_mock, [client_id], check_flow_errors=False, token=self.token)
+
+    # Hunt should be terminated: 3 crashes are over the threshold.
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
+    self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
+
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
     with test_lib.FakeTime(1000):

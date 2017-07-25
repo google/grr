@@ -128,6 +128,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.urn = hunt.urn
     self.name = hunt.runner_args.hunt_name
     self.state = str(hunt.Get(hunt.Schema.STATE))
+    self.crash_limit = hunt.runner_args.crash_limit
     self.client_limit = hunt.runner_args.client_limit
     self.client_rate = hunt.runner_args.client_rate
     self.created = context.create_time

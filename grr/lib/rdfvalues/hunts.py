@@ -3,6 +3,7 @@
 
 
 
+from grr import config
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client
@@ -32,6 +33,8 @@ class HuntContext(rdf_structs.RDFProtoStruct):
 
 
 class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
+  """Hunt runner arguments definition."""
+
   protobuf = flows_pb2.HuntRunnerArgs
   rdf_deps = [
       rdfvalue.Duration,
@@ -39,6 +42,12 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
       output_plugin.OutputPluginDescriptor,
       rdfvalue.RDFURN,
   ]
+
+  def __init__(self, initializer=None, **kwargs):
+    super(HuntRunnerArgs, self).__init__(initializer=initializer, **kwargs)
+
+    if initializer is None and not self.HasField("crash_limit"):
+      self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
 
   def Validate(self):
     if self.HasField("client_rule_set"):

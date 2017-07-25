@@ -83,9 +83,12 @@ class ClientCrashEventListener(flow.EventListener):
 
       hunt_session_id = self._ExtractHuntId(flow_session_id)
       if hunt_session_id and hunt_session_id != flow_session_id:
-        hunt_crashes = implementation.GRRHunt.CrashCollectionURNForHID(
-            hunt_session_id)
-        self._AppendCrashDetails(hunt_crashes, crash_details)
+        hunt_obj = aff4.FACTORY.Open(
+            hunt_session_id,
+            aff4_type=implementation.GRRHunt,
+            mode="rw",
+            token=self.token)
+        hunt_obj.RegisterCrash(crash_details)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -420,9 +423,8 @@ class OnlineNotification(flow.GRRFlow):
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
-    return cls.args_type(email="%s@%s" %
-                         (token.username,
-                          config.CONFIG.Get("Logging.domain")))
+    return cls.args_type(email="%s@%s" % (token.username,
+                                          config.CONFIG.Get("Logging.domain")))
 
   @flow.StateHandler()
   def Start(self):
