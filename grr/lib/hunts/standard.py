@@ -18,6 +18,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.flows.general import transfer
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -157,7 +158,7 @@ class SampleHunt(implementation.GRRHunt):
 
     for client_id in responses:
       self.CallFlow(
-          "GetFile",
+          transfer.GetFile.__name__,
           pathspec=pathspec,
           next_state="StoreResults",
           client_id=client_id)

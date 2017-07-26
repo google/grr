@@ -3,6 +3,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.flows.general import hardware
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -15,7 +16,7 @@ class TestDumpFlashImage(base.AutomatedTest):
   """
 
   platforms = ["Linux"]
-  flow = "DumpFlashImage"
+  flow = hardware.DumpFlashImage.__name__
 
   def CheckFlow(self):
     flow = aff4.FACTORY.Open(self.session_id, token=self.token)

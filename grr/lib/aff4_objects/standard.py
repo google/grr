@@ -55,6 +55,10 @@ class VFSDirectory(aff4.AFF4Volume):
       # Get the pathspec for this object
       flow_id = flow.GRRFlow.StartFlow(
           client_id=client_id,
+          # Dependency loop: aff4_objects/aff4_grr.py depends on
+          # aff4_objects/standard.py that depends on flows/general/filesystem.py
+          # that eventually depends on aff4_objects/aff4_grr.py
+          # flow_name=filesystem.ListDirectory.__name__,
           flow_name="ListDirectory",
           pathspec=self.real_pathspec,
           priority=priority,

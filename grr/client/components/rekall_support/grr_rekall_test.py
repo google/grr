@@ -89,7 +89,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
 
       # Allow the real RekallAction to run against the image.
       for s in test_lib.TestFlowHelper(
-          "AnalyzeClientMemory",
+          memory.AnalyzeClientMemory.__name__,
           action_mocks.MemoryClientMock(grr_rekall.RekallAction,
                                         tempfiles.DeleteGRRTempFiles),
           token=self.token,

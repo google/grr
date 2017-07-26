@@ -321,7 +321,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
 
     for s in test_lib.TestFlowHelper(
-        "FileFinder",
+        file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=paths,
@@ -674,7 +674,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     ]
 
     for s in test_lib.TestFlowHelper(
-        "FileFinder",
+        file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=paths,
@@ -709,7 +709,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         # download memeory or send it to the socket.
         for action in self.CONDITION_TESTS_ACTIONS:
           for s in test_lib.TestFlowHelper(
-              "FileFinder",
+              file_finder.FileFinder.__name__,
               self.client_mock,
               client_id=self.client_id,
               paths=paths,
@@ -740,7 +740,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
       for _ in test_lib.TestFlowHelper(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
           paths=paths,
@@ -812,7 +812,7 @@ class TestClientFileFinderFlow(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(self.base_path, "**/*.plist")]
     action = rdf_file_finder.FileFinderAction.Action.STAT
     for s in test_lib.TestFlowHelper(
-        "ClientFileFinder",
+        file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
         client_id=self.client_id,
         paths=paths,

@@ -31,7 +31,7 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile)
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
-          "FingerprintFile",
+          flows_fingerprint.FingerprintFile.__name__,
           client_mock,
           token=self.token,
           client_id=self.client_id,

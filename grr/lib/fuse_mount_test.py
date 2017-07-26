@@ -18,8 +18,10 @@ from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
+
+from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -248,7 +250,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
   def _RunAndWaitForVFSFileUpdate(self, path):
     for _ in test_lib.TestFlowHelper(
-        "UpdateVFSFile",
+        aff4_grr.UpdateVFSFile.__name__,
         self.action_mock,
         token=self.token,
         client_id=self.client_id,
@@ -274,7 +276,7 @@ class GRRFuseTest(GRRFuseTestBase):
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
 
     for _ in test_lib.TestFlowHelper(
-        "ListDirectory",
+        filesystem.ListDirectory.__name__,
         self.action_mock,
         pathspec=pathspec,
         token=self.token,

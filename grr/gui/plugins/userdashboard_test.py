@@ -9,6 +9,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import security
 
 
 class TestUserDashboard(gui_test_lib.SearchClientTestBase):
@@ -143,7 +144,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     client_id = self.SetupClients(1)[0]
     flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=security.RequestClientApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=client_id,
         approver="approver",

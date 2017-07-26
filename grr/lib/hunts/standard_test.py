@@ -157,8 +157,8 @@ class StandardHuntTestMixin(object):
                        path="/tmp/evil.txt",
                        pathtype=rdf_paths.PathSpec.PathType.OS)))
 
-    flow_runner_args = (flow_runner_args or
-                        rdf_flows.FlowRunnerArgs(flow_name="GetFile"))
+    flow_runner_args = (flow_runner_args or rdf_flows.FlowRunnerArgs(
+        flow_name=transfer.GetFile.__name__))
 
     client_rule_set = (client_rule_set or rdf_foreman.ForemanClientRuleSet(
         rules=[
@@ -289,7 +289,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="InfiniteFlow"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=InfiniteFlow.__name__),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
                 rdf_foreman.ForemanClientRule(
@@ -845,7 +846,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def _AppendFlowRequest(self, flows, client_id, file_id):
     flows.Append(
         client_ids=["C.1%015d" % client_id],
-        runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil%s.txt" % file_id,
@@ -893,7 +895,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with test_lib.FakeTime(1000, increment=1e-6):
       with implementation.GRRHunt.StartHunt(
           hunt_name=standard.GenericHunt.__name__,
-          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+          flow_runner_args=rdf_flows.FlowRunnerArgs(
+              flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(
@@ -970,7 +973,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with test_lib.FakeTime(1000):
       with implementation.GRRHunt.StartHunt(
           hunt_name=standard.GenericHunt.__name__,
-          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+          flow_runner_args=rdf_flows.FlowRunnerArgs(
+              flow_name=transfer.GetFile.__name__),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(
@@ -1023,7 +1027,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """This tests running the hunt on some clients."""
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS),
@@ -1092,7 +1097,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),
@@ -1155,7 +1161,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """This tests running the hunt on some clients."""
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="DummyLogFlow"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=test_lib.DummyLogFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -1176,7 +1183,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         self.assertTrue(log.log_message in [
             "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
         ])
-        self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
+        self.assertTrue(log.flow_name in [
+            test_lib.DummyLogFlow.__name__, test_lib.DummyLogFlowChild.__name__
+        ])
         self.assertTrue(str(hunt_urn) in str(log.urn))
       else:
         self.assertEqual(log.log_message, "Log from the hunt itself")
@@ -1197,7 +1206,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # the label test).
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="UpdateClient"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=administrative.UpdateClient.__name__),
         flow_args=administrative.UpdateClientArgs(),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
@@ -1251,7 +1261,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
 
     prev_count, _ = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+        token=self.token)
     count, _ = self.GetVerificationsStats()
 
     self.assertEqual(count - prev_count, 0)
@@ -1263,7 +1274,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
 
     prev_count, _ = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+        token=self.token)
     count, _ = self.GetVerificationsStats()
 
     self.assertEqual(count - prev_count, 0)
@@ -1278,7 +1290,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
 
     _, prev_results = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+        token=self.token)
     _, results = self.GetVerificationsStats()
 
     self.assertEqual(results["N_A"] - prev_results.get("N_A", 0), 1)
@@ -1292,7 +1305,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+        token=self.token)
 
     results_metadata = aff4.FACTORY.Open(
         hunt_urn.Add("ResultsMetadata"), token=self.token)
@@ -1311,7 +1325,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
 
     _, prev_results = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+        token=self.token)
     _, results = self.GetVerificationsStats()
 
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
@@ -1327,7 +1342,7 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertRaises(
         standard.HuntVerificationError,
         flow.GRRFlow.StartFlow,
-        flow_name="VerifyHuntOutputPluginsCronFlow",
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     count, _ = self.GetVerificationsStats()
     self.assertEqual(count - prev_count, 0)
@@ -1344,7 +1359,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
         "hunt_output_plugin_verification_errors")
     try:
       flow.GRRFlow.StartFlow(
-          flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
+          flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
+          token=self.token)
     except standard.HuntVerificationError:
       pass
     count = stats.STATS.GetMetricValue("hunt_output_plugin_verification_errors")
@@ -1366,7 +1382,7 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertRaises(
         standard.HuntVerificationError,
         flow.GRRFlow.StartFlow,
-        flow_name="VerifyHuntOutputPluginsCronFlow",
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         token=self.token)
     _, results = self.GetVerificationsStats()
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
@@ -1383,7 +1399,7 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
 
     prev_count, _ = self.GetVerificationsStats()
     flow.GRRFlow.StartFlow(
-        flow_name="VerifyHuntOutputPluginsCronFlow",
+        flow_name=standard.VerifyHuntOutputPluginsCronFlow.__name__,
         check_range="60m",
         token=self.token)
     count, _ = self.GetVerificationsStats()

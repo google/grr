@@ -79,7 +79,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     # Run the flow in the simulated way
     client_mock = action_mocks.ActionMock()
     for _ in test_lib.TestFlowHelper(
-        "DummyLogFlow",
+        test_lib.DummyLogFlow.__name__,
         client_mock,
         client_id=self.client_id,
         notification_urn=rdfvalue.SessionID(
@@ -95,7 +95,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(FlowDoneListener.received_events), 1)
 
     flow_event = FlowDoneListener.received_events[0].payload
-    self.assertEqual(flow_event.flow_name, "DummyLogFlow")
+    self.assertEqual(flow_event.flow_name, test_lib.DummyLogFlow.__name__)
     self.assertEqual(flow_event.client_id, "aff4:/C.1000000000000000")
     self.assertEqual(flow_event.status, rdf_flows.FlowNotification.Status.OK)
 

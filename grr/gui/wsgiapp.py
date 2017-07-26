@@ -216,8 +216,7 @@ class AdminUIApp(object):
     _ = request
 
     env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(
-            config.CONFIG["AdminUI.template_root"]),
+        loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
         autoescape=True)
 
     create_time = psutil.Process(os.getpid()).create_time()
@@ -279,9 +278,8 @@ class AdminUIApp(object):
       raise RuntimeError("Unusual chars in path %r - "
                          "possible exploit attempt." % path)
 
-    target_path = os.path.join(
-        config.CONFIG["AdminUI.github_docs_location"],
-        path.replace(".html", ".adoc"))
+    target_path = os.path.join(config.CONFIG["AdminUI.github_docs_location"],
+                               path.replace(".html", ".adoc"))
 
     # We have to redirect via JavaScript to have access to and to preserve the
     # URL hash. We don't know the hash part of the url on the server.

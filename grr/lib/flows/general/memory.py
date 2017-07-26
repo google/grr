@@ -20,6 +20,7 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rekall_profile_server
 from grr.lib import server_stubs
+from grr.lib.flows.general import file_finder
 
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -87,7 +88,7 @@ class MemoryCollector(flow.GRRFlow):
 
     # Note that this will actually also retrieve the memory image.
     self.CallFlow(
-        "AnalyzeClientMemory",
+        AnalyzeClientMemory.__name__,
         request=request,
         max_file_size_download=self.args.max_file_size,
         next_state="CheckAnalyzeClientMemory")
@@ -241,7 +242,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
       if self.state.output_files:
         self.Log("Getting %i files.", len(self.state.output_files))
         self.CallFlow(
-            "MultiGetFile",
+            transfer.MultiGetFile.__name__,
             pathspecs=self.state.output_files,
             file_size=self.args.max_file_size_download,
             next_state="DeleteFiles")
@@ -343,6 +344,8 @@ class ListVADBinaries(flow.GRRFlow):
   def Start(self):
     """Request VAD data."""
     self.CallFlow(
+        # TODO(user): dependency loop between collectors.py and memory.py.
+        # collectors.ArtifactCollectorFlow.__name__,
         "ArtifactCollectorFlow",
         artifact_list=["FullVADBinaryList"],
         store_results_in_aff4=False,
@@ -370,7 +373,7 @@ class ListVADBinaries(flow.GRRFlow):
 
     if self.args.fetch_binaries:
       self.CallFlow(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           next_state="HandleDownloadedFiles",
           paths=[rdf_paths.GlobExpression(b.CollapsePath()) for b in binaries],
           pathtype=rdf_paths.PathSpec.PathType.OS,

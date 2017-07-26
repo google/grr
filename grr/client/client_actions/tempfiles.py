@@ -209,8 +209,7 @@ def DeleteGRRTempFile(path):
 
   prefix = config.CONFIG["Client.tempfile_prefix"]
   directories = [
-      GetTempDirForRoot(root)
-      for root in config.CONFIG["Client.tempdir_roots"]
+      GetTempDirForRoot(root) for root in config.CONFIG["Client.tempdir_roots"]
   ]
   if not _CheckIfPathIsValidForDeletion(
       path, prefix=prefix, directories=directories):

@@ -10,10 +10,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.aff4_objects import hardware as aff4_hardware
-# pylint: disable=unused-import
 from grr.lib.flows.general import hardware
-
-# pylint: enable=unused-import
 
 
 class DumpFlashImageMock(action_mocks.ActionMock):
@@ -72,7 +69,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     client_mock = DumpFlashImageMock()
 
     for _ in test_lib.TestFlowHelper(
-        "DumpFlashImage",
+        hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token):
@@ -87,7 +84,9 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
     # Manually start the flow in order to be able to read the logs
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="DumpFlashImage", token=self.token)
+        client_id=self.client_id,
+        flow_name=hardware.DumpFlashImage.__name__,
+        token=self.token)
 
     for _ in test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
@@ -101,7 +100,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     client_mock = FailDumpMock()
 
     for _ in test_lib.TestFlowHelper(
-        "DumpFlashImage",
+        hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -166,7 +165,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
 
     for _ in test_lib.TestFlowHelper(
-        "DumpACPITable",
+        hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=self.client_id,
@@ -199,7 +198,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     session_id = None
 
     for s in test_lib.TestFlowHelper(
-        "DumpACPITable",
+        hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
         client_id=self.client_id,
@@ -217,7 +216,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
 
     with self.assertRaises(ValueError) as err:
       for _ in test_lib.TestFlowHelper(
-          "DumpACPITable",
+          hardware.DumpACPITable.__name__,
           client_mock,
           table_signature_list=table_signature_list,
           client_id=self.client_id,

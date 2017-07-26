@@ -7,6 +7,7 @@ from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -32,7 +33,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
         dest_dir="",
         gzip_output=False,
         lifetime=600,
-        next_state="MultiGetFile")
+        next_state=transfer.MultiGetFile.__name__)
 
   @flow.StateHandler()
   def MultiGetFile(self, responses):
@@ -40,7 +41,9 @@ class NetworkLimitTestFlow(flow.GRRFlow):
       raise flow.FlowError(responses.status)
     self.state.dest_path = responses.First().dest_path
     self.CallFlow(
-        "MultiGetFile", pathspecs=[self.state.dest_path], next_state="Done")
+        transfer.MultiGetFile.__name__,
+        pathspecs=[self.state.dest_path],
+        next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -68,7 +71,7 @@ class CPULimitTestFlow(flow.GRRFlow):
 
 class TestCPULimit(base.AutomatedTest):
   platforms = ["Linux", "Windows", "Darwin"]
-  flow = "CPULimitTestFlow"
+  flow = CPULimitTestFlow.__name__
   args = {"cpu_limit": 3}
 
   def CheckFlow(self):
@@ -90,7 +93,7 @@ class TestCPULimit(base.AutomatedTest):
 class TestNetworkFlowLimit(base.AutomatedTest):
   """Test limit on bytes transferred for a flow."""
   platforms = ["Linux", "Darwin"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -116,7 +119,7 @@ class TestNetworkFlowLimit(base.AutomatedTest):
 
 class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
-  flow = "NetworkLimitTestFlow"
+  flow = NetworkLimitTestFlow.__name__
   args = {"network_bytes_limit": 3 * 512 * 1024}
 
   def CheckFlow(self):

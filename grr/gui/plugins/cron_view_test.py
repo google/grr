@@ -14,6 +14,7 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.flows.general import processes
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
@@ -61,9 +62,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Last Run")
 
     # Table should contain system cron jobs
-    self.WaitUntil(self.IsTextPresent, "GRRVersionBreakDown")
-    self.WaitUntil(self.IsTextPresent, "LastAccessStats")
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.GRRVersionBreakDown.__name__)
+    self.WaitUntil(self.IsTextPresent, cron_system.LastAccessStats.__name__)
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
 
     # Select a Cron.
     self.Click("css=td:contains('OSBreakDown')")
@@ -174,7 +175,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('OSBreakDown') *[state=ENABLED]")
 
@@ -217,7 +218,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('OSBreakDown') *[state=DISABLED]")
 
@@ -412,7 +413,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('CreateAndRunGenericHuntFlow_')")
 
     # Check that correct details are displayed in cron job details tab.
-    self.WaitUntil(self.IsTextPresent, "CreateAndRunGenericHuntFlow")
+    self.WaitUntil(self.IsTextPresent,
+                   standard.CreateAndRunGenericHuntFlow.__name__)
     self.WaitUntil(self.IsTextPresent, "Flow Arguments")
 
     self.assertTrue(self.IsTextPresent("Paths"))

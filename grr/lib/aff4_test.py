@@ -1283,16 +1283,18 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       session_ids.append(
           flow.GRRFlow.StartFlow(
               client_id=self.client_id,
-              flow_name="FlowOrderTest",
+              flow_name=test_lib.FlowOrderTest.__name__,
               token=self.token))
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
 
-    self.assertEqual(flow_obj.runner_args.flow_name, "FlowOrderTest")
+    self.assertEqual(flow_obj.runner_args.flow_name,
+                     test_lib.FlowOrderTest.__name__)
     self.assertEqual(flow_obj.session_id, session_ids[0])
 
-    self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")
+    self.assertEqual(flow_obj.__class__.__name__,
+                     test_lib.FlowOrderTest.__name__)
 
   def testMultiOpen(self):
     root_urn = aff4.ROOT_URN.Add("path")

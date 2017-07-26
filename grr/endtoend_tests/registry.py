@@ -9,6 +9,8 @@ from grr.lib import data_store
 from grr.lib import flow_utils
 from grr.lib import utils
 from grr.lib.flows.console import debugging
+from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import find
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -32,12 +34,12 @@ class TestFindWindowsRegistry(base.ClientTestBase):
 
   def runTest(self):
     """Launch our flows."""
-    for flow, args in [("ListDirectory", {
+    for flow, args in [(filesystem.ListDirectory.__name__, {
         "pathspec":
             rdf_paths.PathSpec(
                 pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
                 path=self.reg_path)
-    }), ("FindFiles", {
+    }), (find.FindFiles.__name__, {
         "findspec":
             rdf_client.FindSpec(
                 pathspec=rdf_paths.PathSpec(
@@ -79,7 +81,7 @@ class TestFindWindowsRegistry(base.ClientTestBase):
 class TestClientRegistry(base.AutomatedTest):
   """Tests if listing registry keys works on Windows."""
   platforms = ["Windows"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
 
   args = {
       "pathspec":

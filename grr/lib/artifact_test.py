@@ -27,9 +27,8 @@ from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-# For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
-# pylint: enable=unused-import
+from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -191,7 +190,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
       client_mock = self.MockClient(client_id=self.client_id)
 
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=self.client_id,
         artifact_list=artifact_list,
@@ -398,7 +397,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
         standard.ExecuteCommand, client_id=self.client_id)
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
       for _ in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           client_id=self.client_id,
           store_results_in_aff4=True,
@@ -561,7 +560,7 @@ class GrrKbWindowsTest(GrrKbTest):
     """Check we can retrieve a knowledge base from a client."""
     self.ClearKB()
     for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow",
+        artifact.KnowledgeBaseInitializationFlow.__name__,
         self.client_mock,
         client_id=self.client_id,
         token=self.token):
@@ -594,7 +593,7 @@ class GrrKbWindowsTest(GrrKbTest):
         "Artifacts.knowledge_base": ["DepsProvidesMultiple"]
     }):
       for _ in test_lib.TestFlowHelper(
-          "KnowledgeBaseInitializationFlow",
+          artifact.KnowledgeBaseInitializationFlow.__name__,
           self.client_mock,
           client_id=self.client_id,
           token=self.token):
@@ -616,7 +615,7 @@ class GrrKbWindowsTest(GrrKbTest):
     ]
 
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         self.client_mock,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
@@ -730,7 +729,7 @@ class GrrKbLinuxTest(GrrKbTest):
                                  test_lib.FakeTestDataVFSHandler):
 
         for _ in test_lib.TestFlowHelper(
-            "KnowledgeBaseInitializationFlow",
+            artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
             token=self.token):
@@ -760,7 +759,7 @@ class GrrKbLinuxTest(GrrKbTest):
       }):
 
         for _ in test_lib.TestFlowHelper(
-            "KnowledgeBaseInitializationFlow",
+            artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
             token=self.token):
@@ -798,7 +797,7 @@ class GrrKbLinuxTest(GrrKbTest):
                                  test_lib.FakeTestDataVFSHandler):
 
         for _ in test_lib.TestFlowHelper(
-            "KnowledgeBaseInitializationFlow",
+            artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             require_complete=False,
             client_id=self.client_id,
@@ -825,7 +824,7 @@ class GrrKbDarwinTest(GrrKbTest):
                                  test_lib.ClientVFSHandlerFixture):
 
         for _ in test_lib.TestFlowHelper(
-            "KnowledgeBaseInitializationFlow",
+            artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
             token=self.token):

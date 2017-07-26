@@ -259,6 +259,8 @@ class VFSGRRClient(standard.VFSDirectory):
     if attribute == "CONTAINS":
       flow_id = flow.GRRFlow.StartFlow(
           client_id=self.client_id,
+          # TODO(user): dependency loop with flows/general/discover.py
+          # flow_name=discovery.Interrogate.__name__,
           flow_name="Interrogate",
           token=self.token,
           priority=priority)
@@ -415,6 +417,8 @@ class VFSFile(VFSAnalysisFile):
     pathspec = self.Get(self.Schema.STAT).pathspec
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_id,
+        # TODO(user): dependency loop between aff4_grr.py and transfer.py
+        # flow_name=transfer.MultiGetFile.__name__,
         flow_name="MultiGetFile",
         token=self.token,
         pathspecs=[pathspec],

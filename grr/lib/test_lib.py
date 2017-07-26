@@ -245,7 +245,7 @@ class DummyLogFlow(flow.GRRFlow):
   def Start(self, unused_response=None):
     """Log."""
     self.Log("First")
-    self.CallFlow("DummyLogFlowChild", next_state="Done")
+    self.CallFlow(DummyLogFlowChild.__name__, next_state="Done")
     self.Log("Second")
 
   @flow.StateHandler()
@@ -615,7 +615,7 @@ class GRRBaseTest(unittest.TestCase):
     approver_token = access_control.ACLToken(username=approver)
     flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="GrantClientApprovalFlow",
+        flow_name=security.GrantClientApprovalFlow.__name__,
         reason=reason,
         delegate=delegate,
         subject_urn=rdf_client.ClientURN(client_id),
@@ -637,7 +637,7 @@ class GRRBaseTest(unittest.TestCase):
 
     # Create the approval and approve it.
     flow.GRRFlow.StartFlow(
-        flow_name="RequestHuntApprovalFlow",
+        flow_name=security.RequestHuntApprovalFlow.__name__,
         subject_urn=rdfvalue.RDFURN(hunt_urn),
         reason=token.reason,
         approver="approver",
@@ -647,7 +647,7 @@ class GRRBaseTest(unittest.TestCase):
 
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantHuntApprovalFlow",
+        flow_name=security.GrantHuntApprovalFlow.__name__,
         subject_urn=rdfvalue.RDFURN(hunt_urn),
         reason=token.reason,
         delegate=token.username,
@@ -658,7 +658,7 @@ class GRRBaseTest(unittest.TestCase):
 
     # Create cron job approval and approve it.
     flow.GRRFlow.StartFlow(
-        flow_name="RequestCronJobApprovalFlow",
+        flow_name=security.RequestCronJobApprovalFlow.__name__,
         subject_urn=rdfvalue.RDFURN(cron_job_urn),
         reason=self.token.reason,
         approver="approver",
@@ -668,7 +668,7 @@ class GRRBaseTest(unittest.TestCase):
 
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantCronJobApprovalFlow",
+        flow_name=security.GrantCronJobApprovalFlow.__name__,
         subject_urn=rdfvalue.RDFURN(cron_job_urn),
         reason=token.reason,
         delegate=token.username,

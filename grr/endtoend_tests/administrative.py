@@ -11,13 +11,14 @@ from grr.lib import aff4
 from grr.lib import maintenance_utils
 from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import stats as aff4_stats
+from grr.lib.flows.general import administrative
 
 
 class TestGetClientStats(base.AutomatedTest):
   """GetClientStats test."""
   platforms = ["Linux", "Windows", "Darwin"]
   test_output_path = "stats"
-  flow = "GetClientStats"
+  flow = administrative.GetClientStats.__name__
 
   def CheckFlow(self):
     aff4.FACTORY.Flush()
@@ -57,7 +58,7 @@ class TestLaunchBinaries(base.ClientTestBase):
   code signing requires a password.
   """
   platforms = ["Windows", "Linux"]
-  flow = "LaunchBinary"
+  flow = administrative.LaunchBinary.__name__
   filenames = {"Windows": "hello.exe", "Linux": "hello"}
   ds_names = {"Windows": "hello.exe", "Linux": "hello"}
 

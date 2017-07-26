@@ -192,7 +192,7 @@ def TestClientActionWithWorker(client_id,
     print str(request)
   StartFlowAndWorker(
       client_id,
-      flow_name="ClientAction",
+      flow_name=ClientAction.__name__,
       action=client_action,
       break_pdb=break_pdb,
       action_args=request)

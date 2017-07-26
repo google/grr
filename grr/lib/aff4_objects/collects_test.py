@@ -50,8 +50,7 @@ class TestCollections(test_lib.AFF4ObjectTest):
         urn,
         chunk_size=2,
         token=self.token,
-        private_key=config.CONFIG[
-            "PrivateKeys.executable_signing_private_key"],
+        private_key=config.CONFIG["PrivateKeys.executable_signing_private_key"],
         public_key=config.CONFIG["Client.executable_signing_public_key"])
 
     fd = aff4.FACTORY.Open(urn, token=self.token)
@@ -166,8 +165,7 @@ class TestCollections(test_lib.AFF4ObjectTest):
     collects.GRRSignedBlob.NewFromContent(
         test_string,
         urn,
-        private_key=config.CONFIG[
-            "PrivateKeys.executable_signing_private_key"],
+        private_key=config.CONFIG["PrivateKeys.executable_signing_private_key"],
         public_key=config.CONFIG["Client.executable_signing_public_key"],
         token=self.token)
 

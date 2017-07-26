@@ -3,13 +3,14 @@
 
 
 from grr.endtoend_tests import base
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestCollector(base.AutomatedTest):
   """Test ArtifactCollectorFlow."""
   platforms = ["Windows"]
-  flow = "ArtifactCollectorFlow"
+  flow = collectors.ArtifactCollectorFlow.__name__
   args = {"artifact_list": ["WindowsRunKeys"], "store_results_in_aff4": False}
 
   def CheckFlow(self):

@@ -3,13 +3,14 @@
 
 
 from grr.endtoend_tests import base
+from grr.lib.flows.general import processes
 
 
 class TestProcessListing(base.AutomatedTest):
   """Test ListProcesses."""
   platforms = ["Linux", "Windows", "Darwin"]
 
-  flow = "ListProcesses"
+  flow = processes.ListProcesses.__name__
   output_path = "analysis/ListProcesses/testing"
 
   def CheckFlow(self):

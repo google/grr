@@ -5,13 +5,14 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestDarwinPersistenceMechanisms(base.AutomatedTest):
   """Test DarwinPersistenceMechanisms."""
   platforms = ["Darwin"]
-  flow = "ArtifactCollectorFlow"
+  flow = collectors.ArtifactCollectorFlow.__name__
   args = {"artifact_list": ["DarwinPersistenceMechanisms"]}
 
   def CheckFlow(self):
@@ -30,7 +31,7 @@ class TestDarwinPersistenceMechanisms(base.AutomatedTest):
 class TestRootDiskVolumeUsage(base.AutomatedTest):
   """Test RootDiskVolumeUsage."""
   platforms = ["Linux", "Darwin"]
-  flow = "ArtifactCollectorFlow"
+  flow = collectors.ArtifactCollectorFlow.__name__
   args = {"artifact_list": ["RootDiskVolumeUsage"]}
 
   def CheckFlow(self):
@@ -42,7 +43,7 @@ class TestRootDiskVolumeUsage(base.AutomatedTest):
 class TestParserDependency(base.AutomatedTest):
   """Test Artifacts complete when KB is empty."""
   platforms = ["Windows"]
-  flow = "ArtifactCollectorFlow"
+  flow = collectors.ArtifactCollectorFlow.__name__
   args = {
       "artifact_list": ["WindowsEnvironmentVariablePath"],
       "dependencies": "FETCH_NOW"

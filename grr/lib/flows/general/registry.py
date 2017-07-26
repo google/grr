@@ -6,12 +6,9 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_utils
 from grr.lib import flow
-# For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
-# For FindFiles
-from grr.lib.flows.general import find
-# pylint: enable=unused-import
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -84,7 +81,7 @@ class RegistryFinder(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.CallFlow(
-        "FileFinder",
+        file_finder.FileFinder.__name__,
         paths=self.args.keys_paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=self.ConditionsToFileFinderConditions(self.args.conditions),
@@ -117,7 +114,7 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
     self.CallFlow(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["WindowsRunKeys"],
         use_tsk=True,
         store_results_in_aff4=False,
@@ -146,7 +143,10 @@ class CollectRunKeyBinaries(flow.GRRFlow):
                 path=path, pathtype=rdf_paths.PathSpec.PathType.TSK))
 
     if filenames:
-      self.CallFlow("MultiGetFile", pathspecs=filenames, next_state="Done")
+      self.CallFlow(
+          transfer.MultiGetFile.__name__,
+          pathspecs=filenames,
+          next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):

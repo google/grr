@@ -3,13 +3,14 @@
 
 
 from grr.endtoend_tests import base
+from grr.lib.flows.general import grep
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestSearchFilesGrep(base.AutomatedTest):
   """Test SearchFileContent with grep."""
   platforms = ["Linux"]
-  flow = "SearchFileContent"
+  flow = grep.SearchFileContent.__name__
   args = {
       "paths": ["/bin/ls*"],
       "grep": rdf_client.BareGrepSpec(literal="ELF"),

@@ -87,8 +87,7 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
     if yaml_data:
       self.reader.CreateAuthorizations(yaml_data, ClientApprovalAuthorization)
     else:
-      with open(
-          config.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
+      with open(config.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
         self.reader.CreateAuthorizations(fh.read(), ClientApprovalAuthorization)
 
     for approval_spec in self.reader.GetAllAuthorizationObjects():

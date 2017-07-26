@@ -9,6 +9,7 @@ from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import artifact
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -54,7 +55,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         searching.Grep,)
 
     for s in test_lib.TestFlowHelper(
-        "RegistryFinder",
+        registry.RegistryFinder.__name__,
         client_mock,
         client_id=self.client_id,
         keys_paths=keys_paths,
@@ -310,7 +311,7 @@ class TestRegistryFlows(RegistryFlowTest):
 
       # Get KB initialized
       for _ in test_lib.TestFlowHelper(
-          "KnowledgeBaseInitializationFlow",
+          artifact.KnowledgeBaseInitializationFlow.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token):
@@ -320,7 +321,7 @@ class TestRegistryFlows(RegistryFlowTest):
                                "Start") as getfile_instrument:
         # Run the flow in the emulated way.
         for _ in test_lib.TestFlowHelper(
-            "CollectRunKeyBinaries",
+            registry.CollectRunKeyBinaries.__name__,
             client_mock,
             client_id=self.client_id,
             token=self.token):

@@ -33,6 +33,7 @@ from grr.lib import threadpool
 from grr.lib import worker
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
+from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -2396,7 +2397,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="ListDirectory",
+        flow_name=filesystem.ListDirectory.__name__,
         queue=self.queue,
         pathspec=rdf_paths.PathSpec(
             path="/",

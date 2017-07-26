@@ -346,7 +346,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=args.client_id.ToClientURN(),
-        flow_name="Interrogate",
+        flow_name=discovery.Interrogate.__name__,
         token=token)
 
     return ApiInterrogateClientResult(operation_id=str(flow_urn))

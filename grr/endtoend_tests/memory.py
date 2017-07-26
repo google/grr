@@ -7,6 +7,7 @@ from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.flows.general import memory
 
 
 class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
@@ -17,7 +18,7 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
   cache with lib.rekall_profile_server.GRRRekallProfileServer.GetMissingProfiles
   on the console to make these tests pass.
   """
-  flow = "AnalyzeClientMemory"
+  flow = memory.AnalyzeClientMemory.__name__
   args = {"request": rdf_rekall_types.RekallRequest()}
 
   def setUpRequest(self):

@@ -11,6 +11,8 @@ from grr.lib import test_lib
 
 from grr.lib.flows import console  # pylint: disable=unused-import
 
+from grr.lib.flows.console import debugging
+
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -26,10 +28,10 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
     request = rdf_client.ListDirRequest(pathspec=pathspec)
 
     for _ in test_lib.TestFlowHelper(
-        "ClientAction",
+        debugging.ClientAction.__name__,
         client_mock,
         client_id=self.client_id,
-        action="ListDirectory",
+        action=standard.ListDirectory.__name__,
         break_pdb=False,
         action_args=request,
         token=self.token):

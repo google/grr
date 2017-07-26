@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -213,7 +214,7 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
     # Also, it's not clear whether cron job scheduling UI is used often enough
     # to justify its existence. We should check with opensource users whether
     # they find this feature useful and if not, deprecate it altogether.
-    if args.flow_name != "CreateAndRunGenericHuntFlow":
+    if args.flow_name != standard.CreateAndRunGenericHuntFlow.__name__:
       raise ValueError("Only CreateAndRunGenericHuntFlow flows are supported "
                        "here (got: %s)." % args.flow_name)
 

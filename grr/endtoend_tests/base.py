@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.console import debugging
+from grr.lib.flows.general import discovery
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -157,7 +158,9 @@ class ClientTestBase(unittest.TestCase):
       # Try running Interrogate once.
       if run_interrogate:
         flow_utils.StartFlowAndWait(
-            self.client_id, flow_name="Interrogate", token=self.token)
+            self.client_id,
+            flow_name=discovery.Interrogate.__name__,
+            token=self.token)
         return self.GetGRRBinaryName(run_interrogate=False)
       else:
         self.fail("No valid configuration found, interrogate the client before "

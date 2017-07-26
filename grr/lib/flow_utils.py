@@ -7,6 +7,7 @@ import logging
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
 
 # How long to wait, by default, for a flow to finish.
 DEFAULT_TIMEOUT = 650
@@ -60,7 +61,7 @@ def UpdateVFSFileAndWait(client_id,
       client_id,
       token=token,
       timeout=timeout,
-      flow_name="UpdateVFSFile",
+      flow_name=aff4_grr.UpdateVFSFile.__name__,
       vfs_file_urn=vfs_file_urn)
 
   update_flow_obj = aff4.FACTORY.Open(

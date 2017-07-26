@@ -14,6 +14,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
+from grr.lib.flows.general import file_finder
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -88,7 +89,8 @@ class ApiCreateCronJobHandlerRegressionTest(
     flow_args = standard.CreateGenericHuntFlowArgs()
     flow_args.hunt_args.flow_args = rdf_file_finder.FileFinderArgs(
         paths=["c:\\windows\\system32\\notepad.*"])
-    flow_args.hunt_args.flow_runner_args.flow_name = "FileFinder"
+    flow_args.hunt_args.flow_runner_args.flow_name = (
+        file_finder.FileFinder.__name__)
     flow_args.hunt_runner_args.client_rule_set.rules = [
         rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
             os_windows=True))

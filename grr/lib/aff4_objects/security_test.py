@@ -109,7 +109,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
     flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=security.RequestClientApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=self.client_id,
         approver=username,
@@ -161,7 +161,7 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
 
     flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=security.RequestClientApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=client_id,
         approver="approver",
@@ -191,7 +191,7 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
     cron_urn = rdfvalue.RDFURN("aff4:/cron/CronJobName")
 
     flow.GRRFlow.StartFlow(
-        flow_name="RequestCronJobApprovalFlow",
+        flow_name=security.RequestCronJobApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=cron_urn,
         approver="approver",
@@ -221,7 +221,7 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:ABCD1234")
 
     flow.GRRFlow.StartFlow(
-        flow_name="RequestHuntApprovalFlow",
+        flow_name=security.RequestHuntApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=hunt_urn,
         approver="approver",

@@ -29,8 +29,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
       self.Log("TTL not set - nothing to do...")
       return
 
-    exception_label = config.CONFIG[
-        "DataRetention.hunts_ttl_exception_label"]
+    exception_label = config.CONFIG["DataRetention.hunts_ttl_exception_label"]
 
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
     hunts_urns = list(hunts_root.ListChildren())

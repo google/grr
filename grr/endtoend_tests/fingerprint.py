@@ -4,13 +4,14 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.flows.general import fingerprint
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFingerprintFileOSLinux(base.AutomatedTest):
   """Tests if Fingerprinting works on Linux."""
   platforms = ["Linux"]
-  flow = "FingerprintFile"
+  flow = fingerprint.FingerprintFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(

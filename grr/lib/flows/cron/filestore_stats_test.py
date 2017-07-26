@@ -46,7 +46,7 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testFileTypes(self):
     for _ in test_lib.TestFlowHelper(
-        "FilestoreStatsCronFlow", token=self.token):
+        filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(

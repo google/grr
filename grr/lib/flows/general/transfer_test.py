@@ -88,7 +88,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
       session_id = None
       for session_id in test_lib.TestFlowHelper(
-          "MultiUploadFile",
+          transfer.MultiUploadFile.__name__,
           ClientMock(client_id=self.client_id),
           token=self.token,
           pathspecs=[pathspec],
@@ -114,7 +114,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     """Test that the GetMBR flow works."""
 
     for _ in test_lib.TestFlowHelper(
-        "GetMBR",
+        transfer.GetMBR.__name__,
         ClientMock(self.mbr),
         token=self.token,
         client_id=self.client_id):
@@ -127,7 +127,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     with utils.Stubber(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
       for _ in test_lib.TestFlowHelper(
-          "GetMBR",
+          transfer.GetMBR.__name__,
           ClientMock(self.mbr),
           token=self.token,
           client_id=self.client_id,
@@ -157,7 +157,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper(
-        "GetFile",
+        transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
@@ -184,7 +184,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         path=os.path.join(self.base_path, "TEST_IMG.dd"))
 
     for s in test_lib.TestFlowHelper(
-        "GetFile",
+        transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
@@ -239,7 +239,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS, path=zero_sized_filename)
 
     for _ in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         file_size="1MiB",
@@ -254,7 +254,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS, path="/proc/self/environ")
 
     for _ in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         file_size=1024 * 1024,
@@ -308,7 +308,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     with test_lib.Instrument(transfer.MultiGetFile,
                              "StoreStat") as storestat_instrument:
       for _ in test_lib.TestFlowHelper(
-          "MultiGetFile",
+          transfer.MultiGetFile.__name__,
           client_mock,
           token=self.token,
           client_id=self.client_id,
@@ -348,7 +348,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     args = transfer.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=10)
     for session_id in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
@@ -396,7 +396,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     args = transfer.MultiGetFileArgs(
         pathspecs=pathspecs, maximum_pending_files=1)
     for _ in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
@@ -413,7 +413,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
     for _ in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,
@@ -445,7 +445,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     args = transfer.MultiGetFileArgs(
         pathspecs=[pathspec], file_size=expected_size)
     for _ in test_lib.TestFlowHelper(
-        "MultiGetFile",
+        transfer.MultiGetFile.__name__,
         client_mock,
         token=self.token,
         client_id=self.client_id,

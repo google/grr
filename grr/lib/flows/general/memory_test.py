@@ -115,16 +115,21 @@ class TestMemoryCollector(MemoryTest):
     # Ensure there is some data in the memory dump.
     self.assertTrue(self.client_mock.memory_dump)
 
-    self.old_diskvolume_flow = flow.GRRFlow.classes["DiskVolumeInfo"]
-    flow.GRRFlow.classes["DiskVolumeInfo"] = DummyDiskVolumeInfo
+    self.old_diskvolume_flow = flow.GRRFlow.classes[
+        filesystem.DiskVolumeInfo.__name__]
+    flow.GRRFlow.classes[
+        filesystem.DiskVolumeInfo.__name__] = DummyDiskVolumeInfo
 
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
-    flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
+    flow.GRRFlow.classes[
+        filesystem.DiskVolumeInfo.__name__] = self.old_diskvolume_flow
 
   def RunWithDownload(self):
     self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryCollector", token=self.token)
+        client_id=self.client_id,
+        flow_name=memory.MemoryCollector.__name__,
+        token=self.token)
 
     for _ in test_lib.TestFlowHelper(
         self.flow_urn,
@@ -256,7 +261,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock()
 
     for s in test_lib.TestFlowHelper(
-        "ListVADBinaries",
+        memory.ListVADBinaries.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token):
@@ -276,7 +281,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     for s in test_lib.TestFlowHelper(
-        "ListVADBinaries",
+        memory.ListVADBinaries.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -305,7 +310,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process, process])
 
     for s in test_lib.TestFlowHelper(
-        "ListVADBinaries",
+        memory.ListVADBinaries.__name__,
         client_mock,
         client_id=self.client_id,
         fetch_binaries=True,
@@ -328,7 +333,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     for s in test_lib.TestFlowHelper(
-        "ListVADBinaries",
+        memory.ListVADBinaries.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -351,7 +356,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe])
 
     for s in test_lib.TestFlowHelper(
-        "ListVADBinaries",
+        memory.ListVADBinaries.__name__,
         client_mock,
         check_flow_errors=False,
         client_id=self.client_id,

@@ -4,6 +4,7 @@
 
 from grr import config
 from grr.lib import aff4
+from grr.lib import artifact
 from grr.lib import client_index
 from grr.lib import flow
 from grr.lib import queues
@@ -16,30 +17,6 @@ from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
-
-
-class EnrolmentInterrogateEvent(flow.EventListener):
-  """An event handler which will schedule interrogation on client enrollment."""
-  EVENTS = ["ClientEnrollment"]
-  well_known_session_id = rdfvalue.SessionID(
-      queue=queues.ENROLLMENT, flow_name="Interrogate")
-
-  def CheckSource(self, source):
-    if not isinstance(source, rdfvalue.SessionID):
-      try:
-        source = rdfvalue.SessionID(source)
-      except rdfvalue.InitializeError:
-        return False
-    return source.Queue() == queues.ENROLLMENT
-
-  @flow.EventHandler(source_restriction=True)
-  def ProcessMessage(self, message=None, event=None):
-    _ = message
-    flow.GRRFlow.StartFlow(
-        client_id=event,
-        flow_name="Interrogate",
-        queue=queues.ENROLLMENT,
-        token=self.token)
 
 
 class InterrogateArgs(rdf_structs.RDFProtoStruct):
@@ -178,7 +155,7 @@ class Interrogate(flow.GRRFlow):
       # We will accept a partial KBInit rather than raise, so pass
       # require_complete=False.
       self.CallFlow(
-          "KnowledgeBaseInitializationFlow",
+          artifact.KnowledgeBaseInitializationFlow.__name__,
           require_complete=False,
           lightweight=self.args.lightweight,
           next_state="ProcessKnowledgeBase")
@@ -199,8 +176,7 @@ class Interrogate(flow.GRRFlow):
     original_set = set(config.CONFIG["Artifacts.interrogate_store_in_aff4"])
     add_set = set(
         config.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
-    skip_set = set(
-        config.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
+    skip_set = set(config.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
     return original_set.union(add_set) - skip_set
 
   @flow.StateHandler()
@@ -350,3 +326,27 @@ class Interrogate(flow.GRRFlow):
 
     # Update the client index
     client_index.CreateClientIndex(token=self.token).AddClient(client)
+
+
+class EnrolmentInterrogateEvent(flow.EventListener):
+  """An event handler which will schedule interrogation on client enrollment."""
+  EVENTS = ["ClientEnrollment"]
+  well_known_session_id = rdfvalue.SessionID(
+      queue=queues.ENROLLMENT, flow_name=Interrogate.__name__)
+
+  def CheckSource(self, source):
+    if not isinstance(source, rdfvalue.SessionID):
+      try:
+        source = rdfvalue.SessionID(source)
+      except rdfvalue.InitializeError:
+        return False
+    return source.Queue() == queues.ENROLLMENT
+
+  @flow.EventHandler(source_restriction=True)
+  def ProcessMessage(self, message=None, event=None):
+    _ = message
+    flow.GRRFlow.StartFlow(
+        client_id=event,
+        flow_name=Interrogate.__name__,
+        queue=queues.ENROLLMENT,
+        token=self.token)

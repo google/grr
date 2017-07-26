@@ -118,7 +118,7 @@ class Enroler(flow.WellKnownFlow):
       # Start the enrollment flow for this client.
       flow.GRRFlow.StartFlow(
           client_id=client_id,
-          flow_name="CAEnroler",
+          flow_name=CAEnroler.__name__,
           csr=cert,
           queue=queue,
           token=self.token)

@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.flows.general import discovery
 
 
 class ApiListFilesHandlerRegressionTest(
@@ -167,7 +168,9 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
     # Create an arbitrary flow to check on 404s.
     self.non_refresh_flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
+        client_id=self.client_id,
+        flow_name=discovery.Interrogate.__name__,
+        token=self.token)
 
     # Unkonwn flow ids should also cause 404s.
     self.unknown_flow_id = "F:12345678"
@@ -256,7 +259,9 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
     # Create an arbitrary flow to check on 404s.
     self.non_update_flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
+        client_id=self.client_id,
+        flow_name=discovery.Interrogate.__name__,
+        token=self.token)
 
     # Unkonwn flow ids should also cause 404s.
     self.unknown_flow_id = "F:12345678"

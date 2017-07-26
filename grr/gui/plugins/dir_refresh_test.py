@@ -11,6 +11,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -90,8 +92,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
-      return "MultiGetFile" in list(x.__class__.__name__
-                                    for x in fd.OpenChildren())
+      return transfer.MultiGetFile.__name__ in list(x.__class__.__name__
+                                                    for x in fd.OpenChildren())
 
     self.WaitUntil(MultiGetFileStarted)
 
@@ -142,7 +144,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Go to the flow management screen and check that there was a new flow.
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=grr-flows-list tr:contains('MultiGetFile')")
-    self.WaitUntilContains("MultiGetFile", self.GetText, "css=#main_bottomPane")
+    self.WaitUntilContains(transfer.MultiGetFile.__name__, self.GetText,
+                           "css=#main_bottomPane")
 
     self.WaitUntilContains(
         "c/Downloads/a.txt", self.GetText,
@@ -164,7 +167,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.flows']")
 
     self.Click("css=grr-flows-list tr:contains('ListDirectory')")
-    self.WaitUntilContains("ListDirectory", self.GetText,
+    self.WaitUntilContains(filesystem.ListDirectory.__name__, self.GetText,
                            "css=#main_bottomPane")
     self.WaitUntilContains(
         "/Users/Shared", self.GetText,

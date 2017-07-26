@@ -173,7 +173,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
@@ -201,7 +201,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
     artifact_list = ["FakeArtifact"]
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
@@ -223,11 +223,11 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": r"ListProcesses"})
+          attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
       for s in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
@@ -248,12 +248,12 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": r"ListProcesses"})
+          attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
       for s in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
@@ -280,7 +280,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": "ListProcesses"},
+          attributes={"client_action": standard.ListProcesses.__name__},
           conditions=["os == 'Windows'"])
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
@@ -326,7 +326,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         for s in test_lib.TestFlowHelper(
-            "ArtifactCollectorFlow",
+            collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
@@ -357,7 +357,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         for s in test_lib.TestFlowHelper(
-            "ArtifactCollectorFlow",
+            collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
@@ -375,7 +375,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": "ListProcesses"},
+          attributes={"client_action": standard.ListProcesses.__name__},
           supported_os=["Windows"])
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
@@ -409,7 +409,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Flush()
     self.output_count += 1
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         token=self.token,

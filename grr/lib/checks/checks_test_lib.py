@@ -47,8 +47,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     if HostCheckTest.loaded_checks is None:
       HostCheckTest.loaded_checks = {}
 
-    cfg = os.path.join(config.CONFIG["Test.srcdir"], "grr", "checks",
-                       cfg_file)
+    cfg = os.path.join(config.CONFIG["Test.srcdir"], "grr", "checks", cfg_file)
     if check_ids:
       key = "%s:%s" % (cfg, ",".join(check_ids))
       if key in HostCheckTest.loaded_checks:

@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import utils
+from grr.lib.aff4_objects import security
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -112,7 +113,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
         client_id="C.0000000000000001",
-        flow_name="GrantClientApprovalFlow",
+        flow_name=security.GrantClientApprovalFlow.__name__,
         reason=self.reason,
         delegate=self.token.username,
         subject_urn=rdf_client.ClientURN("C.0000000000000001"),

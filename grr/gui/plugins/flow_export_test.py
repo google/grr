@@ -64,7 +64,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownForNonFileResults(self):
     for _ in test_lib.TestFlowHelper(
-        "FlowWithOneNetworkConnectionResult",
+        gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
         token=self.token):

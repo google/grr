@@ -15,6 +15,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import security
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
@@ -53,7 +54,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
       flow.GRRFlow.StartFlow(
           client_id=client_id,
-          flow_name="RequestClientApprovalFlow",
+          flow_name=security.RequestClientApprovalFlow.__name__,
           reason="Please please let me",
           subject_urn=client_id,
           approver=self.token.username,
@@ -85,7 +86,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
       flow.GRRFlow.StartFlow(
-          flow_name="RequestHuntApprovalFlow",
+          flow_name=security.RequestHuntApprovalFlow.__name__,
           reason="Please please let me",
           subject_urn=hunt_id,
           approver=self.token.username,
@@ -119,7 +120,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
       flow.GRRFlow.StartFlow(
-          flow_name="RequestCronJobApprovalFlow",
+          flow_name=security.RequestCronJobApprovalFlow.__name__,
           reason="Please please let me",
           subject_urn="aff4:/cron/OSBreakDown",
           approver=self.token.username,
@@ -136,7 +137,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "iwantapproval")
     self.WaitUntil(self.IsTextPresent, "Please please let me")
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
     self.WaitUntil(self.IsTextPresent, "Periodicity")
 
 

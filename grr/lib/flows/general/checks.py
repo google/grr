@@ -5,9 +5,7 @@ from grr.lib import artifact
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib.checks import checks
-# pylint: disable=unused-import
-from grr.lib.flows.general import collectors as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -68,7 +66,7 @@ class CheckRunner(flow.GRRFlow):
         restrict_checks=self.args.restrict_checks)
     for artifact_name in self.state.artifacts_wanted:
       self.CallFlow(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           artifact_list=[artifact_name],
           apply_parsers=False,
           request_data={"artifact_name": artifact_name},

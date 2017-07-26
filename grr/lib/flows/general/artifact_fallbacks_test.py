@@ -5,9 +5,7 @@ from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
-# pylint: disable=unused-import
-from grr.lib.flows.general import artifact_fallbacks as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -19,7 +17,7 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.ListDirectoryClientMock()
 
       for s in test_lib.TestFlowHelper(
-          "SystemRootSystemDriveFallbackFlow",
+          artifact_fallbacks.SystemRootSystemDriveFallbackFlow.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token,

@@ -237,7 +237,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
         for _ in test_lib.TestFlowHelper(
-            "Interrogate",
+            discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
             client_id=self.client_id):
@@ -259,7 +259,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
             system="Windows", version="6.1.7600", kernel="6.1.7601")
         with mock.patch.object(platform, "system", return_value="Windows"):
           for _ in test_lib.TestFlowHelper(
-              "Interrogate",
+              discovery.Interrogate.__name__,
               client_mock,
               token=self.token,
               client_id=self.client_id):
@@ -286,7 +286,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         client_mock.InitializeClient()
 
         for _ in test_lib.TestFlowHelper(
-            "Interrogate",
+            discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
             client_id=self.client_id):
@@ -328,7 +328,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
         # Run the flow in the simulated way
         for _ in test_lib.TestFlowHelper(
-            "Interrogate",
+            discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
             client_id=self.client_id):

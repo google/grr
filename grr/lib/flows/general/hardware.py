@@ -11,6 +11,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import server_stubs
 from grr.lib.aff4_objects import hardware
+from grr.lib.flows.general import collectors
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -39,7 +40,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   def CollectDebugInfo(self, responses):
     """Start by collecting general hardware information."""
     self.CallFlow(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["LinuxHardwareInfo"],
         store_results_in_aff4=True,
         next_state="DumpImage")
@@ -73,7 +74,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     else:
       image_path = responses.First().path
       self.CallFlow(
-          "MultiGetFile",
+          transfer.MultiGetFile.__name__,
           pathspecs=[image_path],
           request_data={"image_path": image_path},
           next_state="DeleteTemporaryImage")

@@ -20,6 +20,7 @@ from grr.lib.aff4_objects import standard as aff4_standard
 # pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
+from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -40,7 +41,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Make sure the flow raises.
     self.assertRaises(RuntimeError, list,
                       test_lib.TestFlowHelper(
-                          "ListDirectory",
+                          filesystem.ListDirectory.__name__,
                           client_mock,
                           client_id=self.client_id,
                           pathspec=pb,
@@ -55,7 +56,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     pb.Append(path="test directory", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     for _ in test_lib.TestFlowHelper(
-        "ListDirectory",
+        filesystem.ListDirectory.__name__,
         client_mock,
         client_id=self.client_id,
         pathspec=pb,
@@ -91,7 +92,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     with self.assertRaises(RuntimeError):
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory",
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=pb,
@@ -111,7 +112,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     pb.Append(path=u"入乡随俗 海外春节别样过法", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     for _ in test_lib.TestFlowHelper(
-        "ListDirectory",
+        filesystem.ListDirectory.__name__,
         client_mock,
         client_id=self.client_id,
         pathspec=pb,
@@ -150,7 +151,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Set iterator really low to force iteration.
     with utils.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
       for _ in test_lib.TestFlowHelper(
-          "Glob",
+          filesystem.Glob.__name__,
           client_mock,
           client_id=self.client_id,
           paths=paths,
@@ -198,7 +199,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.GlobClientMock()
     with utils.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
       for _ in test_lib.TestFlowHelper(
-          "Glob",
+          filesystem.Glob.__name__,
           client_mock,
           client_id=self.client_id,
           paths=paths,
@@ -228,7 +229,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -347,7 +348,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Make sure the flow raises.
     self.assertRaises(ValueError, list,
                       test_lib.TestFlowHelper(
-                          "Glob",
+                          filesystem.Glob.__name__,
                           client_mock,
                           client_id=self.client_id,
                           paths=paths,
@@ -366,7 +367,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -396,7 +397,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -421,7 +422,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     path = os.path.join(self.base_path, "test_IMG.dd", "glob_test", "a", "b",
                         "FOO*")
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -445,7 +446,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Specifying a wildcard for the image will not open it.
     path = os.path.join(self.base_path, "*.dd", "glob_test", "a", "b", "FOO*")
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -483,7 +484,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -508,7 +509,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -525,7 +526,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertRaises(
         artifact_utils.KnowledgeBaseInterpolationError,
         flow.GRRFlow.StartFlow,
-        flow_name="Glob",
+        flow_name=filesystem.Glob.__name__,
         paths=paths,
         client_id=self.client_id,
         token=self.token)
@@ -541,7 +542,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # This should not raise here since the flow is run asynchronously.
     for session_id in test_lib.TestFlowHelper(
-        "Glob",
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         check_flow_errors=False,
@@ -580,7 +581,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
       # Run the flow.
       for _ in test_lib.TestFlowHelper(
-          "Glob",
+          filesystem.Glob.__name__,
           client_mock,
           client_id=self.client_id,
           paths=[path],
@@ -638,7 +639,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.FileFinderClientMock()
 
       for _ in test_lib.TestFlowHelper(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/*"],
@@ -680,7 +681,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.FileFinderClientMock()
 
       for _ in test_lib.TestFlowHelper(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/**5"],
@@ -743,7 +744,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.FileFinderClientMock()
 
     for _ in test_lib.TestFlowHelper(
-        "FetchBufferForSparseImage",
+        filesystem.FetchBufferForSparseImage.__name__,
         self.client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -827,7 +828,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Get everything as an AFF4SparseImage
     for _ in test_lib.TestFlowHelper(
-        "MakeNewAFF4SparseImage",
+        filesystem.MakeNewAFF4SparseImage.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -864,7 +865,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.UnixVolumeClientMock()
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
-          "DiskVolumeInfo",
+          filesystem.DiskVolumeInfo.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token,
@@ -889,7 +890,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
-            "DiskVolumeInfo",
+            filesystem.DiskVolumeInfo.__name__,
             client_mock,
             client_id=self.client_id,
             token=self.token,
@@ -910,7 +911,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
-            "DiskVolumeInfo",
+            filesystem.DiskVolumeInfo.__name__,
             client_mock,
             client_id=self.client_id,
             token=self.token,

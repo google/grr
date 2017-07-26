@@ -531,7 +531,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path=path or "/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),

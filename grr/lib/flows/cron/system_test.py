@@ -75,7 +75,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     Windows machines should be in Label1 and Label2.
     There should be no stats for UserLabel.
     """
-    for _ in test_lib.TestFlowHelper("GRRVersionBreakDown", token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        system.GRRVersionBreakDown.__name__, token=self.token):
       pass
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
@@ -123,7 +124,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
-    for _ in test_lib.TestFlowHelper("OSBreakDown", token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        system.OSBreakDown.__name__, token=self.token):
       pass
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
@@ -164,7 +166,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
-    for _ in test_lib.TestFlowHelper("LastAccessStats", token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        system.LastAccessStats.__name__, token=self.token):
       pass
 
     # All our clients appeared at the same time (and did not appear since).
@@ -197,7 +200,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
     with test_lib.FakeTime(2.5 * max_age):
       for _ in test_lib.TestFlowHelper(
-          "PurgeClientStats", None, client_id=self.client_id, token=self.token):
+          system.PurgeClientStats.__name__,
+          None,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
@@ -238,7 +244,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
         # The test harness doesn't understand the callstate at a later time that
         # this flow is doing, so we need to disable check_flow_errors.
         for _ in test_lib.TestFlowHelper(
-            "EndToEndTests",
+            system.EndToEndTests.__name__,
             self.client_mock,
             client_id=self.client_id,
             check_flow_errors=False,

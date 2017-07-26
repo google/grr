@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.flows.general import discovery
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -60,7 +61,7 @@ class VfsTestMixin(object):
 
     return flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="RecursiveListDirectory",
+        flow_name=filesystem.RecursiveListDirectory.__name__,
         args=flow_args,
         token=token)
 
@@ -71,7 +72,7 @@ class VfsTestMixin(object):
 
     return flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="MultiGetFile",
+        flow_name=transfer.MultiGetFile.__name__,
         args=flow_args,
         token=token)
 
@@ -430,7 +431,8 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Check returned operation_id to references a ListDirectory flow.
     flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
-    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "ListDirectory")
+    self.assertEqual(
+        flow_obj.Get(flow_obj.Schema.TYPE), filesystem.ListDirectory.__name__)
 
   def testHandlerRefreshStartsRecursiveListDirectoryFlow(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -442,7 +444,8 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check returned operation_id to references a RecursiveListDirectory flow.
     flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
     self.assertEqual(
-        flow_obj.Get(flow_obj.Schema.TYPE), "RecursiveListDirectory")
+        flow_obj.Get(flow_obj.Schema.TYPE),
+        filesystem.RecursiveListDirectory.__name__)
 
   def testNotificationIsSent(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -513,7 +516,9 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
     self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
+        client_id=self.client_id,
+        flow_name=discovery.Interrogate.__name__,
+        token=self.token)
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
         operation_id=str(self.flow_urn))
@@ -568,7 +573,8 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Check returned operation_id to references a MultiGetFile flow.
     flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
-    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "MultiGetFile")
+    self.assertEqual(
+        flow_obj.Get(flow_obj.Schema.TYPE), transfer.MultiGetFile.__name__)
 
 
 class ApiGetVfsFileContentUpdateStateHandlerTest(
@@ -605,7 +611,9 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
     self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="Interrogate", token=self.token)
+        client_id=self.client_id,
+        flow_name=discovery.Interrogate.__name__,
+        token=self.token)
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         operation_id=str(self.flow_urn))

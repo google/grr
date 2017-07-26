@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -96,7 +97,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_args = cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
 
-    cron_args.flow_runner_args.flow_name = "GetFile"
+    cron_args.flow_runner_args.flow_name = transfer.GetFile.__name__
     cron_args.flow_args.pathspec = pathspec
 
     cron_job_urn = cron_manager.ScheduleFlow(
@@ -110,7 +111,8 @@ class CronTest(test_lib.AFF4ObjectTest):
 
     cron_job = aff4.FACTORY.Open(cron_jobs[0], token=self.token)
     cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
-    self.assertEqual(cron_args.flow_runner_args.flow_name, "GetFile")
+    self.assertEqual(cron_args.flow_runner_args.flow_name,
+                     transfer.GetFile.__name__)
 
     self.assertEqual(cron_args.flow_args.pathspec, pathspec)
 

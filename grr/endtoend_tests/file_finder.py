@@ -6,6 +6,7 @@
 from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib import flow
+from grr.lib.flows.general import file_finder
 
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -18,7 +19,7 @@ class TestFileFinderOSWindows(base.VFSPathContentIsPE):
   Exercise globbing, interpolation and filtering.
   """
   platforms = ["Windows"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   test_output_path = "/fs/os/C:/Windows/System32/notepad.exe"
 
   sizecondition = rdf_file_finder.FileFinderSizeCondition(max_file_size=1000000)
@@ -41,7 +42,7 @@ class TestFileFinderOSWindows(base.VFSPathContentIsPE):
 class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
   """Download notepad with TSK on windows."""
   platforms = ["Windows"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
   download = rdf_file_finder.FileFinderDownloadActionOptions()
@@ -59,7 +60,7 @@ class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
 class TestFileFinderOSLinux(base.VFSPathContentIsELF):
   """Download a file with FileFinder."""
   platforms = ["Linux"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   test_output_path = "/fs/os/bin/ps"
 
   sizecondition = rdf_file_finder.FileFinderSizeCondition(max_file_size=1000000)
@@ -78,7 +79,7 @@ class TestFileFinderOSLinux(base.VFSPathContentIsELF):
 class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
   """Download a /proc/sys entry with FileFinder."""
   platforms = ["Linux"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   test_output_path = "/fs/os/proc/sys/net/ipv4/ip_forward"
   client_min_version = 3007
 
@@ -101,7 +102,7 @@ class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
 
 class TestFileFinderOSDarwin(base.VFSPathContentIsMachO):
   platforms = ["Darwin"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   download = rdf_file_finder.FileFinderDownloadActionOptions()
   action = rdf_file_finder.FileFinderAction(
       action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
@@ -116,7 +117,7 @@ class TestFileFinderOSHomedir(base.AutomatedTest):
   Exercise globbing and interpolation.
   """
   platforms = ["Linux", "Darwin", "Windows"]
-  flow = "FileFinder"
+  flow = file_finder.FileFinder.__name__
   action = rdf_file_finder.FileFinderAction(
       action_type=rdf_file_finder.FileFinderAction.Action.STAT)
   args = {
@@ -159,7 +160,7 @@ class UnicodeTestFlow(flow.GRRFlow):
 
     paths = [response.dest_path.path for response in responses]
     args = {"paths": paths, "action": action}
-    self.CallFlow("FileFinder", next_state="Done", **args)
+    self.CallFlow(file_finder.FileFinder.__name__, next_state="Done", **args)
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -171,7 +172,7 @@ class TestUnicode(base.LocalClientTest):
   """Tests we handle unicode filenames properly."""
 
   platforms = ["Linux"]
-  flow = "UnicodeTestFlow"
+  flow = UnicodeTestFlow.__name__
 
   def CheckFlow(self):
     self.CheckResultCollectionNotEmptyWithRetry(self.session_id)

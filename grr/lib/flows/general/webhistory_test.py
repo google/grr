@@ -11,9 +11,8 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
-# pylint: disable=unused-import
+from grr.lib.flows.general import collectors
 from grr.lib.flows.general import webhistory
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -62,7 +61,7 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test that downloading the Chrome history works."""
     # Run the flow in the simulated way
     for s in test_lib.TestFlowHelper(
-        "ChromeHistory",
+        webhistory.ChromeHistory.__name__,
         self.client_mock,
         check_flow_errors=False,
         client_id=self.client_id,
@@ -92,7 +91,7 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test that downloading the Firefox history works."""
     # Run the flow in the simulated way
     for s in test_lib.TestFlowHelper(
-        "FirefoxHistory",
+        webhistory.FirefoxHistory.__name__,
         self.client_mock,
         check_flow_errors=False,
         client_id=self.client_id,
@@ -122,7 +121,7 @@ class TestWebHistory(WebHistoryFlowTest):
     """Test the Cache Grep plugin."""
     # Run the flow in the simulated way
     for s in test_lib.TestFlowHelper(
-        "CacheGrep",
+        webhistory.CacheGrep.__name__,
         self.client_mock,
         check_flow_errors=False,
         client_id=self.client_id,
@@ -191,7 +190,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
       client_mock = self.MockClient(client_id=self.client_id)
 
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=self.client_id,
         artifact_list=artifact_list,
@@ -207,7 +206,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
         os.path.join(self.base_path, "test_img.dd")):
 
       fd = self.RunCollectorAndGetCollection(
-          ["ChromeHistory"],
+          [webhistory.ChromeHistory.__name__],
           client_mock=self.client_mock,
           use_tsk=True,
           knowledge_base=self.kb)
@@ -224,7 +223,9 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     with self.MockClientMountPointsWithImage(
         os.path.join(self.base_path, "test_img.dd")):
       fd = self.RunCollectorAndGetCollection(
-          ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
+          [webhistory.FirefoxHistory.__name__],
+          client_mock=self.client_mock,
+          use_tsk=True)
 
     self.assertEqual(len(fd), 5)
     self.assertEqual(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)

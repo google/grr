@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -153,7 +154,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     # The flow is the MultiGetFile flow holding the lock on the file.
     flow_obj = aff4.FACTORY.Open(flows[0], token=self.token)
-    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "MultiGetFile")
+    self.assertEqual(
+        flow_obj.Get(flow_obj.Schema.TYPE), transfer.MultiGetFile.__name__)
     self.assertEqual(flow_obj.urn, file_fd.Get(file_fd.Schema.CONTENT_LOCK))
 
     # Since there is already a running flow having the lock on the file,

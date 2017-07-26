@@ -26,6 +26,7 @@ from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.flows.general import discovery
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -531,7 +532,7 @@ class UpdateClient(flow.GRRFlow):
           more_data=i < aff4_blobs.chunks - 1,
           offset=offset,
           write_path=write_path,
-          next_state="Interrogate",
+          next_state=discovery.Interrogate.__name__,
           use_client_env=False)
 
       offset += len(blob.data)
@@ -542,7 +543,7 @@ class UpdateClient(flow.GRRFlow):
       self.Log("Installer reported an error: %s" % responses.status)
     else:
       self.Log("Installer completed.")
-      self.CallFlow("Interrogate", next_state="Done")
+      self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
 
   @flow.StateHandler()
   def Done(self):

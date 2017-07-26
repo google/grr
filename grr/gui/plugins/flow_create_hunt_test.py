@@ -76,7 +76,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual(1, self.GetCssCount,
                         "css=grr-hunts-list table tbody tr.row-selected")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
-    self.WaitUntil(self.IsTextPresent, "ListProcesses")
+    self.WaitUntil(self.IsTextPresent, flows_processes.ListProcesses.__name__)
 
   def testCheckCreateHuntButtonIsOnlyEnabledWithFlowSelection(self):
     flow.GRRFlow.StartFlow(

@@ -3,13 +3,14 @@
 
 
 from grr.endtoend_tests import base
+from grr.lib.flows.general import network
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestNetstat(base.AutomatedTest):
   """Test Netstat."""
   platforms = ["Linux", "Windows", "Darwin"]
-  flow = "Netstat"
+  flow = network.Netstat.__name__
 
   def CheckFlow(self):
     netstat_list = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)

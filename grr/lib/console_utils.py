@@ -137,7 +137,7 @@ def ApprovalRequest(client_id,
   approval_reason = reason or token.reason
   flow.GRRFlow.StartFlow(
       client_id=client_id,
-      flow_name="RequestClientApprovalFlow",
+      flow_name=security.RequestClientApprovalFlow.__name__,
       reason=approval_reason,
       subject_urn=rdf_client.ClientURN(client_id),
       approver=approver,
@@ -158,7 +158,7 @@ def RequestAndGrantClientApproval(client_id,
   approver_token = access_control.ACLToken(username=approver)
   flow.GRRFlow.StartFlow(
       client_id=client_id,
-      flow_name="GrantClientApprovalFlow",
+      flow_name=security.GrantClientApprovalFlow.__name__,
       reason=reason,
       delegate=token.username,
       subject_urn=rdf_client.ClientURN(client_id),
@@ -178,7 +178,7 @@ def ApprovalGrant(token=None):
     if raw_input("Do you approve this request? [y/N] ").lower() == "y":
       flow_id = flow.GRRFlow.StartFlow(
           client_id=client_id,
-          flow_name="GrantClientApprovalFlow",
+          flow_name=security.GrantClientApprovalFlow.__name__,
           reason=reason,
           delegate=user,
           token=token)

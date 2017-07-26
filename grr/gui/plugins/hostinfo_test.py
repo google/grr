@@ -10,6 +10,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.flows.general import discovery
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -74,7 +75,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     # Check if an Interrogate flow was started.
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('Interrogate')")
-    self.WaitUntilContains("Interrogate", self.GetText,
+    self.WaitUntilContains(discovery.Interrogate.__name__, self.GetText,
                            "css=table td.proto_key:contains('Flow name') "
                            "~ td.proto_value")
 

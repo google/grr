@@ -125,16 +125,16 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Some rows are present in the DOM but hidden because parent flow row
     # wasn't expanded yet. Due to this, we have to explicitly filter rows
     # with "visible" jQuery filter.
-    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
+    self.WaitUntilEqual(gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
                         "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
 
-    self.WaitUntilEqual("GetFile", self.GetText,
+    self.WaitUntilEqual(flows_transfer.GetFile.__name__, self.GetText,
                         "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Click on the first tree_closed to open it.
     self.Click("css=grr-client-flows-list tr:visible:nth(1) .tree_closed")
 
-    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
+    self.WaitUntilEqual(gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
                         "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Select the requests tab
@@ -207,7 +207,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
     for _ in test_lib.TestFlowHelper(
-        "FlowWithOneLogStatement",
+        gui_test_lib.FlowWithOneLogStatement.__name__,
         self.action_mock,
         client_id=self.client_id,
         token=self.token):
@@ -223,7 +223,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def testLogTimestampsArePresentedInUTC(self):
     with test_lib.FakeTime(42):
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneLogStatement",
+          gui_test_lib.FlowWithOneLogStatement.__name__,
           self.action_mock,
           client_id=self.client_id,
           token=self.token):
@@ -238,7 +238,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testResultsAreDisplayedInResultsTab(self):
     for _ in test_lib.TestFlowHelper(
-        "FlowWithOneStatEntryResult",
+        gui_test_lib.FlowWithOneStatEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
         token=self.token):
@@ -254,7 +254,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
     flow.GRRFlow.StartFlow(
-        flow_name="FlowWithOneStatEntryResult",
+        flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         sync=False,
         token=self.token)
@@ -269,7 +269,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testHashesAreDisplayedCorrectly(self):
     for _ in test_lib.TestFlowHelper(
-        "FlowWithOneHashEntryResult",
+        gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
         token=self.token):
@@ -301,7 +301,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent,
                    'curl -X POST -H "Content-Type: application/json"')
     self.WaitUntil(self.IsTextPresent, '"@type": "type.googleapis.com/')
-    self.WaitUntil(self.IsTextPresent, '"name": "FlowWithOneStatEntryResult"')
+    self.WaitUntil(
+        self.IsTextPresent,
+        '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__)
 
   def testChangingTabUpdatesUrl(self):
     flow_urn = flow.GRRFlow.StartFlow(

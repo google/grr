@@ -12,6 +12,7 @@ from grr.lib import flow
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -71,7 +72,7 @@ class ChromeHistory(flow.GRRFlow):
     for path in self.state.history_paths:
       for fname in filenames:
         self.CallFlow(
-            "FileFinder",
+            file_finder.FileFinder.__name__,
             paths=[os.path.join(path, fname)],
             pathtype=self.args.pathtype,
             action=rdf_file_finder.FileFinderAction(
@@ -186,7 +187,7 @@ class FirefoxHistory(flow.GRRFlow):
     filename = "places.sqlite"
     for path in self.state.history_paths:
       self.CallFlow(
-          "FileFinder",
+          file_finder.FileFinder.__name__,
           paths=[os.path.join(path, "**2", filename)],
           pathtype=self.args.pathtype,
           action=rdf_file_finder.FileFinderAction(
@@ -341,7 +342,7 @@ class CacheGrep(flow.GRRFlow):
       full_paths = flow_utils.InterpolatePath(path, client, users=usernames)
       for full_path in full_paths:
         self.CallFlow(
-            "FileFinder",
+            file_finder.FileFinder.__name__,
             paths=[os.path.join(full_path, "**5")],
             pathtype=self.args.pathtype,
             conditions=[condition],

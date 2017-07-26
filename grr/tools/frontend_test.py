@@ -31,6 +31,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib import worker_mocks
 from grr.lib.aff4_objects import filestore
+from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -193,7 +194,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       client.server_certificate = config.CONFIG["Frontend.certificate"]
 
       for s in test_lib.TestFlowHelper(
-          "ClientFileFinder",
+          file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(
               client_worker=client.client_worker),
           client_id=client_id,

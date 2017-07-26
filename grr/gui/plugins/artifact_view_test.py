@@ -12,6 +12,7 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
 from grr.lib import parsers
+from grr.lib.flows.general import collectors
 
 
 class TestCmdProcessor(parsers.CommandParser):
@@ -58,7 +59,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Collectors")
 
-    self.assertEqual("ArtifactCollectorFlow",
+    self.assertEqual(collectors.ArtifactCollectorFlow.__name__,
                      self.GetText("link=ArtifactCollectorFlow"))
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")

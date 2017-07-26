@@ -4,12 +4,13 @@
 
 from grr.endtoend_tests import base
 from grr.lib.checks import checks as rdf_checks
+from grr.lib.flows.general import checks
 
 
 class TestCheckRunner(base.AutomatedTest):
   """Test RunChecksFlow."""
   platforms = ["Linux"]
-  flow = "CheckRunner"
+  flow = checks.CheckRunner.__name__
   check_ids = [
       "CIS-LOGIN-UNIX-HASH", "CIS-NET-SYNCOOKIES", "CIS-SSH-PROTOCOL",
       "CIS-NET-LOGMART"

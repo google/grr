@@ -501,7 +501,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description=description,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.TSK,)),
@@ -585,7 +586,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     # Check that review page contains expected values.
     self.WaitUntil(self.IsTextPresent, "TSK")
     self.WaitUntil(self.IsTextPresent, "/tmp/evil.txt")
-    self.WaitUntil(self.IsTextPresent, "GetFile")
+    self.WaitUntil(self.IsTextPresent, transfer.GetFile.__name__)
     self.WaitUntil(self.IsTextPresent, "DummyOutputPlugin")
     self.WaitUntil(self.IsTextPresent, "blah!")
     self.WaitUntil(self.IsTextPresent, "model hunt (copy)")
@@ -694,7 +695,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     # Check that expected values are shown in the review.
     self.WaitUntil(self.IsTextPresent, "OS")
     self.WaitUntil(self.IsTextPresent, "/tmp/very-evil.txt")
-    self.WaitUntil(self.IsTextPresent, "GetFile")
+    self.WaitUntil(self.IsTextPresent, transfer.GetFile.__name__)
     self.WaitUntil(self.IsTextPresent, "DummyOutputPlugin")
     self.WaitUntil(self.IsTextPresent, "foobar!")
     self.WaitUntil(self.IsTextPresent, "blah!")
@@ -715,7 +716,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(last_hunt.args.flow_args.pathspec.path,
                      "/tmp/very-evil.txt")
     self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
-    self.assertEqual(last_hunt.args.flow_runner_args.flow_name, "GetFile")
+    self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
+                     transfer.GetFile.__name__)
 
     self.assertEqual(len(last_hunt.runner_args.output_plugins), 2)
     self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
@@ -812,7 +814,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         description="model hunt",
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.TSK,)),

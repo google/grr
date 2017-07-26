@@ -82,7 +82,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="hello")
 
     for s in test_lib.TestFlowHelper(
-        "SearchFileContent",
+        grep.SearchFileContent.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=["/proc/10/cmdline"],
@@ -108,7 +108,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         mode=rdf_client.GrepSpec.Mode.ALL_HITS, literal="HIT")
 
     for s in test_lib.TestFlowHelper(
-        "SearchFileContent",
+        grep.SearchFileContent.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=["/c/Downloads/grepfile.txt"],
@@ -139,7 +139,7 @@ class TestSearchFileContentWithFixture(GrepTests):
           mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="HIT")
 
       for s in test_lib.TestFlowHelper(
-          "SearchFileContent",
+          grep.SearchFileContent.__name__,
           self.client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/grepfile.txt"],
@@ -175,7 +175,7 @@ class TestSearchFileContent(GrepTests):
 
     # Run the flow.
     for s in test_lib.TestFlowHelper(
-        "SearchFileContent",
+        grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,
         args=args,
@@ -204,7 +204,7 @@ class TestSearchFileContent(GrepTests):
 
     # Run the flow.
     for s in test_lib.TestFlowHelper(
-        "SearchFileContent",
+        grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,
         args=args,
@@ -227,7 +227,7 @@ class TestSearchFileContent(GrepTests):
 
     # Run the flow.
     for s in test_lib.TestFlowHelper(
-        "SearchFileContent",
+        grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,
         args=args,

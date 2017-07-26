@@ -42,7 +42,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
                                           standard.ListDirectory)
 
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemDrive"],
         token=self.token,
@@ -54,7 +54,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     self.assertEqual(str(fd[0]), "C:")
 
     for s in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemRoot"],
         token=self.token,
@@ -80,7 +80,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     # No registry, broken filesystem, this should just raise.
     with self.assertRaises(RuntimeError):
       for _ in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           BrokenClientMock(),
           artifact_list=["WindowsEnvironmentVariableSystemDrive"],
           token=self.token,
@@ -106,7 +106,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
     client_mock = WMIActionMock()
     for _ in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIComputerSystemProduct"],
         token=self.token,
@@ -133,7 +133,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
     client_mock = WMIActionMock()
     for _ in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMILogicalDisks"],
         token=self.token,
@@ -169,7 +169,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
     client_mock = WMIActionMock()
     for _ in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow",
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIActiveScriptEventConsumer"],
         token=self.token,
@@ -195,7 +195,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
         artifact_list = ["WindowsEnvironmentVariableWinDir"]
         for s in test_lib.TestFlowHelper(
-            "ArtifactCollectorFlow",
+            collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,

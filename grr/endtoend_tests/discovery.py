@@ -7,12 +7,13 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import discovery
 
 
 class TestClientInterrogateEndToEnd(base.AutomatedTest):
   """Tests the Interrogate flow on Windows."""
   platforms = ["Windows", "Linux", "Darwin"]
-  flow = "Interrogate"
+  flow = discovery.Interrogate.__name__
 
   attributes = [
       aff4_grr.VFSGRRClient.SchemaCls.CLIENT_INFO,

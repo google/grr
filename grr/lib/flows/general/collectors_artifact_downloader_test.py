@@ -74,7 +74,7 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
       artifact_list = ["WindowsRunKeys"]
 
     urn = flow.GRRFlow.StartFlow(
-        flow_name="ArtifactFilesDownloaderFlow",
+        flow_name=collectors.ArtifactFilesDownloaderFlow.__name__,
         client_id=self.client_id,
         artifact_list=artifact_list,
         use_tsk=use_tsk,

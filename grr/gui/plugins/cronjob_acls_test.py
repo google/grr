@@ -10,6 +10,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import security
 from grr.lib.flows.cron import system as cron_system
 
 
@@ -66,7 +67,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "The user %s has requested" % self.token.username)
 
     # Cron job overview should be visible
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
     self.WaitUntil(self.IsTextPresent, "Periodicity")
 
     self.Click("css=button:contains('Approve')")
@@ -99,7 +100,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantCronJobApprovalFlow",
+        flow_name=security.GrantCronJobApprovalFlow.__name__,
         subject_urn=rdfvalue.RDFURN("aff4:/cron/OSBreakDown"),
         reason=self.reason,
         delegate=self.token.username,
@@ -115,7 +116,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # Wait for modal backdrop to go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
 
     # Enable OSBreakDown cron job (it should be selected by default).
     self.Click("css=button[name=EnableCronJob]:not([disabled])")

@@ -22,9 +22,7 @@ from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 # pylint: enable=unused-import
 from grr.lib.flows.general import filesystem
-# For AnalyzeClientMemory. pylint: disable=unused-import
-from grr.lib.flows.general import memory as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import memory
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -98,7 +96,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # dependencies defaults to USE_CACHED set and a knowledgebase is
       # provided.
       self.CallFlow(
-          "CollectArtifactDependencies",
+          artifact.CollectArtifactDependencies.__name__,
           artifact_list=self.args.artifact_list,
           next_state="StartCollection")
       return
@@ -114,7 +112,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # now.
         if not self._AreArtifactsKnowledgeBaseArtifacts():
           self.CallFlow(
-              "KnowledgeBaseInitializationFlow", next_state="StartCollection")
+              artifact.KnowledgeBaseInitializationFlow.__name__,
+              next_state="StartCollection")
           return
 
     # In all other cases start the collection state.
@@ -249,7 +248,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             max_size=max_size))
 
     self.CallFlow(
-        "FileFinder",
+        file_finder.FileFinder.__name__,
         paths=new_path_list,
         pathtype=path_type,
         action=action,
@@ -273,7 +272,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def Glob(self, source, pathtype):
     """Glob paths, return StatEntry objects."""
     self.CallFlow(
-        "Glob",
+        filesystem.Glob.__name__,
         paths=self.InterpolateList(source.attributes.get("paths", [])),
         pathtype=pathtype,
         request_data={
@@ -320,7 +319,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         contents_regex_match=regex_condition)
 
     self.CallFlow(
-        "FileFinder",
+        file_finder.FileFinder.__name__,
         paths=path_list,
         conditions=[file_finder_condition],
         action=rdf_file_finder.FileFinderAction(),
@@ -333,7 +332,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def GetRegistryKey(self, source):
     self.CallFlow(
-        "Glob",
+        filesystem.Glob.__name__,
         paths=self.InterpolateList(source.attributes.get("keys", [])),
         pathtype=paths.PathSpec.PathType.REGISTRY,
         request_data={
@@ -368,7 +367,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     if has_glob:
       self.CallFlow(
-          "Glob",
+          filesystem.Glob.__name__,
           paths=new_paths,
           pathtype=paths.PathSpec.PathType.REGISTRY,
           request_data={
@@ -394,7 +393,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _StartSubArtifactCollector(self, artifact_list, source, next_state):
     self.CallFlow(
-        "ArtifactCollectorFlow",
+        ArtifactCollectorFlow.__name__,
         artifact_list=artifact_list,
         use_tsk=self.args.use_tsk,
         apply_parsers=self.args.apply_parsers,
@@ -462,7 +461,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     ]
 
     self.CallFlow(
-        "AnalyzeClientMemory",
+        memory.AnalyzeClientMemory.__name__,
         request=request,
         request_data={
             "artifact_name": self.current_artifact_name,
@@ -716,7 +715,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.download_list:
       request_data = responses.request_data.ToDict()
       self.CallFlow(
-          "MultiGetFile",
+          transfer.MultiGetFile.__name__,
           pathspecs=self.download_list,
           request_data=request_data,
           next_state="ProcessCollected")

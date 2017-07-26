@@ -43,8 +43,7 @@ def RunInstaller():
 
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
-  handler = logging.FileHandler(
-      config.CONFIG["Installer.logfile"], mode="wb")
+  handler = logging.FileHandler(config.CONFIG["Installer.logfile"], mode="wb")
 
   handler.setLevel(logging.DEBUG)
 
@@ -58,9 +57,8 @@ def RunInstaller():
   # the configuration from the flag and ignore the Config.writeback
   # location.
   config.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
-  config.CONFIG.AddContext(
-      contexts.INSTALLER_CONTEXT,
-      "Context applied when we run the client installer.")
+  config.CONFIG.AddContext(contexts.INSTALLER_CONTEXT,
+                           "Context applied when we run the client installer.")
 
   logging.warn("Starting installation procedure for GRR client.")
   try:

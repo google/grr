@@ -19,6 +19,7 @@ from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.flows.general import processes
 
 from grr.lib.hunts import standard_test
 
@@ -250,7 +251,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
 
   def testAllGlobalFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiCreateFlowArgs(flow=api_flow.ApiFlow(
-        name="ListProcesses"))
+        name=processes.ListProcesses.__name__))
     self.CheckMethodIsAccessChecked(
         self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
 

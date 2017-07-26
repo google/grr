@@ -45,7 +45,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -76,7 +76,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -108,7 +108,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -137,7 +137,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -165,7 +165,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,
@@ -180,7 +180,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
     for s in test_lib.TestFlowHelper(
-        "FindFiles",
+        find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token,

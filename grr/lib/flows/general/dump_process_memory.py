@@ -4,6 +4,7 @@
 
 from grr.lib import flow
 from grr.lib import server_stubs
+from grr.lib.flows.general import transfer
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -42,7 +43,9 @@ class DumpProcessMemory(flow.GRRFlow):
     if not responses.success:
       self.Error("Could not dump memory image: %s" % responses.status)
     self.CallFlow(
-        "MultiGetFile", pathspecs=[responses.First()], next_state="DeleteFile")
+        transfer.MultiGetFile.__name__,
+        pathspecs=[responses.First()],
+        next_state="DeleteFile")
 
   @flow.StateHandler()
   def DeleteFile(self, responses):

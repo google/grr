@@ -52,7 +52,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
-          "EndToEndTestFlow",
+          endtoend.EndToEndTestFlow.__name__,
           self.client_mock,
           client_id=self.client_id,
           token=self.token,
@@ -106,7 +106,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
     self.assertRaises(flow.FlowError, list,
                       test_lib.TestFlowHelper(
-                          "EndToEndTestFlow",
+                          endtoend.EndToEndTestFlow.__name__,
                           self.client_mock,
                           client_id=self.client_id,
                           token=self.token,
@@ -121,7 +121,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     }):
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
-            "EndToEndTestFlow",
+            endtoend.EndToEndTestFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
             token=self.token,
@@ -148,7 +148,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
     self.assertRaises(RuntimeError, list,
                       test_lib.TestFlowHelper(
-                          "EndToEndTestFlow",
+                          endtoend.EndToEndTestFlow.__name__,
                           self.client_mock,
                           client_id=self.client_id,
                           token=self.token,
@@ -159,7 +159,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
     self.assertRaises(RuntimeError, list,
                       test_lib.TestFlowHelper(
-                          "EndToEndTestFlow",
+                          endtoend.EndToEndTestFlow.__name__,
                           self.client_mock,
                           client_id=self.client_id,
                           token=self.token,
@@ -177,7 +177,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
     self.assertRaises(RuntimeError, list,
                       test_lib.TestFlowHelper(
-                          "EndToEndTestFlow",
+                          endtoend.EndToEndTestFlow.__name__,
                           self.client_mock,
                           client_id=self.client_id,
                           token=self.token,
@@ -189,7 +189,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
 
       for _ in test_lib.TestFlowHelper(
-          "EndToEndTestFlow",
+          endtoend.EndToEndTestFlow.__name__,
           self.client_mock,
           client_id=self.client_id,
           token=self.token,

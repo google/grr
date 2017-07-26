@@ -428,8 +428,8 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
 
   def Run(self):
     with utils.Stubber(flow.GRRFlow, "classes", {
-        "ListProcesses": processes.ListProcesses,
-        "FileFinder": file_finder.FileFinder,
+        processes.ListProcesses.__name__: processes.ListProcesses,
+        file_finder.FileFinder.__name__: file_finder.FileFinder,
     }):
       # RunReport flow is only shown for admins.
       self.CreateAdminUser("test")

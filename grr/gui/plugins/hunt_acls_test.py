@@ -8,6 +8,7 @@ from grr.gui import runtests_test
 from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib.aff4_objects import security
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.server import foreman as rdf_foreman
@@ -118,7 +119,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantHuntApprovalFlow",
+        flow_name=security.GrantHuntApprovalFlow.__name__,
         subject_urn=hunt_id,
         reason=self.reason,
         delegate=self.token.username,
@@ -190,14 +191,14 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     token = access_control.ACLToken(username="otheruser")
     flow.GRRFlow.StartFlow(
-        flow_name="RequestHuntApprovalFlow",
+        flow_name=security.RequestHuntApprovalFlow.__name__,
         subject_urn=hunt1_id,
         reason=self.reason,
         approver="approver",
         token=token)
     token = access_control.ACLToken(username=self.token.username)
     flow.GRRFlow.StartFlow(
-        flow_name="RequestHuntApprovalFlow",
+        flow_name=security.RequestHuntApprovalFlow.__name__,
         subject_urn=hunt2_id,
         reason=self.reason,
         approver="approver",
@@ -205,14 +206,14 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantHuntApprovalFlow",
+        flow_name=security.GrantHuntApprovalFlow.__name__,
         subject_urn=hunt1_id,
         reason=self.reason,
         delegate="otheruser",
         token=token)
     token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
-        flow_name="GrantHuntApprovalFlow",
+        flow_name=security.GrantHuntApprovalFlow.__name__,
         subject_urn=hunt2_id,
         reason=self.reason,
         delegate=self.token.username,

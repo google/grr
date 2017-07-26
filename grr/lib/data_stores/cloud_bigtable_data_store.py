@@ -176,8 +176,7 @@ class CloudBigTableDataStore(data_store.DataStore):
     # https://cloud.google.com/bigtable/docs/performance
     self.btclient = bigtable.Client(project=project_id)
     self.instance = self.btclient.instance(instance_id)
-    self.table = self.instance.table(
-        config.CONFIG["CloudBigtable.table_name"])
+    self.table = self.instance.table(config.CONFIG["CloudBigtable.table_name"])
 
   def Initialize(self, project_id=None, instance_id=None):
     super(CloudBigTableDataStore, self).Initialize()

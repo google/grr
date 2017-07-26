@@ -15,9 +15,8 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
-# For RegistryFinder pylint: disable=unused-import
-from grr.lib.flows.general import registry as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import registry as flow_registry
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -288,7 +287,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     client_id = self.SetupClients(1)[0]
 
     for s in test_lib.TestFlowHelper(
-        "RegistryFinder",
+        flow_registry.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
         keys_paths=paths,
@@ -366,7 +365,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     client_mock = action_mocks.ListDirectoryClientMock()
 
     for _ in test_lib.TestFlowHelper(
-        "ListDirectory",
+        filesystem.ListDirectory.__name__,
         client_mock,
         client_id=client_id,
         pathspec=pb,

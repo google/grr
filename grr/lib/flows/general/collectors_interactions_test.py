@@ -11,6 +11,7 @@ import os
 
 from grr import config
 from grr.lib import action_mocks
+from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -109,7 +110,7 @@ supported_os: [ "Linux" ]
 
     # Get KB initialized
     for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow",
+        artifact.KnowledgeBaseInitializationFlow.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token):
@@ -119,7 +120,7 @@ supported_os: [ "Linux" ]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
       for _ in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
@@ -138,7 +139,7 @@ supported_os: [ "Linux" ]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
       for _ in test_lib.TestFlowHelper(
-          "ArtifactCollectorFlow",
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,

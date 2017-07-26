@@ -10,6 +10,7 @@ from grr.lib import events
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.flows.general import audit
+from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -22,7 +23,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory",
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(
@@ -32,7 +33,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
         pass
 
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory",
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(
@@ -52,13 +53,13 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(stored_events), 2)
       for event in stored_events:
         self.assertEqual(event.action, events.AuditEvent.Action.RUN_FLOW)
-        self.assertEqual(event.flow_name, "ListDirectory")
+        self.assertEqual(event.flow_name, filesystem.ListDirectory.__name__)
         self.assertEqual(event.user, self.token.username)
 
     # Set time to epoch + 22 intervals
     with test_lib.FakeTime(22 * rollover):
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory",
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(

@@ -219,7 +219,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRendersRequestedClientApproval(self):
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=aff4_security.RequestClientApprovalFlow.__name__,
         reason="blah",
         subject_urn=self.client_id,
         approver="approver",
@@ -250,7 +250,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testIncludesApproversInResultWhenApprovalIsGranted(self):
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name="RequestClientApprovalFlow",
+        flow_name=aff4_security.RequestClientApprovalFlow.__name__,
         reason="blah",
         subject_urn=self.client_id,
         approver="approver",
@@ -262,7 +262,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name="GrantClientApprovalFlow",
+        flow_name=aff4_security.GrantClientApprovalFlow.__name__,
         reason="blah",
         delegate=self.token.username,
         subject_urn=self.client_id,
@@ -480,7 +480,7 @@ class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
       pass
 
     flow.GRRFlow.StartFlow(
-        flow_name="RequestHuntApprovalFlow",
+        flow_name=aff4_security.RequestHuntApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=hunt.urn,
         approver="approver",
@@ -533,7 +533,7 @@ class ApiListCronJobApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
         cron_args=cron_args, token=self.token)
 
     flow.GRRFlow.StartFlow(
-        flow_name="RequestCronJobApprovalFlow",
+        flow_name=aff4_security.RequestCronJobApprovalFlow.__name__,
         reason=self.token.reason,
         subject_urn=cron_job_urn,
         approver="approver",

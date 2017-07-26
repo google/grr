@@ -5,6 +5,8 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib.aff4_objects import standard
+from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import find
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -16,7 +18,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 class TestListDirectoryOSLinuxDarwin(base.TestVFSPathExists):
   """Tests if ListDirectory works on Linux and Darwin."""
   platforms = ["Linux", "Darwin"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -33,7 +35,7 @@ class TestListDirectoryTSKLinux(base.TestVFSPathExists):
   # isn't symlinked and doesn't live in a huge directory that takes forever to
   # list with TSK. So we settle for a directory instead.
   platforms = ["Linux"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -46,7 +48,7 @@ class TestListDirectoryTSKLinux(base.TestVFSPathExists):
 class TestRecursiveListDirectoryLinuxDarwin(base.TestVFSPathExists):
   """Test recursive list directory on linux and darwin."""
   platforms = ["Linux", "Darwin"]
-  flow = "RecursiveListDirectory"
+  flow = filesystem.RecursiveListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -61,7 +63,7 @@ class TestRecursiveListDirectoryLinuxDarwin(base.TestVFSPathExists):
 class TestFindTSKLinux(base.TestVFSPathExists):
   """Tests if the find flow works on Linux and Darwin using Sleuthkit."""
   platforms = ["Linux"]
-  flow = "FindFiles"
+  flow = find.FindFiles.__name__
   args = {
       "findspec":
           rdf_client.FindSpec(
@@ -78,7 +80,7 @@ class TestFindTSKLinux(base.TestVFSPathExists):
 class TestFindOSLinuxDarwin(base.TestVFSPathExists):
   """Tests if the find flow works on Linux and Darwin."""
   platforms = ["Linux", "Darwin"]
-  flow = "FindFiles"
+  flow = find.FindFiles.__name__
   args = {
       "findspec":
           rdf_client.FindSpec(
@@ -97,7 +99,7 @@ class TestFindOSLinuxDarwin(base.TestVFSPathExists):
 class TestListDirectoryOSWindows(base.TestVFSPathExists):
   """Tests if ListDirectory works on Windows."""
   platforms = ["Windows"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -109,7 +111,7 @@ class TestListDirectoryOSWindows(base.TestVFSPathExists):
 class TestListDirectoryTSKWindows(base.TestVFSPathExists):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["Windows"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -142,7 +144,7 @@ class TestListDirectoryTSKWindows(base.TestVFSPathExists):
 class TestRecursiveListDirectoryOSWindows(base.TestVFSPathExists):
   """TestRecursiveListDirectoryOSWindows."""
   platforms = ["Windows"]
-  flow = "RecursiveListDirectory"
+  flow = filesystem.RecursiveListDirectory.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(

@@ -27,6 +27,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users
+from grr.lib.flows.general import administrative
 # pylint: disable=unused-import
 # For AuditEventListener, needed to handle published audit events.
 from grr.lib.flows.general import audit as _
@@ -80,7 +81,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with utils.Stubber(config.CONFIG, "Set", config.CONFIG.Set.old_target):
       # Write the config.
       for _ in test_lib.TestFlowHelper(
-          "UpdateConfiguration",
+          administrative.UpdateConfiguration.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token,
@@ -89,7 +90,10 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     # Now retrieve it again to see if it got written.
     for _ in test_lib.TestFlowHelper(
-        "Interrogate", client_mock, token=self.token, client_id=self.client_id):
+        discovery.Interrogate.__name__,
+        client_mock,
+        token=self.token,
+        client_id=self.client_id):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -118,7 +122,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneClientRequest",
+          test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=self.client_id,
           token=self.token,
@@ -135,7 +139,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertTrue(str(self.client_id) in email_message["title"])
 
     # Make sure the flow state is included in the email message.
-    for s in ["flow_name", "FlowWithOneClientRequest", "current_state"]:
+    for s in [
+        "flow_name", test_lib.FlowWithOneClientRequest.__name__, "current_state"
+    ]:
       self.assertTrue(s in email_message["message"])
 
     flow_obj = aff4.FACTORY.Open(
@@ -179,7 +185,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with hunts_implementation.GRRHunt.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name="FlowWithOneClientRequest"),
+            flow_name=test_lib.FlowWithOneClientRequest.__name__),
         client_rate=0,
         crash_alert_email="crashes@example.com",
         token=self.token) as hunt:
@@ -251,7 +257,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
     for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner",
+        test_lib.ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -272,7 +278,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     # Run it again - this should not update any record.
     for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner",
+        test_lib.ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -289,7 +295,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     # Run it again - this should now update the boot time.
     for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner",
+        test_lib.ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -309,7 +315,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
       # Run it again - this should now update the client info.
       for _ in test_lib.TestFlowHelper(
-          "ClientActionRunner",
+          test_lib.ClientActionRunner.__name__,
           client_mock,
           client_id=self.client_id,
           action="SendStartupInfo",
@@ -335,7 +341,7 @@ sys.test_code_ran_here = True
         code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
     for _ in test_lib.TestFlowHelper(
-        "ExecutePythonHack",
+        administrative.ExecutePythonHack.__name__,
         client_mock,
         client_id=self.client_id,
         hack_name="test",
@@ -355,7 +361,7 @@ sys.test_code_ran_here = py_args['value']
         code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
     for _ in test_lib.TestFlowHelper(
-        "ExecutePythonHack",
+        administrative.ExecutePythonHack.__name__,
         client_mock,
         client_id=self.client_id,
         hack_name="test",
@@ -385,7 +391,7 @@ sys.test_code_ran_here = py_args['value']
 
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
       for _ in test_lib.TestFlowHelper(
-          "LaunchBinary",
+          administrative.LaunchBinary.__name__,
           client_mock,
           client_id=self.client_id,
           binary=upload_path,
@@ -437,7 +443,7 @@ sys.test_code_ran_here = py_args['value']
 
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
       for _ in test_lib.TestFlowHelper(
-          "LaunchBinary",
+          administrative.LaunchBinary.__name__,
           client_mock,
           client_id=self.client_id,
           binary=upload_path,
@@ -484,7 +490,7 @@ sys.test_code_ran_here = py_args['value']
         return [response]
 
     for _ in test_lib.TestFlowHelper(
-        "GetClientStats",
+        administrative.GetClientStats.__name__,
         ClientMock(),
         token=self.token,
         client_id=self.client_id):

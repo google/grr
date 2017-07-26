@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -555,7 +556,9 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
     else:
       # Otherwise, just get the whole file.
       self.CallFlow(
-          "MultiGetFile", pathspecs=[self.state.pathspec], next_state="End")
+          transfer.MultiGetFile.__name__,
+          pathspecs=[self.state.pathspec],
+          next_state="End")
 
   @flow.StateHandler()
   def End(self, responses):
@@ -1016,6 +1019,9 @@ class DiskVolumeInfo(flow.GRRFlow):
           self.state.system_root_required = True
       if self.state.system_root_required:
         self.CallFlow(
+            # TODO(user): dependency loop between collectors.py and
+            # filesystem.py.
+            # collectors.ArtifactCollectorFlow.__name__,
             "ArtifactCollectorFlow",
             artifact_list=["WindowsEnvironmentVariableSystemRoot"],
             next_state="StoreSystemRoot")
@@ -1048,6 +1054,9 @@ class DiskVolumeInfo(flow.GRRFlow):
       # No dependencies for WMI
       deps = artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
       self.CallFlow(
+          # TODO(user): dependency loop between collectors.py and
+          # filesystem.py.
+          # collectors.ArtifactCollectorFlow.__name__,
           "ArtifactCollectorFlow",
           artifact_list=["WMILogicalDisks"],
           next_state="ProcessWindowsVolumes",

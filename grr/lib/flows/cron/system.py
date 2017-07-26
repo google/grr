@@ -284,7 +284,8 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     with hunts_implementation.GRRHunt.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         client_limit=0,
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="Interrogate"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=flows_discovery.Interrogate.__name__),
         flow_args=flows_discovery.InterrogateArgs(lightweight=False),
         output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
@@ -360,7 +361,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     # targets without an approval.
     token = access_control.ACLToken(
         username="GRRWorker", reason="Running endtoend tests.").SetUID()
-    runner_args = rdf_flows.FlowRunnerArgs(flow_name="EndToEndTestFlow")
+    runner_args = rdf_flows.FlowRunnerArgs(
+        flow_name=flows_endtoend.EndToEndTestFlow.__name__)
 
     flow_request = hunts_standard.FlowRequest(
         client_ids=self.state.client_ids,

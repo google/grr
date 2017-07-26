@@ -11,6 +11,8 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import fingerprint
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -57,8 +59,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
 
     for response in responses:
       self.CallFlow(
-          "FingerprintFile",
-          next_state="MultiGetFile",
+          fingerprint.FingerprintFile.__name__,
+          next_state=transfer.MultiGetFile.__name__,
           pathspec=response.dest_path,
           request_data={"pathspec": response.dest_path})
 
@@ -73,7 +75,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
       hash_digest = str(binary_hash.sha256)
       self.state.client_hashes[str(response.file_urn)] = hash_digest
       self.CallFlow(
-          "MultiGetFile",
+          transfer.MultiGetFile.__name__,
           pathspecs=[responses.request_data["pathspec"]],
           next_state="VerifyHashes")
 
@@ -97,7 +99,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
 
 class TestMultiGetFile(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
-  flow = "MultiGetFileTestFlow"
+  flow = MultiGetFileTestFlow.__name__
   args = {}
 
   def CheckFlow(self):
@@ -123,7 +125,7 @@ class TestMultiGetFile(base.AutomatedTest):
 class TestGetFileTSKLinux(base.VFSPathContentIsELF):
   """Tests if GetFile works on Linux using Sleuthkit."""
   platforms = ["Linux"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -136,7 +138,7 @@ class TestGetFileTSKLinux(base.VFSPathContentIsELF):
 class TestMultiGetFileTSKLinux(base.VFSPathContentIsELF):
   """Tests if MultiGetFile works on Linux using Sleuthkit."""
   platforms = ["Linux"]
-  flow = "MultiGetFile"
+  flow = transfer.MultiGetFile.__name__
   args = {
       "pathspecs": [
           rdf_paths.PathSpec(
@@ -149,7 +151,7 @@ class TestMultiGetFileTSKLinux(base.VFSPathContentIsELF):
 class TestGetFileOSLinux(base.VFSPathContentIsELF):
   """Tests if GetFile works on Linux."""
   platforms = ["Linux"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -161,7 +163,7 @@ class TestGetFileOSLinux(base.VFSPathContentIsELF):
 class TestMultiGetFileOSLinux(base.VFSPathContentIsELF):
   """Tests if MultiGetFile works on Linux."""
   platforms = ["Linux"]
-  flow = "MultiGetFile"
+  flow = transfer.MultiGetFile.__name__
   args = {
       "pathspecs": [
           rdf_paths.PathSpec(
@@ -178,7 +180,7 @@ class TestSendFile(base.LocalClientTest):
   server.
   """
   platforms = ["Linux"]
-  flow = "SendFile"
+  flow = transfer.SendFile.__name__
   key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
   iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
@@ -242,7 +244,7 @@ class TestSendFile(base.LocalClientTest):
 class TestGetFileOSMac(base.VFSPathContentIsMachO):
   """Tests if GetFile works on Mac."""
   platforms = ["Darwin"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -254,7 +256,7 @@ class TestGetFileOSMac(base.VFSPathContentIsMachO):
 class TestMultiGetFileOSMac(base.VFSPathContentIsMachO):
   """Tests if MultiGetFile works on Mac."""
   platforms = ["Darwin"]
-  flow = "MultiGetFile"
+  flow = transfer.MultiGetFile.__name__
   args = {
       "pathspecs": [
           rdf_paths.PathSpec(
@@ -272,7 +274,7 @@ class TestMultiGetFileOSMac(base.VFSPathContentIsMachO):
 class TestGetFileOSWindows(base.VFSPathContentIsPE):
   """Tests if GetFile works on Windows."""
   platforms = ["Windows"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -285,7 +287,7 @@ class TestGetFileOSWindows(base.VFSPathContentIsPE):
 class TestMultiGetFileOSWindows(base.VFSPathContentIsPE):
   """Tests if MultiGetFile works on Windows."""
   platforms = ["Windows"]
-  flow = "MultiGetFile"
+  flow = transfer.MultiGetFile.__name__
   args = {
       "pathspecs": [
           rdf_paths.PathSpec(
@@ -299,7 +301,7 @@ class TestMultiGetFileOSWindows(base.VFSPathContentIsPE):
 class TestGetFileTSKWindows(base.VFSPathContentIsPE):
   """Tests if GetFile works on Windows using TSK."""
   platforms = ["Windows"]
-  flow = "GetFile"
+  flow = transfer.GetFile.__name__
   args = {
       "pathspec":
           rdf_paths.PathSpec(
@@ -312,7 +314,7 @@ class TestGetFileTSKWindows(base.VFSPathContentIsPE):
 class TestMultiGetFileTSKWindows(base.VFSPathContentIsPE):
   """Tests if MultiGetFile works on Windows using TSK."""
   platforms = ["Windows"]
-  flow = "MultiGetFile"
+  flow = transfer.MultiGetFile.__name__
   args = {
       "pathspecs": [
           rdf_paths.PathSpec(

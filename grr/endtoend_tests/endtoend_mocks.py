@@ -2,13 +2,15 @@
 """Mocks for end to end testing."""
 
 from grr.endtoend_tests import base
+from grr.lib import test_lib
+from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import paths
 
 
 class MockEndToEndTest(base.AutomatedTest):
   """Mock test."""
   platforms = ["Linux", "Darwin"]
-  flow = "ListDirectory"
+  flow = filesystem.ListDirectory.__name__
   args = {
       "pathspec":
           paths.PathSpec(path="/bin", pathtype=paths.PathSpec.PathType.OS)
@@ -28,7 +30,7 @@ class MockEndToEndTest(base.AutomatedTest):
 
 
 class MockEndToEndTestBadFlow(MockEndToEndTest):
-  flow = "RaiseOnStart"
+  flow = test_lib.RaiseOnStart.__name__
   args = {}
 
 

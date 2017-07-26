@@ -100,8 +100,7 @@ class APIAuthorizationManager(object):
     self.routers = []
     self.auth_manager = auth_manager.AuthorizationManager()
 
-    self.default_router = self._CreateRouter(
-        config.CONFIG["API.DefaultRouter"])
+    self.default_router = self._CreateRouter(config.CONFIG["API.DefaultRouter"])
 
     if config.CONFIG["API.RouterACLConfigFile"]:
       logging.info("Using API router ACL config file: %s",

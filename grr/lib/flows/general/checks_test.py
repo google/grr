@@ -10,9 +10,7 @@ from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
-# pylint: disable=unused-import
-from grr.lib.flows.general import checks as _
-# pylint: enable=unused-import
+from grr.lib.flows.general import checks as flow_checks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -65,7 +63,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for session_id in test_lib.TestFlowHelper(
-          "CheckRunner",
+          flow_checks.CheckRunner.__name__,
           client_mock=self.client_mock,
           client_id=self.client_id,
           token=self.token):
