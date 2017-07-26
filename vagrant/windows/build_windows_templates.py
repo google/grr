@@ -10,6 +10,9 @@ import subprocess
 parser = argparse.ArgumentParser(description="Build windows templates.")
 
 parser.add_argument(
+    "--build_dir", default=r"C:\grrbuild", help="GRR build directory.")
+
+parser.add_argument(
     "--grr_src",
     default=r"C:\grrbuild\grr",
     help="Location of the grr src code. If it doesn't exist "
@@ -48,174 +51,231 @@ parser.add_argument(
     "then try and install the result. For use by integration tests. If you use "
     "this option you must run as admin.")
 
+parser.add_argument(
+    "--wheel_dir",
+    default=None,
+    help="A directory that will be passed to pip as the wheel-dir parameter.")
+
+parser.add_argument(
+    "--build_32",
+    dest="build_32",
+    default=True,
+    action="store_true",
+    help="Enable building the 32 bit version.")
+parser.add_argument("--no_build_32", dest="build_32", action="store_false")
+
+parser.add_argument(
+    "--python32_dir",
+    default=r"C:\Python27",
+    help="Path to the 32 bit Python installation.")
+
+parser.add_argument(
+    "--python64_dir",
+    default=r"C:\Python27-x64",
+    help="Path to the 64 bit Python installation.")
+
+parser.add_argument(
+    "--protoc",
+    default=r"C:\grr_deps\protoc\bin\protoc.exe",
+    help="Path to the protoc.exe binary.")
+
 args = parser.parse_args()
 
 
 class WindowsTemplateBuilder(object):
   """Build windows templates."""
 
-  # Python paths chosen to match appveyor:
-  # http://www.appveyor.com/docs/installed-software#python
-  PYTHON_DIR_64 = r"C:\Python27-x64"
-  PYTHON_DIR_32 = r"C:\Python27"
-  VIRTUALENV_BIN64 = os.path.join(PYTHON_DIR_64, r"Scripts\virtualenv.exe")
-  VIRTUALENV_BIN32 = os.path.join(PYTHON_DIR_32, r"Scripts\virtualenv.exe")
-  BUILDDIR = r"C:\grrbuild"
-  VIRTUALENV64 = os.path.join(BUILDDIR, r"PYTHON_64")
-  VIRTUALENV32 = os.path.join(BUILDDIR, r"PYTHON_32")
-  GRR_CLIENT_BUILD64 = os.path.join(VIRTUALENV64,
-                                    r"Scripts\grr_client_build.exe")
-  GRR_CLIENT_BUILD32 = os.path.join(VIRTUALENV32,
-                                    r"Scripts\grr_client_build.exe")
-  PIP64 = os.path.join(VIRTUALENV64, r"Scripts\pip.exe")
-  PIP32 = os.path.join(VIRTUALENV32, r"Scripts\pip.exe")
+  def SetupVars(self):
+    """Set up some vars for the directories we use."""
+    # Python paths chosen to match appveyor:
+    # http://www.appveyor.com/docs/installed-software#python
 
-  VIRTUALENV_PYTHON32 = os.path.join(VIRTUALENV32, r"Scripts\python.exe")
-  VIRTUALENV_PYTHON64 = os.path.join(VIRTUALENV64, r"Scripts\python.exe")
+    self.python_dir_64 = args.python64_dir
+    self.python_dir_32 = args.python32_dir
 
-  PROTOC = r"C:\grr_deps\protoc\bin\protoc.exe"
-  GIT = r"C:\Program Files\Git\bin\git.exe"
+    self.virtualenv_bin64 = os.path.join(self.python_dir_64,
+                                         r"Scripts\virtualenv.exe")
+    self.virtualenv_bin32 = os.path.join(self.python_dir_32,
+                                         r"Scripts\virtualenv.exe")
 
-  INSTALL_PATH = r"C:\Windows\System32\GRR"
-  SERVICE_NAME = "GRR Monitor"
+    self.virtualenv64 = os.path.join(args.build_dir, r"python_64")
+    self.virtualenv32 = os.path.join(args.build_dir, r"python_32")
+
+    self.grr_client_build64 = os.path.join(self.virtualenv64,
+                                           r"Scripts\grr_client_build.exe")
+    self.grr_client_build32 = os.path.join(self.virtualenv32,
+                                           r"Scripts\grr_client_build.exe")
+    self.pip64 = os.path.join(self.virtualenv64, r"Scripts\pip.exe")
+    self.pip32 = os.path.join(self.virtualenv32, r"Scripts\pip.exe")
+
+    self.virtualenv_python64 = os.path.join(self.virtualenv64,
+                                            r"Scripts\python.exe")
+    self.virtualenv_python32 = os.path.join(self.virtualenv32,
+                                            r"Scripts\python.exe")
+
+    self.git = r"C:\Program Files\Git\bin\git.exe"
+
+    self.install_path = r"C:\Windows\System32\GRR"
+    self.service_name = "GRR Monitor"
 
   def Clean(self):
     """Clean the build environment."""
     # os.unlink doesn't work effectively, use the shell to delete.
-    subprocess.call("rd /s /q %s" % self.BUILDDIR, shell=True)
-    subprocess.call("rd /s /q %s" % args.output_dir, shell=True)
+    if os.path.exists(args.build_dir):
+      subprocess.call("rd /s /q %s" % args.build_dir, shell=True)
+    if os.path.exists(args.output_dir):
+      subprocess.call("rd /s /q %s" % args.output_dir, shell=True)
 
-    os.makedirs(self.BUILDDIR)
+    os.makedirs(args.build_dir)
     os.makedirs(args.output_dir)
 
     # Create virtualenvs.
-    subprocess.check_call([self.VIRTUALENV_BIN64, self.VIRTUALENV64])
-    subprocess.check_call([self.VIRTUALENV_BIN32, self.VIRTUALENV32])
+    subprocess.check_call([self.virtualenv_bin64, self.virtualenv64])
+    if args.build_32:
+      subprocess.check_call([self.virtualenv_bin32, self.virtualenv32])
 
     # Currently this should do nothing as we will already have a modern pip
     # installed, but we leave this here so if we get broken by pip again it's
     # just a simple case of searching for pip>=8.1.1 and adding an upper limit
     # cap in all those places.
-    subprocess.check_call([
-        self.VIRTUALENV_PYTHON32, "-m", "pip", "install", "--upgrade",
-        "pip>=8.1.1"
-    ])
-    subprocess.check_call([
-        self.VIRTUALENV_PYTHON64, "-m", "pip", "install", "--upgrade",
-        "pip>=8.1.1"
-    ])
-    os.environ["PROTOC"] = self.PROTOC
+
+    cmd = ["-m", "pip", "install"]
+    if args.wheel_dir:
+      cmd += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
+
+    subprocess.check_call([self.virtualenv_python64] + cmd +
+                          ["--upgrade", "pip>=8.1.1"])
+    if args.build_32:
+      subprocess.check_call([self.virtualenv_python32] + cmd +
+                            ["--upgrade", "pip>=8.1.1"])
+    os.environ["PROTOC"] = args.protoc
 
   def GitCheckoutGRR(self):
-    os.chdir(self.BUILDDIR)
+    os.chdir(args.build_dir)
     subprocess.check_call(
-        [self.GIT, "clone", "https://github.com/google/grr.git"])
+        [self.git, "clone", "https://github.com/google/grr.git"])
 
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
     subprocess.check_call([
-        self.VIRTUALENV_PYTHON64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs", "--no-make-ui-files",
-        "--no-sync-artifacts"
+        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % args.build_dir, "--no-make-docs",
+        "--no-make-ui-files", "--no-sync-artifacts"
     ])
     return glob.glob(
-        os.path.join(self.BUILDDIR, "grr-response-core-*.zip")).pop()
+        os.path.join(args.build_dir, "grr-response-core-*.zip")).pop()
 
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
     subprocess.check_call([
-        self.VIRTUALENV_PYTHON64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % self.BUILDDIR
+        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % args.build_dir
     ])
     return glob.glob(
-        os.path.join(self.BUILDDIR, "grr-response-client-*.zip")).pop()
+        os.path.join(args.build_dir, "grr-response-client-*.zip")).pop()
 
   def CopySdistsFromCloudStorage(self):
     """Use gsutil to copy sdists from cloud storage."""
     subprocess.check_call([
         args.gsutil, "cp",
         "gs://%s/grr-response-core-*.zip" % args.cloud_storage_sdist_bucket,
-        self.BUILDDIR
+        args.build_dir
     ])
     core = glob.glob(
-        os.path.join(self.BUILDDIR, "grr-response-core-*.zip")).pop()
+        os.path.join(args.build_dir, "grr-response-core-*.zip")).pop()
 
     subprocess.check_call([
         args.gsutil, "cp",
         "gs://%s/grr-response-client-*.zip" % args.cloud_storage_sdist_bucket,
-        self.BUILDDIR
+        args.build_dir
     ])
     client = glob.glob(
-        os.path.join(self.BUILDDIR, "grr-response-client-*.zip")).pop()
+        os.path.join(args.build_dir, "grr-response-client-*.zip")).pop()
     return core, client
 
   def InstallGRR(self, path):
-    subprocess.check_call([self.PIP64, "install", path])
-    subprocess.check_call([self.PIP32, "install", path])
+    """Installs GRR."""
+
+    cmd64 = [self.pip64, "install"]
+    cmd32 = [self.pip32, "install"]
+
+    if args.wheel_dir:
+      cmd64 += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
+      cmd32 += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
+
+    cmd64.append(path)
+    cmd32.append(path)
+
+    subprocess.check_call(cmd64)
+    if args.build_32:
+      subprocess.check_call(cmd32)
 
   def BuildTemplates(self):
-    """Build client templates.
+    """Builds the client templates.
 
     We dont need to run special compilers so just enter the virtualenv and
     build. Python will already find its own MSVC for python compilers.
     """
     subprocess.check_call([
-        self.GRR_CLIENT_BUILD64, "--verbose", "build", "--output",
+        self.grr_client_build64, "--verbose", "build", "--output",
         args.output_dir
     ])
-    subprocess.check_call([
-        self.GRR_CLIENT_BUILD32, "--verbose", "build", "--output",
-        args.output_dir
-    ])
+    if args.build_32:
+      subprocess.check_call([
+          self.grr_client_build32, "--verbose", "build", "--output",
+          args.output_dir
+      ])
 
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
     dummy_config = os.path.join(
         args.grr_src, "grr/config/grr-response-test/test_data/dummyconfig.yaml")
-    template_i386 = glob.glob(
-        os.path.join(args.output_dir, "*_i386*.zip")).pop()
+    if args.build_32:
+      template_i386 = glob.glob(
+          os.path.join(args.output_dir, "*_i386*.zip")).pop()
     template_amd64 = glob.glob(
         os.path.join(args.output_dir, "*_amd64*.zip")).pop()
 
     # We put the installers in the output dir so they get stored as build
     # artifacts and we can test the 32bit build manually.
     subprocess.check_call([
-        self.GRR_CLIENT_BUILD64, "--verbose", "--secondary_configs",
+        self.grr_client_build64, "--verbose", "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
     ])
     subprocess.check_call([
-        self.GRR_CLIENT_BUILD64, "--verbose", "--context",
+        self.grr_client_build64, "--verbose", "--context",
         "DebugClientBuild Context", "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, "--output_dir", args.output_dir
     ])
-    subprocess.check_call([
-        self.GRR_CLIENT_BUILD32, "--verbose", "--secondary_configs",
-        dummy_config, "repack", "--template", template_i386, "--output_dir",
-        args.output_dir
-    ])
-    subprocess.check_call([
-        self.GRR_CLIENT_BUILD32, "--verbose", "--context",
-        "DebugClientBuild Context", "--secondary_configs", dummy_config,
-        "repack", "--template", template_i386, "--output_dir", args.output_dir
-    ])
+    if args.build_32:
+      subprocess.check_call([
+          self.grr_client_build32, "--verbose", "--secondary_configs",
+          dummy_config, "repack", "--template", template_i386, "--output_dir",
+          args.output_dir
+      ])
+      subprocess.check_call([
+          self.grr_client_build32, "--verbose", "--context",
+          "DebugClientBuild Context", "--secondary_configs", dummy_config,
+          "repack", "--template", template_i386, "--output_dir", args.output_dir
+      ])
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
-    if os.path.exists(self.INSTALL_PATH):
-      shutil.rmtree(self.INSTALL_PATH)
-      if os.path.exists(self.INSTALL_PATH):
-        raise RuntimeError("Install path still exists: %s" % self.INSTALL_PATH)
+    if os.path.exists(self.install_path):
+      shutil.rmtree(self.install_path)
+      if os.path.exists(self.install_path):
+        raise RuntimeError("Install path still exists: %s" % self.install_path)
 
     # Deliberately don't check return code, since service may not be installed.
-    subprocess.call(["sc", "stop", self.SERVICE_NAME])
+    subprocess.call(["sc", "stop", self.service_name])
 
   def _CheckInstallSuccess(self):
-    """Check if installer installed correctly."""
-    if not os.path.exists(self.INSTALL_PATH):
-      raise RuntimeError("Install failed, no files at: %s" % self.INSTALL_PATH)
+    """Checks if the installer installed correctly."""
+    if not os.path.exists(self.install_path):
+      raise RuntimeError("Install failed, no files at: %s" % self.install_path)
 
-    output = subprocess.check_output(["sc", "query", self.SERVICE_NAME])
+    output = subprocess.check_output(["sc", "query", self.service_name])
     if "RUNNING" not in output:
       raise RuntimeError(
           "GRR service not running after install, sc query output: %s" % output)
@@ -238,6 +298,7 @@ class WindowsTemplateBuilder(object):
 
   def Build(self):
     """Build templates."""
+    self.SetupVars()
     self.Clean()
     if args.cloud_storage_sdist_bucket:
       core_sdist, client_sdist = self.CopySdistsFromCloudStorage()
@@ -246,6 +307,7 @@ class WindowsTemplateBuilder(object):
         self.GitCheckoutGRR()
       core_sdist = self.MakeCoreSdist()
       client_sdist = self.MakeClientSdist()
+
     self.InstallGRR(core_sdist)
     self.InstallGRR(client_sdist)
     self.BuildTemplates()
