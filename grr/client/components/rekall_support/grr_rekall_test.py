@@ -55,9 +55,13 @@ class RekallTestSuite(test_lib.EmptyActionTest):
         comms.GRRClientWorker, "GetRekallProfile", self.GetRekallProfile)
     self.get_rekall_profile_stubber.Start()
 
+    self.config_overrider = test_lib.ConfigOverrider({"Rekall.enabled": True})
+    self.config_overrider.Start()
+
   def tearDown(self):
     super(RekallTestSuite, self).tearDown()
     self.get_rekall_profile_stubber.Stop()
+    self.config_overrider.Stop()
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(

@@ -95,6 +95,17 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     ]
 
 
+class TestAnalyzeClientMemory(MemoryTest):
+  """Tests for AnalyzeClientMemory flow."""
+
+  def testAnalyzeClientMemoryIsDisabledByDefault(self):
+    with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
+      flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=memory.AnalyzeClientMemory.__name__,
+          token=self.token)
+
+
 class TestMemoryCollector(MemoryTest):
   """Tests the MemoryCollector flow."""
 
@@ -125,20 +136,28 @@ class TestMemoryCollector(MemoryTest):
     flow.GRRFlow.classes[
         filesystem.DiskVolumeInfo.__name__] = self.old_diskvolume_flow
 
+  def testMemoryCollectorIsDisabledByDefault(self):
+    with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
+      flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=memory.MemoryCollector.__name__,
+          token=self.token)
+
   def RunWithDownload(self):
-    self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id,
-        flow_name=memory.MemoryCollector.__name__,
-        token=self.token)
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      self.flow_urn = flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=memory.MemoryCollector.__name__,
+          token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        self.flow_urn,
-        self.client_mock,
-        client_id=self.client_id,
-        token=self.token):
-      pass
+      for _ in test_lib.TestFlowHelper(
+          self.flow_urn,
+          self.client_mock,
+          client_id=self.client_id,
+          token=self.token):
+        pass
 
-    return aff4.FACTORY.Open(self.flow_urn, token=self.token)
+      return aff4.FACTORY.Open(self.flow_urn, token=self.token)
 
   def testMemoryImageLocalCopyDownload(self):
     flow_obj = self.RunWithDownload()
@@ -257,15 +276,23 @@ class ListVADBinariesTest(MemoryTest):
     self.os_overrider.Stop()
     self.reg_overrider.Stop()
 
+  def testListVADBinariesIsDisabledByDefault(self):
+    with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
+      flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=memory.ListVADBinaries.__name__,
+          token=self.token)
+
   def testListsBinaries(self):
     client_mock = ListVADBinariesActionMock()
 
-    for s in test_lib.TestFlowHelper(
-        memory.ListVADBinaries.__name__,
-        client_mock,
-        client_id=self.client_id,
-        token=self.token):
-      session_id = s
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      for s in test_lib.TestFlowHelper(
+          memory.ListVADBinaries.__name__,
+          client_mock,
+          client_id=self.client_id,
+          token=self.token):
+        session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
@@ -280,13 +307,14 @@ class ListVADBinariesTest(MemoryTest):
 
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
-    for s in test_lib.TestFlowHelper(
-        memory.ListVADBinaries.__name__,
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        fetch_binaries=True):
-      session_id = s
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      for s in test_lib.TestFlowHelper(
+          memory.ListVADBinaries.__name__,
+          client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          fetch_binaries=True):
+        session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
 
@@ -309,13 +337,14 @@ class ListVADBinariesTest(MemoryTest):
     process = "\\WINDOWS\\bar.exe"
     client_mock = ListVADBinariesActionMock([process, process])
 
-    for s in test_lib.TestFlowHelper(
-        memory.ListVADBinaries.__name__,
-        client_mock,
-        client_id=self.client_id,
-        fetch_binaries=True,
-        token=self.token):
-      session_id = s
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      for s in test_lib.TestFlowHelper(
+          memory.ListVADBinaries.__name__,
+          client_mock,
+          client_id=self.client_id,
+          fetch_binaries=True,
+          token=self.token):
+        session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)
@@ -332,14 +361,15 @@ class ListVADBinariesTest(MemoryTest):
 
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
-    for s in test_lib.TestFlowHelper(
-        memory.ListVADBinaries.__name__,
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        filename_regex=".*bar\\.exe$",
-        fetch_binaries=True):
-      session_id = s
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      for s in test_lib.TestFlowHelper(
+          memory.ListVADBinaries.__name__,
+          client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          filename_regex=".*bar\\.exe$",
+          fetch_binaries=True):
+        session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)
@@ -355,14 +385,15 @@ class ListVADBinariesTest(MemoryTest):
 
     client_mock = ListVADBinariesActionMock([process1_exe])
 
-    for s in test_lib.TestFlowHelper(
-        memory.ListVADBinaries.__name__,
-        client_mock,
-        check_flow_errors=False,
-        client_id=self.client_id,
-        token=self.token,
-        fetch_binaries=True):
-      session_id = s
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      for s in test_lib.TestFlowHelper(
+          memory.ListVADBinaries.__name__,
+          client_mock,
+          check_flow_errors=False,
+          client_id=self.client_id,
+          token=self.token,
+          fetch_binaries=True):
+        session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
     binaries = list(fd)

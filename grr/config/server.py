@@ -271,3 +271,10 @@ config_lib.DEFINE_integer(
     "maximum number of clients that are allowed to crash before the hunt is "
     "automatically hard-stopped.")
 
+config_lib.DEFINE_bool("Rekall.enabled", False,
+                       "If True then Rekall-based flows (AnalyzeClientMemory, "
+                       "MemoryCollector, ListVADBinaries) will be enabled in "
+                       "the system. Rekall is disabled by default since it's "
+                       "in the maintenance mode and may not work correctly or "
+                       "may not be stable enough.")
+

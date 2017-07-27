@@ -492,9 +492,10 @@ class ArtifactFlowWindowsTest(ArtifactTest):
         token=self.token,
         version=memory.AnalyzeClientMemoryArgs().component_version)
 
-    fd = self.RunCollectorAndGetCollection(
-        ["RekallPsList"],
-        RekallMock(self.client_id, "rekall_pslist_result.dat.gz"))
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      fd = self.RunCollectorAndGetCollection(
+          ["RekallPsList"],
+          RekallMock(self.client_id, "rekall_pslist_result.dat.gz"))
 
     self.assertEqual(len(fd), 35)
     self.assertEqual(fd[0].exe, "System")
@@ -511,9 +512,10 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema.KNOWLEDGE_BASE(os="Windows", environ_systemdrive=r"c:"))
 
-    fd = self.RunCollectorAndGetCollection(
-        ["FullVADBinaryList"],
-        RekallMock(self.client_id, "rekall_vad_result.dat.gz"))
+    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+      fd = self.RunCollectorAndGetCollection(
+          ["FullVADBinaryList"],
+          RekallMock(self.client_id, "rekall_vad_result.dat.gz"))
 
     self.assertEqual(len(fd), 1705)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")

@@ -44,12 +44,16 @@ class MemoryCollector(flow.GRRFlow):
   """
   friendly_name = "Memory Collector"
   category = "/Memory/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
+  behaviours = flow.FlowBehaviour("Client Flow", "DEBUG")
   args_type = MemoryCollectorArgs
 
   @flow.StateHandler()
   def Start(self):
+    if not config.CONFIG["Rekall.enabled"]:
+      raise RuntimeError("Rekall flows are disabled. "
+                         "Add 'Rekall.enabled: True' to the config to enable "
+                         "them.")
+
     self.state.output_urn = None
 
     # Use Rekall to grab memory. We no longer manually check for kcore's
@@ -124,12 +128,16 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   """
 
   category = "/Memory/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
+  behaviours = flow.FlowBehaviour("Client Flow", "DEBUG")
   args_type = AnalyzeClientMemoryArgs
 
   @flow.StateHandler()
   def Start(self):
+    if not config.CONFIG["Rekall.enabled"]:
+      raise RuntimeError("Rekall flows are disabled. "
+                         "Add 'Rekall.enabled: True' to the config to enable "
+                         "them.")
+
     # Load all the components we will be needing on the client.
     self.LoadComponentOnClient(
         name="grr-rekall",
@@ -337,12 +345,17 @@ class ListVADBinaries(flow.GRRFlow):
       some debug userland-process-dump API?) and then reading the memory.
   """
   category = "/Memory/"
-
+  behaviours = flow.FlowBehaviour("Client Flow", "DEBUG")
   args_type = ListVADBinariesArgs
 
   @flow.StateHandler()
   def Start(self):
     """Request VAD data."""
+    if not config.CONFIG["Rekall.enabled"]:
+      raise RuntimeError("Rekall flows are disabled. "
+                         "Add 'Rekall.enabled: True' to the config to enable "
+                         "them.")
+
     self.CallFlow(
         # TODO(user): dependency loop between collectors.py and memory.py.
         # collectors.ArtifactCollectorFlow.__name__,
