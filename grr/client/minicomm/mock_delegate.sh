@@ -19,8 +19,8 @@ case "$1" in
     ;;
   # Sleep for a long time (beyond any reasonable unit test timeout).
   sleepy)
-    for i in `seq 1 10000`;
-    do 
+    for _ in {1..10000}
+    do
       sleep 1
     done
     ;;

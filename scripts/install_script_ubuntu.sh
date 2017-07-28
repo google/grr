@@ -11,14 +11,14 @@ set -e
 DEB_PACKAGE="grr-server_3.1.0-2_amd64.deb"
 DEB_URL="https://storage.googleapis.com/releases.grr-response.com/3.1.0.2/${DEB_PACKAGE}"
 
-if [ "$EUID" -ne 0 ]
-  then echo "Please run as root"
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Please run as root"
   exit 1
 fi
 
 echo "Installation only supported on Ubuntu Xenial"
 # This will return non-zero on non-xenial systems and cause an exit
-cat /etc/lsb-release | grep xenial
+grep xenial /etc/lsb-release
 
 echo "Updating APT."
 apt-get --yes update

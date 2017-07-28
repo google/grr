@@ -12,8 +12,8 @@ run_component() {
 }
 
 initialize() {
-  if [ ! -e "${VIRTUALENV}/install_data/etc/server.local.yaml" ]; then
-    if [ $EXTERNAL_HOSTNAME ] && [ $ADMIN_PASSWORD ]; then
+  if [[ ! -e "${VIRTUALENV}/install_data/etc/server.local.yaml" ]]; then
+    if [[ "${EXTERNAL_HOSTNAME}" ]] && [[ "${ADMIN_PASSWORD}" ]]; then
       grr_config_updater initialize --noprompt --no_templates_download --external_hostname="$EXTERNAL_HOSTNAME" --admin_password="$ADMIN_PASSWORD"
     else
       echo "initialize hasn't run and EXTERNAL_HOSTNAME/ADMIN_PASSWORD not set"
@@ -24,10 +24,10 @@ initialize() {
 
 APPLICATION=$1;
 VIRTUALENV="/usr/share/grr-server/"
-if [ ${APPLICATION} = 'grr' ]; then
+if [[ ${APPLICATION} = 'grr' ]]; then
   source "${VIRTUALENV}/bin/activate"
 
-  if [ "$#" -eq 1 ]; then
+  if [[ "$#" -eq 1 ]]; then
     # Run all components in the same container. This is only useful for
     # testing and very small deployments.
     initialize
@@ -42,7 +42,7 @@ if [ ${APPLICATION} = 'grr' ]; then
     # TODO(user): this won't actually work yet. Need to solve the problem of
     # getting the initialized config to each component.
     COMPONENT=$2; shift 2
-    run_component ${COMPONENT} "$@"
+    run_component "${COMPONENT}" "$@"
   fi
 else
   exec "$@"

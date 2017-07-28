@@ -941,6 +941,14 @@ class Factory(object):
           res["last"] = rdfvalue.RDFDatetime(v[1])
       yield res
 
+  def Exists(self, urn, token=None):
+    """Returns whether the provided urn exists."""
+    try:
+      self.Stat(urn, token=token).next()
+      return True
+    except StopIteration:
+      return False
+
   def Create(self,
              urn,
              aff4_type,
