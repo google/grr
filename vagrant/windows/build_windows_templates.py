@@ -21,8 +21,7 @@ parser.add_argument(
 parser.add_argument(
     "--output_dir",
     default=r"C:\grrbuild\output",
-    help="Location of the grr src code. If it doesn't exist "
-    " at this path we'll check it out from github.")
+    help="Destination directory for the templates.")
 
 parser.add_argument(
     "--cloud_storage_sdist_bucket",

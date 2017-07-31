@@ -30,8 +30,37 @@ class CodeSigner(object):
   pass
 
 
-class WindowsCodeSigner(CodeSigner):
-  """Class to handle windows code signing."""
+class WindowsSigntoolCodeSigner(CodeSigner):
+  """Class to handle windows code signing on Windows hosts using signtool."""
+
+  def __init__(self, signing_cmdline, verification_cmdline):
+    if not signing_cmdline:
+      raise ValueError("Need a signing cmd line to use the signtool signer.")
+
+    self._signing_cmdline = signing_cmdline
+    self._verification_cmdline = verification_cmdline
+
+  def SignBuffer(self, in_buffer):
+    with tempfile.NamedTemporaryFile() as temp_in:
+      temp_in.write(in_buffer)
+      temp_in.seek(0)
+    outfile = self.SignFile(temp_in.name)
+    return open(outfile, "rb").read()
+
+  def SignFile(self, in_filename, out_filename=None):
+    """Signs a file."""
+    if out_filename:
+      raise NotImplementedError(
+          "WindowsSigntoolCodeSigner does not support out_filename.")
+
+    subprocess.check_call("%s %s" % (self._signing_cmdline, in_filename))
+    if self._verification_cmdline:
+      subprocess.check_call("%s %s" % (self._verification_cmdline, in_filename))
+    return in_filename
+
+
+class WindowsOsslsigncodeCodeSigner(CodeSigner):
+  """Class to handle windows code signing on Linux hosts using osslsigncode."""
 
   def __init__(self, cert, key, password, application):
     self.cert = cert
@@ -53,8 +82,8 @@ class WindowsCodeSigner(CodeSigner):
     with tempfile.NamedTemporaryFile() as temp_in:
       temp_in.write(in_buffer)
       temp_in.seek(0)
-      outfile = self.SignFile(temp_in.name)
-      return open(outfile, "rb").read()
+    outfile = self.SignFile(temp_in.name)
+    return open(outfile, "rb").read()
 
   def SignFile(self, in_filename, out_filename=None):
     """Sign a file using osslsigncode.

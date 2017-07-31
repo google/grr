@@ -144,7 +144,7 @@ def _SignWindowsComponent(component, output_filename):
   key = config.CONFIG.Get("ClientBuilder.windows_signing_key")
   app_name = config.CONFIG.Get("ClientBuilder.windows_signing_application_name")
 
-  signer = signing.WindowsCodeSigner(cert, key, passwd, app_name)
+  signer = signing.WindowsOsslsigncodeCodeSigner(cert, key, passwd, app_name)
   with utils.TempDirectory() as temp_dir:
     zip_file = zipfile.ZipFile(StringIO.StringIO(component.raw_data))
     zip_file.extractall(temp_dir)

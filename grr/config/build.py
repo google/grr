@@ -524,6 +524,7 @@ config_lib.DEFINE_string(
     default="GRR Team",
     help="The gpg name should match your gpg key name.")
 
+# Parameters for signing Windows binaries on Linux hosts.
 config_lib.DEFINE_string(
     "ClientBuilder.windows_signing_key",
     default="/etc/alternatives/grr_windows_signing_key",
@@ -540,6 +541,17 @@ config_lib.DEFINE_string(
     "ClientBuilder.windows_signing_application_name",
     default="GRR",
     help="Signing cert application name.")
+
+# Parameters for signing Windows binaries on Windows hosts.
+config_lib.DEFINE_string(
+    "ClientBuilder.signtool_signing_cmd",
+    default=None,
+    help="Full commandline for signtool to sign files.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.signtool_verification_cmd",
+    default=None,
+    help="Full commandline for signtool to verify signatures.")
 
 config_lib.DEFINE_string(
     name="ClientRepacker.output_basename",

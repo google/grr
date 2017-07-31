@@ -1,0 +1,24 @@
+FROM centos_i686:7_base
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+RUN linux32 yum update
+
+RUN linux32 yum install -y \
+  python-devel \
+  java-1.8.0-openjdk \
+  libffi-devel \
+  openssl-devel \
+  git \
+  gcc \
+  gcc-c++ \
+  redhat-rpm-config \
+  rpm-build \
+  rpm-sign
+
+# Install pip
+RUN linux32 curl https://bootstrap.pypa.io/get-pip.py | python
+
+RUN linux32 pip install --upgrade pip virtualenv
+
+CMD ["/bin/bash"]

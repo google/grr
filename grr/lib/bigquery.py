@@ -7,9 +7,9 @@ import logging
 import time
 
 
-from apiclient.discovery import build
-from apiclient.errors import HttpError
-from apiclient.http import MediaFileUpload
+from googleapiclient import discovery
+from googleapiclient import errors
+from googleapiclient import http
 import httplib2
 
 # pylint: disable=g-import-not-at-top
@@ -49,9 +49,9 @@ def GetBigQueryClient(service_account_json=None,
 
   creds = ServiceAccountCredentials.from_json_keyfile_dict(
       json.loads(service_account_data), scopes=BIGQUERY_SCOPE)
-  http = httplib2.Http()
-  http = creds.authorize(http)
-  service = build("bigquery", "v2", http=http)
+  http_obj = httplib2.Http()
+  http_obj = creds.authorize(http_obj)
+  service = discovery.build("bigquery", "v2", http=http_obj)
   return BigQueryClient(
       project_id=project_id, bq_service=service, dataset_id=dataset_id)
 
@@ -99,7 +99,7 @@ class BigQueryClient(object):
         result = self.service.datasets().get(
             projectId=self.project_id, datasetId=dataset_id).execute()
         self.datasets[dataset_id] = result
-      except HttpError:
+      except errors.HttpError:
         return None
 
     return self.datasets[dataset_id]
@@ -111,7 +111,7 @@ class BigQueryClient(object):
     https://developers.google.com/api-client-library/python/guide/media_upload
 
     Args:
-      e: HttpError object.
+      e: errors.HttpError object.
     Returns:
       boolean
     """
@@ -126,7 +126,7 @@ class BigQueryClient(object):
     Args:
       job: BigQuery job object
       job_id: ID string for this upload job
-      error: HttpError object from the first error
+      error: errors.HttpError object from the first error
 
     Returns:
       API response object on success, None on failure
@@ -146,7 +146,7 @@ class BigQueryClient(object):
         try:
           response = job.execute()
           return response
-        except HttpError as e:
+        except errors.HttpError as e:
           if self.IsErrorRetryable(e):
             sleep_interval *= config.CONFIG["BigQuery.retry_multiplier"]
             logging.exception("Error with job: %s, will retry in %s", job_id,
@@ -200,13 +200,14 @@ class BigQueryClient(object):
 
     # File content can be gzipped for bandwidth efficiency. The server handles
     # it correctly without any changes to the request.
-    mediafile = MediaFileUpload(fd.name, mimetype="application/octet-stream")
+    mediafile = http.MediaFileUpload(
+        fd.name, mimetype="application/octet-stream")
     job = self.service.jobs().insert(
         projectId=self.project_id, body=body, media_body=mediafile)
     try:
       response = job.execute()
       return response
-    except HttpError as e:
+    except errors.HttpError as e:
       if self.GetDataset(self.dataset_id):
         logging.exception("Error with job: %s", job_id)
       else:

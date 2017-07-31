@@ -33,6 +33,7 @@ artifacts:
     name: templates
     type: zip
 
+# TODO(ogaro): Create a shared appveyor account, and use its encryption key.
 environment:
   GCS_ENCRYPTION_KEY:
-    secure: ZcsXhZskXY8pQMyeQrEzHG9Lr2DERltCNlnFAoO8zXruadCL82yQ/Cem2uPlLM2z
+    secure: e4FbUfG/83Onfl5eDZ4O4uM5zyGVOBz2TBKf/gCs8fS093Hu2S5C5CTwGVDjE5+y

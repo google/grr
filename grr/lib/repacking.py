@@ -3,6 +3,7 @@
 
 import getpass
 import os
+import platform
 import sys
 import zipfile
 
@@ -74,22 +75,32 @@ class TemplateRepacker(object):
           "Signing only supported on windows and linux rpms. Neither target in"
           " context: %s" % context)
 
-    passwd = self.GetSigningPassword()
-
     if "Target:Windows" in context:
-
-      cert = config.CONFIG.Get(
-          "ClientBuilder.windows_signing_cert", context=context)
-      key = config.CONFIG.Get(
-          "ClientBuilder.windows_signing_key", context=context)
-      app_name = config.CONFIG.Get(
-          "ClientBuilder.windows_signing_application_name", context=context)
-      return signing.WindowsCodeSigner(cert, key, passwd, app_name)
+      system = platform.system()
+      if system == "Linux":
+        cert = config.CONFIG.Get(
+            "ClientBuilder.windows_signing_cert", context=context)
+        key = config.CONFIG.Get(
+            "ClientBuilder.windows_signing_key", context=context)
+        app_name = config.CONFIG.Get(
+            "ClientBuilder.windows_signing_application_name", context=context)
+        passwd = self.GetSigningPassword()
+        return signing.WindowsOsslsigncodeCodeSigner(cert, key, passwd,
+                                                     app_name)
+      elif system == "Windows":
+        signing_cmd = config.CONFIG.Get(
+            "ClientBuilder.signtool_signing_cmd", context=context)
+        verification_cmd = config.CONFIG.Get(
+            "ClientBuilder.signtool_verification_cmd", context=context)
+        return signing.WindowsSigntoolCodeSigner(signing_cmd, verification_cmd)
+      else:
+        raise RuntimeError("Signing not supported on platform: %s" % system)
     elif "Target:LinuxRpm" in context:
       pub_keyfile = config.CONFIG.Get(
           "ClientBuilder.rpm_signing_key_public_keyfile", context=context)
       gpg_name = config.CONFIG.Get(
           "ClientBuilder.rpm_gpg_name", context=context)
+      passwd = self.GetSigningPassword()
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
   def SignTemplate(self, template_path, output_file, context=None):

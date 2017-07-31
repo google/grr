@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """This is the GRR class registry.
 
-A central place responsible for registring plugins. Any class can have plugins
+A central place responsible for registering plugins. Any class can have plugins
 if it defines __metaclass__ = MetaclassRegistry.  Any derived class from this
 baseclass will have the member classes as a dict containing class name by key
 and class as value.

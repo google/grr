@@ -14,11 +14,11 @@ from grr.lib import test_lib
 from grr.lib.builders import signing
 
 
-class WindowsCodeSignerTest(test_lib.GRRBaseTest):
+class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(WindowsCodeSignerTest, self).setUp()
-    self.winsign = signing.WindowsCodeSigner("", "", "", "")
+    super(WindowsOsslsigncodeCodeSignerTest, self).setUp()
+    self.winsign = signing.WindowsOsslsigncodeCodeSigner("", "", "", "")
 
   @unittest.skipUnless(platform.system() == "Linux",
                        "We only have pexpect for signing on Linux")
