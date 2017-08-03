@@ -218,6 +218,7 @@ matrix:
     # unavailable' after a bunch of file-copy operations. That doesn't happen
     # inside the container.
     - os: linux
+      dist: trusty
       sudo: required
       env:
         - GCS_TAG=server_deb
