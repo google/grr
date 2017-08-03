@@ -7,7 +7,6 @@ import yaml
 
 from grr import config
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.checks import filters
@@ -16,6 +15,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import config_file as config_file_parsers
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
+from grr.test_lib import test_lib
 
 CHECKS_DIR = os.path.join(config.CONFIG["Test.data_dir"], "checks")
 TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)

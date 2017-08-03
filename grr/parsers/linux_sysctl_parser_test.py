@@ -5,11 +5,11 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import linux_sysctl_parser
+from grr.test_lib import test_lib
 
 
 class ProcSysParserTest(test_lib.GRRBaseTest):

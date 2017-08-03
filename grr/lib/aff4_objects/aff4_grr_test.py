@@ -9,7 +9,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
@@ -17,6 +16,10 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class MockChangeEvent(flow.EventListener):
@@ -37,7 +40,7 @@ class MockChangeEvent(flow.EventListener):
     MockChangeEvent.CHANGED_URNS.append(urn)
 
 
-class AFF4GRRTest(test_lib.AFF4ObjectTest):
+class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
   """Test the client aff4 implementation."""
 
   def setUp(self):
@@ -135,7 +138,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
   def testVFSFileStartsOnlyOneMultiGetFileFlowOnUpdate(self):
     """File updates should only start one MultiGetFile at any point in time."""
     client_id = self.SetupClients(1)[0]
-    test_lib.ClientFixture(client_id, token=self.token)
+    fixture_test_lib.ClientFixture(client_id, token=self.token)
     # We need to choose a file path having a pathsepc.
     path = "fs/os/c/bin/bash"
 
@@ -170,7 +173,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
   def testVFSFileStartsNewMultiGetFileWhenLockingFlowHasFinished(self):
     """A new MultiFileGet can be started when the locking flow has finished."""
     client_id = self.SetupClients(1)[0]
-    test_lib.ClientFixture(client_id, token=self.token)
+    fixture_test_lib.ClientFixture(client_id, token=self.token)
     # We need to choose a file path having a pathsepc.
     path = "fs/os/c/bin/bash"
 
@@ -189,7 +192,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     # Finish the flow holding the lock.
     client_mock = action_mocks.ActionMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flows[0], client_mock, client_id=client_id, token=self.token):
       pass
 

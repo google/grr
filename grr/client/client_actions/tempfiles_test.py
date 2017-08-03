@@ -8,9 +8,10 @@ import time
 from grr import config
 from grr.client.client_actions import tempfiles
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
 class GRRTempFileTestDirectory(test_lib.GRRBaseTest):
@@ -103,7 +104,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     self.assertTrue(os.path.exists(fd.name))
 
 
-class DeleteGRRTempFiles(test_lib.EmptyActionTest):
+class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
   """Test DeleteGRRTempFiles client action."""
 
   def setUp(self):

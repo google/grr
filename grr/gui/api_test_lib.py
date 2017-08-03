@@ -8,7 +8,7 @@
 # pylint: disable=unused-import
 from grr.gui import api_call_router
 # pylint: enable=unused-import
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class ApiCallHandlerTest(test_lib.GRRBaseTest):

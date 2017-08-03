@@ -11,11 +11,11 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer as flows_transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
 
 
 class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
@@ -42,7 +42,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
@@ -71,7 +71,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
@@ -107,7 +107,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 

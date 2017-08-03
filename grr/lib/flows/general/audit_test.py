@@ -8,13 +8,14 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import events
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.flows.general import audit
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class TestAuditSystem(test_lib.FlowTestsBaseclass):
+class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
 
   def testFlowExecution(self):
     client_mock = action_mocks.ListDirectoryClientMock()
@@ -22,7 +23,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     rollover = aff4.AUDIT_ROLLOVER_TIME.seconds
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
@@ -32,7 +33,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
           token=self.token):
         pass
 
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
@@ -58,7 +59,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
 
     # Set time to epoch + 22 intervals
     with test_lib.FakeTime(22 * rollover):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,

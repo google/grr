@@ -51,7 +51,6 @@ from grr.lib import repacking_test
 from grr.lib import sequential_collection_test
 from grr.lib import server_stubs_test
 from grr.lib import stats_test
-from grr.lib import test_lib
 from grr.lib import threadpool_test
 from grr.lib import throttle_test
 from grr.lib import type_info_test

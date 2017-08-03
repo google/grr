@@ -10,7 +10,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
@@ -18,6 +17,10 @@ from grr.lib.aff4_objects import filestore_test_lib
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import worker_test_lib
 
 
 class FakeStore(object):
@@ -39,7 +42,7 @@ class FakeStore(object):
     ACTIVE = "unused"
 
 
-class FileStoreTest(test_lib.AFF4ObjectTest):
+class FileStoreTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for file store functionality."""
 
   def testFileAdd(self):
@@ -100,7 +103,7 @@ class FileStoreTest(test_lib.AFF4ObjectTest):
       self.assertEqual(child_list[0].PRIORITY, 2)
 
 
-class HashFileStoreTest(test_lib.AFF4ObjectTest):
+class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for hash file store functionality."""
 
   def setUp(self):
@@ -363,7 +366,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     for client_id in client_ids:
       client_mock = action_mocks.FileFinderClientMock()
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           client_mock,
           token=self.token,
@@ -374,7 +377,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         pass
       # Running worker to make sure FileStore.AddFileToStore event is processed
       # by the worker.
-      worker = test_lib.MockWorker(token=self.token)
+      worker = worker_test_lib.MockWorker(token=self.token)
       worker.Simulate()
 
     fd1 = aff4.FACTORY.Open(urn1, token=self.token)

@@ -4,13 +4,12 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
-# needed for ListVolumeShadowCopies pylint: disable=unused-import
 from grr.lib.flows.general import windows_vsc
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class TestClient(object):
@@ -81,7 +80,7 @@ class TestClient(object):
     return result
 
 
-class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
+class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
   """Test the list Volume Shadow Copies flow."""
 
   def testListVolumeShadowCopies(self):
@@ -89,7 +88,7 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
     flow_name = windows_vsc.ListVolumeShadowCopies.__name__
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_name, TestClient(), token=self.token, client_id=self.client_id):
       pass
 

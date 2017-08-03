@@ -18,12 +18,14 @@ from grr.lib import client_fixture
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore_test_lib
 from grr.lib.flows.cron import filestore_stats
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class ReportPluginsTest(test_lib.GRRBaseTest):
@@ -101,11 +103,12 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
   def MockClients(self):
 
     # We are only interested in the client object (path = "/" in client VFS)
-    fixture = test_lib.FilterFixture(regex="^/$")
+    fixture = fixture_test_lib.FilterFixture(regex="^/$")
 
     # Make 10 windows clients
     for i in range(0, 10):
-      test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
+      fixture_test_lib.ClientFixture(
+          "C.0%015X" % i, token=self.token, fixture=fixture)
 
       with aff4.FACTORY.Open(
           "C.0%015X" % i, mode="rw", token=self.token) as client:
@@ -114,7 +117,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):
-      test_lib.ClientFixture(
+      fixture_test_lib.ClientFixture(
           "C.1%015X" % i,
           token=self.token,
           fixture=client_fixture.LINUX_FIXTURE)
@@ -123,7 +126,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.GRRVersionBreakDown.__name__, token=self.token):
       pass
 
@@ -146,7 +149,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def testGRRVersionReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.GRRVersionBreakDown.__name__, token=self.token):
       pass
 
@@ -169,7 +172,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.LastAccessStats.__name__, token=self.token):
       pass
 
@@ -198,7 +201,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def testLastActiveReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.LastAccessStats.__name__, token=self.token):
       pass
 
@@ -222,7 +225,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.OSBreakDown.__name__, token=self.token):
       pass
 
@@ -265,7 +268,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_system.OSBreakDown.__name__, token=self.token):
       pass
 
@@ -360,7 +363,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
         token=self.token)
 
     # Scan for files to be reported (the one we just added).
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
       pass
 
@@ -381,7 +384,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
 
   def testFileSizeDistributionReportPluginWithNothingToReport(self):
     # Scan for files to be reported.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
       pass
 

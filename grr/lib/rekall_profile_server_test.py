@@ -6,14 +6,14 @@ import zlib
 
 
 from rekall import constants
-
 from grr import config
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import rekall_test_lib
+from grr.test_lib import test_lib
 
 # pylint: mode=test
 
@@ -32,7 +32,7 @@ class FakeHandle(object):
     FakeHandle.read_count += 1
 
     profile_name = self.profile
-    server = test_lib.TestRekallRepositoryProfileServer()
+    server = rekall_test_lib.TestRekallRepositoryProfileServer()
     profile = server.GetProfileByName(
         profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
 

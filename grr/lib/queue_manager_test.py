@@ -11,13 +11,14 @@ from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 # pylint: mode=test
 
 
-class QueueManagerTest(test_lib.FlowTestsBaseclass):
+class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
   """Test the task scheduler abstraction."""
 
   def setUp(self):

@@ -11,16 +11,17 @@ from grr import config
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
-class TestExecutePython(test_lib.EmptyActionTest):
+class TestExecutePython(client_test_lib.EmptyActionTest):
   """Test the client execute actions."""
 
   def setUp(self):
@@ -196,7 +197,7 @@ utils.TEST_VAL = py_args[43]
     self.assertEqual(utils.TEST_VAL, "dict_arg2")
 
 
-class TestCopyPathToFile(test_lib.EmptyActionTest):
+class TestCopyPathToFile(client_test_lib.EmptyActionTest):
   """Test CopyPathToFile client actions."""
 
   def setUp(self):
@@ -274,7 +275,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
     self.assertFalse(os.path.exists(result.dest_path.path))
 
 
-class TestNetworkByteLimits(test_lib.EmptyActionTest):
+class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
   """Test CopyPathToFile client actions."""
 
   def setUp(self):

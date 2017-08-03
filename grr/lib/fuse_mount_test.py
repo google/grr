@@ -16,14 +16,15 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
-
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 from grr.tools import fuse_mount
 
@@ -70,7 +71,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
     super(GRRFuseDatastoreOnlyTest, self).setUp()
 
     self.client_name = "C." + "1" * 16
-    test_lib.ClientFixture(self.client_name, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_name, token=self.token)
     self.root = "/"
 
     self.passthrough = fuse_mount.GRRFuseDatastoreOnly(
@@ -231,7 +232,7 @@ class GRRFuseTest(GRRFuseTestBase):
         standard.StatFile,
         standard.TransferBuffer,)
 
-    self.client_mock = test_lib.MockClient(
+    self.client_mock = flow_test_lib.MockClient(
         self.client_id, self.action_mock, token=self.token)
 
     self.update_stubber = utils.Stubber(self.grr_fuse,
@@ -249,7 +250,7 @@ class GRRFuseTest(GRRFuseTestBase):
     self.update_stubber.Stop()
 
   def _RunAndWaitForVFSFileUpdate(self, path):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         aff4_grr.UpdateVFSFile.__name__,
         self.action_mock,
         token=self.token,
@@ -261,7 +262,7 @@ class GRRFuseTest(GRRFuseTestBase):
     return "/%s/fs/os%s" % (self.client_name, client_side_path)
 
   def StartFlowAndWait(self, client_id, token=None, timeout=None, **flow_args):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_args.pop("flow_name"),
         self.action_mock,
         token=self.token,
@@ -275,7 +276,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filesystem.ListDirectory.__name__,
         self.action_mock,
         pathspec=pathspec,

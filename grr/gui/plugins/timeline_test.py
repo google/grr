@@ -12,9 +12,10 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import test_lib
 
 
 class TestTimeline(gui_test_lib.GRRSeleniumTest):
@@ -25,7 +26,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestTimeline, self).setUp()
     # Prepare our fixture.
-    test_lib.ClientFixture("C.0000000000000001", token=self.token)
+    fixture_test_lib.ClientFixture("C.0000000000000001", token=self.token)
     self.CreateFileWithTimeline(
         "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt", self.token)
     self.CreateFileWithTimeline(

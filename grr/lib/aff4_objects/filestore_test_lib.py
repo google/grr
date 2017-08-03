@@ -3,9 +3,10 @@
 
 from grr.lib import action_mocks
 from grr.lib import events
-from grr.lib import test_lib
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import flow_test_lib
+from grr.test_lib import worker_test_lib
 
 
 def AddFileToFileStore(pathspec=None, client_id=None, token=None):
@@ -19,7 +20,7 @@ def AddFileToFileStore(pathspec=None, client_id=None, token=None):
   urn = pathspec.AFF4Path(client_id)
 
   client_mock = action_mocks.GetFileClientMock()
-  for _ in test_lib.TestFlowHelper(
+  for _ in flow_test_lib.TestFlowHelper(
       transfer.GetFile.__name__,
       client_mock,
       token=token,
@@ -32,7 +33,7 @@ def AddFileToFileStore(pathspec=None, client_id=None, token=None):
       "FileStore.AddFileToStore",
       rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
       token=token)
-  worker = test_lib.MockWorker(token=token)
+  worker = worker_test_lib.MockWorker(token=token)
   worker.Simulate()
 
   return urn

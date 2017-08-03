@@ -10,16 +10,16 @@ import ipaddr
 from requests.packages import urllib3
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils as libutils
 from grr.lib.rdfvalues import data_server as rdf_data_server
-
 from grr.server.data_server import auth
+
 from grr.server.data_server import constants
 from grr.server.data_server import data_server
 from grr.server.data_server import errors
 from grr.server.data_server import master
 from grr.server.data_server import utils
+from grr.test_lib import test_lib
 
 # pylint: enable=g-import-not-at-top
 

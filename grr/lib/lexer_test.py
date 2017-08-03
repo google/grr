@@ -4,7 +4,7 @@
 
 from grr.lib import flags
 from grr.lib import lexer
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class LexerTests(test_lib.GRRBaseTest):

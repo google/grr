@@ -11,7 +11,7 @@ import mock
 
 from grr.lib import builders
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class ClientBuildTests(test_lib.GRRBaseTest):

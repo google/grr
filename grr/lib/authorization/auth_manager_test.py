@@ -3,10 +3,10 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.authorization import auth_manager
 from grr.lib.authorization import groups
+from grr.test_lib import test_lib
 
 
 class DummyAuthorization(object):

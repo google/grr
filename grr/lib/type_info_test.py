@@ -6,9 +6,9 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import test_lib
 
 
 class TypeInfoTest(test_lib.GRRBaseTest):

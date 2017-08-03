@@ -9,7 +9,6 @@ import yaml
 
 from grr import config
 from grr.lib import registry
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.checks import checks
 from grr.lib.checks import filters
@@ -18,6 +17,7 @@ from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_service_parser
+from grr.test_lib import test_lib
 
 
 class HostCheckTest(test_lib.GRRBaseTest):

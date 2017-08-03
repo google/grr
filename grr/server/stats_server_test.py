@@ -8,9 +8,9 @@ import json
 
 from grr.lib import flags
 from grr.lib import stats
-from grr.lib import test_lib
-
 from grr.server import stats_server
+
+from grr.test_lib import test_lib
 
 
 class StatsServerTest(test_lib.GRRBaseTest):

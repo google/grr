@@ -15,17 +15,16 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
-# pylint: disable=unused-import
-from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
-# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class TestArtifactCollectorsInteractions(test_lib.FlowTestsBaseclass):
+class TestArtifactCollectorsInteractions(flow_test_lib.FlowTestsBaseclass):
   """Test the collection of artifacts.
 
   This class loads both real and test artifacts to test the interaction of badly
@@ -99,17 +98,17 @@ supported_os: [ "Linux" ]
     """Test downloading files from artifacts."""
     self.SetupClients(1, system="Windows", os_version="6.2")
 
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
         self._testProcessCollectedArtifacts()
 
   def _testProcessCollectedArtifacts(self):
     client_mock = action_mocks.FileFinderClientMock()
 
     # Get KB initialized
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         client_mock,
         client_id=self.client_id,
@@ -119,7 +118,7 @@ supported_os: [ "Linux" ]
     artifact_list = ["WindowsPersistenceMechanismFiles"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
@@ -138,7 +137,7 @@ supported_os: [ "Linux" ]
     artifact_list = ["BadPathspecArtifact"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,

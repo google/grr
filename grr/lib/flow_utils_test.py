@@ -6,11 +6,12 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class TestInterpolatePath(test_lib.FlowTestsBaseclass):
+class TestInterpolatePath(flow_test_lib.FlowTestsBaseclass):
   """Tests for path interpolation."""
 
   def setUp(self):

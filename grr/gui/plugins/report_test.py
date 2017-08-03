@@ -6,7 +6,7 @@ from grr.lib import aff4
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 def AddFakeAuditLog(description=None,

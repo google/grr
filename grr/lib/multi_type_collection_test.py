@@ -5,13 +5,14 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
-
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import aff4_test_lib
+
+from grr.test_lib import test_lib
 
 
-class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
+class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(MultiTypeCollectionTest, self).setUp()

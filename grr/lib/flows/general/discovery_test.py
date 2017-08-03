@@ -16,12 +16,13 @@ from grr.lib import client_index
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
-# pylint: disable=unused-import
 from grr.lib.flows.general import discovery
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class DiscoveryTestEventListener(flow.EventListener):
@@ -38,7 +39,7 @@ class DiscoveryTestEventListener(flow.EventListener):
     DiscoveryTestEventListener.event = event
 
 
-class TestClientInterrogate(test_lib.FlowTestsBaseclass):
+class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def _CheckUsers(self, all_users):
@@ -223,10 +224,10 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Linux", os_version="12.04")
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
               "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
@@ -236,7 +237,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
       }):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
@@ -248,17 +249,17 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
         with mock.patch.object(platform, "system", return_value="Windows"):
-          for _ in test_lib.TestFlowHelper(
+          for _ in flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
               token=self.token,
@@ -270,11 +271,11 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Linux", os_version="12.04")
 
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
               "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"
@@ -285,7 +286,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
 
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,
@@ -314,20 +315,20 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
 
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
 
         # Run the flow in the simulated way
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
             token=self.token,

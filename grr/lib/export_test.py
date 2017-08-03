@@ -16,7 +16,6 @@ from grr.lib import export
 from grr.lib import flags
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
@@ -31,6 +30,11 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import export_test_lib
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import worker_test_lib
 
 
 class DummyRDFValue(rdfvalue.RDFString):
@@ -126,9 +130,10 @@ class ExportTest(ExportTestBase):
     export.ConvertValues(self.metadata, [dummy_value])
 
   def testDataAgnosticConverterIsUsedWhenNoSpecificConverterIsDefined(self):
-    original_value = test_lib.DataAgnosticConverterTestValue()
+    original_value = export_test_lib.DataAgnosticConverterTestValue()
 
-    # There's no converter defined for test_lib.DataAgnosticConverterTestValue,
+    # There's no converter defined for
+    # export_test_lib.DataAgnosticConverterTestValue,
     # so we expect DataAgnosticExportConverter to be used.
     converted_values = list(
         export.ConvertValues(self.metadata, [original_value]))
@@ -155,11 +160,11 @@ class ExportTest(ExportTestBase):
     fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
     src1 = rdf_client.ClientURN("C.0000000000000000")
     fd.AddAsMessage(DummyRDFValue("some"), src1)
-    test_lib.ClientFixture(src1, token=self.token)
+    fixture_test_lib.ClientFixture(src1, token=self.token)
 
     src2 = rdf_client.ClientURN("C.0000000000000001")
     fd.AddAsMessage(DummyRDFValue("some2"), src2)
-    test_lib.ClientFixture(src2, token=self.token)
+    fixture_test_lib.ClientFixture(src2, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(str(v) for v in results)
@@ -181,11 +186,11 @@ class ExportTest(ExportTestBase):
 
     src1 = rdf_client.ClientURN("C.0000000000000000")
     fd.AddAsMessage(DummyRDFValue3("some1"), src1)
-    test_lib.ClientFixture(src1, token=self.token)
+    fixture_test_lib.ClientFixture(src1, token=self.token)
 
     src2 = rdf_client.ClientURN("C.0000000000000001")
     fd.AddAsMessage(DummyRDFValue3("some2"), src2)
-    test_lib.ClientFixture(src2, token=self.token)
+    fixture_test_lib.ClientFixture(src2, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(results, key=str)
@@ -239,7 +244,7 @@ class ExportTest(ExportTestBase):
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     client_mock = action_mocks.GetFileClientMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
@@ -285,7 +290,7 @@ class ExportTest(ExportTestBase):
     urn = pathspec.AFF4Path(self.client_id)
 
     client_mock = action_mocks.GetFileClientMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
         token=self.token,
@@ -298,7 +303,7 @@ class ExportTest(ExportTestBase):
         "FileStore.AddFileToStore",
         rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=self.token)
-    worker = test_lib.MockWorker(token=self.token)
+    worker = worker_test_lib.MockWorker(token=self.token)
     worker.Simulate()
 
     fd = aff4.FACTORY.Open(urn, token=self.token)
@@ -608,7 +613,7 @@ class ExportTest(ExportTestBase):
                      checkresults[1].anomaly[1].finding[0])
 
   def testGetMetadata(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client:
       client.SetLabels("client-label-24")
@@ -630,7 +635,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(metadata.system_labels, u"")
 
   def testGetMetadataWithSystemLabels(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client:
       client.SetLabels("a", "b")
@@ -897,7 +902,7 @@ class ExportTest(ExportTestBase):
         "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     msg = rdf_flows.GrrMessage(payload=payload)
     msg.source = self.client_id
-    test_lib.ClientFixture(msg.source, token=self.token)
+    fixture_test_lib.ClientFixture(msg.source, token=self.token)
 
     metadata = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
         "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
@@ -919,7 +924,7 @@ class ExportTest(ExportTestBase):
         "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = rdf_client.ClientURN("C.0000000000000000")
-    test_lib.ClientFixture(msg1.source, token=self.token)
+    fixture_test_lib.ClientFixture(msg1.source, token=self.token)
 
     payload2 = DummyRDFValue4(
         "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
@@ -950,7 +955,7 @@ class ExportTest(ExportTestBase):
         "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = rdf_client.ClientURN("C.0000000000000000")
-    test_lib.ClientFixture(msg1.source, token=self.token)
+    fixture_test_lib.ClientFixture(msg1.source, token=self.token)
 
     payload2 = DummyRDFValue5(
         "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
@@ -1006,7 +1011,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 
   def testExportsOriginalResultAnywayIfItIsNotStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
-        original_result=test_lib.DataAgnosticConverterTestValue())
+        original_result=export_test_lib.DataAgnosticConverterTestValue())
 
     converter = export.ArtifactFilesDownloaderResultConverter()
     converted = list(converter.Convert(self.metadata, result, token=self.token))
@@ -1128,7 +1133,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     return converted_values[0]
 
   def testAddsMetadataAndIgnoresRepeatedAndMessagesFields(self):
-    original_value = test_lib.DataAgnosticConverterTestValue()
+    original_value = export_test_lib.DataAgnosticConverterTestValue()
     converted_value = self.ConvertOriginalValue(original_value)
 
     # No 'metadata' field in the original value.
@@ -1148,7 +1153,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
                      rdfvalue.RDFURN("aff4:/foo"))
 
   def testIgnoresPredefinedMetadataField(self):
-    original_value = test_lib.DataAgnosticConverterTestValueWithMetadata(
+    original_value = export_test_lib.DataAgnosticConverterTestValueWithMetadata(
         metadata=42, value="value")
     converted_value = self.ConvertOriginalValue(original_value)
 
@@ -1159,11 +1164,12 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     self.assertEqual(converted_value.value, "value")
 
   def testProcessesPrimitiveTypesCorrectly(self):
-    original_value = test_lib.DataAgnosticConverterTestValue(
+    original_value = export_test_lib.DataAgnosticConverterTestValue(
         string_value="string value",
         int_value=42,
         bool_value=True,
-        enum_value=test_lib.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
+        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
+        OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
@@ -1194,11 +1200,12 @@ class DataAgnosticExportConverterTest(ExportTestBase):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
   def testConvertedValuesCanBeSerializedAndDeserialized(self):
-    original_value = test_lib.DataAgnosticConverterTestValue(
+    original_value = export_test_lib.DataAgnosticConverterTestValue(
         string_value="string value",
         int_value=42,
         bool_value=True,
-        enum_value=test_lib.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
+        enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
+        OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)

@@ -8,11 +8,11 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import cron as cron_plugin
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 
 class CronJobsTestMixin(object):

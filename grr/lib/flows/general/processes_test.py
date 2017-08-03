@@ -6,9 +6,10 @@ import os
 from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.flows.general import processes as flow_processes
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class ListProcessesMock(action_mocks.FileFinderClientMock):
@@ -22,7 +23,7 @@ class ListProcessesMock(action_mocks.FileFinderClientMock):
     return self.processes_list
 
 
-class ListProcessesTest(test_lib.FlowTestsBaseclass):
+class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testProcessListingOnly(self):
@@ -41,7 +42,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         flow_name=flow_processes.ListProcesses.__name__,
         token=self.token)
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       session_id = s
 
@@ -86,7 +87,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         flow_name=flow_processes.ListProcesses.__name__,
         filename_regex=r".*cmd2.exe",
         token=self.token)
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       session_id = s
 
@@ -134,7 +135,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         flow_name=flow_processes.ListProcesses.__name__,
         connection_states=["ESTABLISHED", "LISTEN"],
         token=self.token)
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       session_id = s
 
@@ -164,7 +165,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
 
     client_mock = ListProcessesMock([p1, p2])
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         fetch_binaries=True,
@@ -188,7 +189,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
 
     client_mock = ListProcessesMock([process])
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=self.client_id,
@@ -219,7 +220,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
 
     client_mock = ListProcessesMock([process1, process2])
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=self.client_id,
@@ -248,7 +249,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
 
     client_mock = ListProcessesMock([process1, process2])
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=self.client_id,

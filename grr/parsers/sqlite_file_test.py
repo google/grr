@@ -7,8 +7,8 @@ import os
 import StringIO
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.parsers import sqlite_file
+from grr.test_lib import test_lib
 
 
 class SQLiteFileTest(test_lib.GRRBaseTest):

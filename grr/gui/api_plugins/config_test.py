@@ -7,13 +7,10 @@ from grr import config
 from grr.gui import api_test_lib
 
 from grr.gui.api_plugins import config as config_plugin
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import maintenance_utils
-from grr.lib import test_lib
 from grr.lib import utils
-
-from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import test_lib
 
 
 def GetConfigMockClass(sections=None):
@@ -182,30 +179,6 @@ class ApiGrrBinaryTestMixin(object):
       upload_path = config.CONFIG.Get("Config.python_hack_root").Add("test")
       maintenance_utils.UploadSignedConfigBlob(
           code, aff4_path=upload_path, token=self.token)
-
-    with test_lib.FakeTime(44):
-      component = test_lib.WriteComponent(
-          name="grr-awesome-component",
-          build_system=rdf_client.Uname(
-              architecture="64bit",
-              fqdn="test.host",
-              kernel="3.42-generic",
-              machine="x86_64",
-              node="test.localhost",
-              pep425tag="Linux_debian_64bit",
-              release="Debian",
-              system="Linux",
-              version="4.42"),
-          version="1.2.3.4",
-          raw_data="I'm a component",
-          modules=["grr_awesome"],
-          token=self.token)
-      return component.summary
-
-  def GetBinaryBlob(self, summary):
-    blob_urn = aff4.FACTORY.GetComponentRoot().Add(
-        summary.seed).Add("Linux_debian_64bit")
-    return aff4.FACTORY.Open(blob_urn, token=self.token)
 
 
 def main(argv):

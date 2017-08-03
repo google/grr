@@ -10,11 +10,13 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class FakeCronJob(flow.GRRFlow):
@@ -84,7 +86,7 @@ class DummyDisabledSystemCronJob(DummySystemCronJob):
   disabled = True
 
 
-class CronTest(test_lib.AFF4ObjectTest):
+class CronTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
   def testCronJobPreservesFlowNameAndArguments(self):
@@ -536,7 +538,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_manager.RunOnce(token=self.token)
     cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
     cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         cron_flow_urn, check_flow_errors=False, token=self.token):
       pass
     # This RunOnce call should determine that the flow has failed
@@ -568,7 +570,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       cron_job = aff4.FACTORY.Open(
           cron_job_urn, aff4_type=cronjobs.CronJob, token=self.token)
       cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           cron_flow_urn, check_flow_errors=False, token=self.token):
         pass
 
@@ -632,7 +634,7 @@ class CronTest(test_lib.AFF4ObjectTest):
         cron_job = aff4.FACTORY.Open(
             cron_job_urn, aff4_type=cronjobs.CronJob, token=self.token)
         cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             cron_flow_urn, check_flow_errors=False, token=self.token):
           pass
         # This RunOnce call should determine that the flow has finished

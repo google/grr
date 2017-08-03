@@ -3,11 +3,11 @@
 """Tests for cron checks."""
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.parsers import config_file
+from grr.test_lib import test_lib
 
 
 class CronCheckTests(checks_test_lib.HostCheckTest):

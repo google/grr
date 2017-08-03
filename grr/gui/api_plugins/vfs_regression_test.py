@@ -10,8 +10,9 @@ from grr.gui.api_plugins import vfs_test as vfs_plugin_test
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.flows.general import discovery
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiListFilesHandlerRegressionTest(
@@ -23,7 +24,7 @@ class ApiListFilesHandlerRegressionTest(
   def setUp(self):
     super(ApiListFilesHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    test_lib.ClientFixture(self.client_id, token=self.token, age=42)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token, age=42)
 
   def Run(self):
     self.Check("ListFiles",
@@ -122,7 +123,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
     self.file_path = "fs/os/Users/Shared"
 
   def Run(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(
@@ -215,7 +216,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
     self.file_path = "fs/os/c/bin/bash"
 
   def Run(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(

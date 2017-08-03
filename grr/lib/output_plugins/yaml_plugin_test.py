@@ -8,11 +8,11 @@ import zipfile
 import yaml
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.output_plugins import test_plugins
 from grr.lib.output_plugins import yaml_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import test_lib
 
 
 # TODO(user): Share test data between test classes for the instant output

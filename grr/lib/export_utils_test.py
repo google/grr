@@ -10,7 +10,6 @@ from grr.lib import export_utils
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import sequential_collection
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
@@ -20,9 +19,11 @@ from grr.lib.hunts import results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class TestExports(test_lib.FlowTestsBaseclass):
+class TestExports(flow_test_lib.FlowTestsBaseclass):
   """Tests exporting of data."""
 
   def setUp(self):

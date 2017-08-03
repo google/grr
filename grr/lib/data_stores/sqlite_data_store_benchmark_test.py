@@ -4,9 +4,9 @@
 
 from grr.lib import data_store_test
 from grr.lib import flags
-from grr.lib import test_lib
-
 from grr.lib.data_stores import sqlite_data_store_test
+
+from grr.test_lib import test_lib
 
 
 class SqliteDataStoreBenchmarks(sqlite_data_store_test.SqliteTestMixin,

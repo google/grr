@@ -5,10 +5,11 @@
 
 from grr.lib import flags
 from grr.lib import osx_launchd as testdata
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import osx_launchd
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
@@ -36,7 +37,7 @@ class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
     self.assertEqual(unfiltered, len(testdata.JOBS) - testdata.FILTERED_COUNT)
 
 
-class DarwinPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
+class DarwinPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
 
   def testParse(self):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()

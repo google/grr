@@ -8,8 +8,8 @@ from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import security
+from grr.test_lib import test_lib
 
 
 class TestUserDashboard(gui_test_lib.SearchClientTestBase):

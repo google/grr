@@ -9,11 +9,11 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import output_plugin
-from grr.lib import test_lib
 from grr.lib.flows.general import processes as flows_processes
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import fixture_test_lib
 
 
 class DummyOutputPlugin(output_plugin.OutputPlugin):
@@ -37,7 +37,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.client_id = rdf_client.ClientURN("C.0000000000000001")
     # This attribute is used by StandardHuntTestMixin.
     self.client_ids = [self.client_id]
-    test_lib.ClientFixture(self.client_id, self.token)
+    fixture_test_lib.ClientFixture(self.client_id, self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.email_descriptor = output_plugin.OutputPluginDescriptor(

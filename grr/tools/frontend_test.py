@@ -27,7 +27,6 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import front_end
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib import worker_mocks
 from grr.lib.aff4_objects import filestore
@@ -35,6 +34,9 @@ from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import rekall_test_lib
+from grr.test_lib import test_lib
 from grr.tools import frontend
 
 
@@ -44,6 +46,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   @classmethod
   def setUpClass(cls):
     super(GRRHTTPServerTest, cls).setUpClass()
+
+    cls.config_overrider = test_lib.ConfigOverrider({
+        "Rekall.profile_server":
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+    })
+    cls.config_overrider.Start()
+
     # Frontend must be initialized to register all the stats counters.
     front_end.FrontendInit().RunOnce()
 
@@ -67,6 +76,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   @classmethod
   def tearDownClass(cls):
     cls.httpd.shutdown()
+    cls.config_overrider.Stop()
 
   def setUp(self):
     super(GRRHTTPServerTest, self).setUp()
@@ -193,7 +203,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       client.client_worker = worker_mocks.FakeThreadedWorker(client=client)
       client.server_certificate = config.CONFIG["Frontend.certificate"]
 
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(
               client_worker=client.client_worker),

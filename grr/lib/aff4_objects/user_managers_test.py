@@ -6,12 +6,14 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
+from grr.test_lib import acl_test_lib
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
-class GRRUserTest(test_lib.AFF4ObjectTest):
+class GRRUserTest(aff4_test_lib.AFF4ObjectTest):
 
   def testUserPasswords(self):
     with aff4.FACTORY.Create(
@@ -150,7 +152,8 @@ class GlobalFlowWithCategory(flow.GRRGlobalFlow):
   category = "/Test/"
 
 
-class FullAccessControlManagerTest(test_lib.GRRBaseTest):
+class FullAccessControlManagerTest(test_lib.GRRBaseTest,
+                                   acl_test_lib.AclTestMixin):
   """Unit tests for FullAccessControlManager."""
 
   def setUp(self):

@@ -12,9 +12,9 @@ from grr.gui import wsgiapp
 from grr.lib import flags
 from grr.lib import log
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.proto import jobs_pb2
+from grr.test_lib import test_lib
 
 
 class ApplicationLoggerTests(test_lib.GRRBaseTest):

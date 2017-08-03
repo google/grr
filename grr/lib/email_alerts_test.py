@@ -6,8 +6,8 @@ import mock
 
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import standard as rdf_standard
+from grr.test_lib import test_lib
 
 
 class SendEmailTests(test_lib.GRRBaseTest):

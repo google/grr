@@ -8,8 +8,8 @@ import datetime
 import os
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.parsers import firefox3_history
+from grr.test_lib import test_lib
 
 
 class Firefox3HistoryTest(test_lib.GRRBaseTest):

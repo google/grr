@@ -6,7 +6,7 @@ from grr.gui import runtests_test
 from grr.gui.api_plugins import config_test as api_config_test
 
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class TestSettingsView(gui_test_lib.GRRSeleniumTest):

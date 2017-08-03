@@ -2,9 +2,9 @@
 """Mocks for end to end testing."""
 
 from grr.endtoend_tests import base
-from grr.lib import test_lib
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import paths
+from grr.test_lib import flow_test_lib
 
 
 class MockEndToEndTest(base.AutomatedTest):
@@ -30,7 +30,7 @@ class MockEndToEndTest(base.AutomatedTest):
 
 
 class MockEndToEndTestBadFlow(MockEndToEndTest):
-  flow = test_lib.RaiseOnStart.__name__
+  flow = flow_test_lib.RaiseOnStart.__name__
   args = {}
 
 

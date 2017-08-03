@@ -9,7 +9,7 @@ from grr.client import client_actions
 
 from grr.lib import flags
 from grr.lib import server_stubs
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class ClientActionStubTest(test_lib.GRRBaseTest):

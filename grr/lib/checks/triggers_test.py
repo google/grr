@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Tests for triggers."""
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import triggers
+from grr.test_lib import test_lib
 
 target_1 = triggers.Target({})
 target_2 = triggers.Target(

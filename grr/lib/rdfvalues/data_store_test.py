@@ -4,10 +4,10 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
-
 from grr.lib.rdfvalues import data_store
+
 from grr.lib.rdfvalues import test_base
+from grr.test_lib import test_lib
 
 
 class ResultSetTest(test_base.RDFValueTestCase):

@@ -4,13 +4,14 @@
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import network
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class NetstatTest(test_lib.FlowTestsBaseclass):
+class NetstatTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testNetstat(self):
@@ -45,7 +46,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Close()
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,
         ClientMock(),
         client_id=self.client_id,

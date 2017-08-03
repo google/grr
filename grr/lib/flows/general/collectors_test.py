@@ -21,21 +21,21 @@ from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import sequential_collection
-from grr.lib import test_lib
 from grr.lib import utils
-# pylint: disable=unused-import
-from grr.lib.flows.general import artifact_fallbacks
-# pylint: enable=unused-import
 from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import client_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 def ProcessIter():
-  return iter([test_lib.MockWindowsProcess()])
+  return iter([client_test_lib.MockWindowsProcess()])
 
 
-class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
+class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
   """Test the artifact collection mechanism with fake artifacts."""
 
   def setUp(self):
@@ -172,7 +172,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
@@ -200,7 +200,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Flush()
 
     artifact_list = ["FakeArtifact"]
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
@@ -226,7 +226,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
@@ -252,7 +252,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
@@ -307,10 +307,10 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(fd), 0)
 
   def testRegistryValueArtifact(self):
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
@@ -325,7 +325,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for s in test_lib.TestFlowHelper(
+        for s in flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
@@ -340,10 +340,10 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     self.assertTrue(str(urn).endswith("BootExecute"))
 
   def testRegistryDefaultValueArtifact(self):
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
@@ -356,7 +356,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for s in test_lib.TestFlowHelper(
+        for s in flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
@@ -408,7 +408,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
     self.output_count += 1
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,

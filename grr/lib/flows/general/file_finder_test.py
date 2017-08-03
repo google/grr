@@ -14,14 +14,22 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard as aff4_standard
+# TODO(user):
+# TestFileFinderFlow.testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed expects
+# auditign system to work. Refactor and remove the unused import
+# pylint: disable=unused-import
+from grr.lib.flows.general import audit as _
+# pylint: enable=unused-import
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 # pylint:mode=test
 
@@ -55,7 +63,7 @@ class FileFinderActionMock(action_mocks.FileFinderClientMock):
     return processed_responses
 
 
-class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
+class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the FileFinder flow."""
 
   def FileNameToURN(self, fname):
@@ -168,7 +176,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def RunFlow(self, paths=None, conditions=None, action=None):
     send_reply = test_lib.Instrument(flow.GRRFlow, "SendReply")
     with send_reply:
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
@@ -320,7 +328,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
@@ -673,7 +681,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         os.path.join(self.fixture_path, "auth.log")
     ]
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
@@ -689,10 +697,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.CheckFilesInCollection(["*.log", "auth.log"], session_id=session_id)
 
   def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
-                                 test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
+                                     vfs_test_lib.FakeTestDataVFSHandler):
         paths = ["/var/log/auth.log", "/etc/ssh/sshd_config"]
 
         cmlc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
@@ -708,7 +716,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         # Check this condition with all the actions. This makes sense, as we may
         # download memeory or send it to the socket.
         for action in self.CONDITION_TESTS_ACTIONS:
-          for s in test_lib.TestFlowHelper(
+          for s in flow_test_lib.TestFlowHelper(
               file_finder.FileFinder.__name__,
               self.client_mock,
               client_id=self.client_id,
@@ -739,7 +747,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     }):
 
       action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           file_finder.FileFinder.__name__,
           self.client_mock,
           client_id=self.client_id,
@@ -805,13 +813,13 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.read(100), "This file has no ads")
 
 
-class TestClientFileFinderFlow(test_lib.FlowTestsBaseclass):
+class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
 
   def testClientFileFinder(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
     action = rdf_file_finder.FileFinderAction.Action.STAT
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
         client_id=self.client_id,

@@ -16,7 +16,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import discovery
@@ -24,6 +23,9 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class VfsTestMixin(object):
@@ -177,7 +179,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerListsFilesAndDirectories(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Fetch all children of a directory.
     args = vfs_plugin.ApiListFilesArgs(
@@ -190,7 +192,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
       self.assertIn(self.file_path, item.path)
 
   def testHandlerFiltersDirectoriesIfFlagIsSet(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Only fetch sub-directories.
     args = vfs_plugin.ApiListFilesArgs(
@@ -423,7 +425,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerRefreshStartsListDirectoryFlow(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=1)
@@ -435,7 +437,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
         flow_obj.Get(flow_obj.Schema.TYPE), filesystem.ListDirectory.__name__)
 
   def testHandlerRefreshStartsRecursiveListDirectoryFlow(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=5)
@@ -448,7 +450,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
         filesystem.RecursiveListDirectory.__name__)
 
   def testNotificationIsSent(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id,
@@ -460,7 +462,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Finish flow and check if there are any new notifications.
     flow_urn = rdfvalue.RDFURN(result.operation_id)
     client_mock = action_mocks.ActionMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn,
         client_mock,
         client_id=self.client_id,
@@ -565,7 +567,7 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerStartsFlow(self):
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path=self.file_path)
@@ -638,7 +640,7 @@ class VfsTimelineTestMixin(object):
 
   def SetupTestTimeline(self):
     self.client_id = self.SetupClients(1)[0]
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Choose some directory with pathspec in the ClientFixture.
     self.folder_path = "fs/os/Users/中国新闻网新闻中/Shared"

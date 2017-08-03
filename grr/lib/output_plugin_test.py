@@ -5,12 +5,12 @@
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import output_plugin
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 
 class TestOutputPluginWithArgs(output_plugin.OutputPlugin):

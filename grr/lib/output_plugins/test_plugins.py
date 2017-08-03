@@ -6,9 +6,9 @@ import os
 
 from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
-from grr.lib import test_lib
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 
 class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):

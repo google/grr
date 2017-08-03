@@ -5,15 +5,16 @@ from grr import config
 from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
+class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests email output plugin."""
 
   def setUp(self):

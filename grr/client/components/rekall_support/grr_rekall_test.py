@@ -12,26 +12,26 @@ from grr import config
 from grr.client import comms
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall
-
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
-
 from grr.lib.aff4_objects import aff4_grr
-
-# This test runs flows from these modules. pylint: disable=unused-import
 from grr.lib.flows.general import memory
-from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
 
-# pylint: enable=unused-import
+from grr.test_lib import client_test_lib
+
+from grr.test_lib import flow_test_lib
+from grr.test_lib import rekall_test_lib
+
+from grr.test_lib import test_lib
 
 
-class RekallTestSuite(test_lib.EmptyActionTest):
+class RekallTestSuite(client_test_lib.EmptyActionTest):
   """A test suite for testing Rekall plugins."""
 
   def GetRekallProfile(self, name, version=None):
@@ -47,15 +47,17 @@ class RekallTestSuite(test_lib.EmptyActionTest):
   def setUp(self):
     super(RekallTestSuite, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    test_lib.WriteComponent(
-        token=self.token,
-        version=memory.AnalyzeClientMemoryArgs().component_version)
 
     self.get_rekall_profile_stubber = utils.Stubber(
         comms.GRRClientWorker, "GetRekallProfile", self.GetRekallProfile)
     self.get_rekall_profile_stubber.Start()
 
-    self.config_overrider = test_lib.ConfigOverrider({"Rekall.enabled": True})
+    self.config_overrider = test_lib.ConfigOverrider({
+        "Rekall.enabled":
+            True,
+        "Rekall.profile_server":
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+    })
     self.config_overrider.Start()
 
   def tearDown(self):
@@ -92,7 +94,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       self.CreateClient()
 
       # Allow the real RekallAction to run against the image.
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.AnalyzeClientMemory.__name__,
           action_mocks.MemoryClientMock(grr_rekall.RekallAction,
                                         tempfiles.DeleteGRRTempFiles),

@@ -19,7 +19,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
@@ -32,6 +31,8 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
@@ -56,7 +57,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
   def testResolvesSimpleFlowURN(self):
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=test_lib.FlowWithOneNestedFlow.__name__,
+        flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
     flow_id = flow_plugin.ApiFlowId(flow_urn.Basename())
@@ -68,7 +69,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
   def testResolvesNestedFlowURN(self):
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=test_lib.FlowWithOneNestedFlow.__name__,
+        flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__,
         client_id=self.client_urn,
         token=self.token)
 
@@ -90,7 +91,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name=test_lib.FlowWithOneNestedFlow.__name__),
+            flow_name=flow_test_lib.FlowWithOneNestedFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -264,7 +265,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         token=self.token)
     action_mock = action_mocks.FileFinderClientMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         self.flow_urn, action_mock, client_id=self.client_id, token=self.token):
       pass
 
@@ -396,11 +397,11 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
+          flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           token=self.token)
 
-      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 
     result = self.handler.Handle(

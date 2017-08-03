@@ -3,12 +3,13 @@
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore as aff4_filestore
 from grr.lib.flows.cron import filestore_stats
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
+class FilestoreStatsCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(FilestoreStatsCronFlowTest, self).setUp()
@@ -45,7 +46,7 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     fs.AddURNToIndex("blobtiny", "aff4:/C.0000000000000001/fs/os/1")
 
   def testFileTypes(self):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filestore_stats.FilestoreStatsCronFlow.__name__, token=self.token):
       pass
 

@@ -9,8 +9,8 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
 
 
 class TestFlowExport(gui_test_lib.GRRSeleniumTest):
@@ -30,7 +30,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_id=self.client_id,
         token=self.token)
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
@@ -48,7 +48,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
@@ -63,7 +63,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testExportCommandIsNotShownForNonFileResults(self):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,

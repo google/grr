@@ -19,13 +19,13 @@ import logging
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
-
 from grr.lib.data_stores import http_data_store
-from grr.lib.data_stores import sqlite_data_store
 
+from grr.lib.data_stores import sqlite_data_store
 from grr.server.data_server import data_server
+
+from grr.test_lib import test_lib
 
 
 class StoppableHTTPServer(data_server.ThreadedHTTPServer):

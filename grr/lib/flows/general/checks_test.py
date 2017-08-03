@@ -7,17 +7,20 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.flows.general import checks as flow_checks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 # pylint: mode=test
 
 
-class TestCheckFlows(test_lib.FlowTestsBaseclass,
+class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
                      checks_test_lib.HostCheckTest):
 
   checks_loaded = False
@@ -29,9 +32,9 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
       self.checks_loaded = self.LoadChecks()
     if not self.checks_loaded:
       raise RuntimeError("No checks to test.")
-    test_lib.ClientFixture(self.client_id, token=self.token)
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               test_lib.FakeTestDataVFSHandler)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeTestDataVFSHandler)
     self.vfs_overrider.Start()
     self.client_mock = action_mocks.FileFinderClientMock()
 
@@ -62,7 +65,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
   def RunFlow(self):
     session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for session_id in test_lib.TestFlowHelper(
+      for session_id in flow_test_lib.TestFlowHelper(
           flow_checks.CheckRunner.__name__,
           client_mock=self.client_mock,
           client_id=self.client_id,

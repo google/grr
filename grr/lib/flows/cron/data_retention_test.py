@@ -11,16 +11,17 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.cron import data_retention
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class CleanHuntsTest(test_lib.FlowTestsBaseclass):
+class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanHunts flow."""
 
   NUM_HUNTS = 10
@@ -134,7 +135,7 @@ class DummySystemCronJob(cronjobs.SystemCronFlow):
     self.CallState(next_state="End")
 
 
-class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
+class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanCronJobs flow."""
 
   NUM_CRON_RUNS = 10
@@ -218,7 +219,7 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
           self.assertNotIn(str(flow_urn), subject)
 
 
-class CleanTempTest(test_lib.FlowTestsBaseclass):
+class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanTemp flow."""
 
   NUM_TMP = 10
@@ -292,7 +293,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(tmp_urns), 3)
 
 
-class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
+class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the CleanTemp flow."""
 
   NUM_CLIENT = 10

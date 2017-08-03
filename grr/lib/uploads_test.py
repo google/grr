@@ -4,9 +4,9 @@ import gzip
 import StringIO
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import uploads
 from grr.lib.rdfvalues import crypto
+from grr.test_lib import test_lib
 
 
 class UploadTests(test_lib.GRRBaseTest):

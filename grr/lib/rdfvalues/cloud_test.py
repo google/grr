@@ -3,8 +3,8 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import cloud
+from grr.test_lib import test_lib
 
 
 class CloudTest(test_lib.GRRBaseTest):

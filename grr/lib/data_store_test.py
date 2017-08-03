@@ -28,7 +28,6 @@ from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import sequential_collection
-from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import worker
 from grr.lib.aff4_objects import aff4_grr
@@ -37,6 +36,8 @@ from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import benchmark_test_lib
+from grr.test_lib import test_lib
 
 
 class StringSequentialCollection(
@@ -1855,7 +1856,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(stored_notifications), 1)
 
 
-class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
+class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   """Long running benchmarks where the results are dumped to a CSV file.
 
   These tests are deliberately not named with the test prefix, since they need
@@ -2345,7 +2346,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     self._Wipeout(subjects)
 
 
-class DataStoreBenchmarks(test_lib.MicroBenchmarks):
+class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
   """Datastore micro benchmarks.
 
   These tests should be run with --labels=benchmark

@@ -12,11 +12,12 @@ import requests
 from grr import config
 from grr.client.client_actions import cloud
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import cloud as rdf_cloud
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
-class GetCloudVMMetadataTest(test_lib.EmptyActionTest):
+class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
   ZONE_URL = "http://metadata.google.internal/computeMetadata/v1/instance/zone"
   PROJ_URL = ("http://metadata.google.internal/computeMetadata/"
               "v1/project/project-id")

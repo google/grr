@@ -12,18 +12,19 @@ from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
-
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import security as aff4_security
+
 from grr.lib.aff4_objects import users as aff4_users
-
 from grr.lib.flows.general import administrative
-
 from grr.lib.hunts import implementation
+
 from grr.lib.hunts import standard
+
 from grr.lib.hunts import standard_test
+from grr.test_lib import acl_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
@@ -126,7 +127,7 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(n.reference.unknown.subject_urn, "foo/bar")
 
 
-class ApiCreateApprovalHandlerTestMixin(object):
+class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
   """Base class for tests testing Create*ApprovalHandlers."""
 
   APPROVAL_TYPE = None
@@ -323,7 +324,8 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(len(keep_alive_flow), 1)
 
 
-class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                        acl_test_lib.AclTestMixin):
   """Test for ApiListApprovalsHandler."""
 
   CLIENT_COUNT = 5

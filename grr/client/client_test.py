@@ -13,9 +13,9 @@ from grr.client import client_actions
 from grr.client import comms
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 
 class MockAction(actions.ActionPlugin):

@@ -12,11 +12,12 @@ from grr.lib import access_control
 from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
-
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
+
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class AnotherFileFinder(flow.GRRFlow):
@@ -292,7 +293,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.CreateFlow(
           api_flow.ApiCreateFlowArgs(
-              flow=api_flow.ApiFlow(name=test_lib.BrokenFlow.__name__),
+              flow=api_flow.ApiFlow(name=flow_test_lib.BrokenFlow.__name__),
               client_id=self.client_id),
           token=self.token)
 

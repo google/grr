@@ -12,7 +12,8 @@ from chipsec.helper import oshelper
 from grr.client import vfs
 from grr.client.components.chipsec_support.actions import chipsec_types
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
 class MockUnknownChipsetError(RuntimeError):
@@ -42,7 +43,7 @@ class FailingOsHelperChipset(mock.MagicMock):
     raise oshelper.OsHelperError(msg, -1)
 
 
-class GRRChipsecTest(test_lib.EmptyActionTest):
+class GRRChipsecTest(client_test_lib.EmptyActionTest):
   """Generic test class for GRR-Chipsec actions."""
 
   def setUp(self):

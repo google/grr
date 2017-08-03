@@ -3,11 +3,11 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_service_parser
 from grr.parsers import parsers_test_lib
+from grr.test_lib import test_lib
 
 
 class LinuxLSBInitParserTest(test_lib.GRRBaseTest):

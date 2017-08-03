@@ -11,7 +11,7 @@ import logging
 from grr.gui import gui_test_lib
 from grr.gui import wsgiapp_testlib
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class SeleniumTestLoader(test_lib.GRRTestLoader):

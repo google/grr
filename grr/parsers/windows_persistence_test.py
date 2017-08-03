@@ -2,14 +2,15 @@
 """Tests for grr.parsers.windows_persistence."""
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import windows_persistence
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
+class WindowsPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
 
   def testParse(self):
     parser = windows_persistence.WindowsPersistenceMechanismsParser()

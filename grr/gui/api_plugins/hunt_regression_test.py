@@ -13,13 +13,15 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiListHuntsHandlerRegressionTest(
@@ -186,7 +188,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
   def Run(self):
     client_ids = self.SetupClients(1)
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(
+    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
 
     with test_lib.FakeTime(42):
@@ -195,7 +197,8 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients(client_ids)
-      test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
+      hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
+                                                    self.token)
 
     crashes = implementation.GRRHunt.CrashCollectionForHID(
         hunt_obj.urn, token=self.token)
@@ -229,7 +232,7 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
 
   def Run(self):
     client_ids = self.SetupClients(10)
-    client_mock = test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock()
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -239,7 +242,8 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     for client_id in client_ids:
       with test_lib.FakeTime(45 + time_offset):
         self.AssignTasksToClients([client_id])
-        test_lib.TestHuntHelper(client_mock, [client_id], False, self.token)
+        hunt_test_lib.TestHuntHelper(client_mock, [client_id], False,
+                                     self.token)
         time_offset += 10
 
     replace = {hunt_obj.urn.Basename(): "H:123456"}

@@ -3,15 +3,16 @@
 """Tests for grr.parsers.windows_registry_parser."""
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import windows_registry_parser
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
+class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
 
   def _MakeRegStat(self, path, value, registry_type):
     options = rdf_paths.PathSpec.Options.CASE_LITERAL

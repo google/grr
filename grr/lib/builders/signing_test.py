@@ -10,8 +10,8 @@ import mock
 import pexpect
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.builders import signing
+from grr.test_lib import test_lib
 
 
 class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):

@@ -9,10 +9,10 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
 from grr.lib import parsers
-from grr.lib import test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_cmd_parser
+from grr.test_lib import test_lib
 
 
 class LinuxCmdParserTest(test_lib.GRRBaseTest):

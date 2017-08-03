@@ -13,15 +13,18 @@ from grr.lib import aff4
 from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import registry as flow_registry
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class WindowsActionTests(test_lib.OSSpecificClientTests):
+class WindowsActionTests(client_test_lib.OSSpecificClientTests):
 
   def setUp(self):
     super(WindowsActionTests, self).setUp()
@@ -143,7 +146,7 @@ class FakeKeyHandle(object):
     return False
 
 
-class RegistryFake(test_lib.FakeRegistryVFSHandler):
+class RegistryFake(vfs_test_lib.FakeRegistryVFSHandler):
 
   def OpenKey(self, key, sub_key):
     res = "%s/%s" % (key.value, sub_key.replace("\\", "/"))
@@ -217,7 +220,7 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     return sorted(res)
 
 
-class RegistryVFSTests(test_lib.EmptyActionTest):
+class RegistryVFSTests(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super(RegistryVFSTests, self).setUp()
@@ -286,7 +289,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     client_id = self.SetupClients(1)[0]
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         flow_registry.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
@@ -364,7 +367,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     client_mock = action_mocks.ListDirectoryClientMock()
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filesystem.ListDirectory.__name__,
         client_mock,
         client_id=client_id,

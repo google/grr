@@ -7,7 +7,7 @@
 from grr.gui import api_call_router
 
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class DummyApiCallRouter(api_call_router.ApiCallRouter):

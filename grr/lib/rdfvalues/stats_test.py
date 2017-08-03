@@ -6,9 +6,9 @@
 import math
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import test_base
+from grr.test_lib import test_lib
 
 
 class RunningStatsTest(test_base.RDFValueTestCase):

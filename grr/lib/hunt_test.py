@@ -9,15 +9,17 @@ import logging
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-
-# These imports populate the GRRHunt registry.
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import stats_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import worker_test_lib
 
 
 class TestHuntListener(flow.EventListener):
@@ -61,7 +63,7 @@ class DummyHunt(implementation.GRRHunt):
       self.MarkClientDone(client_id)
 
 
-class HuntTest(test_lib.FlowTestsBaseclass):
+class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
   """Tests the Hunt."""
 
   def setUp(self):
@@ -278,7 +280,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     implementation.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
-    test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
+    hunt_test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
     flows = list(
         aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
@@ -314,8 +316,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id,
@@ -352,9 +354,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id)
 
-    client_mock = test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock()
     # Just pass 8 clients to run, the other two went offline.
-    test_lib.TestHuntHelper(client_mock, client_ids[1:9], False, self.token)
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids[1:9], False,
+                                 self.token)
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id, mode="rw", age=aff4.ALL_TIMES, token=self.token)
@@ -391,8 +394,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       num_tasks = foreman.AssignTasksToClient(client_id)
       self.assertEqual(num_tasks, 1)
 
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     # Pausing and running hunt: this leads to the fresh rules being written
     # to Foreman.RULES.
@@ -435,8 +438,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.urn, mode="rw", age=aff4.ALL_TIMES, token=self.token)
@@ -472,8 +475,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id, mode="rw", age=aff4.ALL_TIMES, token=self.token)
@@ -513,8 +516,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(
         client_mock, client_ids, check_flow_errors=False, token=self.token)
 
     self.assertEqual(len(TestHuntListener.received_events), 5)
@@ -543,7 +546,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(DummyHunt.client_ids), 0)
 
     # Run the hunt.
-    worker_mock = test_lib.MockWorker(
+    worker_mock = worker_test_lib.MockWorker(
         check_flow_errors=True, queues=queues.HUNTS, token=self.token)
 
     # One client is scheduled in the first minute.

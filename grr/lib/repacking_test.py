@@ -13,8 +13,8 @@ from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import repacking
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 
 class RepackingTests(test_lib.GRRBaseTest):

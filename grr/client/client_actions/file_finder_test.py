@@ -12,9 +12,10 @@ import psutil
 from grr.client.client_actions import file_finder as client_file_finder
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
 def MyStat(path):
@@ -29,7 +30,7 @@ def MyStat(path):
   return stat_obj
 
 
-class FileFinderTest(test_lib.EmptyActionTest):
+class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super(FileFinderTest, self).setUp()

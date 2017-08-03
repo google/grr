@@ -11,13 +11,14 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import fingerprint as flows_fingerprint
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
+class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the Fingerprint flow."""
 
   def testFingerprintPresence(self):
@@ -30,7 +31,7 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
     client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile)
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flows_fingerprint.FingerprintFile.__name__,
           client_mock,
           token=self.token,

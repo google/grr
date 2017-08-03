@@ -10,10 +10,10 @@ from grr.gui import runtests_test
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
-from grr.lib import test_lib
 from grr.lib.flows.general import discovery as flow_discovery
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
 
 
 class TestInspectViewBase(gui_test_lib.GRRSeleniumTest):
@@ -74,7 +74,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
         client_id=client_id,
         flow_name=flow_discovery.Interrogate.__name__,
         token=self.token)
-    mock = test_lib.MockClient(client_id, None, token=self.token)
+    mock = flow_test_lib.MockClient(client_id, None, token=self.token)
     while mock.Next():
       pass
 

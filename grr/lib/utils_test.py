@@ -10,8 +10,8 @@ import zipfile
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 # Test method names dont conform with Google style
 # pylint: disable=g-bad-name

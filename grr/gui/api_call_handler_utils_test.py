@@ -16,11 +16,11 @@ from grr.gui import api_call_handler_utils
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import test_lib
 
 
 class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):

@@ -18,10 +18,11 @@ import logging
 from grr.client import vfs
 from grr.client.vfs_handlers import files
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 # pylint: mode=test
 
@@ -439,7 +440,7 @@ class VFSTest(test_lib.GRRBaseTest):
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
     reg = rdf_paths.PathSpec.PathType.REGISTRY
-    with test_lib.VFSOverrider(reg, test_lib.FakeRegistryVFSHandler):
+    with vfs_test_lib.VFSOverrider(reg, vfs_test_lib.FakeRegistryVFSHandler):
       pathspec = rdf_paths.PathSpec(
           pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
           path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
@@ -514,7 +515,7 @@ class VFSTest(test_lib.GRRBaseTest):
       # This should not influence vfs handlers other than OS and TSK.
       reg_type = rdf_paths.PathSpec.PathType.REGISTRY
       os_handler = vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS]
-      with test_lib.VFSOverrider(reg_type, os_handler):
+      with vfs_test_lib.VFSOverrider(reg_type, os_handler):
         with self.assertRaises(IOError):
           image_file_ps.pathtype = reg_type
           vfs.VFSOpen(image_file_ps)

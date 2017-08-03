@@ -500,7 +500,7 @@ class QueueManager(object):
   def GetNotificationsForAllShards(self, queue):
     """Returns notifications for all shards of a queue at once.
 
-    Used by test_lib.MockWorker to cover all shards with a single worker.
+    Used by worker_test_lib.MockWorker to cover all shards with a single worker.
 
     Args:
       queue: usually rdfvalue.RDFURN("aff4:/W")

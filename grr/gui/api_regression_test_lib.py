@@ -25,9 +25,9 @@ from grr.gui import api_regression_http
 from grr.gui import webauth
 from grr.lib import flags
 from grr.lib import registry
-from grr.lib import test_lib
 from grr.lib import testing_startup
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 flags.DEFINE_string(
     "generate", "",

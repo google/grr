@@ -4,12 +4,13 @@
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
-class ResultTest(test_lib.AFF4ObjectTest):
+class ResultTest(aff4_test_lib.AFF4ObjectTest):
 
   def testEmptyQueue(self):
     # Create and empty HuntResultCollection.

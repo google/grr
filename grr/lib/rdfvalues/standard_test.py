@@ -2,9 +2,9 @@
 """Test standard RDFValues."""
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import standard as rdf_standard
 from grr.lib.rdfvalues import test_base
+from grr.test_lib import test_lib
 
 
 class URITests(test_base.RDFValueTestCase):

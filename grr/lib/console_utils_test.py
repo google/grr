@@ -5,10 +5,11 @@
 from grr.lib import aff4
 from grr.lib import console_utils
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class ConsoleUtilsTest(test_lib.FlowTestsBaseclass):
+class ConsoleUtilsTest(flow_test_lib.FlowTestsBaseclass):
   """Test the console utils library."""
 
   def testClientIdToHostname(self):

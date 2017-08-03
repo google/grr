@@ -11,8 +11,8 @@ from grr import config
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import test_lib
 
 
 class BuildTests(test_lib.GRRBaseTest):

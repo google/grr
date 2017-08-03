@@ -11,10 +11,10 @@ import StringIO
 from grr import config
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.test_lib import test_lib
 
 
 class YamlConfigTest(test_lib.GRRBaseTest):

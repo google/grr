@@ -10,9 +10,9 @@ import time
 import logging
 from grr.lib import flags
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 
 class ThreadPoolTest(test_lib.GRRBaseTest):

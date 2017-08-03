@@ -9,7 +9,6 @@ from grr.lib import aff4
 from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
@@ -17,20 +16,25 @@ from grr.lib.flows.cron import system
 from grr.lib.flows.general import endtoend as endtoend_flows
 from grr.lib.rdfvalues import client as client_rdf
 from grr.lib.rdfvalues import flows
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
-class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
+class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test system cron flows."""
 
   def setUp(self):
     super(SystemCronFlowTest, self).setUp()
 
     # We are only interested in the client object (path = "/" in client VFS)
-    fixture = test_lib.FilterFixture(regex="^/$")
+    fixture = fixture_test_lib.FilterFixture(regex="^/$")
 
     # Make 10 windows clients
     for i in range(0, 10):
-      test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
+      fixture_test_lib.ClientFixture(
+          "C.0%015X" % i, token=self.token, fixture=fixture)
 
       with aff4.FACTORY.Open(
           "C.0%015X" % i, mode="rw", token=self.token) as client:
@@ -39,7 +43,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):
-      test_lib.ClientFixture(
+      fixture_test_lib.ClientFixture(
           "C.1%015X" % i,
           token=self.token,
           fixture=client_fixture.LINUX_FIXTURE)
@@ -75,7 +79,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     Windows machines should be in Label1 and Label2.
     There should be no stats for UserLabel.
     """
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         system.GRRVersionBreakDown.__name__, token=self.token):
       pass
 
@@ -124,7 +128,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         system.OSBreakDown.__name__, token=self.token):
       pass
 
@@ -166,7 +170,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         system.LastAccessStats.__name__, token=self.token):
       pass
 
@@ -199,7 +203,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
 
     with test_lib.FakeTime(2.5 * max_age):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           system.PurgeClientStats.__name__,
           None,
           client_id=self.client_id,
@@ -243,7 +247,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
         # The test harness doesn't understand the callstate at a later time that
         # this flow is doing, so we need to disable check_flow_errors.
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             system.EndToEndTests.__name__,
             self.client_mock,
             client_id=self.client_id,
@@ -251,7 +255,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
             token=self.token):
           pass
 
-      test_lib.TestHuntHelperWithMultipleMocks(
+      hunt_test_lib.TestHuntHelperWithMultipleMocks(
           {}, check_flow_errors=False, token=self.token)
       hunt_ids = list(
           aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())

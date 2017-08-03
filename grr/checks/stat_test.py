@@ -3,8 +3,8 @@
 """Tests for stat checks."""
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
+from grr.test_lib import test_lib
 
 
 class StatOnlyTests(checks_test_lib.HostCheckTest):

@@ -10,13 +10,14 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
-class BlobImageTest(test_lib.AFF4ObjectTest):
+class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
   def testAppendContentError(self):
@@ -220,7 +221,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertEqual(count, 0)
 
 
-class LabelSetTest(test_lib.AFF4ObjectTest):
+class LabelSetTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAddListRemoveLabels(self):
     index = aff4.FACTORY.Create(
@@ -237,7 +238,7 @@ class LabelSetTest(test_lib.AFF4ObjectTest):
     self.assertListEqual(["label1", "label3"], sorted(index.ListLabels()))
 
 
-class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
+class AFF4SparseImageTest(aff4_test_lib.AFF4ObjectTest):
 
   def AddBlobToBlobStore(self, blob_contents):
     return data_store.DB.StoreBlob(blob_contents, token=self.token)
@@ -369,7 +370,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
       fd.Read(fd.chunksize)
 
 
-class VFSDirectoryTest(test_lib.AFF4ObjectTest):
+class VFSDirectoryTest(aff4_test_lib.AFF4ObjectTest):
 
   def testRealPathspec(self):
 

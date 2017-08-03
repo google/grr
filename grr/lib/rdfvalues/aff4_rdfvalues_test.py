@@ -7,12 +7,12 @@ import re
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
-
 from grr.lib.rdfvalues import aff4_rdfvalues
+
 from grr.lib.rdfvalues import test_base
+from grr.test_lib import test_lib
 
 
 class AFF4ObjectLabelTest(test_base.RDFValueTestCase):

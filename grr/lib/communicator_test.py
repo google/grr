@@ -12,8 +12,9 @@ import requests
 import logging
 
 from grr import config
-from grr.client import actions
 from grr.client import comms
+from grr.client.client_actions import admin
+from grr.client.client_actions import standard
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import flags
@@ -21,13 +22,13 @@ from grr.lib import front_end
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import ca_enroller
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 # pylint: mode=test
 
@@ -705,8 +706,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.CheckStats()
 
     runs = []
-    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 10 minutes.
       with test_lib.FakeTime(now + 600):
@@ -738,8 +739,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.CheckStats()
 
     runs = []
-    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
@@ -774,15 +775,16 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.CheckStats()
 
     runs = []
-    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
         self.client_communicator.client_worker.CheckStats()
         self.assertEqual(len(runs), 0)
 
-      msg = rdf_flows.GrrMessage(name="HashFile", generate_task_id=True)
+      msg = rdf_flows.GrrMessage(
+          name=standard.HashFile.__name__, generate_task_id=True)
       self.client_communicator.client_worker.HandleMessage(msg)
 
       # HandleMessage was called, but one minute hasn't passed, so

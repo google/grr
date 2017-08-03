@@ -9,11 +9,13 @@ from grr.lib import flow
 from grr.lib import front_end
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class SendingTestFlow(flow.GRRFlow):
@@ -23,13 +25,13 @@ class SendingTestFlow(flow.GRRFlow):
   def Start(self):
     for i in range(10):
       self.CallClient(
-          test_lib.Test,
+          client_test_lib.Test,
           rdf_protodict.DataBlob(string="test%s" % i),
           data=str(i),
           next_state="Incoming")
 
 
-class GRRFEServerTestBase(test_lib.FlowTestsBaseclass):
+class GRRFEServerTestBase(flow_test_lib.FlowTestsBaseclass):
   """Base for GRRFEServer tests."""
   string = "Test String"
 
@@ -50,8 +52,8 @@ class GRRFEServerTestBase(test_lib.FlowTestsBaseclass):
     self.config_overrider = test_lib.ConfigOverrider({
         # Whitelist test flow.
         "Frontend.well_known_flows": [
-            utils.SmartStr(
-                test_lib.WellKnownSessionTest.well_known_session_id.FlowName())
+            utils.SmartStr(flow_test_lib.WellKnownSessionTest.
+                           well_known_session_id.FlowName())
         ],
         # For tests, small pools are ok.
         "Threadpool.size":
@@ -70,7 +72,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testReceiveMessages(self):
     """Test Receiving messages with no status."""
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     session_id = flow_obj.session_id
     messages = [
@@ -100,7 +102,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testReceiveMessagesWithStatus(self):
     """Receiving a sequence of messages with a status."""
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     session_id = flow_obj.session_id
     messages = [
@@ -141,7 +143,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
       self.assertRDFValuesEqual(stored_message, message)
 
   def testReceiveUnsolicitedClientMessage(self):
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     session_id = flow_obj.session_id
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -168,8 +170,8 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testWellKnownFlows(self):
     """Make sure that well known flows can run on the front end."""
-    test_lib.WellKnownSessionTest.messages = []
-    session_id = test_lib.WellKnownSessionTest.well_known_session_id
+    flow_test_lib.WellKnownSessionTest.messages = []
+    session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
 
     messages = [
         rdf_flows.GrrMessage(
@@ -184,10 +186,11 @@ class GRRFEServerTest(GRRFEServerTestBase):
     # Wait for async actions to complete
     self.server.thread_pool.Join()
 
-    test_lib.WellKnownSessionTest.messages.sort()
+    flow_test_lib.WellKnownSessionTest.messages.sort()
 
     # Well known flows are now directly processed on the front end
-    self.assertEqual(test_lib.WellKnownSessionTest.messages, list(range(1, 10)))
+    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
+                     list(range(1, 10)))
 
     # There should be nothing in the client_queue
     self.assertEqual([],
@@ -198,14 +201,14 @@ class GRRFEServerTest(GRRFEServerTestBase):
     """Make sure that well known flows can run on the front end."""
     with test_lib.ConfigOverrider({
         "Frontend.DEBUG_well_known_flows_blacklist": [
-            utils.SmartStr(
-                test_lib.WellKnownSessionTest.well_known_session_id.FlowName())
+            utils.SmartStr(flow_test_lib.WellKnownSessionTest.
+                           well_known_session_id.FlowName())
         ]
     }):
       self.InitTestServer()
 
-      test_lib.WellKnownSessionTest.messages = []
-      session_id = test_lib.WellKnownSessionTest.well_known_session_id
+      flow_test_lib.WellKnownSessionTest.messages = []
+      session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
 
       messages = [
           rdf_flows.GrrMessage(
@@ -221,7 +224,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
       self.server.thread_pool.Join()
 
       # Check that no processing took place.
-      self.assertFalse(test_lib.WellKnownSessionTest.messages)
+      self.assertFalse(flow_test_lib.WellKnownSessionTest.messages)
 
       # There should be nothing in the client_queue
       self.assertEqual([],
@@ -230,8 +233,8 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
-    test_lib.WellKnownSessionTest.messages = []
-    session_id = test_lib.WellKnownSessionTest.well_known_session_id
+    flow_test_lib.WellKnownSessionTest.messages = []
+    session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
 
     messages = [
         rdf_flows.GrrMessage(
@@ -249,7 +252,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.server.thread_pool.Join()
 
     # None get processed now
-    self.assertEqual(test_lib.WellKnownSessionTest.messages, [])
+    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
 
     # There should be nothing in the client_queue
     self.assertEqual([],
@@ -265,10 +268,10 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.assertEqual(len(queued_messages), 9)
 
   def testWellKnownFlowsNotifications(self):
-    test_lib.WellKnownSessionTest.messages = []
-    test_lib.WellKnownSessionTest2.messages = []
-    session_id1 = test_lib.WellKnownSessionTest.well_known_session_id
-    session_id2 = test_lib.WellKnownSessionTest2.well_known_session_id
+    flow_test_lib.WellKnownSessionTest.messages = []
+    flow_test_lib.WellKnownSessionTest2.messages = []
+    session_id1 = flow_test_lib.WellKnownSessionTest.well_known_session_id
+    session_id2 = flow_test_lib.WellKnownSessionTest2.well_known_session_id
 
     messages = []
     for i in range(1, 5):
@@ -295,11 +298,12 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.server.thread_pool.Join()
 
     # Flow 1 should have been processed right away.
-    test_lib.WellKnownSessionTest.messages.sort()
-    self.assertEqual(test_lib.WellKnownSessionTest.messages, list(range(1, 5)))
+    flow_test_lib.WellKnownSessionTest.messages.sort()
+    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
+                     list(range(1, 5)))
 
     # But not Flow 2.
-    self.assertEqual(test_lib.WellKnownSessionTest2.messages, [])
+    self.assertEqual(flow_test_lib.WellKnownSessionTest2.messages, [])
 
     manager = queue_manager.WellKnownQueueManager(token=self.token)
 
@@ -393,7 +397,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     # We can still schedule a flow for it
     flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name=test_lib.SendingFlow.__name__,
+        flow_name=flow_test_lib.SendingFlow.__name__,
         message_count=1,
         token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
@@ -449,7 +453,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     with test_lib.FakeTime(base_time):
       flow.GRRFlow.StartFlow(
           client_id=client_id,
-          flow_name=test_lib.SendingFlow.__name__,
+          flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,
           token=self.token)
 
@@ -474,7 +478,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     with test_lib.FakeTime(base_time):
       flow_id = flow.GRRFlow.StartFlow(
           client_id=client_id,
-          flow_name=test_lib.SendingFlow.__name__,
+          flow_name=flow_test_lib.SendingFlow.__name__,
           message_count=1,
           token=self.token)
 

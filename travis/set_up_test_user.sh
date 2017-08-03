@@ -7,7 +7,7 @@ readonly DOCKER_USER=${DOCKER_USER:-grrbot}
 useradd -m "${DOCKER_USER}"
 
 # Group that owns the mounted GRR repo.
-mountdir_gid="$(stat -c '%g' /mnt)"
+mountdir_gid="$(stat -c '%g' /mnt/grr)"
 mountdir_grp_exists="$(cat /etc/group | grep "${mountdir_gid}" | wc -l)"
 
 # Create group in container if it does not exist.
@@ -25,4 +25,4 @@ usermod -a -G "${mountdir_gname}" "${DOCKER_USER}"
 # Note that any changes the test user makes inside
 # the container will be reflected in the actual directory
 # outside the container.
-chmod -R g+w /mnt
+chmod -R g+w /mnt/grr

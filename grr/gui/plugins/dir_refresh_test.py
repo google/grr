@@ -9,11 +9,13 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
@@ -22,7 +24,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     super(DirRefreshTest, self).setUp()
     # Prepare our fixture.
     self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    test_lib.ClientFixture(self.client_id, self.token)
+    fixture_test_lib.ClientFixture(self.client_id, self.token)
     gui_test_lib.CreateFileVersions(self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
@@ -47,7 +49,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.ActionMock()
     for flow_urn in flows:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,
@@ -101,7 +103,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.MultiGetFileClientMock()
     for flow_urn in flows:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,

@@ -7,32 +7,35 @@ import os
 from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import grep
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class GrepTests(test_lib.FlowTestsBaseclass):
+class GrepTests(flow_test_lib.FlowTestsBaseclass):
   pass
 
 
 class TestSearchFileContentWithFixture(GrepTests):
 
   def FlushVFSCache(self):
-    test_lib.ClientVFSHandlerFixture.cache = {}
+    vfs_test_lib.ClientVFSHandlerFixture.cache = {}
 
   def CreateFile(self, filename, data):
 
     # Delete the fixture cache so this will be included.
     self.FlushVFSCache()
 
-    test_lib.client_fixture.VFS.append((filename, (aff4_grr.VFSFile, {
+    client_fixture.VFS.append((filename, (aff4_grr.VFSFile, {
         "aff4:stat": ("\n"
                                 "st_mode: 33261\n"
                                 "st_ino: 1026267\n"
@@ -61,16 +64,16 @@ class TestSearchFileContentWithFixture(GrepTests):
     # Delete the fixture cache so this will be included.
     self.FlushVFSCache()
 
-    test_lib.client_fixture.VFS = [
-        path for path in test_lib.client_fixture.VFS if path[0] != filename
+    client_fixture.VFS = [
+        path for path in client_fixture.VFS if path[0] != filename
     ]
 
   def setUp(self):
     super(TestSearchFileContentWithFixture, self).setUp()
 
     self.client_mock = action_mocks.GrepClientMock()
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               test_lib.ClientVFSHandlerFixture)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
     self.vfs_overrider.Start()
 
   def tearDown(self):
@@ -81,7 +84,7 @@ class TestSearchFileContentWithFixture(GrepTests):
     grepspec = rdf_client.BareGrepSpec(
         mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="hello")
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         grep.SearchFileContent.__name__,
         self.client_mock,
         client_id=self.client_id,
@@ -107,7 +110,7 @@ class TestSearchFileContentWithFixture(GrepTests):
     grepspec = rdf_client.BareGrepSpec(
         mode=rdf_client.GrepSpec.Mode.ALL_HITS, literal="HIT")
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         grep.SearchFileContent.__name__,
         self.client_mock,
         client_id=self.client_id,
@@ -138,7 +141,7 @@ class TestSearchFileContentWithFixture(GrepTests):
       grepspec = rdf_client.BareGrepSpec(
           mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="HIT")
 
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           grep.SearchFileContent.__name__,
           self.client_mock,
           client_id=self.client_id,
@@ -174,7 +177,7 @@ class TestSearchFileContent(GrepTests):
     args.grep.mode = rdf_client.GrepSpec.Mode.ALL_HITS
 
     # Run the flow.
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,
@@ -203,7 +206,7 @@ class TestSearchFileContent(GrepTests):
     args = grep.SearchFileContentArgs(paths=[path])
 
     # Run the flow.
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,
@@ -226,7 +229,7 @@ class TestSearchFileContent(GrepTests):
     args = grep.SearchFileContentArgs(paths=[path], also_download=True)
 
     # Run the flow.
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         grep.SearchFileContent.__name__,
         client_mock,
         client_id=self.client_id,

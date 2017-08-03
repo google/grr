@@ -9,15 +9,16 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import webhistory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class WebHistoryFlowTest(test_lib.FlowTestsBaseclass):
+class WebHistoryFlowTest(flow_test_lib.FlowTestsBaseclass):
   pass
 
 
@@ -60,7 +61,7 @@ class TestWebHistory(WebHistoryFlowTest):
   def testChromeHistoryFetch(self):
     """Test that downloading the Chrome history works."""
     # Run the flow in the simulated way
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         webhistory.ChromeHistory.__name__,
         self.client_mock,
         check_flow_errors=False,
@@ -90,7 +91,7 @@ class TestWebHistory(WebHistoryFlowTest):
   def testFirefoxHistoryFetch(self):
     """Test that downloading the Firefox history works."""
     # Run the flow in the simulated way
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         webhistory.FirefoxHistory.__name__,
         self.client_mock,
         check_flow_errors=False,
@@ -120,7 +121,7 @@ class TestWebHistory(WebHistoryFlowTest):
   def testCacheGrep(self):
     """Test the Cache Grep plugin."""
     # Run the flow in the simulated way
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         webhistory.CacheGrep.__name__,
         self.client_mock,
         check_flow_errors=False,
@@ -189,7 +190,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     if client_mock is None:
       client_mock = self.MockClient(client_id=self.client_id)
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=self.client_id,

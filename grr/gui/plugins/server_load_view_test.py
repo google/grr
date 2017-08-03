@@ -10,9 +10,9 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
-
 from grr.lib.aff4_objects import stats_store
+
+from grr.test_lib import test_lib
 
 
 class TestServerLoadView(gui_test_lib.GRRSeleniumTest):

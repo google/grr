@@ -10,6 +10,7 @@ import os
 import shutil
 import struct
 import subprocess
+import tempfile
 import zipfile
 
 import yaml
@@ -908,17 +909,35 @@ def CreateNewZipWithSignedLibs(z_in,
                                ignore_files=None,
                                signer=None,
                                skip_signing_files=None):
+  """Copies files from one zip to another, signing all qualifying files."""
   ignore_files = ignore_files or []
   skip_signing_files = skip_signing_files or []
   extensions_to_sign = [".sys", ".exe", ".dll", ".pyd"]
+  to_sign = []
   for template_file in z_in.namelist():
     if template_file not in ignore_files:
       extension = os.path.splitext(template_file)[1].lower()
       if (signer and template_file not in skip_signing_files and
           extension in extensions_to_sign):
-        CopyFileInZip(z_in, template_file, z_out, signer=signer)
+        to_sign.append(template_file)
       else:
         CopyFileInZip(z_in, template_file, z_out)
+
+  temp_files = {}
+  for filename in to_sign:
+    fd, path = tempfile.mkstemp()
+    with os.fdopen(fd, "wb") as temp_fd:
+      temp_fd.write(z_in.read(filename))
+    temp_files[filename] = path
+
+  try:
+    signer.SignFiles(temp_files.values())
+  except AttributeError:
+    for f in temp_files.values():
+      signer.SignFile(f)
+
+  for filename, tempfile_path in temp_files.items():
+    z_out.writestr(filename, open(tempfile_path, "rb").read())
 
 
 def SetPeSubsystem(fd, console=True):

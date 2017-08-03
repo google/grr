@@ -7,10 +7,10 @@ from grr.lib import flags
 from grr.lib import instant_output_plugin
 from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.test_lib import test_lib
 
 
 class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):

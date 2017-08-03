@@ -11,19 +11,20 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
+
 from grr.lib.hunts import standard_test
+from grr.test_lib import acl_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiGetClientApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetClientApprovalHandler."""
 
   api_method = "GetClientApproval"
@@ -93,7 +94,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
 
 
 class ApiGrantClientApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantClientApprovalHandler."""
 
   api_method = "GrantClientApproval"
@@ -135,7 +136,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateClientApprovalHandler."""
 
   api_method = "CreateClientApproval"
@@ -175,7 +176,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
 
 class ApiListClientApprovalsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
   api_method = "ListClientApprovals"
@@ -247,7 +248,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
 
 class ApiGetHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetHuntApprovalHandler."""
 
   api_method = "GetHuntApproval"
@@ -317,7 +318,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
 class ApiGrantHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantHuntApprovalHandler."""
 
   api_method = "GrantHuntApproval"
@@ -354,7 +355,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
 class ApiCreateHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateHuntApprovalHandler."""
 
   api_method = "CreateHuntApproval"
@@ -389,7 +390,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
 
 class ApiListHuntApprovalsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
   api_method = "ListHuntApprovals"
@@ -423,7 +424,7 @@ class ApiListHuntApprovalsHandlerRegressionTest(
 
 
 class ApiGetCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetCronJobApprovalHandler."""
 
   api_method = "GetCronJobApproval"
@@ -496,7 +497,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
 
 class ApiGrantCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantCronJobApprovalHandler."""
 
   api_method = "GrantCronJobApproval"
@@ -538,7 +539,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
 
 
 class ApiCreateCronJobApprovalHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateCronJobApprovalHandler."""
 
   api_method = "CreateCronJobApproval"

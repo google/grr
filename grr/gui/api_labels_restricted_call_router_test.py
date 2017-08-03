@@ -12,12 +12,14 @@ from grr.gui.api_plugins import flow as api_flow
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
-
 from grr.lib.flows.general import processes
+from grr.test_lib import acl_test_lib
+
+from grr.test_lib import test_lib
 
 
-class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
+class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
+                                        acl_test_lib.AclTestMixin):
   """Tests for an ApiLabelsRestrictedCallRouter."""
 
   NON_ACLED_METHODS = [

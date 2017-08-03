@@ -5,10 +5,11 @@
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import keyword_index
-from grr.lib import test_lib
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
-class KeywordIndexTest(test_lib.AFF4ObjectTest):
+class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   sync = True
 

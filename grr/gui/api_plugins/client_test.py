@@ -11,11 +11,12 @@ from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import events
 from grr.lib import flags
-from grr.lib import test_lib
-
 from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
+
+from grr.test_lib import test_lib
+from grr.test_lib import worker_test_lib
 
 
 class ApiClientIdTest(rdf_test_base.RDFValueTestCase):
@@ -117,7 +118,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # We need to run .Simulate() so that the appropriate event is fired,
     # collected, and finally written to the logs that we inspect.
-    mock_worker = test_lib.MockWorker(token=self.token)
+    mock_worker = worker_test_lib.MockWorker(token=self.token)
     mock_worker.Simulate()
 
     event = self._FindAuditEvent()

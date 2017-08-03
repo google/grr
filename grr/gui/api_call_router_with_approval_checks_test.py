@@ -18,12 +18,12 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.flows.general import processes
-
 from grr.lib.hunts import standard_test
 
 from grr.lib.rdfvalues import client as rdf_client
+
+from grr.test_lib import test_lib
 
 
 class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(

@@ -15,7 +15,7 @@ from grr import config
 from grr.lib import bigquery
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class BigQueryClientTest(test_lib.GRRBaseTest):

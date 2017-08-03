@@ -22,7 +22,7 @@ from grr.client import tests
 
 from grr.gui import tests
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 from grr.lib import tests
 from grr.lib import utils
 from grr.parsers import tests

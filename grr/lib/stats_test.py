@@ -8,7 +8,7 @@ import time
 
 from grr.lib import flags
 from grr.lib import stats
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class StatsTests(test_lib.GRRBaseTest):

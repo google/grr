@@ -3,11 +3,13 @@
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import users
+from grr.test_lib import acl_test_lib
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
-class UsersTest(test_lib.AFF4ObjectTest):
+class UsersTest(aff4_test_lib.AFF4ObjectTest, acl_test_lib.AclTestMixin):
 
   def setUp(self):
     super(UsersTest, self).setUp()

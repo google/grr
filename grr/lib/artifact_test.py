@@ -24,16 +24,20 @@ from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import server_stubs
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import filesystem
-from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import rekall_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 # pylint: mode=test
 
@@ -136,7 +140,7 @@ class RekallMock(action_mocks.MemoryClientMock):
     return [result, rdf_client.Iterator(state="FINISHED")]
 
 
-class ArtifactTest(test_lib.FlowTestsBaseclass):
+class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   """Helper class for tests using artifacts."""
 
   def setUp(self):
@@ -189,7 +193,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
     if client_mock is None:
       client_mock = self.MockClient(client_id=self.client_id)
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock=client_mock,
         client_id=self.client_id,
@@ -395,8 +399,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check we can run command based artifacts and get anomalies."""
     client_mock = self.MockClient(
         standard.ExecuteCommand, client_id=self.client_id)
-    with utils.Stubber(subprocess, "Popen", test_lib.Popen):
-      for _ in test_lib.TestFlowHelper(
+    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+      for _ in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           client_id=self.client_id,
@@ -418,8 +422,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       self.RunCollectorAndGetCollection(
           ["TestFilesArtifact"], client_mock=self.client_mock)
       urn = self.client_id.Add("fs/os/").Add("var/log/auth.log")
@@ -427,8 +431,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       fd = self.RunCollectorAndGetCollection(
           ["LinuxPasswdHomedirs"], client_mock=self.client_mock)
 
@@ -445,8 +449,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       # Will raise if something goes wrong.
       self.RunCollectorAndGetCollection(
           ["TestFilesArtifact"], client_mock=self.client_mock)
@@ -488,11 +492,12 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testRekallPsListArtifact(self):
     """Check we can run Rekall based artifacts."""
-    test_lib.WriteComponent(
-        token=self.token,
-        version=memory.AnalyzeClientMemoryArgs().component_version)
-
-    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+    with test_lib.ConfigOverrider({
+        "Rekall.enabled":
+            True,
+        "Rekall.profile_server":
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+    }):
       fd = self.RunCollectorAndGetCollection(
           ["RekallPsList"],
           RekallMock(self.client_id, "rekall_pslist_result.dat.gz"))
@@ -504,15 +509,16 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testRekallVadArtifact(self):
     """Check we can run Rekall based artifacts."""
-    test_lib.WriteComponent(
-        token=self.token,
-        version=memory.AnalyzeClientMemoryArgs().component_version)
-
     # The client should now be populated with the data we care about.
     with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema.KNOWLEDGE_BASE(os="Windows", environ_systemdrive=r"c:"))
 
-    with test_lib.ConfigOverrider({"Rekall.enabled": True}):
+    with test_lib.ConfigOverrider({
+        "Rekall.enabled":
+            True,
+        "Rekall.profile_server":
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+    }):
       fd = self.RunCollectorAndGetCollection(
           ["FullVADBinaryList"],
           RekallMock(self.client_id, "rekall_vad_result.dat.gz"))
@@ -529,7 +535,7 @@ class GrrKbTest(ArtifactTest):
 
   def setUp(self):
     super(GrrKbTest, self).setUp()
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
   def ClearKB(self):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -543,10 +549,11 @@ class GrrKbWindowsTest(GrrKbTest):
     super(GrrKbWindowsTest, self).setUp()
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
 
-    self.os_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                              test_lib.FakeFullVFSHandler)
-    self.reg_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.os_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler)
+    self.reg_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler)
     self.os_overrider.Start()
     self.reg_overrider.Start()
 
@@ -561,7 +568,7 @@ class GrrKbWindowsTest(GrrKbTest):
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
     self.ClearKB()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         self.client_mock,
         client_id=self.client_id,
@@ -594,7 +601,7 @@ class GrrKbWindowsTest(GrrKbTest):
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": ["DepsProvidesMultiple"]
     }):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           artifact.KnowledgeBaseInitializationFlow.__name__,
           self.client_mock,
           client_id=self.client_id,
@@ -616,7 +623,7 @@ class GrrKbWindowsTest(GrrKbTest):
         "\\CurrentVersion\\ProfileList\\AllUsersProfile"
     ]
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         filesystem.Glob.__name__,
         self.client_mock,
         paths=paths,
@@ -727,10 +734,10 @@ class GrrKbLinuxTest(GrrKbTest):
         "Artifacts.netgroup_filter_regexes": ["^login$"],
         "Artifacts.netgroup_user_blacklist": ["isaac"]
     }):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeTestDataVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeTestDataVFSHandler):
 
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
@@ -750,8 +757,8 @@ class GrrKbLinuxTest(GrrKbTest):
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
     """Check we can retrieve a Linux kb."""
     self.ClearKB()
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
               "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"
@@ -760,7 +767,7 @@ class GrrKbLinuxTest(GrrKbTest):
           "Artifacts.knowledge_base_skip": []
       }):
 
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,
@@ -795,10 +802,10 @@ class GrrKbLinuxTest(GrrKbTest):
         "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
     }):
 
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeTestDataVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeTestDataVFSHandler):
 
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             require_complete=False,
@@ -822,10 +829,10 @@ class GrrKbDarwinTest(GrrKbTest):
     """Check we can retrieve a Darwin kb."""
     self.ClearKB()
     with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["MacOSUsers"]}):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.ClientVFSHandlerFixture):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.ClientVFSHandlerFixture):
 
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=self.client_id,

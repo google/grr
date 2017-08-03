@@ -11,10 +11,11 @@ from grr.gui.api_plugins import artifact as artifact_plugin
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
+class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
   """Test for ApiListArtifactsHandler."""
 
   def setUp(self):

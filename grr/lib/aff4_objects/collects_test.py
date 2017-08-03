@@ -5,18 +5,19 @@
 from grr import config
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
 class TypedRDFValueCollection(collects.RDFValueCollection):
   _rdf_type = rdf_paths.PathSpec
 
 
-class TestCollections(test_lib.AFF4ObjectTest):
+class TestCollections(aff4_test_lib.AFF4ObjectTest):
 
   def testRDFValueCollections(self):
     urn = "aff4:/test/collection"

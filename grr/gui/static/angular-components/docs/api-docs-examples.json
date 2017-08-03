@@ -2963,13 +2963,6 @@
       "response": "I am a binary file",
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/executable/windows/test.exe"
-    },
-    {
-      "api_method": "GetGrrBinary",
-      "method": "GET",
-      "response": "<binary data>",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
-      "url": "/api/config/binaries/component/grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
     }
   ],
   "ApiGetGrrUserHandler": [
@@ -11351,32 +11344,6 @@
                 "value": "PYTHON_HACK"
               }
             }
-          },
-          {
-            "age": 0,
-            "type": "ApiGrrBinary",
-            "value": {
-              "path": {
-                "age": 0,
-                "type": "unicode",
-                "value": "grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
-              },
-              "size": {
-                "age": 0,
-                "type": "ByteSize",
-                "value": 42
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              },
-              "type": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "COMPONENT"
-              }
-            }
           }
         ]
       },
@@ -11394,12 +11361,6 @@
             "size": 17,
             "timestamp": 43000000,
             "type": "PYTHON_HACK"
-          },
-          {
-            "path": "grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit",
-            "size": 42,
-            "timestamp": 44000000,
-            "type": "COMPONENT"
           }
         ]
       },

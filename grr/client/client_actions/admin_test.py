@@ -14,13 +14,14 @@ from grr.client.client_actions import admin
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
-class ConfigActionTest(test_lib.EmptyActionTest):
+class ConfigActionTest(client_test_lib.EmptyActionTest):
   """Tests the client actions UpdateConfiguration and GetConfiguration."""
 
   def setUp(self):
@@ -136,7 +137,7 @@ class MockClientWorker(object):
     self.stats_collector = MockStatsCollector()
 
 
-class GetClientStatsActionTest(test_lib.EmptyActionTest):
+class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
   """Test GetClientStats client action."""
 
   def setUp(self):

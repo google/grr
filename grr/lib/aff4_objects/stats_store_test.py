@@ -8,13 +8,14 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import timeseries
-
 from grr.lib.aff4_objects import stats_store
+from grr.test_lib import aff4_test_lib
+
+from grr.test_lib import test_lib
 
 
-class StatsStoreTest(test_lib.AFF4ObjectTest):
+class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(StatsStoreTest, self).setUp()
@@ -451,7 +452,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertTrue("counter" in metadata_by_id["pid2"].AsDict())
 
 
-class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
+class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for StatsStoreDataQuery class."""
 
   def setUp(self):

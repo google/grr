@@ -141,6 +141,7 @@ def IsExecutionWhitelisted(cmd, args):
   """
   if platform.system() == "Windows":
     whitelist = [
+        ("arp.exe", ["-a"]),
         ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
         ("tasklist.exe", ["/SVC"]),
@@ -161,6 +162,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/bin/yum", ["list", "installed", "-q"]),
         ("/usr/bin/yum", ["repolist", "-v", "-q"]),
         ("/usr/bin/who", []),
+        ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/dmidecode", ["-q"]),
         ("/usr/sbin/sshd", ["-T"]),
     ]
@@ -171,6 +173,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/bin/hdiutil", ["info"]),
         ("/usr/bin/last", []),
         ("/usr/bin/who", []),
+        ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/kextstat", []),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
     ]

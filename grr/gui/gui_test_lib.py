@@ -6,11 +6,6 @@ import os
 import time
 import urlparse
 
-# We have to import test_lib first to properly initialize aff4 and rdfvalues.
-# pylint: disable=g-bad-import-order
-from grr.lib import test_lib
-# pylint: enable=g-bad-import-order
-
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
@@ -44,9 +39,12 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import acl_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 # A increasing sequence of times.
-TIME_0 = test_lib.FIXTURE_TIME
+TIME_0 = test_lib.FIXED_TIME
 TIME_1 = TIME_0 + rdfvalue.Duration("1d")
 TIME_2 = TIME_1 + rdfvalue.Duration("1d")
 
@@ -115,7 +113,7 @@ def SeleniumAction(f):
   return Decorator
 
 
-class GRRSeleniumTest(test_lib.GRRBaseTest):
+class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   """Baseclass for selenium UI tests."""
 
   # Default duration (in seconds) for WaitUntil.
@@ -505,7 +503,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
         path=os.path.join(self.base_path, "test.plist"), client_count=1)
 
     action_mock = action_mocks.FileFinderClientMock()
-    test_lib.TestHuntHelper(action_mock, self.client_ids, False, self.token)
+    hunt_test_lib.TestHuntHelper(action_mock, self.client_ids, False,
+                                 self.token)
 
     return hunt
 

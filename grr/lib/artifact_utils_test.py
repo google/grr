@@ -9,10 +9,10 @@ from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.test_lib import test_lib
 
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):

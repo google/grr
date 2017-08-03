@@ -4,9 +4,9 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
 from grr.parsers import linux_file_parser
+from grr.test_lib import test_lib
 
 
 class PathsCheckTests(checks_test_lib.HostCheckTest):

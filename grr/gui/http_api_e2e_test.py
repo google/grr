@@ -31,7 +31,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import security
@@ -48,9 +47,14 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.proto import jobs_pb2
 from grr.proto.api import vfs_pb2
+from grr.test_lib import acl_test_lib
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
-class ApiE2ETest(test_lib.GRRBaseTest):
+class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   """Base class for all API E2E tests."""
 
   def setUp(self):
@@ -183,7 +187,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=client_urn, token=self.token):
       pass
 
@@ -316,10 +320,11 @@ class ApiClientLibHuntTest(standard_test.StandardHuntTestMixin, ApiE2ETest):
     self.hunt_obj.Run()
 
     client_ids = self.SetupClients(2)
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(
+    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
     self.AssignTasksToClients(client_ids)
-    test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
+    hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
+                                                  self.token)
 
     crashes = list(self.api.Hunt(self.hunt_obj.urn.Basename()).ListCrashes())
     self.assertEqual(len(crashes), 2)
@@ -391,7 +396,7 @@ class ApiClientLibVfsTest(ApiE2ETest):
   def setUp(self):
     super(ApiClientLibVfsTest, self).setUp()
     self.client_urn = self.SetupClients(1)[0]
-    test_lib.ClientFixture(self.client_urn, self.token)
+    fixture_test_lib.ClientFixture(self.client_urn, self.token)
 
   def testGetFileFromRef(self):
     file_ref = self.api.Client(
@@ -846,7 +851,7 @@ users:
     # Now run the flow we just started.
     client_id = rdf_client.ClientURN(flow_obj.client_id)
     flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn,
         client_id=client_id,
         client_mock=action_mocks.FileFinderClientMock(),
@@ -1140,11 +1145,11 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
         self.api.Client(client_id).CreateFlow,
-        name=test_lib.SendingFlow.__name__)
+        name=flow_test_lib.SendingFlow.__name__)
 
     approval_urn = self.RequestAndGrantClientApproval(client_id, self.token)
     f = self.api.Client(client_id).CreateFlow(
-        name=test_lib.SendingFlow.__name__)
+        name=flow_test_lib.SendingFlow.__name__)
 
     self.RevokeClientApproval(approval_urn, self.token)
 
@@ -1162,7 +1167,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
     approval_urn = self.RequestAndGrantClientApproval(client_id, self.token)
 
     f = self.api.Client(client_id).CreateFlow(
-        name=test_lib.SendingFlow.__name__)
+        name=flow_test_lib.SendingFlow.__name__)
 
     # Remove the approval from the data store, but it should still exist in the
     # security manager cache.

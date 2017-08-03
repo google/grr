@@ -17,8 +17,10 @@ from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
@@ -37,9 +39,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                           traceback.format_exc())
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock()
 
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
     hunt = aff4.FACTORY.Open(hunt.urn, token=self.token)
     all_count, _, _ = hunt.GetClientsCounts()
@@ -91,8 +94,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                           traceback.format_exc())
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock(failrate=failrate)
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=failrate)
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
   def testHuntClientsView(self):
     """Test the detailed client view works."""
@@ -311,8 +315,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testShowsResultsTabForIndividualFlowsOnClients(self):
     # Create and run the hunt.
     self.CreateSampleHunt(stopped=False)
-    client_mock = test_lib.SampleHuntMock(failrate=-1)
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=-1)
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
     self.RequestAndGrantClientApproval(self.client_ids[0])
 
@@ -334,8 +339,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     finished_client_ids = self.client_ids[5:]
     outstanding_client_ids = self.client_ids[:5]
 
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, finished_client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, finished_client_ids, False,
+                                 self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -428,8 +434,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       # one by one in the test.
       for client_id in self.SetupClients(3):
         self.AssignTasksToClients([client_id])
-        client_mock = test_lib.CrashClientMock(client_id, token=self.token)
-        test_lib.TestHuntHelper(
+        client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
+        hunt_test_lib.TestHuntHelper(
             client_mock, [client_id], check_flow_errors=False, token=self.token)
 
     self.Open("/")

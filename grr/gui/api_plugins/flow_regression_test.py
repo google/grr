@@ -13,7 +13,6 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
@@ -24,6 +23,10 @@ from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import acl_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiGetFlowHandlerRegressionTest(
@@ -106,7 +109,7 @@ class ApiListFlowRequestsHandlerRegressionTest(
           client_id=self.client_id,
           token=self.token)
 
-    mock = test_lib.MockClient(self.client_id, None, token=self.token)
+    mock = flow_test_lib.MockClient(self.client_id, None, token=self.token)
     while mock.Next():
       pass
 
@@ -143,7 +146,7 @@ class ApiListFlowResultsHandlerRegressionTest(
     flow_args = transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
         path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    client_mock = test_lib.SampleHuntMock()
+    client_mock = hunt_test_lib.SampleHuntMock()
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
@@ -152,7 +155,7 @@ class ApiListFlowResultsHandlerRegressionTest(
           runner_args=runner_args,
           token=self.token)
 
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock=client_mock,
           client_id=self.client_id,
@@ -300,13 +303,13 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
+          flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           output_plugins=[email_descriptor],
           token=self.token)
 
     with test_lib.FakeTime(43):
-      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 
     self.Check(
@@ -341,13 +344,13 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=test_lib.DummyFlowWithSingleReply.__name__,
+          flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           output_plugins=[failing_descriptor],
           token=self.token)
 
     with test_lib.FakeTime(43):
-      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+      for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 
     self.Check(
@@ -420,7 +423,7 @@ class ApiCancelFlowHandlerRegressionTest(
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListFlowDescriptorsHandler."""
 
   api_method = "ListFlowDescriptors"

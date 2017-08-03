@@ -13,7 +13,7 @@ from werkzeug import wrappers as werkzeug_wrappers
 from grr.gui import webauth
 from grr.gui import wsgiapp
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):

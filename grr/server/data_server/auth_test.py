@@ -5,11 +5,11 @@
 
 from grr import config
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto
-
 from grr.server.data_server import auth
+
+from grr.test_lib import test_lib
 
 
 class AuthTest(test_lib.GRRBaseTest):

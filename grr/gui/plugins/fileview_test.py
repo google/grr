@@ -12,9 +12,9 @@ from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import fixture_test_lib
 
 
 class TestFileView(gui_test_lib.GRRSeleniumTest):
@@ -24,7 +24,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
     self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    test_lib.ClientFixture(self.client_id, self.token)
+    fixture_test_lib.ClientFixture(self.client_id, self.token)
     gui_test_lib.CreateFileVersions(self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 

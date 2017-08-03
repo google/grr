@@ -12,13 +12,13 @@ import yaml
 from grr.lib import export
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.output_plugins import sqlite_plugin
 from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
+from grr.test_lib import test_lib
 
 
 class TestEmbeddedStruct(rdf_structs.RDFProtoStruct):

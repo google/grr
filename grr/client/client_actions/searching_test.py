@@ -9,10 +9,13 @@ import os
 from grr.client import vfs
 from grr.client.client_actions import searching
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import benchmark_test_lib
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class MockVFSHandlerFind(vfs.VFSHandler):
@@ -140,15 +143,15 @@ def SearchParams(block_size, envelope_size):
   return Decorator
 
 
-class FindTest(test_lib.EmptyActionTest):
+class FindTest(client_test_lib.EmptyActionTest):
   """Test the find client Actions."""
 
   def setUp(self):
     super(FindTest, self).setUp()
 
     # Install the mock
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               MockVFSHandlerFind)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
     self.vfs_overrider.Start()
 
   def tearDown(self):
@@ -448,7 +451,7 @@ class FindTest(test_lib.EmptyActionTest):
     self.assertEqual(all_files[1].pathspec.Basename(), "file.mp3")
 
 
-class GrepTest(test_lib.EmptyActionTest):
+class GrepTest(client_test_lib.EmptyActionTest):
   """Test the find client Actions."""
 
   XOR_IN_KEY = 0
@@ -458,8 +461,8 @@ class GrepTest(test_lib.EmptyActionTest):
     super(GrepTest, self).setUp()
 
     # Install the mock
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               MockVFSHandlerFind)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
     self.vfs_overrider.Start()
     self.filename = "/mock2/directory1/grepfile.txt"
 
@@ -716,7 +719,8 @@ class XoredSearchingTest(GrepTest):
   XOR_OUT_KEY = 57
 
 
-class FindBenchmarks(test_lib.AverageMicroBenchmarks, test_lib.EmptyActionTest):
+class FindBenchmarks(benchmark_test_lib.AverageMicroBenchmarks,
+                     client_test_lib.EmptyActionTest):
   REPEATS = 100
   units = "us"
 

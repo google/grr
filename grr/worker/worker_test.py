@@ -18,7 +18,6 @@ from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import server_stubs
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib.flows.general import administrative
@@ -27,6 +26,9 @@ from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import client_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 # A global collector for test results
 RESULTS = []
@@ -39,7 +41,7 @@ class WorkerSendingTestFlow(flow.GRRFlow):
   def Start(self):
     for i in range(10):
       self.CallClient(
-          test_lib.Test,
+          client_test_lib.Test,
           rdf_protodict.DataBlob(string="test%s" % i),
           data=str(i),
           next_state="Incoming")
@@ -61,7 +63,7 @@ class WorkerSendingTestFlow2(WorkerSendingTestFlow):
   def Start(self):
     i = 1
     self.CallClient(
-        test_lib.Test,
+        client_test_lib.Test,
         rdf_protodict.DataBlob(string="test%s" % i),
         data=str(i),
         next_state="Incoming")
@@ -270,7 +272,7 @@ class ShardedQueueManager(queue_manager.QueueManager):
     return self.GetNotificationsForAllShards(queue)
 
 
-class GrrWorkerTest(test_lib.FlowTestsBaseclass):
+class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   """Tests the GRR Worker."""
 
   def setUp(self):
@@ -1022,7 +1024,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     """This tests that the client actions are limited properly."""
     result = {}
     client_mock = CPULimitClientMock(result)
-    client_mock = test_lib.MockClient(
+    client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
 
     client_mock.EnableResourceUsage(
@@ -1062,7 +1064,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     client_mocks = []
     for client_id in client_ids:
       client_mock = CPULimitClientMock(result)
-      client_mock = test_lib.MockClient(
+      client_mock = flow_test_lib.MockClient(
           rdf_client.ClientURN(client_id), client_mock, token=self.token)
 
       client_mock.EnableResourceUsage(

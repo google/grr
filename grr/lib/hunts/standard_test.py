@@ -18,7 +18,6 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import administrative
@@ -30,6 +29,10 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import acl_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
@@ -140,7 +143,7 @@ class InfiniteFlow(flow.GRRFlow):
     self.CallState(next_state="Start")
 
 
-class StandardHuntTestMixin(object):
+class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
   """Mixin with helper methods for hunt tests."""
 
   def CreateHunt(self,
@@ -191,8 +194,8 @@ class StandardHuntTestMixin(object):
       foreman.AssignTasksToClient(client_id)
 
   def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
-    client_mock = test_lib.SampleHuntMock(**mock_kwargs)
-    test_lib.TestHuntHelper(
+    client_mock = hunt_test_lib.SampleHuntMock(**mock_kwargs)
+    hunt_test_lib.TestHuntHelper(
         client_mock,
         client_ids or self.client_ids,
         check_flow_errors=False,
@@ -210,12 +213,12 @@ class StandardHuntTestMixin(object):
         flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
         token=self.token,
         **flow_args)
-    for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+    for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
       pass
     return flow_urn
 
 
-class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
+class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   """Tests the Hunt."""
 
   def setUp(self):
@@ -868,8 +871,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       hunt.ManuallyScheduleClients()
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock(failrate=100)
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock(failrate=100)
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
     with aff4.FACTORY.Open(
         hunt.session_id, mode="rw", token=self.token) as hunt:
@@ -919,8 +923,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         foreman.AssignTasksToClient(client_id)
 
       # Run the hunt.
-      client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(
+      client_mock = hunt_test_lib.SampleHuntMock()
+      hunt_test_lib.TestHuntHelper(
           client_mock,
           self.client_ids,
           check_flow_errors=False,
@@ -947,8 +951,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # Run the hunt on 2 clients.
     for client_id in self.client_ids[:2]:
       self.AssignTasksToClients([client_id])
-      client_mock = test_lib.CrashClientMock(client_id, token=self.token)
-      test_lib.TestHuntHelper(
+      client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
+      hunt_test_lib.TestHuntHelper(
           client_mock, [client_id], check_flow_errors=False, token=self.token)
 
     # Hunt should still be running: 2 crashes are within the threshold.
@@ -958,9 +962,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # Run the hunt on another client.
     client_id = self.client_ids[2]
-    client_mock = test_lib.CrashClientMock(client_id, token=self.token)
+    client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
     self.AssignTasksToClients([client_id])
-    test_lib.TestHuntHelper(
+    hunt_test_lib.TestHuntHelper(
         client_mock, [client_id], check_flow_errors=False, token=self.token)
 
     # Hunt should be terminated: 3 crashes are over the threshold.
@@ -1004,8 +1008,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       time.time = lambda: 5000
 
       # Run the hunt.
-      client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(
+      client_mock = hunt_test_lib.SampleHuntMock()
+      hunt_test_lib.TestHuntHelper(
           client_mock,
           self.client_ids,
           check_flow_errors=False,
@@ -1057,8 +1061,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         foreman.AssignTasksToClient(client_id)
 
     # Run the hunt.
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
     # Re-open the hunt to get fresh data.
     hunt_obj = aff4.FACTORY.Open(
@@ -1084,7 +1089,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 self.token)
 
     hunt_obj = aff4.FACTORY.Open(
         hunt_session_id, age=aff4.ALL_TIMES, token=self.token)
@@ -1119,8 +1125,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       for client_id in client_ids:
         foreman.AssignTasksToClient(client_id)
 
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
     hunt = aff4.FACTORY.Open(
         hunt.urn, aff4_type=standard.GenericHunt, token=self.token)
@@ -1162,7 +1168,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name=test_lib.DummyLogFlow.__name__),
+            flow_name=flow_test_lib.DummyLogFlow.__name__),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -1184,7 +1190,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
         ])
         self.assertTrue(log.flow_name in [
-            test_lib.DummyLogFlow.__name__, test_lib.DummyLogFlowChild.__name__
+            flow_test_lib.DummyLogFlow.__name__,
+            flow_test_lib.DummyLogFlowChild.__name__
         ])
         self.assertTrue(str(hunt_urn) in str(log.urn))
       else:
@@ -1225,8 +1232,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         username="nonadmin", reason="testing")
     self.AssignTasksToClients()
 
-    client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, nonadmin_token)
+    client_mock = hunt_test_lib.SampleHuntMock()
+    hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                                 nonadmin_token)
 
     errors = list(hunt.GetClientsErrors())
     # Make sure there are errors...
@@ -1236,7 +1244,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertTrue("UnauthorizedAccess" not in e.backtrace)
 
 
-class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
+class VerifyHuntOutputPluginsCronFlowTest(flow_test_lib.FlowTestsBaseclass,
                                           StandardHuntTestMixin):
   """Tests VerifyHuntOutputPluginsCronFlow."""
 

@@ -3,8 +3,8 @@
 
 
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.path_detection import core
+from grr.test_lib import test_lib
 
 
 class SplitIntoComponentsTest(test_lib.GRRBaseTest):

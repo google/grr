@@ -10,9 +10,10 @@ import os
 from grr.client.client_actions import plist
 from grr.lib import flags
 from grr.lib import plist as plist_lib
-from grr.lib import test_lib
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 # This variable holds the same contents as the ondisk test plist
 test_plist_dict = {
@@ -48,7 +49,7 @@ safari_plist_dict = {
 }
 
 
-class PlistTest(test_lib.EmptyActionTest):
+class PlistTest(client_test_lib.EmptyActionTest):
 
   def testParseFilter(self):
     queries = [

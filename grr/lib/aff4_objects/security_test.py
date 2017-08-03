@@ -7,13 +7,14 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import users
+from grr.test_lib import acl_test_lib
+from grr.test_lib import test_lib
 
 
-class ApprovalTest(test_lib.GRRBaseTest):
+class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   """Test for Approval."""
 
   def setUp(self):

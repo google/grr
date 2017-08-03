@@ -9,9 +9,11 @@ from grr.gui import runtests_test
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.flows.general import discovery
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class TestHostInformation(gui_test_lib.GRRSeleniumTest):
@@ -21,7 +23,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     super(TestHostInformation, self).setUp()
     self.client_id = "C.0000000000000001"
 
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.RequestAndGrantClientApproval(self.client_id)
 
     with test_lib.FakeTime(gui_test_lib.TIME_0):
@@ -61,7 +63,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
     client_mock = action_mocks.ActionMock()
     for flow_urn in flows:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flow_urn,
           client_mock,
           client_id=client_id,

@@ -5,15 +5,16 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.aff4_objects import queue as aff4_queue
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
 class TestQueue(aff4_queue.Queue):
   rdf_type = rdfvalue.RDFInteger
 
 
-class QueueTest(test_lib.AFF4ObjectTest):
+class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testClaimReturnsRecordsInOrder(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"

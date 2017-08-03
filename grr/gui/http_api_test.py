@@ -14,10 +14,11 @@ from grr.gui import http_api
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.test_lib import stats_test_lib
+from grr.test_lib import test_lib
 
 
 class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
@@ -184,7 +185,8 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
                       self._CreateRequest("GET", "/some/missing/path"))
 
 
-class HttpRequestHandlerTest(test_lib.GRRBaseTest):
+class HttpRequestHandlerTest(test_lib.GRRBaseTest,
+                             stats_test_lib.StatsTestMixin):
   """Test for HttpRequestHandler."""
 
   def _CreateRequest(self, method, path, username="test",

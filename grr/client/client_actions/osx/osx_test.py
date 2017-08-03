@@ -13,10 +13,11 @@ import mox
 
 from grr.lib import flags
 from grr.lib import osx_launchd as testdata
-from grr.lib import test_lib
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 
-class OSXClientTests(test_lib.OSSpecificClientTests):
+class OSXClientTests(client_test_lib.OSSpecificClientTests):
   """OSX client action tests."""
 
   def setUp(self):

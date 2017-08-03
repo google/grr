@@ -21,7 +21,6 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
@@ -32,6 +31,8 @@ from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiHuntIdTest(rdf_test_base.RDFValueTestCase):
@@ -259,7 +260,7 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     client_ids = self.SetupClients(10)
     self.AssignTasksToClients(client_ids=client_ids)
     action_mock = action_mocks.FileFinderClientMock()
-    test_lib.TestHuntHelper(action_mock, client_ids, token=self.token)
+    hunt_test_lib.TestHuntHelper(action_mock, client_ids, token=self.token)
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
@@ -338,7 +339,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.client_id = self.SetupClients(1)[0]
     self.AssignTasksToClients(client_ids=[self.client_id])
     action_mock = action_mocks.FileFinderClientMock()
-    test_lib.TestHuntHelper(action_mock, [self.client_id], token=self.token)
+    hunt_test_lib.TestHuntHelper(
+        action_mock, [self.client_id], token=self.token)
 
   def testRaisesIfOneOfArgumentAttributesIsNone(self):
     model_args = hunt_plugin.ApiGetHuntFileArgs(
@@ -727,8 +729,8 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     # random).
     for cid in self.client_ids:
       self.AssignTasksToClients(client_ids=[cid])
-      client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(client_mock, [cid], token=self.token)
+      client_mock = hunt_test_lib.SampleHuntMock()
+      hunt_test_lib.TestHuntHelper(client_mock, [cid], token=self.token)
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     result = self.handler.Handle(

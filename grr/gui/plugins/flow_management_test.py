@@ -12,7 +12,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.flows.general import filesystem as flows_filesystem
 from grr.lib.flows.general import processes as flows_processes
 from grr.lib.flows.general import transfer as flows_transfer
@@ -23,6 +22,8 @@ from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
@@ -149,7 +150,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
   def testOverviewIsShownForNestedFlows(self):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
@@ -206,7 +207,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneLogStatement.__name__,
         self.action_mock,
         client_id=self.client_id,
@@ -222,7 +223,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testLogTimestampsArePresentedInUTC(self):
     with test_lib.FakeTime(42):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           gui_test_lib.FlowWithOneLogStatement.__name__,
           self.action_mock,
           client_id=self.client_id,
@@ -237,7 +238,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneStatEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
@@ -268,7 +269,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "th:contains('Value')")
 
   def testHashesAreDisplayedCorrectly(self):
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,

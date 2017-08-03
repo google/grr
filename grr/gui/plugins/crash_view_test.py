@@ -7,11 +7,12 @@ from grr.gui import runtests_test
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
 
 
 class TestCrashView(gui_test_lib.GRRSeleniumTest):
@@ -20,9 +21,9 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
   client_id = rdf_client.ClientURN("C.0000000000000001")
 
   def SetUpCrashedFlow(self):
-    client = test_lib.CrashClientMock(self.client_id, self.token)
-    for _ in test_lib.TestFlowHelper(
-        test_lib.FlowWithOneClientRequest.__name__,
+    client = flow_test_lib.CrashClientMock(self.client_id, self.token)
+    for _ in flow_test_lib.TestFlowHelper(
+        flow_test_lib.FlowWithOneClientRequest.__name__,
         client,
         client_id=self.client_id,
         token=self.token,
@@ -57,7 +58,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=a[grrtarget='client.flows']")
     self.WaitUntil(self.IsTextPresent,
-                   test_lib.FlowWithOneClientRequest.__name__)
+                   flow_test_lib.FlowWithOneClientRequest.__name__)
 
     # Check that skull icon is in place.
     self.WaitUntil(self.IsElementPresent, "css=img[src$='skull-icon.png']")
@@ -73,7 +74,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(
+    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
@@ -93,7 +94,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
       self.assertTrue(foreman.AssignTasksToClient(client_id))
-    test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
+    hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
+                                                  self.token)
 
     return client_ids
 

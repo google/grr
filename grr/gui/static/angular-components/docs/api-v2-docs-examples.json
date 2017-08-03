@@ -819,13 +819,6 @@
       "response": "I am a binary file",
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/executable/windows/test.exe"
-    },
-    {
-      "api_method": "GetGrrBinary",
-      "method": "GET",
-      "response": "<binary data>",
-      "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
-      "url": "/api/v2/config/binaries/component/grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
     }
   ],
   "ApiGetGrrUserHandler": [
@@ -4776,12 +4769,6 @@
             "size": "17",
             "timestamp": "43000000",
             "type": "PYTHON_HACK"
-          },
-          {
-            "path": "grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit",
-            "size": "42",
-            "timestamp": "44000000",
-            "type": "COMPONENT"
           }
         ]
       },

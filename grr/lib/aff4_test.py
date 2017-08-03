@@ -16,7 +16,6 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
@@ -26,6 +25,9 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class ObjectWithLockProtectedAttribute(aff4.AFF4Volume):
@@ -44,7 +46,7 @@ class ObjectWithLockProtectedAttribute(aff4.AFF4Volume):
         lock_protected=False)
 
 
-class DeletionPoolTest(test_lib.AFF4ObjectTest):
+class DeletionPoolTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for DeletionPool class."""
 
   def setUp(self):
@@ -315,7 +317,7 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
-class AFF4MemoryStreamTest(test_lib.AFF4ObjectTest):
+class AFF4MemoryStreamTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for AFF4MemoryStream class."""
 
   # Tests below effectively test default AFF4Stream._MultiStream implementation.
@@ -380,7 +382,7 @@ class AFF4MemoryStreamTest(test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[3][0], fd2)
 
 
-class AFF4ImageTest(test_lib.AFF4ObjectTest):
+class AFF4ImageTest(aff4_test_lib.AFF4ObjectTest):
   """Tests for AFF4Image class."""
 
   # Tests below effectively test AFF4ImageBase._MultiStream implementation.
@@ -521,7 +523,7 @@ class AFF4ImageTest(test_lib.AFF4ObjectTest):
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
-class AFF4StreamTest(test_lib.AFF4ObjectTest):
+class AFF4StreamTest(aff4_test_lib.AFF4ObjectTest):
 
   def testMultiStreamStreamsObjectsOfVariousTypes(self):
     with aff4.FACTORY.Create(
@@ -559,7 +561,7 @@ class AFF4StreamTest(test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[3][0], fd2)
 
 
-class AFF4Tests(test_lib.AFF4ObjectTest):
+class AFF4Tests(aff4_test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
 
   def testCreatingObjectWithMutationPoolExpiresTheCacheCorrectly(self):
@@ -1283,18 +1285,18 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       session_ids.append(
           flow.GRRFlow.StartFlow(
               client_id=self.client_id,
-              flow_name=test_lib.FlowOrderTest.__name__,
+              flow_name=flow_test_lib.FlowOrderTest.__name__,
               token=self.token))
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
 
     self.assertEqual(flow_obj.runner_args.flow_name,
-                     test_lib.FlowOrderTest.__name__)
+                     flow_test_lib.FlowOrderTest.__name__)
     self.assertEqual(flow_obj.session_id, session_ids[0])
 
     self.assertEqual(flow_obj.__class__.__name__,
-                     test_lib.FlowOrderTest.__name__)
+                     flow_test_lib.FlowOrderTest.__name__)
 
   def testMultiOpen(self):
     root_urn = aff4.ROOT_URN.Add("path")
@@ -1771,7 +1773,7 @@ class AFF4SymlinkTestSubject(aff4.AFF4Volume):
     return str(self.Get(self.Schema.SOME_STRING)) + "-suffix"
 
 
-class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
+class AFF4SymlinkTest(aff4_test_lib.AFF4ObjectTest):
   """Tests the AFF4Symlink."""
 
   symlink_source_urn = rdfvalue.RDFURN("aff4:/symlink")
@@ -1860,7 +1862,7 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
       self.assertEqual(symlink_obj.Get(attr), fd.Get(attr))
 
 
-class ForemanTests(test_lib.AFF4ObjectTest):
+class ForemanTests(aff4_test_lib.AFF4ObjectTest):
   """Tests the Foreman."""
 
   clients_launched = []

@@ -2,13 +2,13 @@
 """Tests for grr.lib.checks.filters."""
 import collections
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import filters
 from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import test_lib
 
 # Just a named tuple that can be used to test objectfilter expressions.
 Sample = collections.namedtuple("Sample", ["x", "y"])

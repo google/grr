@@ -12,13 +12,15 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import test_lib
-
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
+
 from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
 
 
 class ApiSearchClientsHandlerRegressionTest(
@@ -172,7 +174,7 @@ class ApiListClientCrashesHandlerRegressionTest(
   def Run(self):
     client_ids = self.SetupClients(1)
     client_id = client_ids[0]
-    client_mock = test_lib.CrashClientMock(client_id, self.token)
+    client_mock = flow_test_lib.CrashClientMock(client_id, self.token)
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -180,7 +182,7 @@ class ApiListClientCrashesHandlerRegressionTest(
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients(client_ids)
-      test_lib.TestHuntHelperWithMultipleMocks({
+      hunt_test_lib.TestHuntHelperWithMultipleMocks({
           client_id: client_mock
       }, False, self.token)
 
@@ -228,7 +230,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
 
       # Here we emulate a mock client with no actions (None) that should produce
       # an error.
-      mock = test_lib.MockClient(client_id, None, token=self.token)
+      mock = flow_test_lib.MockClient(client_id, None, token=self.token)
       while mock.Next():
         pass
 

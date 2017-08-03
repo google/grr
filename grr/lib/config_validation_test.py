@@ -9,7 +9,7 @@ import logging
 from grr import config
 from grr.lib import config_testing_lib
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class BuildConfigTests(config_testing_lib.BuildConfigTestsBase):

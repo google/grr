@@ -17,7 +17,6 @@ from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import server_stubs
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
@@ -28,6 +27,11 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
+from grr.test_lib import worker_test_lib
 
 # pylint: mode=test
 
@@ -94,7 +98,7 @@ class CallClientParentFlow(NoRequestParentFlow):
   child_flow = "CallClientChildFlow"
 
 
-class BasicFlowTest(test_lib.FlowTestsBaseclass):
+class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
   pass
 
 
@@ -141,7 +145,7 @@ class FlowCreationTest(BasicFlowTest):
         ValueError,
         flow.GRRFlow.StartFlow,
         client_id="hello",
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
 
   def testUnknownArg(self):
@@ -150,19 +154,19 @@ class FlowCreationTest(BasicFlowTest):
         type_info.UnknownArg,
         flow.GRRFlow.StartFlow,
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token,
         foobar=1)
 
   def testTypeAttributeIsNotAppendedWhenFlowIsClosed(self):
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         mode="rw",
         token=self.token)
@@ -170,7 +174,7 @@ class FlowCreationTest(BasicFlowTest):
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
 
@@ -181,16 +185,16 @@ class FlowCreationTest(BasicFlowTest):
     """Check that we can serialize flows."""
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
 
-    self.assertEqual(flow_obj.__class__, test_lib.FlowOrderTest)
+    self.assertEqual(flow_obj.__class__, flow_test_lib.FlowOrderTest)
 
   def testFlowSerialization2(self):
     """Check that we can serialize flows."""
@@ -210,7 +214,7 @@ class FlowCreationTest(BasicFlowTest):
         return [rdf_protodict.DataBlob(integer=100)]
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         "FlowResponseSerialization",
         TestClientMock(),
         token=self.token,
@@ -220,13 +224,13 @@ class FlowCreationTest(BasicFlowTest):
   def testTerminate(self):
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
 
     flow.GRRFlow.TerminateFlow(session_id, token=self.token)
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
     runner = flow_obj.GetRunner()
@@ -236,13 +240,13 @@ class FlowCreationTest(BasicFlowTest):
     reason = "no reason"
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
     flow.GRRFlow.TerminateFlow(session_id, reason=reason, token=self.token)
 
     flow_obj = aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         token=self.token)
     runner = flow_obj.GetRunner()
@@ -292,11 +296,11 @@ class FlowCreationTest(BasicFlowTest):
 
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
     with aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         mode="rw",
         token=self.token) as flow_obj:
@@ -316,11 +320,11 @@ class FlowCreationTest(BasicFlowTest):
   def testFormatstringNotification(self):
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name=test_lib.FlowOrderTest.__name__,
+        flow_name=flow_test_lib.FlowOrderTest.__name__,
         token=self.token)
     with aff4.FACTORY.Open(
         session_id,
-        aff4_type=test_lib.FlowOrderTest,
+        aff4_type=flow_test_lib.FlowOrderTest,
         age=aff4.ALL_TIMES,
         mode="rw",
         token=self.token) as flow_obj:
@@ -333,7 +337,7 @@ class FlowCreationTest(BasicFlowTest):
   def testSendRepliesAttribute(self):
     # Run the flow in the simulated way. Child's send_replies is set to False.
     # Parent flow will raise if number of responses is > 0.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         "ParentFlowWithoutResponses",
         ClientMock(),
         client_id=self.client_id,
@@ -396,8 +400,8 @@ class FlowCreationTest(BasicFlowTest):
   def testFlowLogging(self):
     """Check that flows log correctly."""
     flow_urn = None
-    for session_id in test_lib.TestFlowHelper(
-        test_lib.DummyLogFlow.__name__,
+    for session_id in flow_test_lib.TestFlowHelper(
+        flow_test_lib.DummyLogFlow.__name__,
         action_mocks.ActionMock(),
         token=self.token,
         client_id=self.client_id):
@@ -412,13 +416,14 @@ class FlowCreationTest(BasicFlowTest):
           "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres", "Cuatro"
       ])
       self.assertTrue(log.flow_name in [
-          test_lib.DummyLogFlow.__name__, test_lib.DummyLogFlowChild.__name__
+          flow_test_lib.DummyLogFlow.__name__,
+          flow_test_lib.DummyLogFlowChild.__name__
       ])
       self.assertTrue(str(flow_urn) in str(log.urn))
 
   def testFlowStoresResultsPerType(self):
     flow_urn = None
-    for session_id in test_lib.TestFlowHelper(
+    for session_id in flow_test_lib.TestFlowHelper(
         FlowWithMultipleResultTypes.__name__,
         action_mocks.ActionMock(),
         token=self.token,
@@ -458,8 +463,8 @@ class FlowTest(BasicFlowTest):
     """Check that flows which call to incorrect states raise."""
     client_mock = action_mocks.ActionMock(standard.ReadBuffer)
     with self.assertRaises(RuntimeError):
-      for _ in test_lib.TestFlowHelper(
-          test_lib.BrokenFlow.__name__,
+      for _ in flow_test_lib.TestFlowHelper(
+          flow_test_lib.BrokenFlow.__name__,
           client_mock,
           client_id=self.client_id,
           check_flow_errors=True,
@@ -506,7 +511,7 @@ class FlowTest(BasicFlowTest):
 
   def testReordering(self):
     """Check that out of order client messages are reordered."""
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
@@ -525,7 +530,7 @@ class FlowTest(BasicFlowTest):
 
   def testCallClient(self):
     """Flows can send client messages using CallClient()."""
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     # Check that a message went out to the client
     manager = queue_manager.QueueManager(token=self.token)
@@ -541,7 +546,7 @@ class FlowTest(BasicFlowTest):
 
   def testAuthentication1(self):
     """Test that flows refuse to processes unauthenticated messages."""
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
@@ -569,7 +574,7 @@ class FlowTest(BasicFlowTest):
     arrive earlier. This can be an effective DoS against legitimate
     clients but would require attackers to guess session ids.
     """
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
 
     # Simulate processing messages arriving in random order
     message_ids = [1, 2]
@@ -596,11 +601,11 @@ class FlowTest(BasicFlowTest):
 
   def testWellKnownFlows(self):
     """Test the well known flows."""
-    test_flow = self.FlowSetup(test_lib.WellKnownSessionTest.__name__)
+    test_flow = self.FlowSetup(flow_test_lib.WellKnownSessionTest.__name__)
 
     # Make sure the session ID is well known
     self.assertEqual(test_flow.session_id,
-                     test_lib.WellKnownSessionTest.well_known_session_id)
+                     flow_test_lib.WellKnownSessionTest.well_known_session_id)
 
     # Messages to Well Known flows can be unauthenticated
     messages = [
@@ -643,12 +648,12 @@ class FlowTerminationTest(BasicFlowTest):
   """Flow termination-related tests."""
 
   def testFlowMarkedForTerminationTerminatesInStateHandler(self):
-    flow_obj = self.FlowSetup(test_lib.FlowOrderTest.__name__)
+    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
     flow.GRRFlow.MarkForTermination(
         flow_obj.urn, reason="because i can", token=self.token)
 
     def ProcessFlow():
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           flow_obj.urn, client_id=self.client_id, token=self.token):
         pass
 
@@ -704,7 +709,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
           path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     if client_mock is None:
-      client_mock = test_lib.SampleHuntMock()
+      client_mock = hunt_test_lib.SampleHuntMock()
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
@@ -712,7 +717,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
         runner_args=runner_args,
         token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn,
         client_mock=client_mock,
         client_id=self.client_id,
@@ -781,7 +786,7 @@ class GeneralFlowsTest(BasicFlowTest):
     CallStateFlow.success = False
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         "CallStateFlow",
         ClientMock(),
         client_id=self.client_id,
@@ -804,9 +809,9 @@ class GeneralFlowsTest(BasicFlowTest):
     """Tests the ability to delay a CallState invocation."""
     with test_lib.FakeTime(10000):
       client_mock = ClientMock()
-      client_mock = test_lib.MockClient(
+      client_mock = flow_test_lib.MockClient(
           self.client_id, client_mock, token=self.token)
-      worker_mock = test_lib.MockWorker(
+      worker_mock = worker_test_lib.MockWorker(
           check_flow_errors=True, token=self.token)
 
       flow.GRRFlow.StartFlow(
@@ -834,7 +839,7 @@ class GeneralFlowsTest(BasicFlowTest):
     ParentFlow.success = False
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         "ParentFlow", ClientMock(), client_id=self.client_id, token=self.token):
       pass
 
@@ -851,7 +856,7 @@ class GeneralFlowsTest(BasicFlowTest):
             username="original_user", reason="testing"))
 
     # Run the flow using another user ("test").
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         session_id, ClientMock(), client_id=self.client_id, token=self.token):
       pass
 
@@ -868,7 +873,7 @@ class GeneralFlowsTest(BasicFlowTest):
     BrokenParentFlow.success = False
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         "BrokenParentFlow",
         ClientMock(),
         client_id=self.client_id,
@@ -880,11 +885,12 @@ class GeneralFlowsTest(BasicFlowTest):
 
   def testIteratedDirectoryListing(self):
     """Test that the client iterator works."""
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS, MockVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   MockVFSHandler):
       path = "/"
       # Run the flow in the simulated way
       client_mock = action_mocks.ActionMock(standard.IteratedListDirectory)
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           filesystem.IteratedListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
@@ -912,9 +918,10 @@ class GeneralFlowsTest(BasicFlowTest):
 
     result = []
     client_mock = PriorityClientMock(result)
-    client_mock = test_lib.MockClient(
+    client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
-    worker_mock = test_lib.MockWorker(check_flow_errors=True, token=self.token)
+    worker_mock = worker_test_lib.MockWorker(
+        check_flow_errors=True, token=self.token)
 
     # Start some flows with different priorities.
     # pyformat: disable
@@ -955,9 +962,10 @@ class GeneralFlowsTest(BasicFlowTest):
 
     result = []
     client_mock = PriorityClientMock(result)
-    client_mock = test_lib.MockClient(
+    client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
-    worker_mock = test_lib.MockWorker(check_flow_errors=True, token=self.token)
+    worker_mock = worker_test_lib.MockWorker(
+        check_flow_errors=True, token=self.token)
 
     # Start some flows with different priorities.
     # pyformat: disable
@@ -1002,7 +1010,7 @@ class GeneralFlowsTest(BasicFlowTest):
         sorted(server_result[3:5]), [u"low priority", u"low priority2"])
 
 
-class ResourcedWorker(test_lib.MockWorker):
+class ResourcedWorker(worker_test_lib.MockWorker):
   USER_CPU = [1, 20, 5, 16]
   SYSTEM_CPU = [4, 20, 2, 8]
   NETWORK_BYTES = [180, 1000, 580, 2000]
@@ -1013,7 +1021,7 @@ class FlowLimitTests(BasicFlowTest):
   def RunFlow(self, flow_name, **kwargs):
     result = {}
     client_mock = CPULimitClientMock(result)
-    client_mock = test_lib.MockClient(
+    client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
     worker_mock = ResourcedWorker(check_flow_errors=True, token=self.token)
 

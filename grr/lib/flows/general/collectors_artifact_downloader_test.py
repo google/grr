@@ -9,19 +9,17 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
-# pylint: disable=unused-import
-from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
-# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
-class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
+class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(ArtifactFilesDownloaderFlowTest, self).setUp()
@@ -79,7 +77,7 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
         artifact_list=artifact_list,
         use_tsk=use_tsk,
         token=self.token)
-    for _ in test_lib.TestFlowHelper(urn, token=self.token):
+    for _ in flow_test_lib.TestFlowHelper(urn, token=self.token):
       pass
 
     results_fd = flow.GRRFlow.ResultCollectionForFID(urn, token=self.token)

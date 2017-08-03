@@ -7,8 +7,9 @@ from grr.gui import runtests_test
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class TestNavigatorView(gui_test_lib.SearchClientTestBase):
@@ -30,9 +31,9 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def RecordCrash(self, client_id, timestamp):
     with test_lib.FakeTime(timestamp):
-      client = test_lib.CrashClientMock(client_id, self.token)
-      for _ in test_lib.TestFlowHelper(
-          test_lib.FlowWithOneClientRequest.__name__,
+      client = flow_test_lib.CrashClientMock(client_id, self.token)
+      for _ in flow_test_lib.TestFlowHelper(
+          flow_test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=client_id,
           token=self.token,

@@ -13,22 +13,24 @@ from grr.lib import artifact
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
-# pylint: disable=unused-import
 from grr.lib.flows.general import registry
-# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class RegistryFlowTest(test_lib.FlowTestsBaseclass):
+class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(RegistryFlowTest, self).setUp()
-    self.vfs_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler)
     self.vfs_overrider.Start()
 
   def tearDown(self):
@@ -54,7 +56,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         searching.Find,
         searching.Grep,)
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         registry.RegistryFinder.__name__,
         client_mock,
         client_id=self.client_id,
@@ -294,15 +296,15 @@ class TestRegistryFlows(RegistryFlowTest):
 
   def testCollectRunKeyBinaries(self):
     """Read Run key from the client_fixtures to test parsing and storage."""
-    test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Set(client.Schema.OS_VERSION("6.2"))
     client.Flush()
 
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeFullVFSHandler):
 
       client_mock = action_mocks.ActionMock(
           file_fingerprint.FingerprintFile,
@@ -310,7 +312,7 @@ class TestRegistryFlows(RegistryFlowTest):
           standard.StatFile,)
 
       # Get KB initialized
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           artifact.KnowledgeBaseInitializationFlow.__name__,
           client_mock,
           client_id=self.client_id,
@@ -320,7 +322,7 @@ class TestRegistryFlows(RegistryFlowTest):
       with test_lib.Instrument(transfer.MultiGetFile,
                                "Start") as getfile_instrument:
         # Run the flow in the emulated way.
-        for _ in test_lib.TestFlowHelper(
+        for _ in flow_test_lib.TestFlowHelper(
             registry.CollectRunKeyBinaries.__name__,
             client_mock,
             client_id=self.client_id,

@@ -2,6 +2,7 @@
 """This tool builds or repacks the client binaries."""
 
 import getpass
+import glob
 import logging
 import multiprocessing
 import os
@@ -217,7 +218,7 @@ class TemplateBuilder(object):
 
 
 def SpawnProcess(popen_args, signing=None, passwd=None):
-  if signing:
+  if signing and passwd is not None:
     # We send the password via pipe to avoid creating a process with the
     # password as an argument that will get logged on some systems.
     p = subprocess.Popen(popen_args, stdin=subprocess.PIPE)
@@ -300,7 +301,9 @@ class MultiTemplateRepacker(object):
         passwd = None
         if sign:
           if template.endswith(".exe.zip"):
-            passwd = self.GetWindowsPassphrase()
+            # This is for osslsigncode only.
+            if platform.system() != "Windows":
+              passwd = self.GetWindowsPassphrase()
             signing = True
             repack_args.append("--sign")
             if signed_template:
@@ -391,9 +394,19 @@ def main(_):
     if not result_path:
       raise ErrorDuringRepacking(" ".join(sys.argv[:]))
   elif args.subparser_name == "repack_multiple":
+
+    # Resolve globs manually on Windows.
+    templates = args.templates
+    if templates and "*" in templates[0]:
+      templates = glob.glob(templates[0])
+
+    repack_configs = args.repack_configs
+    if repack_configs and "*" in repack_configs[0]:
+      repack_configs = glob.glob(repack_configs[0])
+
     MultiTemplateRepacker().RepackTemplates(
-        args.repack_configs,
-        args.templates,
+        repack_configs,
+        templates,
         args.output_dir,
         config=args.config,
         sign=args.sign,

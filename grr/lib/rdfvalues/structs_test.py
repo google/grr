@@ -9,13 +9,13 @@ from google.protobuf import message_factory
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
+from grr.test_lib import test_lib
 
 # pylint: mode=test
 

@@ -20,11 +20,12 @@ from grr.client.client_actions import standard
 
 from grr.client import actions
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import client_test_lib
+from grr.test_lib import test_lib
 
 if platform.system() == "Linux":
   # pylint: disable=g-import-not-at-top
@@ -51,7 +52,7 @@ class ProgressAction(actions.ActionPlugin):
         self.Progress()
 
 
-class ActionTest(test_lib.EmptyActionTest):
+class ActionTest(client_test_lib.EmptyActionTest):
   """Test the client Actions."""
 
   def testReadBuffer(self):
@@ -161,7 +162,7 @@ class ActionTest(test_lib.EmptyActionTest):
     """Tests if listing processes works."""
 
     def ProcessIter():
-      return iter([test_lib.MockWindowsProcess()])
+      return iter([client_test_lib.MockWindowsProcess()])
 
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       results = self.RunAction(standard.ListProcesses, None)
@@ -290,7 +291,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
 
 class ActionTestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.EmptyActionTest
+  base_class = client_test_lib.EmptyActionTest
 
 
 def main(argv):

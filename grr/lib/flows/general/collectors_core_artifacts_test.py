@@ -17,16 +17,19 @@ from grr.lib import artifact_utils
 from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
+# TODO(user): remove the unused import.
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
-from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
+from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
+class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
   """Test the collection of real artifacts."""
 
   def setUp(self):
@@ -41,7 +44,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(standard.StatFile,
                                           standard.ListDirectory)
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemDrive"],
@@ -53,7 +56,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemRoot"],
@@ -79,7 +82,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
     # No registry, broken filesystem, this should just raise.
     with self.assertRaises(RuntimeError):
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           BrokenClientMock(),
           artifact_list=["WindowsEnvironmentVariableSystemDrive"],
@@ -88,13 +91,13 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         pass
 
     # No registry, so this should use the fallback flow
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                               test_lib.ClientVFSHandlerFixture):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.ClientVFSHandlerFixture):
       self._CheckDriveAndRoot()
 
     # Registry is present, so this should use the regular artifact collection
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
       self._CheckDriveAndRoot()
 
   def testRunWMIComputerSystemProductArtifact(self):
@@ -105,7 +108,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_CMP_SYS_PRD
 
     client_mock = WMIActionMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIComputerSystemProduct"],
@@ -132,7 +135,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_SAMPLE
 
     client_mock = WMIActionMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMILogicalDisks"],
@@ -168,7 +171,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_SAMPLE
 
     client_mock = WMIActionMock()
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIActiveScriptEventConsumer"],
@@ -186,15 +189,15 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
   def testRetrieveDependencies(self):
     """Test getting an artifact without a KB using retrieve_depdendencies."""
-    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                               test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                 test_lib.FakeFullVFSHandler):
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                                   vfs_test_lib.FakeRegistryVFSHandler):
+      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                     vfs_test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.ActionMock(standard.StatFile)
 
         artifact_list = ["WindowsEnvironmentVariableWinDir"]
-        for s in test_lib.TestFlowHelper(
+        for s in flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,

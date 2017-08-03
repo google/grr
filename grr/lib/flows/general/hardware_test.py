@@ -8,9 +8,10 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib.aff4_objects import hardware as aff4_hardware
 from grr.lib.flows.general import hardware
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class DumpFlashImageMock(action_mocks.ActionMock):
@@ -48,16 +49,11 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
-class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
+class TestDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
   def setUp(self):
     super(TestDumpFlashImage, self).setUp()
-    test_lib.WriteComponent(
-        name="grr-chipsec-component",
-        version="1.2.4.1",
-        modules=["grr_chipsec"],
-        token=self.token)
 
     # Setup a specific client so the knowledge base is correctly
     # initialised for the artifact collection.
@@ -68,7 +64,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     """Dump Flash Image."""
     client_mock = DumpFlashImageMock()
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
@@ -88,7 +84,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
         flow_name=hardware.DumpFlashImage.__name__,
         token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       pass
 
@@ -99,7 +95,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     """Fail to dump flash."""
     client_mock = FailDumpMock()
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
@@ -149,22 +145,14 @@ class DumpACPITableMock(action_mocks.ActionMock):
     return [response]
 
 
-class DumpACPITableTest(test_lib.FlowTestsBaseclass):
-
-  def setUp(self):
-    super(DumpACPITableTest, self).setUp()
-    test_lib.WriteComponent(
-        name="grr-chipsec-component",
-        version="1.2.4.1",
-        modules=["grr_chipsec"],
-        token=self.token)
+class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDumpValidACPITableOk(self):
     """Tests dumping ACPI table."""
     client_mock = DumpACPITableMock()
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
@@ -197,7 +185,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     table_signature_list = ["ABC"]
     session_id = None
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
@@ -215,7 +203,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     table_signature_list = []
 
     with self.assertRaises(ValueError) as err:
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           hardware.DumpACPITable.__name__,
           client_mock,
           table_signature_list=table_signature_list,

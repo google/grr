@@ -12,7 +12,7 @@ import mox
 
 from grr.client.osx import objc
 from grr.lib import flags
-from grr.lib import test_lib
+from grr.test_lib import test_lib
 
 
 class ObjcTest(test_lib.GRRBaseTest):

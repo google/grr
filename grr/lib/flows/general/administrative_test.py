@@ -19,10 +19,11 @@ from grr.lib import aff4
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import test_lib
+from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
@@ -31,16 +32,41 @@ from grr.lib.flows.general import administrative
 # pylint: disable=unused-import
 # For AuditEventListener, needed to handle published audit events.
 from grr.lib.flows.general import audit as _
-from grr.lib.flows.general import discovery
 # pylint: enable=unused-import
+from grr.lib.flows.general import discovery
 from grr.lib.hunts import implementation as hunts_implementation
 from grr.lib.hunts import standard as hunts_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import tests_pb2
+from grr.test_lib import client_test_lib
+from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import worker_test_lib
 
 
-class AdministrativeFlowTests(test_lib.FlowTestsBaseclass):
+class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.ClientActionRunnerArgs
+
+
+class ClientActionRunner(flow.GRRFlow):
+  """Just call the specified client action directly.
+  """
+  args_type = ClientActionRunnerArgs
+  action_args = {}
+
+  @flow.StateHandler()
+  def Start(self):
+    self.CallClient(
+        server_stubs.ClientActionStub.classes[self.args.action],
+        next_state="End",
+        **self.action_args)
+
+
+class AdministrativeFlowTests(flow_test_lib.FlowTestsBaseclass):
   pass
 
 
@@ -80,7 +106,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # revert this.
     with utils.Stubber(config.CONFIG, "Set", config.CONFIG.Set.old_target):
       # Write the config.
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           administrative.UpdateConfiguration.__name__,
           client_mock,
           client_id=self.client_id,
@@ -89,7 +115,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         pass
 
     # Now retrieve it again to see if it got written.
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         discovery.Interrogate.__name__,
         client_mock,
         token=self.token,
@@ -120,9 +146,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           dict(address=address, sender=sender, title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      client = test_lib.CrashClientMock(self.client_id, self.token)
-      for _ in test_lib.TestFlowHelper(
-          test_lib.FlowWithOneClientRequest.__name__,
+      client = flow_test_lib.CrashClientMock(self.client_id, self.token)
+      for _ in flow_test_lib.TestFlowHelper(
+          flow_test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=self.client_id,
           token=self.token,
@@ -140,7 +166,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     # Make sure the flow state is included in the email message.
     for s in [
-        "flow_name", test_lib.FlowWithOneClientRequest.__name__, "current_state"
+        "flow_name", flow_test_lib.FlowWithOneClientRequest.__name__,
+        "current_state"
     ]:
       self.assertTrue(s in email_message["message"])
 
@@ -185,7 +212,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with hunts_implementation.GRRHunt.StartHunt(
         hunt_name=hunts_standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name=test_lib.FlowWithOneClientRequest.__name__),
+            flow_name=flow_test_lib.FlowWithOneClientRequest.__name__),
         client_rate=0,
         crash_alert_email="crashes@example.com",
         token=self.token) as hunt:
@@ -193,8 +220,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       hunt.StartClients(hunt.session_id, self.client_id)
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      client = test_lib.CrashClientMock(self.client_id, self.token)
-      test_lib.TestHuntHelper(
+      client = flow_test_lib.CrashClientMock(self.client_id, self.token)
+      hunt_test_lib.TestHuntHelper(
           client, [self.client_id], token=self.token, check_flow_errors=False)
 
     self.assertEqual(len(self.email_messages), 2)
@@ -222,7 +249,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       events.Events.PublishEvent("NannyMessage", msg, token=self.token)
 
       # Now emulate a worker to process the event.
-      worker = test_lib.MockWorker(token=self.token)
+      worker = worker_test_lib.MockWorker(token=self.token)
       while worker.Next():
         pass
       worker.pool.Join()
@@ -256,8 +283,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     aff4.FACTORY.Delete(self.client_id, token=self.token)
 
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
-    for _ in test_lib.TestFlowHelper(
-        test_lib.ClientActionRunner.__name__,
+    for _ in flow_test_lib.TestFlowHelper(
+        ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -277,8 +304,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
 
     # Run it again - this should not update any record.
-    for _ in test_lib.TestFlowHelper(
-        test_lib.ClientActionRunner.__name__,
+    for _ in flow_test_lib.TestFlowHelper(
+        ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -294,8 +321,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     psutil.boot_time = lambda: current_boot_time + 600
 
     # Run it again - this should now update the boot time.
-    for _ in test_lib.TestFlowHelper(
-        test_lib.ClientActionRunner.__name__,
+    for _ in flow_test_lib.TestFlowHelper(
+        ClientActionRunner.__name__,
         client_mock,
         client_id=self.client_id,
         action="SendStartupInfo",
@@ -314,8 +341,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
 
       # Run it again - this should now update the client info.
-      for _ in test_lib.TestFlowHelper(
-          test_lib.ClientActionRunner.__name__,
+      for _ in flow_test_lib.TestFlowHelper(
+          ClientActionRunner.__name__,
           client_mock,
           client_id=self.client_id,
           action="SendStartupInfo",
@@ -340,7 +367,7 @@ sys.test_code_ran_here = True
     maintenance_utils.UploadSignedConfigBlob(
         code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
         client_mock,
         client_id=self.client_id,
@@ -360,7 +387,7 @@ sys.test_code_ran_here = py_args['value']
     maintenance_utils.UploadSignedConfigBlob(
         code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
         client_mock,
         client_id=self.client_id,
@@ -389,8 +416,8 @@ sys.test_code_ran_here = py_args['value']
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
-    with utils.Stubber(subprocess, "Popen", test_lib.Popen):
-      for _ in test_lib.TestFlowHelper(
+    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+      for _ in flow_test_lib.TestFlowHelper(
           administrative.LaunchBinary.__name__,
           client_mock,
           client_id=self.client_id,
@@ -400,18 +427,18 @@ sys.test_code_ran_here = py_args['value']
         pass
 
       # Check that the executable file contains the code string.
-      self.assertEqual(test_lib.Popen.binary, code)
+      self.assertEqual(client_test_lib.Popen.binary, code)
 
       # At this point, the actual binary should have been cleaned up by the
       # client action so it should not exist.
-      self.assertRaises(IOError, open, test_lib.Popen.running_args[0])
+      self.assertRaises(IOError, open, client_test_lib.Popen.running_args[0])
 
       # Check the binary was run with the correct command line.
-      self.assertEqual(test_lib.Popen.running_args[1], "--value")
-      self.assertEqual(test_lib.Popen.running_args[2], "356")
+      self.assertEqual(client_test_lib.Popen.running_args[1], "--value")
+      self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertTrue(test_lib.Popen.running_args[0].startswith(
+      self.assertTrue(client_test_lib.Popen.running_args[0].startswith(
           config.CONFIG["Client.tempdir_roots"][0]))
 
   def testExecuteLargeBinaries(self):
@@ -441,8 +468,8 @@ sys.test_code_ran_here = py_args['value']
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
-    with utils.Stubber(subprocess, "Popen", test_lib.Popen):
-      for _ in test_lib.TestFlowHelper(
+    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+      for _ in flow_test_lib.TestFlowHelper(
           administrative.LaunchBinary.__name__,
           client_mock,
           client_id=self.client_id,
@@ -452,18 +479,18 @@ sys.test_code_ran_here = py_args['value']
         pass
 
       # Check that the executable file contains the code string.
-      self.assertEqual(test_lib.Popen.binary, code)
+      self.assertEqual(client_test_lib.Popen.binary, code)
 
       # At this point, the actual binary should have been cleaned up by the
       # client action so it should not exist.
-      self.assertRaises(IOError, open, test_lib.Popen.running_args[0])
+      self.assertRaises(IOError, open, client_test_lib.Popen.running_args[0])
 
       # Check the binary was run with the correct command line.
-      self.assertEqual(test_lib.Popen.running_args[1], "--value")
-      self.assertEqual(test_lib.Popen.running_args[2], "356")
+      self.assertEqual(client_test_lib.Popen.running_args[1], "--value")
+      self.assertEqual(client_test_lib.Popen.running_args[2], "356")
 
       # Check the command was in the tmp file.
-      self.assertTrue(test_lib.Popen.running_args[0].startswith(
+      self.assertTrue(client_test_lib.Popen.running_args[0].startswith(
           config.CONFIG["Client.tempdir_roots"][0]))
 
   def testGetClientStats(self):
@@ -489,7 +516,7 @@ sys.test_code_ran_here = py_args['value']
 
         return [response]
 
-    for _ in test_lib.TestFlowHelper(
+    for _ in flow_test_lib.TestFlowHelper(
         administrative.GetClientStats.__name__,
         ClientMock(),
         token=self.token,

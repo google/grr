@@ -5,23 +5,23 @@ from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
-# pylint: disable=unused-import
 from grr.lib.flows.general import find
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
-class TestFindFlow(test_lib.FlowTestsBaseclass):
+class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def setUp(self):
     super(TestFindFlow, self).setUp()
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               test_lib.ClientVFSHandlerFixture)
+    self.vfs_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
     self.vfs_overrider.Start()
 
   def tearDown(self):
@@ -44,7 +44,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
@@ -75,7 +75,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
@@ -107,7 +107,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
@@ -136,7 +136,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
@@ -164,7 +164,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
@@ -179,7 +179,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
-    for s in test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,

@@ -6,8 +6,8 @@ import logging
 
 from grr import config
 from grr.lib import config_lib
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 
 class BuildConfigTestsBase(test_lib.GRRBaseTest):

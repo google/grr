@@ -5,11 +5,15 @@ import os
 
 from grr import config
 from grr.config import contexts
+from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib.blob_stores import memory_stream_bs
+from grr.lib.data_stores import fake_data_store
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
@@ -42,9 +46,17 @@ def TestInit():
   config.CONFIG.AddContext(contexts.TEST_CONTEXT,
                            "Context applied when we run tests.")
 
+  config.CONFIG.Set("Datastore.implementation",
+                    fake_data_store.FakeDataStore.__name__)
+  config.CONFIG.Set("Blobstore.implementation",
+                    memory_stream_bs.MemoryStreamBlobstore.__name__)
+
   # Tests additionally add a test configuration file.
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
+
+  data_store.DataStoreInit().Run()
+  aff4.AFF4InitHook().Run()
 
   if not INIT_RAN:
     log.ServerLoggingStartupInit()

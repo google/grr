@@ -5,15 +5,17 @@
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import fixture_test_lib
+from grr.test_lib import test_lib
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
 
 
-class ClientIndexTest(test_lib.AFF4ObjectTest):
+class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAnalyzeClient(self):
     index = aff4.FACTORY.Create(
@@ -21,7 +23,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         aff4_type=client_index.ClientIndex,
         mode="rw",
         token=self.token)
-    test_lib.ClientFixture("aff4:/" + CLIENT_ID, token=self.token)
+    fixture_test_lib.ClientFixture("aff4:/" + CLIENT_ID, token=self.token)
     client = aff4.FACTORY.Create(
         "aff4:/" + CLIENT_ID,
         aff4_type=aff4_grr.VFSGRRClient,

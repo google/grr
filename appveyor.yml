@@ -35,5 +35,6 @@ artifacts:
 
 # TODO(ogaro): Create a shared appveyor account, and use its encryption key.
 environment:
+  GCS_BUCKET: autobuilds.grr-response.com
   GCS_ENCRYPTION_KEY:
     secure: e4FbUfG/83Onfl5eDZ4O4uM5zyGVOBz2TBKf/gCs8fS093Hu2S5C5CTwGVDjE5+y

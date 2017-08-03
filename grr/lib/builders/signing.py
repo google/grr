@@ -41,22 +41,30 @@ class WindowsSigntoolCodeSigner(CodeSigner):
     self._verification_cmdline = verification_cmdline
 
   def SignBuffer(self, in_buffer):
-    with tempfile.NamedTemporaryFile() as temp_in:
-      temp_in.write(in_buffer)
-      temp_in.seek(0)
-    outfile = self.SignFile(temp_in.name)
-    return open(outfile, "rb").read()
+    fd, path = tempfile.mkstemp()
+    try:
+      with os.fdopen(fd, "wb") as temp_in:
+        temp_in.write(in_buffer)
+      self.SignFile(path)
+      with open(path, "rb") as temp_out:
+        res = temp_out.read()
+      return res
+    finally:
+      os.unlink(path)
 
   def SignFile(self, in_filename, out_filename=None):
     """Signs a file."""
     if out_filename:
       raise NotImplementedError(
           "WindowsSigntoolCodeSigner does not support out_filename.")
+    return self.SignFiles([in_filename])
 
-    subprocess.check_call("%s %s" % (self._signing_cmdline, in_filename))
+  def SignFiles(self, filenames):
+    """Signs multiple files at once."""
+    file_list = " ".join(filenames)
+    subprocess.check_call("%s %s" % (self._signing_cmdline, file_list))
     if self._verification_cmdline:
-      subprocess.check_call("%s %s" % (self._verification_cmdline, in_filename))
-    return in_filename
+      subprocess.check_call("%s %s" % (self._verification_cmdline, file_list))
 
 
 class WindowsOsslsigncodeCodeSigner(CodeSigner):
@@ -82,8 +90,8 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
     with tempfile.NamedTemporaryFile() as temp_in:
       temp_in.write(in_buffer)
       temp_in.seek(0)
-    outfile = self.SignFile(temp_in.name)
-    return open(outfile, "rb").read()
+      outfile = self.SignFile(temp_in.name)
+      return open(outfile, "rb").read()
 
   def SignFile(self, in_filename, out_filename=None):
     """Sign a file using osslsigncode.

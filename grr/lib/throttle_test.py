@@ -5,10 +5,11 @@ from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.test_lib import flow_test_lib
+from grr.test_lib import test_lib
 
 
 class ThrottleTest(test_lib.GRRBaseTest):
@@ -24,14 +25,14 @@ class ThrottleTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(self.BASE_TIME):
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=self.token)
 
     # One day + 1s later
     with test_lib.FakeTime(self.BASE_TIME + 86400 + 1):
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=self.token)
 
       # Disable the dup interval checking by setting it to 0.
@@ -42,7 +43,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          test_lib.DummyLogFlow.__name__,
+          flow_test_lib.DummyLogFlow.__name__,
           None,
           token=self.token)
 
@@ -50,32 +51,32 @@ class ThrottleTest(test_lib.GRRBaseTest):
       token2 = access_control.ACLToken(username="test2", reason="Running tests")
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=token2)
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=token2)
 
       # Should still succeed, since we count per-user
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          test_lib.DummyLogFlow.__name__,
+          flow_test_lib.DummyLogFlow.__name__,
           None,
           token=self.token)
 
       # Add another flow at current time
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=self.token)
 
       with self.assertRaises(throttle.ErrorDailyFlowRequestLimitExceeded):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
-            test_lib.DummyLogFlow.__name__,
+            flow_test_lib.DummyLogFlow.__name__,
             None,
             token=self.token)
 
@@ -89,20 +90,20 @@ class ThrottleTest(test_lib.GRRBaseTest):
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          test_lib.DummyLogFlow.__name__,
+          flow_test_lib.DummyLogFlow.__name__,
           None,
           token=self.token)
 
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=self.token)
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
-            test_lib.DummyLogFlow.__name__,
+            flow_test_lib.DummyLogFlow.__name__,
             None,
             token=self.token)
 
@@ -111,20 +112,20 @@ class ThrottleTest(test_lib.GRRBaseTest):
       throttler.EnforceLimits(
           self.client_id,
           self.token.username,
-          test_lib.DummyLogFlow.__name__,
+          flow_test_lib.DummyLogFlow.__name__,
           None,
           token=self.token)
 
       flow.GRRFlow.StartFlow(
           client_id=self.client_id,
-          flow_name=test_lib.DummyLogFlow.__name__,
+          flow_name=flow_test_lib.DummyLogFlow.__name__,
           token=self.token)
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
         throttler.EnforceLimits(
             self.client_id,
             self.token.username,
-            test_lib.DummyLogFlow.__name__,
+            flow_test_lib.DummyLogFlow.__name__,
             None,
             token=self.token)
 

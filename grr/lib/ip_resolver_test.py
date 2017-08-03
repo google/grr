@@ -4,8 +4,8 @@ import socket
 from grr.lib import flags
 from grr.lib import ip_resolver
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 
 class IPResolverTest(test_lib.GRRBaseTest):

@@ -18,13 +18,16 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import server_stubs
-from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.test_lib import flow_test_lib
+from grr.test_lib import rekall_test_lib
+from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class DummyDiskVolumeInfo(flow.GRRFlow):
@@ -52,13 +55,8 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
               total_allocation_units=78416500))
 
 
-class MemoryTest(test_lib.FlowTestsBaseclass):
-
-  def setUp(self):
-    super(MemoryTest, self).setUp()
-    test_lib.WriteComponent(
-        token=self.token,
-        version=memory.AnalyzeClientMemoryArgs().component_version)
+class MemoryTest(flow_test_lib.FlowTestsBaseclass):
+  pass
 
 
 class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
@@ -131,10 +129,17 @@ class TestMemoryCollector(MemoryTest):
     flow.GRRFlow.classes[
         filesystem.DiskVolumeInfo.__name__] = DummyDiskVolumeInfo
 
+    self.config_overrider = test_lib.ConfigOverrider({
+        "Rekall.profile_server":
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+    })
+    self.config_overrider.Start()
+
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
     flow.GRRFlow.classes[
         filesystem.DiskVolumeInfo.__name__] = self.old_diskvolume_flow
+    self.config_overrider.Stop()
 
   def testMemoryCollectorIsDisabledByDefault(self):
     with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
@@ -150,7 +155,7 @@ class TestMemoryCollector(MemoryTest):
           flow_name=memory.MemoryCollector.__name__,
           token=self.token)
 
-      for _ in test_lib.TestFlowHelper(
+      for _ in flow_test_lib.TestFlowHelper(
           self.flow_urn,
           self.client_mock,
           client_id=self.client_id,
@@ -251,10 +256,11 @@ class ListVADBinariesTest(MemoryTest):
   def setUp(self):
     super(ListVADBinariesTest, self).setUp()
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
-    self.os_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                              test_lib.ClientVFSHandlerFixture)
-    self.reg_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.os_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
+    self.reg_overrider = vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler)
     self.os_overrider.Start()
     self.reg_overrider.Start()
 
@@ -287,7 +293,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock()
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
@@ -308,7 +314,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
@@ -338,7 +344,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process, process])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
@@ -362,7 +368,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           client_id=self.client_id,
@@ -386,7 +392,7 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe])
 
     with test_lib.ConfigOverrider({"Rekall.enabled": True}):
-      for s in test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           memory.ListVADBinaries.__name__,
           client_mock,
           check_flow_errors=False,

@@ -6,15 +6,16 @@ import threading
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import sequential_collection
-from grr.lib import test_lib
 from grr.lib import utils
+from grr.test_lib import aff4_test_lib
+from grr.test_lib import test_lib
 
 
 class TestSequentialCollection(sequential_collection.SequentialCollection):
   RDF_TYPE = rdfvalue.RDFInteger
 
 
-class SequentialCollectionTest(test_lib.AFF4ObjectTest):
+class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def _TestCollection(self, collection_id):
     return TestSequentialCollection(
@@ -83,7 +84,7 @@ class TestIndexedSequentialCollection(
   RDF_TYPE = rdfvalue.RDFInteger
 
 
-class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
+class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def _TestCollection(self, collection_id):
     return TestIndexedSequentialCollection(
@@ -223,7 +224,7 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertGreater(len(collection._index), 16)
 
 
-class GeneralIndexedCollectionTest(test_lib.AFF4ObjectTest):
+class GeneralIndexedCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAddGet(self):
     collection = sequential_collection.GeneralIndexedCollection(
