@@ -984,6 +984,71 @@ class DataStore(object):
             timestamp=timestamp)):
       yield rdf_flows.GrrMessage.FromSerializedString(serialized)
 
+  # Index handling.
+
+  _INDEX_PREFIX = "kw_index:"
+  _INDEX_PREFIX_LEN = len(_INDEX_PREFIX)
+  _INDEX_COLUMN_FORMAT = _INDEX_PREFIX + "%s"
+
+  def _KeywordToURN(self, urn, keyword):
+    return urn.Add(keyword)
+
+  def IndexAddKeywordsForName(self, index_urn, name, keywords, token=None):
+    timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+    with self.GetMutationPool(token=token) as mutation_pool:
+      for keyword in set(keywords):
+        mutation_pool.Set(
+            self._KeywordToURN(index_urn, keyword),
+            self._INDEX_COLUMN_FORMAT % name,
+            "",
+            timestamp=timestamp)
+
+  def IndexRemoveKeywordsForName(self, index_urn, name, keywords, token=None):
+    with self.GetMutationPool(token=token) as mutation_pool:
+      for keyword in set(keywords):
+        mutation_pool.DeleteAttributes(
+            self._KeywordToURN(index_urn, keyword),
+            [self._INDEX_COLUMN_FORMAT % name])
+
+  def IndexReadPostingLists(self,
+                            index_urn,
+                            keywords,
+                            start_time,
+                            end_time,
+                            last_seen_map=None,
+                            token=None):
+    """Finds all objects associated with any of the keywords.
+
+    Args:
+      index_urn: The base urn of the index.
+      keywords: A collection of keywords that we are interested in.
+      start_time: Only considers keywords added at or after this point in time.
+      end_time: Only considers keywords at or before this point in time.
+      last_seen_map: If present, is treated as a dict and populated to map pairs
+        (keyword, name) to the timestamp of the latest connection found.
+      token: A data store token.
+    Returns:
+      A dict mapping each keyword to a set of relevant names.
+    """
+    keyword_urns = {self._KeywordToURN(index_urn, k): k for k in keywords}
+    result = {}
+    for kw in keywords:
+      result[kw] = set()
+
+    for keyword_urn, value in self.MultiResolvePrefix(
+        keyword_urns.keys(),
+        self._INDEX_PREFIX,
+        timestamp=(start_time, end_time + 1),
+        token=token):
+      for column, _, ts in value:
+        kw = keyword_urns[keyword_urn]
+        name = column[self._INDEX_PREFIX_LEN:]
+        result[kw].add(name)
+        if last_seen_map is not None:
+          last_seen_map[(kw, name)] = max(last_seen_map.get((kw, name), -1), ts)
+
+    return result
+
 
 class DBSubjectLock(object):
   """Provide a simple subject lock using the database.

@@ -251,17 +251,17 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     for label in client.GetLabelsNames():
       TryAppend("label", label)
 
-    return (client_id, keywords)
+    return client_id, keywords
 
-  def AddClient(self, client, **kwargs):
+  def AddClient(self, client):
     """Adds a client to the index.
 
     Args:
       client: A VFSGRRClient record to add or update.
-      **kwargs: Additional arguments to pass to the datastore.
     """
 
-    self.AddKeywordsForName(*self.AnalyzeClient(client), **kwargs)
+    client_id, keywords = self.AnalyzeClient(client)
+    self.AddKeywordsForName(client_id, keywords)
 
   def RemoveClientLabels(self, client):
     """Removes all labels for a given client object.

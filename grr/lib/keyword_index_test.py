@@ -11,8 +11,6 @@ from grr.test_lib import test_lib
 
 class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
 
-  sync = True
-
   def testKeywordIndex(self):
     index = aff4.FACTORY.Create(
         "aff4:/index1/",
@@ -22,13 +20,13 @@ class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     # "popular_keyword1" is relevant for 50 subjects.
     for i in range(50):
-      index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"], sync=self.sync)
+      index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"])
     results = index.Lookup(["popular_keyword1"])
     self.assertEqual(len(results), 50)
 
     # "popular_keyword2" is relevant for 75 subjects.
     for i in range(25, 100):
-      index.AddKeywordsForName("C.%X" % i, ["popular_keyword2"], sync=self.sync)
+      index.AddKeywordsForName("C.%X" % i, ["popular_keyword2"])
     results = index.Lookup(["popular_keyword2"])
     self.assertEqual(len(results), 75)
 
@@ -53,8 +51,7 @@ class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
         token=self.token)
     for i in range(50):
       with test_lib.FakeTime(1000 + i):
-        index.AddKeywordsForName(
-            "C.%X" % i, ["popular_keyword1"], sync=self.sync)
+        index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"])
     results = index.Lookup(["popular_keyword1"])
     self.assertEqual(len(results), 50)
 
@@ -78,23 +75,16 @@ class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
         token=self.token)
     for i in range(5):
       with test_lib.FakeTime(2000 + i):
-        index.AddKeywordsForName(
-            "C.000000", ["popular_keyword1"], sync=self.sync)
+        index.AddKeywordsForName("C.000000", ["popular_keyword1"])
 
     for i in range(10):
       with test_lib.FakeTime(1000 + i):
-        index.AddKeywordsForName(
-            "C.000000", ["popular_keyword2"], sync=self.sync)
+        index.AddKeywordsForName("C.000000", ["popular_keyword2"])
 
     ls_map = {}
     index.Lookup(["popular_keyword1", "popular_keyword2"], last_seen_map=ls_map)
     self.assertEqual(2004 * 1000000, ls_map[("popular_keyword1", "C.000000")])
     self.assertEqual(1009 * 1000000, ls_map[("popular_keyword2", "C.000000")])
-
-
-class AsyncKeywordIndexTest(KeywordIndexTest):
-
-  sync = False
 
 
 def main(argv):
