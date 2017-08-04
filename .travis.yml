@@ -117,7 +117,6 @@ matrix:
         - travis/deploy_to_gcs.sh
 
     # 32-bit Ubuntu docker container inside a 64-bit host, for 32-bit deb builds
-    # TODO(ogaro): Use an image owned by the 'grrdocker' account.
     - os: linux
       dist: trusty
       sudo: required
