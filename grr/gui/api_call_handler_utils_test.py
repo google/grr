@@ -16,7 +16,8 @@ from grr.gui import api_call_handler_utils
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib.aff4_objects import collects
+from grr.lib import rdfvalue
+from grr.lib import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -289,13 +290,10 @@ class FilterCollectionTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(FilterCollectionTest, self).setUp()
 
-    with aff4.FACTORY.Create(
-        "aff4:/tmp/foo/bar", collects.RDFValueCollection,
-        token=self.token) as fd:
-      for i in range(10):
-        fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
-
-    self.fd = aff4.FACTORY.Open("aff4:/tmp/foo/bar", token=self.token)
+    self.fd = sequential_collection.GeneralIndexedCollection(
+        rdfvalue.RDFURN("aff4:/tmp/foo/bar"), token=self.token)
+    for i in range(10):
+      self.fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
 
   def testFiltersByOffsetAndCount(self):
     data = api_call_handler_utils.FilterCollection(self.fd, 2, 5, None)

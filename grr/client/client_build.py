@@ -217,8 +217,8 @@ class TemplateBuilder(object):
     builder_obj.MakeExecutableTemplate(output_file=template_path)
 
 
-def SpawnProcess(popen_args, signing=None, passwd=None):
-  if signing and passwd is not None:
+def SpawnProcess(popen_args, passwd=None):
+  if passwd is not None:
     # We send the password via pipe to avoid creating a process with the
     # password as an argument that will get logged on some systems.
     p = subprocess.Popen(popen_args, stdin=subprocess.PIPE)
@@ -297,26 +297,26 @@ class MultiTemplateRepacker(object):
 
         # We only sign exes and rpms at the moment. The others will raise if we
         # try to ask for signing.
-        signing = False
         passwd = None
+
+        bulk_sign_installers = False
         if sign:
           if template.endswith(".exe.zip"):
             # This is for osslsigncode only.
             if platform.system() != "Windows":
               passwd = self.GetWindowsPassphrase()
-            signing = True
-            repack_args.append("--sign")
+              repack_args.append("--sign")
+            else:
+              bulk_sign_installers = True
             if signed_template:
               repack_args.append("--signed_template")
           elif template.endswith(".rpm.zip"):
             passwd = self.GetRPMPassPhrase()
-            signing = True
             repack_args.append("--sign")
 
         print "Calling %s" % " ".join(repack_args)
         results.append(
-            pool.apply_async(SpawnProcess, (repack_args,),
-                             dict(signing=signing, passwd=passwd)))
+            pool.apply_async(SpawnProcess, (repack_args,), dict(passwd=passwd)))
 
         # Also build debug if it's windows.
         if template.endswith(".exe.zip"):
@@ -325,8 +325,8 @@ class MultiTemplateRepacker(object):
           debug_args.append("--debug_build")
           print "Calling %s" % " ".join(debug_args)
           results.append(
-              pool.apply_async(SpawnProcess, (debug_args,),
-                               dict(signing=signing, passwd=passwd)))
+              pool.apply_async(
+                  SpawnProcess, (debug_args,), dict(passwd=passwd)))
 
     try:
       pool.close()
@@ -342,6 +342,16 @@ class MultiTemplateRepacker(object):
     except ErrorDuringRepacking:
       pool.terminate()
       raise
+
+    if bulk_sign_installers:
+      to_sign = []
+      for root, _, files in os.walk(output_dir):
+        for f in files:
+          if f.endswith(".exe"):
+            to_sign.append(os.path.join(root, f))
+      signer = repacking.TemplateRepacker().GetSigner(
+          ["ClientBuilder Context", "Target:Windows"])
+      signer.SignFiles(to_sign)
 
 
 def GetClientConfig(filename):

@@ -2044,15 +2044,6 @@ message AFF4ObjectLabelsList {
   repeated AFF4ObjectLabel labels = 1;
 }
 
-message SeekIndex {
-  repeated SeekIndexPair checkpoints = 1;
-}
-
-message SeekIndexPair {
-  optional uint64 index_offset = 1;
-  optional uint64 byte_offset = 2;
-}
-
 // File used for persistence on a system.  e.g. windows service or runkey
 // binary.
 message PersistenceFile {

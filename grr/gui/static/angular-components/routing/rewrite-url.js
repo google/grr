@@ -109,10 +109,6 @@ grrUi.routing.rewriteUrl = function(url) {
     case 'CanaryTestRenderer':
       return '/canary-test';
 
-    case 'RDFValueCollectionRenderer':
-      var path = hashState['aff4_path'] || '';
-      return '/rdf-collection?path=' + path;
-
     //
     // Client redirects.
     //

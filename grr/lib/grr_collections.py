@@ -6,6 +6,7 @@ from grr.lib import rdfvalue
 from grr.lib import sequential_collection
 from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 
@@ -36,3 +37,7 @@ class HuntErrorCollection(sequential_collection.IndexedSequentialCollection):
 
 class PluginStatusCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = output_plugin.OutputPluginBatchProcessingStatus
+
+
+class SignedBlobCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdf_crypto.SignedBlob

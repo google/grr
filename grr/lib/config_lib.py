@@ -1068,6 +1068,7 @@ class GrrConfigManager(object):
   }
 
   def MergeData(self, merge_data, raw_data=None):
+    """Merges data read from a config file into the current config."""
     self.FlushCache()
     if raw_data is None:
       raw_data = self.raw_data
@@ -1088,8 +1089,6 @@ class GrrConfigManager(object):
                  "deprecated or renamed. Check the release notes." % k)
           if flags.FLAGS.disallow_missing_config_definitions:
             raise MissingConfigDefinitionError(msg)
-          else:
-            logging.warning(msg)
 
         if isinstance(v, basestring):
           v = v.strip()

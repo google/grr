@@ -394,32 +394,6 @@ class WindowsClientRepacker(ClientRepacker):
     else:
       return errors
 
-  def InterpolateVariableInBinary(self, stream, parameter):
-    """Replace magic strings in the binary with config parameters."""
-    pattern = "<---------------- %s ------------------->" % parameter
-    pattern = pattern.encode("utf_16_le")
-
-    replacement = config.CONFIG.Get(parameter, context=self.context)
-    replacement = utils.SmartStr(replacement + "\x00").encode("utf_16_le")
-    replacement = replacement[:len(pattern)]
-
-    # Pad to the end of the string with nulls.
-    replacement += "\x00" * (len(pattern) - len(replacement))
-
-    start = 0
-    while 1:
-      offset = stream.getvalue().find(pattern, start)
-      if offset < 0:
-        return
-
-      stream.seek(offset)
-      stream.write(replacement)
-
-  def Sign(self, inbuf):
-    if self.signer:
-      return self.signer.SignBuffer(inbuf)
-    return inbuf
-
   def MakeDeployableBinary(self, template_path, output_path):
     """Repackage the template zip with the installer."""
     context = self.context + ["Client Context"]
@@ -430,54 +404,36 @@ class WindowsClientRepacker(ClientRepacker):
 
     z_template = zipfile.ZipFile(open(template_path, "rb"))
 
-    completed_files = []  # Track which files we've copied already.
+    # Track which files we've copied already.
+    completed_files = [
+        "grr-client.exe", "GRRservice.exe", "dbg_grr-client.exe",
+        "dbg_GRRservice.exe"
+    ]
 
     # Change the name of the main binary to the configured name.
     client_bin_name = config.CONFIG.Get("Client.binary_name", context=context)
 
-    extension = ""
-    if "windows" == config.CONFIG.Get("Client.platform", context=context):
-      extension = ".exe"
+    console_build = config.CONFIG.Get("ClientBuilder.console", context=context)
+    if console_build:
+      client_filename = "dbg_grr-client.exe"
+      service_filename = "dbg_GRRservice.exe"
+    else:
+      client_filename = "grr-client.exe"
+      service_filename = "GRRservice.exe"
 
-    # The template always has the same binary name.
-    bin_name = z_template.getinfo("grr-client" + extension)
-    bin_dat = cStringIO.StringIO()
-    bin_dat.write(z_template.read(bin_name))
+    bin_name = z_template.getinfo(client_filename)
+    output_zip.writestr(client_bin_name, z_template.read(bin_name))
 
-    # Set output to console on binary if needed.
-    SetPeSubsystem(
-        bin_dat,
-        console=config.CONFIG.Get("ClientBuilder.console", context=context))
-
-    # Interpolate resource strings.
-    for parameter in [
-        "Client.company_name", "Client.description", "Client.name",
-        "Template.version_string", "ClientBuilder.package_name"
-    ]:
-      self.InterpolateVariableInBinary(bin_dat, parameter)
-
-    output_zip.writestr(client_bin_name, self.Sign(bin_dat.getvalue()))
-
-    CopyFileInZip(z_template, "%s.manifest" % bin_name.filename, output_zip,
+    CopyFileInZip(z_template, "grr-client.exe.manifest", output_zip,
                   "%s.manifest" % client_bin_name)
-    completed_files.append(bin_name.filename)
-    completed_files.append("%s.manifest" % bin_name.filename)
+    completed_files.append("grr-client.exe.manifest")
 
     # Change the name of the service binary to the configured name.
-    service_template = z_template.getinfo("GRRservice.exe")
-
-    service_bin_dat = cStringIO.StringIO()
-    service_bin_dat.write(z_template.read(service_template))
-
-    # Set output to console on service binary if needed.
-    SetPeSubsystem(
-        service_bin_dat,
-        console=config.CONFIG.Get("ClientBuilder.console", context=context))
+    service_template = z_template.getinfo(service_filename)
 
     service_bin_name = config.CONFIG.Get(
         "Nanny.service_binary_name", context=context)
-    output_zip.writestr(service_bin_name, self.Sign(service_bin_dat.getvalue()))
-    completed_files.append(service_template.filename)
+    output_zip.writestr(service_bin_name, z_template.read(service_template))
 
     if self.signed_template:
       # If the template libs were already signed we can skip signing
@@ -578,7 +534,10 @@ class WindowsClientRepacker(ClientRepacker):
       out_data.write(zip_data.getvalue())
 
       # Then write the actual output file.
-      fd.write(self.Sign(out_data.getvalue()))
+      fd.write(out_data.getvalue())
+
+    if self.signer:
+      self.signer.SignFile(output_path)
 
     logging.info("Deployable binary generated at %s", output_path)
 

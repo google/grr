@@ -195,27 +195,6 @@ VSVersionInfo\(
     date=\(0, 0\)
     \),
   kids=[
-    StringFileInfo\(
-      [
-      StringTable\(
-        '040904B0',
-        [
-    StringStruct\(u'CompanyName',
-    u"<---------------- Client.company_name ------------------->"\),
-
-    StringStruct\(u'FileDescription',
-    u"<---------------- Client.description ------------------->"\),
-
-    StringStruct\(u'FileVersion',
-    u"<---------------- Source.version_string ------------------->"\),
-
-    StringStruct\(u'ProductName',
-    u"<---------------- Client.name ------------------->"\),
-
-    StringStruct\(u'OriginalFilename',
-    u"<---------------- ClientBuilder.package_name ------------------->"\),
-        ]\),
-    ]\),
   VarFileInfo\([VarStruct\('Translation', [1033, 1200]\)]\)
   ]
 \)

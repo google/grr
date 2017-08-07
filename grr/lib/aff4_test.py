@@ -158,10 +158,7 @@ class DeletionPoolTest(aff4_test_lib.AFF4ObjectTest):
   def testOpenCachesObjectEvenIfRequestedAff4TypeIsWrong(self):
     self._CreateObject("aff4:/obj", aff4.AFF4MemoryStream)
     self.assertRaises(
-        IOError,
-        self.pool.Open,
-        "aff4:/obj",
-        aff4_type=collects.RDFValueCollection)
+        IOError, self.pool.Open, "aff4:/obj", aff4_type=collects.GRRSignedBlob)
 
     self._CreateObject("aff4:/obj", aff4.AFF4Volume)
     obj = self.pool.Open("aff4:/obj")
@@ -196,8 +193,7 @@ class DeletionPoolTest(aff4_test_lib.AFF4ObjectTest):
 
     result = list(
         self.pool.MultiOpen(
-            ["aff4:/obj1", "aff4:/obj2"],
-            aff4_type=collects.RDFValueCollection))
+            ["aff4:/obj1", "aff4:/obj2"], aff4_type=collects.GRRSignedBlob))
     self.assertFalse(result)
 
     self._CreateObject("aff4:/obj1", aff4.AFF4Volume)

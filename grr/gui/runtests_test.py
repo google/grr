@@ -32,7 +32,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
         chrome_options=options)
 
     # pylint: disable=unused-variable,g-import-not-at-top
-    from grr.gui.plugins import tests
+    from grr.gui.selenium_tests import tests
     # pylint: enable=unused-variable,g-import-not-at-top
     # pylint: enable=unreachable
 

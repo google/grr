@@ -843,12 +843,7 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
 
 class RDFURNConverter(ExportConverter):
-  """Follows RDFURN and converts its target object into a set of RDFValues.
-
-  If urn points to a RDFValueCollection, RDFURNConverter goes through the
-  collection and converts every value there. If urn points to an object
-  with "STAT" attribute, it converts just that attribute.
-  """
+  """Follows RDFURN and converts its target object into a set of RDFValues."""
 
   input_rdf_type = "RDFURN"
 
@@ -876,9 +871,9 @@ class RDFURNConverter(ExportConverter):
     return []
 
 
-class RDFValueCollectionConverter(ExportConverter):
+class CollectionConverterBase(ExportConverter):
 
-  input_rdf_type = "RDFValueCollection"
+  input_rdf_type = None
 
   BATCH_SIZE = 1000
 
@@ -893,15 +888,15 @@ class RDFValueCollectionConverter(ExportConverter):
         yield v
 
 
-class GrrMessageCollectionConverter(RDFValueCollectionConverter):
+class GrrMessageCollectionConverter(CollectionConverterBase):
   input_rdf_type = "GrrMessageCollection"
 
 
-class HuntResultCollectionConverter(RDFValueCollectionConverter):
+class HuntResultCollectionConverter(CollectionConverterBase):
   input_rdf_type = "HuntResultCollection"
 
 
-class FlowResultCollectionConverter(RDFValueCollectionConverter):
+class FlowResultCollectionConverter(CollectionConverterBase):
   input_rdf_type = "FlowResultCollection"
 
 

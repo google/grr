@@ -1655,13 +1655,38 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(len(results), min(limit, 10))
 
   def testApi(self):
+    # pyformat: disable
     api = [
-        "DeleteAttributes", "MultiDeleteAttributes", "DeleteSubject",
-        "DeleteSubjects", "MultiResolvePrefix", "MultiSet", "Resolve",
-        "ResolveMulti", "ResolvePrefix", "ScanAttribute", "ScanAttributes",
-        "Set", "DBSubjectLock", "CreateNotifications", "DeleteNotifications",
-        "GetNotifications"
+        "CheckRequestsForCompletion",
+        "CreateNotifications",
+        "DBSubjectLock",
+        "DeleteAttributes",
+        "DeleteNotifications",
+        "DeleteRequest",
+        "DeleteRequests",
+        "DeleteSubject",
+        "DeleteSubjects",
+        "DeleteWellKnownFlowResponses",
+        "DestroyFlowStates",
+        "FetchResponsesForWellKnownFlow",
+        "GetNotifications",
+        "MultiDeleteAttributes",
+        "MultiDestroyFlowStates",
+        "MultiResolvePrefix",
+        "MultiSet",
+        "ReadCompletedRequests",
+        "ReadRequestsAndResponses",
+        "ReadResponses",
+        "ReadResponsesForRequestId",
+        "Resolve",
+        "ResolveMulti",
+        "ResolvePrefix",
+        "ScanAttribute",
+        "ScanAttributes",
+        "Set",
+        "StoreRequestsAndResponses",
     ]
+    # pyformat: enable
 
     implementation = data_store.DB
     reference = data_store.DataStore

@@ -113,13 +113,8 @@ class TemplateRepacker(object):
     z_in = zipfile.ZipFile(open(template_path, "rb"))
     with zipfile.ZipFile(
         output_file, mode="w", compression=zipfile.ZIP_DEFLATED) as z_out:
-      # The grr executables will be signed for each individual build after
-      # repack.
       build.CreateNewZipWithSignedLibs(
-          z_in,
-          z_out,
-          skip_signing_files=["grr-client.exe", "GRRservice.exe"],
-          signer=signer)
+          z_in, z_out, skip_signing_files=[], signer=signer)
 
   def RepackTemplate(self,
                      template_path,

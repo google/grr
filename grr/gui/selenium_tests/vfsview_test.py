@@ -10,6 +10,7 @@ from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.gui.api_plugins import vfs as api_vfs
 
+from grr.lib import aff4
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.test_lib import fixture_test_lib
@@ -111,6 +112,39 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     # Check that breadcrumbs got updated.
     self.WaitUntil(self.IsElementPresent,
                    "css=#content_rightPane .breadcrumb li:contains('os')")
+
+  def testClickingOnTreeNodeRefreshesChildrenFoldersList(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntil(self.IsElementPresent, "link=bin")
+
+    aff4.FACTORY.Delete(
+        "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
+
+    self.Click("link=c")
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
+
+  def testClickingOnTreeNodeArrowRefreshesChildrenFoldersList(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntil(self.IsElementPresent, "link=bin")
+
+    aff4.FACTORY.Delete(
+        "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
+
+    # Click on the arrow icon, it should close the tree branch.
+    self.Click("css=#_fs-os-c i.jstree-icon")
+    self.WaitUntilNot(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
+
+    # Click on the arrow icon again, it should reopen the tree
+    # branch. It should be updated.
+    self.Click("css=#_fs-os-c i.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
 
   @mock.patch.object(api_call_router_with_approval_checks.
                      ApiCallRouterWithApprovalChecksWithRobotAccess,

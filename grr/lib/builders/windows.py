@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import shutil
-import struct
 import subprocess
 import sys
 
@@ -155,6 +154,24 @@ class WindowsClientBuilder(build.ClientBuilder):
       shutil.copy(module, self.output_dir)
 
     self.BuildNanny()
+
+    # Generate a debug version of client executable and nanny.
+    shutil.copy(
+        os.path.join(self.output_dir, "GRRservice.exe"),
+        os.path.join(self.output_dir, "dbg_GRRservice.exe"))
+    with open(os.path.join(self.output_dir, "GRRservice.exe"), "r+") as fd:
+      build.SetPeSubsystem(fd, console=False)
+    with open(os.path.join(self.output_dir, "dbg_GRRservice.exe"), "r+") as fd:
+      build.SetPeSubsystem(fd, console=True)
+
+    shutil.copy(
+        os.path.join(self.output_dir, "grr-client.exe"),
+        os.path.join(self.output_dir, "dbg_grr-client.exe"))
+    with open(os.path.join(self.output_dir, "grr-client.exe"), "r+") as fd:
+      build.SetPeSubsystem(fd, console=False)
+    with open(os.path.join(self.output_dir, "dbg_grr-client.exe"), "r+") as fd:
+      build.SetPeSubsystem(fd, console=True)
+
     self.MakeZip(self.output_dir, self.template_file)
 
 
@@ -164,18 +181,3 @@ def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):
   if to_name is None:
     to_name = from_name
   to_zip.writestr(to_name, data)
-
-
-def SetPeSubsystem(fd, console=True):
-  """Takes file like obj and returns (offset, value) for the PE subsystem."""
-  current_pos = fd.tell()
-  fd.seek(0x3c)  # _IMAGE_DOS_HEADER.e_lfanew
-  header_offset = struct.unpack("<I", fd.read(4))[0]
-  # _IMAGE_NT_HEADERS.OptionalHeader.Subsystem ( 0x18 + 0x44)
-  subsystem_offset = header_offset + 0x5c
-  fd.seek(subsystem_offset)
-  if console:
-    fd.write("\x03")
-  else:
-    fd.write("\x02")
-  fd.seek(current_pos)

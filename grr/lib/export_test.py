@@ -17,7 +17,6 @@ from grr.lib import flags
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
 from grr.lib.checks import checks
 from grr.lib.flows.general import collectors
@@ -177,10 +176,6 @@ class ExportTest(ExportTestBase):
     self._ConvertsCollectionWithValuesWithSingleConverter(
         hunts_results.HuntResultCollection)
 
-  def testConvertsRDFValueCollectionWithValuesWithSingleConverter(self):
-    self._ConvertsCollectionWithValuesWithSingleConverter(
-        collects.RDFValueCollection)
-
   def _ConvertsCollectionWithMultipleConverters(self, coll_type):
     fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
 
@@ -200,9 +195,6 @@ class ExportTest(ExportTestBase):
                       if isinstance(v, DummyRDFValue)], ["some1A", "some2A"])
     self.assertEqual([str(v) for v in results
                       if isinstance(v, DummyRDFValue2)], ["some1B", "some2B"])
-
-  def testConvertsRDFValueCollectionWithValuesWithMultipleConverters(self):
-    self._ConvertsCollectionWithMultipleConverters(collects.RDFValueCollection)
 
   def testConvertsHuntResultCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters(
@@ -851,35 +843,6 @@ class ExportTest(ExportTestBase):
                          "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
         self.assertEqual(export_result.pecoff_hash_sha1,
                          "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
-
-  def testRDFURNConverterWithURNPointingToCollection(self):
-    urn = self.client_id.Add("some/collection")
-
-    fd = aff4.FACTORY.Create(urn, collects.RDFValueCollection, token=self.token)
-    fd.Add(
-        rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(
-                path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
-            st_mode=33184,
-            st_ino=1063090,
-            st_atime=1336469177,
-            st_mtime=1336129892,
-            st_ctime=1336129892))
-    fd.Close()
-
-    converter = export.RDFURNConverter()
-    results = list(converter.Convert(self.metadata, urn, token=self.token))
-
-    self.assertTrue(len(results))
-
-    exported_files = [
-        r for r in results if r.__class__.__name__ == "ExportedFile"
-    ]
-    self.assertEqual(len(exported_files), 1)
-    exported_file = exported_files[0]
-
-    self.assertTrue(exported_file)
-    self.assertEqual(exported_file.urn, self.client_id.Add("fs/os/some/path"))
 
   def testRDFBytesConverter(self):
     data = rdfvalue.RDFBytes("foobar")

@@ -41,10 +41,6 @@ describe('rewriteUrl()', function() {
   // Canary test.
   mapping['main=CanaryTestRenderer'] = '/canary-test';
 
-  // RDFValueCollection.
-  mapping['main=RDFValueCollectionRenderer'] = '/rdf-collection?path=';
-  mapping['main=RDFValueCollectionRenderer&aff4_path=test'] = '/rdf-collection?path=test';
-
   // HostTable.
   mapping['main=HostTable'] = '/search?q=';
   mapping['main=HostTable&q=test'] = '/search?q=test';

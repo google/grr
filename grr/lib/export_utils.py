@@ -207,10 +207,6 @@ def RecursiveDownload(dir_obj,
 
 def _OpenCollectionPath(coll_path, token=None):
   """Tries to open various types of collections at the given path."""
-  coll = aff4.FACTORY.Open(coll_path, token=token)
-  if coll.__class__.__name__ == "RDFValueCollection":
-    return coll
-
   collection = results.HuntResultCollection(coll_path, token=token)
   if collection and collection[0].payload:
     return collection
