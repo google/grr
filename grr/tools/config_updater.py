@@ -4,7 +4,6 @@
 
 import argparse
 import getpass
-import json
 import os
 
 import re
@@ -16,6 +15,7 @@ import sys
 import urlparse
 
 import pkg_resources
+import yaml
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -889,13 +889,13 @@ def main(unused_argv):
     print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "upload_artifact":
-    json.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
+    yaml.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
     base_urn = aff4.ROOT_URN.Add("artifact_store")
     try:
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file, "rb").read(1000000),
           base_urn=base_urn,
-          token=None,
+          token=token,
           overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e
