@@ -50,7 +50,11 @@ Server Features:
  * Basic system timelining features.
  * Basic reporting infrastructure.
 
+External tools working with GRR:
+ * [API client library in PowerShell](https://github.com/swisscom/PowerGRR) working on Windows, Linux and macOS for easy GRR automation and scripting, developed by Swisscom.
+
 See [quickstart](https://github.com/google/grr-doc/blob/master/quickstart.adoc) to start using it.
+
 
 Contact Us
 ----------
