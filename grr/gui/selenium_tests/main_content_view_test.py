@@ -133,28 +133,6 @@ class TestContentView(gui_test_lib.SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "Nothing to worry about!")
     self.assertFalse(self.IsTextPresent("Houston, Houston, we have a prob..."))
 
-  def testGlobalNotificationIsSetViaGlobalFlow(self):
-    self.CreateAdminUser(self.token.username)
-
-    self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "client_query")
-    self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
-
-    self.Click("css=a[grrtarget=globalFlows]")
-    self.Click("css=#_Administrative")
-    self.Click("link=SetGlobalNotification")
-
-    self.Type("css=grr-start-flow-form label:contains('Header') "
-              "~ * input", "Oh no, we're doomed!")
-    self.Type("css=grr-start-flow-form label:contains('Content') "
-              "~ * input", "Houston, Houston, we have a prob...")
-
-    self.Click("css=button.Launch")
-
-    self.Open("/")
-    self.WaitUntil(self.IsTextPresent, "Oh no, we're doomed!")
-    self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
-
 
 def main(argv):
   # Run the full test suite

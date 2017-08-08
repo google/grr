@@ -10,7 +10,6 @@ RUN apt-get update && \
   git \
   libffi-dev \
   libssl-dev \
-  prelink \
   python-dev \
   python-pip \
   rpm \

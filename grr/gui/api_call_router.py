@@ -508,8 +508,6 @@ class ApiCallRouter(object):
 
     raise NotImplementedError()
 
-  # Note: handles both client and globals flows. It's cleaner to have
-  # a separate API for global flows.
   @Category("Flows")
   @ArgsType(api_flow.ApiCreateFlowArgs)
   @ResultType(api_flow.ApiFlow)
@@ -610,18 +608,6 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/log")
   def ListFlowLogs(self, args, token=None):
     """List logs of the flow."""
-
-    raise NotImplementedError()
-
-  # Global flows methods.
-  # ====================
-  #
-  @Category("Flows")
-  @ArgsType(api_flow.ApiCreateFlowArgs)
-  @ResultType(api_flow.ApiFlow)
-  @Http("POST", "/api/flows")
-  def CreateGlobalFlow(self, args, token=None):
-    """Start a global flow."""
 
     raise NotImplementedError()
 
@@ -1205,7 +1191,6 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Reflection")
-  @ArgsType(api_flow.ApiListFlowDescriptorsArgs)
   @ResultType(api_flow.ApiListFlowDescriptorsResult)
   @Http("GET", "/api/flows/descriptors")
   @NoAuditLogRequired()

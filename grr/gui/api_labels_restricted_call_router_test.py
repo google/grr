@@ -137,9 +137,6 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.ListFlowOutputPluginErrors, client_id=self.client_id)
     self.CheckMethod(c.ListFlowLogs, client_id=self.client_id)
 
-    # Global flows methods.
-    self.CheckMethod(c.CreateGlobalFlow)
-
     # Cron jobs methods.
     self.CheckMethod(c.ListCronJobs)
     self.CheckMethod(c.CreateCronJob)

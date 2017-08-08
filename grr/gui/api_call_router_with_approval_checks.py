@@ -51,10 +51,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.legacy_manager.CheckIfCanStartFlow(
         token.RealUID(), flow_name, with_client_id=True)
 
-  def CheckIfCanStartGlobalFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(
-        token.RealUID(), flow_name, with_client_id=False)
-
   def CheckIfUserIsAdmin(self, token=None):
     user_managers.CheckUserForLabels(token.username, ["admin"], token=token)
 
@@ -301,15 +297,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.CheckClientAccess(args.client_id, token=token)
 
     return self.delegate.ListFlowLogs(args, token=token)
-
-  # Global flows methods.
-  # ====================
-  #
-  def CreateGlobalFlow(self, args, token=None):
-    self.CheckIfCanStartGlobalFlow(
-        args.flow.name or args.flow.runner_args.flow_name, token=token)
-
-    return self.delegate.CreateGlobalFlow(args, token=token)
 
   # Cron jobs methods.
   # =================

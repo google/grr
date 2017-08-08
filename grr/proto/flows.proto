@@ -1173,43 +1173,6 @@ message ChromePluginsArgs {
     }, default=false];
 }
 
-// SUID Flows.
-// Next field ID: 5
-message RequestApprovalWithReasonFlowArgs {
-  optional string reason = 1 [(sem_type) = {
-      description: "Reason for approval",
-    }, default="Unspecified"];
-
-  optional string approver = 2 [(sem_type) = {
-      description: "Approver username",
-    }];
-
-  optional string subject_urn = 3 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of the object that approval is required for.",
-    }];
-
-  optional string email_cc_address = 4 [(sem_type) = {
-      description: "Email address string to CC on this approval.",
-    }];
-}
-
-// Next field ID: 4
-message GrantApprovalWithReasonFlowArgs {
-  optional string reason = 1 [(sem_type) = {
-      description: "Reason for approval",
-    }, default="Unspecified"];
-
-  optional string delegate = 2 [(sem_type) = {
-      description: "Delegate username",
-    }];
-
-  optional string subject_urn = 3 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of the object that approval is required for.",
-    }];
-}
-
 // Next field ID: 3
 message UpdateVFSFileArgs {
   optional string vfs_file_urn = 1 [(sem_type) = {

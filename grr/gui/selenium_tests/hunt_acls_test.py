@@ -7,7 +7,6 @@ from grr.gui import gui_test_lib
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib.aff4_objects import security
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
@@ -118,12 +117,11 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantHuntApprovalFlow.__name__,
+    security.HuntApprovalGrantor(
         subject_urn=hunt_id,
         reason=self.reason,
         delegate=self.token.username,
-        token=token)
+        token=token).Grant()
 
     self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
@@ -190,34 +188,30 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestHuntApprovalFlow.__name__,
+    security.HuntApprovalRequestor(
         subject_urn=hunt1_id,
         reason=self.reason,
         approver="approver",
-        token=token)
+        token=token).Request()
     token = access_control.ACLToken(username=self.token.username)
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestHuntApprovalFlow.__name__,
+    security.HuntApprovalRequestor(
         subject_urn=hunt2_id,
         reason=self.reason,
         approver="approver",
-        token=token)
+        token=token).Request()
 
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantHuntApprovalFlow.__name__,
+    security.HuntApprovalGrantor(
         subject_urn=hunt1_id,
         reason=self.reason,
         delegate="otheruser",
-        token=token)
+        token=token).Grant()
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantHuntApprovalFlow.__name__,
+    security.HuntApprovalGrantor(
         subject_urn=hunt2_id,
         reason=self.reason,
         delegate=self.token.username,
-        token=token)
+        token=token).Grant()
 
   def testHuntApprovalsArePerHunt(self):
     self.Create2HuntsForDifferentUsers()

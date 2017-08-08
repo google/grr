@@ -969,6 +969,9 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiFlow
 
   def Handle(self, args, token=None):
+    if not args.client_id:
+      raise ValueError("client_id must be provided")
+
     flow_name = args.flow.name
     if not flow_name:
       flow_name = args.flow.runner_args.flow_name
@@ -985,11 +988,8 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         rdf_structs.SemanticDescriptor.Labels.HIDDEN,
         exceptions="output_plugins")
 
-    client_urn = None
-    if args.client_id:
-      client_urn = args.client_id.ToClientURN()
     flow_id = flow.GRRFlow.StartFlow(
-        client_id=client_urn,
+        client_id=args.client_id.ToClientURN(),
         flow_name=flow_name,
         token=token,
         args=args.flow.args,
@@ -1019,10 +1019,6 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
         flow_urn, reason="Cancelled in GUI", token=token, force=True)
 
 
-class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiListFlowDescriptorsArgs
-
-
 class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowDescriptorsResult
   rdf_deps = [
@@ -1033,23 +1029,11 @@ class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available flows descriptors."""
 
-  args_type = ApiListFlowDescriptorsArgs
   result_type = ApiListFlowDescriptorsResult
-
-  client_flow_behavior = flow.FlowBehaviour("Client Flow")
-  global_flow_behavior = flow.FlowBehaviour("Global Flow")
 
   def __init__(self, legacy_security_manager=None):
     super(ApiListFlowDescriptorsHandler, self).__init__()
     self.legacy_security_manager = legacy_security_manager
-
-  def _FlowTypeToBehavior(self, flow_type):
-    if flow_type == self.args_type.FlowType.CLIENT:
-      return self.client_flow_behavior
-    elif flow_type == self.args_type.FlowType.GLOBAL:
-      return self.global_flow_behavior
-    else:
-      raise ValueError("Unexpected flow type: " + str(flow_type))
 
   def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
@@ -1063,38 +1047,10 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
         continue
 
       # Only show flows that the user is allowed to start.
-      can_be_started_on_client = False
       try:
         if self.legacy_security_manager:
-          self.legacy_security_manager.CheckIfCanStartFlow(
-              token, name, with_client_id=True)
-        can_be_started_on_client = True
+          self.legacy_security_manager.CheckIfCanStartFlow(token, name)
       except access_control.UnauthorizedAccess:
-        pass
-
-      can_be_started_globally = False
-      try:
-        if self.legacy_security_manager:
-          self.legacy_security_manager.CheckIfCanStartFlow(
-              token, name, with_client_id=False)
-        can_be_started_globally = True
-      except access_control.UnauthorizedAccess:
-        pass
-
-      if args.HasField("flow_type"):
-        # Skip if there are behaviours that are not supported by the class.
-        behavior = self._FlowTypeToBehavior(args.flow_type)
-        if not behavior.IsSupported(cls.behaviours):
-          continue
-
-        if (args.flow_type == self.args_type.FlowType.CLIENT and
-            not can_be_started_on_client):
-          continue
-
-        if (args.flow_type == self.args_type.FlowType.GLOBAL and
-            not can_be_started_globally):
-          continue
-      elif not (can_be_started_on_client or can_be_started_globally):
         continue
 
       result.append(ApiFlowDescriptor().InitFromFlowClass(cls, token=token))

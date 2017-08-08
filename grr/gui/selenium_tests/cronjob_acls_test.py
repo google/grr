@@ -7,7 +7,6 @@ from grr.gui import gui_test_lib
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import security
@@ -99,12 +98,11 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantCronJobApprovalFlow.__name__,
+    security.CronJobApprovalGrantor(
         subject_urn=rdfvalue.RDFURN("aff4:/cron/OSBreakDown"),
         reason=self.reason,
         delegate=self.token.username,
-        token=token)
+        token=token).Grant()
 
     # Now test starts up
     self.Open("/")

@@ -144,14 +144,6 @@ class ClientFlowWithCategory(flow.GRRFlow):
   category = "/Test/"
 
 
-class GlobalFlowWithoutCategory(flow.GRRGlobalFlow):
-  pass
-
-
-class GlobalFlowWithCategory(flow.GRRGlobalFlow):
-  category = "/Test/"
-
-
 class FullAccessControlManagerTest(test_lib.GRRBaseTest,
                                    acl_test_lib.AclTestMixin):
   """Unit tests for FullAccessControlManager."""
@@ -270,12 +262,7 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
         self.access_manager.CheckHuntAccess(token, "aff4:/hunts/H:12344"))
     self.assertTrue(
         self.access_manager.CheckCronJobAccess(token, "aff4:/cron/blah"))
-    self.assertTrue(
-        self.access_manager.CheckIfCanStartFlow(
-            token, "SomeFlow", with_client_id=True))
-    self.assertTrue(
-        self.access_manager.CheckIfCanStartFlow(
-            token, "SomeFlow", with_client_id=False))
+    self.assertTrue(self.access_manager.CheckIfCanStartFlow(token, "SomeFlow"))
     self.assertTrue(
         self.access_manager.CheckDataStoreAccess(
             token, ["aff4:/foo/bar"], requested_access="w"))
@@ -299,27 +286,12 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
   def testCheckIfCanStartFlowReturnsTrueForClientFlowOnClient(self):
     self.assertTrue(
         self.access_manager.CheckIfCanStartFlow(
-            self.token, ClientFlowWithCategory.__name__, with_client_id=True))
+            self.token, ClientFlowWithCategory.__name__))
 
   def testCheckIfCanStartFlowRaisesForClientFlowWithoutCategoryOnClient(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
       self.access_manager.CheckIfCanStartFlow(
-          self.token, ClientFlowWithoutCategory.__name__, with_client_id=True)
-
-  def testCheckIfCanStartFlowRaisesForClientFlowAsGlobal(self):
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      self.access_manager.CheckIfCanStartFlow(
-          self.token, ClientFlowWithCategory.__name__, with_client_id=False)
-
-  def testCheckIfCanStartFlowRaisesForGlobalFlowWithoutCategoryAsGlobal(self):
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      self.access_manager.CheckIfCanStartFlow(
-          self.token, GlobalFlowWithoutCategory.__name__, with_client_id=False)
-
-  def testCheckIfCanStartFlowReturnsTrueForGlobalFlowWithCategoryAsGlobal(self):
-    self.assertTrue(
-        self.access_manager.CheckIfCanStartFlow(
-            self.token, GlobalFlowWithCategory.__name__, with_client_id=False))
+          self.token, ClientFlowWithoutCategory.__name__)
 
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")

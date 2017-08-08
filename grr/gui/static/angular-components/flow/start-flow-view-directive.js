@@ -25,9 +25,6 @@ grrUi.flow.startFlowViewDirective.StartFlowViewController = function(
   /** @type {string} */
   this.cliendId;
 
-  /** @type {string} */
-  this.flowType;
-
   /** @type {Object} */
   this.selection = {};
 
@@ -46,7 +43,6 @@ var StartFlowViewController =
  */
 StartFlowViewController.prototype.onClientIdChange_ = function(clientId) {
   this.clientId = clientId;
-  this.flowType = clientId ? 'CLIENT' : 'GLOBAL';
 };
 
 

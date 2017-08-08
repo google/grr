@@ -39,40 +39,19 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController =
     this.userSettings = response.data['value']['settings'];
   }.bind(this));
 
-  this.scope_.$watch('flowType', this.onFlowTypeChange_.bind(this));
-  this.scope_.$watchGroup(['controller.userSettings',
-                           'controller.flowsDescriptors'],
-                          this.onDescriptorsOrSettingsChange_.bind(this));
-};
-var FlowDescriptorsTreeController =
-    grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController;
-
-
-/**
- * Handles changes in flowType binding,
- *
- * @param {?string} newValue New flowType binding value.
- * @private
- */
-FlowDescriptorsTreeController.prototype.onFlowTypeChange_ = function(newValue) {
-  var params = {};
-
-  if (angular.isDefined(newValue)) {
-    if (newValue == 'CLIENT') {
-      params['flow_type'] = 'client';
-    } else if (newValue == 'GLOBAL') {
-      params['flow_type'] = 'global';
-    } else {
-      throw new Error('Unknown flow type: ' + newValue);
-    }
-  }
-
-  this.grrApiService_.get('/flows/descriptors', params).then(
+  this.grrApiService_.get('/flows/descriptors').then(
       function(response) {
         this.flowsDescriptors = this.groupDescriptorsByCategory_(
             response['data']['items']);
       }.bind(this));
+
+  this.scope_.$watchGroup(['controller.userSettings',
+                           'controller.flowsDescriptors'],
+                          this.onDescriptorsOrSettingsChange_.bind(this));
+
 };
+var FlowDescriptorsTreeController =
+    grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController;
 
 
 /**
@@ -198,7 +177,6 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective =
     function() {
   return {
     scope: {
-      flowType: '=?',
       selectedDescriptor: '=?'
     },
     restrict: 'E',

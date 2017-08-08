@@ -3,13 +3,10 @@
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import flow
 from grr.lib import rdfvalue
 
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import users
-
-from grr.lib.rdfvalues import client as rdf_client
 
 
 class AclTestMixin(object):
@@ -29,16 +26,12 @@ class AclTestMixin(object):
 
   def RequestClientApproval(self, client_id, token=None, approver="approver"):
     """Create an approval request to be sent to approver."""
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=client_id,
-        flow_name=security.RequestClientApprovalFlow.__name__,
+    requestor = security.ClientApprovalRequestor(
+        subject_urn=client_id,
         reason=token.reason,
-        subject_urn=rdf_client.ClientURN(client_id),
         approver=approver,
         token=token)
-    flow_fd = aff4.FACTORY.Open(
-        flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-    return flow_fd.state.approval_urn
+    return requestor.Request()
 
   def GrantClientApproval(self,
                           client_id,
@@ -56,13 +49,12 @@ class AclTestMixin(object):
     self.CreateAdminUser(approver)
 
     approver_token = access_control.ACLToken(username=approver)
-    flow.GRRFlow.StartFlow(
-        client_id=client_id,
-        flow_name=security.GrantClientApprovalFlow.__name__,
+    grantor = security.ClientApprovalGrantor(
+        subject_urn=client_id,
         reason=reason,
         delegate=delegate,
-        subject_urn=rdf_client.ClientURN(client_id),
         token=approver_token)
+    grantor.Grant()
 
   def RequestAndGrantClientApproval(self,
                                     client_id,
@@ -80,41 +72,37 @@ class AclTestMixin(object):
     token = token or self.token
 
     # Create the approval and approve it.
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestHuntApprovalFlow.__name__,
-        subject_urn=rdfvalue.RDFURN(hunt_urn),
+    security.HuntApprovalRequestor(
+        subject_urn=hunt_urn,
         reason=token.reason,
         approver="approver",
-        token=token)
+        token=token).Request()
 
     self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantHuntApprovalFlow.__name__,
-        subject_urn=rdfvalue.RDFURN(hunt_urn),
+    security.HuntApprovalGrantor(
+        subject_urn=hunt_urn,
         reason=token.reason,
         delegate=token.username,
-        token=approver_token)
+        token=approver_token).Grant()
 
   def GrantCronJobApproval(self, cron_job_urn, token=None):
     """Grants an approval for a given cron job."""
     token = token or self.token
 
     # Create cron job approval and approve it.
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestCronJobApprovalFlow.__name__,
+    security.CronJobApprovalRequestor(
         subject_urn=rdfvalue.RDFURN(cron_job_urn),
         reason=self.token.reason,
         approver="approver",
-        token=token)
+        token=token).Request()
 
     self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(
-        flow_name=security.GrantCronJobApprovalFlow.__name__,
-        subject_urn=rdfvalue.RDFURN(cron_job_urn),
+    security.CronJobApprovalGrantor(
+        subject_urn=cron_job_urn,
         reason=token.reason,
         delegate=token.username,
-        token=approver_token)
+        token=approver_token).Grant()

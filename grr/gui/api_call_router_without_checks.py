@@ -162,13 +162,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListFlowLogs(self, args, token=None):
     return api_flow.ApiListFlowLogsHandler()
 
-  # Global flows methods.
-  # ====================
-  #
-  def CreateGlobalFlow(self, args, token=None):
-    # TODO(user): split global- and client- flows creation handlers.
-    return api_flow.ApiCreateFlowHandler()
-
   # Cron jobs methods.
   # =================
   #

@@ -109,10 +109,10 @@ class GRRBaseTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(GRRBaseTest, cls).setUpClass()
-    with cls._set_up_lock:
-      if not cls._set_up_done:
+    with GRRBaseTest._set_up_lock:
+      if not GRRBaseTest._set_up_done:
         testing_startup.TestInit()
-        cls._set_up_done = True
+        GRRBaseTest._set_up_done = True
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()

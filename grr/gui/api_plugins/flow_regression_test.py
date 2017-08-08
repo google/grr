@@ -437,14 +437,7 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
       # RunReport flow is only shown for admins.
       self.CreateAdminUser("test")
 
-      self.Check(
-          "ListFlowDescriptors", args=flow_plugin.ApiListFlowDescriptorsArgs())
-      self.Check(
-          "ListFlowDescriptors",
-          args=flow_plugin.ApiListFlowDescriptorsArgs(flow_type="CLIENT"))
-      self.Check(
-          "ListFlowDescriptors",
-          args=flow_plugin.ApiListFlowDescriptorsArgs(flow_type="GLOBAL"))
+      self.Check("ListFlowDescriptors")
 
 
 class ApiStartRobotGetFilesOperationHandlerRegressionTest(

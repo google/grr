@@ -25,7 +25,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import stats as aff4_stats
-from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import discovery
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
@@ -903,24 +902,3 @@ class LaunchBinary(flow.GRRFlow):
       self.Log("Stderr: %s" % self._TruncateResult(response.stderr))
 
       self.SendReply(response)
-
-
-class SetGlobalNotification(flow.GRRGlobalFlow):
-  """Updates user's global notification timestamp."""
-
-  # This is an administrative flow.
-  category = "/Administrative/"
-
-  # Only admins can run this flow.
-  AUTHORIZED_LABELS = ["admin"]
-
-  args_type = aff4_users.GlobalNotification
-
-  @flow.StateHandler()
-  def Start(self):
-    with aff4.FACTORY.Create(
-        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-        aff4_type=aff4_users.GlobalNotificationStorage,
-        mode="rw",
-        token=self.token) as storage:
-      storage.AddNotification(self.args)

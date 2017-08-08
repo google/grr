@@ -5,7 +5,6 @@ from grr import config
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import security
@@ -108,13 +107,11 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=self.token)
     self.assertFalse(isinstance(user, users.GRRUser))
 
-    flow.GRRFlow.StartFlow(
-        client_id=self.client_id,
-        flow_name=security.RequestClientApprovalFlow.__name__,
-        reason=self.token.reason,
+    security.ClientApprovalRequestor(
         subject_urn=self.client_id,
+        reason=self.token.reason,
         approver=username,
-        token=self.token)
+        token=self.token).Request()
 
     user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=self.token)
     self.assertFalse(isinstance(user, users.GRRUser))
@@ -125,7 +122,7 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ApprovalWithReasonTest, self).setUp()
-    self.approval_obj = security.AbstractApprovalWithReasonMixin()
+    self.approval_obj = security.AbstractApprovalBase()
 
   def _CreateReason(self, reason, result):
     self.assertEqual(self.approval_obj.CreateReasonHTML(reason), result)
@@ -160,13 +157,11 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     client_id = self.SetupClients(1)[0]
 
-    flow.GRRFlow.StartFlow(
-        client_id=client_id,
-        flow_name=security.RequestClientApprovalFlow.__name__,
-        reason=self.token.reason,
+    security.ClientApprovalRequestor(
         subject_urn=client_id,
+        reason=self.token.reason,
         approver="approver",
-        token=self.token)
+        token=self.token).Request()
 
     approval_id = list(
         aff4.FACTORY.ListChildren(
@@ -191,12 +186,11 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     cron_urn = rdfvalue.RDFURN("aff4:/cron/CronJobName")
 
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestCronJobApprovalFlow.__name__,
+    security.CronJobApprovalRequestor(
         reason=self.token.reason,
         subject_urn=cron_urn,
         approver="approver",
-        token=self.token)
+        token=self.token).Request()
 
     approval_id = list(
         aff4.FACTORY.ListChildren(
@@ -221,12 +215,11 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:ABCD1234")
 
-    flow.GRRFlow.StartFlow(
-        flow_name=security.RequestHuntApprovalFlow.__name__,
+    security.HuntApprovalRequestor(
         reason=self.token.reason,
         subject_urn=hunt_urn,
         approver="approver",
-        token=self.token)
+        token=self.token).Request()
 
     approval_id = list(
         aff4.FACTORY.ListChildren(

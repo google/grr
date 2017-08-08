@@ -18,7 +18,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -245,15 +244,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_flow.ApiListFlowLogsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFlowLogs, "CheckClientAccess", args=args)
-
-  ACCESS_CHECKED_METHODS.extend([
-      "CreateGlobalFlow"])  # pyformat: disable
-
-  def testAllGlobalFlowsMethodsAreAccessChecked(self):
-    args = api_flow.ApiCreateFlowArgs(flow=api_flow.ApiFlow(
-        name=processes.ListProcesses.__name__))
-    self.CheckMethodIsAccessChecked(
-        self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "ForceRunCronJob",

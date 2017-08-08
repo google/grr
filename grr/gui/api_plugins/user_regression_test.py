@@ -9,7 +9,6 @@ from grr.gui.api_plugins import user as user_plugin
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import security
@@ -43,38 +42,28 @@ class ApiGetClientApprovalHandlerRegressionTest(
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(
-          client_id=clients[0],
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      approval_urn = security.ClientApprovalRequestor(
           reason="foo",
           subject_urn=clients[0],
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval1_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval1_id = approval_urn.Basename()
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(
-          client_id=clients[1],
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      approval_urn = security.ClientApprovalRequestor(
           reason="bar",
           subject_urn=clients[1],
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval2_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval2_id = approval_urn.Basename()
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(
-          client_id=clients[1],
-          flow_name=security.GrantClientApprovalFlow.__name__,
+      security.ClientApprovalGrantor(
           reason="bar",
           delegate=self.token.username,
           subject_urn=clients[1],
-          token=approver_token)
+          token=approver_token).Grant()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -114,16 +103,12 @@ class ApiGrantClientApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       requestor_token = access_control.ACLToken(username="requestor")
-      flow_urn = flow.GRRFlow.StartFlow(
-          client_id=clients[0],
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      approval_urn = security.ClientApprovalRequestor(
           reason="foo",
           subject_urn=clients[0],
           approver=self.token.username,
-          token=requestor_token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval_id = flow_fd.state.approval_id
+          token=requestor_token).Request()
+      approval_id = approval_urn.Basename()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -195,38 +180,28 @@ class ApiListClientApprovalsHandlerRegressionTest(
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(
-          client_id=clients[0],
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      approval_urn = security.ClientApprovalRequestor(
           reason=self.token.reason,
           subject_urn=clients[0],
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval1_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval1_id = approval_urn.Basename()
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(
-          client_id=clients[1],
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      approval_urn = security.ClientApprovalRequestor(
           reason=self.token.reason,
           subject_urn=clients[1],
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval2_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval2_id = approval_urn.Basename()
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(
-          client_id=clients[1],
-          flow_name=security.GrantClientApprovalFlow.__name__,
+      security.ClientApprovalGrantor(
           reason=self.token.reason,
           delegate=self.token.username,
           subject_urn=clients[1],
-          token=approver_token)
+          token=approver_token).Grant()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -267,35 +242,28 @@ class ApiGetHuntApprovalHandlerRegressionTest(
         hunt2_id = hunt2_urn.Basename()
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestHuntApprovalFlow.__name__,
+      approval_urn = security.HuntApprovalRequestor(
           reason="foo",
           subject_urn=hunt1_urn,
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval1_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval1_id = approval_urn.Basename()
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestHuntApprovalFlow.__name__,
+      approval_urn = security.HuntApprovalRequestor(
           reason="bar",
           subject_urn=hunt2_urn,
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval2_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval2_id = approval_urn.Basename()
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(
-          flow_name=security.GrantHuntApprovalFlow.__name__,
+      security.HuntApprovalGrantor(
           reason="bar",
           delegate=self.token.username,
           subject_urn=hunt2_urn,
-          token=approver_token)
+          token=approver_token).Grant()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -334,15 +302,12 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       requestor_token = access_control.ACLToken(username="requestor")
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestHuntApprovalFlow.__name__,
+      approval_urn = security.HuntApprovalRequestor(
           reason="foo",
           subject_urn=hunt_urn,
           approver=self.token.username,
-          token=requestor_token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval_id = flow_fd.state.approval_id
+          token=requestor_token).Request()
+      approval_id = approval_urn.Basename()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -404,15 +369,12 @@ class ApiListHuntApprovalsHandlerRegressionTest(
           hunt_name=standard.GenericHunt.__name__, token=self.token)
 
     with test_lib.FakeTime(43):
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestHuntApprovalFlow.__name__,
+      approval_urn = security.HuntApprovalRequestor(
           reason=self.token.reason,
           subject_urn=hunt.urn,
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval_id = approval_urn.Basename()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -443,35 +405,28 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
           cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestCronJobApprovalFlow.__name__,
+      approval_urn = security.CronJobApprovalRequestor(
           reason="foo",
           subject_urn=cron1_urn,
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval1_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval1_id = approval_urn.Basename()
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestCronJobApprovalFlow.__name__,
+      approval_urn = security.CronJobApprovalRequestor(
           reason="bar",
           subject_urn=cron2_urn,
           approver="approver",
-          token=self.token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval2_id = flow_fd.state.approval_id
+          token=self.token).Request()
+      approval2_id = approval_urn.Basename()
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(
-          flow_name=security.GrantCronJobApprovalFlow.__name__,
+      security.CronJobApprovalGrantor(
           reason="bar",
           delegate=self.token.username,
           subject_urn=cron2_urn,
-          token=approver_token)
+          token=approver_token).Grant()
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -515,15 +470,12 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       requestor_token = access_control.ACLToken(username="requestor")
-      flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=security.RequestCronJobApprovalFlow.__name__,
+      approval_urn = security.CronJobApprovalRequestor(
           reason="foo",
           subject_urn=cron_urn,
           approver=self.token.username,
-          token=requestor_token)
-      flow_fd = aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      approval_id = flow_fd.state.approval_id
+          token=requestor_token).Request()
+      approval_id = approval_urn.Basename()
 
     with test_lib.FakeTime(126):
       self.Check(

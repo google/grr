@@ -5,6 +5,7 @@
 
 import json
 import os
+import threading
 
 import portpicker
 import requests
@@ -24,36 +25,40 @@ from grr.lib import utils
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
+_HTTP_ENDPOINTS = {}
+_HTTP_ENDPOINTS_LOCK = threading.RLock()
+
 
 class HttpApiRegressionTestMixinBase(object):
   """Load only API E2E test cases."""
 
   api_version = None
-  endpoint = None
+  _get_connector_lock = threading.RLock()
 
-  @classmethod
-  def setUpClass(cls):  # pylint: disable=invalid-name
-    super(HttpApiRegressionTestMixinBase, cls).setUpClass()
-
-    if cls.api_version not in [1, 2]:
+  @staticmethod
+  def GetConnector(api_version):
+    if api_version not in [1, 2]:
       raise ValueError("api_version may be 1 or 2 only")
 
-    if not HttpApiRegressionTestMixinBase.endpoint:
-      port = portpicker.PickUnusedPort()
-      logging.info("Picked free AdminUI port %d.", port)
+    with _HTTP_ENDPOINTS_LOCK:
+      if api_version not in _HTTP_ENDPOINTS:
+        port = portpicker.PickUnusedPort()
+        logging.info("Picked free AdminUI port %d.", port)
 
-      # Force creation of new APIAuthorizationManager.
-      api_auth_manager.APIACLInit.InitApiAuthManager()
+        # Force creation of new APIAuthorizationManager.
+        api_auth_manager.APIACLInit.InitApiAuthManager()
 
-      trd = wsgiapp_testlib.ServerThread(port)
-      trd.StartAndWaitUntilServing()
+        trd = wsgiapp_testlib.ServerThread(port)
+        trd.StartAndWaitUntilServing()
 
-      cls.endpoint = "http://localhost:%d" % port
+        _HTTP_ENDPOINTS[api_version] = "http://localhost:%d" % port
+
+      return http_connector.HttpConnector(
+          api_endpoint=_HTTP_ENDPOINTS[api_version])
 
   def setUp(self):  # pylint: disable=invalid-name
     super(HttpApiRegressionTestMixinBase, self).setUp()
-    self.connector = http_connector.HttpConnector(
-        api_endpoint=self.__class__.endpoint)
+    self.connector = self.GetConnector(self.__class__.api_version)
 
   def _ParseJSON(self, json_str):
     """Parses response JSON."""

@@ -77,8 +77,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
           "User is not allowed to work with flows.")
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(
-        token.RealUID(), flow_name, with_client_id=True)
+    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name)
 
   def CheckClientApproval(self, client_id, token=None):
     self.CheckClientLabels(client_id, token=token)

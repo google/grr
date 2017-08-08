@@ -193,29 +193,6 @@ def CheckFlowCanBeStartedOnClient(flow_name):
         "Flow %s can't be started on a client by non-suid users." % flow_name)
 
 
-def CheckFlowCanBeStartedAsGlobal(flow_name):
-  """Checks if flow can be started without a client id.
-
-  Single kind of flows can be started on clients by unprivileged users:
-  Flows inherited from GRRGlobalFlow, with a category. Having a category
-  means that the flow will be accessible from the UI.
-
-  Args:
-    flow_name: Name of the flow to check access for.
-  Returns:
-    True if flow is externally accessible.
-  Raises:
-    access_control.UnauthorizedAccess: if flow is not externally accessible.
-  """
-  flow_cls = flow.GRRFlow.GetPlugin(flow_name)
-
-  if aff4.issubclass(flow_cls, flow.GRRGlobalFlow) and flow_cls.category:
-    return True
-  else:
-    raise access_control.UnauthorizedAccess(
-        "Flow %s can't be started globally by non-suid users" % flow_name)
-
-
 def CheckFlowAuthorizedLabels(token, flow_name):
   """Checks if user has a label in flow's authorized_labels list."""
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
@@ -649,18 +626,13 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
   @LoggedACL("can_start_flow")
   @stats.Timed("acl_check_time", fields=["can_start_flow"])
-  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
+  def CheckIfCanStartFlow(self, token, flow_name):
     if not flow_name:
       raise ValueError("Flow name can't be empty.")
 
-    if with_client_id:
-      can_start_flow = CheckFlowCanBeStartedOnClient
-    else:
-      can_start_flow = CheckFlowCanBeStartedAsGlobal
-
     return ValidateToken(
         token, [flow_name]) and (token.supervisor or
-                                 (can_start_flow(flow_name) and
+                                 (CheckFlowCanBeStartedOnClient(flow_name) and
                                   CheckFlowAuthorizedLabels(token, flow_name)))
 
   @LoggedACL("data_store_access")

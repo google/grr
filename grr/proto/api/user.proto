@@ -138,8 +138,6 @@ message ApiGrrUserInterfaceTraits {
 
   optional bool show_statistics_nav_item_enabled = 5;
 
-  optional bool start_global_flows_nav_item_enabled = 6;
-
   optional bool server_load_nav_item_enabled = 7;
 
   optional bool manage_binaries_nav_item_enabled = 9;

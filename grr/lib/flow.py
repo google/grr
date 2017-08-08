@@ -393,12 +393,6 @@ class FlowBehaviour(Behaviour):
       "DEBUG":
           "This flow only appears in debug mode.",
 
-      # Is this a global flow or a client specific flow?
-      "Client Flow":
-          "This flow works on a client.",
-      "Global Flow":
-          "Global flow (this is to be deprecated).",
-
       # OS Support.
       "OSX":
           "This flow works on OSX operating systems.",
@@ -582,10 +576,15 @@ class FlowBase(aff4.AFF4Volume):
     # supports dates up to the year 3000.
     token.expiry = rdfvalue.RDFDatetime.FromHumanReadable("2997-01-01")
 
+    flow_cls = aff4.AFF4Object.classes.get(runner_args.flow_name)
+    if flow_cls.category and not runner_args.client_id:
+      raise RuntimeError("Flow with category (user-visible flow) has to be "
+                         "started on a client, but runner_args.client_id "
+                         "is missing.")
+
     # We create an anonymous AFF4 object first, The runner will then generate
     # the appropriate URN.
-    flow_obj = aff4.FACTORY.Create(
-        None, aff4.AFF4Object.classes.get(runner_args.flow_name), token=token)
+    flow_obj = aff4.FACTORY.Create(None, flow_cls, token=token)
 
     # Now parse the flow args into the new object from the keywords.
     if args is None:
@@ -823,7 +822,7 @@ class GRRFlow(FlowBase):
   AUTHORIZED_LABELS = []
 
   # Behaviors set attributes of this flow. See FlowBehavior() above.
-  behaviours = FlowBehaviour("Client Flow", "ADVANCED")
+  behaviours = FlowBehaviour("ADVANCED")
 
   # If True we let the flow handle its own client crashes. Otherwise the flow
   # is killed when the client crashes.
@@ -1139,16 +1138,6 @@ class GRRFlow(FlowBase):
 
   def LogCollection(self):
     return self.LogCollectionForFID(self.session_id, token=self.token)
-
-
-class GRRGlobalFlow(GRRFlow):
-  """A flow that acts globally instead of on a specific client.
-
-  Flows that inherit from this will not be shown in the normal Start New Flows
-  UI, but will instead be seen in Admin Flows.
-  """
-
-  behaviours = GRRFlow.behaviours + "Global Flow" - "Client Flow"
 
 
 class WellKnownFlow(GRRFlow):

@@ -134,11 +134,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       },
       title: 'Stats'
     })
-    .state('globalFlows', {
-      url: '/global-flows',
-      template: '<grr-start-flow-view />',
-      title: 'Global Flows'
-    })
     .state('serverLoad', {
       url: '/server-load',
       template: '<grr-server-load />',

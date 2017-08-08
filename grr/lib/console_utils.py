@@ -16,7 +16,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import data_store
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -135,13 +134,11 @@ def ApprovalRequest(client_id,
                     reason="testing"):
   token = token or GetToken()
   approval_reason = reason or token.reason
-  flow.GRRFlow.StartFlow(
-      client_id=client_id,
-      flow_name=security.RequestClientApprovalFlow.__name__,
+  security.ClientApprovalRequestor(
       reason=approval_reason,
       subject_urn=rdf_client.ClientURN(client_id),
       approver=approver,
-      token=token)
+      token=token).Request()
 
 
 # TODO(user): refactor this approval request/grant code into a separate
@@ -156,13 +153,11 @@ def RequestAndGrantClientApproval(client_id,
       "aff4:/users/%s" % approver, users.GRRUser, token=token.SetUID())
   user.Flush()
   approver_token = access_control.ACLToken(username=approver)
-  flow.GRRFlow.StartFlow(
-      client_id=client_id,
-      flow_name=security.GrantClientApprovalFlow.__name__,
+  security.ClientApprovalGrantor(
       reason=reason,
       delegate=token.username,
       subject_urn=rdf_client.ClientURN(client_id),
-      token=approver_token)
+      token=approver_token).Grant()
 
 
 def ApprovalGrant(token=None):
@@ -176,16 +171,13 @@ def ApprovalGrant(token=None):
     print request
     print "Reason: %s" % reason
     if raw_input("Do you approve this request? [y/N] ").lower() == "y":
-      flow_id = flow.GRRFlow.StartFlow(
-          client_id=client_id,
-          flow_name=security.GrantClientApprovalFlow.__name__,
-          reason=reason,
-          delegate=user,
-          token=token)
+      security.ClientApprovalGrantor(
+          subject_urn=client_id, reason=reason, delegate=user,
+          token=token).Grant()
       # TODO(user): Remove the notification.
     else:
       print "skipping request"
-    print "Approval sent: %s" % flow_id
+    print "Approval sent"
 
 
 def ApprovalFind(object_id, token=None):
@@ -240,7 +232,7 @@ def ApprovalCreateRaw(aff4_path,
     raise RuntimeError("Cannot create approval with empty reason")
   if not token.username:
     token.username = getpass.getuser()
-  approval_urn = security.RequestApprovalWithReasonFlow.ApprovalUrnBuilder(
+  approval_urn = security.ApprovalRequestor.ApprovalUrnBuilder(
       urn.Path(), token.username, token.reason)
   super_token = access_control.ACLToken(username="raw-approval-superuser")
   super_token.supervisor = True

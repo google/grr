@@ -11,7 +11,6 @@ from grr.gui import gui_test_lib
 from grr.lib import access_control
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
@@ -52,14 +51,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
 
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      flow.GRRFlow.StartFlow(
-          client_id=client_id,
-          flow_name=security.RequestClientApprovalFlow.__name__,
+      security.ClientApprovalRequestor(
           reason="Please please let me",
           subject_urn=client_id,
           approver=self.token.username,
           token=access_control.ACLToken(
-              username="iwantapproval", reason="test"))
+              username="iwantapproval", reason="test")).Request()
     self.assertEqual(len(messages_sent), 1)
 
     # Extract link from the message text and open it.
@@ -85,13 +82,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
 
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      flow.GRRFlow.StartFlow(
-          flow_name=security.RequestHuntApprovalFlow.__name__,
+      security.HuntApprovalRequestor(
           reason="Please please let me",
           subject_urn=hunt_id,
           approver=self.token.username,
           token=access_control.ACLToken(
-              username="iwantapproval", reason="test"))
+              username="iwantapproval", reason="test")).Request()
     self.assertEqual(len(messages_sent), 1)
 
     # Extract link from the message text and open it.
@@ -119,13 +115,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
 
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      flow.GRRFlow.StartFlow(
-          flow_name=security.RequestCronJobApprovalFlow.__name__,
+      security.CronJobApprovalRequestor(
           reason="Please please let me",
           subject_urn="aff4:/cron/OSBreakDown",
           approver=self.token.username,
           token=access_control.ACLToken(
-              username="iwantapproval", reason="test"))
+              username="iwantapproval", reason="test")).Request()
     self.assertEqual(len(messages_sent), 1)
 
     # Extract link from the message text and open it.

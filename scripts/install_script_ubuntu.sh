@@ -33,7 +33,6 @@ echo "Installing dependencies."
 apt-get install -y \
   debhelper \
   dpkg-dev \
-  prelink \
   python-dev \
   python-pip \
   rpm \

@@ -36,6 +36,7 @@ from grr.lib import rekall_profile_server
 from grr.lib import repacking
 from grr.lib import server_startup
 from grr.lib import utils
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
 parser = flags.PARSER
@@ -270,6 +271,39 @@ parser_list_components = subparsers.add_parser(
     "list_components",
     parents=[],
     help="Lists all available client components.")
+
+set_global_notification = subparsers.add_parser(
+    "set_global_notification",
+    parents=[],
+    help="Sets a global notification for all GRR users to see.")
+
+set_global_notification.add_argument(
+    "--type",
+    choices=aff4_users.GlobalNotification.Type.enum_dict.keys(),
+    default="INFO",
+    help="Global notification type.")
+
+set_global_notification.add_argument(
+    "--header", default="", required=True, help="Global notification header.")
+
+set_global_notification.add_argument(
+    "--content", default="", help="Global notification content.")
+
+set_global_notification.add_argument(
+    "--link", default="", help="Global notification link.")
+
+set_global_notification.add_argument(
+    "--show_from",
+    default="",
+    help="When to start showing the notification (in a "
+    "human-readable format, i.e. 2011-11-01 10:23:00). Timestamp is "
+    "assumed to be in UTC timezone.")
+
+set_global_notification.add_argument(
+    "--duration",
+    default=None,
+    help="How much time the notification is valid (duration in "
+    "human-readable form, i.e. 1h, 1d, etc).")
 
 
 def ImportConfig(filename, config):
@@ -911,6 +945,29 @@ def main(unused_argv):
     print "Downloading missing Rekall profiles."
     s = rekall_profile_server.GRRRekallProfileServer()
     s.GetMissingProfiles()
+
+  elif flags.FLAGS.subparser_name == "set_global_notification":
+    notification = aff4_users.GlobalNotification(
+        type=flags.FLAGS.type,
+        header=flags.FLAGS.header,
+        content=flags.FLAGS.content,
+        link=flags.FLAGS.link)
+    if flags.FLAGS.show_from:
+      notification.show_from = rdfvalue.RDFDatetime().ParseFromHumanReadable(
+          flags.FLAGS.show_from)
+    if flags.FLAGS.duration:
+      notification.duration = rdfvalue.Duration().ParseFromHumanReadable(
+          flags.FLAGS.duration)
+
+    print "Setting global notification."
+    print notification
+
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=token) as storage:
+      storage.AddNotification(notification)
 
 
 if __name__ == "__main__":

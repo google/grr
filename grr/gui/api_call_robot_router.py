@@ -257,10 +257,6 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
     return new_args
 
   def CreateFlow(self, args, token=None):
-    # CreateFlow is used for starting both client flows and global flows.
-    # By not allowing client_id to be empty we explicitly forbid starting
-    # global flows through robot router.
-    # TODO(user): introduce separate API call for starting global flows.
     if not args.client_id:
       raise ValueError("client_id must be provided")
 

@@ -349,17 +349,6 @@ message ApiGetFlowFilesArchiveArgs {
   optional ArchiveFormat archive_format = 3;
 };
 
-message ApiListFlowDescriptorsArgs {
-  enum FlowType {
-    CLIENT = 0;
-    GLOBAL = 1;
-  };
-  optional FlowType flow_type = 1 [(sem_type) = {
-      description: "If specified, narrows the list to the given type of flows "
-      "only."
-    }];
-};
-
 message ApiListFlowDescriptorsResult {
   repeated ApiFlowDescriptor items = 1;
 }

@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import StringIO
+import threading
 import zipfile
 
 import portpicker
@@ -69,23 +70,24 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.endpoint = "http://localhost:%s" % self.port
     self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
 
+  _api_set_up_lock = threading.RLock()
   _api_set_up_done = False
 
   @classmethod
   def setUpClass(cls):
     super(ApiE2ETest, cls).setUpClass()
-    with cls._set_up_lock:
-      if not cls._api_set_up_done:
+    with ApiE2ETest._api_set_up_lock:
+      if not ApiE2ETest._api_set_up_done:
 
         # Set up HTTP server
         port = portpicker.PickUnusedPort()
-        cls.server_port = port
+        ApiE2ETest.server_port = port
         logging.info("Picked free AdminUI port for HTTP %d.", port)
 
-        cls.trd = wsgiapp_testlib.ServerThread(port)
-        cls.trd.StartAndWaitUntilServing()
+        ApiE2ETest.trd = wsgiapp_testlib.ServerThread(port)
+        ApiE2ETest.trd.StartAndWaitUntilServing()
 
-        cls._api_set_up_done = True
+        ApiE2ETest._api_set_up_done = True
 
 
 class ApiClientLibFlowTest(ApiE2ETest):

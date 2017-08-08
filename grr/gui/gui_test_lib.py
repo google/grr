@@ -4,6 +4,7 @@
 import atexit
 import functools
 import os
+import threading
 import time
 import urlparse
 
@@ -132,44 +133,45 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   # Base url of the Admin UI
   base_url = None
 
-  @classmethod
-  def _SetUpSelenium(cls, port):
+  @staticmethod
+  def _TearDownSelenium():
+    """Tear down Selenium session."""
+    try:
+      GRRSeleniumTest.driver.quit()
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception(e)
+
+  @staticmethod
+  def _SetUpSelenium(port):
     """Set up Selenium session."""
-    atexit.register(cls._TearDownSelenium)
-    cls.base_url = ("http://localhost:%s" % port)
+    atexit.register(GRRSeleniumTest._TearDownSelenium)
+    GRRSeleniumTest.base_url = ("http://localhost:%s" % port)
 
 
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
-    cls.driver = webdriver.Chrome(chrome_options=options)
+    GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
     # pylint: enable=unreachable
 
+  _selenium_set_up_lock = threading.RLock()
   _selenium_set_up_done = False
-
-  @classmethod
-  def _TearDownSelenium(cls):
-    """Tear down Selenium session."""
-    try:
-      cls.driver.quit()
-    except Exception as e:  # pylint: disable=broad-except
-      logging.exception(e)
 
   @classmethod
   def setUpClass(cls):
     super(GRRSeleniumTest, cls).setUpClass()
-    with cls._set_up_lock:
-      if not cls._selenium_set_up_done:
+    with GRRSeleniumTest._selenium_set_up_lock:
+      if not GRRSeleniumTest._selenium_set_up_done:
 
         port = portpicker.PickUnusedPort()
         logging.info("Picked free AdminUI port %d.", port)
 
         # Start up a server in another thread
-        cls._server_trd = wsgiapp_testlib.ServerThread(port)
-        cls._server_trd.StartAndWaitUntilServing()
-        cls._SetUpSelenium(port)
+        GRRSeleniumTest._server_trd = wsgiapp_testlib.ServerThread(port)
+        GRRSeleniumTest._server_trd.StartAndWaitUntilServing()
+        GRRSeleniumTest._SetUpSelenium(port)
 
-        cls._selenium_set_up_done = True
+        GRRSeleniumTest._selenium_set_up_done = True
 
   def InstallACLChecks(self):
     """Installs AccessControlManager and stubs out SendEmail."""

@@ -6,7 +6,6 @@ from grr.gui import gui_test_lib
 
 from grr.lib import access_control
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import security
 from grr.test_lib import test_lib
@@ -142,13 +141,11 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
   def testNonValidApprovalIsMarked(self):
     client_id = self.SetupClients(1)[0]
-    flow.GRRFlow.StartFlow(
-        client_id=client_id,
-        flow_name=security.RequestClientApprovalFlow.__name__,
+    security.ClientApprovalRequestor(
         reason=self.token.reason,
         subject_urn=client_id,
         approver="approver",
-        token=self.token)
+        token=self.token).Request()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
