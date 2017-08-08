@@ -30,8 +30,6 @@ class TestFindWindowsRegistry(base.ClientTestBase):
   reg_path = ("/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/"
               "CurrentVersion/ProfileList/")
 
-  output_path = "analysis/find/test"
-
   def runTest(self):
     """Launch our flows."""
     for flow, args in [(filesystem.ListDirectory.__name__, {
@@ -46,8 +44,6 @@ class TestFindWindowsRegistry(base.ClientTestBase):
                     path=self.reg_path,
                     pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
                 path_regex="ProfileImagePath"),
-        "output":
-            self.output_path
     })]:
 
       if self.local_worker:
@@ -57,25 +53,10 @@ class TestFindWindowsRegistry(base.ClientTestBase):
         self.session_id = flow_utils.StartFlowAndWait(
             self.client_id, flow_name=flow, token=self.token, **args)
 
-    self.CheckFlow()
-
-  def CheckFlow(self):
-    """Check that all profiles listed have an ProfileImagePath."""
-    urn = self.client_id.Add("registry").Add(self.reg_path)
-    fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
-
-    user_accounts = sorted(
-        [x.urn for x in fd.OpenChildren() if x.urn.Basename().startswith("S-")])
-
-    urn = self.client_id.Add(self.output_path)
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    hits = sorted([x.pathspec.AFF4Path(self.client_id) for x in fd])
-
-    self.assertGreater(len(hits), 1)
-    self.assertEqual(len(hits), len(user_accounts))
-
-    for x, y in zip(user_accounts, hits):
-      self.assertEqual(x.Add("ProfileImagePath"), y)
+    results = self.CheckResultCollectionNotEmptyWithRetry(self.session_id)
+    for stat_entry in results:
+      self.assertTrue(isinstance(stat_entry, rdf_client.StatEntry))
+      self.assertTrue("ProfileImagePath" in stat_entry.pathspec.path)
 
 
 class TestClientRegistry(base.AutomatedTest):
