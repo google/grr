@@ -11,6 +11,8 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(StatOnlyTests, cls).setUpClass()
+
     cls.LoadCheck("stat.yaml")
 
   def testRootPATHCheck(self):
@@ -179,7 +181,7 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

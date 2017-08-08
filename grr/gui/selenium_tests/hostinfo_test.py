@@ -3,8 +3,8 @@
 """Test the GUI host information."""
 
 
+import unittest
 from grr.gui import gui_test_lib
-from grr.gui import runtests_test
 
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -115,7 +115,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
 def main(argv):
   # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  unittest.main(argv)
 
 
 if __name__ == "__main__":

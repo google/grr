@@ -237,7 +237,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
 
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

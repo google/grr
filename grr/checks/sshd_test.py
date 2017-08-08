@@ -14,6 +14,8 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(SshdCheckTests, cls).setUpClass()
+
     cls.LoadCheck("sshd.yaml")
     cls.parser = config_file.SshdConfigParser()
 
@@ -92,7 +94,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

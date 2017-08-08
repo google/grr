@@ -200,7 +200,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

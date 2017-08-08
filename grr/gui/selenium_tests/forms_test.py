@@ -2,12 +2,8 @@
 """Tests for the UI forms."""
 
 
-# We have to import test_lib first to properly initialize aff4 and rdfvalues.
-# pylint: disable=g-bad-import-order
+import unittest
 from grr.gui import gui_test_lib
-# pylint: enable=g-bad-import-order
-
-from grr.gui import runtests_test
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -79,7 +75,7 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
 
 def main(argv):
   # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  unittest.main(argv)
 
 
 if __name__ == "__main__":

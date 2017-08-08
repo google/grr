@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """Helper functionality for gui testing."""
 
+import atexit
 import functools
 import os
 import time
 import urlparse
 
+import portpicker
+from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
@@ -16,6 +19,7 @@ import logging
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
+from grr.gui import wsgiapp_testlib
 
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -127,6 +131,45 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   # Base url of the Admin UI
   base_url = None
+
+  @classmethod
+  def _SetUpSelenium(cls, port):
+    """Set up Selenium session."""
+    atexit.register(cls._TearDownSelenium)
+    cls.base_url = ("http://localhost:%s" % port)
+
+
+    # pylint: disable=unreachable
+    os.environ.pop("http_proxy", None)
+    options = webdriver.ChromeOptions()
+    cls.driver = webdriver.Chrome(chrome_options=options)
+    # pylint: enable=unreachable
+
+  _selenium_set_up_done = False
+
+  @classmethod
+  def _TearDownSelenium(cls):
+    """Tear down Selenium session."""
+    try:
+      cls.driver.quit()
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception(e)
+
+  @classmethod
+  def setUpClass(cls):
+    super(GRRSeleniumTest, cls).setUpClass()
+    with cls._set_up_lock:
+      if not cls._selenium_set_up_done:
+
+        port = portpicker.PickUnusedPort()
+        logging.info("Picked free AdminUI port %d.", port)
+
+        # Start up a server in another thread
+        cls._server_trd = wsgiapp_testlib.ServerThread(port)
+        cls._server_trd.StartAndWaitUntilServing()
+        cls._SetUpSelenium(port)
+
+        cls._selenium_set_up_done = True
 
   def InstallACLChecks(self):
     """Installs AccessControlManager and stubs out SendEmail."""

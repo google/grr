@@ -12,6 +12,8 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(PamConfigTests, cls).setUpClass()
+
     cls.LoadCheck("pam.yaml")
     cls.parser = linux_pam_parser.PAMParser()
 
@@ -180,7 +182,7 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ import portpicker
 import requests
 
 import logging
+import unittest
 
 from grr import config
 from grr_api_client import api as grr_api
@@ -64,30 +65,27 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
-    self.port = HTTPApiEndToEndTestProgram.server_port
+    self.port = ApiE2ETest.server_port
     self.endpoint = "http://localhost:%s" % self.port
     self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
 
+  _api_set_up_done = False
 
-class ApiE2ETestLoader(test_lib.GRRTestLoader):
-  """Load only API E2E test cases."""
-  base_class = ApiE2ETest
+  @classmethod
+  def setUpClass(cls):
+    super(ApiE2ETest, cls).setUpClass()
+    with cls._set_up_lock:
+      if not cls._api_set_up_done:
 
+        # Set up HTTP server
+        port = portpicker.PickUnusedPort()
+        cls.server_port = port
+        logging.info("Picked free AdminUI port for HTTP %d.", port)
 
-class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
+        cls.trd = wsgiapp_testlib.ServerThread(port)
+        cls.trd.StartAndWaitUntilServing()
 
-  server_port = None
-
-  def setUp(self):
-    super(HTTPApiEndToEndTestProgram, self).setUp()
-
-    # Set up HTTP server
-    port = portpicker.PickUnusedPort()
-    HTTPApiEndToEndTestProgram.server_port = port
-    logging.info("Picked free AdminUI port for HTTP %d.", port)
-
-    self.trd = wsgiapp_testlib.ServerThread(port)
-    self.trd.StartAndWaitUntilServing()
+        cls._api_set_up_done = True
 
 
 class ApiClientLibFlowTest(ApiE2ETest):
@@ -1401,7 +1399,7 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
 
 
 def main(argv):
-  HTTPApiEndToEndTestProgram(argv=argv, testLoader=ApiE2ETestLoader())
+  unittest.main(argv)
 
 
 def DistEntry():

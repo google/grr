@@ -8,9 +8,7 @@ from grr.gui.selenium_tests import acl_manager_test
 from grr.gui.selenium_tests import api_docs_test
 from grr.gui.selenium_tests import artifact_manager_test
 from grr.gui.selenium_tests import artifact_view_test
-# This wasn't run for a long time and exposes bugs that need to be fixed before
-# it can be enabled
-# from grr.gui.selenium_tests import crash_view_test
+from grr.gui.selenium_tests import crash_view_test
 from grr.gui.selenium_tests import cron_create_test
 from grr.gui.selenium_tests import cron_view_test
 from grr.gui.selenium_tests import dir_recursive_refresh_test

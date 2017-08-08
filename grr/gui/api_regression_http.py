@@ -33,6 +33,8 @@ class HttpApiRegressionTestMixinBase(object):
 
   @classmethod
   def setUpClass(cls):  # pylint: disable=invalid-name
+    super(HttpApiRegressionTestMixinBase, cls).setUpClass()
+
     if cls.api_version not in [1, 2]:
       raise ValueError("api_version may be 1 or 2 only")
 

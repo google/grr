@@ -490,13 +490,9 @@ class RDFX509CertTest(CryptoTestBase):
         client_cert.Verify(private_key.GetPublicKey())
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = CryptoTestBase
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

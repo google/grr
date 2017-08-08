@@ -14,6 +14,8 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(XinetdServiceStateTests, cls).setUpClass()
+
     cls.LoadCheck("services.yaml")
     cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
 
@@ -88,6 +90,8 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(SysVInitStateTests, cls).setUpClass()
+
     cls.LoadCheck("services.yaml")
     cls.parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
 
@@ -127,6 +131,8 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(ListeningServiceTests, cls).setUpClass()
+
     cls.LoadCheck("services.yaml")
 
   def GenHostData(self):
@@ -208,7 +214,7 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

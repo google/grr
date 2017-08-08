@@ -5,10 +5,10 @@
 
 import unittest
 
+import unittest
 from grr.client.components.rekall_support import grr_rekall_test
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.gui import gui_test_lib
-from grr.gui import runtests_test
 from grr.lib import flags
 
 
@@ -63,7 +63,7 @@ class TestRekallViewer(gui_test_lib.GRRSeleniumTest,
 
 def main(argv):
   # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  unittest.main(argv)
 
 
 if __name__ == "__main__":

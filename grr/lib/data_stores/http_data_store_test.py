@@ -149,18 +149,18 @@ def SetupDataStore():
     _CloseServers()
 
 
-@unittest.skipUnless(platform.system() == "Linux",
-                     "We only expect the datastore to work on Linux")
-def setUpModule():
-  SetupDataStore()
-
-
-def tearDownModule():
-  _CloseServers()
-  CONFIG_OVERRIDER.Stop()
-
-
 class HTTPDataStoreMixin(object):
+
+  @classmethod
+  def setUpClass(cls):
+    super(HTTPDataStoreMixin, cls).setUpClass()
+    SetupDataStore()
+
+  @classmethod
+  def tearDownClass(cls):
+    _CloseServers()
+    CONFIG_OVERRIDER.Stop()
+    super(HTTPDataStoreMixin, cls).tearDownClass()
 
   def setUp(self):
     super(HTTPDataStoreMixin, self).setUp()

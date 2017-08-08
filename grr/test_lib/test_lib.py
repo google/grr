@@ -14,6 +14,7 @@ import shutil
 import socket
 import sys
 import tempfile
+import threading
 import time
 import unittest
 
@@ -102,6 +103,17 @@ class GRRBaseTest(unittest.TestCase):
     self.token = access_control.ACLToken(
         username=test_user, reason="Running tests")
 
+  _set_up_lock = threading.RLock()
+  _set_up_done = False
+
+  @classmethod
+  def setUpClass(cls):
+    super(GRRBaseTest, cls).setUpClass()
+    with cls._set_up_lock:
+      if not cls._set_up_done:
+        testing_startup.TestInit()
+        cls._set_up_done = True
+
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 
@@ -150,7 +162,22 @@ class GRRBaseTest(unittest.TestCase):
         lambda unresponsive_kill_period=None, nanny_logfile=None: True)
     self.nanny_stubber.Start()
 
+    # We don't want to send actual email in our tests
+    self.smtp_patcher = mock.patch("smtplib.SMTP")
+    self.mock_smtp = self.smtp_patcher.start()
+
+    def DisabledSet(*unused_args, **unused_kw):
+      raise NotImplementedError(
+          "Usage of Set() is disabled, please use a configoverrider in tests.")
+
+    self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
+    self.config_set_disable.Start()
+
   def tearDown(self):
+    super(GRRBaseTest, self).setUp()
+
+    self.config_set_disable.Stop()
+    self.smtp_patcher.stop()
     self.nanny_stubber.Stop()
     self.mail_stubber.Stop()
 
@@ -656,35 +683,7 @@ class GrrTestProgram(unittest.TestProgram):
 
   def __init__(self, labels=None, **kw):
     self.labels = labels
-
-    testing_startup.TestInit()
-
-    self.setUp()
-    try:
-      super(GrrTestProgram, self).__init__(**kw)
-    finally:
-      try:
-        self.tearDown()
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception(e)
-
-  def setUp(self):
-    """Any global initialization goes here."""
-    # We don't want to send actual email in our tests
-    self.smtp_patcher = mock.patch("smtplib.SMTP")
-    self.mock_smtp = self.smtp_patcher.start()
-
-    def DisabledSet(*unused_args, **unused_kw):
-      raise NotImplementedError(
-          "Usage of Set() is disabled, please use a configoverrider in tests.")
-
-    self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
-    self.config_set_disable.Start()
-
-  def tearDown(self):
-    """Global teardown code goes here."""
-    self.config_set_disable.Stop()
-    self.smtp_patcher.stop()
+    super(GrrTestProgram, self).__init__(**kw)
 
   def parseArgs(self, argv):
     """Delegate arg parsing to the conf subsystem."""
@@ -736,8 +735,4 @@ class RemotePDB(pdb.Pdb):
 
 
 def main(argv=None):
-  if argv is None:
-    argv = sys.argv
-
-  print "Running test %s" % argv[0]
-  GrrTestProgram(argv=argv)
+  unittest.main(argv=argv)

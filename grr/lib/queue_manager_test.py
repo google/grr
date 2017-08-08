@@ -27,7 +27,6 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.retransmission_metric_value = stats.STATS.GetMetricValue(
         "grr_task_retransmission_count")
 
-    test_lib.GRRBaseTest.setUp(self)
     self._current_mock_time = 1000.015
     self.old_time = time.time
     time.time = lambda: self._current_mock_time

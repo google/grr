@@ -12,6 +12,8 @@ class SysctlTests(checks_test_lib.HostCheckTest):
 
   @classmethod
   def setUpClass(cls):
+    super(SysctlTests, cls).setUpClass()
+
     cls.LoadCheck("sysctl.yaml")
     cls.parser = linux_sysctl_parser.ProcSysParser()
 
@@ -43,7 +45,7 @@ class SysctlTests(checks_test_lib.HostCheckTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

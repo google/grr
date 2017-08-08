@@ -290,12 +290,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
           self.assertEqual(instrument.call_count, expected_count)
 
 
-class ActionTestLoader(test_lib.GRRTestLoader):
-  base_class = client_test_lib.EmptyActionTest
-
-
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv, testLoader=ActionTestLoader())
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

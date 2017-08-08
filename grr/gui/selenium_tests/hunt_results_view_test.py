@@ -4,10 +4,9 @@
 
 
 import mock
-
+import unittest
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
-from grr.gui import runtests_test
 from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import flags
@@ -92,7 +91,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
 def main(argv):
   # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  unittest.main(argv)
 
 
 if __name__ == "__main__":

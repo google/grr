@@ -71,7 +71,7 @@ class RepackingTests(test_lib.GRRBaseTest):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

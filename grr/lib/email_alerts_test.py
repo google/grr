@@ -25,12 +25,12 @@ class SendEmailTests(test_lib.GRRBaseTest):
   def testSendEmail(self):
     # This is already patched out in tests but in this specific test we
     # are interested in the results so we just add another patcher.
-    self.smtp_patcher = mock.patch("smtplib.SMTP")
-    self.mock_smtp = self.smtp_patcher.start()
+    smtp_patcher = mock.patch("smtplib.SMTP")
+    mock_smtp = smtp_patcher.start()
     try:
       testdomain = "test.com"
       with test_lib.ConfigOverrider({"Logging.domain": testdomain}):
-        smtp_conn = self.mock_smtp.return_value
+        smtp_conn = mock_smtp.return_value
 
         # Single fully qualified address
         to_address = "testto@example.com"
@@ -127,11 +127,11 @@ class SendEmailTests(test_lib.GRRBaseTest):
         self.assertTrue("CC: testcc@%s,testcc2@%s" % (testdomain,
                                                       testdomain) in message)
     finally:
-      self.smtp_patcher.stop()
+      smtp_patcher.stop()
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

@@ -5,9 +5,9 @@
 
 import os
 
+import unittest
 from grr import config
 from grr.gui import gui_test_lib
-from grr.gui import runtests_test
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import flags
@@ -149,7 +149,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
 def main(argv):
   # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  unittest.main(argv)
 
 
 if __name__ == "__main__":

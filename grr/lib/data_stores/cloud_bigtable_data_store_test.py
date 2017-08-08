@@ -38,6 +38,7 @@ class CloudBigTableDataStoreMixin(object):
   @classmethod
   def setUpClass(cls):
     """Create a test bigtable instance."""
+    super(CloudBigTableDataStoreMixin, cls).setUpClass()
     data_store_test._DataStoreTest.setUpClass()
     cls.test_project_id = config.CONFIG["CloudBigtable.test_project_id"]
 

@@ -56,13 +56,8 @@ class ConsoleUtilsTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(res[0].urn, client.urn)
 
 
-class ConsoleUtilsTestLoader(test_lib.GRRTestLoader):
-  base_class = ConsoleUtilsTest
-
-
 def main(argv):
-  # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=ConsoleUtilsTestLoader())
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

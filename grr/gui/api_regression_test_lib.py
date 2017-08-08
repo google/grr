@@ -271,4 +271,4 @@ def main(argv=None):
   if flags.FLAGS.generate:
     ApiRegressionGoldenOutputGenerator(flags.FLAGS.generate).Generate()
   else:
-    test_lib.GrrTestProgram(argv=argv)
+    test_lib.main(argv)
