@@ -362,7 +362,7 @@ class CloudBigTableDataStore(data_store.DataStore):
 
         # Value parameter here is bytes, so we need to encode unicode to a byte
         # string:
-        # https://googlecloudplatform.github.io/google-cloud-python/stable/bigtable/row.html#google.cloud.bigtable.row.DirectRow.set_cell
+        # https://googlecloudplatform.github.io/google-cloud-python/latest/bigtable/row.html#google.cloud.bigtable.row.DirectRow.set_cell
         value = self.Encode(attribute, value)
         row.set_cell(family, column, value, timestamp=datetime_ts)
 

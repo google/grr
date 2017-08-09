@@ -3841,7 +3841,7 @@ registry_data {
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session "
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
      u"Manager/Environment/TEMP", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
@@ -3851,14 +3851,14 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/TEMP"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/TEMP"
 }
 registry_data {
   string: "%%SystemRoot%%\\TEMP"
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session "
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
      u"Manager/Environment/windir", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
@@ -3868,14 +3868,14 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/windir"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/windir"
 }
 registry_data {
   string: "%%SystemRoot%%"
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session "
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
      u"Manager/Environment/Path", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
@@ -3885,14 +3885,14 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Session Manager/Environment/Path"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session Manager/Environment/Path"
 }
 registry_data {
   string: "C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;"
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/StandardName", (aff4_grr.VFSFile, {
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/StandardName", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
 st_mode: 32768
@@ -3901,7 +3901,7 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/TimeZoneInformation/StandardName"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/StandardName"
 }
 registry_data {
   string: "AlaskanStandardTime"
@@ -3909,7 +3909,7 @@ registry_data {
 """
     })),
 
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Nls/CodePage/ACP", (aff4_grr.VFSFile, {
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Nls/CodePage/ACP", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
 st_mode: 32768
@@ -3918,7 +3918,7 @@ st_mtime: 0
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
-  path: "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/Control/Nls/CodePage/ACP"
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Nls/CodePage/ACP"
 }
 registry_data {
   string: "1252"

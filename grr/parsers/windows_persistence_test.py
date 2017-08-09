@@ -31,7 +31,7 @@ class WindowsPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
         "%systemroot%\\system32\\svchost.exe -k netsvcs",
         "\\SystemRoot\\system32\\drivers\\acpipmi.sys"
     ]
-    reg_key = "HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/services/AcpiPmi"
+    reg_key = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/services/AcpiPmi"
     for path in image_paths:
       serv_info = rdf_client.WindowsServiceInformation(
           name="blah",
