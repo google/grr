@@ -517,9 +517,9 @@ class ApprovalRequestor(AbstractApprovalBase):
       fd.Close()
 
     if not config.CONFIG.Get("Email.send_approval_emails"):
-      return
+      return approval_urn
 
-    reason = self.CreateReasonHTML(self.reason)
+    reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
     template = u"""
 <html><body><h1>Approval to access
@@ -652,7 +652,7 @@ class ApprovalGrantor(AbstractApprovalBase):
     if not config.CONFIG.Get("Email.send_approval_emails"):
       return found_approval_urn
 
-    reason = self.CreateReasonHTML(self.reason)
+    reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
     template = u"""
 <html><body><h1>Access to

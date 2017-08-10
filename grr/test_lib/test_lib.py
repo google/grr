@@ -440,11 +440,11 @@ class ConfigOverrider(object):
 
   def Start(self):
     for k, v in self._overrides.iteritems():
-      self._saved_values[k] = config.CONFIG.Get(k)
+      self._saved_values[k] = config.CONFIG.GetRaw(k)
       try:
-        config.CONFIG.Set.old_target(k, v)
+        config.CONFIG.SetRaw.old_target(k, v)
       except AttributeError:
-        config.CONFIG.Set(k, v)
+        config.CONFIG.SetRaw(k, v)
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
@@ -452,9 +452,9 @@ class ConfigOverrider(object):
   def Stop(self):
     for k, v in self._saved_values.iteritems():
       try:
-        config.CONFIG.Set.old_target(k, v)
+        config.CONFIG.SetRaw.old_target(k, v)
       except AttributeError:
-        config.CONFIG.Set(k, v)
+        config.CONFIG.SetRaw(k, v)
 
 
 class PreserveConfig(object):

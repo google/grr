@@ -21,4 +21,4 @@ class TestCollector(base.AutomatedTest):
         self.session_id)
     for statentry in statentry_list:
       self.assertTrue(isinstance(statentry, rdf_client.StatEntry))
-      self.assertTrue("Namespace" in statentry.pathspec.path)
+      self.assertTrue("NameSpace" in statentry.pathspec.path)

@@ -36,6 +36,13 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
 
     super(AbstractTestAnalyzeClientMemory, self).setUp()
 
+  def runTest(self):
+    if not config.CONFIG["Rekall.enabled"]:
+      return self.skipTest(
+          "Rekall disabled. Set 'Rekall.enabled=True' in your config to enable")
+    else:
+      super(AbstractTestAnalyzeClientMemory, self).runTest()
+
   def tearDown(self):
     if "Test Context" in config.CONFIG.context:
       config.CONFIG.Set("Rekall.profile_server", self.old_config)
