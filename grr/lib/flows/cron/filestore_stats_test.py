@@ -10,6 +10,7 @@ from grr.test_lib import test_lib
 
 
 class FilestoreStatsCronFlowTest(flow_test_lib.FlowTestsBaseclass):
+  """Tests for the filestore stats."""
 
   def setUp(self):
     super(FilestoreStatsCronFlowTest, self).setUp()

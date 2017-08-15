@@ -83,7 +83,7 @@ class FakeDataStore(data_store.DataStore):
       pass
 
   @utils.Synchronized
-  def Clear(self):
+  def ClearTestDB(self):
     self.subjects = {}
 
   def DBSubjectLock(self, subject, lease_time=None, token=None):
@@ -343,7 +343,6 @@ class FakeDataStore(data_store.DataStore):
     if isinstance(attribute_prefix, str):
       attribute_prefix = [attribute_prefix]
 
-    subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
     except KeyError:
@@ -361,7 +360,7 @@ class FakeDataStore(data_store.DataStore):
           for value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.
-            if (results_list and timestamp == self.NEWEST_TIMESTAMP and
+            if (results_list and timestamp in [self.NEWEST_TIMESTAMP, None] and
                 results_list[0][1] < ts):
               results_list = []
               results[attribute] = results_list

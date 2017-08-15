@@ -167,12 +167,16 @@ class HTTPDataStoreMixin(object):
     # These tests change the config so we preserve state.
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
+    self.ClearDB()
 
   def tearDown(self):
     super(HTTPDataStoreMixin, self).tearDown()
     self.config_stubber.Stop()
 
-  def InitDatastore(self):
+  def testCorrectDataStore(self):
+    self.assertTrue(isinstance(data_store.DB, http_data_store.HTTPDataStore))
+
+  def ClearDB(self):
     # Make sure that there are no rpc calls in progress. (Some Inithooks
     # create aff4 objects with sync=False)
     if data_store.DB:
@@ -196,13 +200,6 @@ class HTTPDataStoreMixin(object):
                      "We only expect the datastore to work on Linux")
 class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
   """Test the remote data store."""
-
-  def __init__(self, *args):
-    super(HTTPDataStoreTest, self).__init__(*args)
-
-  def testDataStoreInit(self):
-    # This just makes sure the datastore can actually initialize.
-    pass
 
 
 def main(args):

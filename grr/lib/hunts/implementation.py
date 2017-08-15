@@ -526,6 +526,7 @@ class HuntRunner(object):
 
       # Add client to list of clients and optionally run it
       # (if client_rate == 0).
+
       self._AddClient(request.client_id)
       return
 
@@ -1327,7 +1328,6 @@ class GRRHunt(flow.FlowBase):
   @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
-
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       self.CreateCollections(mutation_pool)
 

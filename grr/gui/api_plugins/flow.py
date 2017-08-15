@@ -13,20 +13,15 @@ from grr.gui.api_plugins import client
 from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import flow
 from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import users as aff4_users
-from grr.lib.flows.general import file_finder
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -36,11 +31,6 @@ from grr.proto.api import flow_pb2
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a flow is not found."""
-
-
-class RobotGetFilesOperationNotFoundError(
-    api_call_handler_base.ResourceNotFoundError):
-  """Raises when "get files" operation is not found."""
 
 
 class ApiFlowId(rdfvalue.RDFString):
@@ -810,148 +800,6 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
 
     return self.BuildFlowList(
         client_root_urn, args.count, args.offset, token=token)
-
-
-class ApiStartRobotGetFilesOperationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiStartRobotGetFilesOperationArgs
-  rdf_deps = [
-      rdfvalue.ByteSize,
-      rdf_paths.GlobExpression,
-  ]
-
-
-class ApiStartRobotGetFilesOperationResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiStartRobotGetFilesOperationResult
-
-
-class ApiStartRobotGetFilesOperationHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Downloads files from specified machine without requiring approval."""
-
-  args_type = ApiStartRobotGetFilesOperationArgs
-  result_type = ApiStartRobotGetFilesOperationResult
-
-  def GetClientTarget(self, args, token=None):
-    # Find the right client to target using a hostname search.
-    index = client_index.CreateClientIndex(token=token)
-
-    client_list = index.LookupClients([args.hostname])
-    if not client_list:
-      raise ValueError("No client found matching %s" % args.hostname)
-
-    # If we get more than one, take the one with the most recent poll.
-    if len(client_list) > 1:
-      return client_index.GetMostRecentClient(client_list, token=token)
-    else:
-      return client_list[0]
-
-  def Handle(self, args, token=None):
-    client_urn = self.GetClientTarget(args, token=token)
-
-    size_condition = rdf_file_finder.FileFinderCondition(
-        condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
-        size=rdf_file_finder.FileFinderSizeCondition(
-            max_file_size=args.max_file_size))
-
-    file_finder_args = rdf_file_finder.FileFinderArgs(
-        paths=args.paths,
-        action=rdf_file_finder.FileFinderAction(action_type=args.action),
-        conditions=[size_condition])
-
-    # Check our flow throttling limits, will raise if there are problems.
-    throttler = throttle.FlowThrottler(
-        daily_req_limit=config.CONFIG.Get("API.DailyFlowRequestLimit"),
-        dup_interval=config.CONFIG.Get("API.FlowDuplicateInterval"))
-    throttler.EnforceLimits(
-        client_urn,
-        token.username,
-        file_finder.FileFinder.__name__,
-        file_finder_args,
-        token=token)
-
-    # Limit the whole flow to 200MB so if a glob matches lots of small files we
-    # still don't have too much impact.
-    runner_args = rdf_flows.FlowRunnerArgs(
-        client_id=client_urn,
-        flow_name=file_finder.FileFinder.__name__,
-        network_bytes_limit=200 * 1000 * 1000)
-
-    flow_id = flow.GRRFlow.StartFlow(
-        runner_args=runner_args, token=token, args=file_finder_args)
-
-    return ApiStartRobotGetFilesOperationResult(
-        operation_id=utils.SmartUnicode(flow_id))
-
-
-class ApiGetRobotGetFilesOperationStateArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetRobotGetFilesOperationStateArgs
-
-
-class ApiGetRobotGetFilesOperationStateResult(rdf_structs.RDFProtoStruct):
-  protobuf = flow_pb2.ApiGetRobotGetFilesOperationStateResult
-
-
-class ApiGetRobotGetFilesOperationStateHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Renders summary of a given flow.
-
-  Only top-level flows can be targeted. Times returned in the response are micro
-  seconds since epoch.
-  """
-
-  args_type = ApiGetRobotGetFilesOperationStateArgs
-  result_type = ApiGetRobotGetFilesOperationStateResult
-
-  def Handle(self, args, token=None):
-    """Render robot "get files" operation status.
-
-    This handler relies on URN validation and flow type checking to check the
-    input parameters to avoid allowing arbitrary reads into the client aff4
-    space. This handler filters out only the attributes that are appropriate to
-    release without authorization (authentication is still required).
-
-    Args:
-      args: ApiGetRobotGetFilesOperationStateArgs object.
-      token: access token.
-    Returns:
-      ApiGetRobotGetFilesOperationStateResult object.
-    Raises:
-      RobotGetFilesOperationNotFoundError: if operation is not found (i.e.
-          if the flow is not found or is not a FileFinder flow).
-      ValueError: if operation id is incorrect. It should match the
-          aff4:/<client id>/flows/<flow session id> pattern exactly.
-    """
-
-    # We deconstruct the operation id and rebuild it as a URN to ensure
-    # that it points to the flow on a client.
-    urn = rdfvalue.RDFURN(args.operation_id)
-    urn_components = urn.Split()
-
-    if len(urn_components) != 3 or urn_components[1] != "flows":
-      raise ValueError("Invalid operation id.")
-
-    client_urn = rdf_client.ClientURN(urn_components[0])
-
-    rdfvalue.SessionID.ValidateID(urn_components[2])
-    flow_id = rdfvalue.SessionID(urn_components[2])
-
-    # flow_id looks like aff4:/F:ABCDEF12, convert it into a flow urn for
-    # the target client.
-    flow_urn = client_urn.Add("flows").Add(flow_id.Basename())
-    try:
-      flow_obj = aff4.FACTORY.Open(
-          flow_urn, aff4_type=file_finder.FileFinder, token=token)
-    except aff4.InstantiationError:
-      raise RobotGetFilesOperationNotFoundError()
-
-    result_collection = flow.GRRFlow.ResultCollectionForFID(
-        flow_urn, token=token)
-    result_count = len(result_collection)
-
-    api_flow_obj = ApiFlow().InitFromAff4Object(
-        flow_obj, flow_id=flow_id.Basename())
-    return ApiGetRobotGetFilesOperationStateResult(
-        state=api_flow_obj.state, result_count=result_count)
 
 
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):

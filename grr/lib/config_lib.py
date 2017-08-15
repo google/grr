@@ -859,7 +859,7 @@ class GrrConfigManager(object):
         except Exception as e:  # pylint: disable=broad-except
           logging.error("Unable to rename broken writeback: %s", e)
       raise we
-    logging.info("Configuration writeback is set to %s", filename)
+    logging.debug("Configuration writeback is set to %s", filename)
 
   def Validate(self, sections=None, parameters=None):
     """Validate sections or individual parameters.
@@ -1147,7 +1147,7 @@ class GrrConfigManager(object):
 
       parser_cls = self.GetParserFromFilename(filename)
       parser = parser_cls(filename=filename)
-      logging.info("Loading configuration from %s", filename)
+      logging.debug("Loading configuration from %s", filename)
 
     clone = self.MakeNewConfig()
     clone.MergeData(parser.RawData())

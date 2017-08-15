@@ -140,23 +140,23 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
           self.IsUserNotificationPresent,
           "Archive generation failed for flow %s" % flow_urn.Basename())
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedFlowResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedFlowResults")
   def testClickingOnDownloadAsCsvZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(mock_method, "csv-zip",
                                                         "CSV (Zipped)")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedFlowResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedFlowResults")
   def testClickingOnDownloadAsYamlZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
         mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedFlowResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedFlowResults")
   def testClickingOnDownloadAsSqliteZipStartsDownload(self, mock_method):
     self.checkClickingOnDownloadAsStartsDownloadForType(
         mock_method, "sqlite-zip", "SQLite Scripts (Zipped)")

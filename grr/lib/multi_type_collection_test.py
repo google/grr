@@ -6,6 +6,7 @@ from grr.lib import flags
 from grr.lib import multi_type_collection
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.data_stores import fake_data_store
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import aff4_test_lib
 
@@ -97,6 +98,8 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
                      self.collection.LengthByType(rdfvalue.RDFString.__name__))
 
   def testDeletingCollectionDeletesAllSubcollections(self):
+    if not isinstance(data_store.DB, fake_data_store.FakeDataStore):
+      self.skipTest("Only supported on FakeDataStore.")
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)))
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
     self.collection.Add(

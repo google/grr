@@ -3,6 +3,8 @@
 goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListController');
 goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 
+goog.require('grrUi.core.utils.stripAff4Prefix');
+
 goog.scope(function() {
 
 
@@ -16,10 +18,12 @@ goog.scope(function() {
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.dialogService.DialogService} grrDialogService
+ * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
  * @ngInject
  */
 grrUi.cron.cronJobsListDirective.CronJobsListController = function(
-    $scope, $uibModal, $q, grrTimeService, grrApiService, grrDialogService) {
+    $scope, $uibModal, $q, grrTimeService, grrApiService, grrDialogService,
+    grrAclDialogService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -37,6 +41,9 @@ grrUi.cron.cronJobsListDirective.CronJobsListController = function(
 
   /** @private {!grrUi.core.dialogService.DialogService} */
   this.grrDialogService_ = grrDialogService;
+
+  /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+  this.grrAclDialogService_ = grrAclDialogService;
 
   /** @type {!Object<string, Object>} */
   this.cronJobsByUrn = {};
@@ -82,9 +89,9 @@ CronJobsListController.prototype.cronUrl = '/cron-jobs';
 
 
 /**
- * Wraps given API serice promise, so that if "forbidden" response is received,
- * 'unauthorized' notification is published. This way user will see
- * a 'Request an approval' dialog box, when needed.
+ * Wraps a given API service promise, so that if "forbidden" response is
+ * received, grrAclDialogService is used to show  'Request an approval' dialog
+ * box.
  *
  * @param {!angular.$q.Promise} promise
  * @param {string} successMessage Message to return on success.
@@ -99,14 +106,17 @@ CronJobsListController.prototype.wrapApiPromise_ = function(
           return successMessage;
         }.bind(this),
         function failure(response) {
+          var message = response['data']['message'];
+
           if (response['status'] === 403) {
-            // TODO(user): migrate from using grr.publish to using
-            // Angular services.
-            grr.publish('unauthorized',
-                        response['data']['subject'],
-                        response['data']['message']);
+            var subject = response['data']['subject'];
+            var cronJobId = grrUi.core.utils.stripAff4Prefix(
+                subject).split('/')[1];
+
+            this.grrAclDialogService_.openRequestCronJobApprovalDialog(
+                cronJobId, message);
           }
-          return this.q_.reject(response['data']['message']);
+          return this.q_.reject(message);
         }.bind(this));
 };
 

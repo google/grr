@@ -4,7 +4,6 @@
 This program will run all the tests in separate processes to speed things up.
 """
 
-import curses
 import os
 import StringIO
 import subprocess
@@ -41,39 +40,12 @@ flags.DEFINE_integer("processes", 0,
                      "Total number of simultaneous tests to run.")
 
 
-class Colorizer(object):
-  """A Class which wraps a string with colors."""
+def Red(s):
+  return "\033[91m %s\033[00m" % s
 
-  COLORS = "BLACK BLUE GREEN CYAN RED MAGENTA YELLOW WHITE"
-  COLOR_MAP = dict([(x, i) for i, x in enumerate(COLORS.split())])
 
-  terminal_capable = False
-
-  def __init__(self, stream=None):
-    if stream is None:
-      stream = sys.stdout
-
-    try:
-      if stream.isatty():
-        curses.setupterm()
-        self.terminal_capable = True
-    except AttributeError:
-      pass
-
-  def Render(self, color, string, forground=True):
-    """Decorate the string with the ansii escapes for the color."""
-    if not self.terminal_capable or color not in self.COLOR_MAP:
-      return string
-
-    escape_seq = curses.tigetstr("setf")
-    if not forground:
-      escape_seq = curses.tigetstr("setb")
-
-    if not escape_seq:
-      return string
-
-    return (curses.tparm(escape_seq, self.COLOR_MAP[color]) + string +
-            curses.tigetstr("sgr0"))
+def Green(s):
+  return "\033[92m %s\033[00m" % s
 
 
 class GRREverythingTestLoader(test_lib.GRRTestLoader):
@@ -154,16 +126,15 @@ def WaitForAvailableProcesses(processes, max_processes=5, completion_cb=None):
 def ReportTestResult(name, metadata):
   """Print statistics about the outcome of a test run."""
   now = time.time()
-  colorizer = Colorizer()
 
   if metadata["exit_code"] == 0:
     # Test completed successfully:
-    result = colorizer.Render("GREEN", "PASSED")
+    result = Green("PASSED")
   else:
-    result = colorizer.Render("RED", "FAILED")
+    result = Red("FAILED")
     result += open(metadata["output_path"], "rb").read()
 
-  print "\t{0: <40} {1} in {2: >6.2f}s".format(name, result,
+  print "\t{0: <70} {1} in {2: >6.2f}s".format(name, result,
                                                now - metadata["start"])
 
 
@@ -221,19 +192,17 @@ def main(argv=None):
       start = time.time()
       labels = set(flags.FLAGS.labels)
 
-      skipped_tests = 0
+      skipped_tests = []
       for name, cls in test_lib.GRRBaseTest.classes.items():
         if name.startswith("_"):
           continue
 
         if labels and not DoesTestHaveLabels(cls, labels):
-          print "Skipping test %s due to labels" % name
-          skipped_tests += 1
+          skipped_tests.append(name)
           continue
 
         if name in flags.FLAGS.exclude_tests:
-          print "Skipping test %s" % name
-          skipped_tests += 1
+          skipped_tests.append(name)
           continue
 
         result_filename = os.path.join(temp_dir, name)
@@ -273,14 +242,14 @@ def main(argv=None):
       print("\nRan %s tests in %0.2f sec, %s tests passed, %s tests failed"
             ", %s skipped.") % (len(processes), time.time() - start,
                                 len(passed_tests), len(failed_tests),
-                                skipped_tests)
+                                len(skipped_tests))
+      print "\nSkipped tests: %s" % skipped_tests
 
       if failed_tests:
-        colorizer = Colorizer()
 
         print "Failing tests: "
         for metadata in failed_tests:
-          print colorizer.Render("RED", metadata["test"])
+          print Red(metadata["test"])
 
         sys.exit(-1)
 

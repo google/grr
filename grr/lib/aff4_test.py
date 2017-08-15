@@ -20,6 +20,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard as aff4_standard
+from grr.lib.data_stores import fake_data_store
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -557,7 +558,7 @@ class AFF4StreamTest(aff4_test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[3][0], fd2)
 
 
-class AFF4Tests(aff4_test_lib.AFF4ObjectTest):
+class AFF4Test(aff4_test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
 
   def testCreatingObjectWithMutationPoolExpiresTheCacheCorrectly(self):
@@ -885,18 +886,19 @@ class AFF4Tests(aff4_test_lib.AFF4ObjectTest):
       fd.Close()
 
     # Make sure nothing has been written to the paths we use.
-    for path in [path1, path2]:
+    if isinstance(data_store.DB, fake_data_store.FakeDataStore):
+      # Stronger test that uses fake data store internals.
+      self.assertIn(path1, path2)  # Just so we don't miss anything.
       for subject in data_store.DB.subjects:
-        self.assertNotIn(path, subject)
+        self.assertNotIn(path1, subject)
+    else:
+      self.assertFalse(data_store.DB.ResolveRow(path1, token=self.token))
+      self.assertFalse(data_store.DB.ResolveRow(path2, token=self.token))
 
     pool.Flush()
 
-    for path in [path1, path2]:
-      for subject in data_store.DB.subjects:
-        if path in subject:
-          break
-      else:
-        self.fail("Nothing was written to the test path (%s)" % path)
+    self.assertTrue(data_store.DB.ResolveRow(path1, token=self.token))
+    self.assertTrue(data_store.DB.ResolveRow(path2, token=self.token))
 
     fd = aff4.FACTORY.Open(path1, token=self.token)
     self.assertEqual(fd.read(100), content)
@@ -1000,26 +1002,30 @@ class AFF4Tests(aff4_test_lib.AFF4ObjectTest):
   def testMultiDeleteRemovesAllTracesOfObjectsFromDataStore(self):
     unique_token = "recursive_delete"
 
+    subjects = []
     for i in range(5):
       for j in range(5):
-        with aff4.FACTORY.Create(
-            "aff4:" + ("/%s%d" % (unique_token, i)) * (j + 1),
-            aff4.AFF4Volume,
-            token=self.token):
-          pass
+        subjects.append("aff4:" + ("/%s%d" % (unique_token, i)) * (j + 1))
+    for subject in subjects:
+      with aff4.FACTORY.Create(subject, aff4.AFF4Volume, token=self.token):
+        pass
 
     aff4.FACTORY.MultiDelete(
         ["aff4:/%s%d" % (unique_token, i) for i in range(5)], token=self.token)
 
-    # NOTE: We assume that tests are running with FakeDataStore.
-    for subject, subject_data in data_store.DB.subjects.items():
-      self.assertFalse(unique_token in subject)
+    if isinstance(data_store.DB, fake_data_store.FakeDataStore):
+      for subject, subject_data in data_store.DB.subjects.items():
+        self.assertFalse(unique_token in subject)
 
-      for column_name, values in subject_data.items():
-        self.assertFalse(unique_token in column_name)
+        for column_name, values in subject_data.items():
+          self.assertFalse(unique_token in column_name)
 
-        for value, _ in values:
-          self.assertFalse(unique_token in utils.SmartUnicode(value))
+          for value, _ in values:
+            self.assertFalse(unique_token in utils.SmartUnicode(value))
+
+    else:
+      for subject in subjects:
+        self.assertFalse(data_store.DB.ResolveRow(subject, token=self.token))
 
   def testClientObject(self):
     fd = aff4.FACTORY.Create(

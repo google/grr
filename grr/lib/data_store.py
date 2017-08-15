@@ -219,13 +219,15 @@ class DataStore(object):
   mutation_pool_cls = MutationPool
 
   flusher_thread = None
+  enable_flusher_thread = True
   monitor_thread = None
 
   def __init__(self):
-    # Start the flusher thread.
-    self.flusher_thread = utils.InterruptableThread(
-        name="DataStore flusher thread", target=self.Flush, sleep_time=0.5)
-    self.flusher_thread.start()
+    if self.enable_flusher_thread:
+      # Start the flusher thread.
+      self.flusher_thread = utils.InterruptableThread(
+          name="DataStore flusher thread", target=self.Flush, sleep_time=0.5)
+      self.flusher_thread.start()
     self.monitor_thread = None
 
   def InitializeBlobstore(self):
@@ -246,6 +248,16 @@ class DataStore(object):
         target=self._RegisterSize,
         sleep_time=60)
     self.monitor_thread.start()
+
+  @classmethod
+  def SetupTestDB(cls):
+    cls.enable_flusher_thread = False
+
+  def ClearTestDB(self):
+    pass
+
+  def DestroyTestDB(self):
+    pass
 
   def _RegisterSize(self):
     """Measures size of DataStore."""

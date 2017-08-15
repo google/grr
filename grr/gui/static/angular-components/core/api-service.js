@@ -1,11 +1,20 @@
 'use strict';
 
+goog.provide('grrUi.core.apiService');
 goog.provide('grrUi.core.apiService.ApiService');
 goog.provide('grrUi.core.apiService.encodeUrlPath');
 goog.provide('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
+var UNAUTHORIZED_API_RESPONSE_EVENT = 'UnauthorizedApiResponse';
+
+/**
+ * "Refresh folder" event name.
+ * @const
+ */
+grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT =
+    UNAUTHORIZED_API_RESPONSE_EVENT;
 
 /**
  * URL-encodes url path (URL-encodes all non-allowed characters except
@@ -88,13 +97,14 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {angular.$http} $http The Angular http service.
  * @param {!angular.$q} $q
  * @param {!angular.$interval} $interval
- * @param {grrUi.core.loadingIndicatorService.LoadingIndicatorService} grrLoadingIndicatorService
+ * @param {angular.Scope} $rootScope The Angular root scope.
+ * @param {!grrUi.core.loadingIndicatorService.LoadingIndicatorService} grrLoadingIndicatorService
  * @constructor
  * @ngInject
  * @export
  */
 grrUi.core.apiService.ApiService = function(
-    $http, $q, $interval, grrLoadingIndicatorService) {
+    $http, $q, $interval, $rootScope, grrLoadingIndicatorService) {
   /** @private {angular.$http} */
   this.http_ = $http;
 
@@ -103,6 +113,9 @@ grrUi.core.apiService.ApiService = function(
 
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
+
+  /** @private {angular.Scope} */
+  this.rootScope_ = $rootScope;
 
   /** @private {grrUi.core.loadingIndicatorService.LoadingIndicatorService} */
   this.grrLoadingIndicatorService_ = grrLoadingIndicatorService;
@@ -345,13 +358,15 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
 
   }.bind(this), function failure(response) {
     if (response.status == 403) {
-      var headers = response.headers();
       // HEAD response is not expected to have any body. Therefore using
       // headers to get failure subject and reason information.
-      // TODO(user): Refactor handling of 403 errors in the Angular
-      // way.
-      grr.publish('unauthorized', headers['x-grr-unauthorized-access-subject'],
-                  headers['x-grr-unauthorized-access-reason']);
+      var headers = response.headers();
+      this.rootScope_.$broadcast(
+          UNAUTHORIZED_API_RESPONSE_EVENT,
+          {
+            subject: headers['x-grr-unauthorized-access-subject'],
+            reason: headers['x-grr-unauthorized-access-reason']
+          });
     }
 
     // If HEAD request fails, propagate the failure.

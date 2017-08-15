@@ -206,7 +206,7 @@ message User {
 };
 
 
-// Next ID: 33
+// Next ID: 34
 message KnowledgeBase {
   repeated User users = 32;
 
@@ -275,6 +275,11 @@ message KnowledgeBase {
   optional string environ_systemdrive = 24 [(sem_type) = {
       description: "The value of the %SystemDrive% parameter. As returned by "
         "the system, e.g. C:",
+    }];
+
+  optional string environ_profilesdirectory = 33 [(sem_type) = {
+      description: "Folder that typically contains users' profile directories; "
+        "e.g '%SystemDrive%\\Users'",
     }];
 
   optional string environ_allusersprofile = 26 [(sem_type) = {

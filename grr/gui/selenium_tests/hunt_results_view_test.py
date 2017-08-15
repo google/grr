@@ -46,23 +46,23 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsElementPresent, "css=grr-download-collection-as")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedHuntResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedHuntResults")
   def testHuntResultsCanBeDownloadedAsCsv(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(mock_method, "csv-zip",
                                                "CSV (Zipped)")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedHuntResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedHuntResults")
   def testHuntResultsCanBeDownloadedAsYaml(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(
         mock_method, "flattened-yaml-zip", "Flattened YAML (Zipped)")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetExportedHuntResults")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetExportedHuntResults")
   def testHuntResultsCanBeDownloadedAsSqlite(self, mock_method):
     self.checkHuntResultsCanBeDownloadedAsType(mock_method, "sqlite-zip",
                                                "SQLite Scripts (Zipped)")

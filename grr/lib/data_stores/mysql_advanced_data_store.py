@@ -3,6 +3,7 @@
 """An implementation of a data store based on mysql."""
 
 import logging
+import os
 import Queue
 import thread
 import threading
@@ -152,8 +153,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   POOL = None
 
-  def __init__(self):
-    self.database_name = config.CONFIG["Mysql.database_name"]
+  def __init__(self, database_name=None):
+    self.database_name = database_name or config.CONFIG["Mysql.database_name"]
     # Use the global connection pool.
     if MySQLAdvancedDataStore.POOL is None:
       MySQLAdvancedDataStore.POOL = ConnectionPool(self.database_name)
@@ -162,7 +163,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self.to_replace = []
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
-    self.database_name = config.CONFIG["Mysql.database_name"]
     self.buffer_lock = threading.RLock()
     self.lock = threading.RLock()
 
@@ -175,6 +175,25 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     except MySQLdb.Error:
       logging.debug("Recreating Tables")
       self.RecreateTables()
+
+  @classmethod
+  def SetupTestDB(cls):
+    super(MySQLAdvancedDataStore, cls).SetupTestDB()
+    MySQLAdvancedDataStore.POOL = None
+    return MySQLAdvancedDataStore(database_name="grr_test_%d" % os.getpid())
+
+  def ClearTestDB(self):
+    super(MySQLAdvancedDataStore, self).ClearTestDB()
+    if "test" not in self.database_name:
+      raise ValueError("Can't use db name %s for testing, must contain 'test'."
+                       % self.database_name)
+    self.RecreateTables()
+
+  def DestroyTestDB(self):
+    if "test" not in self.database_name:
+      raise ValueError("Can't use db name %s for testing, must contain 'test'."
+                       % self.database_name)
+    self.ExecuteQuery("DROP DATABASE %s" % self.database_name)
 
   def DropTables(self):
     """Drop all existing tables."""
@@ -297,8 +316,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       query, args = self._BuildQuery(
           subject, prefix, timestamp, limit, is_prefix=True)
       rows, _ = self.ExecuteQuery(query, args)
-
-      for row in rows:
+      for row in sorted(rows, key=lambda x: x["attribute"]):
         attribute = row["attribute"]
         value = self._Decode(attribute, row["value"])
         results.append((attribute, value, row["timestamp"]))
@@ -331,6 +349,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
             ) maxtime ON aff4.subject_hash=maxtime.subject_hash
                   AND aff4.timestamp=maxtime.timestamp
       WHERE aff4.attribute_hash=unhex(md5(%s))
+      ORDER BY subjects.subject
     """
     args = [attribute, subject_prefix, after_urn, attribute]
 
@@ -358,8 +377,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = {}
 
     for attribute in attributes:
-      attribute_results = self._ScanAttribute(subject_prefix, attribute,
-                                              after_urn, max_records, token)
+      attribute_results = self._ScanAttribute(
+          subject_prefix,
+          attribute,
+          after_urn=after_urn,
+          limit=max_records,
+          token=token)
 
       for row in attribute_results:
         subject = row["subject"]
@@ -397,7 +420,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
       for value in sequence:
-
         if isinstance(value, tuple):
           value, entry_timestamp = value
         else:
@@ -408,6 +430,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
         if entry_timestamp is not None:
           entry_timestamp = int(entry_timestamp)
+        else:
+          entry_timestamp = time.time() * 1e6
 
         attribute = utils.SmartUnicode(attribute)
         data = self._Encode(value)

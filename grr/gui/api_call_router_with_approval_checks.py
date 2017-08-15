@@ -19,19 +19,18 @@ from grr.lib.aff4_objects import user_managers
 from grr.lib.hunts import implementation
 
 
-class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
-    api_call_router.ApiCallRouter):
+class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouter):
   """Router that uses approvals-based ACL checks."""
 
   full_access_control_manager = None
 
   @staticmethod
   def ClearCache():
-    cls = ApiCallRouterWithApprovalChecksWithoutRobotAccess
+    cls = ApiCallRouterWithApprovalChecks
     cls.full_access_control_manager = None
 
   def _GetFullAccessControlManager(self):
-    cls = ApiCallRouterWithApprovalChecksWithoutRobotAccess
+    cls = ApiCallRouterWithApprovalChecks
     if cls.full_access_control_manager is None:
       cls.full_access_control_manager = user_managers.FullAccessControlManager()
     return cls.full_access_control_manager
@@ -55,8 +54,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     user_managers.CheckUserForLabels(token.username, ["admin"], token=token)
 
   def __init__(self, params=None, legacy_manager=None, delegate=None):
-    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__(
-        params=params)
+    super(ApiCallRouterWithApprovalChecks, self).__init__(params=params)
 
     if not legacy_manager:
       legacy_manager = self._GetFullAccessControlManager()
@@ -687,32 +685,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListApiMethods(args, token=token)
 
-  # Robot methods (methods that provide limited access to the system and
-  # are supposed to be triggered by the scripts).
-  # ====================================================================
-  #
-  def StartRobotGetFilesOperation(self, args, token=None):
-    # Robot methods are not accessible for normal users.
 
-    raise access_control.UnauthorizedAccess("Robot methods can't be used "
-                                            "by normal users.")
-
-  def GetRobotGetFilesOperationState(self, args, token=None):
-    # Robot methods are not accessible for normal users.
-
-    raise access_control.UnauthorizedAccess("Robot methods can't be used "
-                                            "by normal users.")
+# This class is kept here for backwards compatibility only.
+# TODO(user): Remove EOQ42017
+class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
+    ApiCallRouterWithApprovalChecks):
+  pass
 
 
+# This class is kept here for backwards compatibility only.
+# TODO(user): Remove EOQ42017
 class ApiCallRouterWithApprovalChecksWithRobotAccess(
-    ApiCallRouterWithApprovalChecksWithoutRobotAccess):
-
-  # Robot methods (methods that provide limited access to the system and
-  # are supposed to be triggered by the scripts).
-  # ====================================================================
-  #
-  def StartRobotGetFilesOperation(self, args, token=None):
-    return self.delegate.StartRobotGetFilesOperation(args, token=token)
-
-  def GetRobotGetFilesOperationState(self, args, token=None):
-    return self.delegate.GetRobotGetFilesOperationState(args, token=token)
+    ApiCallRouterWithApprovalChecks):
+  pass

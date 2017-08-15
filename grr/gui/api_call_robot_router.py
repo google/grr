@@ -329,13 +329,3 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
   # API libraries.
   def ListApiMethods(self, args, token=None):
     return api_reflection.ApiListApiMethodsHandler(self)
-
-  # Robot methods (methods that provide limited access to the system and
-  # are supposed to be triggered by the scripts).
-  # ====================================================================
-  #
-  def StartRobotGetFilesOperation(self, args, token=None):
-    return self.delegate.StartRobotGetFilesOperation(args, token=token)
-
-  def GetRobotGetFilesOperationState(self, args, token=None):
-    return self.delegate.GetRobotGetFilesOperationState(args, token=token)

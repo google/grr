@@ -19,7 +19,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
@@ -155,97 +154,6 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     result = self.handler.Handle(args, token=self.token)
     self.assertFalse(utils.SmartStr(result.urn).startswith("aff4:/foo"))
-
-
-class ApiStartRobotGetFilesOperationHandlerTest(
-    api_test_lib.ApiCallHandlerTest):
-  """Test for ApiStartRobotGetFilesOperationHandler."""
-
-  def setUp(self):
-    super(ApiStartRobotGetFilesOperationHandlerTest, self).setUp()
-    self.client_ids = self.SetupClients(4)
-    self.handler = flow_plugin.ApiStartRobotGetFilesOperationHandler()
-
-  def testClientLookup(self):
-    """When multiple clients match, check we run on the latest one."""
-    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(
-        hostname="Host", paths=["/test"])
-    result = self.handler.Handle(args, token=self.token)
-    # Here we exploit the fact that operation_id is effectively a flow URN.
-    self.assertIn("C.1000000000000003", result.operation_id)
-
-  def testThrottle(self):
-    """Calling the same flow should raise."""
-    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(
-        hostname="Host", paths=["/test"])
-    self.handler.Handle(args, token=self.token)
-
-    with self.assertRaises(throttle.ErrorFlowDuplicate):
-      self.handler.Handle(args, token=self.token)
-
-
-class ApiGetRobotGetFilesOperationStateHandlerTest(
-    api_test_lib.ApiCallHandlerTest):
-  """Test for ApiGetRobotGetFilesOperationStateHandler."""
-
-  def setUp(self):
-    super(ApiGetRobotGetFilesOperationStateHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.handler = flow_plugin.ApiGetRobotGetFilesOperationStateHandler()
-
-  def testValidatesFlowId(self):
-    """Check bad flows id is rejected.
-
-    Make sure our input is validated because this API doesn't require
-    authorization.
-    """
-    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(
-            self.client_id.Add("flows").Add("X:<script>")))
-    with self.assertRaises(ValueError):
-      self.handler.Handle(bad_opid, token=self.token)
-
-  def testValidatesClientId(self):
-    """Check bad client id is rejected.
-
-    Make sure our input is validated because this API doesn't require
-    authorization.
-    """
-    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id="aff4:/C.1234546<script>/flows/X:12345678")
-    with self.assertRaises(ValueError):
-      self.handler.Handle(bad_opid, token=self.token)
-
-  def testRaisesIfNoFlowIsFound(self):
-    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(
-            self.client_id.Add("flows").Add("X:123456")))
-    with self.assertRaises(flow_plugin.RobotGetFilesOperationNotFoundError):
-      self.handler.Handle(bad_opid, token=self.token)
-
-  def testRaisesIfFlowIsNotFileFinder(self):
-    flow_id = flow.GRRFlow.StartFlow(
-        flow_name=processes.ListProcesses.__name__,
-        client_id=self.client_id,
-        token=self.token)
-
-    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(flow_id))
-    with self.assertRaises(flow_plugin.RobotGetFilesOperationNotFoundError):
-      self.handler.Handle(bad_opid, token=self.token)
-
-  def testReturnsCorrectResultIfFlowIsFileFinder(self):
-    flow_id = flow.GRRFlow.StartFlow(
-        flow_name=file_finder.FileFinder.__name__,
-        paths=["/*"],
-        client_id=self.client_id,
-        token=self.token)
-
-    opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(flow_id))
-    result = self.handler.Handle(opid, token=self.token)
-    self.assertEqual(result.state, "RUNNING")
-    self.assertEqual(result.result_count, 0)
 
 
 class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):

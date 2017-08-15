@@ -3,6 +3,8 @@
 goog.provide('grrUi.hunt.huntsListDirective.HuntsListController');
 goog.provide('grrUi.hunt.huntsListDirective.HuntsListDirective');
 
+goog.require('grrUi.core.utils.stripAff4Prefix');
+
 goog.scope(function() {
 
 
@@ -16,10 +18,12 @@ goog.scope(function() {
  * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {grrUi.core.dialogService.DialogService} grrDialogService
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
  * @ngInject
  */
 grrUi.hunt.huntsListDirective.HuntsListController = function(
-    $scope, $q, $uibModal, grrDialogService, grrApiService) {
+    $scope, $q, $uibModal, grrDialogService, grrApiService,
+    grrAclDialogService) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
@@ -36,6 +40,9 @@ grrUi.hunt.huntsListDirective.HuntsListController = function(
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+  this.grrAclDialogService_ = grrAclDialogService;
 
   // Internal state.
 
@@ -83,14 +90,17 @@ HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage
           return successMessage;
         }.bind(this),
         function failure(response) {
+          var message = response['data']['message'];
+
           if (response['status'] === 403) {
-            // TODO(user): migrate from using grr.publish to using
-            // Angular services.
-            grr.publish('unauthorized',
-                        response['data']['subject'],
-                        response['data']['message']);
+            var subject = response['data']['subject'];
+            var huntId = grrUi.core.utils.stripAff4Prefix(
+                subject).split('/')[1];
+
+            this.grrAclDialogService_.openRequestHuntApprovalDialog(
+                huntId, message);
           }
-          return this.q_.reject(response['data']['message']);
+          return this.q_.reject(message);
         }.bind(this));
 };
 

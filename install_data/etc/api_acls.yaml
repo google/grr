@@ -19,7 +19,7 @@
 # users:
 #   - "user1"
 #   - "user2"
-# router: "ApiCallRouterWithApprovalChecksWithoutRobotAccess"
+# router: "ApiCallRouterWithApprovalChecks"
 # users:
 #   - "userFoo"
 #   - "userBar"

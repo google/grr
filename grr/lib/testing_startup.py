@@ -18,6 +18,10 @@ from grr.lib.data_stores import fake_data_store
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
 
+flags.DEFINE_string("test_data_store", None,
+                    "The data store implementation to use for running "
+                    "the tests.")
+
 
 def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
@@ -42,25 +46,31 @@ def TestInit():
   if os.path.exists(extra_test_config):
     flags.FLAGS.secondary_configs.append(extra_test_config)
 
-  # We are running a test so let the config system know that.
-  config.CONFIG.AddContext(contexts.TEST_CONTEXT,
-                           "Context applied when we run tests.")
-
-  config.CONFIG.Set("Datastore.implementation",
-                    fake_data_store.FakeDataStore.__name__)
-  config.CONFIG.Set("Blobstore.implementation",
-                    memory_stream_bs.MemoryStreamBlobstore.__name__)
-
   # Tests additionally add a test configuration file.
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
 
-  data_store.DataStoreInit().Run()
-  aff4.AFF4InitHook().Run()
+  # We are running a test so let the config system know that.
+  config.CONFIG.AddContext(contexts.TEST_CONTEXT,
+                           "Context applied when we run tests.")
+
+  test_ds = flags.FLAGS.test_data_store
+  if test_ds is None:
+    test_ds = fake_data_store.FakeDataStore.__name__
+
+  config.CONFIG.Set("Datastore.implementation", test_ds)
+  config.CONFIG.Set("Blobstore.implementation",
+                    memory_stream_bs.MemoryStreamBlobstore.__name__)
 
   if not INIT_RAN:
     log.ServerLoggingStartupInit()
 
   registry.TestInit()
+
+  db = data_store.DB.SetupTestDB()
+  if db:
+    data_store.DB = db
+  data_store.DB.Initialize()
+  aff4.AFF4InitHook().Run()
 
   INIT_RAN = True

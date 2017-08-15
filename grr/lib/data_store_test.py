@@ -88,30 +88,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   # The same applies to locks.
   TEST_DBSUBJECTLOCKS = True
 
-  def _ClearDB(self, subjects):
-    for subject in subjects:
-      data_store.DB.DeleteSubject(subject, token=self.token)
-    data_store.DB.Flush()
-
   def setUp(self):
     super(_DataStoreTest, self).setUp()
-    self.InitDatastore()
-    to_delete = ["aff4:/row:%s" % i for i in range(20)]
-    to_delete.extend(["aff4:/C/%s" % i for i in range(7)])
-    to_delete.extend(
-        [self.test_row, self.lease_row, "aff4:/A/", "aff4:/B/", "aff4:/C/"])
-    self._ClearDB(to_delete)
-    self.acls_installed = False
-
-  def tearDown(self):
-    super(_DataStoreTest, self).tearDown()
-    self.DestroyDatastore()
-
-  def InitDatastore(self):
-    """Initiates custom data store."""
-
-  def DestroyDatastore(self):
-    """Destroys custom data store."""
+    data_store.DB.ClearTestDB()
 
   def _TruncateToMilliseconds(self, timestamp_int):
     timestamp_int -= (timestamp_int % 1000)
@@ -209,8 +188,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         sync=False,
         token=self.token)
 
-    # Force the flusher thread to flush.
-    data_store.DB.flusher_thread.target()
+    data_store.DB.Flush()
 
     stored, _ = data_store.DB.Resolve(
         self.test_row, "aff4:size", token=self.token)
@@ -303,12 +281,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(ts, 1000)
 
   def testMultiSetRemovesOtherValuesWhenReplacing(self):
-    values = data_store.DB.ResolvePrefix(
-        self.test_row,
-        "aff4:stored",
-        timestamp=data_store.DB.ALL_TIMESTAMPS,
-        token=self.token)
-
     data_store.DB.MultiSet(
         self.test_row, {"aff4:stored": [("2", 1000), ("3", 4000)]},
         replace=False,
@@ -1227,7 +1199,11 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     with mock.patch.object(time, "sleep", return_value=None):
       with self.assertRaises(data_store.DBSubjectLockError):
         data_store.DB.LockRetryWrapper(
-            subject, lease_time=100, token=self.token)
+            subject,
+            lease_time=100,
+            retrywrap_timeout=1,
+            retrywrap_max_timeout=3,
+            token=self.token)
 
     lock.Release()
 
@@ -1517,7 +1493,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(2, len(list(directory.OpenChildren())))
     self.assertEqual(2, len(list(directory.ListChildren())))
 
-  OPEN_WITH_LOCK_NUM_THREADS = 10
+  OPEN_WITH_LOCK_NUM_THREADS = 5
   OPEN_WITH_LOCK_TRIES_PER_THREAD = 3
   OPEN_WITH_LOCK_SYNC_LOCK_SLEEP = 0.2
 
@@ -1556,9 +1532,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
               self.fail("Double open!")
 
             self.opened = True
-            logging.info("Thread %s holding lock for 0.5 seconds.",
+            logging.info("Thread %s holding lock for 0.2 seconds.",
                          thread.get_ident())
-            time.sleep(0.5)
+            time.sleep(0.2)
 
             # We fail if someone has closed the object while we are holding it
             # opened.
@@ -1917,7 +1893,6 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     super(DataStoreCSVBenchmarks, self).setUp(
         ["DB Size (KB)", "Queries", "Subjects", "Predicates",
          "Values"], ["<20", "<10", "<10", "<10", "<10"])
-    self.InitDatastore()
     self.start_time = time.time()
     self.last_time = self.start_time
 
@@ -1925,7 +1900,6 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.Register(force=True)
     super(DataStoreCSVBenchmarks, self).tearDown()
     self.WriteCSV()
-    self.DestroyDatastore()
 
   def Register(self, force=False):
     """Add a new result line to the benchmark result."""
@@ -2382,20 +2356,12 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def setUp(self):
     super(DataStoreBenchmarks, self).setUp()
-    self.InitDatastore()
     self.tp = threadpool.ThreadPool.Factory("test_pool", 50)
     self.tp.Start()
 
   def tearDown(self):
     super(DataStoreBenchmarks, self).tearDown()
     self.tp.Stop()
-    self.DestroyDatastore()
-
-  def InitDatastore(self):
-    """Initiates custom data store."""
-
-  def DestroyDatastore(self):
-    """Destroys custom data store."""
 
   def GenerateFiles(self, client_id, n, directory="dir/dir"):
     res = []

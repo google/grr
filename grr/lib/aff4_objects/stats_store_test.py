@@ -183,7 +183,10 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         process_id=self.process_id, timestamp=43, sync=True)
 
     row = data_store.DB.ResolvePrefix(
-        "aff4:/stats_store/some_pid", "", token=self.token)
+        "aff4:/stats_store/some_pid",
+        "",
+        timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)
     counters = [x for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertEqual(len(counters), 2)
     counters = sorted(counters, key=lambda x: x[2])

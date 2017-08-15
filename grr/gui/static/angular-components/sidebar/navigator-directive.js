@@ -74,16 +74,6 @@ NavigatorController.prototype.onClientSelectionChange_ = function(clientId) {
     return;
   }
 
-  // Keep to not break integration with the legacy JS code. Remove once the
-  // legacy JS plugins are removed.
-  if (!grr.state) {
-    grr.state = {
-      client_id: 'aff4:/' + clientId
-    };
-  } else {
-    grr.state.client_id = 'aff4:/' + clientId;
-  }
-
   this.clientId = clientId;
   this.client = null; // Set to null so the loader is shown.
 

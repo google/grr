@@ -194,7 +194,6 @@ class QueueManager(object):
 
   def FetchCompletedRequests(self, session_id, timestamp=None):
     """Fetch all the requests with a status message queued for them."""
-
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
@@ -207,7 +206,6 @@ class QueueManager(object):
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
-
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
@@ -365,6 +363,7 @@ class QueueManager(object):
       notification = rdf_flows.GrrNotification(**kw)
 
     session_id = notification.session_id
+
     if session_id:
       if timestamp is None:
         timestamp = self.frozen_timestamp
@@ -420,7 +419,7 @@ class QueueManager(object):
         self.data_store.DeleteAttributes(
             queue, predicates, token=self.token, sync=False)
 
-  def Schedule(self, tasks, sync=False, timestamp=None, mutation_pool=None):
+  def Schedule(self, tasks, mutation_pool, timestamp=None):
     """Schedule a set of Task() instances."""
     if timestamp is None:
       timestamp = self.frozen_timestamp
@@ -433,15 +432,7 @@ class QueueManager(object):
                              [task.SerializeToString()])
                             for task in queued_tasks])
 
-        if mutation_pool:
-          mutation_pool.MultiSet(queue, to_schedule, timestamp=timestamp)
-        else:
-          self.data_store.MultiSet(
-              queue,
-              to_schedule,
-              timestamp=timestamp,
-              sync=sync,
-              token=self.token)
+        mutation_pool.MultiSet(queue, to_schedule, timestamp=timestamp)
 
   def _SortByPriority(self, notifications, queue, output_dict=None):
     """Sort notifications by priority into output_dict."""

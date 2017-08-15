@@ -1731,18 +1731,6 @@
       "url": "/api/v2/stats/reports/BarReportPlugin?duration=345600&start_time=1355443200000000"
     }
   ],
-  "ApiGetRobotGetFilesOperationStateHandler": [
-    {
-      "api_method": "GetRobotGetFilesOperationState",
-      "method": "GET",
-      "response": {
-        "resultCount": "1",
-        "state": "RUNNING"
-      },
-      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/robot-actions/get-files/aff4:/C.1000000000000000/flows/F:ABCDEF12"
-    }
-  ],
   "ApiGetStatsStoreMetricHandler": [
     {
       "api_method": "GetStatsStoreMetric",
@@ -5338,6 +5326,7 @@
           "environ_allusersappdata",
           "environ_allusersprofile",
           "environ_path",
+          "environ_profilesdirectory",
           "environ_programfiles",
           "environ_programfilesx86",
           "environ_systemdrive",
@@ -5819,23 +5808,6 @@
       },
       "test_class": "ApiSearchClientsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients?query=C.1000000000000000"
-    }
-  ],
-  "ApiStartRobotGetFilesOperationHandler": [
-    {
-      "api_method": "StartRobotGetFilesOperation",
-      "method": "POST",
-      "request_payload": {
-        "hostname": "C.1000000000000000",
-        "paths": [
-          "/tmp/test"
-        ]
-      },
-      "response": {
-        "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-      },
-      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest_http_v2",
-      "url": "/api/v2/robot-actions/get-files"
     }
   ],
   "ApiUpdateVfsFileContentHandler": [

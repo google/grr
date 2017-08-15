@@ -2,7 +2,6 @@
 
 goog.provide('grrUi.core.module');
 
-goog.require('grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective');
 goog.require('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');
 goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
 goog.require('grrUi.core.apiService.ApiService');
@@ -57,10 +56,6 @@ grrUi.core.module = angular.module('grrUi.core', ['ngCookies',
 grrUi.core.module.directive(
     grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective.directive_name,
     grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective);
-grrUi.core.module.directive(
-    grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective
-        .directive_name,
-    grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective);
 grrUi.core.module.directive(
     grrUi.core.apiItemsProviderDirective.
         ApiItemsProviderDirective.directive_name,

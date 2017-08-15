@@ -1,5 +1,6 @@
 'use strict';
 
+goog.require('grrUi.core.apiService');
 goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 goog.require('grrUi.core.module');
@@ -11,11 +12,12 @@ var grr = grr || {};
 
 
 describe('API service', function() {
-  var $httpBackend, $interval, grrApiService;
+  var $rootScope, $httpBackend, $interval, grrApiService;
 
   beforeEach(module(grrUi.core.module.name));
 
   beforeEach(inject(function($injector) {
+    $rootScope = $injector.get('$rootScope');
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
@@ -539,19 +541,21 @@ describe('API service', function() {
       expect(promiseRejected).toBe(true);
     });
 
-    it('uses subject/reason from UnauthorizedAccess HEAD response', function() {
+    it('broadcasts subject/reason from UnauthorizedAccess HEAD response',
+       function() {
       $httpBackend.whenHEAD('/api/some/path').respond(403, {}, {
         'x-grr-unauthorized-access-subject': 'some subject',
         'x-grr-unauthorized-access-reason': 'some reason'});
 
-      grr.publish = jasmine.createSpy('publish').and.returnValue();
-
-      var promise = grrApiService.downloadFile('some/path');
+      spyOn($rootScope, '$broadcast');
+      grrApiService.downloadFile('some/path');
       $httpBackend.flush();
 
-      expect(grr.publish).toHaveBeenCalledWith('unauthorized',
-                                               'some subject',
-                                               'some reason');
+      expect($rootScope.$broadcast).toHaveBeenCalledWith(
+          grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT,
+          {
+            subject: 'some subject', reason: 'some reason'
+          });
     });
 
     it('creates an iframe request if HEAD succeeds', function() {

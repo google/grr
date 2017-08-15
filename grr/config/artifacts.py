@@ -17,6 +17,7 @@ config_lib.DEFINE_list("Artifacts.knowledge_base", [
     "WindowsEnvironmentVariableAllUsersAppData",
     "WindowsEnvironmentVariableAllUsersProfile",
     "WindowsEnvironmentVariablePath",
+    "WindowsEnvironmentVariableProfilesDirectory",
     "WindowsEnvironmentVariableProgramFiles",
     "WindowsEnvironmentVariableProgramFilesX86",
     "WindowsEnvironmentVariableSystemDrive",

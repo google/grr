@@ -145,9 +145,9 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntilNot(self.IsElementPresent, "link=bin")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetVfsFilesArchive")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetVfsFilesArchive")
   def testClickingOnDownloadCurrentFolderButtonStartsDownload(
       self, mock_method):
     # Open VFS view for client 1 on a specific location.
@@ -162,9 +162,9 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
             client_id="C.0000000000000001", file_path="fs/os/c/proc"),
         token=mock.ANY)
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetVfsFilesArchive")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetVfsFilesArchive")
   def testClickingOnDownloadEverythingButtonStartsDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"

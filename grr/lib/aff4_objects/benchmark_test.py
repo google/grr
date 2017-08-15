@@ -53,11 +53,11 @@ class AFF4Benchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
       fd.Close()
 
-    # Time creation  into an empty data store.
-    self.TimeIt(CreateAFF4Object, pre=data_store.DB.Clear)
+    # Time creation into an empty data store.
+    self.TimeIt(CreateAFF4Object, pre=data_store.DB.ClearTestDB)
 
     # Now we want to measure the time to read one of these object.
-    data_store.DB.Clear()
+    data_store.DB.ClearTestDB()
     CreateAFF4Object()
 
     def ReadAFF4Object():

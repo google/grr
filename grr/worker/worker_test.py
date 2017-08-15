@@ -48,8 +48,6 @@ class WorkerSendingTestFlow(flow.GRRFlow):
 
   @flow.StateHandler(auth_required=False)
   def Incoming(self, responses):
-    # Add a delay here to catch thread races.
-    time.sleep(0.2)
     # We push the result into a global array so we can examine it
     # better.
     for response in responses:
@@ -97,7 +95,6 @@ class CPULimitClientMock(object):
     self.__name__ = "Store"
 
   def HandleMessage(self, message):
-    print message
     self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
     self.storage.setdefault("networklimit",
                             []).append(message.network_bytes_limit)
@@ -424,16 +421,16 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       session_id = flow_obj.session_id
       flow_obj.Close()
 
-      manager = queue_manager.QueueManager(token=self.token)
-      notification = rdf_flows.GrrNotification(
-          session_id=session_id, last_status=1)
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
-        manager.NotifyQueue(notification, mutation_pool=pool)
+      with queue_manager.QueueManager(token=self.token) as manager:
+        notification = rdf_flows.GrrNotification(
+            session_id=session_id, timestamp=time.time(), last_status=1)
+        with data_store.DB.GetMutationPool(token=self.token) as pool:
+          manager.NotifyQueue(notification, mutation_pool=pool)
 
-      notifications = manager.GetNotifications(queues.FLOWS)
-      # Check the notification is there.
-      notifications = [n for n in notifications if n.session_id == session_id]
-      self.assertEqual(len(notifications), 1)
+        notifications = manager.GetNotifications(queues.FLOWS)
+        # Check the notification is there.
+        notifications = [n for n in notifications if n.session_id == session_id]
+        self.assertEqual(len(notifications), 1)
 
     delay = flow_runner.FlowRunner.notification_retry_interval
 
@@ -530,9 +527,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
             client_id=self.client_id,
             token=self.token,
             sync=False)
-
         # Process all messages
-        worker_obj.RunOnce()
+        while worker_obj.RunOnce():
+          pass
         # Wait until worker thread starts processing the flow.
         WorkerStuckableTestFlow.WaitUntilWorkerStartsProcessing()
 
@@ -542,6 +539,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
       future_time = (
           initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
+
       with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
         worker_obj.RunOnce()
 
@@ -1168,8 +1166,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("Out of CPU quota", errors[1].backtrace)
 
 
-def main(_):
-  test_lib.main()
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv)
 
 
 if __name__ == "__main__":

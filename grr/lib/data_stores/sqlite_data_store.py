@@ -9,6 +9,7 @@ SQLite database files are created by taking the root of each AFF4 object.
 import itertools
 import os
 import re
+import shutil
 import stat
 import tempfile
 import thread
@@ -150,9 +151,6 @@ class SqliteConnectionCache(utils.FastStore):
 
   def RootPath(self):
     return self.root_path
-
-  def ChangePath(self, new_path):
-    self.root_path = new_path
 
   def KillObject(self, conn):
     conn.Close()
@@ -771,7 +769,6 @@ class SqliteDataStore(data_store.DataStore):
                     limit=None,
                     token=None):
     """Resolve all attributes for a subject matching a prefix."""
-
     if isinstance(attribute_prefix, str):
       attribute_prefix = [attribute_prefix]
 
@@ -779,30 +776,32 @@ class SqliteDataStore(data_store.DataStore):
 
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
-    results = []
+    results = {}
 
     with self.cache.Get(subject) as sqlite_connection:
       for prefix in attribute_prefix:
-        nr_results = len(results)
-        if limit and nr_results >= limit:
+        if limit and len(results) >= limit:
           break
-        new_limit = limit
-        if new_limit:
-          new_limit -= nr_results
         if timestamp == self.NEWEST_TIMESTAMP:
-          data = sqlite_connection.GetNewestFromPrefix(subject, prefix,
-                                                       new_limit)
+          data = sqlite_connection.GetNewestFromPrefix(subject, prefix)
           for attribute, value, ts in data:
             value = self._Decode(attribute, value)
-            results.append((attribute, value, ts))
+            results.setdefault(attribute, []).append((value, ts))
         else:
           data = sqlite_connection.GetValuesFromPrefix(subject, prefix, start,
-                                                       end, new_limit)
+                                                       end)
           for attribute, value, ts in data:
             value = self._Decode(attribute, value)
-            results.append((attribute, value, ts))
+            results.setdefault(attribute, []).append((value, ts))
 
-      return results
+      res = []
+      for attribute, values in sorted(results.items()):
+        values.sort(key=lambda x: x[1], reverse=True)
+        for value, ts in values:
+          res.append((attribute, value, ts))
+        if limit and len(res) >= limit:
+          return res
+      return res
 
   def _GroupSubjects(self, collection, max_records):
     """Group results by subject and convert to ScanAttribute output format."""
@@ -941,12 +940,38 @@ class SqliteDataStore(data_store.DataStore):
   def Flush(self):
     pass
 
-  def ChangeLocation(self, location):
-    self.cache.ChangePath(location)
-
   def DBSubjectLock(self, subject, lease_time=None, token=None):
     return SqliteDBSubjectLock(
         self, subject, lease_time=lease_time, token=token)
+
+  @classmethod
+  def SetupTestDB(cls):
+    super(SqliteDataStore, cls).SetupTestDB()
+    temp_dir = tempfile.mkdtemp()
+    db = SqliteDataStore(os.path.join(temp_dir, "sqlite_test"))
+    db.temp_dir = temp_dir
+    return db
+
+  def ClearTestDB(self):
+    root_path = self.cache.RootPath()
+    if (not hasattr(self, "temp_dir") or
+        not root_path.startswith(self.temp_dir)):
+      raise ValueError(
+          "No test DB found, using root %s" % self.cache.RootPath())
+    shutil.rmtree(root_path)
+    os.makedirs(root_path)
+    self.cache = SqliteConnectionCache(
+        config.CONFIG["SqliteDatastore.connection_cache_size"], root_path)
+
+  def DestroyTestDB(self):
+    if (not hasattr(self, "temp_dir") or
+        not self.cache.RootPath().startswith(self.temp_dir)):
+      raise ValueError(
+          "No test DB found, using root %s" % self.cache.RootPath())
+    try:
+      shutil.rmtree(self.temp_dir)
+    except OSError:
+      pass
 
 
 class SqliteDBSubjectLock(data_store.DBSubjectLock):

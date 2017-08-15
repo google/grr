@@ -261,3 +261,7 @@ Test Context:
 
     # When debugging it helps to be able to see all output on the console.
     ClientBuilder.console: True
+
+  # Set those to use the Mysql data store for tests.
+  Mysql.database_username: root
+  Mysql.database_password: root

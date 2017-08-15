@@ -240,6 +240,7 @@ def ServerLoggingStartupInit():
 # the logs into that. This ensures we do not lose any log messages during early
 # program start up.
 root_logger = logging.root
-root_logger.addHandler(PreLoggingMemoryHandler(1000))
-root_logger.setLevel(logging.DEBUG)
-logging.info("Starting GRR Prelogging buffer.")
+memory_logger = PreLoggingMemoryHandler(1000)
+root_logger.addHandler(memory_logger)
+memory_logger.setLevel(logging.DEBUG)
+logging.debug("Starting GRR Prelogging buffer.")

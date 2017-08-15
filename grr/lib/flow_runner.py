@@ -123,6 +123,7 @@ class FlowRunner(object):
     else:
       # Otherwise we use a new queue manager.
       self.queue_manager = queue_manager.QueueManager(token=self.token)
+      self.queue_manager.FreezeTimestamp()
 
     self.queued_replies = []
 

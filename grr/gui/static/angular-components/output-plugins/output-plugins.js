@@ -4,7 +4,6 @@ goog.provide('grrUi.outputPlugins.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
-goog.require('grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective');
 goog.require('grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective');
 goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective.OutputPluginNoteBodyDirective');
 goog.require('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
@@ -18,10 +17,6 @@ grrUi.outputPlugins.module = angular.module('grrUi.outputPlugins',
                                             [grrUi.core.module.name,
                                              'ui.bootstrap']);
 
-grrUi.outputPlugins.module.directive(
-    grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective
-        .directive_name,
-    grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective);
 grrUi.outputPlugins.module.directive(
     grrUi.outputPlugins.outputPluginsNotesDirective
         .OutputPluginsNotesDirective.directive_name,
@@ -52,10 +47,11 @@ grrUi.outputPlugins.module.service(
 
 grrUi.outputPlugins.module.run(function(
     grrOutputPluginsDirectivesRegistryService) {
-  var registry = grrOutputPluginsDirectivesRegistryService;
-
-  registry.registerDirective(
-      grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective
-          .output_plugin_type,
-      grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective);
+  // TODO(user): Output plugins directives should be registered here.
+  // Use the template below to register new plugins.
+  //
+  // var registry = grrOutputPluginsDirectivesRegistryService;
+  // registry.registerDirective(
+  //     grrUi.outputPlugins.<plugin directive>.output_plugin_type,
+  //     grrUi.outputPlugins.<plugin directive>);
 });

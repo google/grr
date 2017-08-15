@@ -244,7 +244,6 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     super(StandardHuntTest, self).tearDown()
 
     logging.error = self.old_logging_error
-    self.DeleteClients(10)
 
   def AssertNoCollectionCorruption(self, message, *args, **kwargs):
     self.assertFalse(

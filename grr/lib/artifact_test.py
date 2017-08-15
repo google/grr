@@ -583,6 +583,7 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(kb.code_page, "cp_1252")
 
     self.assertEqual(kb.environ_windir, "C:\\Windows")
+    self.assertEqual(kb.environ_profilesdirectory, "C:\\Users")
     self.assertEqual(kb.environ_allusersprofile, "C:\\Users\\All Users")
     self.assertEqual(kb.environ_allusersappdata, "C:\\ProgramData")
     self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")

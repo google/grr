@@ -178,12 +178,12 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     acrwac = api_call_router_with_approval_checks
 
     # Clear the cache of the approvals-based router.
-    acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.ClearCache()
+    acrwac.ApiCallRouterWithApprovalChecks.ClearCache()
 
     if self.config_override:
       return
 
-    name = acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.__name__
+    name = acrwac.ApiCallRouterWithApprovalChecks.__name__
     self.config_override = test_lib.ConfigOverrider({"API.DefaultRouter": name})
     self.config_override.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.

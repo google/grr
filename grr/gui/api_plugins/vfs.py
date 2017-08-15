@@ -726,7 +726,10 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
 
     items = []
     for subject, values in data_store.DB.MultiResolvePrefix(
-        child_urns, attribute.predicate, token=token):
+        child_urns,
+        attribute.predicate,
+        timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=token):
       for _, serialized, _ in values:
         stat = rdf_client.StatEntry.FromSerializedString(serialized)
 

@@ -378,24 +378,35 @@ class FlowCreationTest(BasicFlowTest):
         "the flow was created.")
 
   def testCallClientChildFlowRace(self):
-    session_id = flow.GRRFlow.StartFlow(
-        client_id=self.client_id,
-        flow_name="CallClientParentFlow",
-        token=self.token)
+    with test_lib.Instrument(data_store.DB, "MultiSet") as set_function:
+      session_id = flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name="CallClientParentFlow",
+          token=self.token)
 
-    client_requests = data_store.DB.ResolvePrefix(
-        self.client_id.Queue(), "task:", token=self.token)
+    client_request_pos = None
+    flow_obj_pos = None
 
-    self.assertEqual(len(client_requests), 1)
+    for i, (subject, attributes) in enumerate(set_function.args):
+      for attribute in attributes:
+        if subject == self.client_id.Queue() and attribute.startswith("task:"):
+          if client_request_pos is not None:
+            self.fail("Found multiple request writes, confused.")
+          client_request_pos = i
+        if subject == session_id and attribute == "aff4:type":
+          if flow_obj_pos is not None:
+            self.fail("Found multiple flow obj writes, confused.")
+          flow_obj_pos = i
 
-    f = aff4.FACTORY.Open(session_id, token=self.token)
+    if client_request_pos is None:
+      self.fail("Client request write not found.")
+    if flow_obj_pos is None:
+      self.fail("Flow object write not found.")
 
-    for (_, _, timestamp) in client_requests:
-      # Check that the client request was written after the flow was created.
-      self.assertLess(
-          int(f.Get(f.Schema.TYPE).age), timestamp,
-          "The client request was issued before "
-          "the flow was created.")
+    # Check that the client request was written after the flow was created.
+    self.assertLess(flow_obj_pos, client_request_pos,
+                    "The client request was issued before "
+                    "the flow was created.")
 
   def testFlowLogging(self):
     """Check that flows log correctly."""
@@ -654,7 +665,10 @@ class FlowTerminationTest(BasicFlowTest):
 
     def ProcessFlow():
       for _ in flow_test_lib.TestFlowHelper(
-          flow_obj.urn, client_id=self.client_id, token=self.token):
+          flow_obj.urn,
+          client_mock=ClientMock(),
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.assertRaisesRegexp(RuntimeError, "because i can", ProcessFlow)

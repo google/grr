@@ -1015,8 +1015,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
 
-    cls = (api_call_router_with_approval_checks.
-           ApiCallRouterWithApprovalChecksWithoutRobotAccess)
+    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     self.config_overrider = test_lib.ConfigOverrider({
         "API.DefaultRouter": cls.__name__
     })
@@ -1031,8 +1030,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(ApiE2ETest):
     self.config_overrider.Stop()
 
   def ClearCache(self):
-    cls = (api_call_router_with_approval_checks.
-           ApiCallRouterWithApprovalChecksWithoutRobotAccess)
+    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     cls.ClearCache()
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
@@ -1246,8 +1244,7 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
         token=self.token) as client_obj:
       client_obj.AddLabels("legal_approval", "prod_admin_approval")
 
-    cls = (api_call_router_with_approval_checks.
-           ApiCallRouterWithApprovalChecksWithoutRobotAccess)
+    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     cls.ClearCache()
     self.approver = test_lib.ConfigOverrider({
         "API.DefaultRouter":

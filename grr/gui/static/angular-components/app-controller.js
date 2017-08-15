@@ -58,4 +58,63 @@ grrUi.appController.module = angular.module('grrUi.appController',
 
                                              grrUiLocal.local.module.name]);
 
+grrUi.appController.module.config(function($httpProvider, $interpolateProvider,
+                                           $qProvider, $locationProvider,
+                                           $rootScopeProvider) {
+  // Set templating braces to be '{$' and '$}' to avoid conflicts with Django
+  // templates.
+  $interpolateProvider.startSymbol('{$');
+  $interpolateProvider.endSymbol('$}');
+
+  // Ensuring that Django plays nicely with Angular-initiated requests
+  // (see http://www.daveoncode.com/2013/10/17/how-to-
+  // make-angularjs-and-django-play-nice-together/).
+  $httpProvider.defaults.headers.post[
+    'Content-Type'] = 'application/x-www-form-urlencoded';
+
+  // Erroring on unhandled rejection is a behavior added in Angular 1.6, our
+  // code is written without this check in mind.
+  $qProvider.errorOnUnhandledRejections(false);
+
+  // Setting this explicitly due to Angular's behavior change between
+  // versions 1.5 and 1.6.
+  $locationProvider.hashPrefix('');
+
+  // We use recursive data model generation when rendering forms. Therefore
+  // have to increase the digestTtl limit to 50.
+  $rootScopeProvider.digestTtl(50);
+});
+
+grrUi.appController.module.run(function($injector, $http, $cookies,
+                                        grrFirebaseService,
+                                        grrReflectionService) {
+  // Ensure CSRF token is in place for Angular-initiated HTTP requests.
+  $http.defaults.headers.post['X-CSRFToken'] = $cookies.get('csrftoken');
+  $http.defaults.headers.delete = $http.defaults.headers.patch = {
+    'X-CSRFToken': $cookies.get('csrftoken')
+  };
+
+  grrFirebaseService.setupIfNeeded();
+
+  // Call reflection service as soon as possible in the app lifetime to cache
+  // the values. "ACLToken" is picked up here as an arbitrary name.
+  // grrReflectionService loads all RDFValues definitions on first request
+  // and then caches them.
+  grrReflectionService.getRDFValueDescriptor('ACLToken');
+});
+
+
+/**
+ * Hardcoding jsTree themes folder so that it works correctly when used
+ * from a JS bundle file.
+ */
+$['jstree']['_themes'] = '/static/third-party/jstree/themes/';
+
+
+/**
+ * TODO(user): Remove when dependency on jQuery-migrate is removed.
+ */
+jQuery['migrateMute'] = true;
+
+
 grrUi.appController.module.controller('GrrUiAppController', function() {});

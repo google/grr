@@ -259,7 +259,8 @@ class FrontEndServer(object):
     except communicator.UnknownClientCert:
       # We can not encode messages to the client yet because we do not have the
       # client certificate - return them to the queue so we can try again later.
-      queue_manager.QueueManager(token=self.token).Schedule(tasks)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        queue_manager.QueueManager(token=self.token).Schedule(tasks, pool)
       raise
 
     return source, len(messages)

@@ -3,8 +3,8 @@
 goog.provide('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogController');
 goog.provide('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
 
-
 goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.utils.stripAff4Prefix');
 
 
 goog.scope(function() {
@@ -20,10 +20,11 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
  * @ngInject
  */
 grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogController =
-    function($scope, $q, grrApiService) {
+    function($scope, $q, grrApiService, grrAclDialogService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -32,6 +33,9 @@ grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogController =
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+  this.grrAclDialogService_ = grrAclDialogService;
 
   /** @export {Object|undefined} */
   this.argsObj;
@@ -89,15 +93,17 @@ ModifyHuntDialogController.prototype.proceed = function() {
             return 'Hunt modified successfully!';
           }.bind(this),
           function failure(response) {
-            if (response['status'] === 403) {
-              // TODO(user): migrate from using grr.publish to using
-              // Angular services.
-              grr.publish('unauthorized',
-                          response['data']['subject'],
-                          response['data']['message']);
-            }
+            var message = response['data']['message'];
 
-            return this.q_.reject(response['data']['message']);
+            if (response['status'] === 403) {
+              var subject = response['data']['subject'];
+              var huntId = grrUi.core.utils.stripAff4Prefix(
+                  subject).split('/')[1];
+
+              this.grrAclDialogService_.openRequestHuntApprovalDialog(
+                  huntId, message);
+            }
+            return this.q_.reject(message);
           }.bind(this));
 };
 

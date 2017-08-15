@@ -14,6 +14,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import standard as aff4_standard
+from grr.lib.data_stores import fake_data_store
 from grr.lib.flows.cron import data_retention
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
@@ -74,6 +75,10 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
                                 latest_timestamp - rdfvalue.Duration("150s"))
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
+    # This only works with the test data store (FakeDataStore).
+    if not isinstance(data_store.DB, fake_data_store.FakeDataStore):
+      self.skipTest("Only supported on FakeDataStore.")
+
     with test_lib.ConfigOverrider({
         "DataRetention.hunts_ttl": rdfvalue.Duration("1s")
     }):
@@ -86,7 +91,6 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
       for hunt_urn in self.hunts_urns:
         hunt_id = hunt_urn.Basename()
 
-        # NOTE: We assume that tests are running with FakeDataStore.
         for subject, subject_data in data_store.DB.subjects.items():
           # Foreman rules are versioned, so hunt ids will be mentioned
           # there. Ignoring audit events as well.
@@ -211,12 +215,14 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
           self.assertGreater(child_urn.age,
                              latest_timestamp - rdfvalue.Duration("150s"))
 
-      # Check that no subjects are left behind that have anything to do with
-      # the deleted flows (requests, responses, ...).
-      deleted_flows = set(all_children) - set(remaining_children)
-      for subject in data_store.DB.subjects:
-        for flow_urn in deleted_flows:
-          self.assertNotIn(str(flow_urn), subject)
+      # Only works with the test data store.
+      if isinstance(data_store.DB, fake_data_store.FakeDataStore):
+        # Check that no subjects are left behind that have anything to do with
+        # the deleted flows (requests, responses, ...).
+        deleted_flows = set(all_children) - set(remaining_children)
+        for subject in data_store.DB.subjects:
+          for flow_urn in deleted_flows:
+            self.assertNotIn(str(flow_urn), subject)
 
 
 class CleanTempTest(flow_test_lib.FlowTestsBaseclass):

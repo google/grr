@@ -131,11 +131,7 @@ class GRRBaseTest(unittest.TestCase):
                  self._testMethodName)
     self.last_start_time = time.time()
 
-    try:
-      # Clear() is much faster than init but only supported for FakeDataStore.
-      data_store.DB.Clear()
-    except AttributeError:
-      self.InitDatastore()
+    data_store.DB.ClearTestDB()
 
     aff4.FACTORY.Flush()
 

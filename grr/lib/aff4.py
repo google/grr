@@ -335,7 +335,6 @@ class Factory(object):
                     to_delete,
                     add_child_index=True,
                     mutation_pool=None,
-                    sync=False,
                     token=None):
     """Sets the attributes in the data store."""
 
@@ -344,22 +343,18 @@ class Factory(object):
     ]
     to_delete.add(AFF4Object.SchemaCls.LAST)
     if mutation_pool:
-      mutation_pool.MultiSet(
-          urn, attributes, replace=False, to_delete=to_delete)
-
+      pool = mutation_pool
     else:
-      data_store.DB.MultiSet(
-          urn,
-          attributes,
-          token=token,
-          replace=False,
-          sync=sync,
-          to_delete=to_delete)
+      pool = data_store.DB.GetMutationPool(token=token)
+
+    pool.MultiSet(urn, attributes, replace=False, to_delete=to_delete)
 
     if add_child_index:
-      self._UpdateChildIndex(urn, token, mutation_pool=mutation_pool)
+      self._UpdateChildIndex(urn, pool)
+    if mutation_pool is None:
+      pool.Flush()
 
-  def _UpdateChildIndex(self, urn, token, mutation_pool=None):
+  def _UpdateChildIndex(self, urn, mutation_pool):
     """Update the child indexes.
 
     This function maintains the index for direct child relations. When we set
@@ -373,9 +368,7 @@ class Factory(object):
 
     Args:
       urn: The AFF4 object for which we update the index.
-      token: The token to use.
-      mutation_pool: An optional MutationPool object to write to. If not given,
-                     the data_store is used directly.
+      mutation_pool: A MutationPool object to write to.
     """
     try:
       # Create navigation aids by touching intermediate subject names.
@@ -400,11 +393,7 @@ class Factory(object):
                 rdfvalue.RDFDatetime.Now().SerializeToDataStore()
             ]
 
-          if mutation_pool:
-            mutation_pool.MultiSet(dirname, attributes, replace=True)
-          else:
-            data_store.DB.MultiSet(
-                dirname, attributes, token=token, replace=True, sync=False)
+          mutation_pool.MultiSet(dirname, attributes, replace=True)
 
           self.intermediate_cache.Put(urn, 1)
 
@@ -639,7 +628,8 @@ class Factory(object):
       data_store.DB.MultiSet(
           new_urn, values, token=token, replace=False, sync=sync)
 
-      self._UpdateChildIndex(new_urn, token)
+      with data_store.DB.GetMutationPool(token=token) as pool:
+        self._UpdateChildIndex(new_urn, pool)
 
   def Open(self,
            urn,
@@ -1846,7 +1836,7 @@ class AFF4Object(object):
     if self.locked and self.CheckLease() == 0:
       raise LockError("Can not update lease that has already expired.")
 
-    self._WriteAttributes(sync=sync)
+    self._WriteAttributes()
     self._SyncAttributes()
 
     if self.parent:
@@ -1870,7 +1860,7 @@ class AFF4Object(object):
     if self.locked:
       sync = True
 
-    self._WriteAttributes(sync=sync)
+    self._WriteAttributes()
 
     # Releasing this lock allows another thread to own it.
     if self.locked:
@@ -1903,7 +1893,7 @@ class AFF4Object(object):
       raise ValueError("deletion_pool can't be None")
 
   @utils.Synchronized
-  def _WriteAttributes(self, sync=True):
+  def _WriteAttributes(self):
     """Write the dirty attributes to the data store."""
     # If the object is not opened for writing we do not need to flush it to the
     # data_store.
@@ -1943,7 +1933,6 @@ class AFF4Object(object):
           self._to_delete,
           add_child_index=add_child_index,
           mutation_pool=self.mutation_pool,
-          sync=sync,
           token=self.token)
 
   @utils.Synchronized

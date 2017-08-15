@@ -109,32 +109,34 @@ class CodepageParser(parsers.RegistryValueParser):
     yield rdfvalue.RDFString("cp_%s" % value)
 
 
-class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
-  """Parser for AllUsersProfile variable.
+class ProfilesDirectoryEnvironmentVariable(parsers.RegistryParser):
+  """Parser for the ProfilesDirectory environment variable."""
 
-  This requires combining two registry values together and applying a default
-  if one or the registry values doesn't exist.
-  """
+  output_type = ["RDFString"]
+  supported_artifacts = ["WindowsEnvironmentVariableProfilesDirectory"]
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
+
+  def Parse(self, stat, knowledge_base):
+    value = stat.registry_data.GetValue()
+    if not value:
+      # Provide a default, if the registry value is not available.
+      value = "%SystemDrive%\\Documents and Settings"
+    interpolated_value = artifact_utils.ExpandWindowsEnvironmentVariables(
+        value, knowledge_base)
+    yield rdfvalue.RDFString(interpolated_value)
+
+
+class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
+  """Parser for AllUsersProfile variable."""
+
   output_types = ["RDFString"]
   supported_artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
-  # Required for environment variable expansion
-  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
-  process_together = True
+  knowledgebase_dependencies = ["environ_profilesdirectory"]
 
-  def ParseMultiple(self, stats, knowledge_base):
-    """Parse each returned registry variable."""
-    prof_directory = r"%SystemDrive%\Documents and Settings"
-    all_users = "All Users"  # Default value.
-    for stat in stats:
-      value = stat.registry_data.GetValue()
-      if stat.pathspec.Basename() == "ProfilesDirectory" and value:
-        prof_directory = value
-      elif stat.pathspec.Basename() == "AllUsersProfile" and value:
-        all_users = value
-
-    all_users_dir = r"%s\%s" % (prof_directory, all_users)
+  def Parse(self, stat, knowledge_base):
+    value = stat.registry_data.GetValue() or "All Users"
     all_users_dir = artifact_utils.ExpandWindowsEnvironmentVariables(
-        all_users_dir, knowledge_base)
+        "%ProfilesDirectory%\\" + value, knowledge_base)
     yield rdfvalue.RDFString(all_users_dir)
 
 

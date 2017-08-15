@@ -201,9 +201,9 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-file-timeline td:contains('newly_added.txt')")
 
-  @mock.patch.object(api_call_router_with_approval_checks.
-                     ApiCallRouterWithApprovalChecksWithRobotAccess,
-                     "GetVfsTimelineAsCsv")
+  @mock.patch.object(
+      api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
+      "GetVfsTimelineAsCsv")
   def testClickingOnDownloadTimelineButtonInitiatesDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"

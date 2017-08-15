@@ -196,10 +196,6 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.ListKnownEncodings)
     self.CheckMethod(c.ListApiMethods)
 
-    # Robot methods.
-    self.CheckMethod(c.StartRobotGetFilesOperation)
-    self.CheckMethod(c.GetRobotGetFilesOperationState)
-
     non_checked_methods = (
         set(self.checks.keys()) - set(c.GetAnnotatedMethods().keys()))
     if non_checked_methods:

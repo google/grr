@@ -12,7 +12,6 @@ import mock
 
 from google.cloud import bigtable
 from grr import config
-from grr.lib import access_control
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -61,6 +60,7 @@ class CloudBigTableDataStoreMixin(object):
     # Hold a reference to the instance in our class level btclient so tests can
     # access it.
     cls.btinstance = cls.btclient.instance(cls.instance_id)
+    data_store.DB = cls.db
 
   @classmethod
   def tearDownClass(cls):
@@ -69,12 +69,6 @@ class CloudBigTableDataStoreMixin(object):
     # If we auto-created this instance, delete it now
     if cls.btinstance.instance_id.startswith(cls.TEST_BIGTABLE_INSTANCE_PREFIX):
       cls.DeleteTestBigtableInstance()
-
-  def InitDatastore(self):
-    self.token = access_control.ACLToken(username="Test", reason="Just testing")
-    # We have already initialized, and it's expensive so we only want to do it
-    # once for the whole class
-    data_store.DB = self.db
 
   def testBigTableExists(self):
     self.assertEqual(self.btinstance.list_tables()[0].table_id,

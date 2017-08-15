@@ -152,7 +152,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
         session_id="aff4:/Test",
         generate_task_id=True)
     manager = queue_manager.QueueManager(token=self.token)
-    manager.Schedule([task])
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Schedule([task], pool)
 
     self.assertGreater(task.task_id, 0)
     self.assertGreater(task.task_id & 0xffffffff, 0)
@@ -211,7 +212,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
         generate_task_id=True)
 
     manager = queue_manager.QueueManager(token=self.token)
-    manager.Schedule([task])
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Schedule([task], pool)
 
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
@@ -241,8 +243,9 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     task = rdf_flows.GrrMessage(
         queue=test_queue, session_id="aff4:/Test", generate_task_id=True)
 
-    manager = queue_manager.QueueManager(token=self.token)
-    manager.Schedule([task])
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager = queue_manager.QueueManager(token=self.token)
+      manager.Schedule([task], pool)
 
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
@@ -278,7 +281,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
         generate_task_id=True)
 
     manager = queue_manager.QueueManager(token=self.token)
-    manager.Schedule([task])
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Schedule([task], pool)
 
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
@@ -294,7 +298,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_2), 0)
 
     # Now we reschedule it
-    manager.Schedule(tasks)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Schedule([task], pool)
 
     # The id should not change
     self.assertEqual(tasks[0].task_id, original_id)
@@ -321,7 +326,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
       tasks.append(msg)
 
     manager = queue_manager.QueueManager(token=self.token)
-    manager.Schedule(tasks)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Schedule(tasks, pool)
 
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=3)
 
