@@ -12,6 +12,7 @@ goog.require('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective
 goog.require('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
 goog.require('grrUi.client.clientsListDirective.ClientsListDirective');
 goog.require('grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective');
+goog.require('grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective');
 goog.require('grrUi.client.hostInfoDirective.HostInfoDirective');
 goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
 goog.require('grrUi.client.virtualFileSystem.module');
@@ -65,6 +66,9 @@ grrUi.client.module.directive(
 grrUi.client.module.directive(
     grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective.directive_name,
     grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective);
+grrUi.client.module.directive(
+    grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective.directive_name,
+    grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective);
 grrUi.client.module.directive(
     grrUi.client.hostInfoDirective.HostInfoDirective.directive_name,
     grrUi.client.hostInfoDirective.HostInfoDirective);

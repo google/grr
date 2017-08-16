@@ -392,8 +392,9 @@ class GenericHunt(implementation.GRRHunt):
           next_state="MarkDone",
           sync=False,
           runner_args=self.args.flow_runner_args)
-      grr_collections.RDFUrnCollection.StaticAdd(
-          self.started_flows_collection_urn, self.token, flow_urn)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        grr_collections.RDFUrnCollection.StaticAdd(
+            self.started_flows_collection_urn, flow_urn, mutation_pool=pool)
 
   def Stop(self, reason=None):
     super(GenericHunt, self).Stop(reason=reason)
@@ -487,17 +488,18 @@ class VariableGenericHunt(GenericHunt):
   @flow.StateHandler()
   def RunClient(self, responses):
     client_ids_to_schedule = set(responses)
-    for flow_request in self.args.flows:
-      for requested_client_id in flow_request.client_ids:
-        if requested_client_id in client_ids_to_schedule:
-          flow_urn = self.CallFlow(
-              args=flow_request.args,
-              runner_args=flow_request.runner_args,
-              next_state="MarkDone",
-              client_id=requested_client_id)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for flow_request in self.args.flows:
+        for requested_client_id in flow_request.client_ids:
+          if requested_client_id in client_ids_to_schedule:
+            flow_urn = self.CallFlow(
+                args=flow_request.args,
+                runner_args=flow_request.runner_args,
+                next_state="MarkDone",
+                client_id=requested_client_id)
 
-          grr_collections.RDFUrnCollection.StaticAdd(
-              self.started_flows_collection_urn, self.token, flow_urn)
+            grr_collections.RDFUrnCollection.StaticAdd(
+                self.started_flows_collection_urn, flow_urn, mutation_pool=pool)
 
   def ManuallyScheduleClients(self, token=None):
     """Schedule all flows without using the Foreman.

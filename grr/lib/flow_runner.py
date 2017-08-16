@@ -876,18 +876,12 @@ class FlowRunner(object):
       self.queue_manager.Flush()
 
     if self.queued_replies:
-      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
         for response in self.queued_replies:
           sequential_collection.GeneralIndexedCollection.StaticAdd(
-              self.flow_obj.output_urn,
-              self.token,
-              response,
-              mutation_pool=mutation_pool)
+              self.flow_obj.output_urn, response, mutation_pool=pool)
           multi_type_collection.MultiTypeCollection.StaticAdd(
-              self.flow_obj.multi_type_output_urn,
-              self.token,
-              response,
-              mutation_pool=mutation_pool)
+              self.flow_obj.multi_type_output_urn, response, mutation_pool=pool)
       self.queued_replies = []
 
   def Error(self, backtrace, client_id=None, status=None):
@@ -1111,8 +1105,9 @@ class FlowRunner(object):
         log_message=status)
     logs_collection_urn = self._GetLogCollectionURN(
         self.runner_args.logs_collection_urn)
-    grr_collections.LogCollection.StaticAdd(logs_collection_urn, self.token,
-                                            log_entry)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      grr_collections.LogCollection.StaticAdd(
+          logs_collection_urn, log_entry, mutation_pool=pool)
 
   def GetLog(self):
     return self.OpenLogCollection(self.runner_args.logs_collection_urn)

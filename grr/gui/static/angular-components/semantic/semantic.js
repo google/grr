@@ -32,6 +32,7 @@ goog.require('grrUi.semantic.rekallResponseDirective.RekallResponseDirective');
 
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
+goog.require('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
 goog.require('grrUi.semantic.statEntryDirective.StatEntryDirective');
 goog.require('grrUi.semantic.statModeDirective.StatModeDirective');
 goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
@@ -111,6 +112,11 @@ grrUi.semantic.module.directive(
 grrUi.semantic.module.directive(
     grrUi.semantic.semanticValueDirective.SemanticValueDirective.directive_name,
     grrUi.semantic.semanticValueDirective.SemanticValueDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.semanticVersionedProtoDirective
+        .SemanticVersionedProtoDirective.directive_name,
+    grrUi.semantic.semanticVersionedProtoDirective
+        .SemanticVersionedProtoDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.statEntryDirective.StatEntryDirective.directive_name,
     grrUi.semantic.statEntryDirective.StatEntryDirective);

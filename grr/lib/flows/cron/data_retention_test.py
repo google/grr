@@ -128,7 +128,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(len(hunts_urns), 3)
 
 
-class DummySystemCronJob(cronjobs.SystemCronFlow):
+class RetentionTestSystemCronJob(cronjobs.SystemCronFlow):
   """Dummy system cron job."""
 
   lifetime = rdfvalue.Duration("30m")
@@ -149,9 +149,9 @@ class CleanCronJobsTest(flow_test_lib.FlowTestsBaseclass):
 
     with test_lib.FakeTime(40):
       cron_args = cronjobs.CreateCronJobFlowArgs(
-          periodicity=DummySystemCronJob.frequency)
-      cron_args.flow_runner_args.flow_name = DummySystemCronJob.__name__
-      cron_args.lifetime = DummySystemCronJob.lifetime
+          periodicity=RetentionTestSystemCronJob.frequency)
+      cron_args.flow_runner_args.flow_name = RetentionTestSystemCronJob.__name__
+      cron_args.lifetime = RetentionTestSystemCronJob.lifetime
 
       self.cron_jobs_urns = []
       self.cron_jobs_urns.append(

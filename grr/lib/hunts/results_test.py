@@ -2,6 +2,7 @@
 """Tests for grr.lib.hunts.results."""
 
 
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.hunts import results as hunts_results
@@ -26,9 +27,12 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
   def testNotificationsContainTimestamps(self):
     collection_urn = rdfvalue.RDFURN(
         "aff4:/testNotificationsContainTimestamps/collection")
-    for i in range(5):
-      hunts_results.HuntResultCollection.StaticAdd(
-          collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for i in range(5):
+        hunts_results.HuntResultCollection.StaticAdd(
+            collection_urn,
+            rdf_flows.GrrMessage(request_id=i),
+            mutation_pool=pool)
 
     # If we claim results, we should get all 5.
     results = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
@@ -48,9 +52,12 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
   def testNotificationClaimsTimeout(self):
     collection_urn = rdfvalue.RDFURN(
         "aff4:/testNotificationClaimsTimeout/collection")
-    for i in range(5):
-      hunts_results.HuntResultCollection.StaticAdd(
-          collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for i in range(5):
+        hunts_results.HuntResultCollection.StaticAdd(
+            collection_urn,
+            rdf_flows.GrrMessage(request_id=i),
+            mutation_pool=pool)
 
     results_1 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
         token=self.token)
@@ -71,9 +78,12 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
 
   def testDelete(self):
     collection_urn = rdfvalue.RDFURN("aff4:/testDelete/collection")
-    for i in range(5):
-      hunts_results.HuntResultCollection.StaticAdd(
-          collection_urn, self.token, rdf_flows.GrrMessage(request_id=i))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for i in range(5):
+        hunts_results.HuntResultCollection.StaticAdd(
+            collection_urn,
+            rdf_flows.GrrMessage(request_id=i),
+            mutation_pool=pool)
 
     results_1 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
         token=self.token)
@@ -98,13 +108,16 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
         "aff4:/testNotificationsSplitByCollection/collection_2")
 
     # Add 100 records to each collection, in an interleaved manner.
-    for i in range(100):
-      hunts_results.HuntResultCollection.StaticAdd(
-          collection_urn_1, self.token, rdf_flows.GrrMessage(request_id=i))
-      hunts_results.HuntResultCollection.StaticAdd(
-          collection_urn_2,
-          self.token,
-          rdf_flows.GrrMessage(request_id=100 + i))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for i in range(100):
+        hunts_results.HuntResultCollection.StaticAdd(
+            collection_urn_1,
+            rdf_flows.GrrMessage(request_id=i),
+            mutation_pool=pool)
+        hunts_results.HuntResultCollection.StaticAdd(
+            collection_urn_2,
+            rdf_flows.GrrMessage(request_id=100 + i),
+            mutation_pool=pool)
 
     # The first result was added to collection 1, so this should return
     # all 100 results for collection 1.

@@ -17,8 +17,8 @@ from grr.gui.api_plugins import hunt as hunt_plugin
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -31,6 +31,7 @@ from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -396,13 +397,15 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.hunt.urn, token=self.token)
     result = results[0]
 
-    for i in range(self.handler.MAX_RECORDS_TO_CHECK):
-      wrong_result = rdf_flows.GrrMessage(
-          payload=rdfvalue.RDFString("foo/bar"),
-          age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
-               rdfvalue.Duration("1s")),
-          source=self.client_id)
-      results.Add(wrong_result, timestamp=wrong_result.age)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for i in range(self.handler.MAX_RECORDS_TO_CHECK):
+        wrong_result = rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("foo/bar"),
+            age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
+                 rdfvalue.Duration("1s")),
+            source=self.client_id)
+        results.Add(
+            wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
 
     return result
 
@@ -695,18 +698,6 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
           self.hunt_urn, aff4_type=implementation.GRRHunt, token=self.token)
 
 
-class DummyFlowWithSingleReply(flow.GRRFlow):
-  """Just emits 1 reply."""
-
-  @flow.StateHandler()
-  def Start(self, unused_response=None):
-    self.CallState(next_state="SendSomething")
-
-  @flow.StateHandler()
-  def SendSomething(self, unused_response=None):
-    self.SendReply(rdfvalue.RDFString("oh"))
-
-
 class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
                                            standard_test.StandardHuntTestMixin):
 
@@ -718,7 +709,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     self.hunt = implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
-            flow_name=DummyFlowWithSingleReply.__name__),
+            flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__),
         client_rate=0,
         token=self.token)
     self.hunt.Run()

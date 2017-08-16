@@ -16,11 +16,16 @@ class TestQueue(aff4_queue.Queue):
 
 class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
+  def setUp(self):
+    super(QueueTest, self).setUp()
+    self.pool = data_store.DB.GetMutationPool(token=self.token)
+
   def testClaimReturnsRecordsInOrder(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
       data_store.DB.Flush()
 
@@ -34,9 +39,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testClaimIgnoresClaimedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
       data_store.DB.Flush()
 
@@ -54,9 +60,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
   def testClaimReturnsPreviouslyClaimedRecordsAfterTimeout(self):
     queue_urn = (
         "aff4:/queue_test/testClaimReturnsPreviouslyClaimedRecordsAfterTimeout")
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
       data_store.DB.Flush()
 
@@ -75,9 +82,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testDeleteRemovesRecords(self):
     queue_urn = "aff4:/queue_test/testDeleteRemovesRecords"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
       data_store.DB.Flush()
 
@@ -102,9 +110,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testClaimReturnsPreviouslyReleasedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsPreviouslyReleasedRecords"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
       data_store.DB.Flush()
 
@@ -127,9 +136,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testClaimFiltersRecordsIfFilterIsSpecified(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersRecordsIfFilterIsSpecified"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
     # Filters all even records.
     def EvenFilter(i):
@@ -147,11 +157,12 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
   def testClaimFiltersByStartTime(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersByStartTime"
     middle = None
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        if i == 50:
-          middle = rdfvalue.RDFDatetime.Now()
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          if i == 50:
+            middle = rdfvalue.RDFDatetime.Now()
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
@@ -162,9 +173,10 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def testClaimCleansSpuriousLocks(self):
     queue_urn = "aff4:/queue_test/testClaimCleansSpuriousLocks"
-    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
-      for i in range(100):
-        queue.Add(rdfvalue.RDFInteger(i))
+    with self.pool:
+      with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
+        for i in range(100):
+          queue.Add(rdfvalue.RDFInteger(i), mutation_pool=self.pool)
 
     data_store.DB.Flush()
 

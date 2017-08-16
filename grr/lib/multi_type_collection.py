@@ -23,7 +23,6 @@ class MultiTypeCollection(object):
   @classmethod
   def StaticAdd(cls,
                 collection_urn,
-                token,
                 rdf_value,
                 timestamp=None,
                 suffix=None,
@@ -38,8 +37,6 @@ class MultiTypeCollection(object):
     Args:
       collection_urn: The urn of the collection to add to.
 
-      token: The database access token to write with.
-
       rdf_value: The rdf value to add to the collection. If this value is not
           GrrMessage, it will be wrapped into GrrMessage (later when
           collection is iterated, this value will still be returned wrapped
@@ -51,8 +48,7 @@ class MultiTypeCollection(object):
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
 
-      mutation_pool: An optional MutationPool object to write to. If not given,
-                     the data_store is used directly.
+      mutation_pool: A MutationPool object to write to.
 
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
@@ -67,6 +63,8 @@ class MultiTypeCollection(object):
     """
     if rdf_value is None:
       raise ValueError("Can't add None to MultiTypeCollection")
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
 
     if not isinstance(rdf_value, rdf_flows.GrrMessage):
       rdf_value = rdf_flows.GrrMessage(payload=rdf_value)
@@ -80,28 +78,18 @@ class MultiTypeCollection(object):
     subpath = collection_urn.Add(value_type)
     sequential_collection.GrrMessageCollection.StaticAdd(
         subpath,
-        token,
         rdf_value,
         timestamp=timestamp,
         suffix=suffix,
         mutation_pool=mutation_pool,
         **kwargs)
 
-    if mutation_pool:
-      mutation_pool.Set(
-          collection_urn,
-          "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
-          1,
-          timestamp=0,
-          **kwargs)
-    else:
-      data_store.DB.Set(
-          collection_urn,
-          "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
-          1,
-          timestamp=0,
-          token=token,
-          **kwargs)
+    mutation_pool.Set(
+        collection_urn,
+        "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
+        1,
+        timestamp=0,
+        **kwargs)
 
   def ListStoredTypes(self):
     res = []
@@ -152,7 +140,12 @@ class MultiTypeCollection(object):
         sub_collection_urn, token=self.token)
     return len(sub_collection)
 
-  def Add(self, rdf_value, timestamp=None, suffix=None, **kwargs):
+  def Add(self,
+          rdf_value,
+          timestamp=None,
+          suffix=None,
+          mutation_pool=None,
+          **kwargs):
     """Adds an rdf value to the collection.
 
     Adds an rdf value to the collection. Does not require that the collection
@@ -170,6 +163,8 @@ class MultiTypeCollection(object):
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
 
+      mutation_pool: A MutationPool object to write to.
+
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
 
@@ -183,10 +178,10 @@ class MultiTypeCollection(object):
     """
     return self.StaticAdd(
         self.collection_id,
-        self.token,
         rdf_value,
         timestamp=timestamp,
         suffix=suffix,
+        mutation_pool=mutation_pool,
         **kwargs)
 
   def __iter__(self):

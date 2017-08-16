@@ -33,7 +33,7 @@ class Queue(aff4.AFF4Object):
     return urn.Add("Records").Add("%016x.%06x" % (timestamp, suffix))
 
   @classmethod
-  def StaticAdd(cls, queue_urn, token, rdf_value):
+  def StaticAdd(cls, queue_urn, rdf_value, mutation_pool=None):
     """Adds an rdf value the queue.
 
     Adds an rdf value to a queue. Does not require that the queue be locked, or
@@ -43,9 +43,9 @@ class Queue(aff4.AFF4Object):
     Args:
       queue_urn: The urn of the queue to add to.
 
-      token: The database access token to write with.
-
       rdf_value: The rdf value to add to the queue.
+
+      mutation_pool: A MutationPool object to write to.
 
     Raises:
       ValueError: rdf_value has unexpected type.
@@ -54,6 +54,8 @@ class Queue(aff4.AFF4Object):
     if not isinstance(rdf_value, cls.rdf_type):
       raise ValueError("This collection only accepts values of type %s." %
                        cls.rdf_type.__name__)
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
 
     timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
@@ -61,14 +63,13 @@ class Queue(aff4.AFF4Object):
       queue_urn = rdfvalue.RDFURN(queue_urn)
 
     result_subject = cls._MakeURN(queue_urn, timestamp)
-    data_store.DB.Set(
+    mutation_pool.Set(
         result_subject,
         cls.VALUE_ATTRIBUTE,
         rdf_value.SerializeToString(),
-        timestamp=timestamp,
-        token=token)
+        timestamp=timestamp)
 
-  def Add(self, rdf_value):
+  def Add(self, rdf_value, mutation_pool=None):
     """Adds an rdf value to the queue.
 
     Adds an rdf value to the queue. Does not require that the queue be locked.
@@ -76,11 +77,13 @@ class Queue(aff4.AFF4Object):
     Args:
       rdf_value: The rdf value to add to the queue.
 
+      mutation_pool: A MutationPool object to write to.
+
     Raises:
       ValueError: rdf_value has unexpected type.
 
     """
-    self.StaticAdd(self.urn, self.token, rdf_value)
+    self.StaticAdd(self.urn, rdf_value, mutation_pool=mutation_pool)
 
   def ClaimRecords(self,
                    limit=10000,

@@ -1569,9 +1569,9 @@
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 45000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
               },
               "memory_size": {
                 "age": 42000000,
@@ -1652,7 +1652,7 @@
               "users": []
             },
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -1726,9 +1726,9 @@
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 42000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
               },
               "memory_size": {
                 "age": 42000000,
@@ -1784,7 +1784,7 @@
               "users": []
             },
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -1858,9 +1858,9 @@
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 45000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
               },
               "memory_size": {
                 "age": 42000000,
@@ -1916,7 +1916,7 @@
               "users": []
             },
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -2054,9 +2054,9 @@
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 45000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
               },
               "os_info": {
                 "age": 0,
@@ -2118,7 +2118,7 @@
             "client_id": "C.1000000000000000",
             "hardware_info": {},
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
             "os_info": {
               "node": "some-other-hostname.org",
               "version": ""
@@ -2190,9 +2190,9 @@
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 42000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
               },
               "memory_size": {
                 "age": 42000000,
@@ -2248,7 +2248,7 @@
               "users": []
             },
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -2277,9 +2277,15 @@
                 "value": 45000000
               },
               "agent_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "ClientInformation",
-                "value": {}
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
               },
               "client_id": {
                 "age": 0,
@@ -2287,20 +2293,53 @@
                 "value": "C.1000000000000000"
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
               },
               "labels": [],
               "last_seen_at": {
-                "age": 0,
+                "age": 45000000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 42000000
+              },
+              "memory_size": {
+                "age": 42000000,
+                "type": "ByteSize",
+                "value": 4294967296
               },
               "os_info": {
                 "age": 0,
                 "type": "Uname",
                 "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
                   "node": {
                     "age": 0,
                     "type": "unicode",
@@ -2328,12 +2367,23 @@
         "items": [
           {
             "age": 45000000,
-            "agent_info": {},
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
             "client_id": "C.1000000000000000",
-            "hardware_info": {},
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
             "labels": [],
-            "last_seen_at": 0,
+            "last_seen_at": 42000000,
+            "memory_size": 4294967296,
             "os_info": {
+              "fqdn": "Host-0.example.com",
               "node": "some-other-hostname.org",
               "version": ""
             },

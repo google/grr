@@ -96,23 +96,24 @@ class HuntResultCollection(sequential_collection.GrrMessageCollection):
   @classmethod
   def StaticAdd(cls,
                 collection_urn,
-                token,
                 rdf_value,
+                mutation_pool=None,
                 timestamp=None,
                 suffix=None,
                 **kwargs):
     ts = super(HuntResultCollection, cls).StaticAdd(
         collection_urn,
-        token,
         rdf_value,
+        mutation_pool=mutation_pool,
         timestamp=timestamp,
         suffix=suffix,
         **kwargs)
-    HuntResultQueue.StaticAdd(RESULT_NOTIFICATION_QUEUE, token,
-                              HuntResultNotification(
-                                  result_collection_urn=collection_urn,
-                                  timestamp=ts[0],
-                                  suffix=ts[1]))
+    HuntResultQueue.StaticAdd(
+        RESULT_NOTIFICATION_QUEUE,
+        HuntResultNotification(
+            result_collection_urn=collection_urn, timestamp=ts[0],
+            suffix=ts[1]),
+        mutation_pool=mutation_pool)
     return ts
 
 

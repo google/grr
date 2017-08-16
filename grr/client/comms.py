@@ -1610,6 +1610,7 @@ class ClientCommunicator(communicator.Communicator):
         self.common_name = rdf_client.ClientURN.FromPrivateKey(self.private_key)
 
         logging.info("Starting client %s", self.common_name)
+
         return self.private_key
 
       except type_info.TypeValueError:

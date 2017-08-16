@@ -240,6 +240,11 @@
   <div class="client-details"
        ng-if="controller.showDetails"
        grr-force-refresh refresh-trigger="controller.client">
-    <grr-semantic-value value="controller.client"></grr-semantic-value>
+    <grr-semantic-versioned-proto
+      client="::controller.client"
+      value="::controller.client"
+      on-field-click="controller.showHistoryDialog(fieldPath)"
+      history-depth="2">
+    </grr-semantic-versioned-proto>
   </div>
 </div>

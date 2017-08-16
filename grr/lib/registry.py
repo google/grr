@@ -42,12 +42,8 @@ class MetaclassRegistry(abc.ABCMeta):
 
       try:
         if cls.classes and cls.__name__ in cls.classes:
-          # TODO(user): this should really raise instead of just logging,
-          # since it can hide serious problems with registration.  Unfortunately
-          # gui/runtests_tests.py relies on being able to re-import and
-          # overwrite the test plugins after initialization.
-          logging.warn("Duplicate names for registered classes: %s, %s", cls,
-                       cls.classes[cls.__name__])
+          raise RuntimeError("Duplicate names for registered classes: %s, %s" %
+                             (cls, cls.classes[cls.__name__]))
 
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls

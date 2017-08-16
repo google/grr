@@ -12,6 +12,7 @@ events and act upon them.
 
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
 from grr.lib import queues
@@ -60,4 +61,5 @@ class AuditEventListener(flow.EventListener):
     _ = message
     log_urn = aff4.CurrentAuditLog()
     self.EnsureLogIsIndexed(log_urn)
-    AuditEventCollection.StaticAdd(log_urn, self.token, event)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      AuditEventCollection.StaticAdd(log_urn, event, mutation_pool=pool)

@@ -851,18 +851,26 @@ class Factory(object):
     versions = sorted(t.age for t in type_iter)
 
     additional_aff4object = None
+    # If we want full versions of the object, age != ALL_TIMES and we're
+    # dealing with a time range with a start != 0, then we need to fetch
+    # the version of the object corresponding to the start of the time
+    # range and use its attributes when doing filtering below.
+    #
+    # Same applies to fetching in DIFF mode and passing a time range in "age".
+    # Unversioned arguments will have a timestamp zero and won't be included
+    # into the diff. additional_aff4object is then used to account for them.
+    if len(age) == 2 and age[0]:
+      additional_aff4object = FACTORY.Open(
+          urn, mode=mode, token=token, local_cache=local_cache, age=age[0])
+
     if diffs_only:
       versions.insert(0, rdfvalue.RDFDatetime(0))
       pairs = zip(versions, versions[1:])
     else:
-      # If we want full versions of the object, age != ALL_TIMES and we're
-      # dealing with a time range with a start != 0, then we need to fetch
-      # the version of the object corresponding to the start of the time
-      # range and use its attributes when doing filtering below.
-      if len(age) == 2 and age[0]:
-        additional_aff4object = FACTORY.Open(
-            urn, mode=mode, token=token, local_cache=local_cache, age=age[0])
       pairs = [(rdfvalue.RDFDatetime(0), v) for v in versions]
+
+    if pairs:
+      right_end = pairs[-1][1]
 
     for start, end in pairs:
       # Create a subset of attributes for use in the new object that represents
@@ -884,6 +892,9 @@ class Factory(object):
         reduced_v = []
         for v in values:
           if v.age > start and v.age <= end:
+            reduced_v.append(v)
+          elif v.age == 0 and end == right_end:
+            v.age = rdfvalue.RDFDatetime(end)
             reduced_v.append(v)
         clone_attrs.setdefault(k, []).extend(reduced_v)
 

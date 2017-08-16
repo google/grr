@@ -10,6 +10,7 @@ from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import hunt as hunt_plugin
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -63,15 +64,22 @@ class ApiListHuntResultsRegressionTest(
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
     results = implementation.GRRHunt.ResultCollectionForHID(
         hunt_urn, token=self.token)
-    result = rdf_flows.GrrMessage(
-        payload=rdfvalue.RDFString("blah1"),
-        age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
-    results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      result = rdf_flows.GrrMessage(
+          payload=rdfvalue.RDFString("blah1"),
+          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+      results.Add(
+          result,
+          timestamp=result.age + rdfvalue.Duration("1s"),
+          mutation_pool=pool)
 
-    result = rdf_flows.GrrMessage(
-        payload=rdfvalue.RDFString("blah2-foo"),
-        age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
-    results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
+      result = rdf_flows.GrrMessage(
+          payload=rdfvalue.RDFString("blah2-foo"),
+          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+      results.Add(
+          result,
+          timestamp=result.age + rdfvalue.Duration("1s"),
+          mutation_pool=pool)
 
     self.Check(
         "ListHuntResults",

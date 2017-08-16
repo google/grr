@@ -5,6 +5,7 @@
 import logging
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -116,11 +117,14 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             batch_size=len(results))
         exceptions_by_plugin.setdefault(plugin_def, []).append(e)
 
-      implementation.GRRHunt.PluginStatusCollectionForHID(
-          hunt_urn, token=self.token).Add(plugin_status)
-      if plugin_status.status == plugin_status.Status.ERROR:
-        implementation.GRRHunt.PluginErrorCollectionForHID(
-            hunt_urn, token=self.token).Add(plugin_status)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        implementation.GRRHunt.PluginStatusCollectionForHID(
+            hunt_urn, token=self.token).Add(
+                plugin_status, mutation_pool=pool)
+        if plugin_status.status == plugin_status.Status.ERROR:
+          implementation.GRRHunt.PluginErrorCollectionForHID(
+              hunt_urn, token=self.token).Add(
+                  plugin_status, mutation_pool=pool)
 
   def ProcessOneHunt(self, exceptions_by_hunt):
     """Reads results for one hunt and process them."""

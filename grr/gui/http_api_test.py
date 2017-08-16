@@ -10,6 +10,7 @@ import urllib2
 from grr.gui import api_auth_manager
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
+from grr.gui import api_test_lib
 from grr.gui import http_api
 
 from grr.lib import access_control
@@ -21,17 +22,13 @@ from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetHandlerArgs
-
-
 class SampleGetHandlerResult(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetHandlerResult
 
 
 class SampleGetHandler(api_call_handler_base.ApiCallHandler):
 
-  args_type = SampleGetHandlerArgs
+  args_type = api_test_lib.SampleGetHandlerArgs
   result_type = SampleGetHandlerResult
 
   def Handle(self, args, token=None):
@@ -88,13 +85,13 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   """Test router with custom methods."""
 
   @api_call_router.Http("GET", "/test_sample/<path:path>")
-  @api_call_router.ArgsType(SampleGetHandlerArgs)
+  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   @api_call_router.ResultType(SampleGetHandlerResult)
   def SampleGet(self, args, token=None):
     return SampleGetHandler()
 
   @api_call_router.Http("GET", "/test_sample/raising/<path:path>")
-  @api_call_router.ArgsType(SampleGetHandlerArgs)
+  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   @api_call_router.ResultType(SampleGetHandlerResult)
   def SampleRaisingGet(self, args, token=None):
     raise access_control.UnauthorizedAccess("oh no", subject="aff4:/foo/bar")
@@ -177,7 +174,8 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
     _ = router
     _ = method_metadata
-    self.assertEqual(router_args, SampleGetHandlerArgs(path="some/path"))
+    self.assertEqual(
+        router_args, api_test_lib.SampleGetHandlerArgs(path="some/path"))
 
   def testRaisesIfNoHandlerMatchesUrl(self):
     self.assertRaises(http_api.ApiCallRouterNotFoundError,

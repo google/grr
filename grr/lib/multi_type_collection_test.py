@@ -17,28 +17,39 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(MultiTypeCollectionTest, self).setUp()
+    self.pool = data_store.DB.GetMutationPool(token=self.token)
     self.collection = multi_type_collection.MultiTypeCollection(
         rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
 
   def testWrapsValueInGrrMessageIfNeeded(self):
-    self.collection.Add(rdfvalue.RDFInteger(42))
+    with self.pool:
+      self.collection.Add(rdfvalue.RDFInteger(42), mutation_pool=self.pool)
 
     items = list(self.collection)
     self.assertTrue(isinstance(items[0], rdf_flows.GrrMessage))
     self.assertEqual(items[0].payload, 42)
 
   def testValuesOfSingleTypeAreAddedAndIterated(self):
-    for i in range(100):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
+    with self.pool:
+      for i in range(100):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
+            mutation_pool=self.pool)
 
     for index, v in enumerate(self.collection):
       self.assertEqual(index, v.payload)
 
   def testExtractsTypesFromGrrMessage(self):
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)))
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
-    self.collection.Add(
-        rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")),
+          mutation_pool=self.pool)
 
     self.assertEqual(
         set([
@@ -47,35 +58,52 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
         ]), set(self.collection.ListStoredTypes()))
 
   def testStoresEmptyGrrMessage(self):
-    self.collection.Add(rdf_flows.GrrMessage())
+    with self.pool:
+      self.collection.Add(rdf_flows.GrrMessage(), mutation_pool=self.pool)
 
     self.assertListEqual([rdf_flows.GrrMessage.__name__],
                          self.collection.ListStoredTypes())
 
   def testValuesOfMultipleTypesCanBeIteratedTogether(self):
-    original_values = set()
-    for i in range(100):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
-      original_values.add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
+    with self.pool:
+      original_values = set()
+      for i in range(100):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
+            mutation_pool=self.pool)
+        original_values.add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
 
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
-      original_values.add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            mutation_pool=self.pool)
+        original_values.add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
 
     self.assertEqual(
         sorted([v.payload for v in original_values]),
         sorted([v.payload for v in self.collection]))
 
   def testLengthOfCollectionIsCorrectWhenMultipleTypesAreUsed(self):
-    for i in range(100):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
+    with self.pool:
+      for i in range(100):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
+            mutation_pool=self.pool)
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            mutation_pool=self.pool)
 
     self.assertEqual(200, len(self.collection))
 
   def testValuesOfMultipleTypesCanBeIteratedPerType(self):
-    for i in range(100):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
+    with self.pool:
+      for i in range(100):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
+            mutation_pool=self.pool)
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            mutation_pool=self.pool)
 
     for index, (_, v) in enumerate(
         self.collection.ScanByType(rdfvalue.RDFInteger.__name__)):
@@ -86,11 +114,16 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(str(index), v.payload)
 
   def testLengthIsReportedCorrectlyForEveryType(self):
-    for i in range(99):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)))
+    with self.pool:
+      for i in range(99):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)),
+            mutation_pool=self.pool)
 
-    for i in range(101):
-      self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)))
+      for i in range(101):
+        self.collection.Add(
+            rdf_flows.GrrMessage(payload=rdfvalue.RDFString(i)),
+            mutation_pool=self.pool)
 
     self.assertEqual(99,
                      self.collection.LengthByType(rdfvalue.RDFInteger.__name__))
@@ -100,10 +133,16 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
   def testDeletingCollectionDeletesAllSubcollections(self):
     if not isinstance(data_store.DB, fake_data_store.FakeDataStore):
       self.skipTest("Only supported on FakeDataStore.")
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)))
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
-    self.collection.Add(
-        rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")),
+          mutation_pool=self.pool)
 
     self.collection.Delete()
 

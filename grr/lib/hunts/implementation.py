@@ -585,8 +585,9 @@ class HuntRunner(object):
         flow_name=self.hunt_obj.__class__.__name__,
         log_message=status)
     logs_collection_urn = self.hunt_obj.logs_collection_urn
-    grr_collections.LogCollection.StaticAdd(logs_collection_urn, self.token,
-                                            log_entry)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      grr_collections.LogCollection.StaticAdd(
+          logs_collection_urn, log_entry, mutation_pool=pool)
 
   def Error(self, backtrace, client_id=None):
     """Logs an error for a client but does not terminate the hunt."""
@@ -985,7 +986,8 @@ class GRRHunt(flow.FlowBase):
     hunt_crashes = self.__class__.CrashCollectionForHID(self.urn)
     hunt_crashes_len = hunt_crashes.CalculateLength()
 
-    hunt_crashes.Add(crash_details)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      hunt_crashes.Add(crash_details, mutation_pool=pool)
 
     # Account for a crash detail that we've just added.
     if 0 < self.runner_args.crash_limit <= hunt_crashes_len + 1:
@@ -1074,12 +1076,14 @@ class GRRHunt(flow.FlowBase):
     return self.context.creator
 
   def _AddURNToCollection(self, urn, collection_urn):
-    grr_collections.ClientUrnCollection.StaticAdd(collection_urn, self.token,
-                                                  urn)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      grr_collections.ClientUrnCollection.StaticAdd(
+          collection_urn, urn, mutation_pool=pool)
 
   def _AddHuntErrorToCollection(self, error, collection_urn):
-    grr_collections.HuntErrorCollection.StaticAdd(collection_urn, self.token,
-                                                  error)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      grr_collections.HuntErrorCollection.StaticAdd(
+          collection_urn, error, mutation_pool=pool)
 
   def _ClientSymlinkUrn(self, client_id):
     return client_id.Add("flows").Add("%s:hunt" % (self.urn.Basename()))
@@ -1259,13 +1263,14 @@ class GRRHunt(flow.FlowBase):
             for response in responses
         ]
 
-        for msg in msgs:
-          hunts_results.HuntResultCollection.StaticAdd(
-              self.results_collection_urn, self.token, msg)
+        with data_store.DB.GetMutationPool(token=self.token) as pool:
+          for msg in msgs:
+            hunts_results.HuntResultCollection.StaticAdd(
+                self.results_collection_urn, msg, mutation_pool=pool)
 
-        for msg in msgs:
-          multi_type_collection.MultiTypeCollection.StaticAdd(
-              self.multi_type_output_urn, self.token, msg)
+          for msg in msgs:
+            multi_type_collection.MultiTypeCollection.StaticAdd(
+                self.multi_type_output_urn, msg, mutation_pool=pool)
 
         if responses:
           self.RegisterClientWithResults(client_id)

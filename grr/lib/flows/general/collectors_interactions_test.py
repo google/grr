@@ -13,6 +13,7 @@ from grr import config
 from grr.lib import action_mocks
 from grr.lib import artifact
 from grr.lib import artifact_registry
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -73,9 +74,10 @@ supported_os: [ "Linux" ]
       # Add artifact to datastore but not registry
       artifact_coll = artifact_registry.ArtifactCollection(
           rdfvalue.RDFURN("aff4:/artifact_store"), token=self.token)
-      for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
-          cmd_artifact):
-        artifact_coll.Add(artifact_val)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
+            cmd_artifact):
+          artifact_coll.Add(artifact_val, mutation_pool=pool)
 
       # Add artifact to registry but not datastore
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(

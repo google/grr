@@ -8,9 +8,6 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import reflection as reflection_plugin
 
 from grr.lib import flags
-from grr.lib.rdfvalues import structs as rdf_structs
-
-from grr.proto import tests_pb2
 
 from grr.test_lib import test_lib
 
@@ -25,26 +22,22 @@ class ApiGetRDFValueDescriptorHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertTrue(result)
 
 
-class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetHandlerArgs
-
-
 class DummyApiCallRouter(api_call_router.ApiCallRouter):
-  """Dummy ApiCallRouter implementation overrideing just 1 method."""
+  """Dummy ApiCallRouter implementation overriding just 1 method."""
 
   @api_call_router.Http("GET", "/api/method1")
-  @api_call_router.ArgsType(SampleGetHandlerArgs)
+  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   def SomeRandomMethodWithArgsType(self, args, token=None):
     """Doc 1."""
 
   @api_call_router.Http("GET", "/api/method2")
-  @api_call_router.ResultType(SampleGetHandlerArgs)
+  @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
   def SomeRandomMethodWithResultType(self, args, token=None):
     """Doc 2."""
 
   @api_call_router.Http("GET", "/api/method3")
-  @api_call_router.ArgsType(SampleGetHandlerArgs)
-  @api_call_router.ResultType(SampleGetHandlerArgs)
+  @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
+  @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
   def SomeRandomMethodWithArgsTypeAndResultType(self, args, token=None):
     """Doc 3."""
 

@@ -432,7 +432,7 @@
             "knowledgeBase": {
               "hostname": "Host-0.example.com"
             },
-            "lastSeenAt": "0",
+            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -464,7 +464,7 @@
             "knowledgeBase": {
               "hostname": "Host-0.example.com"
             },
-            "lastSeenAt": "0",
+            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -496,7 +496,7 @@
             "knowledgeBase": {
               "hostname": "Host-0.example.com"
             },
-            "lastSeenAt": "0",
+            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -542,7 +542,7 @@
             "agentInfo": {},
             "clientId": "C.1000000000000000",
             "hardwareInfo": {},
-            "lastSeenAt": "0",
+            "lastSeenAt": "42000000",
             "osInfo": {
               "node": "some-other-hostname.org",
               "version": ""
@@ -572,7 +572,7 @@
             "knowledgeBase": {
               "hostname": "Host-0.example.com"
             },
-            "lastSeenAt": "0",
+            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -593,11 +593,21 @@
         "items": [
           {
             "age": "45000000",
-            "agentInfo": {},
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
             "clientId": "C.1000000000000000",
-            "hardwareInfo": {},
-            "lastSeenAt": "0",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "42000000",
+            "memorySize": "4294967296",
             "osInfo": {
+              "fqdn": "Host-0.example.com",
               "node": "some-other-hostname.org",
               "version": ""
             },

@@ -29,7 +29,7 @@ class TestEmbeddedStruct(rdf_structs.RDFProtoStruct):
       rdf_structs.ProtoDouble(name="e_double_field", field_number=2))
 
 
-class TestStruct(rdf_structs.RDFProtoStruct):
+class SqliteTestStruct(rdf_structs.RDFProtoStruct):
   """Custom struct for testing schema generation."""
 
   type_description = type_info.TypeDescriptorSet(
@@ -96,7 +96,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     return zipfile.ZipFile(fd_path), file_basename
 
   def testColumnTypeInference(self):
-    schema = self.plugin._GetSqliteSchema(TestStruct)
+    schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
     column_types = {k: v.sqlite_type for k, v in schema.items()}
     self.assertEqual(column_types, {
         "string_field": "TEXT",
@@ -116,8 +116,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     })
 
   def testConversionToCanonicalSqlDict(self):
-    schema = self.plugin._GetSqliteSchema(TestStruct)
-    test_struct = TestStruct(
+    schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
+    test_struct = SqliteTestStruct(
         string_field="string_value",
         bytes_field="bytes_value",
         uint_field=123,

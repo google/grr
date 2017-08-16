@@ -112,6 +112,29 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "6.1.7000")
     self.WaitUntil(self.IsTextPresent, "4Gb")
 
+  def testClickingOnHistoryButtonOpensAttributeHistoryDialog(self):
+    self.Open("/#/clients/" + self.client_id)
+
+    # Wait until client information appears and click on 'Full details' button.
+    self.WaitUntil(self.IsTextPresent, "Hostname T2")
+    self.Click("css=label:contains('Full details')")
+
+    self.Click("css=tr:contains('Os info') tr:contains('Node') "
+               "td.proto_history button")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=h4:contains('os_info.node history')")
+    # Check that hostnames are listed in the right order.
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('Hostname T2') ~ "
+                   "tr:contains('Hostname T1') ~ "
+                   "tr:contains('Hostname T0')")
+
+    # Check that the dialog is successfully closed.
+    self.Click(
+        "css=grr-host-history-dialog .modal-footer button:contains('Close')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=h4:contains('os_info.node history')")
+
 
 def main(argv):
   # Run the full test suite

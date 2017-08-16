@@ -1034,7 +1034,7 @@ class FlowLimitTests(BasicFlowTest):
 
   def RunFlow(self, flow_name, **kwargs):
     result = {}
-    client_mock = CPULimitClientMock(result)
+    client_mock = action_mocks.CPULimitClientMock(result)
     client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
     worker_mock = ResourcedWorker(check_flow_errors=True, token=self.token)
@@ -1063,7 +1063,7 @@ class FlowLimitTests(BasicFlowTest):
 
   def testCPULimit(self):
     """Tests that the cpu limit works."""
-    result = self.RunFlow("CPULimitFlow", cpu_limit=300)
+    result = self.RunFlow(flow_test_lib.CPULimitFlow.__name__, cpu_limit=300)
     self.assertEqual(result["cpulimit"], [300, 295, 255])
 
 
@@ -1133,52 +1133,6 @@ class PriorityFlow(flow.GRRFlow):
   def Done(self, responses):
     _ = responses
     self.storage.append(self.args.msg)
-
-
-class CPULimitClientMock(object):
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def __init__(self, storage):
-    # Register us as an action plugin.
-    # TODO(user): this is a hacky shortcut and should be fixed.
-    server_stubs.ClientActionStub.classes["Store"] = self
-    self.storage = storage
-    self.__name__ = "Store"
-
-  def HandleMessage(self, message):
-    self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
-    self.storage.setdefault("networklimit",
-                            []).append(message.network_bytes_limit)
-
-
-class CPULimitFlow(flow.GRRFlow):
-  """This flow is used to test the cpu limit."""
-
-  @flow.StateHandler()
-  def Start(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State1")
-
-  @flow.StateHandler()
-  def State1(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State2")
-
-  @flow.StateHandler()
-  def State2(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, responses):
-    pass
 
 
 class NetworkLimitFlow(flow.GRRFlow):

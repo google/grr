@@ -173,8 +173,5 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
             "devices/chipsec/acpi/tables/%s" % table_signature)
         for acpi_table_response in response.acpi_tables:
           hardware.ACPITableDataCollection.StaticAdd(
-              collection_urn,
-              self.token,
-              acpi_table_response,
-              mutation_pool=mutation_pool)
+              collection_urn, acpi_table_response, mutation_pool=mutation_pool)
           self.SendReply(acpi_table_response)

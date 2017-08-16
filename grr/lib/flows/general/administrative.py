@@ -12,6 +12,7 @@ import logging
 
 from grr import config
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flow
@@ -47,7 +48,9 @@ class ClientCrashEventListener(flow.EventListener):
   """EventListener with additional helper methods to save crash details."""
 
   def _AppendCrashDetails(self, path, crash_details):
-    grr_collections.CrashCollection.StaticAdd(path, self.token, crash_details)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      grr_collections.CrashCollection.StaticAdd(
+          path, crash_details, mutation_pool=pool)
 
   def _ExtractHuntId(self, flow_session_id):
     hunt_str, hunt_id, _ = flow_session_id.Split(3)

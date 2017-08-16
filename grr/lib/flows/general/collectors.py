@@ -634,10 +634,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             self.client_id)
         for anomaly_value in self.state.client_anomalies:
           grr_collections.AnomalyCollection.StaticAdd(
-              collection_urn,
-              self.token,
-              anomaly_value,
-              mutation_pool=mutation_pool)
+              collection_urn, anomaly_value, mutation_pool=mutation_pool)
 
   @flow.StateHandler()
   def ProcessCollectedRegistryStatEntry(self, responses):
@@ -756,22 +753,24 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
     if result_iterator:
-      # If we have a parser, do something with the results it produces.
-      for result in result_iterator:
-        result_type = result.__class__.__name__
-        if result_type == "Anomaly":
-          if self.args.store_results_in_aff4:
-            self._StoreAnomaly(result)
-          self.SendReply(result)
-        elif not artifact_return_types or result_type in artifact_return_types:
-          self.state.response_count += 1
-          self.SendReply(result)
-          self._WriteResultToSplitCollection(result, artifact_name,
-                                             output_collection_map)
-          if self.args.store_results_in_aff4:
-            # Write our result back to a mapped location in AFF4 space.
-            self._WriteResultToMappedAFF4Location(result, artifact_name,
-                                                  aff4_output_map)
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        # If we have a parser, do something with the results it produces.
+        for result in result_iterator:
+          result_type = result.__class__.__name__
+          if result_type == "Anomaly":
+            if self.args.store_results_in_aff4:
+              self._StoreAnomaly(result)
+            self.SendReply(result)
+          elif (not artifact_return_types or
+                result_type in artifact_return_types):
+            self.state.response_count += 1
+            self.SendReply(result)
+            self._WriteResultToSplitCollection(result, artifact_name,
+                                               output_collection_map, pool)
+            if self.args.store_results_in_aff4:
+              # Write our result back to a mapped location in AFF4 space.
+              self._WriteResultToMappedAFF4Location(result, artifact_name,
+                                                    aff4_output_map)
 
   @classmethod
   def ResultCollectionForArtifact(cls, session_id, artifact_name, token=None):
@@ -780,7 +779,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     return sequential_collection.GeneralIndexedCollection(urn, token=token)
 
   def _WriteResultToSplitCollection(self, result, artifact_name,
-                                    output_collection_map):
+                                    output_collection_map, mutation_pool):
     """Write any results to the collection if we are splitting by artifact.
 
     If not splitting, SendReply will handle writing to the collection.
@@ -789,6 +788,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       result: result to write
       artifact_name: artifact name string
       output_collection_map: dict of collections when splitting by artifact
+      mutation_pool: A MutationPool object to write to.
     """
     if self.args.split_output_by_artifact and self.runner.IsWritingResults():
       if artifact_name not in output_collection_map:
@@ -798,7 +798,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         collection = self.ResultCollectionForArtifact(
             self.urn, artifact_name, token=self.token)
         output_collection_map[artifact_name] = collection
-      output_collection_map[artifact_name].Add(result)
+      output_collection_map[artifact_name].Add(
+          result, mutation_pool=mutation_pool)
 
   def _FinalizeSplitCollection(self, output_collection_map):
     """Flush all of the collections that were split by artifact."""

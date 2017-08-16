@@ -6,6 +6,7 @@ import stat
 
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -84,20 +85,27 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     """Check we can download files references in HuntResultCollection."""
     # Create a collection with URNs to some files.
     fd = results.HuntResultCollection(self.collection_urn, token=self.token)
-    fd.AddAsMessage(rdfvalue.RDFURN(self.out.Add("testfile1")), self.client_id)
-    fd.AddAsMessage(
-        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="testfile2", pathtype="OS")),
-        self.client_id)
-    fd.AddAsMessage(
-        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
-        self.client_id)
-    fd.AddAsMessage(
-        collectors.ArtifactFilesDownloaderResult(
-            downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="testfile6", pathtype="OS"))),
-        self.client_id)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd.AddAsMessage(
+          rdfvalue.RDFURN(self.out.Add("testfile1")),
+          self.client_id,
+          mutation_pool=pool)
+      fd.AddAsMessage(
+          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+              path="testfile2", pathtype="OS")),
+          self.client_id,
+          mutation_pool=pool)
+      fd.AddAsMessage(
+          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          self.client_id,
+          mutation_pool=pool)
+      fd.AddAsMessage(
+          collectors.ArtifactFilesDownloaderResult(
+              downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                  path="testfile6", pathtype="OS"))),
+          self.client_id,
+          mutation_pool=pool)
     self._VerifyDownload()
 
   def testDownloadGeneralIndexedCollection(self):
@@ -108,23 +116,28 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     self._VerifyDownload()
 
   def _AddTestData(self, fd):
-    fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
-    fd.Add(
-        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="testfile2", pathtype="OS")))
-    fd.Add(
-        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
-    fd.Add(
-        collectors.ArtifactFilesDownloaderResult(
-            downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="testfile6", pathtype="OS"))))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")), mutation_pool=pool)
+      fd.Add(
+          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+              path="testfile2", pathtype="OS")),
+          mutation_pool=pool)
+      fd.Add(
+          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          mutation_pool=pool)
+      fd.Add(
+          collectors.ArtifactFilesDownloaderResult(
+              downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+                  path="testfile6", pathtype="OS"))),
+          mutation_pool=pool)
 
   def testDownloadCollectionIgnoresArtifactResultsWithoutFiles(self):
     # Create a collection with URNs to some files.
     fd = sequential_collection.GeneralIndexedCollection(
         self.collection_urn, token=self.token)
-    fd.Add(collectors.ArtifactFilesDownloaderResult())
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd.Add(collectors.ArtifactFilesDownloaderResult(), mutation_pool=pool)
 
     with utils.TempDirectory() as tmpdir:
       export_utils.DownloadCollection(
@@ -142,13 +155,16 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     # Create a collection with URNs to some files.
     fd = sequential_collection.GeneralIndexedCollection(
         self.collection_urn, token=self.token)
-    fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
-    fd.Add(
-        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="testfile2", pathtype="OS")))
-    fd.Add(
-        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")), mutation_pool=pool)
+      fd.Add(
+          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+              path="testfile2", pathtype="OS")),
+          mutation_pool=pool)
+      fd.Add(
+          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          mutation_pool=pool)
 
     with utils.TempDirectory() as tmpdir:
       export_utils.DownloadCollection(
@@ -179,13 +195,16 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     """Check we can download a collection that also references folders."""
     fd = sequential_collection.GeneralIndexedCollection(
         self.collection_urn, token=self.token)
-    fd.Add(
-        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))))
-    fd.Add(
-        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
-            st_mode=stat.S_IFDIR)))
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd.Add(
+          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          mutation_pool=pool)
+      fd.Add(
+          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
+              st_mode=stat.S_IFDIR)),
+          mutation_pool=pool)
 
     with utils.TempDirectory() as tmpdir:
       export_utils.DownloadCollection(

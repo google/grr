@@ -7,6 +7,7 @@ from grr import config
 from grr.lib import aff4
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -561,18 +562,20 @@ def UploadArtifactYamlFile(file_content,
   ]
 
   artifact_coll.Delete()
-  for artifact_value in filtered_artifacts:
-    artifact_coll.Add(artifact_value)
+  with data_store.DB.GetMutationPool(token=token) as pool:
+    for artifact_value in filtered_artifacts:
+      artifact_coll.Add(artifact_value, mutation_pool=pool)
 
-  for artifact_value in new_artifacts:
-    registry_obj.RegisterArtifact(
-        artifact_value,
-        source="datastore:%s" % base_urn,
-        overwrite_if_exists=overwrite,
-        overwrite_system_artifacts=overwrite_system_artifacts)
-    artifact_coll.Add(artifact_value)
-    loaded_artifacts.append(artifact_value)
-    logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
+    for artifact_value in new_artifacts:
+      registry_obj.RegisterArtifact(
+          artifact_value,
+          source="datastore:%s" % base_urn,
+          overwrite_if_exists=overwrite,
+          overwrite_system_artifacts=overwrite_system_artifacts)
+      artifact_coll.Add(artifact_value, mutation_pool=pool)
+      loaded_artifacts.append(artifact_value)
+
+  logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
 
   # Once all artifacts are loaded we can validate, as validation of dependencies
   # requires the group are all loaded before doing the validation.

@@ -10,8 +10,8 @@ from grr.lib import flags
 from grr.test_lib import test_lib
 
 
-class DummyApiCallRouter(api_call_router.ApiCallRouter):
-  """Dummy ApiCallRouter implementation overrideing just 1 method."""
+class SingleMethodDummyApiCallRouter(api_call_router.ApiCallRouter):
+  """Dummy ApiCallRouter implementation overriding just a single method."""
 
   @api_call_router.Http("GET", "/api/foo/bar")
   def SomeRandomMethod(self, args, token=None):
@@ -21,7 +21,7 @@ class DummyApiCallRouter(api_call_router.ApiCallRouter):
     pass
 
 
-class DummyApiCallRouterChild(DummyApiCallRouter):
+class SingleMethodDummyApiCallRouterChild(SingleMethodDummyApiCallRouter):
   pass
 
 
@@ -41,10 +41,10 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
     self.assertTrue(methods)
 
   def testGetAnnotatedMethodsReturnsMethodsFromAllClassesInMroChain(self):
-    self.assertTrue(
-        "SomeRandomMethod" in DummyApiCallRouter.GetAnnotatedMethods())
-    self.assertTrue(
-        "SomeRandomMethod" in DummyApiCallRouterChild.GetAnnotatedMethods())
+    self.assertIn("SomeRandomMethod",
+                  SingleMethodDummyApiCallRouter.GetAnnotatedMethods())
+    self.assertIn("SomeRandomMethod",
+                  SingleMethodDummyApiCallRouterChild.GetAnnotatedMethods())
 
 
 class RouterMethodMetadataTest(test_lib.GRRBaseTest):

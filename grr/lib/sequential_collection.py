@@ -58,7 +58,6 @@ class SequentialCollection(object):
   @classmethod
   def StaticAdd(cls,
                 collection_urn,
-                token,
                 rdf_value,
                 timestamp=None,
                 suffix=None,
@@ -73,8 +72,6 @@ class SequentialCollection(object):
     Args:
       collection_urn: The urn of the collection to add to.
 
-      token: The database access token to write with.
-
       rdf_value: The rdf value to add to the collection.
 
       timestamp: The timestamp (in microseconds) to store the rdf value
@@ -83,8 +80,7 @@ class SequentialCollection(object):
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
 
-      mutation_pool: An optional MutationPool object to write to. If not given,
-                     the data_store is used directly.
+      mutation_pool: A MutationPool object to write to.
 
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
@@ -100,6 +96,8 @@ class SequentialCollection(object):
     if not isinstance(rdf_value, cls.RDF_TYPE):
       raise ValueError("This collection only accepts values of type %s." %
                        cls.RDF_TYPE.__name__)
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
 
     if timestamp is None:
       timestamp = rdfvalue.RDFDatetime.Now()
@@ -113,25 +111,21 @@ class SequentialCollection(object):
       collection_urn = rdfvalue.RDFURN(collection_urn)
 
     result_subject = cls._MakeURN(collection_urn, timestamp, suffix)
-    if mutation_pool:
-      mutation_pool.Set(
-          result_subject,
-          cls.ATTRIBUTE,
-          rdf_value.SerializeToString(),
-          timestamp=timestamp,
-          **kwargs)
-    else:
-      data_store.DB.Set(
-          result_subject,
-          cls.ATTRIBUTE,
-          rdf_value.SerializeToString(),
-          timestamp=timestamp,
-          token=token,
-          **kwargs)
+    mutation_pool.Set(
+        result_subject,
+        cls.ATTRIBUTE,
+        rdf_value.SerializeToString(),
+        timestamp=timestamp,
+        **kwargs)
 
     return cls._ParseURN(result_subject)
 
-  def Add(self, rdf_value, timestamp=None, suffix=None, **kwargs):
+  def Add(self,
+          rdf_value,
+          timestamp=None,
+          suffix=None,
+          mutation_pool=None,
+          **kwargs):
     """Adds an rdf value to the collection.
 
     Adds an rdf value to the collection. Does not require that the collection
@@ -146,6 +140,8 @@ class SequentialCollection(object):
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
 
+      mutation_pool: A MutationPool object to write to.
+
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
 
@@ -159,10 +155,10 @@ class SequentialCollection(object):
     """
     return self.StaticAdd(
         self.collection_id,
-        self.token,
         rdf_value,
         timestamp=timestamp,
         suffix=suffix,
+        mutation_pool=mutation_pool,
         **kwargs)
 
   def Scan(self, after_timestamp=None, include_suffix=False, max_records=None):
@@ -429,13 +425,18 @@ class IndexedSequentialCollection(SequentialCollection):
   @classmethod
   def StaticAdd(cls,
                 collection_urn,
-                token,
                 rdf_value,
                 timestamp=None,
                 suffix=None,
+                mutation_pool=None,
                 **kwargs):
     r = super(IndexedSequentialCollection, cls).StaticAdd(
-        collection_urn, token, rdf_value, timestamp, suffix, **kwargs)
+        collection_urn,
+        rdf_value,
+        timestamp=timestamp,
+        suffix=suffix,
+        mutation_pool=mutation_pool,
+        **kwargs)
     if random.randint(0, cls.INDEX_SPACING) == 0:
       BACKGROUND_INDEX_UPDATER.AddIndexToUpdate(cls, collection_urn)
     return r
@@ -446,14 +447,14 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
   RDF_TYPE = rdf_protodict.EmbeddedRDFValue
 
   @classmethod
-  def StaticAdd(cls, collection_urn, token, rdf_value, **kwargs):
+  def StaticAdd(cls, collection_urn, rdf_value, mutation_pool=None, **kwargs):
     if not rdf_value.age:
       rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     super(GeneralIndexedCollection, cls).StaticAdd(
         collection_urn,
-        token,
         rdf_protodict.EmbeddedRDFValue(payload=rdf_value),
+        mutation_pool=mutation_pool,
         **kwargs)
 
   def Scan(self, **kwargs):
@@ -466,6 +467,8 @@ class GrrMessageCollection(IndexedSequentialCollection):
   """Sequential HuntResultCollection."""
   RDF_TYPE = rdf_flows.GrrMessage
 
-  def AddAsMessage(self, rdfvalue_in, source):
+  def AddAsMessage(self, rdfvalue_in, source, mutation_pool=None):
     """Helper method to add rdfvalues as GrrMessages for testing."""
-    self.Add(rdf_flows.GrrMessage(payload=rdfvalue_in, source=source))
+    self.Add(
+        rdf_flows.GrrMessage(payload=rdfvalue_in, source=source),
+        mutation_pool=mutation_pool)

@@ -64,10 +64,11 @@ DialogService.prototype.openConfirmation = function(title, message, proceed){
  *
  * @param {string} directive The name of the dialog directive.
  * @param {Object=} opt_params The parameters for the dialog directive.
+ * @param {Object=} opt_modalParams The parameters for the modal.
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
-DialogService.prototype.openDirectiveDialog = function(directive, opt_params){
+DialogService.prototype.openDirectiveDialog = function(directive, opt_params, opt_modalParams){
   var modalScope = this.rootScope_.$new();
   var paramString = '';
 
@@ -83,11 +84,13 @@ DialogService.prototype.openDirectiveDialog = function(directive, opt_params){
     });
   }
 
-  var template = '<' + tagName + ' ' + paramString + ' />';
-  var modalInstance = this.uibModal_.open({
+  var template = '<' + tagName + ' ' + paramString +
+      ' close="$close()" />';
+  var modalParams = angular.extend({
     template: template,
     scope: modalScope
-  });
+  }, opt_modalParams || {});
+  var modalInstance = this.uibModal_.open(modalParams);
   return modalInstance.result;
 };
 

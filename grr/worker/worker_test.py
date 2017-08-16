@@ -8,6 +8,7 @@ import time
 import mock
 
 from grr import config
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
@@ -17,7 +18,6 @@ from grr.lib import front_end
 from grr.lib import queue_manager
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib.flows.general import administrative
@@ -81,52 +81,6 @@ class RaisingTestFlow(WorkerSendingTestFlow):
   @flow.StateHandler(auth_required=False)
   def Incoming(self, responses):
     raise AttributeError("Some Error.")
-
-
-class CPULimitClientMock(object):
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def __init__(self, storage):
-    # Register us as an action plugin.
-    # TODO(user): this is a hacky shortcut and should be fixed.
-    server_stubs.ClientActionStub.classes["Store"] = self
-    self.storage = storage
-    self.__name__ = "Store"
-
-  def HandleMessage(self, message):
-    self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
-    self.storage.setdefault("networklimit",
-                            []).append(message.network_bytes_limit)
-
-
-class CPULimitFlow(flow.GRRFlow):
-  """This flow is used to test the cpu limit."""
-
-  @flow.StateHandler()
-  def Start(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State1")
-
-  @flow.StateHandler()
-  def State1(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="State2")
-
-  @flow.StateHandler()
-  def State2(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
-        string="Hey!",
-        next_state="Done")
-
-  @flow.StateHandler()
-  def Done(self, responses):
-    pass
 
 
 class WorkerStuckableHunt(implementation.GRRHunt):
@@ -1021,7 +975,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   def testCPULimitForFlows(self):
     """This tests that the client actions are limited properly."""
     result = {}
-    client_mock = CPULimitClientMock(result)
+    client_mock = action_mocks.CPULimitClientMock(result)
     client_mock = flow_test_lib.MockClient(
         self.client_id, client_mock, token=self.token)
 
@@ -1032,7 +986,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     flow.GRRFlow.StartFlow(
         client_id=self.client_id,
-        flow_name="CPULimitFlow",
+        flow_name=flow_test_lib.CPULimitFlow.__name__,
         cpu_limit=1000,
         network_bytes_limit=10000,
         token=self.token)
@@ -1061,7 +1015,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     result = {}
     client_mocks = []
     for client_id in client_ids:
-      client_mock = CPULimitClientMock(result)
+      client_mock = action_mocks.CPULimitClientMock(result)
       client_mock = flow_test_lib.MockClient(
           rdf_client.ClientURN(client_id), client_mock, token=self.token)
 
@@ -1069,7 +1023,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
           user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
       client_mocks.append(client_mock)
 
-    flow_runner_args = rdf_flows.FlowRunnerArgs(flow_name="CPULimitFlow")
+    flow_runner_args = rdf_flows.FlowRunnerArgs(
+        flow_name=flow_test_lib.CPULimitFlow.__name__)
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
@@ -1167,7 +1122,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
 
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

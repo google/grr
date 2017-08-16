@@ -31,6 +31,7 @@
 @import 'grr/gui/static/angular-components/forms/semantic-proto-form';
 @import 'grr/gui/static/angular-components/hunt/hunt-graph';
 @import 'grr/gui/static/angular-components/semantic/rekall/rekall';
+@import 'grr/gui/static/angular-components/semantic/semantic-versioned-proto';
 @import 'grr/gui/static/angular-components/semantic/stat-entry';
 @import 'grr/gui/static/angular-components/sidebar/client-summary';
 @import 'grr/gui/static/angular-components/sidebar/navigator';
@@ -306,6 +307,10 @@ div[ui-view] {
     margin-left: 5%;
     position: absolute;
   }
+}
+
+.high-modal > .modal-dialog {
+  max-height: 600px
 }
 
 

@@ -11,6 +11,7 @@ from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import events
 from grr.lib import export
 from grr.lib import flags
@@ -156,14 +157,15 @@ class ExportTest(ExportTestBase):
                      result[1] == DummyRDFValue("someA")))
 
   def _ConvertsCollectionWithValuesWithSingleConverter(self, coll_type):
-    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
-    src1 = rdf_client.ClientURN("C.0000000000000000")
-    fd.AddAsMessage(DummyRDFValue("some"), src1)
-    fixture_test_lib.ClientFixture(src1, token=self.token)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
+      src1 = rdf_client.ClientURN("C.0000000000000000")
+      fd.AddAsMessage(DummyRDFValue("some"), src1, mutation_pool=pool)
+      fixture_test_lib.ClientFixture(src1, token=self.token)
 
-    src2 = rdf_client.ClientURN("C.0000000000000001")
-    fd.AddAsMessage(DummyRDFValue("some2"), src2)
-    fixture_test_lib.ClientFixture(src2, token=self.token)
+      src2 = rdf_client.ClientURN("C.0000000000000001")
+      fd.AddAsMessage(DummyRDFValue("some2"), src2, mutation_pool=pool)
+      fixture_test_lib.ClientFixture(src2, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(str(v) for v in results)
@@ -179,13 +181,14 @@ class ExportTest(ExportTestBase):
   def _ConvertsCollectionWithMultipleConverters(self, coll_type):
     fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
 
-    src1 = rdf_client.ClientURN("C.0000000000000000")
-    fd.AddAsMessage(DummyRDFValue3("some1"), src1)
-    fixture_test_lib.ClientFixture(src1, token=self.token)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      src1 = rdf_client.ClientURN("C.0000000000000000")
+      fd.AddAsMessage(DummyRDFValue3("some1"), src1, mutation_pool=pool)
+      fixture_test_lib.ClientFixture(src1, token=self.token)
 
-    src2 = rdf_client.ClientURN("C.0000000000000001")
-    fd.AddAsMessage(DummyRDFValue3("some2"), src2)
-    fixture_test_lib.ClientFixture(src2, token=self.token)
+      src2 = rdf_client.ClientURN("C.0000000000000001")
+      fd.AddAsMessage(DummyRDFValue3("some2"), src2, mutation_pool=pool)
+      fixture_test_lib.ClientFixture(src2, token=self.token)
 
     results = export.ConvertValues(self.metadata, [fd], token=self.token)
     results = sorted(results, key=str)

@@ -6,6 +6,7 @@
 import cStringIO
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import grr_collections
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -51,12 +52,14 @@ class GRRSignedBlob(aff4.AFF4Stream):
     Returns:
       the URN of the new object written.
     """
-    with aff4.FACTORY.Create(urn, cls, mode="w", token=token) as fd:
-      for start_of_chunk in xrange(0, len(content), chunk_size):
-        chunk = content[start_of_chunk:start_of_chunk + chunk_size]
-        blob_rdf = rdf_crypto.SignedBlob()
-        blob_rdf.Sign(chunk, private_key, public_key)
-        fd.Add(blob_rdf)
+    with data_store.DB.GetMutationPool(token=token) as pool:
+      with aff4.FACTORY.Create(
+          urn, cls, mode="w", mutation_pool=pool, token=token) as fd:
+        for start_of_chunk in xrange(0, len(content), chunk_size):
+          chunk = content[start_of_chunk:start_of_chunk + chunk_size]
+          blob_rdf = rdf_crypto.SignedBlob()
+          blob_rdf.Sign(chunk, private_key, public_key)
+          fd.Add(blob_rdf, mutation_pool=pool)
 
     return urn
 
@@ -104,11 +107,13 @@ class GRRSignedBlob(aff4.AFF4Stream):
     self._EnsureInitialized()
     return self.fd.read(length)
 
-  def Add(self, item):
+  def Add(self, item, mutation_pool=None):
     if "r" in self.mode:
       raise IOError("GRRSignedBlob does not support appending.")
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
     self._EnsureInitialized()
-    self.collection.Add(item)
+    self.collection.Add(item, mutation_pool=mutation_pool)
 
   def __iter__(self):
     self._EnsureInitialized()

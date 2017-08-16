@@ -139,7 +139,9 @@ grrUi.semantic.semanticProtoDirective.buildItems = function(
     items.push({
       'value': keyValue,
       'key': field['friendly_name'] || field['name'],
-      'desc': field['doc']
+      'structKey': field['name'],
+      'desc': field['doc'],
+      'fieldDescriptor': field
     });
   }
 

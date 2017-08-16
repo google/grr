@@ -2,6 +2,7 @@
 """Tests for grr.lib.output_plugin."""
 
 
+from grr.lib import data_store
 from grr.lib import export
 from grr.lib import flags
 from grr.lib import instant_output_plugin
@@ -22,6 +23,7 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
         source_urn=rdfvalue.RDFURN("aff4:/foo/bar"), token=self.token)
 
     self.client_id = self.SetupClients(1)[0]
+    self.pool = data_store.DB.GetMutationPool(token=self.token)
     self.collection = multi_type_collection.MultiTypeCollection(
         rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
 
@@ -31,9 +33,11 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
             self.plugin, self.collection, source_urn=source_urn))
 
   def testCorrectlyExportsSingleValue(self):
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("foo"), source=self.client_id))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("foo"), source=self.client_id),
+          mutation_pool=self.pool)
 
     chunks = self.ProcessPlugin()
 
@@ -46,8 +50,10 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     ])  # pyformat: disable
 
   def testUsesDefaultClientURNIfGrrMessageHasNoSource(self):
-    self.collection.Add(
-        rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo"), source=None))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo"), source=None),
+          mutation_pool=self.pool)
 
     chunks = self.ProcessPlugin(
         source_urn=rdf_client.ClientURN("C.1111222233334444"))
@@ -61,12 +67,15 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     ])  # pyformat: disable
 
   def testCorrectlyExportsTwoValuesOfTheSameType(self):
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("foo"), source=self.client_id))
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("bar"), source=self.client_id))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("foo"), source=self.client_id),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("bar"), source=self.client_id),
+          mutation_pool=self.pool)
 
     chunks = self.ProcessPlugin()
 
@@ -81,18 +90,23 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     ])  # pyformat: disable
 
   def testCorrectlyExportsFourValuesOfTwoDifferentTypes(self):
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("foo"), source=self.client_id))
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFInteger(42), source=self.client_id))
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("bar"), source=self.client_id))
-    self.collection.Add(
-        rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFInteger(43), source=self.client_id))
+    with self.pool:
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("foo"), source=self.client_id),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFInteger(42), source=self.client_id),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("bar"), source=self.client_id),
+          mutation_pool=self.pool)
+      self.collection.Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFInteger(43), source=self.client_id),
+          mutation_pool=self.pool)
 
     chunks = self.ProcessPlugin()
 

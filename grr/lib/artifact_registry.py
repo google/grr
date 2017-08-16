@@ -10,6 +10,7 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import artifact_utils
+from grr.lib import data_store
 from grr.lib import objectfilter
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -909,8 +910,9 @@ def DeleteArtifactsFromDatastore(artifact_names,
   # in the same folder.
   store.Delete()
 
-  for artifact_value in filtered_artifacts:
-    store.Add(artifact_value)
+  with data_store.DB.GetMutationPool(token=token) as pool:
+    for artifact_value in filtered_artifacts:
+      store.Add(artifact_value, mutation_pool=pool)
 
   for artifact_value in to_delete:
     REGISTRY.UnregisterArtifact(artifact_value)

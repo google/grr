@@ -21,6 +21,7 @@ from grr.gui.selenium_tests import flow_export_test
 from grr.gui.selenium_tests import flow_management_test
 from grr.gui.selenium_tests import flow_notifications_test
 from grr.gui.selenium_tests import forms_test
+from grr.gui.selenium_tests import hostinfo_test
 from grr.gui.selenium_tests import hosttable_test
 from grr.gui.selenium_tests import hunt_archive_test
 from grr.gui.selenium_tests import hunt_control_test

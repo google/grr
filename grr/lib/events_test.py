@@ -53,7 +53,7 @@ class FlowDoneListener(flow.EventListener):
     FlowDoneListener.received_events.append(message)
 
 
-class GeneralFlowsTest(flow_test_lib.FlowTestsBaseclass):
+class EventsTest(flow_test_lib.FlowTestsBaseclass):
 
   def testClientEventNotification(self):
     """Make sure that client events handled securely."""
