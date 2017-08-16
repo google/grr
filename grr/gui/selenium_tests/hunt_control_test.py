@@ -6,9 +6,9 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.server import access_control
 
 
 class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):

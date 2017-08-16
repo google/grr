@@ -15,13 +15,13 @@ from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.flows.general import memory
-from grr.lib.flows.general import transfer
+from grr.server import aff4
+from grr.server import flow
+from grr.server.aff4_objects import aff4_grr
+from grr.server.flows.general import memory
+from grr.server.flows.general import transfer
 
 from grr.test_lib import client_test_lib
 

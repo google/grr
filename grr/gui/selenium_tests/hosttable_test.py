@@ -4,8 +4,8 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
 from grr.lib import flags
+from grr.server import aff4
 
 
 class TestHostTable(gui_test_lib.SearchClientTestBase):

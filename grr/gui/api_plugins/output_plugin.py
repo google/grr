@@ -5,13 +5,13 @@ import itertools
 
 from grr.gui import api_call_handler_base
 
-from grr.lib import instant_output_plugin
-from grr.lib import output_plugin
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import output_plugin_pb2
 from grr.proto.api import reflection_pb2
+
+from grr.server import instant_output_plugin
+from grr.server import output_plugin
 
 
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):

@@ -6,22 +6,22 @@
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import user as user_plugin
 
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-from grr.lib.aff4_objects import security as aff4_security
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import email_alerts
+from grr.server.aff4_objects import cronjobs as aff4_cronjobs
+from grr.server.aff4_objects import security as aff4_security
 
-from grr.lib.aff4_objects import users as aff4_users
-from grr.lib.flows.general import administrative
-from grr.lib.hunts import implementation
+from grr.server.aff4_objects import users as aff4_users
+from grr.server.flows.general import administrative
+from grr.server.hunts import implementation
 
-from grr.lib.hunts import standard
+from grr.server.hunts import standard
 
-from grr.lib.hunts import standard_test
+from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 

@@ -9,31 +9,31 @@ from grr.gui import api_call_handler_utils
 
 from grr.gui.api_plugins import stats as api_stats
 
-from grr.lib import aff4
-from grr.lib import client_index
-from grr.lib import data_store
-from grr.lib import events
-from grr.lib import flow
-from grr.lib import ip_resolver
-from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import timeseries
 from grr.lib import utils
-
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard
-from grr.lib.aff4_objects import stats as aff4_stats
-
-from grr.lib.flows.general import audit
-from grr.lib.flows.general import discovery
-
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import client_pb2
+from grr.server import aff4
+
+from grr.server import client_index
+from grr.server import data_store
+from grr.server import events
+
+from grr.server import flow
+from grr.server import ip_resolver
+
+from grr.server import queue_manager
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import standard
+from grr.server.aff4_objects import stats as aff4_stats
+from grr.server.flows.general import audit
+
+from grr.server.flows.general import discovery
 
 
 class InterrogateOperationNotFoundError(

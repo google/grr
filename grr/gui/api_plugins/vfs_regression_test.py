@@ -7,10 +7,10 @@ from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import vfs as vfs_plugin
 from grr.gui.api_plugins import vfs_test as vfs_plugin_test
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib.flows.general import discovery
+from grr.server import aff4
+from grr.server import flow
+from grr.server.flows.general import discovery
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 

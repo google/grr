@@ -4,9 +4,9 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib.aff4_objects import users as aff4_users
+from grr.server import aff4
+from grr.server.aff4_objects import users as aff4_users
 
 
 class TestContentView(gui_test_lib.SearchClientTestBase):

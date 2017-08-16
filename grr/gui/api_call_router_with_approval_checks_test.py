@@ -16,11 +16,11 @@ from grr.gui.api_plugins import hunt as api_hunt
 from grr.gui.api_plugins import user as api_user
 from grr.gui.api_plugins import vfs as api_vfs
 
-from grr.lib import access_control
 from grr.lib import flags
-from grr.lib.hunts import standard_test
-
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import access_control
+
+from grr.server.hunts import standard_test
 
 from grr.test_lib import test_lib
 

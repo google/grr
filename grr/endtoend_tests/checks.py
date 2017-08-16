@@ -3,8 +3,8 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib.checks import checks as rdf_checks
-from grr.lib.flows.general import checks
+from grr.server.checks import checks as rdf_checks
+from grr.server.flows.general import checks
 
 
 class TestCheckRunner(base.AutomatedTest):

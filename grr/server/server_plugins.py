@@ -10,7 +10,21 @@ modules that have been customized for your deployment.
 """
 # pylint: disable=unused-import
 
-from grr.lib import export
+from grr.server import access_control
+from grr.server import export
+from grr.server import file_store
+from grr.server import flow
 from grr.server import foreman
+from grr.server import hunts
+from grr.server import ip_resolver
 from grr.server import local
+from grr.server import master
+from grr.server import output_plugin
+from grr.server import output_plugins
 from grr.server import stats_server
+from grr.server.aff4_objects import registry_init
+from grr.server.blob_stores import registry_init
+from grr.server.data_stores import registry_init
+from grr.server.flows.cron import registry_init
+from grr.server.flows.general import registry_init
+from grr.server.flows.local import registry_init

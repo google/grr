@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """UI report handling helper utils."""
 
-from grr.lib import aff4
-from grr.lib.flows.general import audit
+from grr.server import aff4
+from grr.server.flows.general import audit
 
 
 def GetAuditLogEntries(offset, now, token):

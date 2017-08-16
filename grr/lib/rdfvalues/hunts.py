@@ -4,7 +4,6 @@
 
 
 from grr import config
-from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import stats
@@ -12,6 +11,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 from grr.server import foreman
+from grr.server import output_plugin
 
 
 class HuntNotification(rdf_structs.RDFProtoStruct):

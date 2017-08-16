@@ -9,23 +9,23 @@ import mock
 
 from grr import config
 from grr.lib import action_mocks
-from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import flow_runner
-from grr.lib import front_end
-from grr.lib import queue_manager
-from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib import worker
-from grr.lib.flows.general import administrative
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import flow
+from grr.server import flow_runner
+from grr.server import front_end
+from grr.server import queue_manager
+from grr.server import queues
+from grr.server import worker
+from grr.server.flows.general import administrative
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

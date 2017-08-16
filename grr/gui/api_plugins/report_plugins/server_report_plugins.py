@@ -7,11 +7,11 @@ from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugin_base
 
 from grr.gui.api_plugins.report_plugins import report_utils
-from grr.lib import aff4
-from grr.lib import events
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import users as aff4_users
-from grr.lib.flows.general import audit
+from grr.server import aff4
+from grr.server import events
+from grr.server.aff4_objects import users as aff4_users
+from grr.server.flows.general import audit
 
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.SERVER
 

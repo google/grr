@@ -10,17 +10,17 @@ import unittest
 
 
 from grr import config as grr_config
-from grr.lib import aff4
-from grr.lib import client_index
-from grr.lib import data_store
-from grr.lib import flow
-from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.flows.console import debugging
-from grr.lib.flows.general import discovery
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server import client_index
+from grr.server import data_store
+from grr.server import flow
+from grr.server import flow_utils
+from grr.server.aff4_objects import aff4_grr
+from grr.server.flows.console import debugging
+from grr.server.flows.general import discovery
 
 
 class Error(Exception):

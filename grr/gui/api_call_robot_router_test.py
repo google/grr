@@ -8,14 +8,14 @@ from grr.gui import api_call_robot_router as rr
 
 from grr.gui.api_plugins import flow as api_flow
 
-from grr.lib import access_control
-from grr.lib import artifact_utils
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib.flows.general import collectors
-from grr.lib.flows.general import file_finder
-
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.server import access_control
+from grr.server import artifact_utils
+from grr.server import flow
+from grr.server.flows.general import collectors
+
+from grr.server.flows.general import file_finder
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

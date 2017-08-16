@@ -14,14 +14,14 @@ import yaml
 
 from grr.gui import api_call_handler_utils
 
-from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import sequential_collection
 from grr.test_lib import test_lib
 
 

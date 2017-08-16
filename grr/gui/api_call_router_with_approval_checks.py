@@ -10,13 +10,13 @@ from grr.gui import api_call_router_without_checks
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import user as api_user
 
-from grr.lib import access_control
-from grr.lib import aff4
+from grr.server import access_control
+from grr.server import aff4
 
-from grr.lib.aff4_objects import cronjobs
-from grr.lib.aff4_objects import user_managers
+from grr.server.aff4_objects import cronjobs
+from grr.server.aff4_objects import user_managers
 
-from grr.lib.hunts import implementation
+from grr.server.hunts import implementation
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouter):

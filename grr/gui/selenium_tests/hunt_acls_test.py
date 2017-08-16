@@ -5,12 +5,12 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import access_control
 from grr.lib import flags
-from grr.lib.aff4_objects import security
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
+from grr.server import access_control
 from grr.server import foreman as rdf_foreman
+from grr.server.aff4_objects import security
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
 
 
 class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):

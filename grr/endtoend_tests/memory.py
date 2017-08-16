@@ -6,8 +6,8 @@ import os
 from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib.flows.general import memory
+from grr.server import aff4
+from grr.server.flows.general import memory
 
 
 class AbstractTestAnalyzeClientMemory(base.ClientTestBase):

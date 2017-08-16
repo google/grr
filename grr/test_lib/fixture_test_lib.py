@@ -3,17 +3,17 @@
 
 import re
 
-from grr.lib import aff4
-from grr.lib import artifact
-from grr.lib import client_fixture
-from grr.lib import client_index
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
+from grr.server import aff4
+from grr.server import artifact
+from grr.server import client_fixture
+from grr.server import client_index
+from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import test_lib
 
 # Make the fixture appear to be 1 week old.

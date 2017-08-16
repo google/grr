@@ -6,12 +6,12 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.aff4_objects import security
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import access_control
+from grr.server import aff4
+from grr.server.aff4_objects import security
 
 
 class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):

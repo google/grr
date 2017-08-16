@@ -6,10 +6,10 @@ import re
 
 import logging
 
-from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import artifact_registry
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.

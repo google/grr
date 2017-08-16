@@ -23,13 +23,13 @@ from grr.gui import api_auth_manager
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_value_renderers
-from grr.lib import access_control
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import structs as rdf_structs
+from grr.server import access_control
+from grr.server.aff4_objects import users as aff4_users
 
 
 class Error(Exception):

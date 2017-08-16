@@ -7,20 +7,20 @@
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import flow as flow_plugin
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import output_plugin
-from grr.lib import queue_manager
 from grr.lib import utils
-from grr.lib.flows.general import discovery
-from grr.lib.flows.general import file_finder
-from grr.lib.flows.general import processes
-from grr.lib.flows.general import transfer
-from grr.lib.hunts import standard_test
-from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import flow
+from grr.server import output_plugin
+from grr.server import queue_manager
+from grr.server.flows.general import discovery
+from grr.server.flows.general import file_finder
+from grr.server.flows.general import processes
+from grr.server.flows.general import transfer
+from grr.server.hunts import standard_test
+from grr.server.output_plugins import email_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

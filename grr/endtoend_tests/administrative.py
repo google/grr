@@ -7,11 +7,11 @@ import os
 import logging
 from grr import config
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib import maintenance_utils
-from grr.lib.aff4_objects import collects as aff4_collects
-from grr.lib.aff4_objects import stats as aff4_stats
-from grr.lib.flows.general import administrative
+from grr.server import aff4
+from grr.server import maintenance_utils
+from grr.server.aff4_objects import collects as aff4_collects
+from grr.server.aff4_objects import stats as aff4_stats
+from grr.server.flows.general import administrative
 
 
 class TestGetClientStats(base.AutomatedTest):

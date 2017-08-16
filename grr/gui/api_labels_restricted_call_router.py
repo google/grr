@@ -9,17 +9,17 @@ from grr.gui import api_call_router_without_checks
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import user as api_user
 
-from grr.lib import access_control
-
-from grr.lib import aff4
 from grr.lib import utils
 
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import user_managers
-
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto import api_call_router_pb2
+
+from grr.server import access_control
+from grr.server import aff4
+
+from grr.server.aff4_objects import aff4_grr
+
+from grr.server.aff4_objects import user_managers
 
 
 class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):

@@ -8,12 +8,12 @@ import logging
 from grr import config
 from grr.client import vfs
 from grr.client.vfs_handlers import files
-from grr.lib import client_fixture
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import client_fixture
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import standard as aff4_standard
 
 
 class VFSOverrider(object):

@@ -8,9 +8,9 @@ import os
 from grr import config
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
-from grr.lib import artifact
-from grr.lib import artifact_registry
 from grr.lib import flags
+from grr.server import artifact
+from grr.server import artifact_registry
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

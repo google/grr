@@ -11,25 +11,25 @@ from grr.gui.api_plugins import cron as api_cron
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
 
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-from grr.lib.aff4_objects import security as aff4_security
-from grr.lib.aff4_objects import users as aff4_users
-
-from grr.lib.flows.general import administrative
-
-from grr.lib.hunts import implementation
-
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import user_pb2
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import flow
+
+from grr.server.aff4_objects import aff4_grr
+
+from grr.server.aff4_objects import cronjobs as aff4_cronjobs
+
+from grr.server.aff4_objects import security as aff4_security
+from grr.server.aff4_objects import users as aff4_users
+from grr.server.flows.general import administrative
+
+from grr.server.hunts import implementation
 
 
 class GlobalNotificationNotFoundError(

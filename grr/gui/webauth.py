@@ -10,11 +10,11 @@ from werkzeug import wrappers as werkzeug_wrappers
 import logging
 
 from grr import config
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import registry
+from grr.server import access_control
+from grr.server import aff4
 
-from grr.lib.aff4_objects import users as aff4_users
+from grr.server.aff4_objects import users as aff4_users
 
 
 class BaseWebAuthManager(object):

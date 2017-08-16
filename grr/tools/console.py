@@ -26,36 +26,36 @@ import logging
 from grr import config
 from grr.config import contexts
 from grr.endtoend_tests import base
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import artifact
-from grr.lib import artifact_utils
-from grr.lib import console_utils
-from grr.lib import data_store
-from grr.lib import export_utils
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import flow_runner
-from grr.lib import flow_utils
-from grr.lib import hunts
-from grr.lib import ipshell
-from grr.lib import maintenance_utils
-from grr.lib import server_startup
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib import worker
-
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import security
 
 # All the functions in this lib we want in local namespace.
 # pylint: disable=wildcard-import
 from grr.lib.console_utils import *
 # pylint: enable=wildcard-import
 
-from grr.lib.flows import console
-from grr.lib.flows.console import debugging
-from grr.lib.flows.general import memory
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import artifact
+from grr.server import artifact_utils
+from grr.server import console_utils
+from grr.server import data_store
+from grr.server import export_utils
+from grr.server import flow
+from grr.server import flow_runner
+from grr.server import flow_utils
+from grr.server import hunts
+from grr.server import ipshell
+from grr.server import maintenance_utils
+from grr.server import server_startup
+from grr.server import worker
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import security
+
+from grr.server.flows import console
+from grr.server.flows.console import debugging
+from grr.server.flows.general import memory
 # pylint: enable=unused-import
 
 from grr.tools import end_to_end_tests

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Throttle user calls to flows."""
 
-from grr.lib import aff4
-from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.server import aff4
+from grr.server import flow
 
 
 class Error(Exception):

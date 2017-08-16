@@ -183,7 +183,7 @@ class TemplateRepacker(object):
           # repacking clients. This codepath is used by config_updater
           # initialize
           # pylint: disable=g-import-not-at-top
-          from grr.lib import maintenance_utils
+          from grr.server import maintenance_utils
           # pylint: enable=g-import-not-at-top
           dest = config.CONFIG.Get(
               "Executables.installer", context=repack_context)

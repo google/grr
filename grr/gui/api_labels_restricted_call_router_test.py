@@ -9,10 +9,10 @@ from grr.gui import api_labels_restricted_call_router as api_router
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import flow as api_flow
 
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib.flows.general import processes
+from grr.server import access_control
+from grr.server import aff4
+from grr.server.flows.general import processes
 from grr.test_lib import acl_test_lib
 
 from grr.test_lib import test_lib

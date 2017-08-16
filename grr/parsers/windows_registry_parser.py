@@ -6,12 +6,12 @@ import re
 
 import logging
 
-from grr.lib import artifact_utils
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import artifact_utils
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 

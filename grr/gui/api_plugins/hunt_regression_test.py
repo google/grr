@@ -9,17 +9,17 @@ import pdb
 from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import hunt as hunt_plugin
-from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import output_plugin
 from grr.lib import rdfvalue
-from grr.lib.hunts import implementation
-from grr.lib.hunts import process_results
-from grr.lib.hunts import standard_test
-from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import output_plugin
+from grr.server.hunts import implementation
+from grr.server.hunts import process_results
+from grr.server.hunts import standard_test
+from grr.server.output_plugins import test_plugins
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

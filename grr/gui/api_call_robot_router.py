@@ -11,20 +11,20 @@ from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import reflection as api_reflection
 
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
-
-from grr.lib.flows.general import collectors
-from grr.lib.flows.general import file_finder
-
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto import api_call_router_pb2
+
+from grr.server import access_control
+from grr.server import aff4
+
+from grr.server import flow
+from grr.server.flows.general import collectors
+
+from grr.server.flows.general import file_finder
 
 
 class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):

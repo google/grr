@@ -26,14 +26,14 @@ from grr import config
 from grr.gui import http_api
 
 from grr.gui import webauth
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.server import access_control
+from grr.server import aff4
 
-from grr.lib.aff4_objects import users as aff4_users
+from grr.server.aff4_objects import users as aff4_users
 
 CSRF_DELIMITER = ":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")

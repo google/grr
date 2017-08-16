@@ -5,13 +5,13 @@ import itertools
 
 import logging
 
-from grr.lib import aff4
-from grr.lib import flow
-from grr.lib import queue_manager
-from grr.lib import queues as queue_config
-from grr.lib import worker
-
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.server import aff4
+from grr.server import flow
+from grr.server import queue_manager
+from grr.server import queues as queue_config
+
+from grr.server import worker
 
 
 class MockThreadPool(object):

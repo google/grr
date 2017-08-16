@@ -12,14 +12,14 @@ import uuid
 import logging
 
 from grr import config
-from grr.lib import access_control
-from grr.lib import data_store
 from grr.lib import utils
-
-from grr.lib.data_stores import common
 from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.lib.rdfvalues import data_store as rdf_data_store
+
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import access_control
+from grr.server import data_store
+from grr.server.data_stores import common
 
 BASE_MAP_SUBJECT = "servers_map"
 MAP_SUBJECT = "aff4:/" + BASE_MAP_SUBJECT

@@ -7,12 +7,12 @@ import unittest
 from grr.gui import gui_test_lib
 from grr.gui.api_plugins.client import ApiSearchClientsHandler
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.flows.general import discovery
+from grr.server import aff4
+from grr.server import flow
+from grr.server.aff4_objects import aff4_grr
+from grr.server.flows.general import discovery
 
 
 class TestNotifications(gui_test_lib.GRRSeleniumTest):

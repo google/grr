@@ -7,17 +7,17 @@
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import stats as aff4_stats
-
-from grr.lib.flows.general import processes
-from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server import flow
+from grr.server import queue_manager
+from grr.server.aff4_objects import aff4_grr
+
+from grr.server.aff4_objects import stats as aff4_stats
+from grr.server.flows.general import processes
+from grr.server.hunts import standard_test
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

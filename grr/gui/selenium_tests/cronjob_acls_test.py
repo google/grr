@@ -5,12 +5,12 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import cronjobs
-from grr.lib.aff4_objects import security
-from grr.lib.flows.cron import system as cron_system
+from grr.server import access_control
+from grr.server.aff4_objects import cronjobs
+from grr.server.aff4_objects import security
+from grr.server.flows.cron import system as cron_system
 
 
 class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):

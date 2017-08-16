@@ -16,20 +16,20 @@ from grr.gui.api_plugins import client as client_plugin
 from grr.gui.api_plugins import flow as flow_plugin
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import utils
-from grr.lib.flows.general import file_finder
-from grr.lib.flows.general import processes
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
-from grr.lib.hunts import standard_test
-from grr.lib.output_plugins import test_plugins
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
+from grr.server import aff4
+from grr.server import flow
+from grr.server.flows.general import file_finder
+from grr.server.flows.general import processes
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
+from grr.server.hunts import standard_test
+from grr.server.output_plugins import test_plugins
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

@@ -2,9 +2,9 @@
 """End to end tests for lib.flows.general.hardware."""
 
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib.flows.general import hardware
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server.flows.general import hardware
 
 
 class TestDumpFlashImage(base.AutomatedTest):

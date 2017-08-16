@@ -21,7 +21,7 @@ from grr.lib import server_plugins
 
 from grr.gui import wsgiapp
 from grr.lib import flags
-from grr.lib import server_startup
+from grr.server import server_startup
 
 
 class ThreadedServer(SocketServer.ThreadingMixIn, simple_server.WSGIServer):

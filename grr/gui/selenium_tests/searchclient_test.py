@@ -5,11 +5,11 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import flags
-from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server import client_index
+from grr.server.hunts import standard_test
 
 
 class TestClientSearch(gui_test_lib.SearchClientTestBase,

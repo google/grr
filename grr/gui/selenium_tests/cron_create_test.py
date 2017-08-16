@@ -6,9 +6,9 @@
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.lib import output_plugin
-from grr.lib.flows.general import processes
-from grr.lib.hunts import standard
+from grr.server import output_plugin
+from grr.server.flows.general import processes
+from grr.server.hunts import standard
 
 
 class DummyOutputPlugin(output_plugin.OutputPlugin):

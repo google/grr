@@ -3,8 +3,8 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server.flows.general import collectors
 
 
 class TestCollector(base.AutomatedTest):

@@ -23,17 +23,17 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr import config
-from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import flags
-from grr.lib import front_end
 from grr.lib import log
-from grr.lib import master
 from grr.lib import rdfvalue
-from grr.lib import server_startup
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.server import aff4
+from grr.server import front_end
+from grr.server import master
+from grr.server import server_startup
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):

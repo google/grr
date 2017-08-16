@@ -8,14 +8,14 @@ import unittest
 from grr.gui import api_call_handler_utils
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.flows.general import collectors
-from grr.lib.flows.general import export as flow_export
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server.flows.general import collectors
+from grr.server.flows.general import export as flow_export
 
 
 class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):

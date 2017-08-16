@@ -5,12 +5,12 @@
 
 from grr.client.client_actions import standard
 from grr.endtoend_tests import base
-from grr.lib import flow
-from grr.lib.flows.general import file_finder
-
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
+
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import flow
+from grr.server.flows.general import file_finder
 
 
 class TestFileFinderOSWindows(base.VFSPathContentIsPE):

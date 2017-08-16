@@ -2,8 +2,8 @@
 """Stubs for client actions of the Rekall component."""
 
 from grr.client.components.rekall_support import rekall_types
-from grr.lib import server_stubs
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import server_stubs
 
 
 class WriteRekallProfile(server_stubs.ClientActionStub):

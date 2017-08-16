@@ -3,12 +3,12 @@
 
 from grr.gui import api_call_handler_base
 
-from grr.lib import artifact
-from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import artifact_pb2
+from grr.server import artifact
+
+from grr.server import artifact_registry
 
 
 class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):

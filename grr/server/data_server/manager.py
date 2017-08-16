@@ -17,11 +17,11 @@ from grr.client import client_plugins
 from grr import config
 from grr.config import contexts
 from grr.lib import flags
-from grr.lib import server_startup
 from grr.lib import utils
 
 from grr.lib.rdfvalues import data_server as rdf_data_server
 
+from grr.server import server_startup
 from grr.server.data_server import constants
 from grr.server.data_server import errors
 from grr.server.data_server import utils as sutils

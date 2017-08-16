@@ -3,10 +3,10 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.flows.general import collectors
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server.aff4_objects import aff4_grr
+from grr.server.flows.general import collectors
 
 
 class TestDarwinPersistenceMechanisms(base.AutomatedTest):

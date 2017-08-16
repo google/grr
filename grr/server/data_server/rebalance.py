@@ -11,14 +11,14 @@ from requests.packages import urllib3
 
 import logging
 
-from grr.lib import data_store
 from grr.lib import utils
-from grr.lib.data_stores import common
 from grr.lib.rdfvalues import data_server as rdf_data_server
-
+from grr.server import data_store
 from grr.server.data_server import constants
+
 from grr.server.data_server import store
 from grr.server.data_server import utils as sutils
+from grr.server.data_stores import common
 # pylint: enable=g-import-not-at-top
 
 # Database files that cannot be copied.

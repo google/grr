@@ -3,8 +3,8 @@
 """Tests for sysctl checks."""
 
 from grr.lib import flags
-from grr.lib.checks import checks_test_lib
 from grr.parsers import linux_sysctl_parser
+from grr.server.checks import checks_test_lib
 from grr.test_lib import test_lib
 
 

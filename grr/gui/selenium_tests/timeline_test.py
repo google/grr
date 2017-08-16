@@ -9,10 +9,10 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
 from grr.gui.api_plugins import vfs as api_vfs
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 

@@ -8,12 +8,12 @@ from grr.client import actions
 from grr.client.client_actions import standard
 
 from grr.lib import registry
-from grr.lib import server_stubs
 from grr.lib import utils
-from grr.lib import worker_mocks
 from grr.lib.rdfvalues import flows as rdf_flows
-
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import server_stubs
+
+from grr.server import worker_mocks
 from grr.test_lib import test_lib
 
 

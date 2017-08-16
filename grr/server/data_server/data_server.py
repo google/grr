@@ -21,7 +21,6 @@ import logging
 from grr import config
 from grr.config import contexts
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import log
 from grr.lib import registry
@@ -31,6 +30,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.lib.rdfvalues import data_store as rdf_data_store
 
+from grr.server import data_store
 from grr.server.data_server import auth
 from grr.server.data_server import constants
 from grr.server.data_server import errors

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """UI reports related rdfvalues."""
 
-from grr.lib import events
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto.api import stats_pb2
+from grr.server import events
 
 
 class ApiReportDescriptor(rdf_structs.RDFProtoStruct):

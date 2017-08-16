@@ -5,7 +5,7 @@ import os
 
 from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
-from grr.lib import rekall_profile_server
+from grr.server import rekall_profile_server
 
 
 class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):

@@ -10,13 +10,13 @@ from grr.client.client_actions import file_finder
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
-from grr.lib import client_fixture
-from grr.lib import server_stubs
-from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import client_fixture
+from grr.server import server_stubs
+from grr.server import worker_mocks
 
 
 class ActionMock(object):

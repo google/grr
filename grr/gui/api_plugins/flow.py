@@ -11,22 +11,22 @@ from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import client
 
 from grr.gui.api_plugins import output_plugin as api_output_plugin
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import flow
-from grr.lib import instant_output_plugin
-from grr.lib import output_plugin
-from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import flow_pb2
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import flow
+from grr.server import instant_output_plugin
+from grr.server import output_plugin
+from grr.server import queue_manager
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import cronjobs as aff4_cronjobs
+
+from grr.server.aff4_objects import users as aff4_users
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):

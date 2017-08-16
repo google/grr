@@ -5,14 +5,14 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import output_plugin
-from grr.lib.flows.general import processes as flows_processes
-from grr.lib.hunts import standard_test
-from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
+from grr.server import flow
+from grr.server import output_plugin
+from grr.server.flows.general import processes as flows_processes
+from grr.server.hunts import standard_test
+from grr.server.output_plugins import email_plugin
 from grr.test_lib import fixture_test_lib
 
 

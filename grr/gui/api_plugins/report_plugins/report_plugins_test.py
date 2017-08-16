@@ -13,16 +13,16 @@ from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks
 from grr.gui.api_plugins.report_plugins import server_report_plugins
 
-from grr.lib import aff4
-from grr.lib import client_fixture
-from grr.lib import events
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import filestore_test_lib
-from grr.lib.flows.cron import filestore_stats
-from grr.lib.flows.cron import system as cron_system
-from grr.lib.flows.general import audit
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import client_fixture
+from grr.server import events
+from grr.server.aff4_objects import filestore_test_lib
+from grr.server.flows.cron import filestore_stats
+from grr.server.flows.cron import system as cron_system
+from grr.server.flows.general import audit
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

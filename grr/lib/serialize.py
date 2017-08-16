@@ -3,8 +3,8 @@
 
 
 import yaml
-from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.server import aff4
 
 
 def YamlDumper(aff4object):

@@ -33,28 +33,28 @@ from grr.client import comms
 # pylint: disable=unused-import
 from grr.client import local as _
 # pylint: enable=unused-import
-from grr.lib import access_control
-from grr.lib import aff4
-from grr.lib import artifact
-from grr.lib import client_index
-from grr.lib import data_store
-from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import testing_startup
 from grr.lib import utils
 
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import filestore
-from grr.lib.aff4_objects import users
-
-from grr.lib.flows.general import discovery
-from grr.lib.hunts import results as hunts_results
-
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
+
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import artifact
+from grr.server import client_index
+from grr.server import data_store
+from grr.server import email_alerts
+from grr.server import flow
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import filestore
+from grr.server.aff4_objects import users
+
+from grr.server.flows.general import discovery
+from grr.server.hunts import results as hunts_results
 
 flags.DEFINE_list(
     "tests",

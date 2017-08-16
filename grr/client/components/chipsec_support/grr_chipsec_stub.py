@@ -4,7 +4,7 @@
 __author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 from grr.client.components.chipsec_support.actions import chipsec_types
-from grr.lib import server_stubs
+from grr.server import server_stubs
 
 
 class DumpFlashImage(server_stubs.ClientActionStub):

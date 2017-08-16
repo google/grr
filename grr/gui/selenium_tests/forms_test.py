@@ -5,9 +5,9 @@
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.server import flow
 
 
 class DefaultArgsTestFlowArgs(rdf_structs.RDFProtoStruct):

@@ -10,19 +10,18 @@ import logging
 from grr.client.client_actions import standard
 
 from grr.lib import action_mocks
-from grr.lib import aff4
-from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import server_stubs
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto import tests_pb2
+from grr.server import aff4
+from grr.server import events
+from grr.server import flow
+from grr.server import queue_manager
+from grr.server import server_stubs
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

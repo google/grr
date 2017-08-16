@@ -3,7 +3,7 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib.flows.general import processes
+from grr.server.flows.general import processes
 
 
 class TestProcessListing(base.AutomatedTest):

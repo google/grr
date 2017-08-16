@@ -2,8 +2,8 @@
 """Mocks for end to end testing."""
 
 from grr.endtoend_tests import base
-from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import paths
+from grr.server.flows.general import filesystem
 from grr.test_lib import flow_test_lib
 
 

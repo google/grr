@@ -8,9 +8,9 @@ import os
 import unittest
 from grr import config
 from grr.gui import gui_test_lib
-from grr.lib import artifact
-from grr.lib import artifact_registry
 from grr.lib import flags
+from grr.server import artifact
+from grr.server import artifact_registry
 
 
 class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):

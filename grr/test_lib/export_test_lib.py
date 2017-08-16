@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Classes for export-related tests."""
 
-from grr.lib import export
 from grr.lib import rdfvalue
-
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import tests_pb2
+
+from grr.server import export
 
 
 class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):

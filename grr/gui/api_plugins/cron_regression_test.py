@@ -8,16 +8,16 @@ from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import cron as cron_plugin
 from grr.gui.api_plugins import cron_test as cron_plugin_test
 
-from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import cronjobs
-from grr.lib.flows.cron import system as cron_system
-from grr.lib.flows.general import file_finder
-from grr.lib.hunts import standard
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.server import aff4
 from grr.server import foreman as rdf_foreman
+from grr.server.aff4_objects import cronjobs
+from grr.server.flows.cron import system as cron_system
+from grr.server.flows.general import file_finder
+from grr.server.hunts import standard
 from grr.test_lib import test_lib
 
 

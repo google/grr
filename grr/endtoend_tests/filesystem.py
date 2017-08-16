@@ -3,12 +3,12 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib.aff4_objects import standard
-from grr.lib.flows.general import filesystem
-from grr.lib.flows.general import find
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server.aff4_objects import standard
+from grr.server.flows.general import filesystem
+from grr.server.flows.general import find
 
 ####################
 # Linux and Darwin #

@@ -9,13 +9,13 @@ import os
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import server_startup
 from grr.lib import utils
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import server_startup
 
-from grr.lib.aff4_objects import filestore
+from grr.server.aff4_objects import filestore
 
 flags.DEFINE_string("filename", "", "File with hashes.")
 flags.DEFINE_integer("start", None, "Start row in the file.")

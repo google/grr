@@ -4,15 +4,15 @@
 import os
 
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib import data_store
-from grr.lib import flow_utils
 from grr.lib import utils
-from grr.lib.flows.console import debugging
-from grr.lib.flows.general import filesystem
-from grr.lib.flows.general import find
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import flow_utils
+from grr.server.flows.console import debugging
+from grr.server.flows.general import filesystem
+from grr.server.flows.general import find
 
 
 class TestFindWindowsRegistry(base.ClientTestBase):

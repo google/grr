@@ -13,11 +13,11 @@ from grr.gui import api_call_router
 from grr.gui import api_test_lib
 from grr.gui import http_api
 
-from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.server import access_control
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 

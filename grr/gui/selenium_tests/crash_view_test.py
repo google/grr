@@ -5,12 +5,12 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
+from grr.server import aff4
 from grr.server import foreman as rdf_foreman
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 

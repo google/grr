@@ -14,7 +14,6 @@ from grr.client.components.rekall_support import rekall_types as rdf_rekall_type
 from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.gui.api_plugins import stats as api_stats
 
-from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
@@ -22,8 +21,9 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto.api import reflection_pb2
+
+from grr.server import aff4
 
 
 class Error(Exception):

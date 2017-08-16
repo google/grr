@@ -8,9 +8,9 @@ import mock
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router
 from grr.lib import flags
-from grr.lib.authorization import groups
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.server.authorization import groups
 from grr.test_lib import test_lib
 
 

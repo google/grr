@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 
-from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.server import access_control
+from grr.server import aff4
 
-from grr.lib.aff4_objects import security
-from grr.lib.aff4_objects import users
+from grr.server.aff4_objects import security
+from grr.server.aff4_objects import users
 
 
 class AclTestMixin(object):

@@ -9,15 +9,15 @@ import mock
 
 from grr.client import vfs
 from grr.lib import action_mocks
-from grr.lib import aff4
-from grr.lib import client_fixture
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import utils
-from grr.lib.flows.general import filesystem
-from grr.lib.flows.general import registry as flow_registry
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import aff4
+from grr.server import client_fixture
+from grr.server import flow
+from grr.server.flows.general import filesystem
+from grr.server.flows.general import registry as flow_registry
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

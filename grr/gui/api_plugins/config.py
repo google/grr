@@ -7,16 +7,16 @@ from grr import config
 from grr.gui import api_call_handler_base
 
 from grr.gui import api_call_handler_utils
-from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
-
-from grr.lib.aff4_objects import collects as aff4_collects
-
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto.api import config_pb2
+
+from grr.server import aff4
+
+from grr.server.aff4_objects import collects as aff4_collects
 
 # TODO(user): sensitivity of config options and sections should
 # probably be defined together with the options themselves. Keeping

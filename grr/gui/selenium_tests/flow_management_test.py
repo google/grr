@@ -9,19 +9,19 @@ import unittest
 from grr.gui import gui_test_lib
 
 from grr.lib import action_mocks
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow
-from grr.lib.flows.general import filesystem as flows_filesystem
-from grr.lib.flows.general import processes as flows_processes
-from grr.lib.flows.general import transfer as flows_transfer
-from grr.lib.flows.general import webhistory as flows_webhistory
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
-from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import flow
+from grr.server.flows.general import filesystem as flows_filesystem
+from grr.server.flows.general import processes as flows_processes
+from grr.server.flows.general import transfer as flows_transfer
+from grr.server.flows.general import webhistory as flows_webhistory
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
+from grr.server.hunts import standard_test
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

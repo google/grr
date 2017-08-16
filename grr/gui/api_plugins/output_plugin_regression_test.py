@@ -6,11 +6,11 @@
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import output_plugin as output_plugin_plugin
 from grr.lib import flags
-from grr.lib import instant_output_plugin
-from grr.lib import output_plugin
 from grr.lib import utils
-from grr.lib.output_plugins import csv_plugin
-from grr.lib.output_plugins import email_plugin
+from grr.server import instant_output_plugin
+from grr.server import output_plugin
+from grr.server.output_plugins import csv_plugin
+from grr.server.output_plugins import email_plugin
 from grr.test_lib import test_lib
 
 

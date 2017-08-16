@@ -8,11 +8,11 @@ import os
 import unittest
 from grr import config
 from grr.gui import gui_test_lib
-from grr.lib import artifact
-from grr.lib import artifact_registry
 from grr.lib import flags
 from grr.lib import parsers
-from grr.lib.flows.general import collectors
+from grr.server import artifact
+from grr.server import artifact_registry
+from grr.server.flows.general import collectors
 
 
 class TestCmdProcessor(parsers.CommandParser):

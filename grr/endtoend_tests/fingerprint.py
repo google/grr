@@ -3,9 +3,9 @@
 
 
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib.flows.general import fingerprint
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server.flows.general import fingerprint
 
 
 class TestFingerprintFileOSLinux(base.AutomatedTest):

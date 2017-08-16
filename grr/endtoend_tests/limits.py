@@ -5,10 +5,10 @@
 from grr.client.client_actions import admin
 from grr.client.client_actions import standard
 from grr.endtoend_tests import base
-from grr.lib import aff4
-from grr.lib import flow
-from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import flow
+from grr.server.flows.general import transfer
 
 
 class NetworkLimitTestFlow(flow.GRRFlow):

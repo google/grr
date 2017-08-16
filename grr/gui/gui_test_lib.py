@@ -22,28 +22,28 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp_testlib
 
-from grr.lib import access_control
 from grr.lib import action_mocks
-from grr.lib import aff4
-from grr.lib import artifact_registry
-from grr.lib import client_index
-from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard as aff4_standard
-from grr.lib.aff4_objects import users
-from grr.lib.flows.general import transfer
-from grr.lib.hunts import implementation
-from grr.lib.hunts import standard
-from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
+from grr.server import access_control
+from grr.server import aff4
+from grr.server import artifact_registry
+from grr.server import client_index
+from grr.server import flow
 from grr.server import foreman as rdf_foreman
+from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import standard as aff4_standard
+from grr.server.aff4_objects import users
+from grr.server.flows.general import transfer
+from grr.server.hunts import implementation
+from grr.server.hunts import standard
+from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
