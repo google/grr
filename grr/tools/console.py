@@ -90,8 +90,9 @@ def GetChildrenList(urn, token=None):
   return list(aff4.FACTORY.Open(urn, token=token).ListChildren())
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   banner = ("\nWelcome to the GRR console\n")
 
   config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)

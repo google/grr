@@ -608,8 +608,9 @@ class Manager(object):
         print "Exception:", str(e)
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
 
   config.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT)
   server_startup.Init()

@@ -44,7 +44,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                    "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
 
   def testEachBinaryIsCorrectlyShown(self):
-    self.CreateAdminUser("test")
+    self.CreateAdminUser("gui_user")
 
     self.Open("/#/manage-binaries")
 
@@ -70,17 +70,11 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                    "div.panel:contains('Executables') "
                    "tr:contains('1970-01-01 00:00:42 UTC')")
 
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Components') "
-                   "tr:contains('grr-awesome-component_1.2.3.4')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Components') "
-                   "tr:contains('1970-01-01 00:00:44 UTC')")
-
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

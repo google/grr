@@ -124,7 +124,8 @@ def RunEndToEndTests():
         print "%45s: %s" % (testcase, res)
 
 
-def main(unused_argv):
+def main(argv):
+  del argv  # Unused.
   RunEndToEndTests()
 
 

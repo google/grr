@@ -848,8 +848,9 @@ def Start(db,
       reqhandler_cls.DATA_SERVER.Stop()
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   # Change the startup sequence in order to set the database path, if needed.
   config_lib.SetPlatformArchContext()
   config.CONFIG.AddContext(contexts.DATA_SERVER_CONTEXT,

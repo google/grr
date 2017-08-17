@@ -165,8 +165,17 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("6c730068656c6c6f20776f726c6427002d6c", self.GetText,
                         "css=table.hex-area tr:first td")
 
-    self.WaitUntilEqual("lshello world'-l", self.GetText,
-                        "css=table.content-area tr:first td")
+    # The string inside the file is null-character-delimited. The way
+    # a null character is displayed depends on Angular
+    # version. I.e. it was ignored in version 1.6.5 and is displayed
+    # as a square in version 1.6.6. Making the checks in a
+    # null-character-presentation-independent way.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=table.content-area td.data:contains('ls')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=table.content-area td.data:contains('hello world')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=table.content-area td.data:contains('-l')")
 
   def testSearchInputFiltersFileList(self):
     # Open VFS view for client 1.
@@ -230,8 +239,9 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

@@ -78,8 +78,9 @@ def ImportFile(store, filename, start):
     return i
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   server_startup.Init()
 
   filename = flags.FLAGS.filename

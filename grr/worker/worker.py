@@ -18,8 +18,9 @@ from grr.server import server_startup
 from grr.server import worker
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   config.CONFIG.AddContext(contexts.WORKER_CONTEXT,
                            "Context applied when running a worker.")
 

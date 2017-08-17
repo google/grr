@@ -6,23 +6,10 @@
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.server import output_plugin
-from grr.server.flows.general import processes
 from grr.server.hunts import standard
 
 
-class DummyOutputPlugin(output_plugin.OutputPlugin):
-  """Output plugin that takes processes.ListProcessesArgs and does nothing."""
-
-  name = "dummy"
-  description = "Dummy do do."
-  args_type = processes.ListProcessesArgs
-
-  def ProcessResponses(self, responses):
-    pass
-
-
-class TestCronView(gui_test_lib.GRRSeleniumTest):
+class TestCronCreation(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def testHuntSchedulingWorksCorrectly(self):
@@ -62,7 +49,8 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
-    self.Select("css=grr-new-cron-job-wizard-form select", "DummyOutputPlugin")
+    self.Select("css=grr-new-cron-job-wizard-form select",
+                gui_test_lib.DummyOutputPlugin.__name__)
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
@@ -134,8 +122,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

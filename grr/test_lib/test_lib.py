@@ -731,4 +731,5 @@ class RemotePDB(pdb.Pdb):
 
 
 def main(argv=None):
-  unittest.main(argv=argv)
+  del argv  # Unused.
+  unittest.main()

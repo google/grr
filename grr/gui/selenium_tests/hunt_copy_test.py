@@ -13,21 +13,9 @@ from grr.server import aff4
 from grr.server import foreman as rdf_foreman
 from grr.server import output_plugin
 from grr.server.flows.general import file_finder
-from grr.server.flows.general import processes
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
-
-
-class DummyOutputPlugin(output_plugin.OutputPlugin):
-  """Output plugin that does nothing."""
-
-  name = "dummy"
-  description = "Dummy do do."
-  args_type = processes.ListProcessesArgs
-
-  def ProcessResponses(self, responses):
-    pass
 
 
 class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
@@ -53,7 +41,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
         output_plugins=[
             output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
-                plugin_args=DummyOutputPlugin.args_type(
+                plugin_args=gui_test_lib.DummyOutputPlugin.args_type(
                     filename_regex="blah!", fetch_binaries=True))
         ],
         client_rate=60,
@@ -442,8 +430,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

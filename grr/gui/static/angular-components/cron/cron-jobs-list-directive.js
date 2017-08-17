@@ -301,8 +301,9 @@ CronJobsListController.prototype.deleteCronJob_ = function() {
     function failure(response) {
       if (response.status === 403) {
         var headers = response.headers();
-        grr.publish('unauthorized', headers['x-grr-unauthorized-access-subject'],
-                    headers['x-grr-unauthorized-access-reason']);
+        this.grrAclDialogService_.openRequestCronJobApprovalDialog(
+            headers['x-grr-unauthorized-access-subject'],
+            headers['x-grr-unauthorized-access-reason']);
       } else {
         deferred.reject(response.data.message);
       }

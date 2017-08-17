@@ -169,7 +169,8 @@ def CheckLocation():
   exit()
 
 
-def main(unused_argv):
+def main(argv):
+  del argv  # Unused.
   config.CONFIG.AddContext(contexts.POOL_CLIENT_CONTEXT,
                            "Context applied when we run the pool client.")
 

@@ -47,8 +47,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouter):
     self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_urn)
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(
-        token.RealUID(), flow_name, with_client_id=True)
+    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name)
 
   def CheckIfUserIsAdmin(self, token=None):
     user_managers.CheckUserForLabels(token.username, ["admin"], token=token)

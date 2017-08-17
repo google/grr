@@ -35,15 +35,19 @@ from grr.server import access_control
 from grr.server import aff4
 from grr.server import artifact_registry
 from grr.server import client_index
+from grr.server import data_store
 from grr.server import flow
 from grr.server import foreman as rdf_foreman
+from grr.server import output_plugin
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard as aff4_standard
 from grr.server.aff4_objects import users
+from grr.server.flows.general import processes
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
+from grr.test_lib import acl_test_lib
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -137,7 +141,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def _TearDownSelenium():
     """Tear down Selenium session."""
     try:
-      GRRSeleniumTest.driver.quit()
+      if GRRSeleniumTest.driver:
+        GRRSeleniumTest.driver.quit()
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(e)
 
@@ -624,9 +629,11 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
       runner.Start()
 
       collection = hunt.ResultCollection()
-      for value in values:
-        collection.Add(
-            rdf_flows.GrrMessage(payload=value, source=self.client_ids[0]))
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        for value in values:
+          collection.Add(
+              rdf_flows.GrrMessage(payload=value, source=self.client_ids[0]),
+              mutation_pool=pool)
 
       return hunt.urn
 
@@ -729,3 +736,14 @@ class FlowWithOneHashEntryResult(flow.GRRFlow):
         sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"))
     self.SendReply(hash_result)
+
+
+class DummyOutputPlugin(output_plugin.OutputPlugin):
+  """Output plugin that does nothing."""
+
+  name = "dummy"
+  description = "Dummy do do."
+  args_type = processes.ListProcessesArgs
+
+  def ProcessResponses(self, responses):
+    pass

@@ -521,7 +521,7 @@ class ApprovalRequestor(AbstractApprovalBase):
 
     reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
-    template = u"""
+    template = """
 <html><body><h1>Approval to access
 <a href='%(admin_ui)s#%(approval_url)s'>%(subject_title)s</a> requested.</h1>
 
@@ -542,13 +542,14 @@ here
     image = config.CONFIG["Email.approval_signature"]
 
     body = template % dict(
-        username=self.token.username,
-        reason=reason,
-        admin_ui=config.CONFIG["AdminUI.url"],
-        subject_title=subject_title,
-        approval_url=self.BuildApprovalReviewUrlPath(approval_id),
-        image=image,
-        signature=config.CONFIG["Email.signature"])
+        username=utils.SmartStr(self.token.username),
+        reason=utils.SmartStr(reason),
+        admin_ui=utils.SmartStr(config.CONFIG["AdminUI.url"]),
+        subject_title=utils.SmartStr(subject_title),
+        approval_url=utils.SmartStr(
+            self.BuildApprovalReviewUrlPath(approval_id)),
+        image=utils.SmartStr(image),
+        signature=utils.SmartStr(config.CONFIG["Email.signature"]))
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.approver,
@@ -654,7 +655,7 @@ class ApprovalGrantor(AbstractApprovalBase):
 
     reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
-    template = u"""
+    template = """
 <html><body><h1>Access to
 <a href='%(admin_ui)s#%(subject_url)s'>%(subject_title)s</a> granted.</h1>
 
@@ -669,12 +670,12 @@ Please click <a href='%(admin_ui)s#%(subject_url)s'>here</a> to access it.
 </body></html>"""
 
     body = template % dict(
-        subject_title=subject_title,
-        username=self.token.username,
-        reason=reason,
-        admin_ui=config.CONFIG["AdminUI.url"],
-        subject_url=access_url,
-        signature=config.CONFIG["Email.signature"])
+        subject_title=utils.SmartStr(subject_title),
+        username=utils.SmartStr(self.token.username),
+        reason=utils.SmartStr(reason),
+        admin_ui=utils.SmartStr(config.CONFIG["AdminUI.url"]),
+        subject_url=utils.SmartStr(access_url),
+        signature=utils.SmartStr(config.CONFIG["Email.signature"]))
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.

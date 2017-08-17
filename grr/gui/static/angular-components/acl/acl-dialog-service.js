@@ -6,14 +6,10 @@
 
 goog.provide('grrUi.acl.aclDialogService.AclDialogService');
 goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
-goog.require('grrUi.core.apiService');
 goog.require('grrUi.core.utils.stripAff4Prefix');
 
 goog.scope(function() {
 
-
-var UNAUTHORIZED_API_RESPONSE_EVENT =
-    grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT;
 
 /**
  * Service for acl dialogs.
@@ -32,13 +28,6 @@ grrUi.acl.aclDialogService.AclDialogService = function(
 
   /** @private {grrUi.core.dialogService.DialogService} */
   this.grrDialogService_ = grrDialogService;
-
-  // Listen to UnauthorizedApiResponse events and show the approval
-  // dialog when they're fired (see core/api-service.js for the
-  // source of the events).
-  this.rootScope_.$on(UNAUTHORIZED_API_RESPONSE_EVENT, function(data) {
-    this.openApprovalDialogForSubject(data['subject'], data['reason']);
-  }.bind(this));
 };
 
 var AclDialogService = grrUi.acl.aclDialogService.AclDialogService;

@@ -108,7 +108,7 @@ class AccessControlManager(object):
     logging.debug("Checking %s for cron job %s access.", token, cron_job_urn)
     raise NotImplementedError()
 
-  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
+  def CheckIfCanStartFlow(self, token, flow_name):
     """Checks if the given flow can be started by the given user.
 
     If the flow is to be started on a particular client, it's assumed that
@@ -119,9 +119,6 @@ class AccessControlManager(object):
     Args:
       token: User credentials token.
       flow_name: Name of the flow to check.
-      with_client_id: If True, the flow is supposed to be started on a
-                      particular client. If False, flow is supposed to be
-                      started as a global flow.
 
     Returns:
       True if access is allowed, raises otherwise.
@@ -129,7 +126,6 @@ class AccessControlManager(object):
     Raises:
       access_control.UnauthorizedAccess if access is rejected.
     """
-    _ = with_client_id
     logging.debug("Checking %s for flow %s access.", token, flow_name)
     raise NotImplementedError()
 

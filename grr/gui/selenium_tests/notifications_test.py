@@ -62,9 +62,15 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
 
-    # There should be 7 notifications ready (6 that we generate + 1 about
+    # There should be 6 notifications ready (5 that we generate + 1 about
     # approval).
-    self.WaitUntilEqual("7", self.GetText, "css=button[id=notification_button]")
+    #
+    # NOTE: until recently, this number was "7", since requesting an
+    # approval generated a notification about
+    # RequestClientApprovalFlow finishing. This flow no longer exists
+    # and running flows is not needed to request approvals. Therefore
+    # the number has decreased to "6".
+    self.WaitUntilEqual("6", self.GetText, "css=button[id=notification_button]")
 
     # Clicking on this should show the table
     self.Click("css=button[id=notification_button]")
@@ -153,8 +159,9 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

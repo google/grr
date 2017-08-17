@@ -384,7 +384,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
 
 def main(argv):
-  unittest.main(argv)
+  del argv  # Unused.
+  unittest.main()
 
 
 if __name__ == "__main__":

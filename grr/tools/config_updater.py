@@ -799,8 +799,9 @@ def GetToken():
   return access_control.ACLToken(username="GRRConsole").SetUID()
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   token = GetToken()
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)

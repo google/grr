@@ -359,8 +359,9 @@ def CreateServer(frontend=None):
   return httpd
 
 
-def main(unused_argv):
+def main(argv):
   """Main."""
+  del argv  # Unused.
   config.CONFIG.AddContext("HTTPServer Context")
 
   server_startup.Init()

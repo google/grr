@@ -15,7 +15,8 @@ class CloudBigtableDataStoreBenchmarks(
 
 
 def main(argv):
-  test_lib.main(argv=argv)
+  del argv  # Unused.
+  test_lib.main()
 
 
 if __name__ == "__main__":

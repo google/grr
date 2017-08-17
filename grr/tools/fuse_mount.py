@@ -547,7 +547,8 @@ def Usage():
         "--mountpoint=/home/%s/mntpoint" % getpass.getuser())
 
 
-def main(unused_argv):
+def main(argv):
+  del argv  # Unused.
   config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT,
                            "Context applied for all command line tools")
   server_startup.Init()

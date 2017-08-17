@@ -1398,7 +1398,8 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
 
 
 def main(argv):
-  unittest.main(argv)
+  del argv  # Unused.
+  unittest.main()
 
 
 def DistEntry():

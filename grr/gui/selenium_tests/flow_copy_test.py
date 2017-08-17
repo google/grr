@@ -16,17 +16,6 @@ from grr.server.output_plugins import email_plugin
 from grr.test_lib import fixture_test_lib
 
 
-class DummyOutputPlugin(output_plugin.OutputPlugin):
-  """Output plugin that does nothing."""
-
-  name = "dummy"
-  description = "Dummy do do."
-  args_type = flows_processes.ListProcessesArgs
-
-  def ProcessResponses(self, responses):
-    pass
-
-
 class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    standard_test.StandardHuntTestMixin):
 
@@ -182,7 +171,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.assertListEqual(
         list(fobj.runner_args.output_plugins), [
             output_plugin.OutputPluginDescriptor(
-                plugin_name=DummyOutputPlugin.__name__,
+                plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
                 plugin_args=flows_processes.ListProcessesArgs(
                     filename_regex="foobar!")), self.email_descriptor
         ])
@@ -209,8 +198,9 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":

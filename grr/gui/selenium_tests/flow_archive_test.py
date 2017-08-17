@@ -212,8 +212,9 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
 
 def main(argv):
+  del argv  # Unused.
   # Run the full test suite
-  unittest.main(argv)
+  unittest.main()
 
 
 if __name__ == "__main__":
