@@ -660,8 +660,9 @@ class FlowTerminationTest(BasicFlowTest):
 
   def testFlowMarkedForTerminationTerminatesInStateHandler(self):
     flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
-    flow.GRRFlow.MarkForTermination(
-        flow_obj.urn, reason="because i can", token=self.token)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      flow.GRRFlow.MarkForTermination(
+          flow_obj.urn, reason="because i can", mutation_pool=pool)
 
     def ProcessFlow():
       for _ in flow_test_lib.TestFlowHelper(

@@ -928,30 +928,19 @@ class GRRFlow(FlowBase):
     return self.__class__.__name__
 
   @classmethod
-  def MarkForTermination(cls,
-                         flow_urn,
-                         mutation_pool=None,
-                         reason=None,
-                         sync=False,
-                         token=None):
+  def MarkForTermination(cls, flow_urn, reason=None, mutation_pool=None):
     """Mark the flow for termination as soon as any of its states are called."""
     # Doing a blind write here using low-level data store API. Accessing
     # the flow via AFF4 is not really possible here, because it forces a state
     # to be written in Close() method.
-    if mutation_pool:
-      mutation_pool.Set(
-          flow_urn,
-          cls.SchemaCls.PENDING_TERMINATION.predicate,
-          PendingFlowTermination(reason=reason),
-          replace=False)
-    else:
-      data_store.DB.Set(
-          flow_urn,
-          cls.SchemaCls.PENDING_TERMINATION.predicate,
-          PendingFlowTermination(reason=reason),
-          replace=False,
-          sync=sync,
-          token=token)
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
+
+    mutation_pool.Set(
+        flow_urn,
+        cls.SchemaCls.PENDING_TERMINATION.predicate,
+        PendingFlowTermination(reason=reason),
+        replace=False)
 
   @classmethod
   def TerminateFlow(cls,

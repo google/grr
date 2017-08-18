@@ -32,8 +32,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     time.time = lambda: self._current_mock_time
 
   def tearDown(self):
-    super(QueueManagerTest, self).tearDown()
     time.time = self.old_time
+    super(QueueManagerTest, self).tearDown()
 
   def testCountsActualNumberOfCompletedResponsesWhenApplyingTheLimit(self):
     session_id = rdfvalue.SessionID(flow_name="test")
@@ -255,7 +255,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(tasks[0].session_id, "aff4:/Test")
 
     # Now delete the task
-    manager.Delete(test_queue, tasks)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      manager.Delete(test_queue, tasks, mutation_pool=pool)
 
     # Should not exist in the table
     value, ts = data_store.DB.Resolve(

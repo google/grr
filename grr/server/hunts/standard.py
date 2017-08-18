@@ -409,8 +409,7 @@ class GenericHunt(implementation.GRRHunt):
         flow.GRRFlow.MarkForTermination(
             started_flow,
             reason="Parent hunt stopped.",
-            mutation_pool=mutation_pool,
-            token=self.token)
+            mutation_pool=mutation_pool)
         num_terminated_flows += 1
 
     self.Log("%d flows terminated.", num_terminated_flows)

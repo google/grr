@@ -66,3 +66,20 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
       raise flow.FlowError("Couldn't guess the system root and drive location")
 
     super(SystemRootSystemDriveFallbackFlow, self).End()
+
+
+class WindowsAllUsersProfileFallbackFlow(artifact.ArtifactFallbackCollector):
+  r"""Flow that provides a default value for the AllUsersProfile registry key.
+
+  Newer versions of Windows will typically not have the
+  HKLM\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\AllUsersProfile
+  key.
+  """
+
+  artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
+
+  @flow.StateHandler()
+  def Start(self):
+    data = rdf_protodict.DataBlob().SetValue("All Users")
+    self.SendReply(rdf_client.StatEntry(registry_data=data))
+    self.state.success = True

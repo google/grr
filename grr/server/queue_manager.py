@@ -401,9 +401,14 @@ class QueueManager(object):
      queue: A queue to clear.
      tasks: A list of tasks to remove. Tasks may be Task() instances
           or integers representing the task_id.
-     mutation_pool: An optional MutationPool object to schedule deletions on.
-                    If not given, self.data_store is used directly.
+     mutation_pool: A MutationPool object to schedule deletions on.
+
+    Raises:
+      ValueError: Mutation pool was not passed in.
     """
+    if mutation_pool is None:
+      raise ValueError("Mutation pool can't be none.")
+
     if queue:
       predicates = []
       for task in tasks:
@@ -413,11 +418,7 @@ class QueueManager(object):
           task_id = int(task)
         predicates.append(self._TaskIdToColumn(task_id))
 
-      if mutation_pool:
-        mutation_pool.DeleteAttributes(queue, predicates)
-      else:
-        self.data_store.DeleteAttributes(
-            queue, predicates, token=self.token, sync=False)
+      mutation_pool.DeleteAttributes(queue, predicates)
 
   def Schedule(self, tasks, mutation_pool, timestamp=None):
     """Schedule a set of Task() instances."""
