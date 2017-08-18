@@ -29,12 +29,6 @@ from grr.endtoend_tests import base
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils
-
-# All the functions in this lib we want in local namespace.
-# pylint: disable=wildcard-import
-from grr.lib.console_utils import *
-# pylint: enable=wildcard-import
-
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import artifact
@@ -52,6 +46,11 @@ from grr.server import server_startup
 from grr.server import worker
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import security
+
+# All the functions in this lib we want in local namespace.
+# pylint: disable=wildcard-import
+from grr.server.console_utils import *
+# pylint: enable=wildcard-import
 
 from grr.server.flows import console
 from grr.server.flows.console import debugging

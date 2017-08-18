@@ -173,11 +173,6 @@ ClientBuilder Context:
 
     Client.prefix: dbg_
 
-Commandline Context:
-  Logging.engines: stderr
-
-  Logging.verbose: False
-
 ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf
 
@@ -209,6 +204,12 @@ Platform:Linux:
   Logging.engines: "stderr,file,syslog"
 
   Logging.syslog_path: "/dev/log"
+
+  Commandline Context:
+    Logging.engines: stderr
+
+    Logging.verbose: False
+
 
 Platform:Windows:
   Client.binary_name: |
