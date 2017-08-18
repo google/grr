@@ -62,7 +62,7 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.collection.Add(rdf_flows.GrrMessage(), mutation_pool=self.pool)
 
     self.assertListEqual([rdf_flows.GrrMessage.__name__],
-                         self.collection.ListStoredTypes())
+                         list(self.collection.ListStoredTypes()))
 
   def testValuesOfMultipleTypesCanBeIteratedTogether(self):
     with self.pool:

@@ -364,8 +364,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         self.assertEqual(
             x.payload.AFF4Path(x.source).Split(2)[-1], "fs/os/tmp/evil.txt")
 
-      self.assertListEqual(per_type_collection.ListStoredTypes(),
-                           [rdf_client.StatEntry.__name__])
+      self.assertListEqual(
+          list(per_type_collection.ListStoredTypes()),
+          [rdf_client.StatEntry.__name__])
 
   def testHuntWithoutForemanRules(self):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""

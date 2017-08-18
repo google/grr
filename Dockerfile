@@ -1,6 +1,12 @@
 # A Docker container capable of running all GRR components.
 FROM ubuntu:xenial
-MAINTAINER Greg Castle github@mailgreg.com
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+SHELL ["/bin/bash", "-c"]
+
+ENV GRR_VENV /usr/share/grr-server
+ENV PROTOC /usr/share/protobuf/bin/protoc
 
 RUN apt-get update && \
   apt-get install -y \
@@ -14,53 +20,50 @@ RUN apt-get update && \
   python-pip \
   rpm \
   wget \
-  zip && \
-  pip install --upgrade pip && \
-  pip install virtualenv && \
-  pip install setuptools --upgrade && \
-  virtualenv /usr/share/grr-server
+  zip
+
+RUN pip install --upgrade pip virtualenv
 
 # Install proto compiler
 RUN mkdir -p /usr/share/protobuf && \
 cd /usr/share/protobuf && \
 wget --quiet "https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip" && \
 unzip protoc-3.3.0-linux-x86_64.zip
-ENV PROTOC /usr/share/protobuf/bin/protoc
 
 # Make sure Bower will be able to run as root.
 # Install nodeenv, a prebuilt version of NodeJS and update the virtualenv
 # environment.
 # Pull dependencies and templates from pypi and build wheels so docker can cache
 # them. This just makes the actual install go faster.
-#
+RUN echo '{ "allow_root": true }' > /root/.bowerrc
+
+RUN virtualenv $GRR_VENV
+
+RUN $GRR_VENV/bin/pip install --upgrade wheel six setuptools nodeenv
+
 # TODO(ogaro) Stop hard-coding the node version to install
 # when a Linux node-sass binary compatible with node v8.0.0 is
 # available: https://github.com/sass/node-sass/pull/1969
-RUN echo '{ "allow_root": true }' > /root/.bowerrc && \
-. /usr/share/grr-server/bin/activate && \
-pip install six && \
-pip install nodeenv && \
-nodeenv -p --prebuilt --node=7.10.0 && \
-. /usr/share/grr-server/bin/activate && \
-mkdir /wheelhouse && \
-pip wheel --wheel-dir=/wheelhouse --pre grr-response-server && \
-pip wheel --wheel-dir=/wheelhouse -f https://storage.googleapis.com/releases.grr-response.com/index.html grr-response-templates
+RUN $GRR_VENV/bin/nodeenv -p --prebuilt --node=7.10.0
 
 # Copy the GRR code over.
-ADD . /usr/src/grr/
+ADD . /usr/src/grr
 
-# Make sdists and pip install
-# We require sdists so that the version.ini gets copied over properly.
-RUN . /usr/share/grr-server/bin/activate && \
-cd /usr/src/grr/ && \
-python /usr/src/grr/setup.py sdist --dist-dir="/sdists/core" --no-make-docs && \
-cd /usr/src/grr/grr/config/grr-response-server/ && \
-python setup.py sdist --dist-dir="/sdists/server" && \
-pip install --find-links=/wheelhouse /sdists/core/*.tar.gz && \
-pip install --find-links=/wheelhouse /sdists/server/*.tar.gz && \
-pip install --find-links=/wheelhouse grr_response_templates
+WORKDIR /usr/src/grr
 
-COPY scripts/docker-entrypoint.sh /
+RUN source $GRR_VENV/bin/activate && python setup.py sdist --formats=zip --dist-dir=/sdists --no-make-docs
+
+RUN $GRR_VENV/bin/python grr/config/grr-response-client/setup.py sdist --formats=zip --dist-dir=/sdists
+
+RUN $GRR_VENV/bin/python api_client/python/setup.py sdist --formats=zip --dist-dir=/sdists
+
+RUN $GRR_VENV/bin/python grr/config/grr-response-server/setup.py sdist --formats=zip --dist-dir=/sdists
+
+RUN $GRR_VENV/bin/pip install --find-links=/sdists /sdists/grr-response-server-*.zip
+
+WORKDIR /
+
+COPY scripts/docker-entrypoint.sh .
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 

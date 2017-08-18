@@ -37,6 +37,7 @@ able to filter it directly).
 
 import abc
 import atexit
+import random
 import sys
 import time
 
@@ -191,6 +192,38 @@ class MutationPool(object):
   # Notification handling
   def CreateNotifications(self, queue, notifications):
     self.new_notifications.append((queue, notifications))
+
+  def CollectionAddItem(self,
+                        collection_id,
+                        item,
+                        timestamp,
+                        suffix=None,
+                        replace=True):
+
+    result_subject, timestamp, suffix = DataStore.CollectionMakeURN(
+        collection_id, timestamp, suffix)
+    self.Set(
+        result_subject,
+        DataStore.COLLECTION_ATTRIBUTE,
+        item.SerializeToString(),
+        timestamp=timestamp,
+        replace=replace)
+    return result_subject, timestamp, suffix
+
+  def CollectionAddIndex(self, collection_id, index, timestamp, suffix):
+    self.Set(
+        collection_id,
+        DataStore.COLLECTION_INDEX_ATTRIBUTE_PREFIX + "%08x" % index,
+        "%06x" % suffix,
+        timestamp=timestamp,
+        replace=True)
+
+  def CollectionAddStoredTypeIndex(self, collection_id, stored_type):
+    self.Set(
+        collection_id,
+        "%s%s" % (DataStore.COLLECTION_VALUE_TYPE_PREFIX, stored_type),
+        1,
+        timestamp=0)
 
 
 class DataStore(object):
@@ -1060,6 +1093,78 @@ class DataStore(object):
           last_seen_map[(kw, name)] = max(last_seen_map.get((kw, name), -1), ts)
 
     return result
+
+  # The largest possible suffix - maximum value expressible by 6 hex digits.
+  COLLECTION_MAX_SUFFIX = 2**24 - 1
+
+  # The attribute (column) where we store value.
+  COLLECTION_ATTRIBUTE = "aff4:sequential_value"
+
+  # An attribute name of the form "index:sc_<i>" at timestamp <t> indicates that
+  # the item with record number i was stored at timestamp t. The timestamp
+  # suffix is stored as the value.
+  COLLECTION_INDEX_ATTRIBUTE_PREFIX = "index:sc_"
+
+  # The attribute prefix to use when storing the index of stored types
+  # for multi type collections.
+  COLLECTION_VALUE_TYPE_PREFIX = "aff4:value_type_"
+
+  @classmethod
+  def CollectionMakeURN(cls, urn, timestamp, suffix=None):
+    if suffix is None:
+      # Disallow 0 so that subtracting 1 from a normal suffix doesn't require
+      # special handling.
+      suffix = random.randint(1, DataStore.COLLECTION_MAX_SUFFIX)
+    result_urn = urn.Add("Results").Add("%016x.%06x" % (timestamp, suffix))
+    return (result_urn, timestamp, suffix)
+
+  def CollectionScanItems(self,
+                          collection_id,
+                          rdf_type,
+                          after_timestamp=None,
+                          after_suffix=None,
+                          limit=None,
+                          token=None):
+    after_urn = None
+    if after_timestamp:
+      after_urn = utils.SmartStr(
+          self.CollectionMakeURN(
+              collection_id,
+              after_timestamp,
+              suffix=after_suffix or self.COLLECTION_MAX_SUFFIX)[0])
+
+    for subject, timestamp, serialized_rdf_value in self.ScanAttribute(
+        collection_id.Add("Results"),
+        self.COLLECTION_ATTRIBUTE,
+        after_urn=after_urn,
+        max_records=limit,
+        token=token):
+      item = rdf_type.FromSerializedString(serialized_rdf_value)
+      item.age = timestamp
+      # The urn is timestamp.suffix where suffix is 6 hex digits.
+      suffix = int(subject[-6:], 16)
+      yield (item, timestamp, suffix)
+
+  def CollectionReadIndex(self, collection_id, token=None):
+    """Reads all index entries for the given collection.
+
+    Args:
+      collection_id: ID of the collection for which the indexes should be
+                     retrieved.
+      token: Datastore token.
+
+    Yields:
+      Tuples (index, ts, suffix).
+    """
+    for (attr, value, ts) in self.ResolvePrefix(
+        collection_id, self.COLLECTION_INDEX_ATTRIBUTE_PREFIX, token=token):
+      i = int(attr[len(self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):], 16)
+      yield (i, ts, int(value, 16))
+
+  def CollectionReadStoredTypes(self, collection_id, token=None):
+    for attribute, _, _ in self.ResolveRow(collection_id, token=token):
+      if attribute.startswith(self.COLLECTION_VALUE_TYPE_PREFIX):
+        yield attribute[len(self.COLLECTION_VALUE_TYPE_PREFIX):]
 
 
 class DBSubjectLock(object):

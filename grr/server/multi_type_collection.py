@@ -12,8 +12,6 @@ from grr.server import sequential_collection
 class MultiTypeCollection(object):
   """A collection that stores multiple types of data in per-type sequences."""
 
-  VALUE_TYPE_PREFIX = "aff4:value_type_"
-
   def __init__(self, collection_id, token=None):
     super(MultiTypeCollection, self).__init__()
     # The collection_id for this collection is a RDFURN for now.
@@ -26,8 +24,7 @@ class MultiTypeCollection(object):
                 rdf_value,
                 timestamp=None,
                 suffix=None,
-                mutation_pool=None,
-                **kwargs):
+                mutation_pool=None):
     """Adds an rdf value to a collection.
 
     Adds an rdf value to a collection. Does not require that the collection be
@@ -49,9 +46,6 @@ class MultiTypeCollection(object):
           collisions. Defaults to a random number.
 
       mutation_pool: A MutationPool object to write to.
-
-      **kwargs: Keyword arguments to pass through to the underlying database
-        call.
 
     Returns:
       The pair (timestamp, suffix) which identifies the value within the
@@ -81,23 +75,14 @@ class MultiTypeCollection(object):
         rdf_value,
         timestamp=timestamp,
         suffix=suffix,
-        mutation_pool=mutation_pool,
-        **kwargs)
+        mutation_pool=mutation_pool)
 
-    mutation_pool.Set(
-        collection_urn,
-        "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
-        1,
-        timestamp=0,
-        **kwargs)
+    mutation_pool.CollectionAddStoredTypeIndex(collection_urn, value_type)
 
   def ListStoredTypes(self):
-    res = []
-    for attribute, _, _ in data_store.DB.ResolveRow(
+    for t in data_store.DB.CollectionReadStoredTypes(
         self.collection_id, token=self.token):
-      if attribute.startswith(self.VALUE_TYPE_PREFIX):
-        res.append(attribute[len(self.VALUE_TYPE_PREFIX):])
-    return res
+      yield t
 
   def ScanByType(self,
                  type_name,
@@ -140,12 +125,7 @@ class MultiTypeCollection(object):
         sub_collection_urn, token=self.token)
     return len(sub_collection)
 
-  def Add(self,
-          rdf_value,
-          timestamp=None,
-          suffix=None,
-          mutation_pool=None,
-          **kwargs):
+  def Add(self, rdf_value, timestamp=None, suffix=None, mutation_pool=None):
     """Adds an rdf value to the collection.
 
     Adds an rdf value to the collection. Does not require that the collection
@@ -165,9 +145,6 @@ class MultiTypeCollection(object):
 
       mutation_pool: A MutationPool object to write to.
 
-      **kwargs: Keyword arguments to pass through to the underlying database
-        call.
-
     Returns:
       The pair (timestamp, suffix) which identifies the value within the
       collection.
@@ -181,8 +158,7 @@ class MultiTypeCollection(object):
         rdf_value,
         timestamp=timestamp,
         suffix=suffix,
-        mutation_pool=mutation_pool,
-        **kwargs)
+        mutation_pool=mutation_pool)
 
   def __iter__(self):
     sub_collection_urns = [
@@ -214,7 +190,7 @@ class MultiTypeCollection(object):
       mutation_pool.DeleteSubject(self.collection_id)
       for urn, _, _ in data_store.DB.ScanAttribute(
           self.collection_id,
-          sequential_collection.SequentialCollection.ATTRIBUTE,
+          data_store.DataStore.COLLECTION_ATTRIBUTE,
           token=self.token):
         mutation_pool.DeleteSubject(rdfvalue.RDFURN(urn))
         if mutation_pool.Size() > 50000:

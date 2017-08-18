@@ -13,6 +13,7 @@ import time
 import logging
 
 from grr import config
+from grr.client.local import binary_whitelist
 
 
 def HandleAlarm(process):
@@ -138,6 +139,7 @@ def IsExecutionWhitelisted(cmd, args):
   The idea is to have a single place that lists every command we can run during
   normal operation (obviously doesn't catch the special cases where we bypass
   the list).
+  A deployment-specific list is also checked (see local/binary_whitelist.py).
   """
   if platform.system() == "Windows":
     whitelist = [
@@ -176,6 +178,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/kextstat", []),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
+        ("/usr/libexec/firmwarecheckers/ethcheck/ethcheck", ["--show-hashes"]),
     ]
   else:
     whitelist = []
@@ -183,5 +186,9 @@ def IsExecutionWhitelisted(cmd, args):
   for (allowed_cmd, allowed_args) in whitelist:
     if cmd == allowed_cmd and args == allowed_args:
       return True
+
+  # Check if this is whitelisted locally.
+  if binary_whitelist.IsExecutionWhitelisted(cmd, args):
+    return True
 
   return False
