@@ -33,7 +33,7 @@ from grr.gui.selenium_tests import inspect_view_test
 from grr.gui.selenium_tests import main_content_view_test
 from grr.gui.selenium_tests import navigator_view_test
 from grr.gui.selenium_tests import notifications_test
-from grr.gui.selenium_tests import rekall_viewer_test
+from grr.gui.selenium_tests import rekall_flows_test
 from grr.gui.selenium_tests import report_test
 from grr.gui.selenium_tests import searchclient_test
 from grr.gui.selenium_tests import server_load_view_test

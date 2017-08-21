@@ -2,11 +2,11 @@
 """Administrative flows for managing the clients state."""
 
 
-import cgi
 import shlex
 import threading
 import time
-import urllib
+
+import jinja2
 
 import logging
 
@@ -409,18 +409,22 @@ class OnlineNotification(flow.GRRFlow):
   category = "/Administrative/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  template = """
+  subject_template = jinja2.Template(
+      "GRR Client on {{ hostname }} became available.", autoescape=True)
+  template = jinja2.Template(
+      """
 <html><body><h1>GRR Client Online Notification.</h1>
 
 <p>
-  Client %(client_id)s (%(hostname)s) just came online. Click
-  <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+  Client {{ client_id }} ({{ hostname }}) just came online. Click
+  <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
   <br />This notification was created by %(creator)s.
 </p>
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
-</body></html>"""
+<p>{{ signature }}</p>
+</body></html>""",
+      autoescape=True)
 
   args_type = OnlineNotificationArgs
 
@@ -443,22 +447,20 @@ class OnlineNotification(flow.GRRFlow):
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
 
-      url = urllib.urlencode((("c", self.client_id), ("main",
-                                                      "HostInformation")))
-
-      subject = "GRR Client on %s became available." % hostname
+      subject = self.__class__.subject_template.render(hostname=hostname)
+      body = self.__class__template.render(
+          client_id=self.client_id,
+          admin_ui=config.CONFIG["AdminUI.url"],
+          hostname=hostname,
+          url="/clients/%s" % self.client_id.Basename(),
+          creator=self.token.username,
+          signature=utils.SmartUnicode(config.CONFIG["Email.signature"])),
 
       email_alerts.EMAIL_ALERTER.SendEmail(
           self.args.email,
           "grr-noreply",
-          subject,
-          self.template % dict(
-              client_id=self.client_id,
-              admin_ui=config.CONFIG["AdminUI.url"],
-              hostname=hostname,
-              urn=url,
-              creator=self.token.username,
-              signature=config.CONFIG["Email.signature"]),
+          utils.SmartStr(subject),
+          utils.SmartStr(body),
           is_html=True)
     else:
       flow.FlowError("Error while pinging client.")
@@ -560,18 +562,20 @@ class NannyMessageHandler(ClientCrashEventListener):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
 
-  mail_template = """
+  mail_template = jinja2.Template(
+      """
 <html><body><h1>GRR nanny message received.</h1>
 
-The nanny for client %(client_id)s (%(hostname)s) just sent a message:<br>
+The nanny for client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
-%(message)s
+{{ message }}
 <br>
-Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
-<p>%(signature)s</p>
+<p>{{ signature }}</p>
 
-</body></html>"""
+</body></html>""",
+      autoescape=True)
 
   subject = "GRR nanny message received from %s."
 
@@ -605,19 +609,20 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     if config.CONFIG["Monitoring.alert_email"]:
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
-      url = urllib.urlencode((("c", client_id), ("main", "HostInformation")))
+      url = "/clients/%s" % client_id.Basename()
 
+      body = self.__class__.mail_template.render(
+          client_id=client_id,
+          admin_ui=config.CONFIG["AdminUI.url"],
+          hostname=utils.SmartUnicode(hostname),
+          signature=config.CONFIG["Email.signature"],
+          url=url,
+          message=utils.SmartUnicode(message))
       email_alerts.EMAIL_ALERTER.SendEmail(
           config.CONFIG["Monitoring.alert_email"],
           "GRR server",
           self.subject % client_id,
-          self.mail_template % dict(
-              client_id=client_id,
-              admin_ui=config.CONFIG["AdminUI.url"],
-              hostname=hostname,
-              signature=config.CONFIG["Email.signature"],
-              urn=url,
-              message=message),
+          utils.SmartStr(body),
           is_html=True)
 
 
@@ -627,18 +632,20 @@ class ClientAlertHandler(NannyMessageHandler):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
 
-  mail_template = """
+  mail_template = jinja2.Template(
+      """
 <html><body><h1>GRR client message received.</h1>
 
-The client %(client_id)s (%(hostname)s) just sent a message:<br>
+The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
-%(message)s
+{{ message }}
 <br>
-Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
-<p>%(signature)s</p>
+<p>{{ signature }}</p>
 
-</body></html>"""
+</body></html>""",
+      autoescape=True)
 
   subject = "GRR client message received from %s."
 
@@ -651,28 +658,26 @@ class ClientCrashHandler(ClientCrashEventListener):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="CrashHandler")
 
-  mail_template = """
+  mail_template = jinja2.Template(
+      """
 <html><body><h1>GRR client crash report.</h1>
 
-Client %(client_id)s (%(hostname)s) just crashed while executing an action.
-Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
+Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
+Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
+<p>{{ signature }}</p>
 <p>
 P.S. The state of the failing flow was:
-%(context)s
-%(state)s
-%(args)s
-%(runner_args)s
+<pre>{{ context }}</pre>
+<pre>{{ state }}</pre>
+<pre>{{ args }}</pre>
+<pre>{{ runner_args }}</pre>
 
-%(nanny_msg)s
+{{ nanny_msg }}
 
-</body></html>"""
-
-  def ConvertRDFValueToHTML(self, rdfvalue_obj):
-    raw_str = utils.SmartUnicode(rdfvalue_obj)
-    return "<pre>%s</pre>" % cgi.escape(raw_str)
+</body></html>""",
+      autoescape=True)
 
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
@@ -733,28 +738,24 @@ P.S. The state of the failing flow was:
 
       client = aff4.FACTORY.Open(client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
-      url = urllib.urlencode((("c", client_id), ("main", "HostInformation")))
+      url = "/clients/%s" % client_id.Basename()
 
-      context_html = self.ConvertRDFValueToHTML(flow_obj.context)
-      state_html = self.ConvertRDFValueToHTML(flow_obj.state)
-      args_html = self.ConvertRDFValueToHTML(flow_obj.args)
-      runner_args_html = self.ConvertRDFValueToHTML(flow_obj.runner_args)
-
+      body = self.__class__.mail_template.render(
+          client_id=client_id,
+          admin_ui=config.CONFIG["AdminUI.url"],
+          hostname=utils.SmartUnicode(hostname),
+          context=utils.SmartUnicode(flow_obj.context),
+          state=utils.SmartUnicode(flow_obj.state),
+          args=utils.SmartUnicode(flow_obj.args),
+          runner_args=utils.SmartUnicode(flow_obj.runner_args),
+          urn=url,
+          nanny_msg=utils.SmartUnicode(nanny_msg),
+          signature=config.CONFIG["Email.signature"]),
       email_alerts.EMAIL_ALERTER.SendEmail(
           email_address,
           "GRR server",
           "Client %s reported a crash." % client_id,
-          self.mail_template % dict(
-              client_id=client_id,
-              admin_ui=config.CONFIG["AdminUI.url"],
-              hostname=hostname,
-              context=context_html,
-              state=state_html,
-              args=args_html,
-              runner_args=runner_args_html,
-              urn=url,
-              nanny_msg=nanny_msg,
-              signature=config.CONFIG["Email.signature"]),
+          utils.SmartStr(body),
           is_html=True)
 
     if nanny_msg:

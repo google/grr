@@ -15,6 +15,7 @@ import logging
 from grr import config
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
+from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -405,3 +406,17 @@ class ListVADBinaries(flow.GRRFlow):
                  file_finder_result.stat_entry.pathspec.CollapsePath())
     else:
       self.Log("Binaries download failed: %s", responses.status)
+
+
+class MemoryFlowsInit(registry.InitHook):
+  """Update visibility for Rekall flows."""
+
+  def RunOnce(self):
+    if config.CONFIG["Rekall.enabled"]:
+      b = flow.FlowBehaviour("BASIC")
+    else:
+      b = flow.FlowBehaviour("DEBUG")
+
+    # Mark Rekall-based flows as basic, so that they appear in the UI.
+    for cls in [MemoryCollector, AnalyzeClientMemory, ListVADBinaries]:
+      cls.behaviours = b

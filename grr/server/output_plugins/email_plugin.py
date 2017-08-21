@@ -3,8 +3,7 @@
 
 
 
-import cgi
-import urllib
+import jinja2
 
 from grr import config
 from grr.lib import utils
@@ -31,21 +30,25 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   args_type = EmailOutputPluginArgs
   produces_output_streams = False
 
-  template = """
-<html><body><h1>GRR got a new result in %(source_urn)s.</h1>
+  subject_template = jinja2.Template(
+      "GRR got a new result in {{ source_urn }}.", autoescape=True)
+  template = jinja2.Template(
+      """
+<html><body><h1>GRR got a new result in {{ source_urn }}.</h1>
 
 <p>
-  Grr just got a response in %(source_urn)s from client %(client_id)s
-  (%(hostname)s).<br />
+  Grr just got a response in {{ source_urn }} from client {{ client_id }}
+  ({{ hostname }}).<br />
   <br />
-  Click <a href='%(admin_ui_url)s/#%(client_fragment_id)s'> here </a> to
+  Click <a href='{{ admin_ui_url }}/#{{ client_fragment_id }}'> here </a> to
   access this machine. <br />
-  This notification was created by %(creator)s.
+  This notification was created by {{ creator }}.
 </p>
-%(additional_message)s
+{{ additional_message }}
 <p>Thanks,</p>
-<p>%(signature)s</p>
-</body></html>"""
+<p>{{ signature }}</p>
+</body></html>""",
+      autoescape=True)
 
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
                         "sending of emails will be disabled now. </p>")
@@ -68,8 +71,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     client_id = response.source
     client = aff4.FACTORY.Open(client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME) or "unknown hostname"
-    client_fragment_id = urllib.urlencode((("c", client_id),
-                                           ("main", "HostInformation")))
+    client_fragment_id = "/clients/%s" % client_id.Basename()
 
     if emails_left == 0:
       additional_message = (
@@ -77,25 +79,23 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     else:
       additional_message = ""
 
-    subject = ("GRR got a new result in %s." % self.state.source_urn)
-
-    template_args = dict(
+    subject = self.__class__.subject_template.render(
+        source_urn=utils.SmartUnicode(self.state.source_urn))
+    body = self.__class__.template.render(
         client_id=client_id,
         client_fragment_id=client_fragment_id,
         admin_ui_url=config.CONFIG["AdminUI.url"],
         source_urn=self.state.source_urn,
         additional_message=additional_message,
         signature=config.CONFIG["Email.signature"],
-
-        # Values that have to be escaped.
-        hostname=cgi.escape(utils.SmartStr(hostname)),
-        creator=cgi.escape(utils.SmartStr(self.token.username)))
+        hostname=utils.SmartUnicode(hostname),
+        creator=utils.SmartUnicode(self.token.username))
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.state.args.email_address,
         "grr-noreply",
-        subject,
-        self.template % template_args,
+        utils.SmartStr(subject),
+        utils.SmartStr(body),
         is_html=True)
 
   def ProcessResponses(self, responses):

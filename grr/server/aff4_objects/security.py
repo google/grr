@@ -4,7 +4,8 @@
 
 import email
 import re
-import urllib
+
+import jinja2
 
 from grr import config
 from grr.lib import rdfvalue
@@ -521,40 +522,47 @@ class ApprovalRequestor(AbstractApprovalBase):
 
     reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
-    template = """
+    subject_template = jinja2.Template(
+        "Approval for {{ user }} to access {{ client }}.", autoescape=True)
+    subject = subject_template.render(
+        user=utils.SmartUnicode(self.token.username),
+        client=utils.SmartUnicode(subject_title))
+
+    template = jinja2.Template(
+        """
 <html><body><h1>Approval to access
-<a href='%(admin_ui)s#%(approval_url)s'>%(subject_title)s</a> requested.</h1>
+<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
+requested.</h1>
 
-The user "%(username)s" has requested access to
-<a href='%(admin_ui)s#%(approval_url)s'>%(subject_title)s</a>
-for the purpose of "%(reason)s".
+The user "{{ username }}" has requested access to
+<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
+for the purpose of "{{ reason }}".
 
-Please click <a href='%(admin_ui)s#%(approval_url)s'>
+Please click <a href='{{ admin_ui }}/#/{{ approval_url }}'>
 here
 </a> to review this request and then grant access.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
-<p>%(image)s</p>
-</body></html>"""
+<p>{{ signature }}</p>
+<p>{{ image|safe }}</p>
+</body></html>""",
+        autoescape=True)
 
-    # If you feel like it, add a funny cat picture here :)
-    image = config.CONFIG["Email.approval_signature"]
-
-    body = template % dict(
-        username=utils.SmartStr(self.token.username),
-        reason=utils.SmartStr(reason),
-        admin_ui=utils.SmartStr(config.CONFIG["AdminUI.url"]),
-        subject_title=utils.SmartStr(subject_title),
-        approval_url=utils.SmartStr(
+    body = template.render(
+        username=utils.SmartUnicode(self.token.username),
+        reason=utils.SmartUnicode(reason),
+        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
+        subject_title=utils.SmartUnicode(subject_title),
+        approval_url=utils.SmartUnicode(
             self.BuildApprovalReviewUrlPath(approval_id)),
-        image=utils.SmartStr(image),
-        signature=utils.SmartStr(config.CONFIG["Email.signature"]))
+        # If you feel like it, add a funny cat picture here :)
+        image=utils.SmartUnicode(config.CONFIG["Email.approval_signature"]),
+        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.approver,
         utils.SmartStr(self.token.username),
-        u"Approval for %s to access %s." % (self.token.username, subject_title),
+        utils.SmartStr(subject),
         utils.SmartStr(body),
         is_html=True,
         cc_addresses=email_cc,
@@ -655,37 +663,43 @@ class ApprovalGrantor(AbstractApprovalBase):
 
     reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
 
-    template = """
-<html><body><h1>Access to
-<a href='%(admin_ui)s#%(subject_url)s'>%(subject_title)s</a> granted.</h1>
+    subject_template = jinja2.Template(
+        "Approval for {{ user }} to access {{ client }}.", autoescape=True)
+    subject = subject_template.render(
+        user=utils.SmartUnicode(self.delegate),
+        client=utils.SmartUnicode(subject_title))
 
-The user %(username)s has granted access to
-<a href='%(admin_ui)s#%(subject_url)s'>%(subject_title)s</a> for the
+    template = jinja2.Template(
+        """
+<html><body><h1>Access to
+<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a>
+granted.</h1>
+
+The user {{ username }} has granted access to
+<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a> for the
 purpose of "%(reason)s".
 
-Please click <a href='%(admin_ui)s#%(subject_url)s'>here</a> to access it.
+Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
-</body></html>"""
-
-    body = template % dict(
-        subject_title=utils.SmartStr(subject_title),
-        username=utils.SmartStr(self.token.username),
-        reason=utils.SmartStr(reason),
-        admin_ui=utils.SmartStr(config.CONFIG["AdminUI.url"]),
-        subject_url=utils.SmartStr(access_url),
-        signature=utils.SmartStr(config.CONFIG["Email.signature"]))
+<p>{{ signature }}</p>
+</body></html>""",
+        autoescape=True)
+    body = template.render(
+        subject_title=utils.SmartUnicode(subject_title),
+        username=utils.SmartUnicode(self.token.username),
+        reason=utils.SmartUnicode(reason),
+        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
+        subject_url=utils.SmartUnicode(access_url),
+        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.
-    subject = u"Approval for %s to access %s." % (utils.SmartStr(self.delegate),
-                                                  subject_title)
     headers = {"In-Reply-To": email_msg_id, "References": email_msg_id}
     email_alerts.EMAIL_ALERTER.SendEmail(
         utils.SmartStr(self.delegate),
         utils.SmartStr(self.token.username),
-        subject,
+        utils.SmartStr(subject),
         utils.SmartStr(body),
         is_html=True,
         cc_addresses=email_cc,
@@ -757,8 +771,7 @@ class ClientApprovalGrantor(ApprovalGrantor):
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode((("c", self.subject_urn), ("main",
-                                                       "HostInformation")))
+    return "/clients/%s" % self.subject_urn.Basename()
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -830,8 +843,7 @@ class HuntApprovalGrantor(ApprovalGrantor):
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode((("main", "ManageHunts"), ("hunt",
-                                                       self.subject_urn)))
+    return "/hunts/%s" % self.subject_urn.Basename()
 
 
 class CronJobApprovalRequestor(ApprovalRequestor):
@@ -897,4 +909,4 @@ class CronJobApprovalGrantor(ApprovalGrantor):
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode({"main": "ManageCron"})
+    return "/crons/%s" % self.subject_urn.Basename()

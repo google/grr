@@ -123,10 +123,23 @@ parser_initialize.add_argument(
     help="Set to avoid prompting during initialize.")
 
 parser_initialize.add_argument(
-    "--no_templates_download",
+    "--redownload_templates",
     default=False,
     action="store_true",
-    help="Set to avoid downloading the templates during initialize.")
+    help="Re-download templates during noninteractive config initialization "
+    "(server debs already include templates).")
+
+parser_initialize.add_argument(
+    "--norepack_templates",
+    default=False,
+    action="store_true",
+    help="Skip template repacking during noninteractive config initialization.")
+
+parser_initialize.add_argument(
+    "--enable_rekall",
+    default=False,
+    action="store_true",
+    help="Enable Rekall during noninteractive config initialization.")
 
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
@@ -397,6 +410,16 @@ def RetryQuestion(question_text, output_re="", default_val=None):
   return output
 
 
+def RetryBoolQuestion(question_text, default_bool):
+  if not isinstance(default_bool, bool):
+    raise ValueError(
+        "default_bool should be a boolean, not %s" % type(default_bool))
+  default_val = "Y" if default_bool else "N"
+  prompt_suff = "[Yn]" if default_bool else "[yN]"
+  return RetryQuestion("%s %s: " % (question_text, prompt_suff), "[yY]|[nN]",
+                       default_val)[0].upper() == "Y"
+
+
 def ConfigureHostnames(config):
   """This configures the hostnames stored in the config."""
   if flags.FLAGS.external_hostname:
@@ -611,7 +634,13 @@ server and the admin user interface.\n"""
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
       ConfigureEmails(config)
-
+  rekall_enabled = grr_config.CONFIG.Get("Rekall.enabled", False)
+  if rekall_enabled:
+    rekall_enabled = RetryBoolQuestion("Keep Rekall enabled?", True)
+  else:
+    rekall_enabled = RetryBoolQuestion(
+        "Rekall is no longer actively supported. Enable anyway?", False)
+  config.Set("Rekall.enabled", rekall_enabled)
   config.Set("Server.initialized", True)
   config.Write()
   print("Configuration parameters set. You can edit these in %s" %
@@ -663,29 +692,23 @@ def InstallTemplatePackage():
 
 def ManageBinaries(config=None, token=None):
   """Repack templates into installers."""
-  print("\nStep 4: Installing template package and repackaging clients with"
-        " new configuration.")
-  pack_templates = False
-  download_templates = False
+  print "\nStep 4: Repackaging clients with new configuration."
+  redownload_templates = False
+  repack_templates = False
 
   if flags.FLAGS.noprompt:
-    if not flags.FLAGS.no_templates_download:
-      download_templates = pack_templates = True
-
+    redownload_templates = flags.FLAGS.redownload_templates
+    repack_templates = not flags.FLAGS.norepack_templates
   else:
-    if ((raw_input("Download client templates? You can skip "
-                   "this if templates are already installed."
-                   "[Yn]: ").upper() or "Y") == "Y"):
-      download_templates = True
+    redownload_templates = RetryBoolQuestion(
+        "Server debs include client templates. Re-download templates?", False)
+    repack_templates = RetryBoolQuestion("Repack client templates?", True)
 
-    if (raw_input("Repack client templates?" "[Yn]: ").upper() or "Y") == "Y":
-      pack_templates = True
-
-  if download_templates:
+  if redownload_templates:
     InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.
-  if pack_templates:
+  if repack_templates:
     repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
 
     print "\nStep 5: Signing and uploading client components."
@@ -770,7 +793,7 @@ def InitializeNoPrompt(config=None, token=None):
   config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
   config_dict["Monitoring.emergency_access_email"] = (
       "grr-emergency@%s" % hostname)
-
+  config_dict["Rekall.enabled"] = flags.FLAGS.enable_rekall
   print "Setting configuration as:\n\n%s" % config_dict
   for key, value in config_dict.iteritems():
     config.Set(key, value)
