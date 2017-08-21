@@ -10,7 +10,6 @@ import zipfile
 from grr.gui import api_test_lib
 
 from grr.gui.api_plugins import vfs as vfs_plugin
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -23,6 +22,7 @@ from grr.server.aff4_objects import users as aff4_users
 from grr.server.flows.general import discovery
 from grr.server.flows.general import filesystem
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

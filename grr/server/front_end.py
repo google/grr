@@ -8,6 +8,7 @@ import logging
 
 from grr import config
 from grr.lib import communicator
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -24,7 +25,6 @@ from grr.server import events
 from grr.server import file_store
 from grr.server import flow
 from grr.server import queue_manager
-from grr.server import queues
 from grr.server import rekall_profile_server
 from grr.server.aff4_objects import aff4_grr
 

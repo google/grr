@@ -11,7 +11,6 @@ from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.client_actions.linux import linux
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -22,10 +21,11 @@ from grr.server import flow_utils
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard as aff4_standard
 from grr.server.flows.general import filesystem
+from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import test_lib
 
+from grr.test_lib import test_lib
 from grr.tools import fuse_mount
 
 # pylint: mode=test

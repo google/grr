@@ -51,7 +51,7 @@ def RunEndToEndTests():
   with aff4.FACTORY.Create(
       "aff4:/users/GRREndToEndTest", aff4_users.GRRUser, mode="rw",
       token=token) as test_user:
-    test_user.AddLabels("admin")
+    test_user.AddLabel("admin")
 
   client_id_set = base.GetClientTestTargets(
       client_ids=flags.FLAGS.client_ids,

@@ -2266,12 +2266,15 @@ class AFF4Object(object):
 
       raise
 
-  def AddLabels(self, *labels_names, **kwargs):
+  def AddLabels(self, labels_names, owner=None):
     """Add labels to the AFF4Object."""
-    if not self.token and "owner" not in kwargs:
+    if owner is None and not self.token:
       raise RuntimeError("Can't set label: No owner specified and "
                          "no access token available.")
-    owner = kwargs.get("owner") or self.token.username
+    if isinstance(labels_names, basestring):
+      raise ValueError("Label list can't be string.")
+
+    owner = owner or self.token.username
 
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
@@ -2281,12 +2284,18 @@ class AFF4Object(object):
 
     self.Set(current_labels)
 
-  def RemoveLabels(self, *labels_names, **kwargs):
+  def AddLabel(self, label, owner=None):
+    return self.AddLabels([label], owner=owner)
+
+  def RemoveLabels(self, labels_names, owner=None):
     """Remove specified labels from the AFF4Object."""
-    if not self.token and "owner" not in kwargs:
+    if owner is None and not self.token:
       raise RuntimeError("Can't remove label: No owner specified and "
                          "no access token available.")
-    owner = kwargs.get("owner") or self.token.username
+    if isinstance(labels_names, basestring):
+      raise ValueError("Label list can't be string.")
+
+    owner = owner or self.token.username
 
     current_labels = self.Get(self.Schema.LABELS)
     for label_name in labels_names:
@@ -2295,9 +2304,15 @@ class AFF4Object(object):
 
     self.Set(self.Schema.LABELS, current_labels)
 
-  def SetLabels(self, *labels_names, **kwargs):
+  def RemoveLabel(self, label, owner=None):
+    return self.RemoveLabels([label], owner=owner)
+
+  def SetLabels(self, labels_names, owner=None):
     self.ClearLabels()
-    self.AddLabels(*labels_names, **kwargs)
+    self.AddLabels(labels_names, owner=owner)
+
+  def SetLabel(self, label, owner=None):
+    return self.SetLabels([label], owner=owner)
 
   def ClearLabels(self):
     self.Set(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())

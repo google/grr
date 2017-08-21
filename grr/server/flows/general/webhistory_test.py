@@ -5,7 +5,6 @@ import os
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -14,6 +13,7 @@ from grr.server import aff4
 from grr.server import flow
 from grr.server.flows.general import collectors
 from grr.server.flows.general import webhistory
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

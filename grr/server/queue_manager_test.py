@@ -6,12 +6,12 @@ import time
 import mock
 
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import data_store
 from grr.server import queue_manager
-from grr.server import queues
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

@@ -4,6 +4,7 @@
 
 
 import logging
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -13,7 +14,6 @@ from grr.proto import flows_pb2
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import flow
-from grr.server import queues
 from grr.server.aff4_objects import aff4_grr
 
 

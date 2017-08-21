@@ -3,11 +3,11 @@
 
 import os
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import flow
 from grr.server.flows.general import processes as flow_processes
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

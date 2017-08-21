@@ -112,7 +112,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
     with aff4.FACTORY.Open(
         flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
-      fd.AddLabels(LABEL_NAME_PREFIX + self.robot_id)
+      fd.AddLabel(LABEL_NAME_PREFIX + self.robot_id)
       return api_flow.ApiFlow().InitFromAff4Object(
           fd, flow_id=flow_id.Basename())
 

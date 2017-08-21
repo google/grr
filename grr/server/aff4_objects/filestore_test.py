@@ -6,7 +6,6 @@ import os
 import StringIO
 import time
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -17,6 +16,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import filestore
 from grr.server.aff4_objects import filestore_test_lib
 from grr.server.flows.general import file_finder
+from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

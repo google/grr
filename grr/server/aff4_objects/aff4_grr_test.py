@@ -4,7 +4,6 @@
 
 import time
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -16,6 +15,7 @@ from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib

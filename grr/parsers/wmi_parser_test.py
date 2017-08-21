@@ -10,7 +10,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import wmi as rdf_wmi
 from grr.parsers import wmi_parser
-from grr.server import client_fixture
+from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -24,7 +24,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
   def testInterfaceParsing(self):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()
-    mock_config = client_fixture.WMIWin32NetworkAdapterConfigurationMock
+    mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
     wmi_properties = mock_config.__dict__.iteritems()
     for key, value in wmi_properties:
       if not key.startswith("__"):

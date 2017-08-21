@@ -63,7 +63,7 @@ class UsersTest(aff4_test_lib.AFF4ObjectTest, acl_test_lib.AclTestMixin):
       self.assertFalse(notifications)
 
   def testDescribe(self):
-    self.user.AddLabels("test1", "test2")
+    self.user.AddLabels(["test1", "test2"])
     describe_str = self.user.Describe()
     self.assertTrue("test1" in describe_str)
     self.assertTrue("test2" in describe_str)

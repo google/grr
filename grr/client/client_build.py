@@ -187,10 +187,10 @@ class TemplateBuilder(object):
 
   def GetPackageFormat(self):
     if platform.system() == "Linux":
-      distro = platform.linux_distribution()[0]
-      if distro in ["Ubuntu", "debian"]:
+      distro = platform.linux_distribution()[0].lower()
+      if distro in ["ubuntu", "debian"]:
         return "Target:LinuxDeb"
-      elif distro in ["CentOS Linux", "CentOS", "centos", "redhat", "fedora"]:
+      elif distro in ["centos linux", "centos", "redhat", "fedora"]:
         return "Target:LinuxRpm"
       else:
         raise RuntimeError("Unknown distro, can't determine package format")

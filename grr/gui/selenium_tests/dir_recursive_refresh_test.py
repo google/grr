@@ -5,10 +5,10 @@
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
+from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 

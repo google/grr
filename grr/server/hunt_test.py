@@ -7,12 +7,12 @@
 import logging
 
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server import aff4
 from grr.server import flow
 from grr.server import foreman as rdf_foreman
-from grr.server import queues
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.test_lib import flow_test_lib

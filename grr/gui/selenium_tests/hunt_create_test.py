@@ -394,8 +394,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client:
-      client.AddLabels("foo", owner="owner1")
-      client.AddLabels("bar", owner="owner2")
+      client.AddLabel("foo", owner="owner1")
+      client.AddLabel("bar", owner="owner2")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
@@ -430,12 +430,12 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
 
     with aff4.FACTORY.Open(
         client_ids[1], mode="rw", token=self.token) as client:
-      client.AddLabels("foo", owner="owner1")
-      client.AddLabels("bar", owner="owner2")
+      client.AddLabel("foo", owner="owner1")
+      client.AddLabel("bar", owner="owner2")
 
     with aff4.FACTORY.Open(
         client_ids[7], mode="rw", token=self.token) as client:
-      client.AddLabels("bar", owner="GRR")
+      client.AddLabel("bar", owner="GRR")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")

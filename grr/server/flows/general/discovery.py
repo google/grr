@@ -3,6 +3,7 @@
 
 
 from grr import config
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -12,7 +13,6 @@ from grr.server import aff4
 from grr.server import artifact
 from grr.server import client_index
 from grr.server import flow
-from grr.server import queues
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard
@@ -292,7 +292,7 @@ class Interrogate(flow.GRRFlow):
       response = responses.First()
       with self._OpenClient(mode="rw") as client:
         client.Set(client.Schema.CLIENT_INFO(response))
-        client.AddLabels(*response.labels, owner="GRR")
+        client.AddLabels(response.labels, owner="GRR")
     else:
       self.Log("Could not get ClientInfo.")
 

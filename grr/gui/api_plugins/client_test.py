@@ -142,7 +142,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRemovesUserLabelFromSingleClient(self):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabels("foo", "bar")
+      grr_client.AddLabels(["foo", "bar"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
@@ -157,7 +157,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabels("foo", owner="GRR")
+      grr_client.AddLabel("foo", owner="GRR")
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
@@ -170,8 +170,8 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRemovesUserLabelWhenSystemLabelWithSimilarNameAlsoExists(self):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
-      grr_client.AddLabels("foo")
-      grr_client.AddLabels("foo", owner="GRR")
+      grr_client.AddLabel("foo")
+      grr_client.AddLabel("foo", owner="GRR")
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
@@ -198,7 +198,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(
     def LabelClient(i, label, owner):
       with aff4.FACTORY.Open(
           self.client_ids[i], mode="rw", token=self.token) as grr_client:
-        grr_client.AddLabels(label, owner=owner)
+        grr_client.AddLabel(label, owner=owner)
         index.AddClient(grr_client)
 
     LabelClient(0, "foo", "david")

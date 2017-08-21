@@ -277,31 +277,28 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
     # Sample rule matches clients labeled str(number)
     return rdf_foreman.ForemanLabelClientRule(label_names=[str(number)])
 
+  def _Evaluate(self, rule):
+    client_id, = self.SetupClients(nr_clients=1)
+
+    objects = CollectAff4Objects(rule.GetPathsToCheck(), client_id, self.token)
+    # Label the client
+    objects[client_id].SetLabels(["hello", "world"], owner="GRR")
+
+    return rule.Evaluate(objects, client_id)
+
   def testEvaluatesToFalseForClientWithoutTheLabel(self):
     # Instantiate a label rule
     r = rdf_foreman.ForemanLabelClientRule(label_names=["arbitrary text"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client isn't labeled "arbitrary text"
-    self.assertFalse(r.Evaluate(objects, client_id))
+    self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueForClientWithTheLabel(self):
     # Instantiate a label rule
     r = rdf_foreman.ForemanLabelClientRule(label_names=["world"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client is labeled "world"
-    self.assertTrue(r.Evaluate(objects, client_id))
+    self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToTrueInMatchAnyModeIfClientHasOneOfTheLabels(self):
     # Instantiate a label rule
@@ -309,14 +306,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "world"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client is labeled "world"
-    self.assertTrue(r.Evaluate(objects, client_id))
+    self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInMatchAnyModeIfClientHasNoneOfTheLabels(self):
     # Instantiate a label rule
@@ -324,14 +315,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ANY,
         label_names=["nonexistent", "arbitrary"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client isn't labeled "nonexistent", nor "arbitrary"
-    self.assertFalse(r.Evaluate(objects, client_id))
+    self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueInMatchAllModeIfClientHasAllOfTheLabels(self):
     # Instantiate a label rule
@@ -339,14 +324,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "hello"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client is labeled both "world" and "hello"
-    self.assertTrue(r.Evaluate(objects, client_id))
+    self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInMatchAllModeIfClientDoesntHaveOneOfTheLabels(self):
     # Instantiate a label rule
@@ -354,14 +333,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         match_mode=rdf_foreman.ForemanLabelClientRule.MatchMode.MATCH_ALL,
         label_names=["world", "random"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client isn't labeled "random"
-    self.assertFalse(r.Evaluate(objects, client_id))
+    self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToFalseInDoesntMatchAnyModeIfClientHasOneOfTheLabels(self):
     # Instantiate a label rule
@@ -370,14 +343,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "world"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client is labeled "world"
-    self.assertFalse(r.Evaluate(objects, client_id))
+    self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueInDoesntMatchAnyModeIfClientHasNoneOfTheLabels(self):
     # Instantiate a label rule
@@ -386,14 +353,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         DOES_NOT_MATCH_ANY,
         label_names=["nonexistent", "arbitrary"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client isn't labeled "nonexistent", nor "arbitrary"
-    self.assertTrue(r.Evaluate(objects, client_id))
+    self.assertTrue(self._Evaluate(r))
 
   def testEvaluatesToFalseInDoesntMatchAllModeIfClientHasAllOfTheLabels(self):
     # Instantiate a label rule
@@ -402,14 +363,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         DOES_NOT_MATCH_ALL,
         label_names=["world", "hello"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client is labeled both "world" and "hello"
-    self.assertFalse(r.Evaluate(objects, client_id))
+    self.assertFalse(self._Evaluate(r))
 
   def testEvaluatesToTrueInDoesntMatchAllModeIfClientDoesntHaveOneOfTheLabels(
       self):
@@ -419,14 +374,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
         DOES_NOT_MATCH_ALL,
         label_names=["world", "random"])
 
-    client_id, = self.SetupClients(nr_clients=1)
-
-    objects = CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels("hello", "world", owner="GRR")
-
     # The client isn't labeled "random"
-    self.assertTrue(r.Evaluate(objects, client_id))
+    self.assertTrue(self._Evaluate(r))
 
 
 class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):

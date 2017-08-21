@@ -340,7 +340,7 @@ def AddUser(username, password=None, labels=None, token=None):
   fd.SetPassword(password)
 
   if labels:
-    fd.AddLabels(*set(labels), owner="GRR")
+    fd.AddLabels(set(labels), owner="GRR")
 
   fd.Close()
 
@@ -410,10 +410,10 @@ def UpdateUser(username,
   final_del_labels = clean_del_labels & current_labels
 
   if final_add_labels:
-    fd.AddLabels(*final_add_labels, owner="GRR")
+    fd.AddLabels(final_add_labels, owner="GRR")
 
   if final_del_labels:
-    fd.RemoveLabels(*final_del_labels, owner="GRR")
+    fd.RemoveLabels(final_del_labels, owner="GRR")
 
   fd.Close()
 

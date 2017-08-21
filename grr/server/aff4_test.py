@@ -1696,7 +1696,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         mode="rw",
         token=self.token) as client:
       labels = ["label1", "label2", "label3"]
-      client.AddLabels(*labels)
+      client.AddLabels(labels)
 
       # Check that labels are correctly set in the current object.
       self.assertListEqual(labels, client.GetLabelsNames())
@@ -1713,14 +1713,14 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         mode="rw",
         token=self.token) as client:
       labels = ["label1", "label2", "label3"]
-      client.AddLabels(*labels)
+      client.AddLabels(labels)
 
     with aff4.FACTORY.Create(
         "C.0000000000000001",
         aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client:
-      client.RemoveLabels("label1")
+      client.RemoveLabel("label1")
 
     self.assertEqual(["label2", "label3"], list(client.GetLabelsNames()))
 

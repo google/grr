@@ -17,6 +17,7 @@ from grr.client.client_actions import admin
 from grr.client.client_actions import standard
 from grr.lib import communicator
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
@@ -25,7 +26,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
 from grr.server import front_end
-from grr.server import queues
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import ca_enroller
 from grr.test_lib import test_lib
@@ -174,7 +174,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     with aff4.FACTORY.Open(
         new_client.urn, mode="rw", token=self.token) as client_object:
-      client_object.AddLabels("testlabel")
+      client_object.AddLabel("testlabel")
       client_object.Flush(sync=True)
 
     now = rdfvalue.RDFDatetime.Now()

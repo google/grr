@@ -14,7 +14,6 @@ import yaml
 from grr.gui import api_test_lib
 
 from grr.gui.api_plugins import hunt as hunt_plugin
-from grr.lib import action_mocks
 from grr.lib import flags
 
 from grr.lib import rdfvalue
@@ -32,6 +31,7 @@ from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import test_plugins
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

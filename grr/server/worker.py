@@ -11,6 +11,7 @@ import logging
 
 from grr import config
 from grr.lib import flags
+from grr.lib import queues as queues_config
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import threadpool
@@ -20,7 +21,6 @@ from grr.server import aff4
 from grr.server import flow
 from grr.server import master
 from grr.server import queue_manager as queue_manager_lib
-from grr.server import queues as queues_config
 # pylint: disable=unused-import
 from grr.server import server_stubs
 

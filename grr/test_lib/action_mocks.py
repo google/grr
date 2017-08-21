@@ -17,6 +17,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server import client_fixture
 from grr.server import server_stubs
 from grr.server import worker_mocks
+from grr.test_lib import client_test_lib
 
 
 class ActionMock(object):
@@ -251,7 +252,7 @@ class InterrogatedClient(ActionMock):
                                 "from Win32_NetworkAdapterConfiguration"):
       self.response_count += 1
       rdf_dict = rdf_protodict.Dict()
-      mock = client_fixture.WMIWin32NetworkAdapterConfigurationMock
+      mock = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
       wmi_properties = mock.__dict__.iteritems()
       for key, value in wmi_properties:
         if not key.startswith("__"):

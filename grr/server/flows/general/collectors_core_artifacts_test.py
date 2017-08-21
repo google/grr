@@ -10,7 +10,6 @@ import os
 
 from grr import config
 from grr.client.client_actions import standard
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -24,6 +23,7 @@ from grr.server import flow
 from grr.server.flows.general import artifact_fallbacks
 # pylint: enable=unused-import
 from grr.server.flows.general import collectors
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

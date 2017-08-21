@@ -201,7 +201,7 @@ class MutationPool(object):
                         replace=True):
 
     result_subject, timestamp, suffix = DataStore.CollectionMakeURN(
-        collection_id, timestamp, suffix)
+        collection_id, timestamp, suffix=suffix)
     self.Set(
         result_subject,
         DataStore.COLLECTION_ATTRIBUTE,
@@ -224,6 +224,82 @@ class MutationPool(object):
         "%s%s" % (DataStore.COLLECTION_VALUE_TYPE_PREFIX, stored_type),
         1,
         timestamp=0)
+
+  def QueueAddItem(self, queue_id, item, timestamp):
+    result_subject, timestamp, _ = DataStore.CollectionMakeURN(
+        queue_id, timestamp, suffix=None, subpath="Records")
+    self.Set(
+        result_subject,
+        DataStore.COLLECTION_ATTRIBUTE,
+        item.SerializeToString(),
+        timestamp=timestamp)
+
+  def QueueClaimRecords(self,
+                        queue_id,
+                        item_rdf_type,
+                        limit=10000,
+                        timeout="30m",
+                        start_time=None,
+                        record_filter=lambda x: False,
+                        max_filtered=1000):
+    """Claims records from a queue. See server/aff4_objects/queue.py."""
+    now = rdfvalue.RDFDatetime.Now()
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
+
+    after_urn = None
+    if start_time:
+      after_urn, _, _ = DataStore.CollectionMakeURN(
+          queue_id, start_time.AsMicroSecondsFromEpoch(), 0, subpath="Records")
+    results = []
+
+    filtered_count = 0
+
+    for subject, values in DB.ScanAttributes(
+        queue_id.Add("Records"),
+        [DataStore.COLLECTION_ATTRIBUTE, DataStore.QUEUE_LOCK_ATTRIBUTE],
+        max_records=4 * limit,
+        after_urn=after_urn,
+        token=self.token):
+      if DataStore.COLLECTION_ATTRIBUTE not in values:
+        # Unlikely case, but could happen if, say, a thread called RefreshClaims
+        # so late that another thread already deleted the record. Go ahead and
+        # clean this up.
+        self.DeleteAttributes(subject, [DataStore.QUEUE_LOCK_ATTRIBUTE])
+        continue
+      if DataStore.QUEUE_LOCK_ATTRIBUTE in values:
+        timestamp = rdfvalue.RDFDatetime.FromSerializedString(
+            values[DataStore.QUEUE_LOCK_ATTRIBUTE][1])
+        if timestamp > now:
+          continue
+      rdf_value = item_rdf_type.FromSerializedString(
+          values[DataStore.COLLECTION_ATTRIBUTE][1])
+      if record_filter(rdf_value):
+        filtered_count += 1
+        if max_filtered and filtered_count >= max_filtered:
+          break
+        continue
+      results.append((subject, rdf_value))
+      self.Set(subject, DataStore.QUEUE_LOCK_ATTRIBUTE, expiration)
+
+      filtered_count = 0
+      if len(results) >= limit:
+        break
+
+    return results
+
+  def QueueRefreshClaims(self, ids, timeout="30m"):
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
+    for subject in ids:
+      self.Set(subject, DataStore.QUEUE_LOCK_ATTRIBUTE, expiration)
+
+  def QueueDeleteRecords(self, ids):
+    for i in ids:
+      self.DeleteAttributes(
+          i, [DataStore.QUEUE_LOCK_ATTRIBUTE, DataStore.COLLECTION_ATTRIBUTE])
+
+  def QueueReleaseRecords(self, ids):
+    for i in ids:
+      self.DeleteAttributes(i, [DataStore.QUEUE_LOCK_ATTRIBUTE])
 
 
 class DataStore(object):
@@ -1095,7 +1171,7 @@ class DataStore(object):
     return result
 
   # The largest possible suffix - maximum value expressible by 6 hex digits.
-  COLLECTION_MAX_SUFFIX = 2**24 - 1
+  COLLECTION_MAX_SUFFIX = 0xffffff
 
   # The attribute (column) where we store value.
   COLLECTION_ATTRIBUTE = "aff4:sequential_value"
@@ -1109,13 +1185,17 @@ class DataStore(object):
   # for multi type collections.
   COLLECTION_VALUE_TYPE_PREFIX = "aff4:value_type_"
 
+  # The attribute where we store locks. A lock is a timestamp indicating when
+  # the lock becomes stale at the record may be claimed again.
+  QUEUE_LOCK_ATTRIBUTE = "aff4:lease"
+
   @classmethod
-  def CollectionMakeURN(cls, urn, timestamp, suffix=None):
+  def CollectionMakeURN(cls, urn, timestamp, suffix=None, subpath="Results"):
     if suffix is None:
       # Disallow 0 so that subtracting 1 from a normal suffix doesn't require
       # special handling.
       suffix = random.randint(1, DataStore.COLLECTION_MAX_SUFFIX)
-    result_urn = urn.Add("Results").Add("%016x.%06x" % (timestamp, suffix))
+    result_urn = urn.Add(subpath).Add("%016x.%06x" % (timestamp, suffix))
     return (result_urn, timestamp, suffix)
 
   def CollectionScanItems(self,

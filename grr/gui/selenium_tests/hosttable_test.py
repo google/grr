@@ -14,7 +14,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
     with aff4.FACTORY.Open(
         "C.0000000000000001", mode="rw", token=self.token) as client:
-      client.AddLabels("foo", owner=self.token.username)
+      client.AddLabel("foo", owner=self.token.username)
 
     self.Open("/#main=HostTable")
 
@@ -24,7 +24,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
     with aff4.FACTORY.Open(
         "C.0000000000000001", mode="rw", token=self.token) as client:
-      client.AddLabels("bar", owner="GRR")
+      client.AddLabel("bar", owner="GRR")
 
     self.Open("/#main=HostTable")
     self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "

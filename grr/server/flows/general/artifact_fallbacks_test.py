@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Tests for grr.server.flows.general.artifact_fallbacks."""
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import flow
 from grr.server.flows.general import artifact_fallbacks
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

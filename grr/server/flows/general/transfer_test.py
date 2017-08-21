@@ -8,7 +8,6 @@ import platform
 import unittest
 
 from grr.client import vfs
-from grr.lib import action_mocks
 from grr.lib import constants
 from grr.lib import flags
 from grr.lib import utils
@@ -19,6 +18,7 @@ from grr.server import file_store
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

@@ -7,6 +7,8 @@ server parts.
 """
 
 
+from grr.client.components.chipsec_support.actions import chipsec_types
+from grr.client.components.rekall_support import rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
@@ -381,3 +383,38 @@ class FingerprintFile(ClientActionStub):
 
   in_rdfvalue = rdf_client.FingerprintRequest
   out_rdfvalues = [rdf_client.FingerprintResponse]
+
+
+# from components/chipsec_support
+class DumpFlashImage(ClientActionStub):
+  """A client action to collect the BIOS via SPI using Chipsec."""
+
+  in_rdfvalue = chipsec_types.DumpFlashImageRequest
+  out_rdfvalues = [chipsec_types.DumpFlashImageResponse]
+
+
+class DumpACPITable(ClientActionStub):
+  """A client action to collect the ACPI table(s)."""
+
+  in_rdfvalue = chipsec_types.DumpACPITableRequest
+  out_rdfvalues = [chipsec_types.DumpACPITableResponse]
+
+
+# from components/rekall_support
+class WriteRekallProfile(ClientActionStub):
+  """A client action to write a Rekall profile to the local cache."""
+
+  in_rdfvalue = rekall_types.RekallProfile
+
+
+class RekallAction(ClientActionStub):
+  """Runs a Rekall command on live memory."""
+  in_rdfvalue = rekall_types.RekallRequest
+  out_rdfvalues = [rekall_types.RekallResponse]
+
+
+class GetMemoryInformation(ClientActionStub):
+  """Loads the driver for memory access and returns a Stat for the device."""
+
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalues = [rekall_types.MemoryInformation]

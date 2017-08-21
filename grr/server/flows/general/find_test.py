@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
 from grr.client.client_actions import searching
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils
@@ -10,6 +9,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import flow
 from grr.server.flows.general import find
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

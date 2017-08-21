@@ -11,12 +11,12 @@ events and act upon them.
 """
 
 
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import events
 from grr.server import flow
-from grr.server import queues
 from grr.server import sequential_collection
 
 AUDIT_EVENT = "Audit"

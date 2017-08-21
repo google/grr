@@ -9,8 +9,8 @@ import socket
 
 from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
-from grr.lib import action_mocks
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -23,13 +23,13 @@ from grr.server import aff4
 from grr.server import data_store
 from grr.server import events
 from grr.server import export
-from grr.server import queues
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import filestore
 from grr.server.checks import checks
 from grr.server.flows.general import collectors
 from grr.server.flows.general import transfer
 from grr.server.hunts import results as hunts_results
+from grr.test_lib import action_mocks
 from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -611,7 +611,7 @@ class ExportTest(ExportTestBase):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client:
-      client.SetLabels("client-label-24")
+      client.SetLabel("client-label-24")
 
     metadata = export.GetMetadata(self.client_id, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
@@ -621,7 +621,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(metadata.hardware_info.bios_version, u"Version 1.23v")
 
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.SetLabels("a", "b")
+    client.SetLabels(["a", "b"])
     client.Flush()
     metadata = export.GetMetadata(self.client_id, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
@@ -633,8 +633,8 @@ class ExportTest(ExportTestBase):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client:
-      client.SetLabels("a", "b")
-      client.AddLabels("c", owner="GRR")
+      client.SetLabels(["a", "b"])
+      client.AddLabel("c", owner="GRR")
 
     metadata = export.GetMetadata(self.client_id, token=self.token)
     self.assertEqual(metadata.labels, u"a,b,c")

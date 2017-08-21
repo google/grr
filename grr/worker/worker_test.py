@@ -8,8 +8,8 @@ import time
 import mock
 
 from grr import config
-from grr.lib import action_mocks
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -21,11 +21,11 @@ from grr.server import flow
 from grr.server import flow_runner
 from grr.server import front_end
 from grr.server import queue_manager
-from grr.server import queues
 from grr.server import worker
 from grr.server.flows.general import administrative
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
+from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

@@ -22,7 +22,7 @@ class AclTestMixin(object):
   def CreateAdminUser(self, username):
     """Creates a user and makes it an admin."""
     with self.CreateUser(username) as user:
-      user.SetLabels("admin", owner="GRR")
+      user.SetLabel("admin", owner="GRR")
 
   def RequestClientApproval(self, client_id, token=None, approver="approver"):
     """Create an approval request to be sent to approver."""

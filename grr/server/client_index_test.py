@@ -198,8 +198,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
   def testRemoveLabels(self):
     client = aff4.FACTORY.Create(
         CLIENT_ID, aff4_type=aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-    client.AddLabels("testlabel_1", token=self.token)
-    client.AddLabels("testlabel_2", token=self.token)
+    client.AddLabel("testlabel_1")
+    client.AddLabel("testlabel_2")
     client.Flush()
     index = aff4.FACTORY.Create(
         "aff4:/client-index4/",
@@ -214,7 +214,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     # Now delete one label.
     index.RemoveClientLabels(client)
-    client.RemoveLabels("testlabel_1")
+    client.RemoveLabel("testlabel_1")
     index.AddClient(client)
 
     self.assertEqual(index.LookupClients(["testlabel_1"]), [])
@@ -239,7 +239,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     for urn in client_urns:
       client = aff4.FACTORY.Create(
           urn, aff4_type=aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-      client.AddLabels("test_client", token=self.token)
+      client.AddLabel("test_client")
       client.Flush()
       index.AddClient(client)
 
@@ -247,12 +247,14 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     m = {"host-0": client_urns[0], "host-1": client_urns[1]}
 
     # No hostname.
-    client_index.BulkLabel("label-0", ["host-3"], self.token, index)
+    client_index.BulkLabel(
+        "label-0", ["host-3"], token=self.token, client_index=index)
     self._HostsHaveLabel([], "label-0", index)
 
     # Add label.
     hosts = ["host-0", "host-1"]
-    client_index.BulkLabel("label-0", hosts, self.token, index)
+    client_index.BulkLabel(
+        "label-0", hosts, token=self.token, client_index=index)
     # host-0: label-0
     # host-1: label-0
     self._HostsHaveLabel(hosts, "label-0", index)
@@ -261,7 +263,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     # Add another label only changes the new host.
     hosts = ["host-1"]
-    client_index.BulkLabel("label-1", hosts, self.token, index)
+    client_index.BulkLabel(
+        "label-1", hosts, token=self.token, client_index=index)
     # host-0: label-0
     # host-1: label-0, label-1
     self._HostsHaveLabel(hosts, "label-1", index)
@@ -275,7 +278,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     # Relabeling updates the label on already labeled hosts.
     hosts = ["host-0"]
-    client_index.BulkLabel("label-0", hosts, self.token, index)
+    client_index.BulkLabel(
+        "label-0", hosts, token=self.token, client_index=index)
     # host-0: label-0
     # host-1: label-1
     self._HostsHaveLabel(hosts, "label-0", index)

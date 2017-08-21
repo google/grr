@@ -5,11 +5,11 @@
 import os
 
 from grr.client.client_actions import standard
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.flows.console import debugging
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

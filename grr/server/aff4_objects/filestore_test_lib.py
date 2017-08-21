@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Helper functions for filestore testing."""
 
-from grr.lib import action_mocks
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import events
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import worker_test_lib
 

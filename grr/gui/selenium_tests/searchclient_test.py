@@ -28,8 +28,8 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     # SetupClients adds no labels or user names.
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as client_obj:
-      client_obj.AddLabels("common_test_label", owner=self.token.username)
-      client_obj.AddLabels("unique_test_label", owner=self.token.username)
+      client_obj.AddLabel("common_test_label", owner=self.token.username)
+      client_obj.AddLabel("unique_test_label", owner=self.token.username)
 
       # Add user in knowledge base.
       kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
@@ -42,7 +42,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
     with aff4.FACTORY.Open(
         self.client_ids[1], mode="rw", token=self.token) as client_obj:
-      client_obj.AddLabels("common_test_label", owner=self.token.username)
+      client_obj.AddLabel("common_test_label", owner=self.token.username)
       self._UpdateClientIndex(client_obj)
 
   def _UpdateClientIndex(self, client_obj):

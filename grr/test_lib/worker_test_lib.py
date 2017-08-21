@@ -5,11 +5,11 @@ import itertools
 
 import logging
 
+from grr.lib import queues as queue_config
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
 from grr.server import flow
 from grr.server import queue_manager
-from grr.server import queues as queue_config
 
 from grr.server import worker
 

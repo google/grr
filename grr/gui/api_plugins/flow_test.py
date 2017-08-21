@@ -15,7 +15,6 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 from grr.gui.api_plugins import flow as flow_plugin
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -30,6 +29,7 @@ from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import test_plugins
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

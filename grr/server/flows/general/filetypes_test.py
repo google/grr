@@ -5,12 +5,12 @@
 import os
 
 from grr.client.client_actions import plist
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
 from grr.server import flow
 from grr.server.flows.general import filetypes
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

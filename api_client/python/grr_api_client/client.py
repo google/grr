@@ -201,6 +201,9 @@ class ClientBase(object):
         client_ids=[self.client_id], labels=labels)
     self._context.SendRequest("AddClientsLabels", args)
 
+  def AddLabel(self, label):
+    return self.AddLabels([label])
+
   def RemoveLabels(self, labels):
     if not labels:
       raise ValueError("labels list can't be empty")
@@ -208,6 +211,9 @@ class ClientBase(object):
     args = client_pb2.ApiRemoveClientsLabelsArgs(
         client_ids=[self.client_id], labels=labels)
     self._context.SendRequest("RemoveClientsLabels", args)
+
+  def RemoveLabel(self, label):
+    return self.RemoveLabels([label])
 
 
 class ClientRef(ClientBase):

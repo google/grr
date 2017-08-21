@@ -15,7 +15,6 @@ from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -32,6 +31,7 @@ from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import collectors
 from grr.server.flows.general import filesystem
+from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib

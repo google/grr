@@ -112,8 +112,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
       with aff4.FACTORY.Open(
           "C.0%015X" % i, mode="rw", token=self.token) as client:
-        client.AddLabels("Label1", "Label2", owner="GRR")
-        client.AddLabels("UserLabel", owner="jim")
+        client.AddLabels(["Label1", "Label2"], owner="GRR")
+        client.AddLabel("UserLabel", owner="jim")
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):

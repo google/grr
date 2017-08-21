@@ -7,7 +7,6 @@ import hashlib
 import os
 import platform
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -21,6 +20,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard as aff4_standard
 from grr.server.flows.general import file_finder
 from grr.server.flows.general import filesystem
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -984,6 +984,34 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
   def _Touch(self, relative_path):
     open(utils.JoinPath(self.temp_dir, relative_path), "wb").close()
+
+  def testListingRegistryDirectoryDoesNotYieldMtimes(self):
+    with vfs_test_lib.RegistryVFSStubber():
+
+      client_id = self.SetupClients(1)[0]
+      pb = rdf_paths.PathSpec(
+          path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
+          pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+
+      output_path = client_id.Add("registry").Add(pb.first.path)
+      aff4.FACTORY.Delete(output_path, token=self.token)
+
+      client_mock = action_mocks.ListDirectoryClientMock()
+
+      for _ in flow_test_lib.TestFlowHelper(
+          filesystem.ListDirectory.__name__,
+          client_mock,
+          client_id=client_id,
+          pathspec=pb,
+          token=self.token):
+        pass
+
+      results = list(
+          aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
+      self.assertEqual(len(results), 2)
+      for result in results:
+        st = result.Get(result.Schema.STAT)
+        self.assertIsNone(st.st_mtime)
 
 
 def main(argv):

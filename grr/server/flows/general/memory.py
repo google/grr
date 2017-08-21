@@ -13,7 +13,6 @@ from rekall import constants
 
 import logging
 from grr import config
-from grr.client.components.rekall_support import grr_rekall_stubs
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
 from grr.lib.rdfvalues import client as rdf_client
@@ -182,7 +181,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.rekall_request = request
 
     self.CallClient(
-        grr_rekall_stubs.RekallAction,
+        server_stubs.RekallAction,
         self.state.rekall_request,
         next_state="StoreResults")
 
@@ -206,7 +205,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
                                         response.repository_version)
         if profile:
           self.CallClient(
-              grr_rekall_stubs.WriteRekallProfile,
+              server_stubs.WriteRekallProfile,
               profile,
               next_state="UpdateProfile")
         else:
@@ -243,7 +242,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
       self.CallClient(
-          grr_rekall_stubs.RekallAction,
+          server_stubs.RekallAction,
           self.state.rekall_request,
           next_state="StoreResults")
     else:

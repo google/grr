@@ -4,7 +4,6 @@
 
 from grr.endtoend_tests import base
 from grr.endtoend_tests import endtoend_mocks
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as client_rdf
@@ -16,6 +15,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.cron import system
 from grr.server.flows.general import endtoend as endtoend_flows
+from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -38,8 +38,8 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       with aff4.FACTORY.Open(
           "C.0%015X" % i, mode="rw", token=self.token) as client:
-        client.AddLabels("Label1", "Label2", owner="GRR")
-        client.AddLabels("UserLabel", owner="jim")
+        client.AddLabels(["Label1", "Label2"], owner="GRR")
+        client.AddLabel("UserLabel", owner="jim")
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):

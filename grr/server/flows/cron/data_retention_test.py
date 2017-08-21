@@ -111,7 +111,7 @@ class CleanHuntsTest(flow_test_lib.FlowTestsBaseclass):
 
     for hunt_urn in self.hunts_urns[:3]:
       with aff4.FACTORY.Open(hunt_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabels(exception_label_name)
+        fd.AddLabel(exception_label_name)
 
     with test_lib.ConfigOverrider({
         "DataRetention.hunts_ttl": rdfvalue.Duration("10s")
@@ -282,7 +282,7 @@ class CleanTempTest(flow_test_lib.FlowTestsBaseclass):
 
     for tmp_urn in self.tmp_urns[:3]:
       with aff4.FACTORY.Open(tmp_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabels(exception_label_name)
+        fd.AddLabel(exception_label_name)
 
     with test_lib.ConfigOverrider({
         "DataRetention.tmp_ttl": rdfvalue.Duration("10s")
@@ -361,7 +361,7 @@ class CleanInactiveClientsTest(flow_test_lib.FlowTestsBaseclass):
 
     for client_urn in self.client_urns[:3]:
       with aff4.FACTORY.Open(client_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabels(exception_label_name)
+        fd.AddLabel(exception_label_name)
 
     with test_lib.ConfigOverrider({
         "DataRetention.inactive_client_ttl": rdfvalue.Duration("10s")

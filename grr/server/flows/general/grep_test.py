@@ -5,7 +5,6 @@
 import os
 
 from grr.client.client_actions import searching
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -16,6 +15,7 @@ from grr.server import client_fixture
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import grep
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

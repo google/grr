@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """A simple message queue synchronized through data store locks.
 """
-import random
-
 from grr.lib import rdfvalue
 from grr.server import aff4
 from grr.server import data_store
@@ -13,24 +11,6 @@ class Queue(aff4.AFF4Object):
 
   # The type which we store, subclasses must set this to a subclass of RDFValue
   rdf_type = None
-
-  # The attribute where we store value.
-  VALUE_ATTRIBUTE = "aff4:sequential_value"
-
-  # The attribute where we store locks. A lock is a timestamp indicating when
-  # the lock becomes stale at the record may be claimed again.
-  LOCK_ATTRIBUTE = "aff4:lease"
-
-  # The largest possible suffix - maximum value expressible by 6 hex digits.
-  MAX_SUFFIX = 0xffffff
-
-  @classmethod
-  def _MakeURN(cls, urn, timestamp, suffix=None):
-    if suffix is None:
-      # Disallow 0 so that subtracting 1 from a normal suffix doesn't require
-      # special handling.
-      suffix = random.randint(1, cls.MAX_SUFFIX)
-    return urn.Add("Records").Add("%016x.%06x" % (timestamp, suffix))
 
   @classmethod
   def StaticAdd(cls, queue_urn, rdf_value, mutation_pool=None):
@@ -62,12 +42,7 @@ class Queue(aff4.AFF4Object):
     if not isinstance(queue_urn, rdfvalue.RDFURN):
       queue_urn = rdfvalue.RDFURN(queue_urn)
 
-    result_subject = cls._MakeURN(queue_urn, timestamp)
-    mutation_pool.Set(
-        result_subject,
-        cls.VALUE_ATTRIBUTE,
-        rdf_value.SerializeToString(),
-        timestamp=timestamp)
+    mutation_pool.QueueAddItem(queue_urn, rdf_value, timestamp)
 
   def Add(self, rdf_value, mutation_pool=None):
     """Adds an rdf value to the queue.
@@ -127,51 +102,15 @@ class Queue(aff4.AFF4Object):
     if not self.locked:
       raise aff4.LockError("Queue must be locked to claim records.")
 
-    now = rdfvalue.RDFDatetime.Now()
-
-    after_urn = None
-    if start_time:
-      after_urn = self._MakeURN(self.urn,
-                                start_time.AsMicroSecondsFromEpoch(), 0)
-    results = []
-
-    filtered_count = 0
-
-    for subject, values in data_store.DB.ScanAttributes(
-        self.urn.Add("Records"), [self.VALUE_ATTRIBUTE, self.LOCK_ATTRIBUTE],
-        max_records=4 * limit,
-        after_urn=after_urn,
-        token=self.token):
-      if self.VALUE_ATTRIBUTE not in values:
-        # Unlikely case, but could happen if, say, a thread called RefreshClaims
-        # so late that another thread already deleted the record. Go ahead and
-        # clean this up.
-        data_store.DB.DeleteAttributes(
-            subject, [self.LOCK_ATTRIBUTE], token=self.token)
-        continue
-      if self.LOCK_ATTRIBUTE in values:
-        timestamp = rdfvalue.RDFDatetime.FromSerializedString(
-            values[self.LOCK_ATTRIBUTE][1])
-        if timestamp > now:
-          continue
-      rdf_value = self.rdf_type.FromSerializedString(
-          values[self.VALUE_ATTRIBUTE][1])
-      if record_filter(rdf_value):
-        filtered_count += 1
-        if max_filtered and filtered_count >= max_filtered:
-          break
-        continue
-      results.append((subject, rdf_value))
-      filtered_count = 0
-      if len(results) >= limit:
-        break
-
-    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
-
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
-      for subject, _ in results:
-        mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)
-    return results
+      return mutation_pool.QueueClaimRecords(
+          self.urn,
+          self.rdf_type,
+          limit=limit,
+          timeout=timeout,
+          start_time=start_time,
+          record_filter=record_filter,
+          max_filtered=max_filtered)
 
   def RefreshClaims(self, ids, timeout="30m"):
     """Refreshes claims on records identified by ids.
@@ -185,10 +124,8 @@ class Queue(aff4.AFF4Object):
       LockError: If the queue is not locked.
 
     """
-    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
-      for subject in ids:
-        mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)
+      mutation_pool.QueueRefreshClaims(ids, timeout=timeout)
 
   @classmethod
   def DeleteRecords(cls, ids, token):
@@ -201,8 +138,8 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(
-        ids, [cls.LOCK_ATTRIBUTE, cls.VALUE_ATTRIBUTE], token=token)
+    with data_store.DB.GetMutationPool(token=token) as mutation_pool:
+      mutation_pool.QueueDeleteRecords(ids)
 
   @classmethod
   def DeleteRecord(cls, record_id, token):
@@ -222,7 +159,8 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(ids, [cls.LOCK_ATTRIBUTE], token=token)
+    with data_store.DB.GetMutationPool(token=token) as mutation_pool:
+      mutation_pool.QueueReleaseRecords(ids)
 
   @classmethod
   def ReleaseRecord(cls, record_id, token):

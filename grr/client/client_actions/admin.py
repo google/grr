@@ -22,13 +22,13 @@ from grr import config
 from grr.client import actions
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server import queues
 
 
 class Echo(actions.ActionPlugin):

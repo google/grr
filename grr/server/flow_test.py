@@ -7,7 +7,6 @@ import time
 
 from grr.client import vfs
 from grr.client.client_actions import standard
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -27,6 +26,7 @@ from grr.server import queue_manager
 from grr.server import server_stubs
 from grr.server.flows.general import filesystem
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib

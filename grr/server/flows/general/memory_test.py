@@ -3,6 +3,7 @@
 """Tests for memory related flows."""
 
 import copy
+import functools
 import gzip
 import json
 import os
@@ -13,7 +14,6 @@ from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -24,6 +24,8 @@ from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import filesystem
 from grr.server.flows.general import memory
+from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
@@ -91,17 +93,6 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
             plugin="aff4acquire"),
         rdf_client.Iterator(state="FINISHED")
     ]
-
-
-class TestAnalyzeClientMemory(MemoryTest):
-  """Tests for AnalyzeClientMemory flow."""
-
-  def testAnalyzeClientMemoryIsDisabledByDefault(self):
-    with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
-      flow.GRRFlow.StartFlow(
-          client_id=self.client_id,
-          flow_name=memory.AnalyzeClientMemory.__name__,
-          token=self.token)
 
 
 class TestMemoryCollector(MemoryTest):
@@ -409,6 +400,121 @@ class ListVADBinariesTest(MemoryTest):
     fd = aff4.FACTORY.Open(
         binaries[0].AFF4Path(self.client_id), token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
+
+
+def RequireTestImage(f):
+  """Decorator that skips tests if we don't have the memory image."""
+
+  @functools.wraps(f)
+  def Decorator(testinstance):
+    image_path = os.path.join(testinstance.base_path, "win7_trial_64bit.raw")
+    if os.access(image_path, os.R_OK):
+      return f(testinstance)
+    else:
+      return testinstance.skipTest("No win7_trial_64bit.raw memory image,"
+                                   "skipping test. Download it here: "
+                                   "goo.gl/19AJGl and put it in test_data.")
+
+  return Decorator
+
+
+class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
+  """Tests for AnalyzeClientMemory flow."""
+
+  def testAnalyzeClientMemoryIsDisabledByDefault(self):
+    with self.assertRaisesRegexp(RuntimeError, "Rekall flows are disabled"):
+      flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=memory.AnalyzeClientMemory.__name__,
+          token=self.token)
+
+  @RequireTestImage
+  def testRekallModules(self):
+    """Tests the end to end Rekall memory analysis."""
+    request = rdf_rekall_types.RekallRequest()
+    request.plugins = [
+        # Only use these methods for listing processes.
+        rdf_rekall_types.PluginRequest(
+            plugin="pslist", args=dict(method=["PsActiveProcessHead",
+                                               "CSRSS"])),
+        rdf_rekall_types.PluginRequest(plugin="modules")
+    ]
+    session_id = self.LaunchRekallPlugin(request)
+
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+
+    # Ensure that the client_id is set on each message. This helps us demux
+    # messages from different clients, when analyzing the collection from a
+    # hunt.
+    json_blobs = []
+    for x in fd:
+      self.assertEqual(x.client_urn, self.client_id)
+      json_blobs.append(x.json_messages)
+
+    json_blobs = "".join(json_blobs)
+
+    for knownresult in ["DumpIt.exe", "DumpIt.sys"]:
+      self.assertTrue(knownresult in json_blobs)
+
+  @RequireTestImage
+  def testFileOutput(self):
+    """Tests that a file can be written by a plugin and retrieved."""
+    request = rdf_rekall_types.RekallRequest()
+    request.plugins = [
+        # Run procdump to create one file.
+        rdf_rekall_types.PluginRequest(
+            plugin="procdump", args=dict(pids=[2860]))
+    ]
+
+    with test_lib.Instrument(transfer.MultiGetFile,
+                             "StoreStat") as storestat_instrument:
+      self.LaunchRekallPlugin(request)
+      # Expect one file to be downloaded.
+      self.assertEqual(storestat_instrument.call_count, 1)
+
+  @RequireTestImage
+  def testParameters(self):
+    request = rdf_rekall_types.RekallRequest()
+    request.plugins = [
+        # Only use these methods for listing processes.
+        rdf_rekall_types.PluginRequest(
+            plugin="pslist",
+            args=dict(pids=[4, 2860], method="PsActiveProcessHead")),
+    ]
+
+    session_id = self.LaunchRekallPlugin(request)
+
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+
+    json_blobs = [x.json_messages for x in fd]
+    json_blobs = "".join(json_blobs)
+
+    for knownresult in ["System", "DumpIt.exe"]:
+      self.assertTrue(knownresult in json_blobs)
+
+  @RequireTestImage
+  def testDLLList(self):
+    """Tests that we can run a simple DLLList Action."""
+    request = rdf_rekall_types.RekallRequest()
+    request.plugins = [
+        # Only use these methods for listing processes.
+        rdf_rekall_types.PluginRequest(
+            plugin="dlllist",
+            args=dict(proc_regex="dumpit", method="PsActiveProcessHead")),
+    ]
+
+    session_id = self.LaunchRekallPlugin(request)
+
+    # Get the result collection.
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+
+    json_blobs = [x.json_messages for x in fd]
+    json_blobs = "".join(json_blobs)
+
+    for knownresult in ["DumpIt", "wow64win", "wow64", "wow64cpu", "ntdll"]:
+      self.assertTrue(knownresult in json_blobs)
 
 
 def main(argv):

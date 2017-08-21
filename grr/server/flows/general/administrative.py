@@ -11,6 +11,7 @@ import urllib
 import logging
 
 from grr import config
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -28,7 +29,6 @@ from grr.server import email_alerts
 from grr.server import events
 from grr.server import flow
 from grr.server import grr_collections
-from grr.server import queues
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import collects
@@ -800,7 +800,7 @@ class ClientStartupHandler(flow.EventListener):
     if new_data != old_data:
       client.Set(client.Schema.CLIENT_INFO(info))
 
-    client.AddLabels(*info.labels, owner="GRR")
+    client.AddLabels(info.labels, owner="GRR")
 
     # Allow for some drift in the boot times (5 minutes).
     if abs(int(old_boot) - int(startup_info.boot_time)) > 300 * 1e6:

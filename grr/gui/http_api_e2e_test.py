@@ -28,7 +28,6 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp
 from grr.gui import wsgiapp_testlib
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -50,6 +49,7 @@ from grr.server.hunts import standard
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import csv_plugin
 from grr.test_lib import acl_test_lib
+from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -505,7 +505,7 @@ class ApiClientLibLabelsTest(ApiE2ETest):
           aff4_type=aff4_grr.VFSGRRClient,
           mode="rw",
           token=self.token) as client_obj:
-        client_obj.AddLabels("bar", "foo")
+        client_obj.AddLabels(["bar", "foo"])
 
     client_ref = self.api.Client(client_id=self.client_urn.Basename())
     self.assertEqual(
@@ -516,7 +516,7 @@ class ApiClientLibLabelsTest(ApiE2ETest):
                 name="foo", owner=self.token.username, timestamp=42000000)
         ])
 
-    client_ref.RemoveLabels(["foo"])
+    client_ref.RemoveLabel("foo")
     self.assertEqual(
         sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
             jobs_pb2.AFF4ObjectLabel(
@@ -1235,14 +1235,14 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client_obj:
-      client_obj.AddLabels("legal_approval")
+      client_obj.AddLabel("legal_approval")
 
     with aff4.FACTORY.Open(
         self.client_prod,
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token) as client_obj:
-      client_obj.AddLabels("legal_approval", "prod_admin_approval")
+      client_obj.AddLabels(["legal_approval", "prod_admin_approval"])
 
     cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     cls.ClearCache()

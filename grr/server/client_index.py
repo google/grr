@@ -320,7 +320,7 @@ def GetMostRecentClient(client_list, token=None):
   return client_urn
 
 
-def BulkLabel(label, hostnames, token=None, client_index=None):
+def BulkLabel(label, hostnames, owner=None, token=None, client_index=None):
   """Assign a label to a group of clients based on hostname.
 
   Sets a label as an identifier to a group of clients. Removes the label from
@@ -333,6 +333,7 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
   Args:
     label: The label to apply.
     hostnames: The collection of hostnames that should have the label.
+    owner: The owner for the newly created labels. Defaults to token.username.
     token: The authentication token.
     client_index: An optional client index to use. If not provided, use the
       default client index.
@@ -354,7 +355,7 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
     fqdn = utils.SmartStr(client.Get("FQDN")).lower()
     if fqdn not in fqdns:
       client_index.RemoveClientLabels(client)
-      client.RemoveLabels(label, owner="GRR")
+      client.RemoveLabel(label, owner=owner)
       client.Flush()
       client_index.AddClient(client)
     else:
@@ -370,6 +371,6 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
 
   for client in aff4.FACTORY.MultiOpen(
       urns, token=token, aff4_type=aff4_grr.VFSGRRClient, mode="rw"):
-    client.AddLabels(label, owner="GRR")
+    client.AddLabel(label, owner=owner)
     client.Flush()
     client_index.AddClient(client)

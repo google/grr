@@ -14,8 +14,8 @@ import psutil
 from grr import config
 from grr.client.client_actions import admin
 from grr.client.client_actions import standard
-from grr.lib import action_mocks
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -28,7 +28,6 @@ from grr.server import email_alerts
 from grr.server import events
 from grr.server import flow
 from grr.server import maintenance_utils
-from grr.server import queues
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
@@ -41,6 +40,7 @@ from grr.server.flows.general import audit as _
 from grr.server.flows.general import discovery
 from grr.server.hunts import implementation as hunts_implementation
 from grr.server.hunts import standard as hunts_standard
+from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -413,7 +413,7 @@ sys.test_code_ran_here = py_args['value']
         mode="rw",
         aff4_type=users.GRRUser,
         token=self.token)
-    user.SetLabels("admin", owner="GRR")
+    user.SetLabel("admin", owner="GRRTest")
     user.Close()
 
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
@@ -465,7 +465,7 @@ sys.test_code_ran_here = py_args['value']
         mode="rw",
         aff4_type=users.GRRUser,
         token=self.token)
-    user.SetLabels("admin", owner="GRR")
+    user.SetLabel("admin", owner="GRRTest")
     user.Close()
 
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):

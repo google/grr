@@ -64,7 +64,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     client_id, = self.SetupClients(1)
 
     with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-      client.AddLabels("bar", owner="owner")
+      client.AddLabel("bar", owner="owner")
 
     self.Open("/#/stats/")
 

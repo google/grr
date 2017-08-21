@@ -3,9 +3,6 @@
 
 
 
-# The DumpFlashImage class is loaded from here
-from grr.client.components.chipsec_support import grr_chipsec_stub
-
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.server import aff4
@@ -50,7 +47,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     """Store hardware information and initiate dumping of the flash image."""
     self.state.hardware_info = responses.First()
     self.CallClient(
-        grr_chipsec_stub.DumpFlashImage,
+        server_stubs.DumpFlashImage,
         log_level=self.args.log_level,
         chunk_size=self.args.chunk_size,
         notify_syslog=self.args.notify_syslog,
@@ -143,7 +140,7 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
     """Start collecting tables with listed signature."""
     for table_signature in self.args.table_signature_list:
       self.CallClient(
-          grr_chipsec_stub.DumpACPITable,
+          server_stubs.DumpACPITable,
           logging=self.args.logging,
           table_signature=table_signature,
           next_state="TableReceived")

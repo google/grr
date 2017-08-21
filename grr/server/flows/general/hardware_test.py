@@ -4,12 +4,12 @@
 from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles
 from grr.client.components.chipsec_support.actions import chipsec_types
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import hardware as aff4_hardware
 from grr.server.flows.general import hardware
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

@@ -1633,10 +1633,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testApi(self):
     # pyformat: disable
     api = [
+        "BlobExists",
+        "BlobsExist",
         "CheckRequestsForCompletion",
+        "CollectionReadIndex",
+        "CollectionReadStoredTypes",
+        "CollectionScanItems",
         "CreateNotifications",
         "DBSubjectLock",
         "DeleteAttributes",
+        "DeleteBlob",
+        "DeleteBlobs",
         "DeleteNotifications",
         "DeleteRequest",
         "DeleteRequests",
@@ -1645,11 +1652,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "DeleteWellKnownFlowResponses",
         "DestroyFlowStates",
         "FetchResponsesForWellKnownFlow",
+        "GetMutationPool",
         "GetNotifications",
+        "IndexAddKeywordsForName",
+        "IndexReadPostingLists",
+        "IndexRemoveKeywordsForName",
         "MultiDeleteAttributes",
         "MultiDestroyFlowStates",
         "MultiResolvePrefix",
         "MultiSet",
+        "ReadBlob",
+        "ReadBlobs",
         "ReadCompletedRequests",
         "ReadRequestsAndResponses",
         "ReadResponses",
@@ -1660,7 +1673,28 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "ScanAttribute",
         "ScanAttributes",
         "Set",
+        "StoreBlob",
+        "StoreBlobs",
         "StoreRequestsAndResponses",
+    ]
+
+    pool_api = [
+        "CollectionAddIndex",
+        "CollectionAddItem",
+        "CollectionAddStoredTypeIndex",
+        "CreateNotifications",
+        "DeleteAttributes",
+        "DeleteSubject",
+        "DeleteSubjects",
+        "Flush",
+        "MultiSet",
+        "QueueAddItem",
+        "QueueClaimRecords",
+        "QueueDeleteRecords",
+        "QueueRefreshClaims",
+        "QueueReleaseRecords",
+        "Set",
+        "Size",
     ]
     # pyformat: enable
 
@@ -1668,6 +1702,16 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     reference = data_store.DataStore
 
     for f in api:
+      implementation_spec = inspect.getargspec(getattr(implementation, f))
+      reference_spec = inspect.getargspec(getattr(reference, f))
+      self.assertEqual(implementation_spec, reference_spec,
+                       "Signatures for function %s not matching: \n%s !=\n%s" %
+                       (f, implementation_spec, reference_spec))
+
+    # Check the MutationPool.
+    implementation = data_store.DB.GetMutationPool()
+    reference = data_store.MutationPool
+    for f in pool_api:
       implementation_spec = inspect.getargspec(getattr(implementation, f))
       reference_spec = inspect.getargspec(getattr(reference, f))
       self.assertEqual(implementation_spec, reference_spec,

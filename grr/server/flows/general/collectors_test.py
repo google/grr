@@ -13,7 +13,6 @@ import psutil
 
 from grr import config
 from grr.client.client_actions import standard
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -25,6 +24,7 @@ from grr.server import artifact_utils
 from grr.server import flow
 from grr.server import sequential_collection
 from grr.server.flows.general import collectors
+from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

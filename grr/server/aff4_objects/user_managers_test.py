@@ -28,7 +28,7 @@ class GRRUserTest(aff4_test_lib.AFF4ObjectTest):
   def testLabels(self):
     with aff4.FACTORY.Create(
         "aff4:/users/test", users.GRRUser, token=self.token) as user:
-      user.SetLabels("hello", "world", owner="GRR")
+      user.SetLabels(["hello", "world"], owner="GRR")
 
     user = aff4.FACTORY.Open(user.urn, token=self.token)
     self.assertListEqual(["hello", "world"], user.GetLabelsNames())

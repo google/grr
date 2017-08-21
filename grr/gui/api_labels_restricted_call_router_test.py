@@ -81,7 +81,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     client_urns = self.SetupClients(1)
     self.client_urn = client_urns[0]
     with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
-      fd.AddLabels("foo", owner="GRR")
+      fd.AddLabel("foo", owner="GRR")
     self.client_id = self.client_urn.Basename()
 
     self.hunt_id = "H:123456"

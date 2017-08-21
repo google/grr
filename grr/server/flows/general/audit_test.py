@@ -4,13 +4,13 @@
 
 import os
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server import events
 from grr.server.flows.general import audit
 from grr.server.flows.general import filesystem
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

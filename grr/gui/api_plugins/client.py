@@ -472,7 +472,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           mode="rw",
           token=token)
       for client_obj in client_objs:
-        client_obj.AddLabels(*args.labels)
+        client_obj.AddLabels(args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
 
@@ -511,7 +511,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         affected_owners.add(label.owner)
 
     for owner in affected_owners:
-      client.RemoveLabels(*labels_names, owner=owner)
+      client.RemoveLabels(labels_names, owner=owner)
 
   def Handle(self, args, token=None):
     audit_description = ",".join([

@@ -311,8 +311,8 @@ class VFSGRRClient(standard.VFSDirectory):
 
     return summary
 
-  def AddLabels(self, *label_names, **kwargs):
-    super(VFSGRRClient, self).AddLabels(*label_names, **kwargs)
+  def AddLabels(self, label_names, owner=None):
+    super(VFSGRRClient, self).AddLabels(label_names, owner=owner)
     with aff4.FACTORY.Create(
         standard.LabelSet.CLIENT_LABELS_URN,
         standard.LabelSet,

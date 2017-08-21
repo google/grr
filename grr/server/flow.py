@@ -49,6 +49,7 @@ import operator
 
 import logging
 
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -67,7 +68,6 @@ from grr.server import flow_runner
 from grr.server import grr_collections
 from grr.server import multi_type_collection
 from grr.server import queue_manager
-from grr.server import queues
 from grr.server import sequential_collection
 from grr.server import server_stubs
 

@@ -2,6 +2,9 @@
 """VFS-related test classes."""
 
 import os
+import time
+
+import mock
 
 import logging
 
@@ -144,7 +147,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         lower_parts.append(parts[-1])
         path = utils.Join(*lower_parts)
       else:
-        path = utils.Join(*[x.lower() for x in parts])
+        path = utils.Join(* [x.lower() for x in parts])
     return path
 
   def BuildIntermediateDirectories(self):
@@ -275,3 +278,144 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
       ps = self.pathspec.Copy()
       ps.last.path = os.path.join(ps.last.path, f)
       yield files.MakeStatResponse(os.stat(self._AbsPath(f)), ps)
+
+
+class RegistryFake(FakeRegistryVFSHandler):
+  """Implementation of fake registry VFS handler."""
+
+  class FakeKeyHandle(object):
+
+    def __init__(self, value):
+      self.value = value.replace("\\", "/")
+
+    def __enter__(self):
+      return self
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+      return False
+
+  def OpenKey(self, key, sub_key):
+    res = "%s/%s" % (key.value, sub_key.replace("\\", "/"))
+    res = res.rstrip("/")
+    parts = res.split("/")
+    for cache_key in [
+        utils.Join(* [p.lower() for p in parts[:-1]] + parts[-1:]),
+        res.lower()
+    ]:
+      if not cache_key.startswith("/"):
+        cache_key = "/" + cache_key
+      if cache_key in self.cache[self.prefix]:
+        return self.__class__.FakeKeyHandle(cache_key)
+    raise IOError()
+
+  def QueryValueEx(self, key, value_name):
+    full_key = os.path.join(key.value.lower(), value_name).rstrip("/")
+    try:
+      stat_entry = self.cache[self.prefix][full_key][1]
+      data = stat_entry.registry_data.GetValue()
+      if data:
+        return data, str
+    except KeyError:
+      pass
+
+    raise IOError()
+
+  def QueryInfoKey(self, key):
+    num_keys = len(self._GetKeys(key))
+    num_vals = len(self._GetValues(key))
+    for path in self.cache[self.prefix]:
+      if path == key.value:
+        _, stat_entry = self.cache[self.prefix][path]
+        modification_time = stat_entry.st_mtime
+        if modification_time:
+          return num_keys, num_vals, modification_time
+
+    modification_time = time.time()
+    return num_keys, num_vals, modification_time
+
+  def EnumKey(self, key, index):
+    try:
+      return self._GetKeys(key)[index]
+    except IndexError:
+      raise IOError()
+
+  def _GetKeys(self, key):
+    res = []
+    for path in self.cache[self.prefix]:
+      if os.path.dirname(path) == key.value:
+        sub_type, stat_entry = self.cache[self.prefix][path]
+        if sub_type.__name__ == "VFSDirectory":
+          res.append(os.path.basename(stat_entry.pathspec.path))
+    return sorted(res)
+
+  def EnumValue(self, key, index):
+    try:
+      subkey = self._GetValues(key)[index]
+      value, value_type = self.QueryValueEx(key, subkey)
+      return subkey, value, value_type
+    except IndexError:
+      raise IOError()
+
+  def _GetValues(self, key):
+    res = []
+    for path in self.cache[self.prefix]:
+      if os.path.dirname(path) == key.value:
+        sub_type, stat_entry = self.cache[self.prefix][path]
+        if sub_type.__name__ == "VFSFile":
+          res.append(os.path.basename(stat_entry.pathspec.path))
+    return sorted(res)
+
+
+class RegistryVFSStubber(object):
+  """Stubber helper for tests that have to emulate registry VFS handler."""
+
+  def __enter__(self):
+    self.Start()
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.Stop()
+
+  def Start(self):
+    """Install the stubs."""
+
+    modules = {
+        "_winreg": mock.MagicMock(),
+        "ctypes": mock.MagicMock(),
+        "ctypes.wintypes": mock.MagicMock(),
+        # Requires mocking because exceptions.WindowsError does not exist
+        "exceptions": mock.MagicMock(),
+    }
+
+    self.module_patcher = mock.patch.dict("sys.modules", modules)
+    self.module_patcher.start()
+
+    # pylint: disable= g-import-not-at-top
+    from grr.client.vfs_handlers import registry
+    import exceptions
+    import _winreg
+    # pylint: enable=g-import-not-at-top
+
+    fixture = RegistryFake()
+
+    self.stubber = utils.MultiStubber(
+        (registry, "KeyHandle", RegistryFake.FakeKeyHandle),
+        (registry, "OpenKey", fixture.OpenKey), (registry, "QueryValueEx",
+                                                 fixture.QueryValueEx),
+        (registry, "QueryInfoKey",
+         fixture.QueryInfoKey), (registry, "EnumValue",
+                                 fixture.EnumValue), (registry, "EnumKey",
+                                                      fixture.EnumKey))
+    self.stubber.Start()
+
+    # Add the Registry handler to the vfs.
+    vfs.VFSInit().Run()
+    _winreg.HKEY_USERS = "HKEY_USERS"
+    _winreg.HKEY_LOCAL_MACHINE = "HKEY_LOCAL_MACHINE"
+    exceptions.WindowsError = IOError
+
+  def Stop(self):
+    """Uninstall the stubs."""
+
+    self.module_patcher.stop()
+    self.stubber.Stop()

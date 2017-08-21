@@ -9,7 +9,6 @@ import hashlib
 import os
 
 from grr.client import vfs
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -27,6 +26,7 @@ from grr.server.aff4_objects import standard as aff4_standard
 from grr.server.flows.general import audit as _
 # pylint: enable=unused-import
 from grr.server.flows.general import file_finder
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

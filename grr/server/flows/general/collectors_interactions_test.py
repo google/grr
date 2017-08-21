@@ -10,7 +10,6 @@ import os
 
 
 from grr import config
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -20,6 +19,7 @@ from grr.server import artifact_registry
 from grr.server import data_store
 from grr.server.flows.general import collectors
 from grr.server.flows.general import transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib

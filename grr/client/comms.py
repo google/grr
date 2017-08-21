@@ -96,6 +96,7 @@ from grr.client import client_utils
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import communicator
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -106,7 +107,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server import queues
 
 
 class HTTPObject(object):

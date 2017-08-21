@@ -146,11 +146,11 @@ class ApiListClientsLabelsHandlerRegressionTest(
 
       with aff4.FACTORY.Open(
           client_ids[0], mode="rw", token=self.token) as grr_client:
-        grr_client.AddLabels("foo")
+        grr_client.AddLabel("foo")
 
       with aff4.FACTORY.Open(
           client_ids[1], mode="rw", token=self.token) as grr_client:
-        grr_client.AddLabels("bar")
+        grr_client.AddLabel("bar")
 
     self.Check("ListClientsLabels")
 

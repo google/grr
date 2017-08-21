@@ -8,7 +8,6 @@ import os
 import unittest
 from grr.gui import gui_test_lib
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -22,6 +21,7 @@ from grr.server.flows.general import webhistory as flows_webhistory
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 

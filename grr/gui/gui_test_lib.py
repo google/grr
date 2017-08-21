@@ -22,7 +22,6 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp_testlib
 
-from grr.lib import action_mocks
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -48,7 +47,7 @@ from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
-from grr.test_lib import acl_test_lib
+from grr.test_lib import action_mocks
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 

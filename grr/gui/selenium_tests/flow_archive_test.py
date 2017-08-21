@@ -11,7 +11,6 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
 from grr.gui.api_plugins import flow as api_flow
 
-from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -19,6 +18,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server import flow
 from grr.server.flows.general import transfer as flows_transfer
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 
 
