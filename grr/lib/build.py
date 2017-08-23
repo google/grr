@@ -810,6 +810,15 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
             systemd_target_filename)
 
+        # Generate prelinking blacklist file
+        prelink_target_filename = os.path.join(
+            rpm_build_dir, "etc/prelink.conf.d", "%s.conf" % client_name)
+
+        utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
+        self.GenerateFile(
+            os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
+            prelink_target_filename)
+
       # Create a client config.
       client_context = ["Client Context"] + self.context
       client_config_content = self.GetClientConfig(client_context)

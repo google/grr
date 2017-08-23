@@ -122,3 +122,8 @@ class CentosClientBuilder(LinuxClientBuilder):
     shutil.copy(config_lib.Resource().Filter(
         "install_data/systemd/client/grr-client.service"),
                 os.path.join(build_dir, "rpmbuild/grr-client.service.in"))
+
+    # Copy prelink blacklist file
+    shutil.copy(config_lib.Resource().Filter(
+        "install_data/centos/prelink_blacklist.conf.in"),
+                os.path.join(build_dir, "rpmbuild/prelink_blacklist.conf.in"))
