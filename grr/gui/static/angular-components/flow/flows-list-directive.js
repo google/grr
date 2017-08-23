@@ -5,7 +5,18 @@ goog.provide('grrUi.flow.flowsListDirective.FlowsListDirective');
 goog.provide('grrUi.flow.flowsListDirective.flattenFlowsList');
 goog.provide('grrUi.flow.flowsListDirective.toggleFlowExpansion');
 
+goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
+
 goog.scope(function() {
+
+var TABLE_KEY_NAME =
+    grrUi.core.infiniteTableDirective.InfiniteTableController.UNIQUE_KEY_NAME;
+var TABLE_ROW_HASH =
+    grrUi.core.infiniteTableDirective.InfiniteTableController.ROW_HASH_NAME;
+
+
+/** @const {number} */
+grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL = 30;
 
 
 /**
@@ -143,6 +154,13 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
   /** @type {?string} */
   this.selectedFlowId;
 
+  /** @type {function(boolean)} */
+  this.triggerTableUpdate;
+
+  /** @type {number} */
+  this.autoRefreshInterval =
+      grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL;
+
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.
   this.scope_.$watch('controller.selectedFlowId', function(newValue) {
@@ -159,6 +177,10 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
       this.selectedFlowId = newValue;
     }
   }.bind(this));
+
+  // Propagate our triggerUpdate implementation to the scope so that users of
+  // this directive can use it.
+  this.scope_['triggerUpdate'] = this.triggerUpdate.bind(this);
 };
 var FlowsListController = grrUi.flow.flowsListDirective.FlowsListController;
 
@@ -198,11 +220,26 @@ FlowsListController.prototype.transformItems = function(items) {
       e.stopPropagation();
       toggleFlowExpansion(flattenedItems, index);
     };
+
+    item[TABLE_KEY_NAME] = item['value']['flow_id']['value'];
+    item[TABLE_ROW_HASH] = [
+      item['value']['state']['value'],
+      item['value']['last_active_at']['value'],
+    ];
   }.bind(this));
 
   return flattenedItems;
 };
 
+
+/**
+ * Triggers a graceful update of the infinite table.
+ *
+ * @export
+ */
+FlowsListController.prototype.triggerUpdate = function() {
+  this.triggerTableUpdate(true);
+};
 
 /**
  * FlowsListDirective definition.

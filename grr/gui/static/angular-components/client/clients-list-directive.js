@@ -128,6 +128,8 @@ ClientsListController.prototype.onClientsFetched = function(items) {
     angular.forEach(item['value']['users'], function(user) {
       item['_usernames'].push(user['value']['username']);
     }.bind(this));
+
+    item['tableKey'] = urn;
   }.bind(this));
 
   return items;

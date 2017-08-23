@@ -26,12 +26,12 @@ from grr import config
 from grr.gui import http_api
 
 from grr.gui import webauth
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import server_logging
 
 from grr.server.aff4_objects import users as aff4_users
 
@@ -153,14 +153,14 @@ def LogAccessWrapper(func):
     """Wrapping function."""
     try:
       response = func(request, *args, **kwargs)
-      log.LOGGER.LogHttpAdminUIAccess(request, response)
+      server_logging.LOGGER.LogHttpAdminUIAccess(request, response)
     except Exception:  # pylint: disable=g-broad-except
       # This should never happen: wrapped function is supposed to handle
       # all possible exceptions and generate a proper Response object.
       # Still, handling exceptions here to guarantee that the access is logged
       # no matter what.
       response = werkzeug_wrappers.Response("", status=500)
-      log.LOGGER.LogHttpAdminUIAccess(request, response)
+      server_logging.LOGGER.LogHttpAdminUIAccess(request, response)
       raise
 
     return response

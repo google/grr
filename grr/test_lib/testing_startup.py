@@ -7,11 +7,11 @@ from grr import config
 from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import server_logging
 from grr.server.blob_stores import memory_stream_bs
 from grr.server.data_stores import fake_data_store
 
@@ -63,7 +63,7 @@ def TestInit():
                     memory_stream_bs.MemoryStreamBlobstore.__name__)
 
   if not INIT_RAN:
-    log.ServerLoggingStartupInit()
+    server_logging.ServerLoggingStartupInit()
 
   registry.TestInit()
 

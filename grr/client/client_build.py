@@ -16,10 +16,10 @@ from grr import config as grr_config
 # pylint: disable=unused-import
 from grr.client import client_plugins
 # pylint: enable=unused-import
+from grr.client import client_startup
 
 from grr.lib import build
 from grr.lib import builders
-from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import repacking

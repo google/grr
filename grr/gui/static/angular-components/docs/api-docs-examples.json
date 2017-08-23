@@ -774,6 +774,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -808,6 +813,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "state": {
                 "age": 0,
@@ -852,6 +862,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "clients_with_results_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
@@ -859,6 +870,7 @@
           "expires": 1209642000000,
           "is_robot": false,
           "name": "GenericHunt",
+          "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
@@ -3212,6 +3224,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -3246,6 +3263,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "state": {
                 "age": 0,
@@ -3287,6 +3309,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "clients_with_results_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
@@ -3294,6 +3317,7 @@
           "expires": 1209642000000,
           "is_robot": false,
           "name": "GenericHunt",
+          "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
@@ -3358,6 +3382,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -3392,6 +3421,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "state": {
                 "age": 0,
@@ -3433,6 +3467,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "clients_with_results_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
@@ -3440,6 +3475,7 @@
           "expires": 1209642000000,
           "is_robot": false,
           "name": "GenericHunt",
+          "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
@@ -3761,6 +3797,11 @@
               ]
             }
           },
+          "clients_with_results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "completed_clients_count": {
             "age": 0,
             "type": "long",
@@ -3894,6 +3935,11 @@
             "type": "long",
             "value": 0
           },
+          "results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "state": {
             "age": 0,
             "type": "EnumNamedValue",
@@ -3932,6 +3978,7 @@
             }
           ]
         },
+        "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
         "created": 42000000,
@@ -3965,6 +4012,7 @@
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
+        "results_count": 0,
         "state": "PAUSED",
         "total_cpu_usage": 5000.0,
         "total_net_usage": 1000000,
@@ -8134,6 +8182,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -8168,6 +8221,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "state": {
                 "age": 0,
@@ -8209,6 +8267,7 @@
         "subject": {
           "client_limit": 100,
           "client_rate": 0.0,
+          "clients_with_results_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
@@ -8216,6 +8275,7 @@
           "expires": 1209642000000,
           "is_robot": false,
           "name": "GenericHunt",
+          "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
@@ -11285,6 +11345,11 @@
                     "type": "float",
                     "value": 20.5
                   },
+                  "clients_with_results_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
                   "crash_limit": {
                     "age": 0,
                     "type": "long",
@@ -11319,6 +11384,11 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "GenericHunt"
+                  },
+                  "results_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
                   },
                   "state": {
                     "age": 0,
@@ -11364,6 +11434,7 @@
             "subject": {
               "client_limit": 100,
               "client_rate": 20.5,
+              "clients_with_results_count": 0,
               "crash_limit": 100,
               "created": 42000000,
               "creator": "api_test_user",
@@ -11371,6 +11442,7 @@
               "expires": 1209642000000,
               "is_robot": false,
               "name": "GenericHunt",
+              "results_count": 0,
               "state": "PAUSED",
               "total_cpu_usage": 0,
               "total_net_usage": 0,
@@ -13382,6 +13454,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -13416,6 +13493,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "state": {
                 "age": 0,
@@ -13453,6 +13535,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -13488,6 +13575,11 @@
                 "type": "unicode",
                 "value": "GenericHunt"
               },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "state": {
                 "age": 0,
                 "type": "EnumNamedValue",
@@ -13519,6 +13611,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
@@ -13526,6 +13619,7 @@
             "expires": 1211600000000,
             "is_robot": false,
             "name": "GenericHunt",
+            "results_count": 0,
             "state": "STOPPED",
             "total_cpu_usage": 0,
             "total_net_usage": 0,
@@ -13534,6 +13628,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
@@ -13541,6 +13636,7 @@
             "expires": 1210600000000,
             "is_robot": false,
             "name": "GenericHunt",
+            "results_count": 0,
             "state": "PAUSED",
             "total_cpu_usage": 0,
             "total_net_usage": 0,
@@ -13570,6 +13666,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "crash_limit": {
                 "age": 0,
                 "type": "long",
@@ -13605,6 +13706,11 @@
                 "type": "unicode",
                 "value": "GenericHunt"
               },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "state": {
                 "age": 0,
                 "type": "EnumNamedValue",
@@ -13636,6 +13742,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
@@ -13643,6 +13750,7 @@
             "expires": 1211600000000,
             "is_robot": false,
             "name": "GenericHunt",
+            "results_count": 0,
             "state": "STOPPED",
             "total_cpu_usage": 0,
             "total_net_usage": 0,
@@ -13671,6 +13779,11 @@
                 "age": 0,
                 "type": "float",
                 "value": 0.0
+              },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "crash_limit": {
                 "age": 0,
@@ -13707,6 +13820,11 @@
                 "type": "unicode",
                 "value": "GenericHunt"
               },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "state": {
                 "age": 0,
                 "type": "EnumNamedValue",
@@ -13738,6 +13856,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
@@ -13745,6 +13864,7 @@
             "expires": 1210600000000,
             "is_robot": false,
             "name": "GenericHunt",
+            "results_count": 0,
             "state": "PAUSED",
             "total_cpu_usage": 0,
             "total_net_usage": 0,
@@ -15101,6 +15221,11 @@
               ]
             }
           },
+          "clients_with_results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "completed_clients_count": {
             "age": 0,
             "type": "long",
@@ -15239,6 +15364,11 @@
             "type": "long",
             "value": 0
           },
+          "results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "state": {
             "age": 0,
             "type": "EnumNamedValue",
@@ -15277,6 +15407,7 @@
             }
           ]
         },
+        "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
         "created": 42000000,
@@ -15311,6 +15442,7 @@
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
+        "results_count": 0,
         "state": "PAUSED",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
@@ -15378,6 +15510,11 @@
               ]
             }
           },
+          "clients_with_results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "completed_clients_count": {
             "age": 0,
             "type": "long",
@@ -15516,6 +15653,11 @@
             "type": "long",
             "value": 0
           },
+          "results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "state": {
             "age": 0,
             "type": "EnumNamedValue",
@@ -15554,6 +15696,7 @@
             }
           ]
         },
+        "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
         "created": 42000000,
@@ -15588,6 +15731,7 @@
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
+        "results_count": 0,
         "state": "STOPPED",
         "total_cpu_usage": 0,
         "total_net_usage": 0,

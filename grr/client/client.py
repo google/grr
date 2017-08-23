@@ -10,10 +10,10 @@ from grr import config
 # pylint: disable=unused-import
 from grr.client import client_plugins
 # pylint: enable=unused-import
+from grr.client import client_startup
 from grr.client import comms
 from grr.client import installer
 from grr.config import contexts
-from grr.lib import client_startup
 from grr.lib import config_lib
 from grr.lib import flags
 

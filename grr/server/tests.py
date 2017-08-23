@@ -32,6 +32,7 @@ from grr.server import output_plugin_test
 from grr.server import queue_manager_test
 from grr.server import rekall_profile_server_test
 from grr.server import sequential_collection_test
+from grr.server import server_logging_test
 from grr.server import server_stubs_test
 from grr.server import stats_server_test
 from grr.server.aff4_objects import tests

@@ -14,7 +14,6 @@ from grr.lib import config_lib_test
 from grr.lib import config_validation_test
 from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
-from grr.lib import log_test
 from grr.lib import objectfilter_test
 from grr.lib import parsers_test
 from grr.lib import repacking_test

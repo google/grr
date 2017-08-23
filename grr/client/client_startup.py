@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Client startup routines."""
 
+from grr.client import client_logging
 from grr.lib import config_lib
-from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
 
@@ -15,5 +15,5 @@ def ClientInit():
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
 
-  log.LogInit()
+  client_logging.LogInit()
   registry.Init()

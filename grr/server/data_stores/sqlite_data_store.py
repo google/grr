@@ -960,6 +960,10 @@ class SqliteDataStore(data_store.DataStore):
           "No test DB found, using root %s" % self.cache.RootPath())
     shutil.rmtree(root_path)
     os.makedirs(root_path)
+    # This closes all SQLite connections in the cache. If we don't
+    # close them, subsequent access to SQLite files with the same name
+    # might fail randomly.
+    self.cache.Flush()
     self.cache = SqliteConnectionCache(
         config.CONFIG["SqliteDatastore.connection_cache_size"], root_path)
 

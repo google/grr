@@ -136,6 +136,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.creator = context.creator
     self.description = hunt.runner_args.description
     self.is_robot = context.creator == "GRRWorker"
+    self.results_count = context.results_count
+    self.clients_with_results_count = context.clients_with_results_count
 
     hunt_stats = context.usage_stats
     self.total_cpu_usage = hunt_stats.user_cpu_stats.sum

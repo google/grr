@@ -1,5 +1,6 @@
 'use strict';
 
+goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');
@@ -23,7 +24,7 @@ describe('infinite table', function() {
     $(document.body).html('');
   });
 
-  var render = function(items, noDomAppend, filterValue) {
+  var render = function(items, noDomAppend, filterValue, withAutoRefresh) {
     $rootScope.testItems = items;
     if (filterValue) {
       $rootScope.filterValue = filterValue;
@@ -42,9 +43,10 @@ describe('infinite table', function() {
         '<tbody>' +
         '<tr grr-infinite-table grr-memory-items-provider ' +
         '    items="testItems" page-size="5"' +
+        (withAutoRefresh ? '    auto-refresh-interval="1" ' : '') +
         '    filter-value="filterValue">' +
-        '  <td>{$ item.timestamp $}</td>' +
-        '  <td>{$ item.message $}</td>' +
+        '  <td>{$ ::item.timestamp $}</td>' +
+        '  <td>{$ ::item.message $}</td>' +
         '</tr>' +
         '</tbody' +
         '</table>' +
@@ -138,5 +140,109 @@ describe('infinite table', function() {
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(0);
+  });
+
+  describe('with auto refresh turned on', function() {
+    var TABLE_KEY =
+        grrUi.core.infiniteTableDirective.InfiniteTableController
+        .UNIQUE_KEY_NAME;
+    var ROW_HASH =
+        grrUi.core.infiniteTableDirective.InfiniteTableController
+        .ROW_HASH_NAME;
+
+    var transformItems = function(items) {
+      for (var i = 0; i < items.length; ++i) {
+        var item = items[i];
+        item[TABLE_KEY] = item['message'];
+        item[ROW_HASH] = item['timestamp'];
+      }
+      return items;
+    };
+
+    it('adds new element to the beginning of the list', function() {
+      var element = render(
+          transformItems([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}]),
+          undefined, undefined, true);
+
+      expect($('table', element).length).toBe(1);
+      expect($('table tr', element).length).toBe(2);
+
+      // Update the memory items provider elements and push the clock.
+      $rootScope.testItems.push(
+          transformItems([{timestamp: 44, message: 'blah'}])[0]);
+      $interval.flush(1000);
+      expect($('table tr', element).length).toBe(3);
+
+      // New element should be inserted in the beginning of the table.
+      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).
+        toBe(1);
+      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length).
+          toBe(1);
+
+      // Check that the behavior is stable, i.e. element is added only once.
+      $interval.flush(2000);
+      expect($('table tr', element).length).toBe(3);
+      expect($('table tr:eq(0) td:eq(0):contains(44)', element).length).
+        toBe(1);
+      expect($('table tr:eq(0) td:eq(1):contains(blah)', element).length).
+          toBe(1);
+
+      expect($('table tr:eq(1) td:eq(0):contains(42)', element).length).
+        toBe(1);
+      expect($('table tr:eq(1) td:eq(1):contains(foo)', element).length).
+          toBe(1);
+
+      expect($('table tr:eq(2) td:eq(0):contains(43)', element).length).
+        toBe(1);
+      expect($('table tr:eq(2) td:eq(1):contains(bar)', element).length).
+          toBe(1);
+    });
+
+    it('does nothing with the row if row hash has not changed', function() {
+      var element = render(
+          transformItems([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}]),
+          undefined, undefined, true);
+
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
+        toBe(1);
+
+      // Change the message, but don't touch the hash.
+      $rootScope.testItems[0]["timestamp"] = 88;
+      $interval.flush(2000);
+
+      // Result shouldn't be updated, since the hash hasn't changed.
+      //
+      // (Note that one-time-bindings are used in the template, meaning
+      // that each row can only be updated by grr-infinite-table and not
+      // via standard Angular bindings mechanism).
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
+          toBe(1);
+    });
+
+    it('updates the row if row hash has changed', function() {
+      var element = render(
+          transformItems([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}]),
+          undefined, undefined, true);
+
+      expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
+        toBe(1);
+
+      // Change the message, but don't touch the hash.
+      $rootScope.testItems[0]["timestamp"] = 88;
+      transformItems($rootScope.testItems);
+      $interval.flush(2000);
+
+      // Result should be updated, since the hash has changed.
+      //
+      // (Note that one-time-bindings are used in the template, meaning
+      // that each row can only be updated by grr-infinite-table and not
+      // via standard Angular bindings mechanism).
+      expect($('table tr:eq(0) td:eq(0):contains(88)', element).length).
+          toBe(1);
+    });
+
   });
 });

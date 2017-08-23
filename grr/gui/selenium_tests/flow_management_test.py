@@ -384,6 +384,59 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # The window should be updated now
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
 
+  def testFlowListGetsUpdatedWithNewFlows(self):
+    flow_1 = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL = 1")
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL setting is not reset.
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # Check that the flow list is correctly loaded.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % flow_1.Basename())
+
+    flow_2 = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
+        token=self.token)
+
+    # Check that the flow we started in the background appears in the list.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % flow_2.Basename())
+
+  def testFlowListGetsUpdatedWithChangedFlows(self):
+    f = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL = 1")
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL setting is not reset.
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # Check that the flow is running.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s') div[state=RUNNING]" % f.Basename())
+
+    # Cancel the flow and check that the flow state gets updated.
+    flow.GRRFlow.TerminateFlow(
+        f, "Because I said so", token=self.token, force=True)
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s') div[state=ERROR]" % f.Basename())
+
 
 def main(argv):
   del argv  # Unused.

@@ -1051,10 +1051,10 @@ class GrrConfigManager(object):
     for descriptor in sorted(self.type_infos, key=lambda x: x.name):
       result += descriptor.Help() + "\n"
       try:
-        result += "* Value = %s\n" % self.Get(descriptor.name)
+        result += "   Current Value: %s\n" % self.Get(descriptor.name)
       except Exception as e:  # pylint:disable=broad-except
-        result += "* Value = %s (Error: %s)\n" % (self.GetRaw(descriptor.name),
-                                                  e)
+        result += "   Current Value: %s (Error: %s)\n" % (
+            self.GetRaw(descriptor.name), e)
     return result
 
   def PrintHelp(self):

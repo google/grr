@@ -10,10 +10,10 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from grr.gui import wsgiapp
 from grr.lib import flags
-from grr.lib import log
 from grr.lib import stats
 from grr.lib import utils
 from grr.proto import jobs_pb2
+from grr.server import server_logging
 from grr.test_lib import test_lib
 
 
@@ -29,7 +29,7 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
   def setUp(self):
     super(ApplicationLoggerTests, self).setUp()
 
-    self.l = log.GrrApplicationLogger()
+    self.l = server_logging.GrrApplicationLogger()
 
     self.log = ""
     self.log_stubber = utils.Stubber(logging, "info", self.Log)

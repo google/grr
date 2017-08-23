@@ -15,12 +15,13 @@ goog.scope(function() {
  * @param {!angular.Attributes} $attrs
  * @param {!angular.jQuery} $element
  * @param {!angular.$interval} $interval
- * @param {function(function(angular.jQuery, angular.Scope), angular.jQuery)} $transclude
+ * @param {function(function(angular.jQuery, angular.Scope))} $transclude
  * @param {!angular.$parse} $parse
+ * @param {!angular.$log} $log
  * @ngInject
  */
 grrUi.core.infiniteTableDirective.InfiniteTableController = function(
-    $scope, $attrs, $element, $interval, $transclude, $parse) {
+    $scope, $attrs, $element, $interval, $transclude, $parse, $log) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
@@ -35,11 +36,11 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
 
-  /**
-   * @private {function(function(angular.jQuery, angular.Scope),
-   *     angular.jQuery)}
-   */
+  /** @private {function(function(angular.jQuery, angular.Scope))} */
   this.transclude_ = $transclude;
+
+  /** @private {!angular.$log} */
+  this.log_ = $log;
 
   // Internal state.
 
@@ -51,48 +52,61 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
 
   /**
    * List of currently fetched items.
-   * @export {!Array<Object>}
+   * @private {!Array<Object>}
    */
-  this.fetchedItems = [];
+  this.fetchedItems_ = [];
 
   /**
    * Current page index. Used when calculating ranges of items to be fetched.
-   * @export {number}
+   * @private {number}
    */
-  this.currentPage = 0;
+  this.currentPage_ = 0;
 
   /**
    * If this is bigger than currentPage, new pages of data will be fetched
    * until currentPage == showUntilPage (currentPage gets incremented every
    * time a new page is fetched). This mechanism is used when triggerUpdate
    * is called, so that same amount of data is displayed after the update.
-   * @export {number}
+   * @private {number}
    */
-  this.showUntilPage = 0;
+  this.showUntilPage_ = 0;
 
   /**
-   * @export {string}
+   * @private {string}
    */
-  this.filterValue;
+  this.filterValue_;
 
   /**
    * True, if there's a request currently in progress.
-   * @export {boolean}
+   * @private {boolean}
    */
-  this.requestInProgress = false;
+  this.loadingInProgress_ = false;
+
+  /**
+   * True, if there's an auto-refresh request currently in progress.
+   * @private {boolean}
+   */
+  this.autoRefreshInProgress_ = false;
 
   /**
    * Root element where all the rendered data will be appended to.
-   * @export {angular.jQuery}
+   * @private {angular.jQuery}
    */
-  this.rootElement = this.element_.parent();
+  this.rootElement_ = this.element_.parent();
 
   /**
    * Page size - if not specified by the user, defaults to 50.
-   * @export {number}
+   * @private {number}
    */
-  this.pageSize = Number($scope.$eval(this.attrs_['pageSize'])) ||
+  this.pageSize_ = Number($scope.$eval(this.attrs_['pageSize'])) ||
       InfiniteTableController.DEFAULT_PAGE_SIZE;
+
+  /**
+   * Dictionary with a list of currently shown elements.
+   * Used to make graceful updates (without reloading everything) possible.
+   * @private {Object<string, Array<Object>>}
+   */
+  this.elementScopes_ = {};
 
   // Replace the directive's element with table-loading row.
   var template = angular.element(InfiniteTableController.LOADING_TEMPLATE);
@@ -107,13 +121,34 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
 
   // Initialize timer used to check whether table-loading element is visible.
   /** @type {!angular.$q.Promise} */
-  var timer = this.interval_(this.checkIfTableLoadingIsVisible_.bind(this),
-                             100);
+  var loadingTimer = this.interval_(this.checkIfTableLoadingIsVisible_.bind(this),
+                                    100);
 
   // Destroy the timer when the shared directive's scope is destroyed.
   this.scope_.$on('$destroy', function() {
-    this.interval_.cancel(timer);
+    this.interval_.cancel(loadingTimer);
   }.bind(this));
+
+  /**
+   * Auto refresh interval in seconds. If specified the table will auto-refresh
+   * itself periodically, gracefully inserting new elements and updating changed
+   * elements.
+   * @private {number}
+   */
+  this.autoRefreshInterval_ = Number(
+      $scope.$eval(this.attrs_['autoRefreshInterval']));
+
+  if (this.autoRefreshInterval_) {
+    // Initialize timer used to refresh data in the table.
+    /** @type {!angular.$q.Promise} */
+    var refreshTimer = this.interval_(this.refreshData_.bind(this),
+                                      this.autoRefreshInterval_ * 1000);
+
+    // Destroy the timer when the shared directive's scope is destroyed.
+    this.scope_.$on('$destroy', function() {
+      this.interval_.cancel(refreshTimer);
+    }.bind(this));
+  }
 
   // Whenever the filter changes, we need to refetch the items and start from
   // page 1.
@@ -133,6 +168,13 @@ InfiniteTableController.LOADING_TEMPLATE = '<tr><td colspan="100" ' +
     'class="table-loading">Loading...</td></tr>';
 
 
+/** @const */
+InfiniteTableController.UNIQUE_KEY_NAME = '_grrTableKey';
+
+/** @const */
+InfiniteTableController.ROW_HASH_NAME = '_grrTableRowHash';
+
+
 /**
  * Changes fetched items list, updating the presentation accordingly.
  *
@@ -140,18 +182,58 @@ InfiniteTableController.LOADING_TEMPLATE = '<tr><td colspan="100" ' +
  * @private
  */
 InfiniteTableController.prototype.setFetchedItems_ = function(newValue) {
-  if (newValue.length != this.fetchedItems.length) {
-    var loadingElement = $(this.rootElement).find('tr:has(td.table-loading)');
-    for (var i = this.fetchedItems.length; i < newValue.length; ++i) {
+  if (newValue.length != this.fetchedItems_.length) {
+    var loadingElement = $(this.rootElement_).find('tr:has(td.table-loading)');
+    for (var i = this.fetchedItems_.length; i < newValue.length; ++i) {
       this.transclude_(
           function(clone, scope) {
             scope.item = newValue[i];
+
+            var key = newValue[i][InfiniteTableController.UNIQUE_KEY_NAME];
+            if (angular.isUndefined(key) && this.autoRefreshInterval_) {
+              // Exceptions thrown inside transclude_() call will be swallowed,
+              // using logging instead.
+              this.log_.error('items in infinite table with auto-refresh ' +
+                  'have to have ' + InfiniteTableController.UNIQUE_KEY_NAME +
+                  ' set');
+            }
+            key = key || '';
+
+            var rowHash = newValue[i][InfiniteTableController.ROW_HASH_NAME];
+            if (angular.isUndefined(rowHash) && this.autoRefreshInterval_) {
+              // Exceptions thrown inside transclude_() call will be swallowed,
+              // using logging instead.
+              this.log_.error('items in infinite table with auto-refresh ' +
+                  'have to have ' + InfiniteTableController.ROW_HASH_NAME +
+                  ' set');
+            }
+            rowHash = rowHash || '';
+
+            // Put the new element between 2 comments, so that we can easily
+            // find it. The way Angular works, a single transclude element
+            // may expand itself into 2 or more elements, so it's not
+            // enough to track the transcluded element itself, since more
+            // siblings may be added later.
+            //
+            // Therefore we track the start/end comments and it's guaranteed
+            // that all transcluded elements corresponding to the current
+            // item will be between them.
+            var startComment = document.createComment('-> ' + key);
+            var endComment = document.createComment('<- ' + key);
+            this.elementScopes_[key] = [
+              startComment,
+              endComment,
+              scope,
+              rowHash];
+
+            $(startComment).insertBefore(loadingElement);
             clone.insertBefore(loadingElement);
-          }, this.rootElement);
+            $(endComment).insertBefore(loadingElement);
+          }.bind(this));
     }
   }
 
-  this.fetchedItems = newValue;
+  this.fetchedItems_ = newValue;
 };
 
 
@@ -160,12 +242,27 @@ InfiniteTableController.prototype.setFetchedItems_ = function(newValue) {
  * will be fetched again (see showUntilPage). This function is assigned
  * to user-provided binding if trigger-update attribute is specified.
  *
+ * @param {boolean} graceful If true, then do not reload, but rather update
+ *     the table - i.e. trigger an immediate auto-refresh iteration.
+ *     Auto-refresh doesn't delete old elements, it searches for changed
+ *     items and updates them and inserts new items to the top of the table.
+ *     User doesn't see the table reloading itself while auto-refresh is in
+ *     progress.
+ *
  * @export
  */
-InfiniteTableController.prototype.triggerUpdate = function() {
-  this.setFetchedItems_([]);
-  this.currentPage = 0;
-  this.rootElement.html(InfiniteTableController.LOADING_TEMPLATE);
+InfiniteTableController.prototype.triggerUpdate = function(graceful) {
+  if (graceful) {
+    if (!this.autoRefreshInterval_) {
+      throw new Error('graceful refresh is only possible in infinite tables ' +
+          'with auto-refresh turned on');
+    }
+    this.refreshData_();
+  } else {
+    this.setFetchedItems_([]);
+    this.currentPage_ = 0;
+    this.rootElement_.html(InfiniteTableController.LOADING_TEMPLATE);
+  }
 };
 
 /**
@@ -176,9 +273,9 @@ InfiniteTableController.prototype.triggerUpdate = function() {
  * @private
  */
 InfiniteTableController.prototype.onFilterChange_ = function(newFilterValue) {
-  if (newFilterValue !== this.filterValue) {
-    this.filterValue = newFilterValue;
-    this.triggerUpdate();
+  if (newFilterValue !== this.filterValue_) {
+    this.filterValue_ = newFilterValue;
+    this.triggerUpdate(false);
   }
 };
 
@@ -190,11 +287,11 @@ InfiniteTableController.prototype.onFilterChange_ = function(newFilterValue) {
  * @private
  */
 InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
-  if (this.requestInProgress) {
+  if (this.loadingInProgress_) {
     return;
   }
 
-  $(this.rootElement).find('.table-loading').each(
+  $(this.rootElement_).find('.table-loading').each(
       function(index, loadingElement) {
         var loadingOffset = $(loadingElement).offset();
         var elem = document.elementFromPoint(
@@ -202,12 +299,102 @@ InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
             loadingOffset.top - $(window).scrollTop() + 1);
         if ($(elem).hasClass('table-loading')) {
           this.tableLoadingElementWasShown_();
-        } else if (this.showUntilPage > this.currentPage) {
+        } else if (this.showUntilPage_ > this.currentPage_) {
           this.tableLoadingElementWasShown_();
         }
       }.bind(this));
 };
 
+
+/**
+ * Starts a graceful-refresh. Refetches all items that are currently
+ * shown and updates the elements or adds new ones to the beginning
+ * of the list.
+ *
+ * @private
+ */
+InfiniteTableController.prototype.refreshData_ = function() {
+  if (this.loadingInProgress_ || this.autoRefreshInProgress_) {
+    return;
+  }
+
+  this.autoRefreshInProgress_ = true;
+  this.itemsProvider.fetchItems(0, this.currentPage_ * this.pageSize_).then(
+      function(newItems) {
+        this.autoRefreshInProgress_ = false;
+        this.onAutoRefreshDataFetched_(newItems);
+      }.bind(this));
+};
+
+/**
+ * Handles data fetched during periodic auto-refresh. Updates the elements
+ * or adds new ones at the beginning of the table.
+ *
+ * @param {Object} newItems Server response with new items.
+ *
+ * @private
+ */
+InfiniteTableController.prototype.onAutoRefreshDataFetched_ = function(newItems) {
+  for (var i = 0; i < newItems.items.length; ++i) {
+    var newItem = newItems.items[i];
+    var key = newItem[InfiniteTableController.UNIQUE_KEY_NAME];
+    var rowHash = newItem[InfiniteTableController.ROW_HASH_NAME];
+    var elemScope = this.elementScopes_[key];
+
+    if (angular.isDefined(elemScope)) {
+      // The item with the same unique key was already displayed. We need to
+      // remove the old element and show a new one.
+      var startComment = elemScope[0];
+      var endComment = elemScope[1];
+      var scope = elemScope[2];
+      var oldRowHash = elemScope[3];
+
+      if (angular.equals(oldRowHash, rowHash)) {
+        continue;
+      }
+
+      scope.$destroy();
+
+      // Remove elements between startComment and endComment.
+      var toRemove = [];
+      for (var e = startComment.nextSibling; e !== endComment; e = e.nextSibling) {
+        toRemove.push(e);
+      }
+      $(toRemove).remove();
+
+      // Transclude new elements between the startComment and endComment.
+      this.transclude_(
+          function(clone, scope) {
+            scope.item = newItem;
+            this.elementScopes_[key] = [
+              startComment,
+              endComment,
+              scope,
+              rowHash];
+
+            clone.insertBefore(endComment);
+          }.bind(this));
+    } else {
+      // This is a new item, add it as a first row of the table.
+      this.fetchedItems_.splice(0, 0, newItem);
+
+      this.transclude_(
+          function(clone, scope) {
+            scope.item = newItem;
+
+            var startComment = document.createComment('-> ' + key);
+            var endComment = document.createComment('<- ' + key);
+            this.elementScopes_[key] = [
+              startComment,
+              endComment,
+              scope,
+              rowHash];
+
+            this.rootElement_.prepend([startComment, clone, endComment]);
+          }.bind(this));
+    }
+  }
+};
 
 /**
  * Issues a request to the API service to fetch more data. Called when
@@ -216,16 +403,16 @@ InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
  * @private
  */
 InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
-  this.requestInProgress = true;
-  if (!this.filterValue) {
+  this.loadingInProgress_ = true;
+  if (!this.filterValue_) {
     this.itemsProvider.fetchItems(
-        this.currentPage * this.pageSize,
-        this.pageSize).then(this.onItemsFetched_.bind(this));
+        this.currentPage_ * this.pageSize_,
+        this.pageSize_).then(this.onItemsFetched_.bind(this));
   } else {
     this.itemsProvider.fetchFilteredItems(
-        this.filterValue,
-        this.currentPage * this.pageSize,
-        this.pageSize).then(this.onItemsFetched_.bind(this));
+        this.filterValue_,
+        this.currentPage_ * this.pageSize_,
+        this.pageSize_).then(this.onItemsFetched_.bind(this));
   }
 };
 
@@ -239,16 +426,16 @@ InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
  */
 InfiniteTableController.prototype.onItemsFetched_ = function(
     newlyFetchedItems) {
-  this.setFetchedItems_(this.fetchedItems.concat(newlyFetchedItems.items));
+  this.setFetchedItems_(this.fetchedItems_.concat(newlyFetchedItems.items));
   if (newlyFetchedItems.items.length == 0) {
-    $(this.rootElement).find('tr:has(.table-loading)').remove();
+    $(this.rootElement_).find('tr:has(.table-loading)').remove();
   }
 
-  this.currentPage += 1;
-  if (this.currentPage > this.showUntilPage) {
-    this.showUntilPage = this.currentPage;
+  this.currentPage_ += 1;
+  if (this.currentPage_ > this.showUntilPage_) {
+    this.showUntilPage_ = this.currentPage_;
   }
-  this.requestInProgress = false;
+  this.loadingInProgress_ = false;
 };
 
 

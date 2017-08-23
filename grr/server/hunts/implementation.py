@@ -1274,6 +1274,8 @@ class GRRHunt(flow.FlowBase):
 
         if responses:
           self.RegisterClientWithResults(client_id)
+          self.context.clients_with_results_count += 1
+          self.context.results_count += len(responses)
 
         # Update stats.
         stats.STATS.IncrementCounter("hunt_results_added", delta=len(msgs))

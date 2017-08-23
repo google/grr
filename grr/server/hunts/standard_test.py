@@ -3,7 +3,9 @@
 
 
 
+import glob
 import math
+import os
 import time
 
 
@@ -16,6 +18,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import access_control
@@ -25,11 +28,13 @@ from grr.server import foreman as rdf_foreman
 from grr.server import output_plugin
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import administrative
+from grr.server.flows.general import file_finder
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import process_results
 from grr.server.hunts import standard
 from grr.test_lib import acl_test_lib
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -250,6 +255,31 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         "Results collection was changed outside of hunt" in message)
     self.old_logging_error(message, *args, **kwargs)
 
+  def testResultCounting(self):
+    path = os.path.join(self.base_path, "hello*")
+    num_files = len(glob.glob(path))
+    self.assertGreater(num_files, 0)
+
+    hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[path],
+            action=rdf_file_finder.FileFinderAction(action_type="STAT"),),
+        client_rate=0,
+        token=self.token)
+    hunt.Run()
+
+    client_ids = self.SetupClients(5)
+    self.AssignTasksToClients(client_ids=client_ids)
+    action_mock = action_mocks.FileFinderClientMock()
+    hunt_test_lib.TestHuntHelper(action_mock, client_ids, token=self.token)
+
+    hunt = aff4.FACTORY.Open(hunt.urn, token=self.token)
+    self.assertEqual(hunt.context.clients_with_results_count, 5)
+    self.assertEqual(hunt.context.results_count, 5 * num_files)
+
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
     hunt_urn = self.StartHunt()
     self.AssignTasksToClients()
@@ -368,6 +398,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           list(per_type_collection.ListStoredTypes()),
           [rdf_client.StatEntry.__name__])
 
+      self.assertEqual(hunt_obj.context.clients_with_results_count, 5)
+      self.assertEqual(hunt_obj.context.results_count, 5)
+
   def testHuntWithoutForemanRules(self):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""
     hunt_urn = self.StartHunt(add_foreman_rules=False)
@@ -398,7 +431,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
-    self.StartHunt(output_plugins=[
+    hunt_urn = self.StartHunt(output_plugins=[
         output_plugin.OutputPluginDescriptor(
             plugin_name="DummyHuntOutputPlugin")
     ])
@@ -438,6 +471,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     self.assertEqual(DummyHuntOutputPlugin.num_calls, 2)
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
+    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    self.assertEqual(hunt.context.clients_with_results_count, 10)
+    self.assertEqual(hunt.context.results_count, 10)
 
   def testOutputPluginsProcessingStatusIsWrittenToStatusCollection(self):
     plugin_descriptor = output_plugin.OutputPluginDescriptor(

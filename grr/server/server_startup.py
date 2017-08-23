@@ -7,13 +7,12 @@ import platform
 from grr import config
 from grr.lib import config_lib
 from grr.lib import local
-from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
-
 # pylint: disable=unused-import
 from grr.lib.local import plugins
 # pylint: enable=unused-import
+from grr.server import server_logging
 
 # pylint: disable=g-import-not-at-top
 if platform.system() != "Windows":
@@ -64,7 +63,7 @@ def Init():
     syslog_logger.exception("Died during config initialization")
     raise
 
-  log.ServerLoggingStartupInit()
+  server_logging.ServerLoggingStartupInit()
   registry.Init()
 
   # Exempt config updater from this check because it is the one responsible for

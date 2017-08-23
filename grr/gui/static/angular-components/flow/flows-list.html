@@ -20,7 +20,8 @@
   <tbody>
     <tr grr-infinite-table grr-api-items-provider url="flowsUrl" page-size="100"
         transform-items="controller.transformItems(items)"
-        trigger-update="triggerUpdate"
+        trigger-update="controller.triggerTableUpdate"
+        auto-refresh-interval="controller.autoRefreshInterval"
         ng-click="controller.selectItem(item)"
         ng-class="{'row-selected': item.value.flow_id.value == controller.selectedFlowId}"
         ng-if="item.shown">

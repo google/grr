@@ -25,7 +25,6 @@ from grr.lib import server_plugins
 from grr import config
 from grr.lib import communicator
 from grr.lib import flags
-from grr.lib import log
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
@@ -33,6 +32,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
 from grr.server import front_end
 from grr.server import master
+from grr.server import server_logging
 from grr.server import server_startup
 
 
@@ -282,7 +282,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
 
-      log.LOGGER.LogHttpFrontendAccess(
+      server_logging.LOGGER.LogHttpFrontendAccess(
           request_comms.orig_request, source=source, message_count=nr_messages)
 
       self.Send(responses_comms.SerializeToString())

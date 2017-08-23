@@ -16,10 +16,10 @@ from grr import config
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
+from grr.client import client_startup
 from grr.client import comms
 from grr.client import vfs
 from grr.config import contexts
-from grr.lib import client_startup
 from grr.lib import flags
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -85,7 +85,7 @@ def CreateClientPool(n):
         cert = rdf_crypto.RSAPrivateKey(initializer=base64.b64decode(l))
         certificates.append(cert)
 
-    for certificate in certificates:
+    for certificate in certificates[:n]:
       clients.append(
           PoolGRRClient(
               private_key=certificate,

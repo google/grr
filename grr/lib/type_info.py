@@ -103,7 +103,9 @@ class TypeInfoObject(object):
 
   def Help(self):
     """Returns a helpful string describing this type info."""
-    return "%s = %s\n   %s" % (self.name, self.GetDefault(), self.description)
+    return "%s\n   Description: %s\n   Default: %s" % (self.name,
+                                                       self.description,
+                                                       self.GetDefault())
 
 
 class RDFValueType(TypeInfoObject):

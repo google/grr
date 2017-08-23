@@ -36,7 +36,6 @@ from grr.client import local as _
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import testing_startup
 from grr.lib import utils
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -55,6 +54,8 @@ from grr.server.aff4_objects import users
 
 from grr.server.flows.general import discovery
 from grr.server.hunts import results as hunts_results
+
+from grr.test_lib import testing_startup
 
 flags.DEFINE_list(
     "tests",
