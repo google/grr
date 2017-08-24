@@ -5,6 +5,7 @@
 import argparse
 import copy
 import pdb
+import re
 import sys
 
 
@@ -66,8 +67,7 @@ DEFINE_bool("verbose", default=False, help="Turn on verbose logging.")
 DEFINE_bool(
     "debug",
     default=False,
-    help="When an unhandled exception occurs break in the "
-    "debugger.")
+    help="When an unhandled exception occurs break in the debugger.")
 
 
 def FlagOverrider(**flag_kwargs):
@@ -94,22 +94,24 @@ def FlagOverrider(**flag_kwargs):
   return Decorator
 
 
-def StartMain(main, argv=None):
+def StartMain(main):
   """The main entry point to start applications.
 
   Parses flags and catches all exceptions for debugging.
 
   Args:
      main: A main function to call.
-     argv: The argv to parse. Default from sys.argv.
   """
   global FLAGS
 
-  FLAGS = PARSER.parse_args(args=argv)
+  FLAGS, extra_args = PARSER.parse_known_args()
+
+  exec_name = sys.argv[0]
+  sys.argv = [exec_name] + extra_args
 
   # Call the main function
   try:
-    main([sys.argv[0]])
+    main(sys.argv)
   except Exception:
     if FLAGS.debug:
       pdb.post_mortem()

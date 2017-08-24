@@ -214,7 +214,7 @@ def ServerLoggingStartupInit():
   global LOGGER
   try:
     # pylint: disable=g-import-not-at-top
-    from grr.lib.local import log as local_log
+    from grr.server.local import log as local_log
     # pylint: enable=g-import-not-at-top
     logging.debug("Using local LogInit from %s", local_log)
     local_log.LogInit()

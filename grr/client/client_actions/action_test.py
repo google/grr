@@ -11,14 +11,10 @@ import stat
 
 import psutil
 
-# Populate the action registry
-# pylint: disable=unused-import, g-bad-import-order
-from grr.client import client_plugins
+from grr.client import actions
 from grr.client import client_utils
 from grr.client.client_actions import standard
-# pylint: enable=unused-import, g-bad-import-order
 
-from grr.client import actions
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
