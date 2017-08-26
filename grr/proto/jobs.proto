@@ -4,6 +4,8 @@
 // These are the messages used in GRR
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr/proto/semantic.proto";
 import "grr/proto/knowledge_base.proto";
 
@@ -1776,7 +1778,7 @@ message AuditEvent {
 
   optional Action action = 3 [default=UNKNOWN];
   optional string flow_name = 4;
-  optional bytes flow_args = 5;
+  optional google.protobuf.Any flow_args = 5;
 
   optional string client = 6 [(sem_type) = {
       type: "RDFURN",

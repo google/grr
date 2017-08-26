@@ -4,6 +4,8 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr/proto/export.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
@@ -14,7 +16,7 @@ message OutputPluginDescriptor {
       description: "The name of the output plugin."
     }];
 
-  optional bytes plugin_args = 2 [(sem_type) = {
+  optional google.protobuf.Any plugin_args = 2 [(sem_type) = {
       dynamic_type: "GetPluginArgsClass",
       description: "The parameters for this plugin. Must be an instance "
       "of the named plugin's args_type."

@@ -4,6 +4,8 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr/proto/jobs.proto";
 import "grr/proto/knowledge_base.proto";
 import "grr/proto/output_plugin.proto";
@@ -416,7 +418,7 @@ message FlowRequest {
       description: "The clients to start the flow on.",
     }];
 
-  optional bytes args = 5 [(sem_type) = {
+  optional google.protobuf.Any args = 5 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
       description: "Args to the flow. These depend on the flow_name parameter."
       "It is expected that this field contains an instance of flow's arg_type.",
@@ -442,7 +444,7 @@ message VariableGenericHuntArgs {
 
 // Next field ID: 5
 message GenericHuntArgs {
-  optional bytes flow_args = 2 [(sem_type) = {
+  optional google.protobuf.Any flow_args = 2 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
       description: "Arguments to the flow to run. This should be an "
       "instance of flow.args_type proto.",
@@ -1049,7 +1051,7 @@ message ClientActionArgs {
     }, default=false];
 
 
-  optional bytes action_args = 4 [(sem_type) = {
+  optional google.protobuf.Any action_args = 4 [(sem_type) = {
       dynamic_type: "GetActionArgsClass",
       description: "Client action arguments.",
     }];
@@ -1074,7 +1076,7 @@ message ConsoleDebugFlowArgs {
       description: "If True, print each response.",
     }];
 
-  optional bytes flow_args = 5 [(sem_type) = {
+  optional google.protobuf.Any flow_args = 5 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
       description: "Flow arguments.",
     }];
@@ -1101,7 +1103,7 @@ message CreateCronJobFlowArgs {
     }, default=604800]; // 7d
 
   optional FlowRunnerArgs flow_runner_args = 3;
-  optional bytes flow_args = 4 [(sem_type) = {
+  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
     }];
 
