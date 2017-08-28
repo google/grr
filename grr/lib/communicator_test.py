@@ -175,7 +175,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with aff4.FACTORY.Open(
         new_client.urn, mode="rw", token=self.token) as client_object:
       client_object.AddLabel("testlabel")
-      client_object.Flush(sync=True)
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):

@@ -647,19 +647,22 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     Args:
       responses: Response objects from the artifact source.
     """
-    if responses.success:
+    if not responses.success:
+      self.CallStateInline(next_state="ProcessCollected", responses=responses)
+      return
+
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
       new_responses = []
       for response in responses:
         # Create the aff4object and add the aff4path to the response object.
-        filesystem.CreateAFF4Object(response, self.client_id, self.token)
+        filesystem.CreateAFF4Object(
+            response, self.client_id, pool, token=self.token)
         new_responses.append(response)
 
-      self.CallStateInline(
-          next_state="ProcessCollected",
-          request_data=responses.request_data,
-          messages=new_responses)
-    else:
-      self.CallStateInline(next_state="ProcessCollected", responses=responses)
+    self.CallStateInline(
+        next_state="ProcessCollected",
+        request_data=responses.request_data,
+        messages=new_responses)
 
   @flow.StateHandler()
   def ProcessCollectedArtifactFiles(self, responses):

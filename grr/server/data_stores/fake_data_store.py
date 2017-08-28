@@ -102,7 +102,6 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
 
     _ = sync
-
     attribute = utils.SmartUnicode(attribute)
 
     if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
@@ -128,9 +127,8 @@ class FakeDataStore(data_store.DataStore):
                sync=True,
                to_delete=None):
     subject = utils.SmartUnicode(subject)
-
     if to_delete:
-      self.DeleteAttributes(subject, to_delete, token=token)
+      self.DeleteAttributes(subject, to_delete, sync=sync, token=token)
 
     for k, seq in values.items():
       for v in seq:
@@ -157,7 +155,6 @@ class FakeDataStore(data_store.DataStore):
                        token=None,
                        sync=None):
     _ = sync  # Unimplemented.
-
     if isinstance(attributes, basestring):
       raise ValueError(
           "String passed to DeleteAttributes (non string iterable expected).")

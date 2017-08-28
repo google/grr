@@ -179,13 +179,7 @@ class SequentialCollection(object):
   def Delete(self):
     pool = data_store.DB.GetMutationPool(self.token)
     with pool:
-      for subject, _, _ in data_store.DB.ScanAttribute(
-          self.collection_id.Add("Results"),
-          data_store.DataStore.COLLECTION_ATTRIBUTE,
-          token=self.token):
-        pool.DeleteSubject(subject)
-        if pool.Size() > 50000:
-          pool.Flush()
+      pool.CollectionDelete(self.collection_id)
 
 
 class BackgroundIndexUpdater(object):

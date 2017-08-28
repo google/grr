@@ -225,6 +225,15 @@ class MutationPool(object):
         1,
         timestamp=0)
 
+  def CollectionDelete(self, collection_id):
+    for subject, _, _ in DB.ScanAttribute(
+        collection_id.Add("Results"),
+        DataStore.COLLECTION_ATTRIBUTE,
+        token=self.token):
+      self.DeleteSubject(subject)
+      if self.Size() > 50000:
+        self.Flush()
+
   def QueueAddItem(self, queue_id, item, timestamp):
     result_subject, timestamp, _ = DataStore.CollectionMakeURN(
         queue_id, timestamp, suffix=None, subpath="Records")
@@ -1040,7 +1049,7 @@ class DataStore(object):
         for request in requests
     ]
 
-    self.DeleteSubjects(subjects, token=token)
+    self.DeleteSubjects(subjects, sync=True, token=token)
 
   def DestroyFlowStates(self, session_id):
     return self.MultiDestroyFlowStates([session_id])
@@ -1077,7 +1086,7 @@ class DataStore(object):
       to_delete.append(subject)
 
     # Drop them all at once.
-    self.DeleteSubjects(to_delete, token=token)
+    self.DeleteSubjects(to_delete, sync=True, token=token)
     return deleted_requests
 
   def DeleteWellKnownFlowResponses(self, session_id, responses, token=None):
@@ -1317,35 +1326,6 @@ class DBSubjectLock(object):
       self.Release()
     except Exception:  # This can raise on cleanup pylint: disable=broad-except
       pass
-
-
-class ResultSet(object):
-  """A class returned from Query which contains all the result."""
-  # Total number of results that could have been returned. The results returned
-  # may have been limited in some way.
-  total_count = 0
-
-  def __init__(self, results=None):
-    if results is None:
-      results = []
-
-    self.results = results
-
-  def __iter__(self):
-    return iter(self.results)
-
-  def __getitem__(self, item):
-    return self.results[item]
-
-  def __len__(self):
-    return len(self.results)
-
-  def __iadd__(self, other):
-    self.results = list(self.results) + list(other)
-    return self
-
-  def Append(self, item):
-    self.results.append(item)
 
 
 class DataStoreInit(registry.InitHook):

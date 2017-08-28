@@ -459,7 +459,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
   def testWireFormatAccess(self):
 
-    m = rdf_flows.SignedMessageList()
+    m = rdf_flows.PackedMessageList()
 
     now = 1369308998000000
 

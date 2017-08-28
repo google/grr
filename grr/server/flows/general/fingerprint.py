@@ -79,36 +79,36 @@ class FingerprintFileMixin(object):
       urn = self.args.pathspec.AFF4Path(self.client_id)
     self.state.urn = urn
 
-    fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, mode="w", token=self.token)
+    with aff4.FACTORY.Create(
+        urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
 
-    if response.HasField("hash"):
-      hash_obj = response.hash
+      if response.HasField("hash"):
+        hash_obj = response.hash
 
-    else:
-      # TODO(user): Deprecate when all clients can send new format
-      # responses.
-      hash_obj = fd.Schema.HASH()
+      else:
+        # TODO(user): Deprecate when all clients can send new format
+        # responses.
+        hash_obj = fd.Schema.HASH()
 
-      for result in response.results:
-        if result["name"] == "generic":
-          for hash_type in ["md5", "sha1", "sha256"]:
-            value = result.GetItem(hash_type)
-            if value:
-              setattr(hash_obj, hash_type, value)
+        for result in response.results:
+          if result["name"] == "generic":
+            for hash_type in ["md5", "sha1", "sha256"]:
+              value = result.GetItem(hash_type)
+              if value:
+                setattr(hash_obj, hash_type, value)
 
-        if result["name"] == "pecoff":
-          for hash_type in ["md5", "sha1", "sha256"]:
-            value = result.GetItem(hash_type)
-            if value:
-              setattr(hash_obj, "pecoff_" + hash_type, value)
+          if result["name"] == "pecoff":
+            for hash_type in ["md5", "sha1", "sha256"]:
+              value = result.GetItem(hash_type)
+              if value:
+                setattr(hash_obj, "pecoff_" + hash_type, value)
 
-          signed_data = result.GetItem("SignedData", [])
-          for data in signed_data:
-            hash_obj.signed_data.Append(
-                revision=data[0], cert_type=data[1], certificate=data[2])
+            signed_data = result.GetItem("SignedData", [])
+            for data in signed_data:
+              hash_obj.signed_data.Append(
+                  revision=data[0], cert_type=data[1], certificate=data[2])
 
-    fd.Set(fd.Schema.HASH, hash_obj)
-    fd.Close(sync=True)
+      fd.Set(fd.Schema.HASH, hash_obj)
 
     self.ReceiveFileFingerprint(
         urn, hash_obj, request_data=responses.request_data)

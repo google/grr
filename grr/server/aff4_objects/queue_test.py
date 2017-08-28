@@ -188,6 +188,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     for subject, _ in results:
       data_store.DB.DeleteAttributes(
           subject, [data_store.DataStore.COLLECTION_ATTRIBUTE],
+          sync=True,
           token=self.token)
     data_store.DB.Flush()
 

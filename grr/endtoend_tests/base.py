@@ -145,7 +145,7 @@ class ClientTestBase(unittest.TestCase):
 
   def DeleteUrn(self, urn):
     """Deletes an object from the db and the index, and flushes the caches."""
-    data_store.DB.DeleteSubject(urn, token=self.token)
+    data_store.DB.DeleteSubject(urn, sync=True, token=self.token)
     aff4.FACTORY._DeleteChildFromIndex(urn, token=self.token)
     aff4.FACTORY.Flush()
 

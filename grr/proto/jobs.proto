@@ -157,7 +157,7 @@ message MessageList {
 };
 
 // This is the protobuf which is transmitted on the wire
-message SignedMessageList {
+message PackedMessageList {
   enum CompressionType {
     UNCOMPRESSED = 0;
     // Compressed using the zlib.compress() function.
@@ -166,9 +166,6 @@ message SignedMessageList {
 
   // This is a serialized MessageList for signing
   optional bytes message_list = 1;
-
-  // DEPRECATED
-  // optional bytes signature = 2;
 
   optional string source = 3 [(sem_type) = {
       type: "RDFURN",

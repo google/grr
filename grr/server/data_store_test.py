@@ -187,7 +187,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         },
         sync=False,
         token=self.token)
-
     data_store.DB.Flush()
 
     stored, _ = data_store.DB.Resolve(
@@ -450,8 +449,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         timestamp=1000,
         replace=False,
         token=self.token)
-    data_store.DB.DeleteSubject(self.test_row, token=self.token)
-    data_store.DB.Flush()
+    data_store.DB.DeleteSubject(self.test_row, sync=True, token=self.token)
     self.CheckLength(predicate, 0)
 
     # This should work with the sync argument too.
@@ -479,10 +477,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
           timestamp=1000,
           replace=False,
           token=self.token)
-    data_store.DB.Flush()
 
-    data_store.DB.DeleteSubjects(rows[20:80], token=self.token)
-    data_store.DB.Flush()
+    data_store.DB.DeleteSubjects(rows[20:80], sync=True, token=self.token)
 
     res = dict(
         data_store.DB.MultiResolvePrefix(rows, predicate, token=self.token))
@@ -1449,23 +1445,18 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     identifier = data_store.DB.StoreBlob(data, token=self.token)
 
     # Now create the image containing the blob.
-    fd = aff4.FACTORY.Create(
-        "aff4:/C.1235/image", standard.BlobImage, token=self.token)
-    fd.SetChunksize(512 * 1024)
-    fd.Set(fd.Schema.STAT())
+    with aff4.FACTORY.Create(
+        "aff4:/C.1235/image", standard.BlobImage, token=self.token) as fd:
+      fd.SetChunksize(512 * 1024)
+      fd.Set(fd.Schema.STAT())
 
-    fd.AddBlob(identifier.decode("hex"), len(data))
-    fd.Close(sync=True)
-
-    # Chunks are written async, we have to flush here.
-    data_store.DB.Flush()
+      fd.AddBlob(identifier.decode("hex"), len(data))
 
     # Check if we can read back the data.
-    fd = aff4.FACTORY.Open("aff4:/C.1235/image", token=self.token)
-    self.assertEqual(
-        fd.read(len(data)), data,
-        "Data read back from aff4image doesn't match.")
-    fd.Close()
+    with aff4.FACTORY.Open("aff4:/C.1235/image", token=self.token) as fd:
+      self.assertEqual(
+          fd.read(len(data)), data,
+          "Data read back from aff4image doesn't match.")
 
   def testDotsInDirectory(self):
     """Dots are special in MongoDB, check that they work in rows/indexes."""
@@ -1476,9 +1467,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     ]:
       aff4.FACTORY.Create(
           directory, standard.VFSDirectory, token=self.token).Close()
-
-    # We want the indexes to be written now.
-    data_store.DB.Flush()
 
     # This must not raise.
     aff4.FACTORY.Open(

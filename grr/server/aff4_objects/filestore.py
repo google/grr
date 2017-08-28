@@ -75,7 +75,7 @@ class FileStore(aff4.AFF4Volume):
       if not hashes:
         break
 
-  def AddFile(self, fd, sync=False, external=True):
+  def AddFile(self, fd, external=True):
     """Create a new file in the file store.
 
     We delegate the actual file addition to our contained
@@ -85,13 +85,12 @@ class FileStore(aff4.AFF4Volume):
 
     Args:
       fd: An AFF4 object open for read/write.
-      sync: Should the file be synced immediately.
       external: If true, attempt to add files to stores defined as EXTERNAL.
     """
     files_for_write = []
 
     for sub_store in self.GetChildrenByPriority(allow_external=external):
-      new_file = sub_store.AddFile(fd, sync=sync)
+      new_file = sub_store.AddFile(fd)
       if new_file:
         files_for_write.append(new_file)
 
@@ -106,7 +105,7 @@ class FileStore(aff4.AFF4Volume):
         child.Write(data)
 
     for child in files_for_write:
-      child.Close(sync=sync)
+      child.Close()
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     ACTIVE = aff4.Attribute(
@@ -195,10 +194,7 @@ class HashFileStore(FileStore):
   def _AddToIndex(self, index_urn, file_urn):
     predicate = ("index:target:%s" % file_urn).lower()
     data_store.DB.MultiSet(
-        index_urn, {predicate: file_urn},
-        token=self.token,
-        replace=True,
-        sync=False)
+        index_urn, {predicate: file_urn}, token=self.token, replace=True)
 
   @classmethod
   def Query(cls, index_urn, target_prefix="", limit=100, token=None):
@@ -350,7 +346,7 @@ class HashFileStore(FileStore):
       pass
     return hashes
 
-  def AddFile(self, fd, sync=False):
+  def AddFile(self, fd):
     """Adds a file to the hash file store.
 
     We take a file in the client space:
@@ -377,7 +373,6 @@ class HashFileStore(FileStore):
 
     Args:
       fd: File open for reading.
-      sync: Should the file be synced immediately.
 
     Raises:
       IOError: If there was an error writing the file.
@@ -398,7 +393,7 @@ class HashFileStore(FileStore):
     # sha256 is the canonical location.
     canonical_urn = self.PATH.Add("generic/sha256").Add(str(hashes.sha256))
     if not list(aff4.FACTORY.Stat(canonical_urn, token=self.token)):
-      aff4.FACTORY.Copy(fd.urn, canonical_urn, sync=True, token=self.token)
+      aff4.FACTORY.Copy(fd.urn, canonical_urn, token=self.token)
       # Remove the STAT entry, it makes no sense to copy it between clients.
       with aff4.FACTORY.Open(
           canonical_urn, mode="rw", token=self.token) as new_fd:
@@ -644,7 +639,7 @@ class NSRLFileStore(HashFileStore):
               op_system_code=op_system_code_list,
               file_type=special_code))
 
-  def AddFile(self, fd, sync=False):
+  def AddFile(self, fd):
     """AddFile is not used for the NSRLFileStore."""
     return None
 

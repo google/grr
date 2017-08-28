@@ -156,10 +156,7 @@ class StatsStoreProcessData(aff4.AFF4Object):
         creates_new_object_version=False,
         versioned=False)
 
-  def WriteMetadataDescriptors(self,
-                               metrics_metadata,
-                               sync=False,
-                               timestamp=None):
+  def WriteMetadataDescriptors(self, metrics_metadata, timestamp=None):
     current_metadata = self.Get(
         self.Schema.METRICS_METADATA, default=StatsStoreMetricsMetadata())
 
@@ -168,13 +165,12 @@ class StatsStoreProcessData(aff4.AFF4Object):
           metrics=metrics_metadata.values())
       self.AddAttribute(
           self.Schema.METRICS_METADATA, store_metadata, age=timestamp)
-      self.Flush(sync=sync)
+      self.Flush()
 
-  def WriteStats(self, timestamp=None, sync=False):
+  def WriteStats(self, timestamp=None):
     to_set = {}
     metrics_metadata = stats.STATS.GetAllMetricsMetadata()
-    self.WriteMetadataDescriptors(
-        metrics_metadata, timestamp=timestamp, sync=sync)
+    self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp)
 
     for name, metadata in metrics_metadata.iteritems():
       if metadata.fields_defs:
@@ -203,14 +199,9 @@ class StatsStoreProcessData(aff4.AFF4Object):
 
     # Write actual data
     data_store.DB.MultiSet(
-        self.urn,
-        to_set,
-        replace=False,
-        token=self.token,
-        timestamp=timestamp,
-        sync=sync)
+        self.urn, to_set, replace=False, token=self.token, timestamp=timestamp)
 
-  def DeleteStats(self, timestamp=ALL_TIMESTAMPS, sync=False):
+  def DeleteStats(self, timestamp=ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""
 
     if timestamp == self.NEWEST_TIMESTAMP:
@@ -226,7 +217,7 @@ class StatsStoreProcessData(aff4.AFF4Object):
       start, end = timestamp
 
     data_store.DB.DeleteAttributes(
-        self.urn, predicates, start=start, end=end, token=self.token, sync=sync)
+        self.urn, predicates, sync=True, start=start, end=end, token=self.token)
 
 
 class StatsStore(aff4.AFF4Volume):
@@ -249,7 +240,7 @@ class StatsStore(aff4.AFF4Volume):
     if self.urn is None:
       self.urn = self.DATA_STORE_ROOT
 
-  def WriteStats(self, process_id=None, timestamp=None, sync=False):
+  def WriteStats(self, process_id=None, timestamp=None):
     """Writes current stats values to the data store with a given timestamp."""
     if not process_id:
       raise ValueError("process_id can't be None")
@@ -259,7 +250,7 @@ class StatsStore(aff4.AFF4Volume):
         StatsStoreProcessData,
         mode="rw",
         token=self.token)
-    process_data.WriteStats(timestamp=timestamp, sync=sync)
+    process_data.WriteStats(timestamp=timestamp)
 
   def ListUsedProcessIds(self):
     """List process ids that were used when saving data to stats store."""
@@ -380,7 +371,7 @@ class StatsStore(aff4.AFF4Volume):
 
     return results
 
-  def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS, sync=False):
+  def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""
 
     if not process_id:
@@ -391,7 +382,7 @@ class StatsStore(aff4.AFF4Volume):
         StatsStoreProcessData,
         mode="w",
         token=self.token)
-    process_data.DeleteStats(timestamp=timestamp, sync=sync)
+    process_data.DeleteStats(timestamp=timestamp)
 
 
 class StatsStoreDataQuery(object):
@@ -689,7 +680,7 @@ class StatsStoreWorker(object):
       logging.debug("Writing stats to stats store.")
 
       try:
-        self.stats_store.WriteStats(process_id=self.process_id, sync=False)
+        self.stats_store.WriteStats(process_id=self.process_id)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("StatsStore exception caught during WriteStats(): %s",
                           e)
@@ -701,8 +692,7 @@ class StatsStoreWorker(object):
         now = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
         self.stats_store.DeleteStats(
             process_id=self.process_id,
-            timestamp=(0, now - stats_store_ttl * 1000000),
-            sync=False)
+            timestamp=(0, now - stats_store_ttl * 1000000))
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(
             "StatsStore exception caught during DeleteStats(): %s", e)

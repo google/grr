@@ -227,12 +227,12 @@ class BlobImage(aff4.AFF4ImageBase):
     if chunk.dirty:
       data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
 
-  def Flush(self, sync=True):
+  def Flush(self):
     if self.content_dirty:
       self.Set(self.Schema.SIZE(self.size))
       self.Set(self.Schema.HASHES(self.index.getvalue()))
       self.Set(self.Schema.FINALIZED(self.finalized))
-    super(BlobImage, self).Flush(sync=sync)
+    super(BlobImage, self).Flush()
 
   def AppendContent(self, src_fd):
     """Create new blob hashes and append to BlobImage.
@@ -540,10 +540,10 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     return res
 
-  def Flush(self, sync=True):
+  def Flush(self):
     if self._dirty:
       self.Set(self.Schema.LAST_CHUNK, rdfvalue.RDFInteger(self.last_chunk))
-    super(AFF4SparseImage, self).Flush(sync=sync)
+    super(AFF4SparseImage, self).Flush()
 
 
 class LabelSet(aff4.AFF4Object):
@@ -570,9 +570,9 @@ class LabelSet(aff4.AFF4Object):
     self.to_set = set()
     self.to_delete = set()
 
-  def Flush(self, sync=False):
+  def Flush(self):
     """Flush the data to the index."""
-    super(LabelSet, self).Flush(sync=sync)
+    super(LabelSet, self).Flush()
 
     self.to_delete = self.to_delete.difference(self.to_set)
 
@@ -585,14 +585,13 @@ class LabelSet(aff4.AFF4Object):
           to_delete=list(self.to_delete),
           timestamp=0,
           token=self.token,
-          replace=True,
-          sync=sync)
+          replace=True)
     self.to_set = set()
     self.to_delete = set()
 
-  def Close(self, sync=False):
-    self.Flush(sync=sync)
-    super(LabelSet, self).Close(sync=sync)
+  def Close(self):
+    self.Flush()
+    super(LabelSet, self).Close()
 
   def Add(self, label):
     self.to_set.add(self.ATTRIBUTE_PATTERN % label)
@@ -603,7 +602,7 @@ class LabelSet(aff4.AFF4Object):
   def ListLabels(self):
     # Flush, so that any pending changes are visible.
     if self.to_set or self.to_delete:
-      self.Flush(sync=True)
+      self.Flush()
     result = []
     for attribute, _, _ in data_store.DB.ResolvePrefix(
         self.urn, self.ATTRIBUTE_PREFIX, token=self.token):

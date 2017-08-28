@@ -636,27 +636,24 @@ class ApprovalGrantor(AbstractApprovalBase):
       raise access_control.UnauthorizedAccess(
           "Approval object does not exist.", requested_access="rw")
 
-    # We are now an approver for this request.
-    approval_request.AddAttribute(
-        approval_request.Schema.APPROVER(self.token.username))
-    email_msg_id = utils.SmartStr(
-        approval_request.Get(approval_request.Schema.EMAIL_MSG_ID))
-    email_cc = utils.SmartStr(
-        approval_request.Get(approval_request.Schema.EMAIL_CC))
-
-    approval_request.Close(sync=True)
+    with approval_request:
+      # We are now an approver for this request.
+      approval_request.AddAttribute(
+          approval_request.Schema.APPROVER(self.token.username))
+      email_msg_id = utils.SmartStr(
+          approval_request.Get(approval_request.Schema.EMAIL_MSG_ID))
+      email_cc = utils.SmartStr(
+          approval_request.Get(approval_request.Schema.EMAIL_CC))
 
     # Notify to the user.
-    fd = aff4.FACTORY.Create(
+    with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.delegate),
         aff4_users.GRRUser,
         mode="rw",
-        token=self.token)
-
-    fd.Notify("ViewObject", self.subject_urn,
-              "%s has granted you access to %s." % (self.token.username,
-                                                    subject_title), "")
-    fd.Close()
+        token=self.token) as fd:
+      fd.Notify("ViewObject", self.subject_urn,
+                "%s has granted you access to %s." % (self.token.username,
+                                                      subject_title), "")
 
     if not config.CONFIG.Get("Email.send_approval_emails"):
       return found_approval_urn

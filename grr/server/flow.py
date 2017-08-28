@@ -446,25 +446,25 @@ class FlowBase(aff4.AFF4Volume):
     # Otherwise make a new runner.
     return self.CreateRunner()
 
-  def Flush(self, sync=True):
+  def Flush(self):
     """Flushes the flow/hunt and all its requests to the data_store."""
     # Check for Lock expiration first.
     self.CheckLease()
     self.Save()
     self.WriteState()
     self.Load()
-    super(FlowBase, self).Flush(sync=sync)
+    super(FlowBase, self).Flush()
     # Writing the messages queued in the queue_manager of the runner always has
     # to be the last thing that happens or we will have a race condition.
     self.FlushMessages()
 
-  def Close(self, sync=True):
+  def Close(self):
     """Flushes the flow and all its requests to the data_store."""
     # Check for Lock expiration first.
     self.CheckLease()
     self.Save()
     self.WriteState()
-    super(FlowBase, self).Close(sync=sync)
+    super(FlowBase, self).Close()
     # Writing the messages queued in the queue_manager of the runner always has
     # to be the last thing that happens or we will have a race condition.
     self.FlushMessages()

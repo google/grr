@@ -28,8 +28,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter")
     stats.STATS.IncrementCounter("counter")
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -46,8 +45,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter", fields=["http"])
     stats.STATS.IncrementCounter("counter", delta=2, fields=["rpc"])
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -82,8 +80,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("foo_event", 5)
     stats.STATS.RecordEvent("foo_event", 15)
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -104,8 +101,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("foo_event", 5, fields=["http"])
     stats.STATS.RecordEvent("foo_event", 15, fields=["rpc"])
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -141,8 +137,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterGaugeMetric("str_gauge", str)
     stats.STATS.SetGaugeValue("str_gauge", "some_value")
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -158,8 +153,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterGaugeMetric("int_gauge", int)
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
@@ -175,12 +169,10 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter")
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid",
@@ -206,12 +198,10 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
         process_id=self.process_id, timestamp=self.stats_store.ALL_TIMESTAMPS)
@@ -224,12 +214,10 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
         process_id=self.process_id, timestamp=(0, 42))
@@ -242,12 +230,10 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43)
 
     stats_history = self.stats_store.ReadStats(
         process_id=self.process_id, metric_name="counter")
@@ -260,15 +246,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=44, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=44)
 
-    self.stats_store.DeleteStats(
-        process_id=self.process_id, timestamp=(0, 43), sync=True)
+    self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43))
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id)
     self.assertEqual(stats_history["counter"], [(2, 44)])
@@ -278,16 +261,13 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter", fields=[("source", str)])
 
     stats.STATS.IncrementCounter("counter", fields=["http"])
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     stats.STATS.IncrementCounter("counter", fields=["http"])
     stats.STATS.IncrementCounter("counter", fields=["rpc"])
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=44, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=44)
 
-    self.stats_store.DeleteStats(
-        process_id=self.process_id, timestamp=(0, 43), sync=True)
+    self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43))
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id)
 
@@ -298,8 +278,8 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter")
     stats.STATS.RegisterGaugeMetric("int_gauge", int)
 
-    self.stats_store.WriteStats(process_id="pid1", sync=True)
-    self.stats_store.WriteStats(process_id="pid2", sync=True)
+    self.stats_store.WriteStats(process_id="pid1")
+    self.stats_store.WriteStats(process_id="pid2")
 
     self.assertEqual(
         sorted(self.stats_store.ListUsedProcessIds()), ["pid1", "pid2"])
@@ -308,12 +288,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter")
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id="pid1", timestamp=42, sync=True)
-    self.stats_store.WriteStats(process_id="pid2", timestamp=42, sync=True)
-    self.stats_store.WriteStats(process_id="pid2", timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=42)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=42)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=43)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id="pid1", timestamp=43, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=43)
 
     results = self.stats_store.MultiReadStats()
     self.assertEqual(sorted(results.keys()), ["pid1", "pid2"])
@@ -324,12 +304,12 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter")
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id="pid1", timestamp=42, sync=True)
-    self.stats_store.WriteStats(process_id="pid2", timestamp=42, sync=True)
-    self.stats_store.WriteStats(process_id="pid2", timestamp=44, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=42)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=42)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=44)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id="pid1", timestamp=44, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=44)
 
     results = self.stats_store.MultiReadStats(timestamp=(43, 100))
     self.assertEqual(sorted(results.keys()), ["pid1", "pid2"])
@@ -362,8 +342,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
 
     # Write stats to the data store. Metadata should be
     # written as well.
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     # Check that metadata were written into the store.
     metadata = self.stats_store.ReadMetadata(
@@ -438,7 +417,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
 
     # Write stats to the data store. Metadata should be
     # written as well.
-    self.stats_store.WriteStats(process_id="pid1", timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=42)
 
     # Now metadata should be found only for the pid1.
     metadata_by_id = self.stats_store.MultiReadMetadata(
@@ -447,7 +426,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertFalse("counter" in metadata_by_id["pid2"].AsDict())
 
     # Write stats for the pid2 and check again.
-    self.stats_store.WriteStats(process_id="pid2", timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=42)
 
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
@@ -475,8 +454,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter_with_fields", fields=["rpc"])
 
     # Write to data store.
-    self.stats_store.WriteStats(
-        process_id=self.process_id, timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42)
 
     # Read them back and apply queries with In() and InAll() calls.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -498,18 +476,15 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
     self.stats_store.WriteStats(
         process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
 
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
 
@@ -529,20 +504,17 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(140),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(140))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -570,14 +542,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -594,8 +564,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -609,14 +578,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     stats.STATS.RecordEvent("events", 43)
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -632,8 +599,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -647,14 +613,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("events", 42)
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     stats.STATS.RecordEvent("events", 43)
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -670,8 +634,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -685,20 +648,17 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(15),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(15))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(45),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(45))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -715,14 +675,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(120),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(120))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -746,24 +704,20 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
     self.stats_store.WriteStats(
         process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
 
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
     query = stats_store.StatsStoreDataQuery(stats_data)
@@ -804,26 +758,22 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
 
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(30),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(30))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(60),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(60))
 
     stats.STATS.RegisterCounterMetric("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
 
     # We've reset the counter on 60th second, so we get following time series:
     # 1970-01-01 00:00:00    0
@@ -860,12 +810,10 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
     self.stats_store.WriteStats(
         process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
 
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
 
@@ -888,8 +836,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
 
       self.stats_store.WriteStats(
           process_id=self.process_id,
-          timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10 * i),
-          sync=True)
+          timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10 * i))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -923,14 +870,12 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -956,12 +901,10 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
         process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
     self.stats_store.WriteStats(
         process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
-        sync=True)
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90))
 
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
     query = stats_store.StatsStoreDataQuery(stats_data)
@@ -976,8 +919,7 @@ class StatsStoreDataQueryTest(aff4_test_lib.AFF4ObjectTest):
       stats.STATS.IncrementCounter("counter")
       self.stats_store.WriteStats(
           process_id=self.process_id,
-          timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10 * i),
-          sync=True)
+          timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10 * i))
 
     # Read data back.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)

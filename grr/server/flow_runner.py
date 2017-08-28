@@ -1141,15 +1141,14 @@ class FlowRunner(object):
         client_msg = msg
 
       # Add notification to the User object.
-      fd = aff4.FACTORY.Create(
+      with aff4.FACTORY.Create(
           aff4.ROOT_URN.Add("users").Add(user),
           aff4_users.GRRUser,
           mode="rw",
-          token=self.token)
+          token=self.token) as fd:
 
-      # Queue notifications to the user.
-      fd.Notify(message_type, subject, client_msg, self.session_id)
-      fd.Close()
+        # Queue notifications to the user.
+        fd.Notify(message_type, subject, client_msg, self.session_id)
 
       # Add notifications to the flow.
       notification = rdf_flows.Notification(
@@ -1159,12 +1158,13 @@ class FlowRunner(object):
           source=self.session_id,
           timestamp=rdfvalue.RDFDatetime.Now())
 
+      # TODO(user): This should go into the DB api.
       data_store.DB.Set(
           self.session_id,
           self.flow_obj.Schema.NOTIFICATION,
           notification,
           replace=False,
-          sync=False,
+          sync=True,
           token=self.token)
 
       # Disable further notifications.

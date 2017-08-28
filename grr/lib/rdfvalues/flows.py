@@ -218,8 +218,8 @@ class NotificationList(rdf_protodict.RDFValueArray):
   rdf_type = Notification
 
 
-class SignedMessageList(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.SignedMessageList
+class PackedMessageList(rdf_structs.RDFProtoStruct):
+  protobuf = jobs_pb2.PackedMessageList
   rdf_deps = [
       rdfvalue.RDFDatetime,
       rdfvalue.RDFURN,

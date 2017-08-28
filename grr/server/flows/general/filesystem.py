@@ -12,6 +12,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.server import aff4
 from grr.server import artifact_utils
+from grr.server import data_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
@@ -24,7 +25,7 @@ stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
                   | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
 
-def CreateAFF4Object(stat_response, client_id, token, sync=False):
+def CreateAFF4Object(stat_response, client_id, mutation_pool, token=None):
   """This creates a File or a Directory from a stat response."""
 
   urn = stat_response.pathspec.AFF4Path(client_id)
@@ -42,10 +43,10 @@ def CreateAFF4Object(stat_response, client_id, token, sync=False):
   else:
     ftype = aff4_grr.VFSFile
 
-  fd = aff4.FACTORY.Create(urn, ftype, mode="w", token=token)
-  fd.Set(fd.Schema.STAT(stat_response))
-  fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
-  fd.Close(sync=sync)
+  with aff4.FACTORY.Create(
+      urn, ftype, mode="w", mutation_pool=mutation_pool, token=token) as fd:
+    fd.Set(fd.Schema.STAT(stat_response))
+    fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -99,21 +100,20 @@ class ListDirectory(flow.GRRFlow):
 
     self.Status("Listed %s", self.state.urn)
 
-    # The AFF4 object is opened for writing with an asyncronous close for speed.
-    fd = aff4.FACTORY.Create(
-        self.state.urn, standard.VFSDirectory, mode="w", token=self.token)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with aff4.FACTORY.Create(
+          self.state.urn,
+          standard.VFSDirectory,
+          mode="w",
+          mutation_pool=pool,
+          token=self.token) as fd:
+        fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
+        fd.Set(fd.Schema.STAT(self.state.stat))
 
-    fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
-    fd.Set(fd.Schema.STAT(self.state.stat))
-
-    fd.Close(sync=False)
-
-    for st in responses:
-      st = rdf_client.StatEntry(st)
-      CreateAFF4Object(st, self.client_id, self.token, sync=False)
-      self.SendReply(st)  # Send Stats to parent flows.
-
-    aff4.FACTORY.Flush()
+      for st in responses:
+        st = rdf_client.StatEntry(st)
+        CreateAFF4Object(st, self.client_id, pool, token=self.token)
+        self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     if self.state.urn:
@@ -183,13 +183,15 @@ class IteratedListDirectory(ListDirectory):
     if not self.state.urn:
       self.state.urn = urn
 
-    fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-    fd.Close(sync=False)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with aff4.FACTORY.Create(
+          urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
+        pass
 
-    for st in self.state.responses:
-      st = rdf_client.StatEntry(st)
-      CreateAFF4Object(st, self.client_id, self.token)
-      self.SendReply(st)  # Send Stats to parent flows.
+      for st in self.state.responses:
+        st = rdf_client.StatEntry(st)
+        CreateAFF4Object(st, self.client_id, pool, token=self.token)
+        self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     self.Notify("ViewObject", self.state.urn,
@@ -268,10 +270,11 @@ class RecursiveListDirectory(flow.GRRFlow):
 
   def StoreDirectory(self, responses):
     """Stores all stat responses."""
-    for st in responses:
-      st = rdf_client.StatEntry(st)
-      CreateAFF4Object(st, self.client_id, self.token)
-      self.SendReply(st)  # Send Stats to parent flows.
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for st in responses:
+        st = rdf_client.StatEntry(st)
+        CreateAFF4Object(st, self.client_id, pool, token=self.token)
+        self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
@@ -661,7 +664,8 @@ class GlobMixin(object):
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""
     # By default write the stat_response to the AFF4 VFS.
-    CreateAFF4Object(stat_response, self.client_id, self.token)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      CreateAFF4Object(stat_response, self.client_id, pool, token=self.token)
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")

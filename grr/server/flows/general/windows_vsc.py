@@ -2,7 +2,7 @@
 """Queries a Windows client for Volume Shadow Copy information."""
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.flows.general import filesystem
@@ -66,13 +66,12 @@ class ListVolumeShadowCopies(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError("Unable to list directory.")
 
-    for response in responses:
-      stat_entry = rdf_client.StatEntry(response)
-      filesystem.CreateAFF4Object(
-          stat_entry, self.client_id, self.token, sync=False)
-      self.SendReply(stat_entry)
-
-      aff4.FACTORY.Flush()
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for response in responses:
+        stat_entry = rdf_client.StatEntry(response)
+        filesystem.CreateAFF4Object(
+            stat_entry, self.client_id, pool, token=self.token)
+        self.SendReply(stat_entry)
 
   def NotifyAboutEnd(self):
     if self.state.shadows:

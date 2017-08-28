@@ -496,7 +496,6 @@ class MultiGetFileMixin(object):
             filestore_file_urn,
             target_urn,
             update_timestamps=True,
-            sync=True,
             token=self.token)
 
         with aff4.FACTORY.Open(
@@ -810,14 +809,13 @@ class FileStoreCreateFile(flow.EventListener):
     _ = event
     vfs_urn = message.payload
 
-    vfs_fd = aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token)
-    filestore_fd = aff4.FACTORY.Create(
-        filestore.FileStore.PATH,
-        filestore.FileStore,
-        mode="w",
-        token=self.token)
-    filestore_fd.AddFile(vfs_fd)
-    vfs_fd.Flush(sync=False)
+    with aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token) as vfs_fd:
+      filestore_fd = aff4.FACTORY.Create(
+          filestore.FileStore.PATH,
+          filestore.FileStore,
+          mode="w",
+          token=self.token)
+      filestore_fd.AddFile(vfs_fd)
 
 
 class GetMBRArgs(rdf_structs.RDFProtoStruct):

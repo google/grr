@@ -7,6 +7,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
@@ -83,25 +84,28 @@ class FindFiles(flow.GRRFlow):
     if not responses.success:
       raise IOError(responses.status)
 
-    for response in responses:
-      # Create the file in the VFS
-      vfs_urn = response.hit.pathspec.AFF4Path(self.client_id)
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      for response in responses:
+        # Create the file in the VFS
+        vfs_urn = response.hit.pathspec.AFF4Path(self.client_id)
 
-      # TODO(user): This ends up being fairly expensive.
-      if stat.S_ISDIR(response.hit.st_mode):
-        fd = aff4.FACTORY.Create(
-            vfs_urn, standard.VFSDirectory, token=self.token)
-      else:
-        fd = aff4.FACTORY.Create(vfs_urn, aff4_grr.VFSFile, token=self.token)
+        if stat.S_ISDIR(response.hit.st_mode):
+          fd = aff4.FACTORY.Create(
+              vfs_urn,
+              standard.VFSDirectory,
+              mutation_pool=pool,
+              token=self.token)
+        else:
+          fd = aff4.FACTORY.Create(
+              vfs_urn, aff4_grr.VFSFile, mutation_pool=pool, token=self.token)
 
-      stat_response = fd.Schema.STAT(response.hit)
-      fd.Set(stat_response)
+        with fd:
+          stat_response = fd.Schema.STAT(response.hit)
+          fd.Set(stat_response)
+          fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
 
-      fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
-      fd.Close(sync=False)
-
-      # Send the stat to the parent flow.
-      self.SendReply(stat_response)
+        # Send the stat to the parent flow.
+        self.SendReply(stat_response)
 
     self.state.received_count += len(responses)
 

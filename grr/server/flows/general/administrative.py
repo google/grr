@@ -63,10 +63,9 @@ class ClientCrashEventListener(flow.EventListener):
                            flow_session_id=None,
                            hunt_session_id=None):
     # Update last crash attribute of the client.
-    client_obj = aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, token=self.token)
-    client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
-    client_obj.Close(sync=False)
+    with aff4.FACTORY.Create(
+        client_id, aff4_grr.VFSGRRClient, token=self.token) as client_obj:
+      client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
 
     # Duplicate the crash information in a number of places so we can find it
     # easily.
@@ -74,15 +73,13 @@ class ClientCrashEventListener(flow.EventListener):
     self._AppendCrashDetails(client_crashes, crash_details)
 
     if flow_session_id:
-      aff4_flow = aff4.FACTORY.Open(
+      with aff4.FACTORY.Open(
           flow_session_id,
           flow.GRRFlow,
           mode="rw",
           age=aff4.NEWEST_TIME,
-          token=self.token)
-
-      aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
-      aff4_flow.Close(sync=False)
+          token=self.token) as aff4_flow:
+        aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
 
       hunt_session_id = self._ExtractHuntId(flow_session_id)
       if hunt_session_id and hunt_session_id != flow_session_id:

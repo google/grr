@@ -275,19 +275,20 @@ class Communicator(object):
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
 
-  def EncodeMessageList(self, message_list, signed_message_list):
-    """Encode the MessageList into the signed_message_list rdfvalue."""
+  @classmethod
+  def EncodeMessageList(cls, message_list, packed_message_list):
+    """Encode the MessageList into the packed_message_list rdfvalue."""
     # By default uncompress
     uncompressed_data = message_list.SerializeToString()
-    signed_message_list.message_list = uncompressed_data
+    packed_message_list.message_list = uncompressed_data
 
     compressed_data = zlib.compress(uncompressed_data)
 
     # Only compress if it buys us something.
     if len(compressed_data) < len(uncompressed_data):
-      signed_message_list.compression = (
-          rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
-      signed_message_list.message_list = compressed_data
+      packed_message_list.compression = (
+          rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION)
+      packed_message_list.message_list = compressed_data
 
   def _GetServerCipher(self):
     """Returns the cipher for self.server_name."""
@@ -354,15 +355,15 @@ class Communicator(object):
     if timestamp is None:
       self.timestamp = timestamp = long(time.time() * 1000000)
 
-    signed_message_list = rdf_flows.SignedMessageList(timestamp=timestamp)
-    self.EncodeMessageList(message_list, signed_message_list)
+    packed_message_list = rdf_flows.PackedMessageList(timestamp=timestamp)
+    self.EncodeMessageList(message_list, packed_message_list)
 
     result.encrypted_cipher_metadata = cipher.encrypted_cipher_metadata
 
     # Include the encrypted cipher.
     result.encrypted_cipher = cipher.encrypted_cipher
 
-    serialized_message_list = signed_message_list.SerializeToString()
+    serialized_message_list = packed_message_list.SerializeToString()
 
     # Encrypt the message symmetrically.
     # New scheme cipher is signed plus hmac over message list.
@@ -394,7 +395,7 @@ class Communicator(object):
        encrypted_response: A serialized and encrypted string.
 
     Returns:
-       a Signed_Message_List rdfvalue
+       a Packed_Message_List rdfvalue
     """
     try:
       response_comms = rdf_flows.ClientCommunication.FromSerializedString(
@@ -404,11 +405,12 @@ class Communicator(object):
             AttributeError) as e:
       raise DecodingError("Error while decrypting messages: %s" % e)
 
-  def DecompressMessageList(self, signed_message_list):
-    """Decompress the message data from signed_message_list.
+  @classmethod
+  def DecompressMessageList(cls, packed_message_list):
+    """Decompress the message data from packed_message_list.
 
     Args:
-      signed_message_list: A SignedMessageList rdfvalue with some data in it.
+      packed_message_list: A PackedMessageList rdfvalue with some data in it.
 
     Returns:
       a MessageList rdfvalue.
@@ -416,14 +418,14 @@ class Communicator(object):
     Raises:
       DecodingError: If decompression fails.
     """
-    compression = signed_message_list.compression
-    if compression == rdf_flows.SignedMessageList.CompressionType.UNCOMPRESSED:
-      data = signed_message_list.message_list
+    compression = packed_message_list.compression
+    if compression == rdf_flows.PackedMessageList.CompressionType.UNCOMPRESSED:
+      data = packed_message_list.message_list
 
     elif (compression ==
-          rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION):
+          rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION):
       try:
-        data = zlib.decompress(signed_message_list.message_list)
+        data = zlib.decompress(packed_message_list.message_list)
       except zlib.error as e:
         raise DecodingError("Failed to decompress: %s" % e)
     else:
@@ -485,18 +487,18 @@ class Communicator(object):
     # Decrypt the message with the per packet IV.
     plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
     try:
-      signed_message_list = rdf_flows.SignedMessageList.FromSerializedString(
+      packed_message_list = rdf_flows.PackedMessageList.FromSerializedString(
           plain)
     except rdfvalue.DecodeError as e:
       raise DecryptionError(str(e))
 
-    message_list = self.DecompressMessageList(signed_message_list)
+    message_list = self.DecompressMessageList(packed_message_list)
 
     # Are these messages authenticated?
     # pyformat: disable
     auth_state = self.VerifyMessageSignature(
         response_comms,
-        signed_message_list,
+        packed_message_list,
         cipher,
         cipher_verified,
         response_comms.api_version,
@@ -509,9 +511,9 @@ class Communicator(object):
       msg.source = cipher.cipher_metadata.source
 
     return (message_list.job, cipher.cipher_metadata.source,
-            signed_message_list.timestamp)
+            packed_message_list.timestamp)
 
-  def VerifyMessageSignature(self, unused_response_comms, signed_message_list,
+  def VerifyMessageSignature(self, unused_response_comms, packed_message_list,
                              cipher, cipher_verified, api_version,
                              remote_public_key):
     """Verify the message list signature.
@@ -523,7 +525,7 @@ class Communicator(object):
     unauthenticated since it might have resulted from a replay attack.
 
     Args:
-      signed_message_list: The SignedMessageList rdfvalue from the server.
+      packed_message_list: The PackedMessageList rdfvalue from the server.
       cipher: The cipher belonging to the remote end.
       cipher_verified: If True, the cipher's signature is not verified again.
       api_version: The api version we should use.
@@ -544,12 +546,12 @@ class Communicator(object):
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.
-    if signed_message_list.timestamp != self.timestamp:
+    if packed_message_list.timestamp != self.timestamp:
       result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if not cipher.cipher_metadata:
       # Fake the metadata
       cipher.cipher_metadata = rdf_flows.CipherMetadata(
-          source=signed_message_list.source)
+          source=packed_message_list.source)
 
     return result

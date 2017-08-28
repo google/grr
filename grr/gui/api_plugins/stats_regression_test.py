@@ -41,7 +41,7 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
       with aff4.FACTORY.Create(
           None, aff4_stats_store.StatsStore, mode="w",
           token=self.token) as stats_store:
-        stats_store.WriteStats(process_id="worker_1", sync=True)
+        stats_store.WriteStats(process_id="worker_1")
 
     self.Check(
         "ListStatsStoreMetricsMetadata",
@@ -77,7 +77,7 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
           with aff4.FACTORY.Create(
               None, aff4_stats_store.StatsStore, mode="w",
               token=self.token) as stats_store:
-            stats_store.WriteStats(process_id="worker_1", sync=True)
+            stats_store.WriteStats(process_id="worker_1")
 
     self.Check(
         "GetStatsStoreMetric",

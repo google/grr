@@ -406,13 +406,23 @@ def main(_):
   elif args.subparser_name == "repack_multiple":
 
     # Resolve globs manually on Windows.
-    templates = args.templates
-    if templates and "*" in templates[0]:
-      templates = glob.glob(templates[0])
+    templates = []
+    for template in args.templates:
+      if "*" in template:
+        templates.extend(glob.glob(template))
+      else:
+        # This could go through glob but then we'd swallow errors for
+        # non existing files.
+        templates.append(template)
 
-    repack_configs = args.repack_configs
-    if repack_configs and "*" in repack_configs[0]:
-      repack_configs = glob.glob(repack_configs[0])
+    repack_configs = []
+    for repack_config in args.repack_configs:
+      if "*" in repack_config:
+        repack_configs.extend(glob.glob(repack_config))
+      else:
+        # This could go through glob but then we'd swallow errors for
+        # non existing files.
+        repack_configs.append(repack_config)
 
     MultiTemplateRepacker().RepackTemplates(
         repack_configs,
