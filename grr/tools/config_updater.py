@@ -889,13 +889,15 @@ def main(argv):
       print e
 
   elif flags.FLAGS.subparser_name == "upload_python":
+    python_hack_root_urn = grr_config.CONFIG.Get("Config.python_hack_root")
     content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
     aff4_path = flags.FLAGS.dest_path
     platform = flags.FLAGS.platform
     if not aff4_path:
-      python_hack_root_urn = grr_config.CONFIG.Get("Config.python_hack_root")
       aff4_path = python_hack_root_urn.Add(platform.lower()).Add(
           os.path.basename(flags.FLAGS.file))
+    if not str(aff4_path).startswith(str(python_hack_root_urn)):
+      raise ValueError("AFF4 path must start with %s.", python_hack_root_urn)
     context = ["Platform:%s" % platform.title(), "Client Context"]
     maintenance_utils.UploadSignedConfigBlob(
         content, aff4_path=aff4_path, client_context=context, token=token)

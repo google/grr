@@ -52,6 +52,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
     Returns:
       the URN of the new object written.
     """
+    aff4.FACTORY.Delete(urn, token=token)
     with data_store.DB.GetMutationPool(token=token) as pool:
       with aff4.FACTORY.Create(
           urn, cls, mode="w", mutation_pool=pool, token=token) as fd:
@@ -129,3 +130,9 @@ class GRRSignedBlob(aff4.AFF4Stream):
   def Seek(self, offset, whence=0):
     self._EnsureInitialized()
     self.fd.seek(offset, whence)
+
+  def OnDelete(self, deletion_pool=None):
+    super(GRRSignedBlob, self).OnDelete(deletion_pool=deletion_pool)
+
+    self._EnsureInitialized()
+    self.collection.Delete()

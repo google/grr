@@ -269,12 +269,12 @@ matrix:
           travis/build_local_pyindex.sh &&
 
           sudo docker exec "${DOCKER_CONTAINER}"
-          travis/build_server_deb.sh && # Needs to be run as root.
+          travis/build_server_deb.sh && `# Needs to be run as root.`
 
           travis/deploy_to_gcs.sh &&
 
-          # Trigger build of a new GRR Docker image (grrdocker/grr)
-          # See https://hub.docker.com/r/grrdocker/grr/~/settings/automated-builds/
+          `# Trigger build of a new GRR Docker image (grrdocker/grr)`
+          `# See https://hub.docker.com/r/grrdocker/grr/~/settings/automated-builds/`
           curl -H "Content-Type: application/json" --data '{"docker_tag": "latest"}' -X POST https://registry.hub.docker.com/u/grrdocker/grr/trigger/4499c4d4-4a8b-48da-bc95-5dbab39be545/
 
 cache:
