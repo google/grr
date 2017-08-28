@@ -280,9 +280,9 @@ class IndexedSequentialCollection(SequentialCollection):
       return
     self._index = {0: (0, 0)}
     self._max_indexed = 0
-    for (index, value, ts) in data_store.DB.CollectionReadIndex(
+    for (index, ts, suffix) in data_store.DB.CollectionReadIndex(
         self.collection_id, token=self.token):
-      self._index[index] = (ts, value)
+      self._index[index] = (ts, suffix)
       self._max_indexed = max(index, self._max_indexed)
 
   def _MaybeWriteIndex(self, i, ts, mutation_pool):

@@ -2,6 +2,7 @@
 """Tests for SequentialCollection and related subclasses."""
 
 import threading
+import time
 
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -156,6 +157,9 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(collection.CalculateLength(), 10 * 1024)
     self.assertEqual(sorted(collection._index.keys()), [0])
 
+    now = time.time() * 1e6
+    ten_seconds_ago = (time.time() - 10) * 1e6
+
     # Push the clock forward 10m, and we should build an index on access.
     with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
                            rdfvalue.Duration("10m")):
@@ -167,6 +171,12 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(
           sorted(collection._index.keys()),
           [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
+      for index in collection._index:
+        if not index:
+          continue
+        timestamp, suffix = collection._index[index]
+        self.assertTrue(ten_seconds_ago <= timestamp <= now)
+        self.assertTrue(0 <= suffix <= 0xFFFFFF)
 
     # Now check that the index was persisted to aff4 by re-opening and checking
     # that a read from head does load full index (optimistic load):
@@ -178,6 +188,12 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(
         sorted(collection._index.keys()),
         [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
+    for index in collection._index:
+      if not index:
+        continue
+      timestamp, suffix = collection._index[index]
+      self.assertTrue(ten_seconds_ago <= timestamp <= now)
+      self.assertTrue(0 <= suffix <= 0xFFFFFF)
 
   def testIndexedReads(self):
     urn = "aff4:/sequential_collection/testIndexedReads"

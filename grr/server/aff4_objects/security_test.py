@@ -117,40 +117,6 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.assertFalse(isinstance(user, users.GRRUser))
 
 
-class ApprovalWithReasonTest(test_lib.GRRBaseTest):
-  """Test for ApprovalWithReason mixin."""
-
-  def setUp(self):
-    super(ApprovalWithReasonTest, self).setUp()
-    self.approval_obj = security.AbstractApprovalBase()
-
-  def _CreateReason(self, reason, result):
-    self.assertEqual(self.approval_obj.CreateReasonHTML(reason), result)
-
-  def testCreateReasonHTML(self):
-    self._CreateReason("Nothing happens if no regex set i/1234",
-                       "Nothing happens if no regex set i/1234")
-
-    # %{} is used here to tell the config system this is a literal that
-    # shouldn't be expanded/filtered.
-    with test_lib.ConfigOverrider({
-        "Email.link_regex_list": [r"%{(?P<link>(incident|ir|jira)\/\d+)}"]
-    }):
-      test_pairs = [
-          ("Investigating jira/1234 (incident/1234)...incident/bug",
-           "Investigating <a href=\"jira/1234\">jira/1234</a> "
-           "(<a href=\"incident/1234\">incident/1234</a>)...incident/bug"),
-          ("\"jira/1234\" == (incident/1234)",
-           "\"<a href=\"jira/1234\">jira/1234</a>\" == "
-           "(<a href=\"incident/1234\">incident/1234</a>)"),
-          ("Checking /var/lib/i/123/blah file",
-           "Checking /var/lib/i/123/blah file")
-      ]
-
-      for reason, result in test_pairs:
-        self._CreateReason(reason, result)
-
-
 class ClientApprovalTest(test_lib.GRRBaseTest):
   """Test for client approvals."""
 

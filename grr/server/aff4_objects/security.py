@@ -3,7 +3,6 @@
 
 
 import email
-import re
 
 import jinja2
 
@@ -393,23 +392,6 @@ class AbstractApprovalBase(object):
     """Returns the string with subject's title."""
     raise NotImplementedError()
 
-  def CreateReasonHTML(self, reason):
-    """Creates clickable links in the reason where appropriate.
-
-    Args:
-      reason: reason string
-    Returns:
-      Reason string with HTML hrefs as appropriate.
-
-    Use a regex named group of "link":
-      (?P<link>sometext)
-
-    for things that should be turned into links.
-    """
-    for link_re in config.CONFIG.Get("Email.link_regex_list"):
-      reason = re.sub(link_re, r"""<a href="\g<link>">\g<link></a>""", reason)
-    return reason
-
   @staticmethod
   def ApprovalUrnBuilder(subject, user, approval_id):
     """Encode an approval URN."""
@@ -520,8 +502,6 @@ class ApprovalRequestor(AbstractApprovalBase):
     if not config.CONFIG.Get("Email.send_approval_emails"):
       return approval_urn
 
-    reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
-
     subject_template = jinja2.Template(
         "Approval for {{ user }} to access {{ client }}.", autoescape=True)
     subject = subject_template.render(
@@ -536,7 +516,7 @@ requested.</h1>
 
 The user "{{ username }}" has requested access to
 <a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
-for the purpose of "{{ reason }}".
+for the purpose of <em>{{ reason }}</em>.
 
 Please click <a href='{{ admin_ui }}/#/{{ approval_url }}'>
 here
@@ -550,7 +530,7 @@ here
 
     body = template.render(
         username=utils.SmartUnicode(self.token.username),
-        reason=utils.SmartUnicode(reason),
+        reason=utils.SmartUnicode(self.reason),
         admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
         subject_title=utils.SmartUnicode(subject_title),
         approval_url=utils.SmartUnicode(
@@ -658,8 +638,6 @@ class ApprovalGrantor(AbstractApprovalBase):
     if not config.CONFIG.Get("Email.send_approval_emails"):
       return found_approval_urn
 
-    reason = self.CreateReasonHTML(utils.SmartStr(self.reason))
-
     subject_template = jinja2.Template(
         "Approval for {{ user }} to access {{ client }}.", autoescape=True)
     subject = subject_template.render(
@@ -674,7 +652,7 @@ granted.</h1>
 
 The user {{ username }} has granted access to
 <a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a> for the
-purpose of "%(reason)s".
+purpose of <em>{{ reason }}</em>.
 
 Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
 
@@ -685,9 +663,9 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
     body = template.render(
         subject_title=utils.SmartUnicode(subject_title),
         username=utils.SmartUnicode(self.token.username),
-        reason=utils.SmartUnicode(reason),
-        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
-        subject_url=utils.SmartUnicode(access_url),
+        reason=utils.SmartUnicode(self.reason),
+        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"].strip("/")),
+        subject_url=utils.SmartUnicode(access_url.strip("/")),
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
     # Email subject should match approval request, and we add message id
@@ -887,7 +865,6 @@ class CronJobApprovalGrantor(ApprovalGrantor):
 
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
-    # In this case subject_urn is hunt's URN.
     events.Events.PublishEvent(
         "Audit",
         events.AuditEvent(

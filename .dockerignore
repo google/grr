@@ -14,8 +14,6 @@
 *_pb2.*
 */*_pb2.*
 */*/*_pb2.*
-.git
-.gitignore
 ACKNOWLEDGEMENTS
 AUTHORS
 build

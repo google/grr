@@ -23,6 +23,32 @@ from grr.server.hunts import standard
 
 class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
 
+  APPROVAL_REASON = "Please please let me"
+  GRANTOR_TOKEN = access_control.ACLToken(
+      username="igrantapproval", reason="test")
+
+  def setUp(self):
+    super(TestEmailLinks, self).setUp()
+
+    self.messages_sent = []
+
+    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
+                      **unused_kwargs):
+      self.messages_sent.append(message)
+
+    self.email_stubber = utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
+                                       SendEmailStub)
+    self.email_stubber.Start()
+
+  def tearDown(self):
+    super(TestEmailLinks, self).tearDown()
+    self.email_stubber.Stop()
+
+  def _ExtractLinkFromMessage(self, message):
+    m = re.search(r"href='(.+?)'", message, re.MULTILINE)
+    link = urlparse.urlparse(m.group(1))
+    return link.path + "/" + "#" + link.fragment
+
   def CreateSampleHunt(self, token=None):
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
@@ -43,97 +69,171 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
     client_id = self.SetupClients(1)[0]
 
-    messages_sent = []
+    security.ClientApprovalRequestor(
+        reason="Please please let me",
+        subject_urn=client_id,
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
 
-    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
-                      **unused_kwargs):
-      messages_sent.append(message)
+    self.assertEqual(len(self.messages_sent), 1)
+    message = self.messages_sent[0]
 
-    # Request client approval, it will trigger an email message.
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      security.ClientApprovalRequestor(
-          reason="Please please let me",
-          subject_urn=client_id,
-          approver=self.token.username,
-          token=access_control.ACLToken(
-              username="iwantapproval", reason="test")).Request()
-    self.assertEqual(len(messages_sent), 1)
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.token.username in message)
+    self.assertTrue(client_id.Basename() in message)
 
-    # Extract link from the message text and open it.
-    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
-    link = urlparse.urlparse(m.group(1))
-    self.Open(link.path + "?" + link.query + "#" + link.fragment)
+    self.Open(self._ExtractLinkFromMessage(message))
 
     # Check that requestor's username and  reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, "iwantapproval")
-    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, client_id.Basename())
     self.WaitUntil(self.IsTextPresent, "Host-0")
 
+  def testEmailClientApprovalGrantNotificationLinkLeadsToACorrectPage(self):
+    client_id = self.SetupClients(1)[0]
+
+    security.ClientApprovalRequestor(
+        reason=self.APPROVAL_REASON,
+        subject_urn=client_id,
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
+    security.ClientApprovalGrantor(
+        reason=self.APPROVAL_REASON,
+        subject_urn=client_id,
+        token=self.GRANTOR_TOKEN,
+        delegate=self.token.username).Grant()
+
+    # There should be 1 message for approval request and 1 message
+    # for approval grant notification.
+    self.assertEqual(len(self.messages_sent), 2)
+
+    message = self.messages_sent[1]
+
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+    self.assertTrue(client_id.Basename() in message)
+
+    self.Open(self._ExtractLinkFromMessage(message))
+
+    # We should end up on client's page. Check that host information is
+    # displayed.
+    self.WaitUntil(self.IsTextPresent, client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    # Check that the reason is displayed.
+    self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
+
   def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
     hunt_id = self.CreateSampleHunt()
 
-    messages_sent = []
-
-    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
-                      **unused_kwargs):
-      messages_sent.append(message)
-
     # Request client approval, it will trigger an email message.
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      security.HuntApprovalRequestor(
-          reason="Please please let me",
-          subject_urn=hunt_id,
-          approver=self.token.username,
-          token=access_control.ACLToken(
-              username="iwantapproval", reason="test")).Request()
-    self.assertEqual(len(messages_sent), 1)
+    security.HuntApprovalRequestor(
+        reason=self.APPROVAL_REASON,
+        subject_urn=hunt_id,
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
 
-    # Extract link from the message text and open it.
-    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
-    link = urlparse.urlparse(m.group(1))
-    self.Open(link.path + "?" + link.query + "#" + link.fragment)
+    self.assertEqual(len(self.messages_sent), 1)
+    message = self.messages_sent[0]
+
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.token.username in message)
+    self.assertTrue(hunt_id.Basename() in message)
+
+    self.Open(self._ExtractLinkFromMessage(message))
 
     # Check that requestor's username and reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, "iwantapproval")
-    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, str(hunt_id))
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
+
+  def testEmailHuntApprovalGrantNotificationLinkLeadsToCorrectPage(self):
+    hunt_id = self.CreateSampleHunt()
+
+    security.HuntApprovalRequestor(
+        reason=self.APPROVAL_REASON,
+        subject_urn=hunt_id,
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
+    security.HuntApprovalGrantor(
+        reason=self.APPROVAL_REASON,
+        subject_urn=hunt_id,
+        token=self.GRANTOR_TOKEN,
+        delegate=self.token.username).Grant()
+
+    # There should be 1 message for approval request and 1 message
+    # for approval grant notification.
+    self.assertEqual(len(self.messages_sent), 2)
+
+    message = self.messages_sent[1]
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+    self.assertTrue(hunt_id.Basename() in message)
+
+    self.Open(self._ExtractLinkFromMessage(message))
+
+    # We should end up on hunts's page.
+    self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
 
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
     cronjobs.ScheduleSystemCronFlows(
         names=[cron_system.OSBreakDown.__name__], token=self.token)
     cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
-    messages_sent = []
+    security.CronJobApprovalRequestor(
+        reason=self.APPROVAL_REASON,
+        subject_urn="aff4:/cron/OSBreakDown",
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
 
-    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
-                      **unused_kwargs):
-      messages_sent.append(message)
+    self.assertEqual(len(self.messages_sent), 1)
+    message = self.messages_sent[0]
 
-    # Request client approval, it will trigger an email message.
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      security.CronJobApprovalRequestor(
-          reason="Please please let me",
-          subject_urn="aff4:/cron/OSBreakDown",
-          approver=self.token.username,
-          token=access_control.ACLToken(
-              username="iwantapproval", reason="test")).Request()
-    self.assertEqual(len(messages_sent), 1)
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.token.username in message)
+    self.assertTrue("OSBreakDown" in message)
 
     # Extract link from the message text and open it.
-    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
+    m = re.search(r"href='(.+?)'", message, re.MULTILINE)
     link = urlparse.urlparse(m.group(1))
     self.Open(link.path + "?" + link.query + "#" + link.fragment)
 
     # Check that requestor's username and reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, "iwantapproval")
-    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
     self.WaitUntil(self.IsTextPresent, "Periodicity")
+
+  def testEmailCronjobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
+    cronjobs.ScheduleSystemCronFlows(
+        names=[cron_system.OSBreakDown.__name__], token=self.token)
+    cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+
+    security.CronJobApprovalRequestor(
+        reason=self.APPROVAL_REASON,
+        subject_urn="aff4:/cron/OSBreakDown",
+        approver=self.GRANTOR_TOKEN.username,
+        token=self.token).Request()
+    security.CronJobApprovalGrantor(
+        reason=self.APPROVAL_REASON,
+        subject_urn="aff4:/cron/OSBreakDown",
+        token=self.GRANTOR_TOKEN,
+        delegate=self.token.username).Grant()
+
+    # There should be 1 message for approval request and 1 message
+    # for approval grant notification.
+    self.assertEqual(len(self.messages_sent), 2)
+    message = self.messages_sent[1]
+    self.assertTrue(self.APPROVAL_REASON in message)
+    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+
+    self.Open(self._ExtractLinkFromMessage(message))
+
+    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
 
 
 def main(argv):

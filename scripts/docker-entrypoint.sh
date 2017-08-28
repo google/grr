@@ -14,7 +14,7 @@ run_component() {
 initialize() {
   if [[ ! -e "${VIRTUALENV}/install_data/etc/server.local.yaml" ]]; then
     if [[ "${EXTERNAL_HOSTNAME}" ]] && [[ "${ADMIN_PASSWORD}" ]]; then
-      grr_config_updater initialize --noprompt --norepack_templates --external_hostname="$EXTERNAL_HOSTNAME" --admin_password="$ADMIN_PASSWORD"
+      grr_config_updater initialize --noprompt --external_hostname="$EXTERNAL_HOSTNAME" --admin_password="$ADMIN_PASSWORD"
     else
       echo "initialize hasn't run and EXTERNAL_HOSTNAME/ADMIN_PASSWORD not set"
       exit 1

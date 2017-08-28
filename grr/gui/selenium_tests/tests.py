@@ -13,6 +13,7 @@ from grr.gui.selenium_tests import cron_create_test
 from grr.gui.selenium_tests import cron_view_test
 from grr.gui.selenium_tests import dir_recursive_refresh_test
 from grr.gui.selenium_tests import dir_refresh_test
+from grr.gui.selenium_tests import email_links_test
 from grr.gui.selenium_tests import fileview_test
 from grr.gui.selenium_tests import flow_archive_test
 from grr.gui.selenium_tests import flow_copy_test

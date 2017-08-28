@@ -221,8 +221,6 @@ Client.server_urls: ["http://localhost:8080/"]
 
 Test Context:
   AdminUI.webauth_manager: NullWebAuthManager
-  # This is needed to ensure the logic works in Selenium tests.
-  Email.link_regex_list: ['%{(?P<link>(b)\/\d+)}']
 
   Client.poll_max: 5
   Logging.path: /tmp/grr_logs/

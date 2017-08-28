@@ -181,12 +181,6 @@ config_lib.DEFINE_string(
     "If you feel like it, you can add a funny cat picture to approval mails. "
     "Needs full html: <img src=\"https://imgur.com/path/to/cat.jpg\">.")
 
-config_lib.DEFINE_list(
-    "Email.link_regex_list", [],
-    "Strings matching these regexes in approval reasons will be turned into "
-    " HTML links in approval emails. Note you have to use single quoted strings"
-    " when setting this variable to prevent escaping.")
-
 config_lib.DEFINE_string(
     "StatsStore.process_id",
     default="",
