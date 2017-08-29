@@ -241,23 +241,6 @@ def GetStartTime(cron_cls):
 def ScheduleSystemCronFlows(names=None, token=None):
   """Schedule all the SystemCronFlows found."""
 
-  if (config.CONFIG["Cron.enabled_system_jobs"] and
-      config.CONFIG["Cron.disabled_system_jobs"]):
-    raise RuntimeError("Can't have both Cron.enabled_system_jobs and "
-                       "Cron.disabled_system_jobs specified in the config.")
-
-  # TODO(user): remove references to Cron.enabled_system_jobs by the end
-  # of Q1 2016.
-  for name in config.CONFIG["Cron.enabled_system_jobs"]:
-    try:
-      cls = flow.GRRFlow.classes[name]
-    except KeyError:
-      raise KeyError("No such flow: %s." % name)
-
-    if not aff4.issubclass(cls, SystemCronFlow):
-      raise ValueError("Enabled system cron job name doesn't correspond to "
-                       "a flow inherited from SystemCronFlow: %s" % name)
-
   for name in config.CONFIG["Cron.disabled_system_jobs"]:
     try:
       cls = flow.GRRFlow.classes[name]
@@ -283,8 +266,6 @@ def ScheduleSystemCronFlows(names=None, token=None):
 
       if cls.disabled:
         disabled = True
-      elif config.CONFIG["Cron.enabled_system_jobs"]:
-        disabled = name not in config.CONFIG["Cron.enabled_system_jobs"]
       else:
         disabled = name in config.CONFIG["Cron.disabled_system_jobs"]
 

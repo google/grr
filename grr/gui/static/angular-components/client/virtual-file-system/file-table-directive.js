@@ -21,7 +21,7 @@ var REFRESH_FILE_EVENT =
 var ERROR_EVENT_NAME =
     grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 
-var OPERATION_POLL_INTERVAL = 1000;
+var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
@@ -185,7 +185,9 @@ FileTableController.prototype.startVfsRefreshOperation = function() {
             operationId = this.lastRefreshOperationId =
                 response['data']['operation_id'];
 
-            var pollPromise = this.grrApiService_.poll(url + '/' + operationId);
+            var pollPromise = this.grrApiService_.poll(
+                url + '/' + operationId,
+                OPERATION_POLL_INTERVAL_MS);
             this.scope_.$on('$destroy', function() {
               this.grrApiService_.cancelPoll(pollPromise);
             }.bind(this));

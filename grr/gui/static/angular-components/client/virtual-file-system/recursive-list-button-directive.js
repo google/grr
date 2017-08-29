@@ -15,6 +15,8 @@ goog.scope(function() {
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
 
+var OPERATION_POLL_INTERVAL_MS = 1000;
+
 
 var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
 
@@ -159,7 +161,9 @@ RecursiveListButtonController.prototype.createRefreshOperation = function() {
             operationId = this.lastOperationId =
                 response['data']['operation_id'];
 
-            var pollPromise = this.grrApiService_.poll(url + '/' + operationId);
+            var pollPromise = this.grrApiService_.poll(
+                url + '/' + operationId,
+                OPERATION_POLL_INTERVAL_MS);
             this.scope_.$on('$destroy', function() {
               this.grrApiService_.cancelPoll(pollPromise);
             }.bind(this));

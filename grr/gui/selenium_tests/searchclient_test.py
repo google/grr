@@ -170,7 +170,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Type("client_query", text=hunt_id, end_with_enter=True)
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     # This checks that Overview tab actually got updated.
-    self.WaitUntil(self.IsTextPresent, "Total network traffic")
+    self.WaitUntil(self.IsTextPresent, "Total Network Traffic")
 
   def testSearchingForNonExistingHuntIdPerformsClientSearch(self):
     self.Open("/")

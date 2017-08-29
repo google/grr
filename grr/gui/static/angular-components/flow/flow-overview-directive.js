@@ -10,6 +10,9 @@ goog.scope(function() {
 var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
 
 
+/** @const {number} */
+grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_S = 15;
+
 /**
  * Controller for FlowOverviewDirective.
  *
@@ -18,8 +21,8 @@ var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.flow.flowOverviewDirective.FlowOverviewController =
-    function($scope, grrApiService) {
+grrUi.flow.flowOverviewDirective.FlowOverviewController = function(
+    $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -29,8 +32,15 @@ grrUi.flow.flowOverviewDirective.FlowOverviewController =
   /** @export {Object} */
   this.flow;
 
+  /** @private {!angular.$q.Promise|undefined} */
+  this.pollPromise_;
+
+  this.scope_.$on('$destroy', function() {
+    this.grrApiService_.cancelPoll(this.pollPromise_);
+  }.bind(this));
+
   this.scope_.$watchGroup(['flowId', 'apiBasePath'],
-                          this.onFlowIdOrBasePathChange_.bind(this));
+                          this.startPolling.bind(this));
 };
 
 var FlowOverviewController =
@@ -38,20 +48,30 @@ var FlowOverviewController =
 
 
 /**
- * Handles directive's arguments changes.
+ * Start polling for flow data.
  *
- * @param {Array<string>} newValues
- * @private
+ * @export
  */
-FlowOverviewController.prototype.onFlowIdOrBasePathChange_ = function(
-    newValues) {
-  this.flow = null;
+FlowOverviewController.prototype.startPolling = function() {
+  this.grrApiService_.cancelPoll(this.pollPromise_);
+  this.pollPromise_ = undefined;
 
-  if (newValues.every(angular.isDefined)) {
+  if (angular.isDefined(this.scope_['apiBasePath']) &&
+      angular.isDefined(this.scope_['flowId'])) {
     var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
-    this.grrApiService_.get(flowUrl).then(function(response) {
-      this.flow = response.data;
-    }.bind(this));
+    var interval = grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_S
+        * 1000;
+
+    // It's important to assign the result of the poll() call, not the
+    // result of the poll().then() call, since we need the original
+    // promise to pass to cancelPoll if needed.
+    this.pollPromise_ = this.grrApiService_.poll(flowUrl, interval);
+    this.pollPromise_.then(
+        undefined,
+        undefined,
+        function notify(response) {
+          this.flow = response['data'];
+        }.bind(this));
   }
 };
 

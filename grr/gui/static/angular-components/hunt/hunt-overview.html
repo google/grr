@@ -5,86 +5,98 @@
 <div ng-if="controller.hunt">
 
   <dl class="dl-horizontal dl-hunt">
-    <dt>Name</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.name" /></dd>
 
-    <dt>Description</dt>
-    <dd>{$ controller.hunt.value.description.value $}</dd>
+    <grr-force-refresh refresh-trigger="controller.hunt">
+      <dt>Name</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.name" /></dd>
 
-    <dt>Hunt ID</dt>
-    <dd>{$ controller.huntId $}</dd>
+      <dt>Description</dt>
+      <dd>{$ ::controller.hunt.value.description.value $}</dd>
 
-    <dt>Hunt URN</dt>
-    <dd>{$ controller.hunt.value.urn.value $}</dd>
+      <dt>Hunt ID</dt>
+      <dd>{$ ::controller.huntId $}</dd>
 
+      <dt>Hunt URN</dt>
+      <dd>{$ ::controller.hunt.value.urn.value $}</dd>
+
+      <dt>Creator</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.creator" /></dd>
+
+      <dt>Start Time</dt>
+      <dd><grr-timestamp value="controller.hunt.value.created" /></dd>
+
+      <dt>Expiry Time</dt>
+      <dd><grr-timestamp value="controller.hunt.value.expires" /></dd>
+
+      <dt>Crash Limit</dt>
+      <dd ng-if="::!controller.hunt.value.crash_limit">-</dd>
+      <dd ng-if="::controller.hunt.value.crash_limit">
+        <grr-semantic-value value="::controller.hunt.value.crash_limit" />
+      </dd>
+
+      <dt>Client Limit</dt>
+      <dd ng-if="::!controller.hunt.value.client_limit">-</dd>
+      <dd ng-if="::controller.hunt.value.client_limit">
+        <grr-semantic-value value="::controller.hunt.value.client_limit" />
+      </dd>
+
+      <dt>Client Rate (clients/min)</dt>
+      <dd ng-if="::!controller.hunt.value.client_rate">-</dd>
+      <dd ng-if="::controller.hunt.value.client_rate">
+        <grr-semantic-value value="::controller.hunt.value.client_rate" />
+      </dd>
+      <br>
+
+
+      <dt>Status</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.state" /></dd>
+
+      <dt>Clients Scheduled</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.all_clients_count" /></dd>
+
+      <dt>Clients Outstanding</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.remaining_clients_count" /></dd>
+
+      <dt>Clients Completed</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.completed_clients_count" /></dd>
+
+      <dt>Clients with Results</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.clients_with_results_count" /></dd>
+
+      <dt>Results</dt>
+      <dd><grr-semantic-value value="::controller.hunt.value.results_count" /></dd>
+
+      <dt>Total CPU Seconds Used</dt>
+      <dd>{$ ::controller.hunt.value.total_cpu_usage.value | number:2 $}s</dd>
+
+      <dt>Total Network Traffic</dt>
+      <dd>{$ ::controller.hunt.value.total_net_usage.value | number:0 $}b</dd>
+      <br>
+    </grr-force-refresh>
+
+    <!-- Don't auto-refresh hunt arguments since they can't be changed after the
+         hunt object is created. -->
     <dt>Flow Name</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.flow_name" /></dd>
+    <dd><grr-semantic-value value="::controller.hunt.value.flow_name" /></dd>
 
     <dt>Flow Arguments</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.flow_args" /></dd>
+    <dd><grr-semantic-value value="::controller.hunt.value.flow_args" /></dd>
+    <br>
 
-    <dt>Creator</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.creator" /></dd>
 
-    <dt>Start Time</dt>
-    <dd><grr-timestamp value="controller.hunt.value.created" /></dd>
-
-    <dt>Expiry Time</dt>
-    <dd><grr-timestamp value="controller.hunt.value.expires" /></dd>
-
-    <dt>Status</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.state" /></dd>
-
-    <dt>Crash Limit</dt>
-    <dd ng-if="!controller.hunt.value.crash_limit">-</dd>
-    <dd ng-if="controller.hunt.value.crash_limit">
-      <grr-semantic-value value="controller.hunt.value.crash_limit" />
-    </dd>
-
-    <dt>Client Limit</dt>
-    <dd ng-if="!controller.hunt.value.client_limit">-</dd>
-    <dd ng-if="controller.hunt.value.client_limit">
-      <grr-semantic-value value="controller.hunt.value.client_limit" />
-    </dd>
-
-    <dt>Client Rate (clients/min)</dt>
-    <dd ng-if="!controller.hunt.value.client_rate">-</dd>
-    <dd ng-if="controller.hunt.value.client_rate">
-      <grr-semantic-value value="controller.hunt.value.client_rate" />
-    </dd>
-
-    <dt>Clients Scheduled</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.all_clients_count" /></dd>
-
-    <dt>Outstanding</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.remaining_clients_count" /></dd>
-
-    <dt>Completed</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.completed_clients_count" /></dd>
-
-    <dt>Number of Clients with Results</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.clients_with_results_count" /></dd>
-
-    <dt>Total Number of Results</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.results_count" /></dd>
-
-    <dt>Total CPU seconds used</dt>
-    <dd>{$ controller.hunt.value.total_cpu_usage.value | number:2 $}s</dd>
-
-    <dt>Total network traffic</dt>
-    <dd>{$ controller.hunt.value.total_net_usage.value | number:0 $}b</dd>
-
-    <span ng-if="controller.hunt.value.client_rule_set">
-      <dt>Client rule set</dt>
+    <span ng-if="::controller.hunt.value.client_rule_set">
+      <dt>Client Rule Set</dt>
       <dd>
-        <grr-semantic-value value="controller.hunt.value.client_rule_set" />
+        <grr-semantic-value value="::controller.hunt.value.client_rule_set" />
       </dd>
     </span>
+    <br>
 
-    <span ng-if="controller.hunt.value.hunt_runner_args.value.output_plugins">
-      <dt>Output plugins</dt>
+
+    <span ng-if="::controller.hunt.value.hunt_runner_args.value.output_plugins">
+      <dt>Output Plugins</dt>
       <dd>
-        <grr-semantic-value value="controller.hunt.value.hunt_runner_args.value.output_plugins" />
+        <grr-semantic-value value="::controller.hunt.value.hunt_runner_args.value.output_plugins" />
       </dd>
     </span>
 

@@ -6,7 +6,7 @@ goog.provide('grrUi.client.hostInfoDirective.HostInfoDirective');
 goog.scope(function() {
 
 
-var OPERATION_POLL_INTERVAL = 1000;
+var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 /**
@@ -165,7 +165,7 @@ HostInfoController.prototype.interrogate = function() {
 HostInfoController.prototype.monitorInterrogateOperation_ = function() {
   this.interrogateOperationInterval_ = this.interval_(
       this.pollInterrogateOperationState_.bind(this),
-      OPERATION_POLL_INTERVAL);
+      OPERATION_POLL_INTERVAL_MS);
 };
 
 /**

@@ -9,27 +9,50 @@ goog.scope(function() {
  * Controller for force-refresh directive.
  *
  * @param {!angular.Scope} $scope
+ * @param {!angular.jQuery} $element
+ * @param {function(function(angular.jQuery, angular.Scope))} $transclude
  * @constructor
  * @ngInject
  */
-grrUi.core.forceRefreshDirective.ForceRefreshController = function($scope) {
+grrUi.core.forceRefreshDirective.ForceRefreshController = function(
+    $scope, $element, $transclude) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @export {boolean} */
-  this.show = true;
+  /** @private {!angular.jQuery} */
+  this.element_ = $element;
 
-  this.scope_.$watch('refreshTrigger', function(newValue) {
-    this.show = false;
+  /** @private {function(function(angular.jQuery, angular.Scope))} */
+  this.transclude_ = $transclude;
 
-    this.scope_.$evalAsync(function() {
-      this.show = true;
-    }.bind(this));
-  }.bind(this), true);
+  /** @private {angular.Scope|undefined} */
+  this.transcludedScope_;
+
+  this.scope_.$watch('refreshTrigger',
+                     this.updateDom_.bind(this),
+                     true);
 };
 var ForceRefreshController =
     grrUi.core.forceRefreshDirective.ForceRefreshController;
+
+
+ForceRefreshController.prototype.updateDom_ = function() {
+  if (angular.isDefined(this.transcludedScope_)) {
+    this.transcludedScope_.$destroy();
+    this.transcludedScope_ = undefined;
+  }
+
+  this.element_.empty();
+
+  this.transclude_(function(clone, scope) {
+    this.element_.empty();
+    this.element_.append(clone);
+
+    this.transcludedScope_ = scope;
+  }.bind(this));
+};
+
 
 /**
  * Directive that displays RDFDatetime values.
@@ -45,7 +68,6 @@ grrUi.core.forceRefreshDirective.ForceRefreshDirective = function() {
     },
     restrict: 'EA',
     transclude: true,
-    template: '<div ng-if="controller.show"><ng-transclude /></div>',
     controller: ForceRefreshController,
     controllerAs: 'controller'
   };

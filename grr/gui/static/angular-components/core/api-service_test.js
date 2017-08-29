@@ -12,12 +12,13 @@ var grr = grr || {};
 
 
 describe('API service', function() {
-  var $rootScope, $httpBackend, $interval, grrApiService;
+  var $rootScope, $q, $httpBackend, $interval, grrApiService;
 
   beforeEach(module(grrUi.core.module.name));
 
   beforeEach(inject(function($injector) {
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
@@ -234,7 +235,7 @@ describe('API service', function() {
         'state': 'FINISHED'
       });
 
-      grrApiService.poll('some/path');
+      grrApiService.poll('some/path', 1000);
 
       $httpBackend.flush();
       $interval.flush(2000);
@@ -247,7 +248,7 @@ describe('API service', function() {
       var successHandlerCalled = false;
       var failureHandlerCalled = false;
       var finallyHandlerCalled = false;
-      var pollPromise = grrApiService.poll('some/path');
+      var pollPromise = grrApiService.poll('some/path', 1000);
 
       pollPromise.then(function() {
         successHandlerCalled = true;
@@ -271,7 +272,7 @@ describe('API service', function() {
       });
 
       var successHandlerCalled = false;
-      grrApiService.poll('some/path').then(function(response) {
+      grrApiService.poll('some/path', 1000).then(function(response) {
         expect(response['data']).toEqual({
           'foo': 'bar',
           'state': 'FINISHED'
@@ -286,7 +287,7 @@ describe('API service', function() {
     it('triggers url multiple times if condition is not satisfied', function() {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
-      grrApiService.poll('some/path');
+      grrApiService.poll('some/path', 1000);
 
       $httpBackend.flush();
 
@@ -299,7 +300,7 @@ describe('API service', function() {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
       var successHandlerCalled = false;
-      grrApiService.poll('some/path').then(function(response) {
+      grrApiService.poll('some/path', 1000).then(function(response) {
         expect(response['data']).toEqual({
           'foo': 'bar',
           'state': 'FINISHED'
@@ -323,7 +324,7 @@ describe('API service', function() {
       $httpBackend.expectGET('/api/some/path').respond(500);
 
       var failureHandleCalled = false;
-      grrApiService.poll('some/path').then(function success() {
+      grrApiService.poll('some/path', 1000).then(function success() {
       }, function failure() {
         failureHandleCalled = true;
       });
@@ -336,7 +337,7 @@ describe('API service', function() {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
       var failureHandleCalled = false;
-      grrApiService.poll('some/path').then(function success() {
+      grrApiService.poll('some/path', 1000).then(function success() {
       }, function failure() {
         failureHandleCalled = true;
       });
@@ -353,12 +354,111 @@ describe('API service', function() {
     it('returns response payload on failure', function() {
       $httpBackend.expectGET('/api/some/path').respond(500, {'foo': 'bar'});
 
-      grrApiService.poll('some/path').then(function success() {
+      grrApiService.poll('some/path', 1000).then(function success() {
       }, function failure(response) {
         expect(response['data']).toEqual({'foo': 'bar'});
       });
 
       $httpBackend.flush();
+    });
+
+    it('notifies on every intermediate poll result', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+
+      var notificationCount = 0;
+      grrApiService.poll('some/path', 1000).then(
+          undefined, undefined,
+          function(data) {
+            notificationCount += 1;
+          });
+      expect(notificationCount).toBe(0);
+
+      $httpBackend.flush();
+      expect(notificationCount).toBe(1);
+
+      $interval.flush(500);
+      expect(notificationCount).toBe(1);
+
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+      $interval.flush(500);
+      $httpBackend.flush();
+      expect(notificationCount).toBe(2);
+    });
+
+    it('does not allow API requests to overlap', function() {
+      var notificationCount = 0;
+      grrApiService.poll('some/path', 1000).then(
+          undefined, undefined,
+          function(data) {
+            notificationCount += 1;
+          });
+      expect(notificationCount).toBe(0);
+
+      $interval.flush(2000);
+      expect(notificationCount).toBe(0);
+    });
+
+    it('does not resolve the promise after cancelPoll() call', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'foo': 'bar',
+        'state': 'FINISHED'
+      });
+
+      var successHandlerCalled = false;
+      var promise = grrApiService.poll('some/path', 1000).then(
+          function(response) {
+            successHandlerCalled = true;
+          });
+
+      grrApiService.cancelPoll(promise);
+      $httpBackend.flush();
+      expect(successHandlerCalled).toBe(false);
+    });
+
+    it('works correctly on a chained promise', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'foo': 'bar',
+        'state': 'FINISHED'
+      });
+
+      var successHandlerCalled = false;
+      var finallyHandlerCalled = false;
+      grrApiService.poll('some/path', 1000)
+          .then(function() { successHandlerCalled = true; }).
+          catch(function() {}).
+          finally(function() { finallyHandlerCalled = true; });
+
+      $httpBackend.flush();
+      expect(finallyHandlerCalled).toBe(true);
+      expect(successHandlerCalled).toBe(true);
+    });
+
+    it('allows cancelPoll to be called on a chained promise', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'foo': 'bar',
+        'state': 'FINISHED'
+      });
+
+      var successHandlerCalled = false;
+      var finallyHandlerCalled = false;
+      var promise = grrApiService.poll('some/path', 1000)
+          .then(function() { successHandlerCalled = true; }).
+          catch(function() {}).
+          finally(function() { finallyHandlerCalled = true; });
+
+      grrApiService.cancelPoll(promise);
+      $httpBackend.flush();
+      expect(finallyHandlerCalled).toBe(false);
+      expect(successHandlerCalled).toBe(false);
+    });
+  });
+
+  describe('cancelPoll() method', function() {
+    it('raises if the promise does not have "cancel" attribute', function() {
+      var deferred = $q.defer();
+      expect(function() {
+        grrApiService.cancelPoll(deferred.promise);
+      }).toThrow(new Error('Invalid promise to cancel: not cancelable.'));
     });
   });
 

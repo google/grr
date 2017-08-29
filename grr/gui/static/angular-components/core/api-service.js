@@ -92,6 +92,50 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 
 /**
+ * Wraps a promise so that then/catch/finally calls preserve the custom
+ * cancel() method.
+ *
+ * @param {!angular.$q.Promise} promise Cancelable promise to wrap.
+ * @return {!angular.$q.Promise} Wrapped promise. Its then/catch/finally
+ *     methods will propagate 'cancel' property of the parent promise to
+ *     children promises.
+ */
+var wrapCancellablePromise_ = function(promise) {
+  var cancel = promise['cancel'];
+
+  if (angular.isUndefined(promise['_oldThen'])) {
+    promise['_oldThen'] = promise['then'];
+    promise['then'] = function(onFulfilled, onRejected, progressBack) {
+      var result = promise['_oldThen'](
+          onFulfilled, onRejected, progressBack);
+      result['cancel'] = cancel;
+      return wrapCancellablePromise_(result);
+    };
+  }
+
+  if (angular.isUndefined(promise['_oldCatch'])) {
+    promise['_oldCatch'] = promise['catch'];
+    promise['catch'] = function(callback) {
+      var result = promise['_oldCatch'](callback);
+      result['cancel'] = cancel;
+      return wrapCancellablePromise_(result);
+    };
+  }
+
+  if (angular.isUndefined(promise['_oldFinally'])) {
+    promise['_oldFinally'] = promise['finally'];
+    promise['finally'] = function(callback, progressBack) {
+      var result = promise['_oldFinally'](callback, progressBack);
+      result['cancel'] = cancel;
+      return wrapCancellablePromise_(result);
+    };
+  }
+
+  return promise;
+};
+
+
+/**
  * Service for doing GRR API calls.
  *
  * @param {angular.$http} $http The Angular http service.
@@ -250,6 +294,7 @@ ApiService.prototype.getCached = function(apiPath, opt_params) {
  * equal to 'FINISHED').
  *
  * @param {string} apiPath API path to trigger.
+ * @param {number} intervalMs Interval between polls in milliseconds.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @param {Function=} opt_checkFn Function that checks if
  *     polling can be stopped. Default implementation checks for operation
@@ -258,24 +303,37 @@ ApiService.prototype.getCached = function(apiPath, opt_params) {
  *     for which checkFn() call returned true or to the first failed
  *     HTTP response (with status code != 200).
  */
-ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
+ApiService.prototype.poll = function(apiPath, intervalMs, opt_params,
+                                     opt_checkFn) {
   if (angular.isUndefined(opt_checkFn)) {
     opt_checkFn = function(response) {
-      return response['data']['state'] == 'FINISHED';
+      return response['data']['state'] === 'FINISHED';
     }.bind(this);
   }
 
   var result = this.q_.defer();
   var inProgress = false;
+  var cancelled = false;
   var pollIteration = function() {
     inProgress = true;
     this.get(apiPath, opt_params).then(function success(response) {
+      if (cancelled) {
+        return;
+      }
+      result.notify(response);
+
       if (opt_checkFn(response)) {
         result.resolve(response);
       }
     }.bind(this), function failure(response) {
+      if (cancelled) {
+        return;
+      }
       result.reject(response);
     }.bind(this)).finally(function() {
+      if (cancelled) {
+        return;
+      }
       inProgress = false;
     }.bind(this));
   }.bind(this);
@@ -286,23 +344,31 @@ ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
     if (!inProgress) {
       pollIteration();
     }
-  }.bind(this), 1000);
+  }.bind(this), intervalMs);
+
   result.promise['cancel'] = function() {
+    cancelled = true;
     this.interval_.cancel(intervalPromise);
   }.bind(this);
   result.promise.finally(result.promise['cancel']);
 
-  return result.promise;
+  return wrapCancellablePromise_(result.promise);
 };
 
 /**
  * Cancels polling previously started by poll(). As a result of this
  * the promise will neither be resolved, nor rejected.
  *
- * @param {!angular.$q.Promise} pollPromise Promise returned by poll() call.
+ * @param {!angular.$q.Promise|undefined} pollPromise Promise returned by
+ *     poll() call.
  */
 ApiService.prototype.cancelPoll = function(pollPromise) {
-  pollPromise['cancel']();
+  if (angular.isDefined(pollPromise)) {
+    if (angular.isUndefined(pollPromise['cancel'])) {
+      throw new Error('Invalid promise to cancel: not cancelable.');
+    }
+    pollPromise['cancel']();
+  }
 };
 
 /**

@@ -239,7 +239,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsTextPresent("Integer rules"))
 
     # Check that rules summary is present.
-    self.assertTrue(self.IsTextPresent("Client rule set"))
+    self.assertTrue(self.IsTextPresent("Client Rule Set"))
 
     # Check that the hunt object was actually created
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)

@@ -144,6 +144,30 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "5,000.00s")
     self.WaitUntil(self.IsTextPresent, "1,000,000b")
 
+  def testHuntOverviewGetsUpdatedWhenHuntChanges(self):
+    with self.CreateSampleHunt() as hunt:
+      hunt_stats = hunt.context.usage_stats
+      hunt_stats.user_cpu_stats.sum = 5000
+      hunt_stats.network_bytes_sent_stats.sum = 1000000
+
+    self.Open("/")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S = 1")
+
+    self.Click("css=a[grrtarget=hunts]")
+    self.Click("css=td:contains('GenericHunt')")
+
+    self.WaitUntil(self.IsTextPresent, "5,000.00s")
+    self.WaitUntil(self.IsTextPresent, "1,000,000b")
+
+    with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as fd:
+      fd.context.usage_stats.user_cpu_stats.sum = 6000
+      fd.context.usage_stats.network_bytes_sent_stats.sum = 11000000
+
+    self.WaitUntil(self.IsTextPresent, "6,000.00s")
+    self.WaitUntil(self.IsTextPresent, "11,000,000b")
+
   def testHuntStatsView(self):
     self.SetupTestHuntView()
 

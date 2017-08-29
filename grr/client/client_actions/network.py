@@ -18,18 +18,16 @@ class Netstat(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.NetworkConnection]
 
   def Run(self, unused_args):
-    netstat = []
-
     for proc in psutil.process_iter():
       try:
-        netstat.append((proc.pid, proc.connections()))
+        connections = proc.connections()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
-        pass
+        continue
 
-    for pid, connections in netstat:
       for conn in connections:
         res = rdf_client.NetworkConnection()
-        res.pid = pid
+        res.pid = proc.pid
+        res.process_name = proc.name()
         res.family = conn.family
         res.type = conn.type
 

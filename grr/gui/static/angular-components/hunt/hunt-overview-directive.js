@@ -6,6 +6,9 @@ goog.provide('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
 goog.scope(function() {
 
 
+/** @const {number} */
+grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S = 15;
+
 
 /**
  * Controller for HuntOverviewDirective.
@@ -16,8 +19,8 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.hunt.huntOverviewDirective.HuntOverviewController =
-    function($scope, grrApiService, grrRoutingService) {
+grrUi.hunt.huntOverviewDirective.HuntOverviewController = function(
+    $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -30,13 +33,20 @@ grrUi.hunt.huntOverviewDirective.HuntOverviewController =
   /** @private {!grrUi.routing.routingService.RoutingService} */
   this.grrRoutingService_ = grrRoutingService;
 
+  /** @export {string} */
+  this.huntId;
+
   /** @export {Object} */
   this.hunt;
 
-  /** @export {Object} */
-  this.huntSummary;
+  /** @private {!angular.$q.Promise|undefined} */
+  this.pollPromise_;
 
-  this.scope_.$watch('huntUrn', this.onHuntUrnChange.bind(this));
+  this.scope_.$on('$destroy', function() {
+    this.grrApiService_.cancelPoll(this.pollPromise_);
+  }.bind(this));
+
+  this.scope_.$watch('huntUrn', this.startPolling_.bind(this));
 };
 
 var HuntOverviewController =
@@ -44,44 +54,31 @@ var HuntOverviewController =
 
 
 /**
- * Handles huntUrn attribute changes.
- * @export
+ * Fetches hunt data;
+ *
+ * @private
  */
-HuntOverviewController.prototype.onHuntUrnChange = function() {
-  this.hunt = null;
-  this.huntSummary = null;
+HuntOverviewController.prototype.startPolling_ = function() {
+  this.grrApiService_.cancelPoll(this.pollPromise_);
+  this.pollPromise_ = undefined;
 
-  if (angular.isDefined(this.scope_.huntUrn)) {
-    var huntUrnComponents = this.scope_.huntUrn.split('/');
+  if (angular.isDefined(this.scope_['huntUrn'])) {
+    var huntUrnComponents = this.scope_['huntUrn'].split('/');
     this.huntId = huntUrnComponents[huntUrnComponents.length - 1];
 
-    this.hunt = null;
-    this.huntSummary = null;
+    var huntUrl = 'hunts/' + this.huntId;
+    var interval = grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S
+        * 1000;
 
-    this.grrApiService_.get('hunts/' + this.huntId).then(
-        this.onHuntFetched.bind(this));
+    this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
+    this.pollPromise_.then(
+        undefined,
+        undefined,
+        function notify(response) {
+          this.hunt = response['data'];
+        }.bind(this));
   }
 };
-
-
-/**
- * Called when hunt data was fetched.
- * @param {Object} response Response from the server.
- */
-HuntOverviewController.prototype.onHuntFetched = function(response) {
-  this.hunt = response.data;
-  this.huntSummary = this.hunt.summary;
-};
-
-
-/**
- * Loads a 'hunt details' page after the 'View Hunt Details' link is clicked.
- */
-HuntOverviewController.prototype.showHuntDetails = function() {
-  var huntId = this.scope_.huntUrn.split('/')[2];
-  this.grrRoutingService_.go('huntDetails', {huntId: huntId});
-};
-
 
 
 /**

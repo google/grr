@@ -16,7 +16,7 @@ var TABLE_ROW_HASH =
 
 
 /** @const {number} */
-grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL = 30;
+grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_S = 30;
 
 
 /**
@@ -159,7 +159,7 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
 
   /** @type {number} */
   this.autoRefreshInterval =
-      grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL;
+      grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_S;
 
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.

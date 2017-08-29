@@ -13,7 +13,7 @@ var REFRESH_FILE_EVENT =
 var ERROR_EVENT_NAME =
     grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 
-var OPERATION_POLL_INTERVAL = 1000;
+var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
 /**
@@ -136,7 +136,7 @@ FileDownloadViewController.prototype.updateFile = function() {
 FileDownloadViewController.prototype.monitorUpdateOperation_ = function() {
   this.updateOperationInterval_ = this.interval_(
       this.pollUpdateOperationState_.bind(this),
-      OPERATION_POLL_INTERVAL);
+      OPERATION_POLL_INTERVAL_MS);
 };
 
 /**

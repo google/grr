@@ -96,9 +96,6 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.infiniteTableDirective.InfiniteTableDirective.directive_name,
     grrUi.core.infiniteTableDirective.InfiniteTableDirective);
-grrUi.core.module.service(
-    grrUi.core.apiService.ApiService.service_name,
-    grrUi.core.apiService.ApiService);
 grrUi.core.module.directive(
     grrUi.core.resultsCollectionDirective.ResultsCollectionDirective
         .directive_name,
@@ -158,6 +155,9 @@ grrUi.core.module.directive(
     grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective.directive_name,
     grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective);
 
+grrUi.core.module.service(
+    grrUi.core.apiService.ApiService.service_name,
+    grrUi.core.apiService.ApiService);
 grrUi.core.module.service(
     grrUi.core.firebaseService.FirebaseService.service_name,
     grrUi.core.firebaseService.FirebaseService);

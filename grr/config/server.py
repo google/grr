@@ -83,12 +83,6 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
-config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
-                       "DEPRECATED: Use Cron.disabled_system_jobs instead. "
-                       "If Cron.enabled_system_jobs is set, only the listed "
-                       "cron flows will be run as system cron jobs. Cannot "
-                       "be used together with Cron.disabled_system_jobs.")
-
 config_lib.DEFINE_list("Cron.disabled_system_jobs", [],
                        "Normally, all subclasses of SystemCronFlow are "
                        "considered system jobs and run automatically. System "
