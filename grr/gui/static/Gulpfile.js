@@ -133,8 +133,6 @@ gulp.task('compile-grr-angular-template-cache', function() {
 gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], function() {
   return gulp.src(['angular-components/**/*.js',
                    '!angular-components/**/*_test.js',
-                   '../local/static/angular-components/**/*.js',
-                   '!../local/static/angular-components/**/*_test.js',
                    '!angular-components/empty-templates.js',
                    '!angular-components/externs.js',
                    config.tempDir + '/templates.js'])
@@ -187,9 +185,7 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
 
 gulp.task('compile-grr-closure-ui-deps', function() {
   return gulp.src(['angular-components/**/*.js',
-                   '!angular-components/**/*_test.js',
-                   '../local/static/angular-components/**/*.js',
-                   '!../local/static/angular-components/**/*_test.js'])
+                   '!angular-components/**/*_test.js'])
       .pipe(gulpNewer(config.distDir + '/grr-ui.deps.js'))
       .pipe(gulpClosureDeps({
         fileName: 'grr-ui.deps.js',

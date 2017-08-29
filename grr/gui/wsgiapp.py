@@ -330,7 +330,6 @@ window.location = '%s' + friendly_hash;
   def WSGIHandler(self):
     return werkzeug_wsgi.SharedDataMiddleware(self, {
         "/static": config.CONFIG["AdminUI.document_root"],
-        "/local/static": config.CONFIG["AdminUI.local_document_root"],
         "/local/help": config.CONFIG["AdminUI.help_root"]
     })
 

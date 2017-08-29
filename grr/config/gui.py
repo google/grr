@@ -22,10 +22,6 @@ config_lib.DEFINE_string("AdminUI.template_root",
                          "%(grr/gui/templates|resource)",
                          "The main path to the templates.")
 
-config_lib.DEFINE_string("AdminUI.local_document_root",
-                         "%(grr/gui/local/static|resource)",
-                         "The main path to the localized static HTML pages.")
-
 config_lib.DEFINE_string("AdminUI.help_root", "%(docs|resource)",
                          "The main path to the locally cached documentation.")
 
