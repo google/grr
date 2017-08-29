@@ -43,4 +43,3 @@ download_packages
 # Reduce the size of the tarball that gets uploaded to GCS by
 # deleting unnecessary files.
 rm grr/config/grr-response-templates/templates/*.zip
-rm -rf sdists

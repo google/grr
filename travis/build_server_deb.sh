@@ -40,5 +40,6 @@ function export_build_vars() {
 
 create_changelog
 export_build_vars
+rm -rf sdists
 dpkg-buildpackage -us -uc
 mkdir gcs_upload_dir && cp "${PWD}"/../grr-server* gcs_upload_dir
