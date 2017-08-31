@@ -23,6 +23,13 @@ nodeenv -p --prebuilt --node=7.10.0
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"
 
+# Set default value for PROTOC if necessary.
+default_protoc_path="${HOME}/protobuf/bin/protoc"
+if [[ -z "${PROTOC}" && "${PATH}" != *'protoc'* && -f "${default_protoc_path}" ]]; then
+  echo "PROTOC is not set. Will set it to ${default_protoc_path}."
+  export PROTOC="${default_protoc_path}"
+fi
+
 # Install grr packages as links pointing to code in the
 # checked-out repository.
 # Note that because of dependencies, order here is important.
