@@ -31,6 +31,11 @@ class ApiListFilesHandlerRegressionTest(
                vfs_plugin.ApiListFilesArgs(
                    client_id=self.client_id.Basename(),
                    file_path="fs/tsk/c/bin"))
+    self.Check("ListFiles",
+               vfs_plugin.ApiListFilesArgs(
+                   client_id=self.client_id.Basename(),
+                   file_path="fs/tsk/c/bin",
+                   timestamp=self.time_2))
 
 
 class ApiGetFileTextHandlerRegressionTest(

@@ -23,7 +23,6 @@ import time
 import mock
 
 from grr.lib import rdfvalue
-from grr.lib import threadpool
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -32,6 +31,7 @@ from grr.server import data_store
 from grr.server import flow
 from grr.server import queue_manager
 from grr.server import sequential_collection
+from grr.server import threadpool
 from grr.server import worker
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard

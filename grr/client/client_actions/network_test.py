@@ -8,7 +8,7 @@ from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 
-class NetstatTest(client_test_lib.EmptyActionTest):
+class NetstatActionTest(client_test_lib.EmptyActionTest):
   """Tests the Netstat client action."""
 
   def testNetstat(self):

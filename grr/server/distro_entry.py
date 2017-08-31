@@ -5,7 +5,6 @@
 # pylint: disable=g-import-not-at-top
 import os
 
-from grr import config
 from grr import defaults
 from grr.lib import config_lib
 from grr.lib import flags
@@ -37,7 +36,6 @@ def SetConfigOptions():
      small and rarely changing set of options.
 
   """
-  config_opts = {}
   flag_defaults = {}
 
   # Allow the installer to override the platform defaults for the location of
@@ -58,9 +56,6 @@ def SetConfigOptions():
   else:
     flag_defaults["config"] = config_lib.Resource().Filter(
         "install_data/etc/grr-server.yaml")
-
-  for option, value in config_opts.items():
-    config.CONFIG.Set(option, value)
 
   flags.PARSER.set_defaults(**flag_defaults)
 

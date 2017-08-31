@@ -4476,6 +4476,32 @@
       },
       "test_class": "ApiListFilesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin"
+    },
+    {
+      "api_method": "ListFiles",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "isDirectory": false,
+            "lastCollected": "42000000",
+            "lastCollectedSize": "11",
+            "name": "bash",
+            "path": "fs/tsk/c/bin/bash",
+            "type": "VFSMemoryFile"
+          },
+          {
+            "isDirectory": false,
+            "lastCollected": "42000000",
+            "lastCollectedSize": "11",
+            "name": "rbash",
+            "path": "fs/tsk/c/bin/rbash",
+            "type": "VFSMemoryFile"
+          }
+        ]
+      },
+      "test_class": "ApiListFilesHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin&timestamp=172800000042"
     }
   ],
   "ApiListFlowDescriptorsHandler": [

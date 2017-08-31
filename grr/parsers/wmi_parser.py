@@ -4,10 +4,10 @@
 import binascii
 import calendar
 import struct
+import time
 
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.lib import time_utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import wmi as rdf_wmi
@@ -160,6 +160,14 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
   output_types = [rdf_client.SoftwarePackage.__name__]
   supported_artifacts = ["WMIHotFixes"]
 
+  def AmericanDateToEpoch(self, date_str):
+    """Take a US format date and return epoch."""
+    try:
+      epoch = time.strptime(date_str, "%m/%d/%Y")
+      return int(calendar.timegm(epoch)) * 1000000
+    except ValueError:
+      return 0
+
   def Parse(self, query, result, knowledge_base):
     """Parse the WMI packages output."""
     _ = query, knowledge_base
@@ -167,7 +175,7 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
     result = result.ToDict()
 
     # InstalledOn comes back in a godawful format such as '7/10/2013'.
-    installed_on = time_utils.AmericanDateToEpoch(result.get("InstalledOn", ""))
+    installed_on = self.AmericanDateToEpoch(result.get("InstalledOn", ""))
     soft = rdf_client.SoftwarePackage(
         name=result.get("HotFixID"),
         description=result.get("Caption"),

@@ -31,6 +31,4 @@ profile_folders = [
                      "startup"), ("Templates", "Templates", "templates")
 ]
 
-MAJOR_VERSION_WINDOWS_VISTA = 6
-
 CLIENT_MAX_BUFFER_SIZE = 640 * 1024

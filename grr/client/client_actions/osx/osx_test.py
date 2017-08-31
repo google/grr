@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
-# Copyright 2011 Google Inc. All Rights Reserved.
 """OSX tests."""
 
 
@@ -12,8 +10,8 @@ import mock
 import mox
 
 from grr.lib import flags
-from grr.lib import osx_launchd as testdata
 from grr.test_lib import client_test_lib
+from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib
 
 
@@ -84,7 +82,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
     return True
 
   def ValidResponseProtoSingle(self, proto):
-    td = testdata.JOB[0]
+    td = osx_launchd_testdata.JOB[0]
     self.assertEqual(proto.label, td["Label"])
     self.assertEqual(proto.lastexitstatus, td["LastExitStatus"].value)
     self.assertEqual(proto.sessiontype, td["LimitLoadToSessionType"])
@@ -98,8 +96,9 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
     self.osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
     self.mock_version.VersionAsMajorMinor().AndReturn([10, 7])
 
-    self.action.GetRunningLaunchDaemons().AndReturn(testdata.JOBS)
-    num_results = len(testdata.JOBS) - testdata.FILTERED_COUNT
+    self.action.GetRunningLaunchDaemons().AndReturn(osx_launchd_testdata.JOBS)
+    num_results = len(
+        osx_launchd_testdata.JOBS) - osx_launchd_testdata.FILTERED_COUNT
     for _ in range(0, num_results):
       self.action.SendReply(mox.Func(self.ValidResponseProto))
 
@@ -111,7 +110,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
     self.osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
     self.mock_version.VersionAsMajorMinor().AndReturn([10, 7, 1])
 
-    self.action.GetRunningLaunchDaemons().AndReturn(testdata.JOB)
+    self.action.GetRunningLaunchDaemons().AndReturn(osx_launchd_testdata.JOB)
     self.action.SendReply(mox.Func(self.ValidResponseProtoSingle))
 
     self.mox.ReplayAll()

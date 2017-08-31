@@ -10082,6 +10082,108 @@
         ]
       },
       "url": "/api/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin"
+    },
+    {
+      "api_method": "ListFiles",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 42000000,
+            "type": "ApiFile",
+            "value": {
+              "is_directory": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "last_collected": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "last_collected_size": {
+                "age": 0,
+                "type": "long",
+                "value": 11
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "bash"
+              },
+              "path": {
+                "age": 0,
+                "type": "unicode",
+                "value": "fs/tsk/c/bin/bash"
+              },
+              "type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "VFSMemoryFile"
+              }
+            }
+          },
+          {
+            "age": 42000000,
+            "type": "ApiFile",
+            "value": {
+              "is_directory": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "last_collected": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "last_collected_size": {
+                "age": 0,
+                "type": "long",
+                "value": 11
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "rbash"
+              },
+              "path": {
+                "age": 0,
+                "type": "unicode",
+                "value": "fs/tsk/c/bin/rbash"
+              },
+              "type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "VFSMemoryFile"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFilesHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_directory": false,
+            "last_collected": 42000000,
+            "last_collected_size": 11,
+            "name": "bash",
+            "path": "fs/tsk/c/bin/bash",
+            "type": "VFSMemoryFile"
+          },
+          {
+            "is_directory": false,
+            "last_collected": 42000000,
+            "last_collected_size": 11,
+            "name": "rbash",
+            "path": "fs/tsk/c/bin/rbash",
+            "type": "VFSMemoryFile"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/vfs-index/?file_path=fs%2Ftsk%2Fc%2Fbin&timestamp=172800000042"
     }
   ],
   "ApiListFlowDescriptorsHandler": [

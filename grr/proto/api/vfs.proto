@@ -149,6 +149,10 @@ message ApiListFilesArgs {
   optional bool directories_only = 6 [(sem_type) = {
       description: "If true, only directories are returned."
     }];
+  optional uint64 timestamp = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
 }
 
 message ApiListFilesResult {
@@ -164,6 +168,10 @@ message ApiGetVfsFilesArchiveArgs {
     }];
   optional string file_path = 2 [(sem_type) = {
       description: "File path."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
     }];
 }
 

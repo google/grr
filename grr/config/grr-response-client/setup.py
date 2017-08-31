@@ -65,9 +65,9 @@ setup_args = dict(
     url="https://github.com/google/grr",
     entry_points={
         "console_scripts": [
-            "grr_client = grr.lib.distro_entry:Client",
-            "grr_client_build = grr.lib.distro_entry:ClientBuild",
-            "grr_pool_client = grr.lib.distro_entry:PoolClient"
+            "grr_client = grr.server.distro_entry:Client",
+            "grr_client_build = grr.server.distro_entry:ClientBuild",
+            "grr_pool_client = grr.server.distro_entry:PoolClient"
         ]
     },
     cmdclass={"sdist": Sdist},

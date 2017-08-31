@@ -268,7 +268,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     if args.timestamp:
-      age = rdfvalue.RDFDatetime(args.timestamp)
+      age = args.timestamp
     else:
       age = aff4.ALL_TIMES
 
@@ -286,6 +286,7 @@ class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiListFilesArgs
   rdf_deps = [
       client.ApiClientId,
+      rdfvalue.RDFDatetime,
   ]
 
 
@@ -312,16 +313,22 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     if path != "/":
       ValidateVfsPath(args.file_path)
 
+    if args.timestamp:
+      age = args.timestamp
+    else:
+      age = aff4.NEWEST_TIME
+
     directory = aff4.FACTORY.Open(
         args.client_id.ToClientURN().Add(path), mode="r",
         token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
       children = [
-          ch for ch in directory.OpenChildren() if "Container" in ch.behaviours
+          ch for ch in directory.OpenChildren(age=age)
+          if "Container" in ch.behaviours
       ]
     else:
-      children = [ch for ch in directory.OpenChildren()]
+      children = [ch for ch in directory.OpenChildren(age=age)]
 
     # If we are reading the root file content, a whitelist applies.
     if path == "/":
@@ -385,7 +392,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
     ValidateVfsPath(args.file_path)
 
     if args.timestamp:
-      age = rdfvalue.RDFDatetime(args.timestamp)
+      age = args.timestamp
     else:
       age = aff4.NEWEST_TIME
 
@@ -453,7 +460,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
     ValidateVfsPath(args.file_path)
 
     if args.timestamp:
-      age = rdfvalue.RDFDatetime(args.timestamp)
+      age = args.timestamp
     else:
       age = aff4.NEWEST_TIME
 
@@ -875,6 +882,7 @@ class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetVfsFilesArchiveArgs
   rdf_deps = [
       client.ApiClientId,
+      rdfvalue.RDFDatetime,
   ]
 
 
@@ -907,7 +915,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     if prev_fd:
       yield archive_generator.WriteFileFooter()
 
-  def _GenerateContent(self, start_urns, prefix, token=None):
+  def _GenerateContent(self, start_urns, prefix, age, token=None):
     archive_generator = utils.StreamingZipGenerator(
         compression=zipfile.ZIP_DEFLATED)
     folders_urns = set(start_urns)
@@ -928,6 +936,16 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
           folders_urns.add(fd.urn)
 
       if download_fds:
+        if age != aff4.NEWEST_TIME:
+          urns = [fd.urn for fd in download_fds]
+          # We need to reopen the files with the actual age
+          # requested. We can't do this in the call above since
+          # indexes are stored with the latest timestamp of an object
+          # only so adding the age above will potentially ignore
+          # some of the indexes.
+          download_fds = list(
+              aff4.FACTORY.MultiOpen(urns, age=age, token=token))
+
         for chunk in self._StreamFds(
             archive_generator, prefix, download_fds, token=token):
           yield chunk
@@ -947,6 +965,12 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
                                start_urns[0].Path()).strip("_")
 
-    content_generator = self._GenerateContent(start_urns, prefix, token=token)
+    if args.timestamp:
+      age = args.timestamp
+    else:
+      age = aff4.NEWEST_TIME
+
+    content_generator = self._GenerateContent(
+        start_urns, prefix, age=age, token=token)
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator)

@@ -1102,7 +1102,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
                     message,
                     priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
                     blocking=True):
-    """Push the Serialized Message on the output queue."""
+    """Pushes the Serialized Message on the output queue."""
     self._out_queue.Put(message, priority=priority, block=blocking)
 
   def QueueMessages(self, messages):

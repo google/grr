@@ -193,7 +193,7 @@ class ThreadPool(object):
   factory_lock = threading.Lock()
 
   @classmethod
-  def Factory(cls, name, min_threads, max_threads=None):
+  def Factory(cls, name, min_threads, max_threads=None, cpu_check=True):
     """Creates a new thread pool with the given name.
 
     If the thread pool of this name already exist, we just return the existing
@@ -205,6 +205,7 @@ class ThreadPool(object):
       min_threads: The number of threads in the pool.
       max_threads: The maximum number of threads to grow the pool to. If not set
         we do not grow the pool.
+      cpu_check: If false, don't check CPU load when adding new threads.
 
     Returns:
       A threadpool instance.
@@ -213,11 +214,11 @@ class ThreadPool(object):
       result = cls.POOLS.get(name)
       if result is None:
         cls.POOLS[name] = result = cls(
-            name, min_threads, max_threads=max_threads)
+            name, min_threads, max_threads=max_threads, cpu_check=cpu_check)
 
       return result
 
-  def __init__(self, name, min_threads, max_threads=None):
+  def __init__(self, name, min_threads, max_threads=None, cpu_check=True):
     """This creates a new thread pool using min_threads workers.
 
     Args:
@@ -225,6 +226,8 @@ class ThreadPool(object):
       min_threads: The minimum number of worker threads this pool should have.
       max_threads: The maximum number of threads to grow the pool to. If not set
         we do not grow the pool.
+      cpu_check: If false, don't check CPU load when adding new threads.
+
 
     Raises:
       threading.ThreadError: If no threads can be spawned at all, ThreadError
@@ -237,6 +240,7 @@ class ThreadPool(object):
       max_threads = min_threads
 
     self.max_threads = max_threads
+    self.cpu_check = cpu_check
     self._queue = Queue.Queue(maxsize=max_threads)
     self.name = name
     self.started = False
@@ -406,8 +410,11 @@ class ThreadPool(object):
       target(*args)
 
   def CPUUsage(self):
-    # Do not block this call.
-    return self.process.cpu_percent(0)
+    if self.cpu_check:
+      # Do not block this call.
+      return self.process.cpu_percent(0)
+    else:
+      return 0
 
   def Join(self):
     """Waits until all outstanding tasks are completed."""

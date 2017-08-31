@@ -14,7 +14,6 @@ from grr.lib import flags
 from grr.lib import queues as queues_config
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
@@ -23,8 +22,8 @@ from grr.server import master
 from grr.server import queue_manager as queue_manager_lib
 # pylint: disable=unused-import
 from grr.server import server_stubs
-
 # pylint: enable=unused-import
+from grr.server import threadpool
 
 
 class Error(Exception):

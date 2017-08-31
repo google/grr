@@ -4,11 +4,11 @@
 
 
 from grr.lib import flags
-from grr.lib import osx_launchd as testdata
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import osx_launchd
 from grr.test_lib import flow_test_lib
+from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib
 
 
@@ -16,7 +16,7 @@ class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(OSXLaunchdJobDictTest, self).setUp()
-    self.jobdict = testdata.JOBS
+    self.jobdict = osx_launchd_testdata.JOBS
     self.parser = osx_launchd.OSXLaunchdJobDict(self.jobdict)
 
   def testParseRegex(self):
@@ -33,8 +33,9 @@ class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
         self.assertFalse("mach_init.crash_inspector" in job["Label"],
                          job["Label"])
 
-    self.assertEqual(filtered, testdata.FILTERED_COUNT)
-    self.assertEqual(unfiltered, len(testdata.JOBS) - testdata.FILTERED_COUNT)
+    num_filtered = osx_launchd_testdata.FILTERED_COUNT
+    self.assertEqual(filtered, num_filtered)
+    self.assertEqual(unfiltered, len(self.jobdict) - num_filtered)
 
 
 class DarwinPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):

@@ -2411,10 +2411,13 @@ class AFF4Volume(AFF4Object):
       Instances for each direct child.
     """
     if children is None:
-      subjects = list(self.ListChildren(limit=limit, age=age))
+      # No age passed here to avoid ignoring indexes that were updated
+      # to a timestamp greater than the object's age.
+      subjects = list(self.ListChildren())
     else:
       subjects = list(children)
     subjects.sort()
+    result_count = 0
     # Read at most limit children at a time.
     while subjects:
       to_read = subjects[:chunk_limit]
@@ -2422,6 +2425,9 @@ class AFF4Volume(AFF4Object):
       for child in FACTORY.MultiOpen(
           to_read, mode=mode, token=self.token, age=age):
         yield child
+        result_count += 1
+        if result_count >= limit:
+          return
 
   @property
   def real_pathspec(self):

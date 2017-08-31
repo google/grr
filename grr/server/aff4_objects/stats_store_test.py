@@ -6,9 +6,9 @@
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
-from grr.lib import timeseries
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import timeseries
 from grr.server.aff4_objects import stats_store
 from grr.test_lib import aff4_test_lib
 

@@ -35,6 +35,9 @@ from grr.server import sequential_collection_test
 from grr.server import server_logging_test
 from grr.server import server_stubs_test
 from grr.server import stats_server_test
+from grr.server import threadpool_test
+from grr.server import throttle_test
+from grr.server import timeseries_test
 from grr.server.aff4_objects import tests
 from grr.server.authorization import tests
 from grr.server.checks import tests

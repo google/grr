@@ -205,6 +205,33 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertEqual(result.items[0].is_directory, True)
     self.assertIn(self.file_path, result.items[0].path)
 
+  def testHandlerRespectsTimestamp(self):
+    # file_path is "fs/os/etc", a directory.
+    self.CreateFileVersions(self.client_id, self.file_path + "/file")
+
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        timestamp=self.time_2)
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].last_collected_size, 13)
+
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        timestamp=self.time_1)
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].last_collected_size, 11)
+
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        timestamp=self.time_0)
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(len(result.items), 0)
+
 
 class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
@@ -816,6 +843,36 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
           vfs_plugin.ApiGetVfsFilesArchiveArgs(
               client_id=self.client_id, file_path="invalid-prefix/path"),
           token=self.token)
+
+  def testHandlerRespectsTimestamp(self):
+    archive_path1 = "vfs_C_1000000000000000/fs/os/c/Downloads/a.txt"
+    archive_path2 = "vfs_C_1000000000000000/fs/os/c/b.txt"
+
+    result = self.handler.Handle(
+        vfs_plugin.ApiGetVfsFilesArchiveArgs(
+            client_id=self.client_id, timestamp=self.time_2),
+        token=self.token)
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+
+    self.assertItemsEqual(zip_fd.namelist(), [archive_path1, archive_path2])
+    self.assertEqual(zip_fd.read(archive_path1), "Goodbye World")
+    self.assertEqual(zip_fd.read(archive_path2), "Goodbye World")
+
+    result = self.handler.Handle(
+        vfs_plugin.ApiGetVfsFilesArchiveArgs(
+            client_id=self.client_id, timestamp=self.time_1),
+        token=self.token)
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+
+    self.assertItemsEqual(zip_fd.namelist(), [archive_path1, archive_path2])
+    self.assertEqual(zip_fd.read(archive_path1), "Hello World")
+    self.assertEqual(zip_fd.read(archive_path2), "Hello World")
 
 
 def main(argv):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """OS X Launchd process listing test data.
 
 These dicts are python representations of the pyobjc NSCFDictionarys returned by

@@ -11,7 +11,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class NetstatTest(flow_test_lib.FlowTestsBaseclass):
+class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testNetstat(self):
@@ -41,10 +41,9 @@ class NetstatTest(flow_test_lib.FlowTestsBaseclass):
 
     # Set the system to Windows so the netstat flow will run as it's the only
     # one that works at the moment.
-    fd = aff4.FACTORY.Create(
-        self.client_id, aff4_grr.VFSGRRClient, token=self.token)
-    fd.Set(fd.Schema.SYSTEM("Windows"))
-    fd.Close()
+    with aff4.FACTORY.Create(
+        self.client_id, aff4_grr.VFSGRRClient, token=self.token) as fd:
+      fd.Set(fd.Schema.SYSTEM("Windows"))
 
     for s in flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,

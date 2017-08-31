@@ -46,7 +46,6 @@ from grr import config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib import timeseries
 from grr.lib.rdfvalues import structs
 from grr.proto import jobs_pb2
 from grr.server import access_control
@@ -54,6 +53,7 @@ from grr.server import access_control
 from grr.server import aff4
 
 from grr.server import data_store
+from grr.server import timeseries
 
 
 class StatsStoreFieldValue(structs.RDFProtoStruct):

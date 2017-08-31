@@ -9,8 +9,6 @@ import time
 import logging
 
 from grr.lib import rdfvalue
-from grr.lib import serialize
-from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -18,6 +16,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import sequential_collection
+from grr.server import serialize
+from grr.server import threadpool
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import standard
 from grr.server.flows.general import collectors

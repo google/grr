@@ -63,15 +63,15 @@ setup_args = dict(
     entry_points={
         "console_scripts": [
             "grr_api_shell = grr.gui.api_client.api_shell:main",
-            "grr_console = grr.lib.distro_entry:Console",
-            "grr_config_updater = grr.lib.distro_entry:ConfigUpdater",
-            "grr_frontend = grr.lib.distro_entry:GrrFrontend",
-            "grr_server = grr.lib.distro_entry:GrrServer",
-            "grr_end_to_end_tests = grr.lib.distro_entry:EndToEndTests",
-            "grr_worker = grr.lib.distro_entry:Worker",
-            "grr_admin_ui = grr.lib.distro_entry:AdminUI",
-            "grr_fuse = grr.lib.distro_entry:GRRFuse",
-            "grr_dataserver = grr.lib.distro_entry:DataServer",
+            "grr_console = grr.server.distro_entry:Console",
+            "grr_config_updater = grr.server.distro_entry:ConfigUpdater",
+            "grr_frontend = grr.server.distro_entry:GrrFrontend",
+            "grr_server = grr.server.distro_entry:GrrServer",
+            "grr_end_to_end_tests = grr.server.distro_entry:EndToEndTests",
+            "grr_worker = grr.server.distro_entry:Worker",
+            "grr_admin_ui = grr.server.distro_entry:AdminUI",
+            "grr_fuse = grr.server.distro_entry:GRRFuse",
+            "grr_dataserver = grr.server.distro_entry:DataServer",
         ]
     },
     install_requires=[
