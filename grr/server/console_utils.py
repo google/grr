@@ -7,10 +7,9 @@ approval or token handling.
 
 import csv
 import getpass
+import logging
 import os
 import time
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import type_info

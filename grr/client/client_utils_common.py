@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 """Client utilities common to all platforms."""
 
-
-
+import logging
 import os
 import platform
 import subprocess
 import threading
 import time
 
-
-import logging
 
 from grr import config
 from grr.client.local import binary_whitelist

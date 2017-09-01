@@ -3,12 +3,11 @@
 
 
 
+import logging
 import threading
 
 
 from werkzeug import serving
-
-import logging
 
 from grr.gui import wsgiapp
 from grr.lib import utils

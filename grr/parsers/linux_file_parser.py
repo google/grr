@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
 import collections
+import logging
 import os
 import re
 
-import logging
 from grr import config
 from grr.lib import parsers
 from grr.lib import utils

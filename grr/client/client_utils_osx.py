@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """OSX specific utils."""
 
-
 import ctypes
 import ctypes.util
+import logging
 import os
 import platform
 
-
-import logging
 
 from grr.client import client_utils_linux
 from grr.client.osx import objc

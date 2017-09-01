@@ -78,6 +78,7 @@ $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_config_updater"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_console"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_server"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_fuse"
+$INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_end_to_end_tests"
 
 # dh_installinit doesn't cater for systemd template files. The
 # service target is installed by dh_installinit we just need to copy over the

@@ -7,13 +7,12 @@ This contains an AFF4 data model implementation.
 import __builtin__
 import abc
 import itertools
+import logging
 import StringIO
 import threading
 import time
 import zlib
 
-
-import logging
 
 from grr import config
 from grr.lib import lexer

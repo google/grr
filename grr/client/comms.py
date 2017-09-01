@@ -70,8 +70,8 @@ Examples:
 
 
 import base64
+import logging
 import os
-
 import pdb
 import posixpath
 import Queue
@@ -86,8 +86,6 @@ import psutil
 import requests
 
 from google.protobuf import json_format
-
-import logging
 
 from grr import config
 from grr.client import actions

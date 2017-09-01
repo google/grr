@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Parser for IE index.dat files.
 
 Note that this is a very naive and incomplete implementation and should be
@@ -15,13 +14,12 @@ File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 
 import datetime
 import glob
+import logging
 import operator
 import os
 import struct
 import sys
 import urlparse
-
-import logging
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import webhistory

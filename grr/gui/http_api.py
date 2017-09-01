@@ -5,6 +5,7 @@
 
 import itertools
 import json
+import logging
 import time
 import traceback
 import urllib2
@@ -15,8 +16,6 @@ from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
-
-import logging
 
 from grr import config
 from grr.gui import api_auth_manager

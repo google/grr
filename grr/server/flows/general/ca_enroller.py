@@ -2,8 +2,8 @@
 """A flow to enrol new clients."""
 
 
-
 import logging
+
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils

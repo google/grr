@@ -4,6 +4,7 @@
 
 
 import json
+import logging
 import os
 import threading
 
@@ -11,7 +12,6 @@ import portpicker
 import requests
 
 from google.protobuf import json_format
-import logging
 
 from grr import gui
 from grr_api_client.connectors import http_connector

@@ -3,10 +3,10 @@
 
 
 
+import logging
+
 
 import yaml
-
-import logging
 
 from grr import config
 from grr.gui import api_call_router

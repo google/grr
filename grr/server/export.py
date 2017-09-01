@@ -8,10 +8,9 @@ easily be written to a relational database or just to a set of files.
 
 import hashlib
 import json
+import logging
 import re
 import time
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry

@@ -2,7 +2,6 @@
 """Abstracts encryption and authentication."""
 
 
-import hmac
 import struct
 import time
 import zlib
@@ -215,21 +214,23 @@ class ReceivedCipher(Cipher):
     """
     # Check the encrypted message integrity using HMAC.
     if self.hmac_type == "SIMPLE_HMAC":
-      digest = self.HMAC(comms.encrypted)
-      if not hmac.compare_digest(comms.hmac, digest):
-        raise DecryptionError("HMAC verification failed.")
-
+      msg = comms.encrypted
+      digest = comms.hmac
     elif self.hmac_type == "FULL_HMAC":
-      digest = self.HMAC(comms.encrypted, comms.encrypted_cipher,
-                         comms.encrypted_cipher_metadata,
-                         comms.packet_iv.SerializeToString(),
-                         struct.pack("<I", comms.api_version))
-
-      if not hmac.compare_digest(comms.full_hmac, digest):
-        raise DecryptionError("HMAC verification failed.")
-
+      msg = "".join([
+          comms.encrypted, comms.encrypted_cipher,
+          comms.encrypted_cipher_metadata,
+          comms.packet_iv.SerializeToString(),
+          struct.pack("<I", comms.api_version)
+      ])
+      digest = comms.full_hmac
     else:
       raise DecryptionError("HMAC type no supported.")
+
+    try:
+      rdf_crypto.HMAC(self.cipher.hmac_key).Verify(msg, digest)
+    except rdf_crypto.VerificationError as e:
+      raise DecryptionError("HMAC verification failed: %s" % e)
 
     return True
 

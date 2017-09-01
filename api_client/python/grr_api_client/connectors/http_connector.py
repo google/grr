@@ -3,6 +3,7 @@
 
 import collections
 import json
+import logging
 import urlparse
 
 import requests
@@ -11,9 +12,6 @@ from werkzeug import routing
 
 from google.protobuf import json_format
 from google.protobuf import symbol_database
-
-import logging
-
 from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils

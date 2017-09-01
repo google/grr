@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """The GRR frontend server."""
 
+import logging
 import operator
 import time
-
-import logging
 
 from grr import config
 from grr.lib import communicator

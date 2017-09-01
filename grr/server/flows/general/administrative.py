@@ -2,13 +2,12 @@
 """Administrative flows for managing the clients state."""
 
 
+import logging
 import shlex
 import threading
 import time
 
 import jinja2
-
-import logging
 
 from grr import config
 from grr.lib import queues

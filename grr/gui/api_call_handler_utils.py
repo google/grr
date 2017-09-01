@@ -5,6 +5,7 @@
 
 import cStringIO
 import itertools
+import logging
 import os
 import re
 import sys
@@ -12,8 +13,6 @@ import zipfile
 
 
 import yaml
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import utils

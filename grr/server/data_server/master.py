@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Data master specific classes."""
 
+import logging
 import threading
 import urlparse
 
@@ -8,8 +9,6 @@ import urlparse
 import ipaddr
 
 from requests.packages import urllib3
-
-import logging
 
 from grr import config
 from grr.lib import utils

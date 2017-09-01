@@ -2,9 +2,8 @@
 """Tests for validating the configs we have."""
 
 import glob
-import os
-
 import logging
+import os
 
 from grr import config
 from grr.lib import config_testing_lib

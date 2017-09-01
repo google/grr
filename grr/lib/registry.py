@@ -10,9 +10,8 @@ and class as value.
 
 # The following are abstract base classes
 import abc
-import threading
-
 import logging
+import threading
 
 
 class MetaclassRegistry(abc.ABCMeta):

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """VFS-related test classes."""
 
+import logging
 import os
 import time
 
 import mock
-
-import logging
 
 from grr import config
 from grr.client import vfs

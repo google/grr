@@ -5,10 +5,10 @@
 
 import base64
 import inspect
+import logging
 import numbers
 
 
-import logging
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.gui.api_plugins import output_plugin as api_output_plugin

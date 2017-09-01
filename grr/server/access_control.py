@@ -12,9 +12,9 @@ A UserManager class has the following responsibilities :
 
 
 
+import logging
 import time
 
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry

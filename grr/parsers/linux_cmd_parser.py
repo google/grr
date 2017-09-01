@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Simple parsers for the output of linux commands."""
+import logging
 import os
 import re
 
-
-import logging
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import anomaly as rdf_anomaly

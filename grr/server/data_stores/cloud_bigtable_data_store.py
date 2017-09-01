@@ -3,6 +3,7 @@
 
 
 import datetime
+import logging
 from multiprocessing.pool import ThreadPool
 import threading
 import time
@@ -14,7 +15,6 @@ import pytz
 from google.cloud import bigtable
 from google.cloud.bigtable import row_filters
 
-import logging
 from grr import config
 from grr.lib import registry
 from grr.lib import stats

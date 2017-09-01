@@ -3,9 +3,8 @@
 
 
 import bisect
-import time
-
 import logging
+import time
 
 from grr import config
 from grr.endtoend_tests import base

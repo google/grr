@@ -3,7 +3,6 @@
 
 
 
-
 import logging
 
 from grr.lib import flags

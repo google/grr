@@ -3,13 +3,12 @@
 
 
 import array
+import logging
 import pdb
 import time
 
 
 import requests
-
-import logging
 
 from grr import config
 from grr.client import comms

@@ -4,6 +4,7 @@
 
 from BaseHTTPServer import BaseHTTPRequestHandler
 from BaseHTTPServer import HTTPServer
+import logging
 import socket
 import SocketServer
 import time
@@ -15,8 +16,6 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order,g-import-not-at-top
 
 from requests.packages import urllib3
-
-import logging
 
 from grr import config
 from grr.config import contexts

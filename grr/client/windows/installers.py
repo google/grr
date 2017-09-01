@@ -12,6 +12,7 @@ https://launchpadlibrarian.net/134750748/pyqtgraph_subprocess.patch
 We also set shell=True because that seems to avoid having an extra cmd.exe
 window pop up.
 """
+import logging
 import os
 import shutil
 import subprocess
@@ -21,8 +22,6 @@ import pywintypes
 import win32process
 import win32service
 import win32serviceutil
-
-import logging
 
 from grr import config
 from grr.client import installer
@@ -134,8 +133,11 @@ class WindowsInstaller(installer.Installer):
   pre = [CopyToSystemDir]
 
   # These options will be copied to the registry to configure the nanny service.
-  nanny_options = ("Nanny.child_binary", "Nanny.child_command_line",
-                   "Nanny.service_name", "Nanny.service_description",)
+  nanny_options = (
+      "Nanny.child_binary",
+      "Nanny.child_command_line",
+      "Nanny.service_name",
+      "Nanny.service_description",)
 
   def InstallNanny(self):
     """Install the nanny program."""

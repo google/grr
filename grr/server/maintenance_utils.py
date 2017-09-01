@@ -5,14 +5,13 @@
 
 import getpass
 import hashlib
+import logging
 import os
 import StringIO
 import sys
 import time
 import zipfile
 
-
-import logging
 
 from grr import config
 from grr.lib import utils

@@ -5,14 +5,13 @@ import errno
 import fnmatch
 import functools
 import itertools
+import logging
 import os
 import platform
 import re
 import stat
 
 import psutil
-
-import logging
 
 from grr.client import actions
 from grr.client.client_actions import standard as standard_actions

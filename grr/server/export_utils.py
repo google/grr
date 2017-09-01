@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """Utils exporting data from AFF4 to the rest of the world."""
 
+import logging
 import os
 import Queue
 import stat
 import time
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import utils

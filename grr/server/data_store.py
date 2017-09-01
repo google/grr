@@ -37,11 +37,10 @@ able to filter it directly).
 
 import abc
 import atexit
+import logging
 import random
 import sys
 import time
-
-import logging
 
 from grr import config
 from grr.lib import flags

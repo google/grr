@@ -7,6 +7,7 @@ import cProfile
 import datetime
 import email
 import functools
+import logging
 import os
 import pdb
 import platform
@@ -22,7 +23,6 @@ import unittest
 import mock
 import pkg_resources
 
-import logging
 import unittest
 
 from grr import config

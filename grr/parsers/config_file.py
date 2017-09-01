@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 import collections
-import re
-
 import logging
+import re
 
 from grr.lib import lexer
 from grr.lib import parsers

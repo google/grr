@@ -2,12 +2,11 @@
 """Module with GRRWorker implementation."""
 
 
+import logging
 import pdb
 import time
 import traceback
 
-
-import logging
 
 from grr import config
 from grr.lib import flags

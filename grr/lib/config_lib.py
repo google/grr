@@ -10,6 +10,7 @@ import copy
 import errno
 import importlib
 import inspect
+import logging
 import os
 import platform
 import re
@@ -21,7 +22,6 @@ import pkg_resources
 
 import yaml
 
-import logging
 
 from grr.lib import flags
 from grr.lib import lexer

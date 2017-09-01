@@ -35,12 +35,11 @@ object on AFF4.
 
 
 
+import logging
 import re
 import threading
 import time
 
-
-import logging
 
 from grr import config
 from grr.lib import rdfvalue

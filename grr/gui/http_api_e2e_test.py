@@ -8,6 +8,7 @@ stack with regards to the HTTP API.
 """
 
 import json
+import logging
 import os
 import StringIO
 import threading
@@ -16,7 +17,6 @@ import zipfile
 import portpicker
 import requests
 
-import logging
 import unittest
 
 from grr_api_client import api as grr_api

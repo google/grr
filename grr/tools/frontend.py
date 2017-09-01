@@ -6,6 +6,7 @@
 import BaseHTTPServer
 import cgi
 import cStringIO
+import logging
 import pdb
 import socket
 import SocketServer
@@ -15,8 +16,6 @@ import threading
 import ipaddr
 
 from google.protobuf import json_format
-
-import logging
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins

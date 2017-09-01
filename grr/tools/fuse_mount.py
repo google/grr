@@ -4,6 +4,7 @@
 import datetime
 import errno
 import getpass
+import logging
 import stat
 import sys
 
@@ -12,8 +13,6 @@ import sys
 from grr.server.flows.general import filesystem
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
-
-import logging
 
 from grr import config
 from grr.config import contexts

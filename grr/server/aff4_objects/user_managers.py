@@ -13,9 +13,8 @@ AccessControlManager Classes:
 
 import fnmatch
 import functools
-import re
-
 import logging
+import re
 
 from grr.lib import rdfvalue
 from grr.lib import registry

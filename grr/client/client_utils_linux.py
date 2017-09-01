@@ -2,7 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Linux specific utils."""
 
-
+import logging
 import os
 import threading
 import time
@@ -11,7 +11,6 @@ import time
 import psutil
 
 from google.protobuf import message
-import logging
 
 from grr import config
 from grr.lib import rdfvalue

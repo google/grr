@@ -30,7 +30,6 @@ from rekall.ui import json_renderer
 
 import rekall_types
 
-import logging
 from grr import config
 from grr.client import actions
 from grr.client import vfs

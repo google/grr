@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """These are osx specific installers."""
+import logging
 import os
 import zipfile
-
-import logging
 
 from grr import config
 from grr.client import installer

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Helper library for config testing."""
 
-
 import logging
+
 
 from grr import config
 from grr.lib import config_lib

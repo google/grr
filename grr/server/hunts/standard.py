@@ -3,9 +3,8 @@
 
 
 
-import operator
-
 import logging
+import operator
 
 from grr.lib import rdfvalue
 from grr.lib import registry

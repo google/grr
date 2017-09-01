@@ -5,6 +5,7 @@
 
 import abc
 import json
+import logging
 import os
 import re
 import socket
@@ -12,8 +13,6 @@ import sys
 
 
 import psutil
-
-import logging
 
 from grr.gui import api_auth_manager
 # This import guarantees that all API-related RDF types will get imported

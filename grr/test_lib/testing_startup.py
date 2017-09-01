@@ -64,6 +64,7 @@ def TestInit():
 
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()
+    server_logging.SetTestVerbosity()
 
   registry.TestInit()
 

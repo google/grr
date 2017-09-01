@@ -5,14 +5,13 @@
 import base64
 import binascii
 import httplib
+import logging
 import random
 import re
 import socket
 import threading
 import time
 import urlparse
-
-import logging
 
 from grr import config
 from grr.lib import rdfvalue

@@ -6,10 +6,9 @@ of clients, managing these flows, collecting and presenting the combined results
 of all these flows.
 """
 
+import logging
 import threading
 import traceback
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry

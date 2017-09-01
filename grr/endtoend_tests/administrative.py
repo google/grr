@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """End to end tests for lib.flows.general.administrative."""
 
+import logging
 import os
 
 
-import logging
 from grr import config
 from grr.endtoend_tests import base
 from grr.server import aff4

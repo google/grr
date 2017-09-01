@@ -2,12 +2,11 @@
 """API handlers for dealing with files in a client's virtual file system."""
 
 import csv
+import logging
 import os
 import re
 import StringIO
 import zipfile
-
-import logging
 
 from grr import config
 from grr.gui import api_call_handler_base

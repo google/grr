@@ -44,10 +44,9 @@ self.runner_args: The flow runners args. This is an instance of
 
 
 import functools
+import logging
 import operator
 
-
-import logging
 
 from grr.lib import queues
 from grr.lib import rdfvalue

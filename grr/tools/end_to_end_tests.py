@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Helper script for running endtoend tests."""
 
+import logging
 import unittest
 
-import logging
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins

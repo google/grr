@@ -3,6 +3,7 @@
 
 
 import hashlib
+import logging
 import os
 import socket
 import threading
@@ -13,8 +14,6 @@ import portpicker
 import requests
 
 from google.protobuf import json_format
-
-import logging
 
 from grr import config
 from grr.client import comms

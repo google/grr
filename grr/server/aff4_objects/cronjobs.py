@@ -2,11 +2,10 @@
 """Cron management classes."""
 
 
+import logging
 import random
 import threading
 import time
-
-import logging
 
 from grr import config
 from grr.lib import rdfvalue

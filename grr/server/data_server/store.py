@@ -4,12 +4,11 @@
 
 import base64
 import functools
+import logging
 import os
 import threading
 import time
 import uuid
-
-import logging
 
 from grr import config
 from grr.lib import utils

@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Classes for benchmarking-related tests."""
 
-import time
-
 import logging
+import time
 
 from grr.lib import registry
 from grr.test_lib import test_lib

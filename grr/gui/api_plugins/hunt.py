@@ -3,10 +3,9 @@
 
 import functools
 import itertools
+import logging
 import operator
 import re
-
-import logging
 
 from grr import config
 from grr.gui import api_call_handler_base

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
+import logging
 import os
 import re
 import stat
 
-import logging
 from grr.lib import lexer
 from grr.lib import parsers
 from grr.lib import utils

@@ -11,6 +11,7 @@ import collections
 import csv
 import datetime
 import getpass
+import logging
 import os
 import re
 import sys
@@ -20,8 +21,6 @@ import time
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order
-
-import logging
 
 from grr import config
 from grr.config import contexts

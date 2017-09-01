@@ -6,6 +6,7 @@
 import base64
 import hashlib
 import hmac
+import logging
 import os
 import string
 
@@ -19,8 +20,6 @@ from werkzeug import routing as werkzeug_routing
 from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
-
-import logging
 
 from grr import config
 from grr.gui import http_api

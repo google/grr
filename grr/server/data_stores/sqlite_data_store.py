@@ -7,6 +7,7 @@ SQLite database files are created by taking the root of each AFF4 object.
 
 
 import itertools
+import logging
 import os
 import re
 import shutil
@@ -17,8 +18,6 @@ import threading
 import time
 
 import sqlite3
-
-import logging
 
 from grr import config
 from grr.lib import utils

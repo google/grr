@@ -2,12 +2,12 @@
 """Tests for the ThreadPool class."""
 
 
+import logging
 import Queue
 import threading
 import time
 
 
-import logging
 from grr.lib import flags
 from grr.lib import stats
 from grr.lib import utils

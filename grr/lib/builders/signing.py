@@ -2,6 +2,7 @@
 """Library for client code signing."""
 
 import cStringIO
+import logging
 import os
 import platform
 import subprocess
@@ -12,8 +13,6 @@ import tempfile
 # pylint: disable=g-import-not-at-top
 if platform.system() == "Linux":
   import pexpect
-
-import logging
 
 # pylint: enable=g-import-not-at-top
 

@@ -24,6 +24,7 @@ Example usage:
 
 
 import itertools
+import logging
 import os
 import Queue
 import threading
@@ -31,8 +32,6 @@ import time
 
 
 import psutil
-
-import logging
 
 from grr.lib import stats
 from grr.lib import utils

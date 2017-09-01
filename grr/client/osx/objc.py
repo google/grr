@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Interface to Objective C libraries on OS X."""
 
 
 
 import ctypes
 import ctypes.util
-import subprocess
-
 import logging
+import subprocess
 
 # kCFStringEncodingUTF8
 UTF8 = 134217984
@@ -480,7 +478,7 @@ class KextManager(Foundation):
     try:
       subprocess.check_call(['/sbin/kextload', path])
     except subprocess.CalledProcessError as cpe:
-      logging.debug('failed to load {0}:{1}'.format(path, str(cpe)))
+      logging.debug('failed to load %s:%s', path, str(cpe))
       error_code = -1
     return error_code
 
@@ -491,7 +489,6 @@ class KextManager(Foundation):
     try:
       subprocess.check_call(['/sbin/kextunload', '-b', bundle_identifier])
     except subprocess.CalledProcessError as cpe:
-      logging.debug(
-          'failed to unload {0}:{1}'.format(bundle_identifier, str(cpe)))
+      logging.debug('failed to unload %s:%s', bundle_identifier, str(cpe))
       error_code = -1
     return error_code

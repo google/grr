@@ -2,10 +2,9 @@
 """GRR API shell implementation."""
 
 import argparse
+import logging
 import sys
 
-
-import logging
 
 from grr_api_client import api
 from grr_api_client import api_shell_lib

@@ -7,11 +7,10 @@ import BaseHTTPServer
 
 import collections
 import json
+import logging
 import socket
 import threading
 
-
-import logging
 
 from grr import config
 from grr.lib import registry

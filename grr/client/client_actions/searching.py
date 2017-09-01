@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """Client actions related to searching files and directories."""
 
-
 import functools
-import stat
-
 import logging
+import stat
 
 from grr.client import actions
 from grr.client import vfs

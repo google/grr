@@ -2,11 +2,11 @@
 """GRR specific AFF4 objects."""
 
 
+import logging
 import re
 import time
 
 
-import logging
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry

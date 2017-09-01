@@ -4,10 +4,9 @@
 
 
 import abc
+import logging
 import threading
 import zipfile
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import registry

@@ -2,6 +2,7 @@
 """Tests the HTTP remote data store abstraction."""
 
 
+import logging
 import os
 import platform
 import shutil
@@ -13,8 +14,6 @@ import unittest
 
 import ipaddr
 import portpicker
-
-import logging
 
 from grr.lib import flags
 from grr.lib import utils

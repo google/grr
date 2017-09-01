@@ -4,14 +4,13 @@
 
 
 import glob
+import logging
 import math
 import os
 import time
 
 
 import mock
-
-import logging
 
 from grr.lib import flags
 from grr.lib import rdfvalue

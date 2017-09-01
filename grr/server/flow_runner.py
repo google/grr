@@ -54,12 +54,11 @@ queues. Child flow runners all share their parent's queue manager.
 
 
 """
-
+import logging
 import threading
 import traceback
 
 
-import logging
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils

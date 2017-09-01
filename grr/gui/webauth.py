@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """Web authentication classes for the GUI."""
 
+import logging
+
+
 from oauth2client import client
 from oauth2client import crypt
 
 from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
-
-import logging
 
 from grr import config
 from grr.lib import registry

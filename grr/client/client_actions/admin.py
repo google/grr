@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Client actions related to administrating the client and its configuration."""
 
-
+import logging
 import os
 import platform
 import socket
@@ -15,8 +15,6 @@ from cryptography.hazmat.backends import openssl
 import pkg_resources
 import psutil
 import pytsk3
-
-import logging
 
 from grr import config
 from grr.client import actions

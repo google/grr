@@ -3,11 +3,10 @@
 import collections
 import glob
 import itertools
+import logging
 import os
 
 import yaml
-
-import logging
 
 from grr import config
 from grr.lib import registry

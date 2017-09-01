@@ -3,6 +3,7 @@
 
 import atexit
 import functools
+import logging
 import os
 import threading
 import time
@@ -14,8 +15,6 @@ from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
-
-import logging
 
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks

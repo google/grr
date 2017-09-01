@@ -2,10 +2,9 @@
 """Helper classes for flows-related testing."""
 
 import itertools
+import logging
 import pdb
 import traceback
-
-import logging
 
 from grr.client.client_actions import standard
 

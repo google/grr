@@ -2,14 +2,13 @@
 """Utilities for load rebalancing."""
 
 
+import logging
 import os
 import shutil
 import StringIO
 import zlib
 
 from requests.packages import urllib3
-
-import logging
 
 from grr.lib import utils
 from grr.lib.rdfvalues import data_server as rdf_data_server

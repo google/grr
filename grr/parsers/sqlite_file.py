@@ -1,17 +1,12 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Parser for sqlite database files."""
 
-
-
-
+import logging
 import os
 import tempfile
 
 
 from sqlite3 import dbapi2 as sqlite
-
-import logging
 
 
 class SQLiteFile(object):

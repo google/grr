@@ -2,12 +2,11 @@
 """This is the manager for the various queues."""
 
 import collections
+import logging
 import os
 import random
 import socket
 import time
-
-import logging
 
 from grr import config
 from grr.lib import rdfvalue

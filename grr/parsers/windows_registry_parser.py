@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Simple parsers for registry keys and values."""
 
+import logging
 import os
 import re
-
-import logging
 
 from grr.lib import parsers
 from grr.lib import rdfvalue

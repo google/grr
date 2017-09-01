@@ -9,10 +9,10 @@
 
 
 import exceptions
+import logging
 import urlparse
 import _winreg
 
-import logging
 from grr.lib import config_lib
 from grr.lib import utils
 

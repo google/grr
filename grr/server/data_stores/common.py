@@ -3,11 +3,10 @@
 
 
 import collections
+import logging
 import os
 import re
 import stat
-
-import logging
 
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -145,7 +144,7 @@ def ResolveSubjectDestination(subject, regexes):
     # No components to work with.
     return "aff4", ""
   # Make all the components safe to use.
-  path = utils.JoinPath(*[ConvertStringToFilename(x) for x in components])
+  path = utils.JoinPath(* [ConvertStringToFilename(x) for x in components])
   for route in regexes:
     m = route.match(path)
     if m:

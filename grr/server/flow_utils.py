@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Utils for flow related tasks."""
 
-import time
-
 import logging
+import time
 
 from grr.server import aff4
 from grr.server import flow

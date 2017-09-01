@@ -3,11 +3,10 @@
 
 
 import base64
+import logging
 import threading
 import time
 
-
-import logging
 
 from grr import config
 

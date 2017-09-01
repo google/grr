@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """This is the GRR client."""
 
-
-import pdb
-
 import logging
+import pdb
 
 from grr import config
 # pylint: disable=unused-import

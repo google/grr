@@ -2,9 +2,8 @@
 """The GRR event publishing classes."""
 
 import functools
-
-
 import logging
+
 
 from grr.lib import rdfvalue
 from grr.lib import registry

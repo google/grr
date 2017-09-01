@@ -3,6 +3,7 @@
 
 
 import hashlib
+import logging
 import os
 
 
@@ -20,7 +21,6 @@ from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers import modes
 from cryptography.x509 import oid
 
-import logging
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info

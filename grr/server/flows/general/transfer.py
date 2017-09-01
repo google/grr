@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
 
-import zlib
 
 import logging
+import zlib
 
 from grr import config
 from grr.lib import constants

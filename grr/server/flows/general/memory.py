@@ -8,10 +8,10 @@ performing basic analysis.
 
 
 import json
+import logging
 
 from rekall import constants
 
-import logging
 from grr import config
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types

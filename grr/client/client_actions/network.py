@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 """Get Information about network states."""
 
-
-
+import logging
 
 import psutil
-
-import logging
 
 from grr.client import actions
 from grr.lib.rdfvalues import client as rdf_client

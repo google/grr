@@ -2,7 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client vfs."""
 
-
+import logging
 import os
 import shutil
 import stat
@@ -14,7 +14,6 @@ import psutil
 from grr.client import client_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-import logging
 from grr.client import vfs
 from grr.client.vfs_handlers import files
 from grr.lib import flags

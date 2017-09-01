@@ -2,11 +2,10 @@
 """Central registry for artifacts."""
 
 import json
+import logging
 import os
 import re
 import yaml
-
-import logging
 
 from grr.lib import objectfilter
 from grr.lib import parsers

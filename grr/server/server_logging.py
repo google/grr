@@ -10,6 +10,13 @@ import time
 from grr import config
 from grr.lib import flags
 
+try:
+  # pylint: disable=g-import-not-at-top
+  from grr.server.local import log as local_log
+  # pylint: enable=g-import-not-at-top
+except ImportError:
+  local_log = None
+
 # Global Application Logger.
 LOGGER = None
 
@@ -212,17 +219,26 @@ def AppLogInit():
 def ServerLoggingStartupInit():
   """Initialize the server logging configuration."""
   global LOGGER
-  try:
-    # pylint: disable=g-import-not-at-top
-    from grr.server.local import log as local_log
-    # pylint: enable=g-import-not-at-top
+  if local_log:
     logging.debug("Using local LogInit from %s", local_log)
     local_log.LogInit()
     logging.debug("Using local AppLogInit from %s", local_log)
     LOGGER = local_log.AppLogInit()
-  except ImportError:
+  else:
     LogInit()
     LOGGER = AppLogInit()
+
+
+def SetTestVerbosity():
+  if local_log:
+    local_log.SetTestVerbosity()
+    return
+
+  # Test logging. This is only to stderr, adjust the levels according to flags
+  if flags.FLAGS.verbose:
+    logging.root.setLevel(logging.DEBUG)
+  else:
+    logging.root.setLevel(logging.WARN)
 
 
 # There is a catch 22 here: We need to start logging right away but we will only

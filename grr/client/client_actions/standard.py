@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
-
 import cStringIO as StringIO
 import ctypes
 import gzip
 import hashlib
+import logging
 import os
 import platform
 import socket
@@ -14,8 +14,6 @@ import zlib
 
 
 import psutil
-
-import logging
 
 from grr import config
 from grr.client import actions
