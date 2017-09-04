@@ -54,7 +54,7 @@ grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogController =
   this.useCcAddresses = true;
 
   /** @export {boolean} */
-  this.keepClientAlive;
+  this.keepClientAlive = true;
 
   this.scope_.$watch('approvalType', this.onApprovalTypeChange_.bind(this));
   this.scope_.$watch('controller.selectedRecentReason',

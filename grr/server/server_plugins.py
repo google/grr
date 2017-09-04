@@ -17,7 +17,6 @@ from grr.server import flow
 from grr.server import foreman
 from grr.server import hunts
 from grr.server import ip_resolver
-from grr.server import local
 from grr.server import master
 from grr.server import output_plugin
 from grr.server import output_plugins
@@ -28,3 +27,4 @@ from grr.server.data_stores import registry_init
 from grr.server.flows.cron import registry_init
 from grr.server.flows.general import registry_init
 from grr.server.flows.local import registry_init
+from grr.server.local import registry_init

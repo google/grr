@@ -167,7 +167,8 @@ describe('request approval dialog', function() {
         reason: 'bar',
         notified_users: ['foo'],
         email_cc_addresses: ['foo@bar.com', 'xyz@example.com']
-      }
+      },
+      keep_client_alive: true
     });
   });
 
@@ -225,7 +226,8 @@ describe('request approval dialog', function() {
       approval: {
         reason: 'reason2',
         notified_users: ['foo'],
-      }
+      },
+      keep_client_alive: true
     });
   });
 });

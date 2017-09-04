@@ -15,7 +15,7 @@ import zipfile
 
 import yaml
 
-# pylint: disable=g-import-not-at-top
+# pylint: disable=g-import-not-at-top,unused-import
 # This is a workaround so we don't need to maintain the whole PyInstaller
 # codebase as a full-fledged dependency.
 try:
@@ -28,21 +28,15 @@ except ImportError:
 
 from grr import config
 from grr.lib import config_lib
+from grr.lib import config_validator_base
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+# Pull in local config validators.
+from grr.lib.local import plugins
 from grr.lib.rdfvalues import client as rdf_client
 
-# pylint: enable=g-import-not-at-top
-
-
-class PrivateConfigValidator(object):
-  """Use this class to sanity check private config options at repack time."""
-  __metaclass__ = registry.MetaclassRegistry
-  __abstract = True  # pylint: disable=g-bad-name
-
-  def ValidateEndConfig(self, conf, context, errors_fatal=True):
-    raise NotImplementedError()
+# pylint: enable=g-import-not-at-top,unused-import
 
 
 class BuilderBase(object):
@@ -305,7 +299,8 @@ class ClientRepacker(BuilderBase):
           "ClientBuilder.private_config_validator_class", context=context)
       if private_validator:
         try:
-          validator = PrivateConfigValidator.classes[private_validator]()
+          validator = config_validator_base.PrivateConfigValidator.classes[
+              private_validator]()
         except KeyError:
           logging.error("Couldn't find config validator class %s, "
                         "you probably need to copy it into lib/local",
