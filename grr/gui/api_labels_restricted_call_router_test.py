@@ -18,6 +18,77 @@ from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
 
 
+class CheckClientLabelsTest(test_lib.GRRBaseTest):
+  """Tests for CheckClientLabels function."""
+
+  def setUp(self):
+    super(CheckClientLabelsTest, self).setUp()
+    self.client_urn = self.SetupClients(1)[0]
+    self.client_id = api_client.ApiClientId(self.client_urn.Basename())
+
+    self.labels_whitelist = ["foo"]
+    self.labels_owners_whitelist = ["GRR"]
+
+  def testDoesNotRaiseWhenLabelMatches(self):
+    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
+      fd.AddLabel("foo", owner="GRR")
+
+    api_router.CheckClientLabels(
+        self.client_id,
+        labels_whitelist=self.labels_whitelist,
+        labels_owners_whitelist=self.labels_owners_whitelist,
+        token=self.token)
+
+  def testDoesNotRaiseWhenLabelMatchesAmongManyLabels(self):
+    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
+      fd.AddLabel("bar", owner="GRR")
+      fd.AddLabel("foo", owner="GRR")
+      fd.AddLabel("zig", owner="GRR")
+      fd.AddLabel("zag", owner="GRR")
+
+    api_router.CheckClientLabels(
+        self.client_id,
+        labels_whitelist=self.labels_whitelist,
+        labels_owners_whitelist=self.labels_owners_whitelist,
+        token=self.token)
+
+  def testRaisesWhenLabelDoesNotMatch(self):
+    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
+      fd.AddLabel("bar", owner="GRR")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      api_router.CheckClientLabels(
+          self.client_id,
+          labels_whitelist=self.labels_whitelist,
+          labels_owners_whitelist=self.labels_owners_whitelist,
+          token=self.token)
+
+  def testRaisesWhenLabelDoesNotMatchAmongManyLabels(self):
+    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
+      fd.AddLabel("foo1", owner="GRR")
+      fd.AddLabel("2foo", owner="GRR")
+      fd.AddLabel("1foo2", owner="GRR")
+      fd.AddLabel("bar", owner="GRR")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      api_router.CheckClientLabels(
+          self.client_id,
+          labels_whitelist=self.labels_whitelist,
+          labels_owners_whitelist=self.labels_owners_whitelist,
+          token=self.token)
+
+  def testRaisesIfOwnerDoesNotMatch(self):
+    with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
+      fd.AddLabel("foo", owner="GRRother")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      api_router.CheckClientLabels(
+          self.client_id,
+          labels_whitelist=self.labels_whitelist,
+          labels_owners_whitelist=self.labels_owners_whitelist,
+          token=self.token)
+
+
 class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
                                         acl_test_lib.AclTestMixin):
   """Tests for an ApiLabelsRestrictedCallRouter."""

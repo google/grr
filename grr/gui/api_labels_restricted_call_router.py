@@ -22,6 +22,27 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import user_managers
 
 
+def CheckClientLabels(client_id,
+                      labels_whitelist=None,
+                      labels_owners_whitelist=None,
+                      token=None):
+  """Checks a given client against labels/owners whitelists."""
+
+  labels_whitelist = labels_whitelist or []
+  labels_owners_whitelist = labels_owners_whitelist or []
+
+  with aff4.FACTORY.Open(
+      client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
+      token=token) as fd:
+    for label in fd.GetLabels():
+      if (label.name in labels_whitelist and
+          label.owner in labels_owners_whitelist):
+        return
+
+  raise access_control.UnauthorizedAccess(
+      "Client %s doesn't have necessary labels." % utils.SmartStr(client_id))
+
+
 class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams
 
@@ -51,20 +72,11 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
     self.delegate = delegate
 
   def CheckClientLabels(self, client_id, token=None):
-    has_label = False
-    with aff4.FACTORY.Open(
-        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
-        token=token) as fd:
-      for label in fd.GetLabels():
-        if (label.name in self.labels_whitelist and
-            label.owner in self.labels_owners_whitelist):
-          has_label = True
-          break
-
-    if not has_label:
-      raise access_control.UnauthorizedAccess(
-          "Client %s doesn't have necessary labels." %
-          utils.SmartStr(client_id))
+    CheckClientLabels(
+        client_id,
+        labels_whitelist=self.labels_whitelist,
+        labels_owners_whitelist=self.labels_owners_whitelist,
+        token=token)
 
   def CheckVfsAccessAllowed(self):
     if not self.params.allow_vfs_access:

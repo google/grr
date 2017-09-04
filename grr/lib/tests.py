@@ -23,7 +23,6 @@ from grr.lib import uploads_test
 from grr.lib import utils_test
 
 from grr.lib.builders import tests
-from grr.lib.local import tests
 from grr.lib.rdfvalues import tests
 
 from grr.tools import frontend_test
