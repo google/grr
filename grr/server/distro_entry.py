@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 """This file defines the entry points for typical installations."""
 
-from grr.gui import admin_ui
+# pylint: disable=g-import-not-at-top
+# Argparse runs on import, and maintains static state.
+
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.server.data_server import data_server
-from grr.tools import config_updater
-from grr.tools import console
-from grr.tools import end_to_end_tests
-from grr.tools import frontend
-from grr.tools import fuse_mount
-from grr.tools import grr_server
-from grr.worker import worker
 
 
 def SetConfigOptions():
@@ -49,45 +43,54 @@ def SetConfigOptions():
 
 
 def Console():
+  from grr.tools import console
   SetConfigOptions()
   flags.StartMain(console.main)
 
 
 def ConfigUpdater():
+  from grr.tools import config_updater
   SetConfigOptions()
   flags.StartMain(config_updater.main)
 
 
 def GrrServer():
+  from grr.tools import grr_server
   SetConfigOptions()
   flags.StartMain(grr_server.main)
 
 
 def GrrFrontend():
+  from grr.tools import frontend
   SetConfigOptions()
   flags.StartMain(frontend.main)
 
 
 def EndToEndTests():
+  from grr.tools import end_to_end_tests
   SetConfigOptions()
   flags.StartMain(end_to_end_tests.main)
 
 
 def Worker():
+  from grr.worker import worker
   SetConfigOptions()
   flags.StartMain(worker.main)
 
 
 def GRRFuse():
+  from grr.tools import fuse_mount
   SetConfigOptions()
   flags.StartMain(fuse_mount.main)
 
 
 def AdminUI():
+  from grr.gui import admin_ui
   SetConfigOptions()
   flags.StartMain(admin_ui.main)
 
 
 def DataServer():
+  from grr.server.data_server import data_server
   SetConfigOptions()
   flags.StartMain(data_server.main)
