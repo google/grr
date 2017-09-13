@@ -6,13 +6,13 @@ import platform
 
 from grr import config
 from grr.lib import config_lib
-from grr.lib import local
 from grr.lib import registry
 from grr.lib import stats
 # pylint: disable=unused-import
 from grr.lib.local import plugins
 # pylint: enable=unused-import
 from grr.server import server_logging
+from grr.server.local import registry_init
 
 # pylint: disable=g-import-not-at-top
 if platform.system() != "Windows":
@@ -41,11 +41,6 @@ def Init():
   if INIT_RAN:
     return
 
-  if hasattr(local, "stats"):
-    stats.STATS = local.stats.StatsCollector()
-  else:
-    stats.STATS = stats.StatsCollector()
-
   # Set up a temporary syslog handler so we have somewhere to log problems
   # with ConfigInit() which needs to happen before we can start our create our
   # proper logging setup.
@@ -63,7 +58,15 @@ def Init():
     syslog_logger.exception("Died during config initialization")
     raise
 
+  if hasattr(registry_init, "stats"):
+    logging.debug("Using local stats collector.")
+    stats.STATS = registry_init.stats.StatsCollector()
+  else:
+    logging.debug("Using default stats collector.")
+    stats.STATS = stats.StatsCollector()
+
   server_logging.ServerLoggingStartupInit()
+
   registry.Init()
 
   # Exempt config updater from this check because it is the one responsible for

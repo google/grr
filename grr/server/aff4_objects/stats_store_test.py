@@ -8,6 +8,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import stats_values
 from grr.server import timeseries
 from grr.server.aff4_objects import stats_store
 from grr.test_lib import aff4_test_lib
@@ -35,7 +36,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertTrue(counter)
 
-    stored_value = stats_store.StatsStoreValue(
+    stored_value = stats_values.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.INT, int_value=1)
     self.assertEqual(counter[0], ("aff4:stats_store/counter",
                                   stored_value.SerializeToString(), 42))
@@ -51,14 +52,14 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         "aff4:/stats_store/some_pid", "", token=self.token)
     # Check that no plain counter is written.
     values = [
-        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        stats_values.StatsStoreValue.FromSerializedString(x[1]) for x in row
         if x[0] == "aff4:stats_store/counter"
     ]
     self.assertEqual(len(values), 2)
 
-    http_field_value = stats_store.StatsStoreFieldValue(
+    http_field_value = stats_values.StatsStoreFieldValue(
         field_type=stats.MetricFieldDefinition.FieldType.STR, str_value="http")
-    rpc_field_value = stats_store.StatsStoreFieldValue(
+    rpc_field_value = stats_values.StatsStoreFieldValue(
         field_type=stats.MetricFieldDefinition.FieldType.STR, str_value="rpc")
 
     # Check that counter with source=http is written.
@@ -85,7 +86,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
     values = [
-        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        stats_values.StatsStoreValue.FromSerializedString(x[1]) for x in row
         if x[0] == "aff4:stats_store/foo_event"
     ]
     self.assertEqual(len(values), 1)
@@ -107,14 +108,14 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
         "aff4:/stats_store/some_pid", "", token=self.token)
 
     values = [
-        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        stats_values.StatsStoreValue.FromSerializedString(x[1]) for x in row
         if x[0] == "aff4:stats_store/foo_event"
     ]
     self.assertEqual(len(values), 2)
 
-    http_field_value = stats_store.StatsStoreFieldValue(
+    http_field_value = stats_values.StatsStoreFieldValue(
         field_type=stats.MetricFieldDefinition.FieldType.STR, str_value="http")
-    rpc_field_value = stats_store.StatsStoreFieldValue(
+    rpc_field_value = stats_values.StatsStoreFieldValue(
         field_type=stats.MetricFieldDefinition.FieldType.STR, str_value="rpc")
 
     # Check that distribution with source=http is written.
@@ -144,7 +145,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/str_gauge"]
     self.assertTrue(counter)
 
-    stored_value = stats_store.StatsStoreValue(
+    stored_value = stats_values.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.STR, str_value="some_value")
     self.assertEqual(counter[0], ("aff4:stats_store/str_gauge",
                                   stored_value.SerializeToString(), 42))
@@ -160,7 +161,7 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/int_gauge"]
     self.assertTrue(counter)
 
-    stored_value = stats_store.StatsStoreValue(
+    stored_value = stats_values.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.INT, int_value=4242)
     self.assertEqual(counter[0], ("aff4:stats_store/int_gauge",
                                   stored_value.SerializeToString(), 42))
@@ -183,11 +184,11 @@ class StatsStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(counters), 2)
     counters = sorted(counters, key=lambda x: x[2])
 
-    stored_value = stats_store.StatsStoreValue(
+    stored_value = stats_values.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.INT, int_value=1)
     self.assertEqual(counters[0], ("aff4:stats_store/counter",
                                    stored_value.SerializeToString(), 42))
-    stored_value = stats_store.StatsStoreValue(
+    stored_value = stats_values.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.INT, int_value=2)
     self.assertEqual(counters[1], ("aff4:stats_store/counter",
                                    stored_value.SerializeToString(), 43))

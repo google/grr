@@ -6,6 +6,10 @@ goog.provide('grrUi.flow.flowLogDirective.FlowLogDirective');
 goog.scope(function() {
 
 
+/** @const {number} */
+grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+
 /**
  * Controller for FlowLogDirective.
  *
@@ -19,6 +23,10 @@ grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
 
   /** @type {?string} */
   this.logsUrl;
+
+  /** @type {number} */
+  this.autoRefreshInterval =
+      grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watchGroup(['flowId', 'apiBasePath'],
                           this.onFlowIdOrBasePathChange_.bind(this));

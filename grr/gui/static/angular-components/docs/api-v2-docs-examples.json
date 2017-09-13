@@ -145,6 +145,7 @@
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "ListProcesses",
           "notifyToUser": false,
+          "originalFlow": {},
           "priority": "HIGH_PRIORITY"
         },
         "startedAt": "42000000",
@@ -195,6 +196,7 @@
           "creator": "api_test_user",
           "description": "foo",
           "expires": "1209642000000",
+          "huntId": "H:123456",
           "isRobot": false,
           "name": "GenericHunt",
           "resultsCount": "0",
@@ -702,7 +704,8 @@
         "name": "GRRVersionBreakDown",
         "runnerArgs": {
           "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-          "flowName": "GRRVersionBreakDown"
+          "flowName": "GRRVersionBreakDown",
+          "originalFlow": {}
         },
         "startedAt": "44000000",
         "state": "RUNNING",
@@ -796,7 +799,8 @@
         "name": "Interrogate",
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
-          "flowName": "Interrogate"
+          "flowName": "Interrogate",
+          "originalFlow": {}
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -889,6 +893,7 @@
           "creator": "api_test_user",
           "description": "hunt1",
           "expires": "1209642000000",
+          "huntId": "H:123456",
           "isRobot": false,
           "name": "GenericHunt",
           "resultsCount": "0",
@@ -924,6 +929,7 @@
           "creator": "api_test_user",
           "description": "hunt2",
           "expires": "1209642000000",
+          "huntId": "H:567890",
           "isRobot": false,
           "name": "GenericHunt",
           "resultsCount": "0",
@@ -1225,6 +1231,7 @@
           }
         },
         "flowName": "GetFile",
+        "huntId": "H:123456",
         "huntRunnerArgs": {
           "clientRate": 0.0,
           "clientRuleSet": {
@@ -1240,7 +1247,160 @@
           },
           "crashLimit": "100",
           "description": "the hunt",
-          "huntName": "GenericHunt"
+          "huntName": "GenericHunt",
+          "originalObject": {
+            "flowReference": {
+              "clientId": "aff4:/C.1111111111111111",
+              "flowId": "F:332211"
+            },
+            "objectType": "FLOW_REFERENCE"
+          }
+        },
+        "isRobot": false,
+        "name": "GenericHunt",
+        "originalObject": {
+          "flowReference": {
+            "clientId": "C.1111111111111111",
+            "flowId": "F:332211"
+          },
+          "objectType": "FLOW_REFERENCE"
+        },
+        "remainingClientsCount": "0",
+        "resultsCount": "0",
+        "state": "PAUSED",
+        "totalCpuUsage": 5000.0,
+        "totalNetUsage": "1000000",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiGetHuntHandlerFlowCopyRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456"
+    },
+    {
+      "api_method": "GetHunt",
+      "method": "GET",
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "100",
+        "clientRate": 0.0,
+        "clientRuleSet": {
+          "rules": [
+            {
+              "regex": {
+                "attributeName": "GRR client",
+                "attributeRegex": "GRR"
+              },
+              "ruleType": "REGEX"
+            }
+          ]
+        },
+        "clientsWithResultsCount": "0",
+        "completedClientsCount": "0",
+        "crashLimit": "100",
+        "created": "42000000",
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": "1209642000000",
+        "flowArgs": {
+          "@type": "type.googleapis.com/GetFileArgs",
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flowName": "GetFile",
+        "huntId": "H:123456",
+        "huntRunnerArgs": {
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "crashLimit": "100",
+          "description": "the hunt",
+          "huntName": "GenericHunt",
+          "originalObject": {
+            "huntReference": {
+              "huntId": "H:332211"
+            },
+            "objectType": "HUNT_REFERENCE"
+          }
+        },
+        "isRobot": false,
+        "name": "GenericHunt",
+        "originalObject": {
+          "huntReference": {
+            "huntId": "H:332211"
+          },
+          "objectType": "HUNT_REFERENCE"
+        },
+        "remainingClientsCount": "0",
+        "resultsCount": "0",
+        "state": "PAUSED",
+        "totalCpuUsage": 5000.0,
+        "totalNetUsage": "1000000",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiGetHuntHandlerHuntCopyRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456"
+    },
+    {
+      "api_method": "GetHunt",
+      "method": "GET",
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "100",
+        "clientRate": 0.0,
+        "clientRuleSet": {
+          "rules": [
+            {
+              "regex": {
+                "attributeName": "GRR client",
+                "attributeRegex": "GRR"
+              },
+              "ruleType": "REGEX"
+            }
+          ]
+        },
+        "clientsWithResultsCount": "0",
+        "completedClientsCount": "0",
+        "crashLimit": "100",
+        "created": "42000000",
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": "1209642000000",
+        "flowArgs": {
+          "@type": "type.googleapis.com/GetFileArgs",
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flowName": "GetFile",
+        "huntId": "H:123456",
+        "huntRunnerArgs": {
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "crashLimit": "100",
+          "description": "the hunt",
+          "huntName": "GenericHunt",
+          "originalObject": {}
         },
         "isRobot": false,
         "name": "GenericHunt",
@@ -1688,6 +1848,31 @@
             "name": "nested_flows",
             "repeated": true,
             "type": "ApiFlow"
+          },
+          {
+            "doc": "If this flow was copied, a reference to the source flow.",
+            "dynamic": false,
+            "friendlyName": "Original flow",
+            "index": 13,
+            "labels": [
+              "HIDDEN"
+            ],
+            "name": "original_flow",
+            "repeated": false,
+            "type": "ApiFlowReference"
+          },
+          {
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": ""
+            },
+            "doc": "An error that happened while reading the flow. This is not an error while executing the flow but an internal data issue.",
+            "dynamic": false,
+            "friendlyName": "Internal error",
+            "index": 14,
+            "name": "internal_error",
+            "repeated": false,
+            "type": "RDFString"
           }
         ],
         "kind": "STRUCT",
@@ -3964,6 +4149,7 @@
           "creator": "api_test_user",
           "description": "a hunt",
           "expires": "1209642000000",
+          "huntId": "H:123456",
           "isRobot": false,
           "name": "GenericHunt",
           "resultsCount": "0",
@@ -4376,7 +4562,8 @@
             "name": "GRRVersionBreakDown",
             "runnerArgs": {
               "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-              "flowName": "GRRVersionBreakDown"
+              "flowName": "GRRVersionBreakDown",
+              "originalFlow": {}
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4518,10 +4705,7 @@
             ],
             "category": "Filesystem",
             "defaultArgs": {
-              "@type": "type.googleapis.com/FileFinderArgs",
-              "paths": [
-                "c:\\windows\\system32\\notepad.*"
-              ]
+              "@type": "type.googleapis.com/FileFinderArgs"
             },
             "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, upload_token=upload_token)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    upload_token\n      description: An upload token to use with the direct upload functionality. This token contains the hmac authenticated policy that determines for how long the client is allowed to upload files to the server. This is comparable to the policy document used by GCS: https://cloud.google.com/storage/docs/xml-api/post-object#policydocument \n      type: UploadToken\n      default: None\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendlyName": "File Finder",
@@ -4706,7 +4890,8 @@
             "name": "ListProcesses",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses"
+              "flowName": "ListProcesses",
+              "originalFlow": {}
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4722,7 +4907,8 @@
             "name": "Interrogate",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate"
+              "flowName": "Interrogate",
+              "originalFlow": {}
             },
             "startedAt": "43000000",
             "state": "RUNNING",
@@ -4784,6 +4970,7 @@
               "creator": "api_test_user",
               "description": "",
               "expires": "1209642000000",
+              "huntId": "H:123456",
               "isRobot": false,
               "name": "GenericHunt",
               "resultsCount": "0",
@@ -5282,6 +5469,7 @@
             "creator": "api_test_user",
             "description": "hunt_1",
             "expires": "1211600000000",
+            "huntId": "H:000001",
             "isRobot": false,
             "name": "GenericHunt",
             "resultsCount": "0",
@@ -5299,6 +5487,7 @@
             "creator": "api_test_user",
             "description": "hunt_0",
             "expires": "1210600000000",
+            "huntId": "H:000000",
             "isRobot": false,
             "name": "GenericHunt",
             "resultsCount": "0",
@@ -5327,6 +5516,7 @@
             "creator": "api_test_user",
             "description": "hunt_1",
             "expires": "1211600000000",
+            "huntId": "H:000001",
             "isRobot": false,
             "name": "GenericHunt",
             "resultsCount": "0",
@@ -5355,6 +5545,7 @@
             "creator": "api_test_user",
             "description": "hunt_0",
             "expires": "1210600000000",
+            "huntId": "H:000000",
             "isRobot": false,
             "name": "GenericHunt",
             "resultsCount": "0",
@@ -5740,6 +5931,7 @@
           }
         },
         "flowName": "GetFile",
+        "huntId": "H:123456",
         "huntRunnerArgs": {
           "clientLimit": "142",
           "clientRate": 0.0,
@@ -5756,7 +5948,8 @@
           },
           "crashLimit": "100",
           "description": "the hunt",
-          "huntName": "GenericHunt"
+          "huntName": "GenericHunt",
+          "originalObject": {}
         },
         "isRobot": false,
         "name": "GenericHunt",
@@ -5806,6 +5999,7 @@
           }
         },
         "flowName": "GetFile",
+        "huntId": "H:123456",
         "huntRunnerArgs": {
           "clientLimit": "142",
           "clientRate": 0.0,
@@ -5822,7 +6016,8 @@
           },
           "crashLimit": "100",
           "description": "the hunt",
-          "huntName": "GenericHunt"
+          "huntName": "GenericHunt",
+          "originalObject": {}
         },
         "isRobot": false,
         "name": "GenericHunt",

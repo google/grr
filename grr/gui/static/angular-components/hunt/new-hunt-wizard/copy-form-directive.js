@@ -31,8 +31,9 @@ grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormController =
   /** @type {Object} */
   this.createHuntArgsDescriptor;
 
-  this.grrReflectionService_.getRDFValueDescriptor('ApiCreateHuntArgs').then(function(descriptor) {
-    this.createHuntArgsDescriptor = descriptor;
+  this.grrReflectionService_.getRDFValueDescriptor('ApiCreateHuntArgs', true).then(function(descriptor) {
+    this.createHuntArgsDescriptor = descriptor['ApiCreateHuntArgs'];
+    this.huntRefDescriptor = descriptor['ApiHuntReference'];
 
     this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
   }.bind(this));
@@ -76,6 +77,11 @@ CopyFormController.prototype.onHuntFetched_ = function(response) {
   if (angular.isDefined(huntRunnerArgs['value']['description'])) {
     huntRunnerArgs['value']['description']['value'] += ' (copy)';
   }
+
+  this.createHuntArgs['value']['original_hunt'] =
+       angular.copy(this.huntRefDescriptor['default']);
+  this.createHuntArgs['value']['original_hunt']['value']['hunt_id'] =
+       hunt['value']['hunt_id'];
 };
 
 

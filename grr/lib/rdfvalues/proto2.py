@@ -109,8 +109,7 @@ def DefineFromProtobuf(cls, protobuf):
     # This field is a non-protobuf semantic value.
     if options.type and field.type != TYPE_MESSAGE:
       cls.recorded_rdf_deps.add(options.type)
-
-      rdf_type = getattr(rdfvalue, options.type, None)
+      rdf_type = rdfvalue.RDFValue.classes.get(options.type)
       if rdf_type:
         if (CHECK_PROTOBUF_DEPENDENCIES and rdf_type not in cls.rdf_deps and
             options.type not in cls.rdf_deps):
@@ -287,3 +286,17 @@ def DefineFromProtobuf(cls, protobuf):
 
     else:
       logging.error("Unknown field type for %s - Ignoring.", field.name)
+
+  if hasattr(cls, "rdf_deps"):
+    leftover_deps = set()
+    for d in cls.rdf_deps:
+      try:
+        leftover_deps.add(d.__name__)
+      except AttributeError:
+        leftover_deps.add(d)
+    for d in cls.recorded_rdf_deps:
+      leftover_deps.remove(d)
+    if leftover_deps:
+      raise rdfvalue.InitializeError(
+          "Found superfluous dependencies for %s: %s" %
+          (cls.__name__, ",".join(leftover_deps)))

@@ -134,6 +134,19 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     return self
 
 
+class ApiFlowReference(rdf_structs.RDFProtoStruct):
+  protobuf = flow_pb2.ApiFlowReference
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
+
+  def FromFlowReference(self, reference):
+    self.flow_id = reference.flow_id
+    self.client_id = reference.client_id
+    return self
+
+
 class ApiFlow(rdf_structs.RDFProtoStruct):
   """ApiFlow is used when rendering responses.
 
@@ -146,6 +159,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       api_call_handler_utils.ApiDataObject,
       "ApiFlow",  # TODO(user): recursive dependency.
       ApiFlowId,
+      ApiFlowReference,
       rdf_flows.FlowContext,
       rdf_flows.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
@@ -170,45 +184,52 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
                          flow_obj,
                          flow_id=None,
                          with_state_and_context=False):
-    # TODO(user): we should be able to infer flow id from the URN. Currently
-    # it's not possible due to an inconsistent way in which we create symlinks
-    # and name them.
-    self.flow_id = flow_id
-    self.urn = flow_obj.urn
-
-    self.name = flow_obj.runner_args.flow_name
-    self.started_at = flow_obj.context.create_time
-    self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)
-    self.creator = flow_obj.context.creator
-
-    if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
-      self.state = "CLIENT_CRASHED"
-    else:
-      self.state = flow_obj.context.state
-
     try:
-      self.args = flow_obj.args
-    except ValueError:
-      # If args class name has changed, ValueError will be raised. Handling
-      # this gracefully - we should still try to display some useful info
-      # about the flow.
-      pass
+      # TODO(user): we should be able to infer flow id from the
+      # URN. Currently it's not possible due to an inconsistent way in
+      # which we create symlinks and name them.
+      self.flow_id = flow_id
+      self.urn = flow_obj.urn
 
-    self.runner_args = flow_obj.runner_args
+      self.name = flow_obj.runner_args.flow_name
+      self.started_at = flow_obj.context.create_time
+      self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)
+      self.creator = flow_obj.context.creator
 
-    if with_state_and_context:
+      if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
+        self.state = "CLIENT_CRASHED"
+      else:
+        self.state = flow_obj.context.state
+
       try:
-        self.context = flow_obj.context
+        self.args = flow_obj.args
       except ValueError:
+        # If args class name has changed, ValueError will be raised. Handling
+        # this gracefully - we should still try to display some useful info
+        # about the flow.
         pass
 
-      flow_state_dict = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
-      if flow_state_dict is not None:
-        flow_state_data = flow_state_dict.ToDict()
+      self.runner_args = flow_obj.runner_args
 
-        if flow_state_data:
-          self.state_data = (api_call_handler_utils.ApiDataObject()
-                             .InitFromDataObject(flow_state_data))
+      if self.runner_args.original_flow.flow_id:
+        self.original_flow = ApiFlowReference().FromFlowReference(
+            self.runner_args.original_flow)
+
+      if with_state_and_context:
+        try:
+          self.context = flow_obj.context
+        except ValueError:
+          pass
+
+        flow_state_dict = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
+        if flow_state_dict is not None:
+          flow_state_data = flow_state_dict.ToDict()
+
+          if flow_state_data:
+            self.state_data = (api_call_handler_utils.ApiDataObject()
+                               .InitFromDataObject(flow_state_data))
+    except Exception as e:  # pylint: disable=broad-except
+      self.internal_error = "Error while opening flow: %s" % str(e)
 
     return self
 
@@ -807,6 +828,7 @@ class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       client.ApiClientId,
       ApiFlow,
+      ApiFlowReference,
   ]
 
 
@@ -835,6 +857,11 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     args.flow.runner_args.ClearFieldsWithLabel(
         rdf_structs.SemanticDescriptor.Labels.HIDDEN,
         exceptions="output_plugins")
+
+    if args.original_flow:
+      args.flow.runner_args.original_flow = rdf_flows.FlowReference(
+          flow_id=utils.SmartStr(args.original_flow.flow_id),
+          client_id=utils.SmartStr(args.original_flow.client_id))
 
     flow_id = flow.GRRFlow.StartFlow(
         client_id=args.client_id.ToClientURN(),

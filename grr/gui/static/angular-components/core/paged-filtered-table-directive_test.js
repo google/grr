@@ -1,13 +1,16 @@
 'use strict';
 
+goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');
 
+var MemoryItemsProviderController =
+    grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController;
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('paged filtered table', function() {
-  var $compile, $rootScope;
+  var $compile, $rootScope, $q, $interval;
 
   beforeEach(module('/static/angular-components/core/paged-filtered-table-top.html'));
   beforeEach(module('/static/angular-components/core/paged-filtered-table-bottom.html'));
@@ -17,10 +20,15 @@ describe('paged filtered table', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    $interval = $injector.get('$interval');
   }));
 
-  var render = function(items) {
+  var render = function(items, withAutoRefresh) {
     $rootScope.testItems = items;
+    if (withAutoRefresh) {
+      $rootScope.autoRefreshInterval = 1000;
+    }
 
     // We render the paged filtered table with grr-memory-items-provider.
     // While it means that this unit test actually depends on the working
@@ -34,7 +42,8 @@ describe('paged filtered table', function() {
         '<table>' +
         '<tbody>' +
         '<tr grr-paged-filtered-table grr-memory-items-provider ' +
-        'items="testItems" page-size="5">' +
+        'items="testItems" page-size="5" ' +
+        'auto-refresh-interval="autoRefreshInterval">' +
         '<td>{$ item.timestamp $}</td>' +
         '<td>{$ item.message $}</td>' +
         '</tr>' +
@@ -235,4 +244,123 @@ describe('paged filtered table', function() {
        // Elements that do not match the filter shouldn't be shown at all.
        checkItemsAreNotShown(otherItems, element);
      });
+
+  describe('with auto-refresh-interval set', function() {
+    it('adds new element to the end of the list', function() {
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'}
+      ];
+
+      var element = render(someItems, true);
+      checkItemsAreShown(someItems, element);
+
+      someItems.push({message: 'some3'});
+      $interval.flush(1000);
+      checkItemsAreShown(someItems, element);
+    });
+
+    it('does not auto-update in filtered mode', function() {
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'}
+      ];
+
+      var element = render(someItems, true);
+      $('input.search-query', element).val('some');
+      browserTrigger($('input.search-query', element), 'input');
+      browserTrigger($('button:contains(Filter)', element), 'click');
+
+      checkItemsAreShown(someItems, element);
+
+      someItems.push({message: 'some3'});
+      $interval.flush(1000);
+      checkItemsAreShown(someItems.slice(0, 2), element);
+      checkItemsAreNotShown(someItems.slice(2, 3), element);
+    });
+
+    it('does not auto-update if full page is shown', function() {
+      // Page size is 5.
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'},
+        {message: 'some3'},
+        {message: 'some4'},
+        {message: 'some5'}
+      ];
+
+      var element = render(someItems, true);
+      checkItemsAreShown(someItems, element);
+
+      someItems[0] = {message: 'someother'};
+      someItems.push({message: 'some6'});
+      $interval.flush(1000);
+      checkItemsAreShown(someItems.slice(1, 5), element);
+      checkItemsAreNotShown(someItems.slice(0, 1), element);
+      checkItemsAreNotShown(someItems.slice(5, 6), element);
+    });
+
+    it('skips results of the obsolete request if page is changed', function() {
+      // Page size is 5.
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'},
+        {message: 'some3'},
+        {message: 'some4'},
+        {message: 'some5'},
+        {message: 'some6'}
+      ];
+
+      var element = render(someItems, true);
+      browserTrigger($('a:contains(Next)', element), 'click');
+      checkItemsAreShown(someItems.slice(5), element);
+
+      var deferred1 = $q.defer();
+      var deferred2 = $q.defer();
+      spyOn(MemoryItemsProviderController.prototype, 'fetchItems')
+          .and.returnValue(deferred1.promise)
+          .and.returnValue(deferred2.promise);
+
+      // First let the auto-update trigger.
+      $interval.flush(1000);
+
+      // Second let's go back to the previous page.
+      browserTrigger($('a:contains(Previous)', element), 'click');
+
+      // Resolve the non-auto-update deferred.
+      deferred2.resolve({items: someItems.slice(0, 5)});
+      $rootScope.$apply();
+      checkItemsAreShown(someItems.slice(0, 5), element);
+
+      // Resolve the now-obsolete deferred corresponding to the auto-update
+      // action. Nothing should happen.
+      deferred1.resolve({items: someItems.slice(5, 6)});
+      $rootScope.$apply();
+      checkItemsAreShown(someItems.slice(0, 5), element);
+      checkItemsAreNotShown(someItems.slice(5, 6), element);
+    });
+
+    it('does not start auto-update request if one is in progress', function() {
+      // Page size is 5.
+      var someItems = [
+        {message: 'some1'}
+      ];
+
+      render(someItems, true);
+
+      var deferred = $q.defer();
+      spyOn(MemoryItemsProviderController.prototype, 'fetchItems')
+          .and.returnValue(deferred.promise);
+
+      // Let the auto-update trigger.
+      $interval.flush(1000);
+
+      // And once again.
+      $interval.flush(1000);
+
+      // Check that fetchItems() was called just once.
+      expect(MemoryItemsProviderController.prototype.fetchItems)
+          .toHaveBeenCalledTimes(1);
+    });
+  });
 });

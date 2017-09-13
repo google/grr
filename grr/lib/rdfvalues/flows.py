@@ -295,6 +295,13 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   num_messages = 0
 
 
+class FlowReference(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowReference
+  rdf_deps = [
+      client.ClientURN,
+  ]
+
+
 class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   """The argument to the flow runner.
 
@@ -304,6 +311,7 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowRunnerArgs
   rdf_deps = [
       client.ClientURN,
+      FlowReference,
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
       rdfvalue.RDFDatetime,
       rdfvalue.RDFURN,

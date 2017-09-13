@@ -38,7 +38,9 @@ able to filter it directly).
 import abc
 import atexit
 import logging
+import os
 import random
+import socket
 import sys
 import time
 
@@ -51,6 +53,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import access_control
 from grr.server import blob_store
+from grr.server import stats_values
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
@@ -309,6 +312,167 @@ class MutationPool(object):
     for i in ids:
       self.DeleteAttributes(i, [DataStore.QUEUE_LOCK_ATTRIBUTE])
 
+  def QueueDeleteTasks(self, queue, tasks):
+    """Removes the given tasks from the queue."""
+    predicates = []
+    for task in tasks:
+      task_id = getattr(task, "task_id", None) or int(task)
+      predicates.append(DataStore.QueueTaskIdToColumn(task_id))
+    self.DeleteAttributes(queue, predicates)
+
+  def QueueScheduleTasks(self, tasks, timestamp):
+    for queue, queued_tasks in utils.GroupBy(tasks,
+                                             lambda x: x.queue).iteritems():
+      to_schedule = {}
+      for task in queued_tasks:
+        to_schedule[DataStore.QueueTaskIdToColumn(task.task_id)] = [
+            task.SerializeToString()
+        ]
+      self.MultiSet(queue, to_schedule, timestamp=timestamp)
+
+  def QueueQueryAndOwn(self, queue, lease_seconds, limit, timestamp):
+    """Returns a list of Tasks leased for a certain time.
+
+    Args:
+      queue: The queue to query from.
+      lease_seconds: The tasks will be leased for this long.
+      limit: Number of values to fetch.
+      timestamp: Range of times for consideration.
+    Returns:
+        A list of GrrMessage() objects leased.
+    """
+    user = ""
+    if self.token:
+      user = self.token.username
+    # Do the real work in a transaction
+    try:
+      lock = DB.LockRetryWrapper(
+          queue, lease_time=lease_seconds, token=self.token)
+      return self._QueueQueryAndOwn(
+          lock.subject,
+          lease_seconds=lease_seconds,
+          limit=limit,
+          user=user,
+          timestamp=timestamp)
+    except DBSubjectLockError:
+      # This exception just means that we could not obtain the lock on the queue
+      # so we just return an empty list, let the worker sleep and come back to
+      # fetch more tasks.
+      return []
+    except Error as e:
+      logging.warning("Datastore exception: %s", e)
+      return []
+
+  def _QueueQueryAndOwn(self,
+                        subject,
+                        lease_seconds=100,
+                        limit=1,
+                        user="",
+                        timestamp=None):
+    """Business logic helper for QueueQueryAndOwn()."""
+    tasks = []
+
+    lease = long(lease_seconds * 1e6)
+
+    # Only grab attributes with timestamps in the past.
+    delete_attrs = set()
+    serialized_tasks_dict = {}
+    for predicate, task, timestamp in DB.ResolvePrefix(
+        subject,
+        DataStore.QUEUE_TASK_PREDICATE_PREFIX,
+        timestamp=(0, timestamp or rdfvalue.RDFDatetime.Now()),
+        token=self.token):
+      task = rdf_flows.GrrMessage.FromSerializedString(task)
+      task.eta = timestamp
+      task.last_lease = "%s@%s:%d" % (user, socket.gethostname(), os.getpid())
+      # Decrement the ttl
+      task.task_ttl -= 1
+      if task.task_ttl <= 0:
+        # Remove the task if ttl is exhausted.
+        delete_attrs.add(predicate)
+        stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
+      else:
+        if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
+          stats.STATS.IncrementCounter("grr_task_retransmission_count")
+
+        serialized_tasks_dict.setdefault(predicate,
+                                         []).append(task.SerializeToString())
+        tasks.append(task)
+        if len(tasks) >= limit:
+          break
+
+    if delete_attrs or serialized_tasks_dict:
+      # Update the timestamp on claimed tasks to be in the future and decrement
+      # their TTLs, delete tasks with expired ttls.
+      self.MultiSet(
+          subject,
+          serialized_tasks_dict,
+          replace=True,
+          timestamp=long(time.time() * 1e6) + lease,
+          to_delete=delete_attrs)
+
+    if delete_attrs:
+      logging.info("TTL exceeded for %d messages on queue %s",
+                   len(delete_attrs), subject)
+    return tasks
+
+  def StatsWriteMetrics(self, subject, metrics_metadata, timestamp=None):
+    """Writes stats for the given metrics to the data-store."""
+    to_set = {}
+    for name, metadata in metrics_metadata.iteritems():
+      if metadata.fields_defs:
+        for fields_values in stats.STATS.GetMetricFields(name):
+          value = stats.STATS.GetMetricValue(name, fields=fields_values)
+
+          store_value = stats_values.StatsStoreValue()
+          store_fields_values = []
+          for field_def, field_value in zip(metadata.fields_defs,
+                                            fields_values):
+            store_field_value = stats_values.StatsStoreFieldValue()
+            store_field_value.SetValue(field_value, field_def.field_type)
+            store_fields_values.append(store_field_value)
+
+          store_value.fields_values = store_fields_values
+          store_value.SetValue(value, metadata.value_type)
+
+          to_set.setdefault(DataStore.STATS_STORE_PREFIX + name,
+                            []).append(store_value)
+      else:
+        value = stats.STATS.GetMetricValue(name)
+        store_value = stats_values.StatsStoreValue()
+        store_value.SetValue(value, metadata.value_type)
+
+        to_set[DataStore.STATS_STORE_PREFIX + name] = [store_value]
+    self.MultiSet(subject, to_set, replace=False, timestamp=timestamp)
+
+  def StatsDeleteStatsInRange(self, subject, timestamp):
+    """Deletes all stats in the given time range."""
+    if timestamp == DataStore.NEWEST_TIMESTAMP:
+      raise ValueError("Can't use NEWEST_TIMESTAMP in DeleteStats.")
+
+    predicates = []
+    for key in stats.STATS.GetAllMetricsMetadata().keys():
+      predicates.append(DataStore.STATS_STORE_PREFIX + key)
+
+    start = None
+    end = None
+    if timestamp and timestamp != DataStore.ALL_TIMESTAMPS:
+      start, end = timestamp
+
+    self.DeleteAttributes(subject, predicates, start=start, end=end)
+
+  def LabelUpdateLabels(self, subject, new_labels, to_delete):
+    new_attributes = {}
+    for label in new_labels:
+      new_attributes[DataStore.LABEL_ATTRIBUTE_TEMPLATE % label] = (
+          DataStore.LABEL_PLACEHOLDER_VALUE)
+    delete_attributes = [
+        DataStore.LABEL_ATTRIBUTE_TEMPLATE % label for label in to_delete
+    ]
+    if new_attributes or delete_attributes:
+      self.MultiSet(
+          subject, new_attributes, to_delete=delete_attributes, timestamp=0)
+
 
 class DataStore(object):
   """Abstract database access."""
@@ -332,6 +496,10 @@ class DataStore(object):
 
   FLOW_RESPONSE_PREFIX = "flow:response:"
   FLOW_RESPONSE_TEMPLATE = FLOW_RESPONSE_PREFIX + "%08X:%08X"
+
+  LABEL_ATTRIBUTE_PREFIX = "index:label_"
+  LABEL_ATTRIBUTE_TEMPLATE = "index:label_%s"
+  LABEL_PLACEHOLDER_VALUE = "X"
 
   mutation_pool_cls = MutationPool
 
@@ -1197,6 +1365,11 @@ class DataStore(object):
   # the lock becomes stale at the record may be claimed again.
   QUEUE_LOCK_ATTRIBUTE = "aff4:lease"
 
+  QUEUE_TASK_PREDICATE_PREFIX = "task:"
+  QUEUE_TASK_PREDICATE_TEMPLATE = QUEUE_TASK_PREDICATE_PREFIX + "%s"
+
+  STATS_STORE_PREFIX = "aff4:stats_store/"
+
   @classmethod
   def CollectionMakeURN(cls, urn, timestamp, suffix=None, subpath="Results"):
     if suffix is None:
@@ -1205,6 +1378,11 @@ class DataStore(object):
       suffix = random.randint(1, DataStore.COLLECTION_MAX_SUFFIX)
     result_urn = urn.Add(subpath).Add("%016x.%06x" % (timestamp, suffix))
     return (result_urn, timestamp, suffix)
+
+  @classmethod
+  def QueueTaskIdToColumn(cls, task_id):
+    """Return a predicate representing the given task."""
+    return DataStore.QUEUE_TASK_PREDICATE_TEMPLATE % ("%08d" % task_id)
 
   def CollectionScanItems(self,
                           collection_id,
@@ -1253,6 +1431,100 @@ class DataStore(object):
     for attribute, _, _ in self.ResolveRow(collection_id, token=token):
       if attribute.startswith(self.COLLECTION_VALUE_TYPE_PREFIX):
         yield attribute[len(self.COLLECTION_VALUE_TYPE_PREFIX):]
+
+  def QueueQueryTasks(self, queue, limit=1, task_id=None, token=None):
+    """Retrieves tasks from a queue without leasing them.
+
+    This is good for a read only snapshot of the tasks.
+
+    Args:
+      queue: The task queue that this task belongs to, usually client.Queue()
+            where client is the ClientURN object you want to schedule msgs on.
+      limit: Number of values to fetch.
+      task_id: If an id is provided we only query for this id.
+      token: Database access token.
+    Returns:
+      A list of Task() objects.
+    """
+    if task_id is None:
+      prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
+    else:
+      prefix = utils.SmartStr(task_id)
+
+    all_tasks = []
+
+    for _, serialized, ts in self.ResolvePrefix(
+        queue, prefix, timestamp=DataStore.ALL_TIMESTAMPS, token=token):
+      task = rdf_flows.GrrMessage.FromSerializedString(serialized)
+      task.eta = ts
+      all_tasks.append(task)
+
+    # Sort the tasks in order of priority.
+    all_tasks.sort(key=lambda task: task.priority, reverse=True)
+
+    return all_tasks[:limit]
+
+  def StatsReadDataForProcesses(self,
+                                processes,
+                                metric_name,
+                                metrics_metadata,
+                                timestamp=None,
+                                limit=10000,
+                                token=None):
+    """Reads historical stats data for multiple processes at once."""
+    multi_query_results = self.MultiResolvePrefix(
+        processes,
+        DataStore.STATS_STORE_PREFIX + (metric_name or ""),
+        token=token,
+        timestamp=timestamp,
+        limit=limit)
+
+    results = {}
+    for subject, subject_results in multi_query_results:
+      subject = rdfvalue.RDFURN(subject)
+      subject_results = sorted(subject_results, key=lambda x: x[2])
+      subject_metadata_map = metrics_metadata.get(
+          subject.Basename(),
+          stats_values.StatsStoreMetricsMetadata()).AsDict()
+
+      part_results = {}
+      for predicate, value_string, timestamp in subject_results:
+        metric_name = predicate[len(DataStore.STATS_STORE_PREFIX):]
+
+        try:
+          metadata = subject_metadata_map[metric_name]
+        except KeyError:
+          continue
+
+        stored_value = stats_values.StatsStoreValue.FromSerializedString(
+            value_string)
+
+        fields_values = []
+        if metadata.fields_defs:
+          for stored_field_value in stored_value.fields_values:
+            fields_values.append(stored_field_value.value)
+
+          current_dict = part_results.setdefault(metric_name, {})
+          for field_value in fields_values[:-1]:
+            new_dict = {}
+            current_dict.setdefault(field_value, new_dict)
+            current_dict = new_dict
+
+          result_values_list = current_dict.setdefault(fields_values[-1], [])
+        else:
+          result_values_list = part_results.setdefault(metric_name, [])
+
+        result_values_list.append((stored_value.value, timestamp))
+
+      results[subject.Basename()] = part_results
+    return results
+
+  def LabelFetchAll(self, subject, token=None):
+    result = []
+    for attribute, _, _ in self.ResolvePrefix(
+        subject, self.LABEL_ATTRIBUTE_PREFIX, token=token):
+      result.append(attribute[len(self.LABEL_ATTRIBUTE_PREFIX):])
+    return sorted(result)
 
 
 class DBSubjectLock(object):

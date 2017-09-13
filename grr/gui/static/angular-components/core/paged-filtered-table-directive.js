@@ -81,10 +81,11 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective
  * @param {function(function(angular.jQuery, angular.Scope), angular.jQuery)}
  *     $transclude
  * @param {!angular.$compile} $compile
+ * @param {!angular.$interval} $interval
  * @ngInject
  */
 grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
-    $scope, $element, $transclude, $compile) {
+    $scope, $element, $transclude, $compile, $interval) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
@@ -92,6 +93,9 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
 
   /** @type {?number} */
   this.scope_.pageSize;
+
+  /** @type {?number} */
+  this.scope_.autoRefreshInterval;
 
   /** @private {!angular.jQuery} */
   this.element_ = $element;
@@ -104,6 +108,9 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
 
   /** @private {!angular.$compile} */
   this.compile_ = $compile;
+
+  /** @private {!angular.$interval} */
+  this.interval_ = $interval;
 
   // Internal state.
 
@@ -177,12 +184,38 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
    */
   this.filterFinished = false;
 
+  /**
+   * Request counter used to ignore obsolete requests (request becomes obsolete
+   * if another request gets sent as a result of a user action).
+   * @private {number}
+   */
+  this.requestCounter_ = 0;
+
+  /**
+   * True, if there's an auto-refresh request currently in progress.
+   * @private {boolean}
+   */
+  this.autoRefreshInProgress_ = false;
+
   this.addTopDirective_();
   this.addBottomDirective_();
 
   this.scope_.$watch('::controller.itemsProvider', function() {
     this.fetchUnfilteredItems(true);
   }.bind(this));
+
+  if (this.scope_.autoRefreshInterval) {
+    // Initialize the timer used to refresh data in the table.
+    /** @type {!angular.$q.Promise} */
+    var refreshTimer = this.interval_(
+        this.onAutoRefresh_.bind(this),
+        this.scope_.autoRefreshInterval);
+
+    // Destroy the timer when the shared directive's scope is destroyed.
+    this.scope_.$on('$destroy', function() {
+      this.interval_.cancel(refreshTimer);
+    }.bind(this));
+  }
 };
 
 var PagedFilteredTableController =
@@ -222,6 +255,27 @@ PagedFilteredTableController.prototype.addBottomDirective_ = function() {
 
 
 /**
+ * Wraps a given function with a check that ensures that it won't get executed
+ * if the request counter changes between this call and the time when the
+ * callback gets triggered.
+ *
+ * @param {Function} callback Promise callback to receive data.
+ * @return {Function} Wrapped callback.
+ * @private
+ */
+PagedFilteredTableController.prototype.wrapWithCounterCheck_ = function(
+    callback) {
+  this.requestCounter_ += 1;
+  var curRequestCounter = this.requestCounter_;
+
+  return function(data) {
+    if (this.requestCounter_ == curRequestCounter) {
+      return callback(data);
+    }
+  }.bind(this);
+};
+
+/**
  * Fetches unfiltered items for the current page.
  *
  * @param {boolean} withTotalCount If true, fetch total number of items on the
@@ -235,7 +289,8 @@ PagedFilteredTableController.prototype.fetchUnfilteredItems = function(
 
   this.itemsProvider.fetchItems(
       this.currentPage * this.pageSize, this.pageSize, withTotalCount).then(
-      this.onFetchedUnfilteredItems_.bind(this));
+          this.wrapWithCounterCheck_(
+              this.onFetchedUnfilteredItems_.bind(this)));
 };
 
 
@@ -293,7 +348,7 @@ PagedFilteredTableController.prototype.fetchFilteredItems = function(
 
   this.itemsProvider.fetchFilteredItems(
       this.filterValue, this.items.length, this.pageSize * opt_numPages).then(
-      this.onFetchedFilteredItems_.bind(this));
+          this.wrapWithCounterCheck_(this.onFetchedFilteredItems_.bind(this)));
 };
 
 
@@ -321,33 +376,45 @@ PagedFilteredTableController.prototype.onFetchedFilteredItems_ = function(
  * @private
  */
 PagedFilteredTableController.prototype.setItems_ = function(newItems) {
-  var itemsToRender;
-  if (this.filterApplied) {
-    if (this.items != newItems.slice(0, this.items.length)) {
-      /**
-       * this.element_ is a <tr> (because the directive is expected to be
-       * applied to a <tr> tag), therefore removing siblings means removing
-       * all the rows.
-       */
-      this.element_.siblings().remove();
-      itemsToRender = newItems;
-    } else {
-      itemsToRender = newItems.slice(this.items.length, newItems.length);
-    }
+  var indexOffset = 0;
+  if (angular.equals(this.items, newItems.slice(0, this.items.length))) {
+    indexOffset = this.items.length;
   } else {
-    itemsToRender = newItems;
     this.element_.siblings().remove();
   }
 
   this.items = newItems;
 
-  for (var i = 0; i < itemsToRender.length; ++i) {
+  for (var i = indexOffset; i < this.items.length; ++i) {
     this.transclude_(function(clone, scope) {
       scope.item = this.items[i];
       scope.$index = i;
       this.element_.parent().append(clone);
     }.bind(this), this.element_.parent());
   }
+};
+
+/**
+ * Triggered periodically if autoRefreshInterval binding is set.
+ *
+ * @private
+ */
+PagedFilteredTableController.prototype.onAutoRefresh_ = function() {
+  if (this.filterApplied || this.items.length >= this.pageSize ||
+      this.autoRefreshInProgress_) {
+    return;
+  }
+
+  var callback = this.wrapWithCounterCheck_(function(data) {
+    this.setItems_(data['items']);
+  }.bind(this));
+
+  this.autoRefreshInProgress_ = true;
+  this.itemsProvider.fetchItems(
+      this.currentPage * this.pageSize,
+      this.pageSize, false).then(callback).finally(function() {
+        this.autoRefreshInProgress_ = false;
+      }.bind(this));
 };
 
 
@@ -378,7 +445,8 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective =
     function() {
   return {
     scope: {
-      pageSize: '=?'
+      pageSize: '=?',
+      autoRefreshInterval: '=?'
     },
     transclude: 'element',
     restrict: 'A',

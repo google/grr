@@ -647,6 +647,11 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "original_flow": {
+                "age": 0,
+                "type": "FlowReference",
+                "value": {}
+              },
               "priority": {
                 "age": 0,
                 "type": "EnumNamedValue",
@@ -685,6 +690,7 @@
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "ListProcesses",
           "notify_to_user": false,
+          "original_flow": {},
           "priority": "HIGH_PRIORITY"
         },
         "started_at": 42000000,
@@ -804,6 +810,11 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:123456"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -868,6 +879,7 @@
           "creator": "api_test_user",
           "description": "foo",
           "expires": 1209642000000,
+          "hunt_id": "H:123456",
           "is_robot": false,
           "name": "GenericHunt",
           "results_count": 0,
@@ -2728,6 +2740,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GRRVersionBreakDown"
+              },
+              "original_flow": {
+                "age": 0,
+                "type": "FlowReference",
+                "value": {}
               }
             }
           },
@@ -2766,7 +2783,8 @@
         "name": "GRRVersionBreakDown",
         "runner_args": {
           "base_session_id": "aff4:/cron/GRRVersionBreakDown",
-          "flow_name": "GRRVersionBreakDown"
+          "flow_name": "GRRVersionBreakDown",
+          "original_flow": {}
         },
         "started_at": 44000000,
         "state": "RUNNING",
@@ -2949,6 +2967,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "Interrogate"
+              },
+              "original_flow": {
+                "age": 0,
+                "type": "FlowReference",
+                "value": {}
               }
             }
           },
@@ -2991,7 +3014,8 @@
         "name": "Interrogate",
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "Interrogate"
+          "flow_name": "Interrogate",
+          "original_flow": {}
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -3254,6 +3278,11 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:123456"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -3315,6 +3344,7 @@
           "creator": "api_test_user",
           "description": "hunt1",
           "expires": 1209642000000,
+          "hunt_id": "H:123456",
           "is_robot": false,
           "name": "GenericHunt",
           "results_count": 0,
@@ -3412,6 +3442,11 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:567890"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -3473,6 +3508,7 @@
           "creator": "api_test_user",
           "description": "hunt2",
           "expires": 1209642000000,
+          "hunt_id": "H:567890",
           "is_robot": false,
           "name": "GenericHunt",
           "results_count": 0,
@@ -3859,6 +3895,11 @@
             "type": "unicode",
             "value": "GetFile"
           },
+          "hunt_id": {
+            "age": 0,
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
           "hunt_runner_args": {
             "age": 0,
             "type": "HuntRunnerArgs",
@@ -3917,6 +3958,707 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "FlowLikeObjectReference",
+                "value": {
+                  "flow_reference": {
+                    "age": 0,
+                    "type": "FlowReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1111111111111111"
+                      },
+                      "flow_id": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "F:332211"
+                      }
+                    }
+                  },
+                  "object_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "FLOW_REFERENCE"
+                  }
+                }
+              }
+            }
+          },
+          "is_robot": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GenericHunt"
+          },
+          "original_object": {
+            "age": 0,
+            "type": "ApiFlowLikeObjectReference",
+            "value": {
+              "flow_reference": {
+                "age": 0,
+                "type": "ApiFlowReference",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ApiClientId",
+                    "value": "C.1111111111111111"
+                  },
+                  "flow_id": {
+                    "age": 0,
+                    "type": "ApiFlowId",
+                    "value": "F:332211"
+                  }
+                }
+              },
+              "object_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "FLOW_REFERENCE"
+              }
+            }
+          },
+          "remaining_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "PAUSED"
+          },
+          "total_cpu_usage": {
+            "age": 0,
+            "type": "float",
+            "value": 5000.0
+          },
+          "total_net_usage": {
+            "age": 0,
+            "type": "long",
+            "value": 1000000
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/hunts/H:123456"
+          }
+        }
+      },
+      "test_class": "ApiGetHuntHandlerFlowCopyRegressionTest_http_v1",
+      "type_stripped_response": {
+        "all_clients_count": 0,
+        "client_limit": 100,
+        "client_rate": 0.0,
+        "client_rule_set": {
+          "rules": [
+            {
+              "regex": {
+                "attribute_name": "GRR client",
+                "attribute_regex": "GRR"
+              },
+              "rule_type": "REGEX"
+            }
+          ]
+        },
+        "clients_with_results_count": 0,
+        "completed_clients_count": 0,
+        "crash_limit": 100,
+        "created": 42000000,
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": 1209642000000,
+        "flow_args": {
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flow_name": "GetFile",
+        "hunt_id": "H:123456",
+        "hunt_runner_args": {
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "crash_limit": 100,
+          "description": "the hunt",
+          "hunt_name": "GenericHunt",
+          "original_object": {
+            "flow_reference": {
+              "client_id": "aff4:/C.1111111111111111",
+              "flow_id": "F:332211"
+            },
+            "object_type": "FLOW_REFERENCE"
+          }
+        },
+        "is_robot": false,
+        "name": "GenericHunt",
+        "original_object": {
+          "flow_reference": {
+            "client_id": "C.1111111111111111",
+            "flow_id": "F:332211"
+          },
+          "object_type": "FLOW_REFERENCE"
+        },
+        "remaining_clients_count": 0,
+        "results_count": 0,
+        "state": "PAUSED",
+        "total_cpu_usage": 5000.0,
+        "total_net_usage": 1000000,
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "url": "/api/hunts/H:123456"
+    },
+    {
+      "api_method": "GetHunt",
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHunt",
+        "value": {
+          "all_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
+          "client_rate": {
+            "age": 0,
+            "type": "float",
+            "value": 0.0
+          },
+          "client_rule_set": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {
+              "rules": [
+                {
+                  "age": 0,
+                  "type": "ForemanClientRule",
+                  "value": {
+                    "regex": {
+                      "age": 0,
+                      "type": "ForemanRegexClientRule",
+                      "value": {
+                        "attribute_name": {
+                          "age": 0,
+                          "type": "AFF4Attribute",
+                          "value": "GRR client"
+                        },
+                        "attribute_regex": {
+                          "age": 0,
+                          "type": "RegularExpression",
+                          "value": "GRR"
+                        }
+                      }
+                    },
+                    "rule_type": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "REGEX"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "clients_with_results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "completed_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "crash_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
+          "created": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "api_test_user"
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "the hunt"
+          },
+          "expires": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 1209642000000
+          },
+          "flow_args": {
+            "age": 0,
+            "type": "GetFileArgs",
+            "value": {
+              "pathspec": {
+                "age": 0,
+                "type": "PathSpec",
+                "value": {
+                  "path": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "/tmp/evil.txt"
+                  },
+                  "pathtype": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "OS"
+                  }
+                }
+              }
+            }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GetFile"
+          },
+          "hunt_id": {
+            "age": 0,
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
+          "hunt_runner_args": {
+            "age": 0,
+            "type": "HuntRunnerArgs",
+            "value": {
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "the hunt"
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "FlowLikeObjectReference",
+                "value": {
+                  "hunt_reference": {
+                    "age": 0,
+                    "type": "HuntReference",
+                    "value": {
+                      "hunt_id": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "H:332211"
+                      }
+                    }
+                  },
+                  "object_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "HUNT_REFERENCE"
+                  }
+                }
+              }
+            }
+          },
+          "is_robot": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GenericHunt"
+          },
+          "original_object": {
+            "age": 0,
+            "type": "ApiFlowLikeObjectReference",
+            "value": {
+              "hunt_reference": {
+                "age": 0,
+                "type": "ApiHuntReference",
+                "value": {
+                  "hunt_id": {
+                    "age": 0,
+                    "type": "ApiHuntId",
+                    "value": "H:332211"
+                  }
+                }
+              },
+              "object_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "HUNT_REFERENCE"
+              }
+            }
+          },
+          "remaining_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "PAUSED"
+          },
+          "total_cpu_usage": {
+            "age": 0,
+            "type": "float",
+            "value": 5000.0
+          },
+          "total_net_usage": {
+            "age": 0,
+            "type": "long",
+            "value": 1000000
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/hunts/H:123456"
+          }
+        }
+      },
+      "test_class": "ApiGetHuntHandlerHuntCopyRegressionTest_http_v1",
+      "type_stripped_response": {
+        "all_clients_count": 0,
+        "client_limit": 100,
+        "client_rate": 0.0,
+        "client_rule_set": {
+          "rules": [
+            {
+              "regex": {
+                "attribute_name": "GRR client",
+                "attribute_regex": "GRR"
+              },
+              "rule_type": "REGEX"
+            }
+          ]
+        },
+        "clients_with_results_count": 0,
+        "completed_clients_count": 0,
+        "crash_limit": 100,
+        "created": 42000000,
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": 1209642000000,
+        "flow_args": {
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flow_name": "GetFile",
+        "hunt_id": "H:123456",
+        "hunt_runner_args": {
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "crash_limit": 100,
+          "description": "the hunt",
+          "hunt_name": "GenericHunt",
+          "original_object": {
+            "hunt_reference": {
+              "hunt_id": "H:332211"
+            },
+            "object_type": "HUNT_REFERENCE"
+          }
+        },
+        "is_robot": false,
+        "name": "GenericHunt",
+        "original_object": {
+          "hunt_reference": {
+            "hunt_id": "H:332211"
+          },
+          "object_type": "HUNT_REFERENCE"
+        },
+        "remaining_clients_count": 0,
+        "results_count": 0,
+        "state": "PAUSED",
+        "total_cpu_usage": 5000.0,
+        "total_net_usage": 1000000,
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "url": "/api/hunts/H:123456"
+    },
+    {
+      "api_method": "GetHunt",
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHunt",
+        "value": {
+          "all_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
+          "client_rate": {
+            "age": 0,
+            "type": "float",
+            "value": 0.0
+          },
+          "client_rule_set": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {
+              "rules": [
+                {
+                  "age": 0,
+                  "type": "ForemanClientRule",
+                  "value": {
+                    "regex": {
+                      "age": 0,
+                      "type": "ForemanRegexClientRule",
+                      "value": {
+                        "attribute_name": {
+                          "age": 0,
+                          "type": "AFF4Attribute",
+                          "value": "GRR client"
+                        },
+                        "attribute_regex": {
+                          "age": 0,
+                          "type": "RegularExpression",
+                          "value": "GRR"
+                        }
+                      }
+                    },
+                    "rule_type": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "REGEX"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "clients_with_results_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "completed_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "crash_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
+          "created": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "api_test_user"
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "the hunt"
+          },
+          "expires": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 1209642000000
+          },
+          "flow_args": {
+            "age": 0,
+            "type": "GetFileArgs",
+            "value": {
+              "pathspec": {
+                "age": 0,
+                "type": "PathSpec",
+                "value": {
+                  "path": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "/tmp/evil.txt"
+                  },
+                  "pathtype": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "OS"
+                  }
+                }
+              }
+            }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GetFile"
+          },
+          "hunt_id": {
+            "age": 0,
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
+          "hunt_runner_args": {
+            "age": 0,
+            "type": "HuntRunnerArgs",
+            "value": {
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "the hunt"
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "FlowLikeObjectReference",
+                "value": {}
               }
             }
           },
@@ -3992,6 +4734,7 @@
           }
         },
         "flow_name": "GetFile",
+        "hunt_id": "H:123456",
         "hunt_runner_args": {
           "client_rate": 0.0,
           "client_rule_set": {
@@ -4007,7 +4750,8 @@
           },
           "crash_limit": 100,
           "description": "the hunt",
-          "hunt_name": "GenericHunt"
+          "hunt_name": "GenericHunt",
+          "original_object": {}
         },
         "is_robot": false,
         "name": "GenericHunt",
@@ -5263,6 +6007,32 @@
             "name": "nested_flows",
             "repeated": true,
             "type": "ApiFlow"
+          },
+          {
+            "doc": "If this flow was copied, a reference to the source flow.",
+            "dynamic": false,
+            "friendly_name": "Original flow",
+            "index": 13,
+            "labels": [
+              "HIDDEN"
+            ],
+            "name": "original_flow",
+            "repeated": false,
+            "type": "ApiFlowReference"
+          },
+          {
+            "default": {
+              "age": 0,
+              "type": "RDFString",
+              "value": ""
+            },
+            "doc": "An error that happened while reading the flow. This is not an error while executing the flow but an internal data issue.",
+            "dynamic": false,
+            "friendly_name": "Internal error",
+            "index": 14,
+            "name": "internal_error",
+            "repeated": false,
+            "type": "RDFString"
           }
         ],
         "kind": "struct",
@@ -5415,6 +6185,28 @@
             "name": "nested_flows",
             "repeated": true,
             "type": "ApiFlow"
+          },
+          {
+            "doc": "If this flow was copied, a reference to the source flow.",
+            "dynamic": false,
+            "friendly_name": "Original flow",
+            "index": 13,
+            "labels": [
+              "HIDDEN"
+            ],
+            "name": "original_flow",
+            "repeated": false,
+            "type": "ApiFlowReference"
+          },
+          {
+            "default": "",
+            "doc": "An error that happened while reading the flow. This is not an error while executing the flow but an internal data issue.",
+            "dynamic": false,
+            "friendly_name": "Internal error",
+            "index": 14,
+            "name": "internal_error",
+            "repeated": false,
+            "type": "RDFString"
           }
         ],
         "kind": "struct",
@@ -8212,6 +9004,11 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:123456"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -8273,6 +9070,7 @@
           "creator": "api_test_user",
           "description": "a hunt",
           "expires": 1209642000000,
+          "hunt_id": "H:123456",
           "is_robot": false,
           "name": "GenericHunt",
           "results_count": 0,
@@ -9683,6 +10481,11 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "GRRVersionBreakDown"
+                  },
+                  "original_flow": {
+                    "age": 0,
+                    "type": "FlowReference",
+                    "value": {}
                   }
                 }
               },
@@ -9717,7 +10520,8 @@
             "nested_flows": [],
             "runner_args": {
               "base_session_id": "aff4:/cron/GRRVersionBreakDown",
-              "flow_name": "GRRVersionBreakDown"
+              "flow_name": "GRRVersionBreakDown",
+              "original_flow": {}
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -10221,15 +11025,7 @@
               "default_args": {
                 "age": 0,
                 "type": "FileFinderArgs",
-                "value": {
-                  "paths": [
-                    {
-                      "age": 0,
-                      "type": "GlobExpression",
-                      "value": "c:\\windows\\system32\\notepad.*"
-                    }
-                  ]
-                }
+                "value": {}
               },
               "doc": {
                 "age": 0,
@@ -10303,11 +11099,7 @@
               "BASIC"
             ],
             "category": "Filesystem",
-            "default_args": {
-              "paths": [
-                "c:\\windows\\system32\\notepad.*"
-              ]
-            },
+            "default_args": {},
             "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, upload_token=upload_token)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    upload_token\n      description: An upload token to use with the direct upload functionality. This token contains the hmac authenticated policy that determines for how long the client is allowed to upload files to the server. This is comparable to the policy document used by GCS: https://cloud.google.com/storage/docs/xml-api/post-object#policydocument \n      type: UploadToken\n      default: None\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendly_name": "File Finder",
             "name": "FileFinder"
@@ -11185,6 +11977,11 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "ListProcesses"
+                  },
+                  "original_flow": {
+                    "age": 0,
+                    "type": "FlowReference",
+                    "value": {}
                   }
                 }
               },
@@ -11248,6 +12045,11 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "Interrogate"
+                  },
+                  "original_flow": {
+                    "age": 0,
+                    "type": "FlowReference",
+                    "value": {}
                   }
                 }
               },
@@ -11282,7 +12084,8 @@
             "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "ListProcesses"
+              "flow_name": "ListProcesses",
+              "original_flow": {}
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -11297,7 +12100,8 @@
             "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate"
+              "flow_name": "Interrogate",
+              "original_flow": {}
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -11477,6 +12281,11 @@
                     "type": "RDFDatetime",
                     "value": 1209642000000
                   },
+                  "hunt_id": {
+                    "age": 0,
+                    "type": "ApiHuntId",
+                    "value": "H:123456"
+                  },
                   "is_robot": {
                     "age": 0,
                     "type": "RDFBool",
@@ -11542,6 +12351,7 @@
               "creator": "api_test_user",
               "description": "",
               "expires": 1209642000000,
+              "hunt_id": "H:123456",
               "is_robot": false,
               "name": "GenericHunt",
               "results_count": 0,
@@ -13586,6 +14396,11 @@
                 "type": "RDFDatetime",
                 "value": 1211600000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:000001"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -13667,6 +14482,11 @@
                 "type": "RDFDatetime",
                 "value": 1210600000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:000000"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -13719,6 +14539,7 @@
             "creator": "api_test_user",
             "description": "hunt_1",
             "expires": 1211600000000,
+            "hunt_id": "H:000001",
             "is_robot": false,
             "name": "GenericHunt",
             "results_count": 0,
@@ -13736,6 +14557,7 @@
             "creator": "api_test_user",
             "description": "hunt_0",
             "expires": 1210600000000,
+            "hunt_id": "H:000000",
             "is_robot": false,
             "name": "GenericHunt",
             "results_count": 0,
@@ -13798,6 +14620,11 @@
                 "type": "RDFDatetime",
                 "value": 1211600000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:000001"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -13850,6 +14677,7 @@
             "creator": "api_test_user",
             "description": "hunt_1",
             "expires": 1211600000000,
+            "hunt_id": "H:000001",
             "is_robot": false,
             "name": "GenericHunt",
             "results_count": 0,
@@ -13912,6 +14740,11 @@
                 "type": "RDFDatetime",
                 "value": 1210600000000
               },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:000000"
+              },
               "is_robot": {
                 "age": 0,
                 "type": "RDFBool",
@@ -13964,6 +14797,7 @@
             "creator": "api_test_user",
             "description": "hunt_0",
             "expires": 1210600000000,
+            "hunt_id": "H:000000",
             "is_robot": false,
             "name": "GenericHunt",
             "results_count": 0,
@@ -15385,6 +16219,11 @@
             "type": "unicode",
             "value": "GetFile"
           },
+          "hunt_id": {
+            "age": 0,
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
           "hunt_runner_args": {
             "age": 0,
             "type": "HuntRunnerArgs",
@@ -15448,6 +16287,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "FlowLikeObjectReference",
+                "value": {}
               }
             }
           },
@@ -15523,6 +16367,7 @@
           }
         },
         "flow_name": "GetFile",
+        "hunt_id": "H:123456",
         "hunt_runner_args": {
           "client_limit": 142,
           "client_rate": 0.0,
@@ -15539,7 +16384,8 @@
           },
           "crash_limit": 100,
           "description": "the hunt",
-          "hunt_name": "GenericHunt"
+          "hunt_name": "GenericHunt",
+          "original_object": {}
         },
         "is_robot": false,
         "name": "GenericHunt",
@@ -15674,6 +16520,11 @@
             "type": "unicode",
             "value": "GetFile"
           },
+          "hunt_id": {
+            "age": 0,
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
           "hunt_runner_args": {
             "age": 0,
             "type": "HuntRunnerArgs",
@@ -15737,6 +16588,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "FlowLikeObjectReference",
+                "value": {}
               }
             }
           },
@@ -15812,6 +16668,7 @@
           }
         },
         "flow_name": "GetFile",
+        "hunt_id": "H:123456",
         "hunt_runner_args": {
           "client_limit": 142,
           "client_rate": 0.0,
@@ -15828,7 +16685,8 @@
           },
           "crash_limit": 100,
           "description": "the hunt",
-          "hunt_name": "GenericHunt"
+          "hunt_name": "GenericHunt",
+          "original_object": {}
         },
         "is_robot": false,
         "name": "GenericHunt",

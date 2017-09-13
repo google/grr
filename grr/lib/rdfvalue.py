@@ -1039,7 +1039,7 @@ class SessionID(RDFURN):
     # flows session ids like H:123456:hunt.
     allowed_re = re.compile(r"^[-0-9a-zA-Z]+:[0-9a-zA-Z]+(:[0-9a-zA-Z]+)?$")
     if not allowed_re.match(id_str):
-      raise ValueError("Invalid SessionID")
+      raise ValueError("Invalid SessionID: %s" % id_str)
 
 
 class FlowSessionID(SessionID):

@@ -9,6 +9,10 @@ goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 goog.scope(function() {
 
 
+/** @const {number} */
+grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+
 /**
  * Controller for ResultsCollectionDirective..
  *
@@ -27,6 +31,10 @@ grrUi.core.resultsCollectionDirective.ResultsCollectionController = function(
 
   /** @type {boolean} */
   this.resultsAreFiles;
+
+  /** @type {number} */
+  this.autoRefreshInterval =
+      grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS;
 };
 var ResultsCollectionController =
     grrUi.core.resultsCollectionDirective.ResultsCollectionController;

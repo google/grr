@@ -8,7 +8,8 @@
     </tr>
   </thead>
   <tbody ng-if="controller.logsUrl">
-    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.logsUrl">
+    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.logsUrl"
+        auto-refresh-interval="::controller.autoRefreshInterval">
       <td class="table-cell proto_key"><grr-timestamp value="::item.age" /></td>
       <td class="table-cell proto_key"><grr-semantic-value value="::item.value.flow_name" /></td>
       <td class="table-cell proto_key"><grr-semantic-value value="::item.value.urn" /></td>

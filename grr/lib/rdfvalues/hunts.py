@@ -6,6 +6,7 @@
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -32,6 +33,34 @@ class HuntContext(rdf_structs.RDFProtoStruct):
   ]
 
 
+class HuntReference(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.HuntReference
+
+
+class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
+  """A reference to a flow or a hunt."""
+  protobuf = flows_pb2.FlowLikeObjectReference
+  rdf_deps = [
+      flows.FlowReference,
+      HuntReference,
+  ]
+
+  @classmethod
+  def FromHuntId(cls, hunt_id):
+    res = FlowLikeObjectReference()
+    res.object_type = "HUNT_REFERENCE"
+    res.hunt_reference = HuntReference(hunt_id=hunt_id)
+    return res
+
+  @classmethod
+  def FromFlowIdAndClientId(cls, flow_id, client_id):
+    res = FlowLikeObjectReference()
+    res.object_type = "FLOW_REFERENCE"
+    res.flow_reference = flows.FlowReference(
+        flow_id=flow_id, client_id=client_id)
+    return res
+
+
 class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   """Hunt runner arguments definition."""
 
@@ -41,6 +70,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
       foreman.ForemanClientRuleSet,
       output_plugin.OutputPluginDescriptor,
       rdfvalue.RDFURN,
+      FlowLikeObjectReference,
   ]
 
   def __init__(self, initializer=None, **kwargs):

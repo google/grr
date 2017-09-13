@@ -473,7 +473,9 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         field.type = field_type.__name__
 
         if field_type.context_help_url:
-          field.context_help_url = field_type.context_help_url
+          # Class attribute context_help_url masks similarly named protobuf
+          # attribute. Using the Set method to set the right attribute.
+          field.Set("context_help_url", field_type.context_help_url)
 
       if field_type == rdf_structs.EnumNamedValue:
         for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):

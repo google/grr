@@ -13,6 +13,7 @@ goog.require('grrUi.forms.dictFormDirective.DictFormDirective');
 goog.require('grrUi.forms.durationFormDirective.DurationFormDirective');
 goog.require('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective');
 goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
+goog.require('grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective');
 goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 goog.require('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
 goog.require('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
@@ -68,6 +69,10 @@ grrUi.forms.module.directive(
     grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
         .directive_name,
     grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
+        .directive_name,
+    grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.outputPluginDescriptorFormDirective
         .OutputPluginDescriptorFormDirective.directive_name,
@@ -177,4 +182,14 @@ grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
       grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective
           .semantic_type,
       grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective);
+});
+
+grrUi.forms.module.run(function(grrSemanticRepeatedFormDirectivesRegistryService) {
+  var registry = grrSemanticRepeatedFormDirectivesRegistryService;
+
+  registry.registerDirective(
+      grrUi.forms.globExpressionsListFormDirective
+        .GlobExpressionsListFormDirective.semantic_type,
+      grrUi.forms.globExpressionsListFormDirective
+        .GlobExpressionsListFormDirective);
 });

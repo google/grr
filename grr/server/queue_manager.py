@@ -3,10 +3,7 @@
 
 import collections
 import logging
-import os
 import random
-import socket
-import time
 
 from grr import config
 from grr.lib import rdfvalue
@@ -84,9 +81,6 @@ class QueueManager(object):
     ...
     queue_manager.UnfreezeTimestamp()
   """
-
-  TASK_PREDICATE_PREFIX = "task:"
-  TASK_PREDICATE_TEMPLATE = TASK_PREDICATE_PREFIX + "%s"
 
   STUCK_PRIORITY = "Flow stuck"
 
@@ -386,10 +380,6 @@ class QueueManager(object):
       else:
         self.notifications[key] = notification
 
-  def _TaskIdToColumn(self, task_id):
-    """Return a predicate representing this task."""
-    return self.TASK_PREDICATE_TEMPLATE % ("%08d" % task_id)
-
   def Delete(self, queue, tasks, mutation_pool=None):
     """Removes the tasks from the queue.
 
@@ -405,34 +395,23 @@ class QueueManager(object):
     Raises:
       ValueError: Mutation pool was not passed in.
     """
+    if queue is None:
+      return
     if mutation_pool is None:
       raise ValueError("Mutation pool can't be none.")
-
-    if queue:
-      predicates = []
-      for task in tasks:
-        try:
-          task_id = task.task_id
-        except AttributeError:
-          task_id = int(task)
-        predicates.append(self._TaskIdToColumn(task_id))
-
-      mutation_pool.DeleteAttributes(queue, predicates)
+    mutation_pool.QueueDeleteTasks(queue, tasks)
 
   def Schedule(self, tasks, mutation_pool, timestamp=None):
     """Schedule a set of Task() instances."""
-    if timestamp is None:
-      timestamp = self.frozen_timestamp
-
+    non_fleetspeak_tasks = []
     for queue, queued_tasks in utils.GroupBy(tasks,
                                              lambda x: x.queue).iteritems():
-      if queue:
+      if not queue:
+        continue
 
-        to_schedule = dict([(self._TaskIdToColumn(task.task_id),
-                             [task.SerializeToString()])
-                            for task in queued_tasks])
-
-        mutation_pool.MultiSet(queue, to_schedule, timestamp=timestamp)
+      non_fleetspeak_tasks.extend(queued_tasks)
+    timestamp = timestamp or self.frozen_timestamp
+    mutation_pool.QueueScheduleTasks(non_fleetspeak_tasks, timestamp)
 
   def _SortByPriority(self, notifications, queue, output_dict=None):
     """Sort notifications by priority into output_dict."""
@@ -632,30 +611,8 @@ class QueueManager(object):
     if isinstance(queue, rdf_client.ClientURN):
       queue = queue.Queue()
 
-    if task_id is None:
-      prefix = self.TASK_PREDICATE_PREFIX
-    else:
-      prefix = utils.SmartStr(task_id)
-
-    all_tasks = []
-
-    for _, serialized, ts in self.data_store.ResolvePrefix(
-        queue,
-        prefix,
-        timestamp=self.data_store.ALL_TIMESTAMPS,
-        token=self.token):
-      task = rdf_flows.GrrMessage.FromSerializedString(serialized)
-      task.eta = ts
-      all_tasks.append(task)
-
-    # Sort the tasks in order of priority.
-    all_tasks.sort(key=lambda task: task.priority, reverse=True)
-
-    return all_tasks[:limit]
-
-  def DropQueue(self, queue):
-    """Deletes a queue - all tasks will be lost."""
-    self.data_store.DeleteSubject(queue, token=self.token)
+    return self.data_store.QueueQueryTasks(
+        queue, limit=limit, task_id=task_id, token=self.token)
 
   def QueryAndOwn(self, queue, lease_seconds=10, limit=1):
     """Returns a list of Tasks leased for a certain time.
@@ -667,73 +624,9 @@ class QueueManager(object):
     Returns:
         A list of GrrMessage() objects leased.
     """
-    user = ""
-    if self.token:
-      user = self.token.username
-    # Do the real work in a transaction
-    try:
-      lock = self.data_store.LockRetryWrapper(
-          queue, lease_time=lease_seconds, token=self.token)
-      return self._QueryAndOwn(
-          lock.subject, lease_seconds=lease_seconds, limit=limit, user=user)
-    except data_store.DBSubjectLockError:
-      # This exception just means that we could not obtain the lock on the queue
-      # so we just return an empty list, let the worker sleep and come back to
-      # fetch more tasks.
-      return []
-    except data_store.Error as e:
-      logging.warning("Datastore exception: %s", e)
-      return []
-
-  def _QueryAndOwn(self, subject, lease_seconds=100, limit=1, user=""):
-    """Does the real work of self.QueryAndOwn()."""
-    tasks = []
-
-    lease = long(lease_seconds * 1e6)
-
-    # Only grab attributes with timestamps in the past.
-    delete_attrs = set()
-    serialized_tasks_dict = {}
-    for predicate, task, timestamp in self.data_store.ResolvePrefix(
-        subject,
-        self.TASK_PREDICATE_PREFIX,
-        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now()),
-        token=self.token):
-      task = rdf_flows.GrrMessage.FromSerializedString(task)
-      task.eta = timestamp
-      task.last_lease = "%s@%s:%d" % (user, socket.gethostname(), os.getpid())
-      # Decrement the ttl
-      task.task_ttl -= 1
-      if task.task_ttl <= 0:
-        # Remove the task if ttl is exhausted.
-        delete_attrs.add(predicate)
-        stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
-      else:
-        if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
-          stats.STATS.IncrementCounter("grr_task_retransmission_count")
-
-        serialized_tasks_dict.setdefault(predicate,
-                                         []).append(task.SerializeToString())
-        tasks.append(task)
-        if len(tasks) >= limit:
-          break
-
-    if delete_attrs or serialized_tasks_dict:
-      # Update the timestamp on claimed tasks to be in the future and decrement
-      # their TTLs, delete tasks with expired ttls.
-      self.data_store.MultiSet(
-          subject,
-          serialized_tasks_dict,
-          replace=True,
-          timestamp=long(time.time() * 1e6) + lease,
-          sync=True,
-          to_delete=delete_attrs,
-          token=self.token)
-
-    if delete_attrs:
-      logging.info("TTL exceeded for %d messages on queue %s",
-                   len(delete_attrs), subject)
-    return tasks
+    with self.data_store.GetMutationPool(token=self.token) as mutation_pool:
+      return mutation_pool.QueueQueryAndOwn(queue, lease_seconds, limit,
+                                            self.frozen_timestamp)
 
 
 class WellKnownQueueManager(QueueManager):

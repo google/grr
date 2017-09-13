@@ -7,12 +7,16 @@ import os
 
 import unittest
 from grr.gui import gui_test_lib
+from grr.gui.api_plugins import flow as api_flow
 
 from grr.lib import flags
+from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 from grr.server.flows.general import filesystem as flows_filesystem
 from grr.server.flows.general import processes as flows_processes
@@ -288,6 +292,42 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
+  def testBrokenFlowsAreShown(self):
+    for s in flow_test_lib.TestFlowHelper(
+        gui_test_lib.FlowWithOneHashEntryResult.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token):
+      flow_urn = s
+
+    for s in flow_test_lib.TestFlowHelper(
+        gui_test_lib.FlowWithOneHashEntryResult.__name__,
+        self.action_mock,
+        client_id=self.client_id,
+        token=self.token,
+        original_flow=rdf_flows.FlowReference(flow_id="F:123456")):
+      broken_flow_urn = s
+
+    def RaiseError():
+      raise ValueError("Broken on purpose for testing.")
+
+    flow_id = flow_urn.Basename()
+    broken_flow_id = broken_flow_urn.Basename()
+
+    with utils.Stubber(api_flow, "ApiFlowReference", RaiseError):
+      self.Open("/#c=C.0000000000000001")
+      self.Click("css=a[grrtarget='client.flows']")
+
+      # Both flows are shown in the list even though one is broken.
+      self.WaitUntil(self.IsTextPresent, flow_id)
+      self.WaitUntil(self.IsTextPresent, broken_flow_id)
+
+      # The broken flow shows the error message.
+      self.Click("css=td:contains('%s')" % broken_flow_id)
+      self.WaitUntil(self.IsTextPresent, "Error while Opening")
+      self.WaitUntil(self.IsTextPresent,
+                     "Error while opening flow: Broken on purpose for testing.")
+
   def testApiExampleIsShown(self):
     flow_urn = flow.GRRFlow.StartFlow(
         flow_name=gui_test_lib.FlowWithOneStatEntryResult.__name__,
@@ -393,10 +433,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_S = 1")
+        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
 
     # Go to the flows page without refreshing the page, so that
-    # AUTO_REFRESH_INTERVAL_S setting is not reset.
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
 
     # Check that the flow list is correctly loaded.
@@ -421,10 +461,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_S = 1")
+        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
 
     # Go to the flows page without refreshing the page, so that
-    # AUTO_REFRESH_INTERVAL_S setting is not reset.
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
 
     # Check that the flow is running.
@@ -446,10 +486,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_S = 1")
+        "grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
 
     # Go to the flows page without refreshing the page, so that
-    # AUTO_REFRESH_INTERVAL_S setting is not reset.
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=tr:contains('%s')" % f.Basename())
 
@@ -466,6 +506,71 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-flow-inspector dd:contains('ERROR')")
     self.WaitUntil(self.IsElementPresent, "css=grr-flow-inspector "
                    "tr:contains('Status'):contains('Because I said so')")
+
+  def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
+    f = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    with aff4.FACTORY.Open(f, token=self.token) as fd:
+      fd.Log("foo-log")
+
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=li[heading=Log]:not([disabled]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-flow-log td:contains('foo-log')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-flow-log td:contains('bar-log')")
+
+    with aff4.FACTORY.Open(f, token=self.token) as fd:
+      fd.Log("bar-log")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-flow-log td:contains('bar-log')")
+
+  def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
+    f = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      flow.GRRFlow.ResultCollectionForFID(f).Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo-result")),
+          mutation_pool=pool)
+
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=li[heading=Results]:not([disabled]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection td:contains('foo-result')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-results-collection td:contains('bar-result')")
+
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      flow.GRRFlow.ResultCollectionForFID(f).Add(
+          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("bar-result")),
+          mutation_pool=pool)
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection td:contains('bar-result')")
 
 
 def main(argv):

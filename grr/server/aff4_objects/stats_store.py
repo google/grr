@@ -45,178 +45,48 @@ from grr import config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib.rdfvalues import structs
-from grr.proto import jobs_pb2
 from grr.server import access_control
-
 from grr.server import aff4
-
 from grr.server import data_store
+from grr.server import stats_values
 from grr.server import timeseries
-
-
-class StatsStoreFieldValue(structs.RDFProtoStruct):
-  """RDFValue definition for fields values to be stored in the data store."""
-
-  protobuf = jobs_pb2.StatsStoreFieldValue
-
-  @property
-  def value(self):
-    if self.field_type == stats.MetricFieldDefinition.FieldType.INT:
-      value = self.int_value
-    elif self.field_type == stats.MetricFieldDefinition.FieldType.STR:
-      value = self.str_value
-    else:
-      raise ValueError("Internal inconsistency, invalid "
-                       "field type %d." % self.field_type)
-
-    return value
-
-  def SetValue(self, value, field_type):
-    if field_type == stats.MetricFieldDefinition.FieldType.INT:
-      self.int_value = value
-    elif field_type == stats.MetricFieldDefinition.FieldType.STR:
-      self.str_value = value
-    else:
-      raise ValueError("Invalid field type %d." % field_type)
-
-    self.field_type = field_type
-
-
-class StatsStoreValue(structs.RDFProtoStruct):
-  """RDFValue definition for stats values to be stored in the data store."""
-  protobuf = jobs_pb2.StatsStoreValue
-  rdf_deps = [
-      stats.Distribution,
-      StatsStoreFieldValue,
-  ]
-
-  @property
-  def value(self):
-    if self.value_type == stats.MetricMetadata.ValueType.INT:
-      value = self.int_value
-    elif self.value_type == stats.MetricMetadata.ValueType.FLOAT:
-      value = self.float_value
-    elif self.value_type == stats.MetricMetadata.ValueType.STR:
-      value = self.str_value
-    elif self.value_type == stats.MetricMetadata.ValueType.DISTRIBUTION:
-      value = self.distribution_value
-    else:
-      raise ValueError("Internal inconsistency, invalid "
-                       "value type %d." % self.value_type)
-
-    return value
-
-  def SetValue(self, value, value_type):
-    if value_type == stats.MetricMetadata.ValueType.INT:
-      self.int_value = value
-    elif value_type == stats.MetricMetadata.ValueType.FLOAT:
-      self.float_value = value
-    elif value_type == stats.MetricMetadata.ValueType.STR:
-      self.str_value = value
-    elif value_type == stats.MetricMetadata.ValueType.DISTRIBUTION:
-      self.distribution_value = value
-    else:
-      raise ValueError("Invalid value type %d." % value_type)
-
-    self.value_type = value_type
-
-
-class StatsStoreMetricsMetadata(structs.RDFProtoStruct):
-  """Container with metadata for all the metrics in a given process."""
-
-  protobuf = jobs_pb2.StatsStoreMetricsMetadata
-  rdf_deps = [
-      stats.MetricMetadata,
-  ]
-
-  def AsDict(self):
-    result = {}
-    for metric in self.metrics:
-      result[metric.varname] = metric
-
-    return result
 
 
 class StatsStoreProcessData(aff4.AFF4Object):
   """Stores stats data for a particular process."""
-
-  STATS_STORE_PREFIX = "aff4:stats_store/"
-
-  ALL_TIMESTAMPS = data_store.DataStore.ALL_TIMESTAMPS
-  NEWEST_TIMESTAMP = data_store.DataStore.NEWEST_TIMESTAMP
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for StatsStoreProcessData."""
 
     METRICS_METADATA = aff4.Attribute(
         "aff4:stats_store_process_data/metrics_metadata",
-        StatsStoreMetricsMetadata,
+        stats_values.StatsStoreMetricsMetadata,
         creates_new_object_version=False,
         versioned=False)
 
   def WriteMetadataDescriptors(self, metrics_metadata, timestamp=None):
     current_metadata = self.Get(
-        self.Schema.METRICS_METADATA, default=StatsStoreMetricsMetadata())
+        self.Schema.METRICS_METADATA,
+        default=stats_values.StatsStoreMetricsMetadata())
 
     if current_metadata.AsDict() != metrics_metadata:
-      store_metadata = StatsStoreMetricsMetadata(
+      store_metadata = stats_values.StatsStoreMetricsMetadata(
           metrics=metrics_metadata.values())
       self.AddAttribute(
           self.Schema.METRICS_METADATA, store_metadata, age=timestamp)
       self.Flush()
 
   def WriteStats(self, timestamp=None):
-    to_set = {}
     metrics_metadata = stats.STATS.GetAllMetricsMetadata()
     self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp)
+    with data_store.MutationPool(token=self.token) as mutation_pool:
+      mutation_pool.StatsWriteMetrics(
+          self.urn, metrics_metadata, timestamp=timestamp)
 
-    for name, metadata in metrics_metadata.iteritems():
-      if metadata.fields_defs:
-        for fields_values in stats.STATS.GetMetricFields(name):
-          value = stats.STATS.GetMetricValue(name, fields=fields_values)
-
-          store_value = StatsStoreValue()
-          store_fields_values = []
-          for field_def, field_value in zip(metadata.fields_defs,
-                                            fields_values):
-            store_field_value = StatsStoreFieldValue()
-            store_field_value.SetValue(field_value, field_def.field_type)
-            store_fields_values.append(store_field_value)
-
-          store_value.fields_values = store_fields_values
-          store_value.SetValue(value, metadata.value_type)
-
-          to_set.setdefault(self.STATS_STORE_PREFIX + name,
-                            []).append(store_value)
-      else:
-        value = stats.STATS.GetMetricValue(name)
-        store_value = StatsStoreValue()
-        store_value.SetValue(value, metadata.value_type)
-
-        to_set[self.STATS_STORE_PREFIX + name] = [store_value]
-
-    # Write actual data
-    data_store.DB.MultiSet(
-        self.urn, to_set, replace=False, token=self.token, timestamp=timestamp)
-
-  def DeleteStats(self, timestamp=ALL_TIMESTAMPS):
+  def DeleteStats(self, timestamp=data_store.DataStore.ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""
-
-    if timestamp == self.NEWEST_TIMESTAMP:
-      raise ValueError("Can't use NEWEST_TIMESTAMP in DeleteStats.")
-
-    predicates = []
-    for key in stats.STATS.GetAllMetricsMetadata().keys():
-      predicates.append(self.STATS_STORE_PREFIX + key)
-
-    start = None
-    end = None
-    if timestamp and timestamp != self.ALL_TIMESTAMPS:
-      start, end = timestamp
-
-    data_store.DB.DeleteAttributes(
-        self.urn, predicates, sync=True, start=start, end=end, token=self.token)
+    with data_store.MutationPool(token=self.token) as mutation_pool:
+      mutation_pool.StatsDeleteStatsInRange(self.urn, timestamp)
 
 
 class StatsStore(aff4.AFF4Volume):
@@ -286,7 +156,7 @@ class StatsStore(aff4.AFF4Volume):
           subject_data.Schema.METRICS_METADATA)
 
     for process_id in process_ids:
-      results.setdefault(process_id, StatsStoreMetricsMetadata())
+      results.setdefault(process_id, stats_values.StatsStoreMetricsMetadata())
 
     return results
 
@@ -323,52 +193,13 @@ class StatsStore(aff4.AFF4Volume):
     subjects = [
         self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
     ]
-
-    multi_query_results = data_store.DB.MultiResolvePrefix(
+    return data_store.DB.StatsReadDataForProcesses(
         subjects,
-        StatsStoreProcessData.STATS_STORE_PREFIX + (metric_name or ""),
-        token=self.token,
+        metric_name,
+        multi_metadata,
         timestamp=timestamp,
-        limit=limit)
-
-    results = {}
-    for subject, subject_results in multi_query_results:
-      subject = rdfvalue.RDFURN(subject)
-      subject_results = sorted(subject_results, key=lambda x: x[2])
-      subject_metadata_map = multi_metadata.get(
-          subject.Basename(), StatsStoreMetricsMetadata()).AsDict()
-
-      part_results = {}
-      for predicate, value_string, timestamp in subject_results:
-        metric_name = predicate[len(StatsStoreProcessData.STATS_STORE_PREFIX):]
-
-        try:
-          metadata = subject_metadata_map[metric_name]
-        except KeyError:
-          continue
-
-        stored_value = StatsStoreValue.FromSerializedString(value_string)
-
-        fields_values = []
-        if metadata.fields_defs:
-          for stored_field_value in stored_value.fields_values:
-            fields_values.append(stored_field_value.value)
-
-          current_dict = part_results.setdefault(metric_name, {})
-          for field_value in fields_values[:-1]:
-            new_dict = {}
-            current_dict.setdefault(field_value, new_dict)
-            current_dict = new_dict
-
-          result_values_list = current_dict.setdefault(fields_values[-1], [])
-        else:
-          result_values_list = part_results.setdefault(metric_name, [])
-
-        result_values_list.append((stored_value.value, timestamp))
-
-      results[subject.Basename()] = part_results
-
-    return results
+        limit=limit,
+        token=self.token)
 
   def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""

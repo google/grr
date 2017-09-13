@@ -11,6 +11,7 @@ from grr import config
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import client as api_client
+from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr.gui.api_plugins import vfs as api_vfs
@@ -95,6 +96,35 @@ class ApiHuntId(rdfvalue.RDFString):
     return HUNTS_ROOT_PATH.Add(self._value)
 
 
+class ApiHuntReference(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiHuntReference
+  rdf_deps = [
+      ApiHuntId,
+  ]
+
+  def FromHuntReference(self, reference):
+    self.hunt_id = reference.hunt_id
+    return self
+
+
+class ApiFlowLikeObjectReference(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiFlowLikeObjectReference
+  rdf_deps = [
+      ApiHuntReference,
+      api_flow.ApiFlowReference,
+  ]
+
+  def FromFlowLikeObjectReference(self, reference):
+    self.object_type = reference.object_type
+    if reference.object_type == "HUNT_REFERENCE":
+      self.hunt_reference = ApiHuntReference().FromHuntReference(
+          reference.hunt_reference)
+    elif reference.object_type == "FLOW_REFERENCE":
+      self.flow_reference = api_flow.ApiFlowReference().FromFlowReference(
+          reference.flow_reference)
+    return self
+
+
 class ApiHunt(rdf_structs.RDFProtoStruct):
   """ApiHunt is used when rendering responses.
 
@@ -104,6 +134,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   """
   protobuf = hunt_pb2.ApiHunt
   rdf_deps = [
+      ApiHuntId,
+      ApiFlowLikeObjectReference,
       foreman.ForemanClientRuleSet,
       rdf_hunts.HuntRunnerArgs,
       rdfvalue.RDFDatetime,
@@ -121,46 +153,54 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
   def InitFromAff4Object(self, hunt, with_full_summary=False):
-    runner = hunt.GetRunner()
-    context = runner.context
+    try:
+      runner = hunt.GetRunner()
+      context = runner.context
 
-    self.urn = hunt.urn
-    self.name = hunt.runner_args.hunt_name
-    self.state = str(hunt.Get(hunt.Schema.STATE))
-    self.crash_limit = hunt.runner_args.crash_limit
-    self.client_limit = hunt.runner_args.client_limit
-    self.client_rate = hunt.runner_args.client_rate
-    self.created = context.create_time
-    self.expires = context.expires
-    self.creator = context.creator
-    self.description = hunt.runner_args.description
-    self.is_robot = context.creator == "GRRWorker"
-    self.results_count = context.results_count
-    self.clients_with_results_count = context.clients_with_results_count
+      self.urn = hunt.urn
+      self.hunt_id = hunt.urn.Basename()
+      self.name = hunt.runner_args.hunt_name
+      self.state = str(hunt.Get(hunt.Schema.STATE))
+      self.crash_limit = hunt.runner_args.crash_limit
+      self.client_limit = hunt.runner_args.client_limit
+      self.client_rate = hunt.runner_args.client_rate
+      self.created = context.create_time
+      self.expires = context.expires
+      self.creator = context.creator
+      self.description = hunt.runner_args.description
+      self.is_robot = context.creator == "GRRWorker"
+      self.results_count = context.results_count
+      self.clients_with_results_count = context.clients_with_results_count
+      if hunt.runner_args.original_object.object_type != "UNKNOWN":
+        ref = ApiFlowLikeObjectReference()
+        self.original_object = ref.FromFlowLikeObjectReference(
+            hunt.runner_args.original_object)
 
-    hunt_stats = context.usage_stats
-    self.total_cpu_usage = hunt_stats.user_cpu_stats.sum
-    self.total_net_usage = hunt_stats.network_bytes_sent_stats.sum
+      hunt_stats = context.usage_stats
+      self.total_cpu_usage = hunt_stats.user_cpu_stats.sum
+      self.total_net_usage = hunt_stats.network_bytes_sent_stats.sum
 
-    if with_full_summary:
-      # This is an expensive call. Avoid it if not needed.
-      all_clients_count, completed_clients_count, _ = hunt.GetClientsCounts()
-      self.all_clients_count = all_clients_count
-      self.completed_clients_count = completed_clients_count
-      self.remaining_clients_count = (
-          all_clients_count - completed_clients_count)
+      if with_full_summary:
+        # This is an expensive call. Avoid it if not needed.
+        all_clients_count, completed_clients_count, _ = hunt.GetClientsCounts()
+        self.all_clients_count = all_clients_count
+        self.completed_clients_count = completed_clients_count
+        self.remaining_clients_count = (
+            all_clients_count - completed_clients_count)
 
-      self.hunt_runner_args = hunt.runner_args
-      self.client_rule_set = runner.runner_args.client_rule_set
+        self.hunt_runner_args = hunt.runner_args
+        self.client_rule_set = runner.runner_args.client_rule_set
 
-      # We assume we deal here with a GenericHunt and hence hunt.args is a
-      # GenericHuntArgs instance. But if we have another kind of hunt
-      # (VariableGenericHunt is the only other kind of hunt at the
-      # moment), then we shouldn't raise.
-      if hunt.args.HasField("flow_runner_args"):
-        self.flow_name = hunt.args.flow_runner_args.flow_name
-      if self.flow_name and hunt.args.HasField("flow_args"):
-        self.flow_args = hunt.args.flow_args
+        # We assume we deal here with a GenericHunt and hence hunt.args is a
+        # GenericHuntArgs instance. But if we have another kind of hunt
+        # (VariableGenericHunt is the only other kind of hunt at the
+        # moment), then we shouldn't raise.
+        if hunt.args.HasField("flow_runner_args"):
+          self.flow_name = hunt.args.flow_runner_args.flow_name
+        if self.flow_name and hunt.args.HasField("flow_args"):
+          self.flow_args = hunt.args.flow_args
+    except Exception as e:  # pylint: disable=broad-except
+      self.internal_error = "Error while opening hunt: %s" % str(e)
 
     return self
 
@@ -1192,6 +1232,8 @@ class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiCreateHuntArgs
   rdf_deps = [
       rdf_hunts.HuntRunnerArgs,
+      ApiHuntReference,
+      api_flow.ApiFlowReference,
   ]
 
   def GetFlowArgsClass(self):
@@ -1229,6 +1271,19 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
         rdf_structs.SemanticDescriptor.Labels.HIDDEN,
         exceptions="output_plugins")
     args.hunt_runner_args.hunt_name = standard.GenericHunt.__name__
+
+    if args.original_hunt and args.original_flow:
+      raise ValueError(
+          "A hunt can't be a copy of a flow and a hunt at the same time.")
+    if args.original_hunt:
+      ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(
+          utils.SmartStr(args.original_hunt.hunt_id))
+      args.hunt_runner_args.original_object = ref
+    elif args.original_flow:
+      ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
+          utils.SmartStr(args.original_flow.flow_id),
+          utils.SmartStr(args.original_flow.client_id))
+      args.hunt_runner_args.original_object = ref
 
     # Anyone can create the hunt but it will be created in the paused
     # state. Permissions are required to actually start it.

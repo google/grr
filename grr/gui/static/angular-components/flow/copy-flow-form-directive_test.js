@@ -82,6 +82,10 @@ describe('copy flow form directive', function() {
             runner_args: {
               rFoo: 'rBar',
             }
+          },
+          original_flow: {
+            flow_id: 'F:123456',
+            client_id: 'C.0000111122223333'
           }
         });
   });

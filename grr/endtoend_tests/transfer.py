@@ -129,10 +129,10 @@ class TestGetFileTSKLinux(base.VFSPathContentIsELF):
   args = {
       "pathspec":
           rdf_paths.PathSpec(
-              path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)
+              path="/usr/bin/env", pathtype=rdf_paths.PathSpec.PathType.TSK)
   }
   # Interpolate for /dev/mapper-...
-  test_output_path = "/fs/tsk/.*/usr/bin/diff"
+  test_output_path = "/fs/tsk/.*/usr/bin/env"
 
 
 class TestMultiGetFileTSKLinux(base.VFSPathContentIsELF):

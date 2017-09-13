@@ -11,6 +11,7 @@ import traceback
 import unittest
 
 from grr.gui import gui_test_lib
+from grr.gui.api_plugins import hunt as api_hunt
 
 from grr.lib import flags
 from grr.lib import utils
@@ -48,6 +49,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.assertEqual(all_count, client_count)
     else:
       self.assertEqual(all_count, min(client_count, client_limit))
+
+    return hunt
 
   def testPageTitleReflectsSelectedHunt(self):
     hunt = self.CreateSampleHunt(stopped=True)
@@ -95,6 +98,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  self.token)
 
+    return hunt
+
   def testHuntClientsView(self):
     """Test the detailed client view works."""
     hunt = self._CreateHuntWithDownloadedFile()
@@ -123,6 +128,34 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
             hunt.urn.Add(client_id.Basename()), token=self.token))
     self.assertEqual(len(hunt_flows), 1)
     self.WaitUntil(self.IsTextPresent, utils.SmartStr(hunt_flows[0]))
+
+  def testHuntOverviewShowsBrokenHunt(self):
+    hunt = self.CreateSampleHunt()
+    broken_hunt = self.CreateSampleHunt()
+
+    with broken_hunt:
+      broken_hunt.runner_args.original_object.object_type = "HUNT_REFERENCE"
+
+    def RaiseError():
+      raise ValueError("Broken on purpose for testing.")
+
+    with utils.Stubber(api_hunt, "ApiFlowLikeObjectReference", RaiseError):
+      # Open up and click on View Hunts then the first Hunt.
+      self.Open("/")
+      self.WaitUntil(self.IsElementPresent, "client_query")
+      self.Click("css=a[grrtarget=hunts]")
+
+      hunt_id = hunt.urn.Path().strip("/")
+      broken_hunt_id = broken_hunt.urn.Path().strip("/")
+
+      # Both hunts are shown even though one throws an error.
+      self.WaitUntil(self.IsTextPresent, hunt_id)
+      self.WaitUntil(self.IsTextPresent, broken_hunt_id)
+
+      self.Click("css=td:contains('%s')" % broken_hunt_id)
+      self.WaitUntil(self.IsTextPresent, "Error while Opening")
+      self.WaitUntil(self.IsTextPresent,
+                     "Error while opening hunt: Broken on purpose for testing.")
 
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
@@ -153,7 +186,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S = 1")
+        "grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
@@ -229,6 +262,29 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, "File %s transferred successfully." %
                      str(client_id.Add("fs/os/tmp/evil.txt")))
 
+  def testLogsTabGetsAutoRefreshed(self):
+    h = self.CreateSampleHunt()
+    h.Log("foo-log")
+
+    self.Open("/")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    self.Click("css=a[grrtarget=hunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Log]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-log td:contains('foo-log')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-hunt-log td:contains('bar-log')")
+
+    h.Log("bar-log")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-log td:contains('bar-log')")
+
   def testLogsTabFiltersLogsByString(self):
     self.SetupHuntDetailView(failrate=-1)
 
@@ -270,6 +326,31 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
 
+  def testErrorsTabGetsAutoRefreshed(self):
+    with self.CreateSampleHunt() as hunt:
+      # Log an error just with some random traceback.
+      hunt.LogClientError(self.client_ids[0], "foo-error",
+                          traceback.format_exc())
+
+    self.Open("/")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    self.Click("css=a[grrtarget=hunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Errors]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-errors td:contains('foo-error')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-hunt-errors td:contains('bar-error')")
+
+    hunt.LogClientError(self.client_ids[0], "bar-error", traceback.format_exc())
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-hunt-errors td:contains('bar-error')")
+
   def testErrorsTabShowsDatesInUTC(self):
     with self.CreateSampleHunt() as hunt:
       with test_lib.FakeTime(42):
@@ -308,6 +389,41 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
     self.WaitUntilNot(self.IsVisible, "css=button#show_backtrace")
+
+  def testCrashesTabGetsAutoRefreshed(self):
+    client_ids = self.SetupClients(2)
+    with self.CreateHunt(token=self.token) as hunt:
+      hunt.Run()
+
+    def CrashClient(client_id):
+      self.AssignTasksToClients([client_id])
+      client_mock = flow_test_lib.CrashClientMock(client_id, token=self.token)
+      hunt_test_lib.TestHuntHelper(
+          client_mock, [client_id], check_flow_errors=False, token=self.token)
+
+    CrashClient(client_ids[0])
+
+    self.Open("/")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    self.Click("css=a[grrtarget=hunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Crashes]")
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[0].Basename())
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[1].Basename())
+
+    CrashClient(client_ids[1])
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes td:contains('%s')" % client_ids[1].Basename())
 
   def testShowsResultsTabForIndividualFlowsOnClients(self):
     # Create and run the hunt.

@@ -41,11 +41,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   # Will be used by FingerprintFileMixin.
   fingerprint_file_mixin_client_action = server_stubs.HashFile
 
-  @classmethod
-  def GetDefaultArgs(cls, token=None):
-    _ = token
-    return cls.args_type(paths=[r"c:\windows\system32\notepad.*"])
-
   def Initialize(self):
     super(FileFinder, self).Initialize()
     type_enum = rdf_file_finder.FileFinderCondition.Type

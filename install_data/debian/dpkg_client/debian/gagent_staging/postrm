@@ -1,0 +1,3 @@
+#!/bin/bash
+
+service fleetspeak-staging restart || true

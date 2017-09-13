@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "google/protobuf/any.proto";
 
+import "grr/proto/api/flow.proto";
 import "grr/proto/api/output_plugin.proto";
 
 import "grr/proto/analysis.proto";
@@ -16,7 +17,7 @@ import "grr/proto/semantic.proto";
 // Entities.
 //
 
-// Next id: 25
+// Next id: 28
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -29,6 +30,10 @@ message ApiHunt {
   optional string urn = 1 [(sem_type) = {
       type: "SessionID",
       description: "Hunt URN."
+    }];
+  optional string hunt_id = 25 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "The hunt id."
     }];
   optional string name = 2 [(sem_type) = {
       description: "Hunt name.",
@@ -98,6 +103,35 @@ message ApiHunt {
   optional int64 results_count = 24 [(sem_type) = {
       description: "Total number of results in this hunt."
     }];
+  optional ApiFlowLikeObjectReference original_object = 26 [(sem_type) = {
+      description: "If this hunt was copied from another object, a "
+      "reference to that object."
+    }];
+  optional string internal_error = 27 [(sem_type) = {
+      description: "An error that happened while reading the hunt. This is "
+      "not an error while executing the hunt but an internal data issue."
+    }];
+}
+
+message ApiHuntReference {
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
+      description: "Hunt id."
+    }];
+}
+
+message ApiFlowLikeObjectReference {
+  option (semantic) = {
+    union_field: "object_type"
+  };
+  enum ObjectType {
+    UNKNOWN = 0;
+    FLOW_REFERENCE = 1;
+    HUNT_REFERENCE = 2;
+  };
+  optional ObjectType object_type = 1;
+  optional ApiFlowReference flow_reference = 2;
+  optional ApiHuntReference hunt_reference = 3;
 }
 
 message ApiHuntResult {
@@ -515,7 +549,7 @@ message ApiGetHuntContextResult {
     }];
 };
 
-// Next id: 6
+// Next id: 8
 message ApiCreateHuntArgs {
   optional string flow_name = 3 [(sem_type) = {
       description: "Cron flow name."
@@ -526,6 +560,16 @@ message ApiCreateHuntArgs {
     }];
   optional HuntRunnerArgs hunt_runner_args = 1 [(sem_type) = {
       description: "Hunt runner arguments."
+    }];
+  optional ApiFlowReference original_flow = 6 [(sem_type) = {
+      description: "If this hunt was copied from a flow, a reference to the "
+      "source flow.",
+      label: HIDDEN,
+    }];
+  optional ApiHuntReference original_hunt = 7 [(sem_type) = {
+      description: "If this hunt was copied from a hunt, a reference to the "
+      "source hunt.",
+      label: HIDDEN,
     }];
 };
 

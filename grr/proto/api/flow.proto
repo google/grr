@@ -43,7 +43,7 @@ message ApiFlowDescriptor {
     }];
 }
 
-// Next id: 13
+// Next id: 15
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -97,6 +97,25 @@ message ApiFlow {
   repeated ApiFlow nested_flows = 9 [(sem_type) = {
       description: "Nested flows started by this flow."
     }];
+  optional ApiFlowReference original_flow = 13 [(sem_type) = {
+      description: "If this flow was copied, a reference to the "
+      "source flow.",
+      label: HIDDEN,
+    }];
+  optional string internal_error = 14 [(sem_type) = {
+      description: "An error that happened while reading the flow. This is "
+      "not an error while executing the flow but an internal data issue."
+    }];
+}
+
+message ApiFlowReference {
+  optional string flow_id = 1 [(sem_type) = {
+      type: "ApiFlowId",
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
 }
 
 message ApiFlowRequest {
@@ -141,6 +160,7 @@ message ApiCreateFlowArgs {
       description: "Client id."
     }];
   optional ApiFlow flow = 2;
+  optional ApiFlowReference original_flow = 3;
 }
 
 message ApiCancelFlowArgs {

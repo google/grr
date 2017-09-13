@@ -6,7 +6,8 @@
     </tr>
   </thead>
   <tbody>
-    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.crashesUrl">
+    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.crashesUrl"
+        auto-refresh-interval="::controller.autoRefreshInterval">
       <td ng-class="::{proto_key: $index % 2 == 0}">
         <grr-client-urn value="::item.value.client_id.value" />
       </td>

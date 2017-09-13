@@ -130,9 +130,9 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   }.bind(this));
 
   /**
-   * Auto refresh interval in seconds. If specified the table will auto-refresh
-   * itself periodically, gracefully inserting new elements and updating changed
-   * elements.
+   * Auto refresh interval in milliseconds. If specified the table will
+   * auto-refresh itself periodically, gracefully inserting new elements and
+   * updating changed elements.
    * @private {number}
    */
   this.autoRefreshInterval_ = Number(
@@ -142,7 +142,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
     // Initialize timer used to refresh data in the table.
     /** @type {!angular.$q.Promise} */
     var refreshTimer = this.interval_(this.refreshData_.bind(this),
-                                      this.autoRefreshInterval_ * 1000);
+                                      this.autoRefreshInterval_);
 
     // Destroy the timer when the shared directive's scope is destroyed.
     this.scope_.$on('$destroy', function() {

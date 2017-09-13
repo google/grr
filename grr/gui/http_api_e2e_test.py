@@ -422,6 +422,18 @@ class ApiClientLibVfsTest(ApiE2ETest):
 
     self.assertEqual(out.getvalue(), "Hello world")
 
+  def testGetBlobUnicode(self):
+    aff4.FACTORY.Copy(
+        "aff4:/C.1000000000000000/fs/tsk/c/bin/bash",
+        "aff4:/C.1000000000000000/fs/tsk/c/bin/中国新闻网新闻中",
+        token=self.token)
+
+    out = StringIO.StringIO()
+    self.api.Client(client_id=self.client_urn.Basename()).File(
+        u"fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
+
+    self.assertEqual(out.getvalue(), "Hello world")
+
   def testGetFilesArchive(self):
     zip_stream = StringIO.StringIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(

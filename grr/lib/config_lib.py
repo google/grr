@@ -133,6 +133,10 @@ class ConfigFilter(object):
 
   name = "identity"
 
+  # If this is set, application of the filter will not be logged - useful
+  # for key material.
+  sensitive_arg = False
+
   def Filter(self, data):
     return data
 
@@ -612,7 +616,7 @@ class StringInterpolator(lexer.Lexer):
       2. The result of that is appended to arg1.
       3. The combined string is then filtered using filter1.
 
-  - The following characters must be escaped by preceeding them with a single \:
+  - The following characters must be escaped by preceding them with a single \:
      - ()|
   """
 
@@ -694,7 +698,8 @@ class StringInterpolator(lexer.Lexer):
       if filter_object is None:
         raise FilterError("Unknown filter function %r" % filter_name)
 
-      logging.debug("Applying filter %s for %s.", filter_name, arg)
+      if not filter_object.sensitive_arg:
+        logging.debug("Applying filter %s for %s.", filter_name, arg)
       arg = filter_object().Filter(arg)
 
     self.stack[-1] += arg

@@ -555,11 +555,6 @@ class LabelSet(aff4.AFF4Object):
   # We expect the set to be quite small, so we simply store it as a collection
   # attributes of the form "index:label_<label>" all unversioned (ts = 0).
 
-  PLACEHOLDER_VALUE = "X"
-
-  ATTRIBUTE_PREFIX = "index:label_"
-  ATTRIBUTE_PATTERN = "index:label_%s"
-
   # Location of the default set of labels, used to keep tract of active labels
   # for clients.
   CLIENT_LABELS_URN = "aff4:/index/labels/client_set"
@@ -576,16 +571,9 @@ class LabelSet(aff4.AFF4Object):
 
     self.to_delete = self.to_delete.difference(self.to_set)
 
-    to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE * len(self.to_set)))
-
-    if to_set or self.to_delete:
-      data_store.DB.MultiSet(
-          self.urn,
-          to_set,
-          to_delete=list(self.to_delete),
-          timestamp=0,
-          token=self.token,
-          replace=True)
+    with data_store.MutationPool(token=self.token) as mutation_pool:
+      mutation_pool.LabelUpdateLabels(
+          self.urn, self.to_set, to_delete=self.to_delete)
     self.to_set = set()
     self.to_delete = set()
 
@@ -594,20 +582,16 @@ class LabelSet(aff4.AFF4Object):
     super(LabelSet, self).Close()
 
   def Add(self, label):
-    self.to_set.add(self.ATTRIBUTE_PATTERN % label)
+    self.to_set.add(label)
 
   def Remove(self, label):
-    self.to_delete.add(self.ATTRIBUTE_PATTERN % label)
+    self.to_delete.add(label)
 
   def ListLabels(self):
     # Flush, so that any pending changes are visible.
     if self.to_set or self.to_delete:
       self.Flush()
-    result = []
-    for attribute, _, _ in data_store.DB.ResolvePrefix(
-        self.urn, self.ATTRIBUTE_PREFIX, token=self.token):
-      result.append(attribute[len(self.ATTRIBUTE_PREFIX):])
-    return sorted(result)
+    return data_store.DB.LabelFetchAll(self.urn, token=self.token)
 
 
 class TempMemoryFile(aff4.AFF4MemoryStream):

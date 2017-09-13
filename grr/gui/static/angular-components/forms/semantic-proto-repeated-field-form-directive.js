@@ -3,7 +3,13 @@
 goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormController');
 goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormDirective');
 
+goog.require('grrUi.core.utils.camelCaseToDashDelimited');
 goog.require('grrUi.forms.semanticValueFormDirective.SemanticValueFormController');
+
+
+goog.scope(function() {
+
+var camelCaseToDashDelimited = grrUi.core.utils.camelCaseToDashDelimited;
 
 /**
  * Controller for SemanticProtoRepeatedFieldFormDirective.
@@ -36,7 +42,10 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
   /** @export {boolean} */
   this.hasCustomTemplate;
 
-  this.scope_.$watchGroup(['field', 'descriptor'],
+  /** @export {boolean} */
+  this.hideCustomTemplateLabel;
+
+  this.scope_.$watchGroup(['field', 'descriptor', 'value'],
                           this.onFieldDescriptorChange_.bind(this));
 };
 
@@ -52,27 +61,30 @@ var SemanticProtoRepeatedFieldFormController =
  */
 SemanticProtoRepeatedFieldFormController.prototype.onFieldDescriptorChange_ =
     function() {
-  this.hasCustomTemplate = false;
   if (angular.isDefined(this.scope_['field']) &&
-      angular.isDefined(this.scope_['descriptor'])) {
+      angular.isDefined(this.scope_['descriptor']) &&
+      angular.isDefined(this.scope_['value'])) {
 
-    this.grrSemanticRepeatedFormDirectivesRegistryService_.
-        findDirectiveForType(this.scope_['descriptor']['mro'][0]).then(
-            this.onCustomDirective_.bind(this));
+    if (this.scope_['noCustomTemplate']) {
+      this.onCustomDirectiveNotFound_();
+    } else {
+      this.grrSemanticRepeatedFormDirectivesRegistryService_.
+          findDirectiveForType(this.scope_['descriptor']['mro'][0]).then(
+              this.onCustomDirectiveFound_.bind(this),
+              this.onCustomDirectiveNotFound_.bind(this));
+    }
   }
 };
 
 
 /**
- * Converts camelCaseStrings to dash-delimited-strings.
+ * Handles cases when a custom directive that handles this type of repeated
+ * values is not found.
  *
- * @param {string} directiveName String to be converted.
- * @return {string} Converted string.
- * @export
+ * @private
  */
-SemanticProtoRepeatedFieldFormController.prototype.camelCaseToDashDelimited =
-    function(directiveName) {
-  return directiveName.replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
+SemanticProtoRepeatedFieldFormController.prototype.onCustomDirectiveNotFound_ = function() {
+  this.hasCustomTemplate = false;
 };
 
 
@@ -83,17 +95,25 @@ SemanticProtoRepeatedFieldFormController.prototype.camelCaseToDashDelimited =
  * @param {Object} directive Found directive.
  * @private
  */
-SemanticProtoRepeatedFieldFormController.prototype.onCustomDirective_ =
-    function(directive) {
+SemanticProtoRepeatedFieldFormController.prototype.onCustomDirectiveFound_ = function(directive) {
   this.hasCustomTemplate = true;
+  this.hideCustomTemplateLabel = directive['hideCustomTemplateLabel'];
 
   var element = angular.element('<span />');
 
-  element.html('<' + this.camelCaseToDashDelimited(directive.directive_name) +
-      ' descriptor="descriptor" value="value" />');
+  element.html('<' + camelCaseToDashDelimited(directive.directive_name) +
+      ' descriptor="descriptor" value="value" field="field" />');
   var template = this.compile_(element);
 
-  var customTemplateElement = this.element_.find('div[name="custom-template"]');
+  var customTemplateElement;
+  if (this.hideCustomTemplateLabel) {
+    customTemplateElement = this.element_.find(
+        'div[name="custom-template-without-label"]');
+  } else {
+    customTemplateElement = this.element_.find(
+        'div[name="custom-template"]');
+  }
+
   customTemplateElement.html('');
 
   template(this.scope_, function(cloned, opt_scope) {
@@ -109,7 +129,7 @@ SemanticProtoRepeatedFieldFormController.prototype.onCustomDirective_ =
  */
 SemanticProtoRepeatedFieldFormController.prototype.addItem = function() {
   this.scope_.value.splice(0, 0,
-                           angular.copy(this.scope_.descriptor['default']));
+                           angular.copy(this.scope_['descriptor']['default']));
 };
 
 
@@ -137,7 +157,8 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
     scope: {
       value: '=',
       descriptor: '=',
-      field: '='
+      field: '=',
+      noCustomTemplate: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/forms/' +
@@ -157,3 +178,5 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
 grrUi.forms.semanticProtoRepeatedFieldFormDirective
     .SemanticProtoRepeatedFieldFormDirective.directive_name =
     'grrFormProtoRepeatedField';
+
+});  // goog.scope

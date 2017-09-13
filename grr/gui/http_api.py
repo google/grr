@@ -365,7 +365,7 @@ class HttpRequestHandler(object):
         content_type="binary/octet-stream",
         direct_passthrough=True)
     response.headers["Content-Disposition"] = (
-        "attachment; filename=%s" % binary_stream.filename)
+        "attachment; filename=%s" % utils.SmartStr(binary_stream.filename))
     if method_name:
       response.headers["X-API-Method"] = method_name
 

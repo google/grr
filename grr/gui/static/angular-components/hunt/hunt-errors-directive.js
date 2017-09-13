@@ -6,6 +6,9 @@ goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
 goog.scope(function() {
 
 
+/** @const {number} */
+grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
 
 /**
  * Controller for HuntErrorsDirective.
@@ -23,6 +26,10 @@ grrUi.hunt.huntErrorsDirective.HuntErrorsController = function($scope) {
 
   /** @export {string} */
   this.errorsUrl;
+
+  /** @type {number} */
+  this.autoRefreshInterval =
+      grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };

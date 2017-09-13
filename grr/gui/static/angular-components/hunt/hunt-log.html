@@ -11,7 +11,8 @@
   <tbody>
     <tr grr-paged-filtered-table page-size="100"
         grr-api-items-provider url="::controller.logsUrl"
-        transform-items="controller.transformItems(items)">
+        transform-items="controller.transformItems(items)"
+        auto-refresh-interval="::controller.autoRefreshInterval">
       <td ng-class="::{proto_key: item.highlighted}"><grr-timestamp value="::item.age" /></td>
       <td ng-class="::{proto_key: item.highlighted}"><grr-client-urn value="::item.value.client_id.value" /></td>
       <td ng-class="::{proto_key: item.highlighted}">{$ ::item.shortUrn.value $}</td>

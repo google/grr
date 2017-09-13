@@ -7,7 +7,7 @@ goog.scope(function() {
 
 
 /** @const {number} */
-grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S = 15;
+grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
 
 
 /**
@@ -67,8 +67,7 @@ HuntOverviewController.prototype.startPolling_ = function() {
     this.huntId = huntUrnComponents[huntUrnComponents.length - 1];
 
     var huntUrl = 'hunts/' + this.huntId;
-    var interval = grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_S
-        * 1000;
+    var interval = grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS;
 
     this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
     this.pollPromise_.then(

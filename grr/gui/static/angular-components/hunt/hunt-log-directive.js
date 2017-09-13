@@ -6,6 +6,9 @@ goog.provide('grrUi.hunt.huntLogDirective.HuntLogDirective');
 goog.scope(function() {
 
 
+/** @const {number} */
+grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
 
 /**
  * Controller for HuntLogDirective.
@@ -20,6 +23,10 @@ grrUi.hunt.huntLogDirective.HuntLogController = function($scope) {
 
   /** @type {string} */
   this.scope_.huntUrn;
+
+  /** @type {number} */
+  this.autoRefreshInterval =
+      grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watch('huntUrn', this.onHuntUrnChange.bind(this));
 };

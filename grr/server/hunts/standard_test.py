@@ -154,6 +154,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
                  flow_runner_args=None,
                  flow_args=None,
                  client_rule_set=None,
+                 original_object=None,
                  token=None,
                  **kwargs):
     # Only initialize default flow_args value if default flow_runner_args value
@@ -180,6 +181,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         flow_args=flow_args,
         client_rule_set=client_rule_set,
         client_rate=0,
+        original_object=original_object,
         token=token or self.token,
         **kwargs)
 

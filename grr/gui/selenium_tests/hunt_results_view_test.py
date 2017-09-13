@@ -8,8 +8,10 @@ import unittest
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import gui_test_lib
 from grr.gui.api_plugins import hunt as api_hunt
-
 from grr.lib import flags
+from grr.lib import rdfvalue
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.server import data_store
 
 
 class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
@@ -37,6 +39,39 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("link=aff4:/C.0000000000000001/fs/os/c/bin/bash")
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a:contains('Browse Virtual Filesystem')")
+
+  def testResultsViewGetsAutoRefreshed(self):
+    client_id = self.SetupClients(1)[0]
+    h = self.CreateSampleHunt()
+
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      h.ResultCollection().Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("foo-result"), source=client_id),
+          mutation_pool=pool)
+
+    self.Open("/")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    self.Click("css=a[grrtarget=hunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection td:contains('foo-result')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-results-collection td:contains('bar-result')")
+
+    with data_store.DB.GetMutationPool(token=self.token) as pool:
+      h.ResultCollection().Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("bar-result"), source=client_id),
+          mutation_pool=pool)
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
     hunt_urn = self.CreateGenericHuntWithCollection([])

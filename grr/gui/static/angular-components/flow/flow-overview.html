@@ -6,6 +6,14 @@
 
   <dl class="dl-horizontal dl-flow">
     <grr-force-refresh refresh-trigger="controller.flow">
+
+      <div ng-if="::controller.flow.value.internal_error">
+        <br>
+        <dt class="alert-danger danger">Error while Opening</dt>
+        <dd>{$ ::controller.flow.value.internal_error.value $}</dd>
+        <br><br>
+      </div>
+
       <dt>Name</dt>
       <dd><grr-semantic-value value="::controller.flow.value.name" /></dd>
 

@@ -69,8 +69,11 @@ CopyFlowFormController.prototype.proceed = function() {
     flow: {
       runner_args: strippedFlow['runner_args'],
       args: strippedFlow['args']
-    }
-
+    },
+    original_flow: {
+      flow_id: this.scope_['flowId'],
+      client_id: this.scope_['clientId']
+    },
   }).then(function success(response) {
     this.scope_['onResolve']({'flow': response['data']});
     return 'Flow was successfully launched!';

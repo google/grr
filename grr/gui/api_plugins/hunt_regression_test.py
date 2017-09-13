@@ -13,6 +13,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import output_plugin
@@ -106,6 +107,59 @@ class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
   def Run(self):
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
+        hunt_urn = hunt_obj.urn
+
+        hunt_stats = hunt_obj.context.usage_stats
+        hunt_stats.user_cpu_stats.sum = 5000
+        hunt_stats.network_bytes_sent_stats.sum = 1000000
+
+    self.Check(
+        "GetHunt",
+        args=hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_urn.Basename()),
+        replace={hunt_urn.Basename(): "H:123456"})
+
+
+class ApiGetHuntHandlerHuntCopyRegressionTest(
+    api_regression_test_lib.ApiRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  api_method = "GetHunt"
+  handler = hunt_plugin.ApiGetHuntHandler
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      ref = rdf_hunts.FlowLikeObjectReference(
+          object_type="HUNT_REFERENCE",
+          hunt_reference=rdf_hunts.HuntReference(hunt_id="H:332211"))
+      with self.CreateHunt(
+          description="the hunt", original_object=ref) as hunt_obj:
+        hunt_urn = hunt_obj.urn
+
+        hunt_stats = hunt_obj.context.usage_stats
+        hunt_stats.user_cpu_stats.sum = 5000
+        hunt_stats.network_bytes_sent_stats.sum = 1000000
+
+    self.Check(
+        "GetHunt",
+        args=hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_urn.Basename()),
+        replace={hunt_urn.Basename(): "H:123456"})
+
+
+class ApiGetHuntHandlerFlowCopyRegressionTest(
+    api_regression_test_lib.ApiRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  api_method = "GetHunt"
+  handler = hunt_plugin.ApiGetHuntHandler
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      ref = rdf_hunts.FlowLikeObjectReference(
+          object_type="FLOW_REFERENCE",
+          flow_reference=rdf_flows.FlowReference(
+              flow_id="F:332211", client_id="C.1111111111111111"))
+      with self.CreateHunt(
+          description="the hunt", original_object=ref) as hunt_obj:
         hunt_urn = hunt_obj.urn
 
         hunt_stats = hunt_obj.context.usage_stats

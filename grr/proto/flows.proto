@@ -167,8 +167,37 @@ message GUISettings {
     }, default=REMOTE];
 }
 
+message HuntReference {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "The hunt id."
+    }];
+}
 
-// Next field: 22
+message FlowReference {
+  optional string flow_id = 1 [(sem_type) = {
+      description: "The session id of the referenced flow."
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id the referenced flow ran on."
+    }];
+}
+
+message FlowLikeObjectReference {
+  option (semantic) = {
+    union_field: "object_type"
+  };
+  enum ObjectType {
+    UNKNOWN = 0;
+    FLOW_REFERENCE = 1;
+    HUNT_REFERENCE = 2;
+  };
+  optional ObjectType object_type = 1;
+  optional FlowReference flow_reference = 2;
+  optional HuntReference hunt_reference = 3;
+}
+
+// Next field: 23
 message FlowRunnerArgs {
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
@@ -266,7 +295,7 @@ message FlowRunnerArgs {
 
   optional bool write_intermediate_results = 18 [(sem_type) = {
       description: "If true, all child flow results received with sendreply"
-                   " will be written to the the flow's default collection.",
+                   " will be written to the flow's default collection.",
       label: ADVANCED
     }, default=false];
 
@@ -284,9 +313,15 @@ message FlowRunnerArgs {
       friendly_name: "Output Plugins",
       label: HIDDEN,
     }];
+
+  optional FlowReference original_flow = 22 [(sem_type) = {
+      description: "If this flow is a copy of another flow, we store "
+      "a reference to the original here.",
+      label: HIDDEN
+    }];
 }
 
-// Next field ID: 26
+// Next field ID: 27
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
       description: "The name of the class implementing the hunt to run.",
@@ -397,6 +432,12 @@ message HuntRunnerArgs {
       "hunt.",
       label: ADVANCED,
       friendly_name: "Per Client Network Limit (bytes)",
+    }];
+
+  optional FlowLikeObjectReference original_object = 26 [(sem_type) = {
+      description: "If this hunt is a copy of another hunt or flow, we store "
+      "a reference to the original here.",
+      label: HIDDEN
     }];
 };
 

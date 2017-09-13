@@ -188,8 +188,15 @@ class HashFileStore(FileStore):
   }
 
   def AddURN(self, sha256hash, file_urn):
-    index_urn = self.PATH.Add("generic/sha256").Add(sha256hash)
-    self._AddToIndex(index_urn, file_urn)
+    pass
+    # Writing these indexes are causing production problems, and
+    # they aren't currently used by anything.
+    #
+    # TODO(user): Implement a way to store this data without
+    # melting bigtable or remove it entirely.
+    #
+    # index_urn = self.PATH.Add("generic/sha256").Add(sha256hash)
+    # self._AddToIndex(index_urn, file_urn)
 
   def _AddToIndex(self, index_urn, file_urn):
     predicate = ("index:target:%s" % file_urn).lower()

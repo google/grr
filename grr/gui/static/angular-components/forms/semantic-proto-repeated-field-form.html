@@ -1,4 +1,4 @@
-<div ng-if="!controller.hasCustomTemplate">
+<div ng-if="controller.hasCustomTemplate === false">
   <div class="form-group">
     <label class="control-label" title="{$ field.doc $}">
       {$ field.friendly_name $}
@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<div ng-show="controller.hasCustomTemplate">
+<div ng-show="controller.hasCustomTemplate === true && !controller.hideCustomTemplateLabel">
   <div class="form-group">
     <label class="control-label" title="{$ field.doc $}">
       {$ field.friendly_name $}
@@ -40,7 +40,14 @@
 
   <div class="controls">
     <div class="form-group" name="custom-template">
-      <!-- custom template will be inserted here if it's available-->
+      <!-- custom template will be inserted here if it's available -->
     </div>
+  </div>
+</div>
+
+<div ng-show="controller.hasCustomTemplate === true && controller.hideCustomTemplateLabel">
+  <div class="form-group" name="custom-template-without-label">
+    <!-- custom template occupying the full form row (without a standard form label)
+         will be inserted here if it's available -->
   </div>
 </div>

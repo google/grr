@@ -11,7 +11,7 @@ var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
 
 
 /** @const {number} */
-grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_S = 15;
+grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
 
 /**
  * Controller for FlowOverviewDirective.
@@ -59,8 +59,7 @@ FlowOverviewController.prototype.startPolling = function() {
   if (angular.isDefined(this.scope_['apiBasePath']) &&
       angular.isDefined(this.scope_['flowId'])) {
     var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
-    var interval = grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_S
-        * 1000;
+    var interval = grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS;
 
     // It's important to assign the result of the poll() call, not the
     // result of the poll().then() call, since we need the original

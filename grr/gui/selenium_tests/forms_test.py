@@ -72,6 +72,28 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
         ".form-group:has(label:contains('Enum value with default')) select "
         "option:selected(label='OPTION_2 (default)')")
 
+  def testFileFinderArgsPathsDocHintIsDisplayed(self):
+    self.Open("/#/hunts")
+
+    self.Click("css=button[name=NewHunt]")
+
+    self.Click("css=#_Filesystem > i.jstree-icon")
+    self.Click("link=File Finder")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=label:contains(Paths) a[href*='help/user_manual']")
+
+  def testFileFinderArgsHasOnePathAddedByDefault(self):
+    self.Open("/#/hunts")
+
+    self.Click("css=button[name=NewHunt]")
+
+    self.Click("css=#_Filesystem > i.jstree-icon")
+    self.Click("link=File Finder")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=input[placeholder*='Type %% for autocompletion']")
+
 
 def main(argv):
   del argv  # Unused.

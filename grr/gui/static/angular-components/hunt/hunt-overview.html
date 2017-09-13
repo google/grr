@@ -7,6 +7,14 @@
   <dl class="dl-horizontal dl-hunt">
 
     <grr-force-refresh refresh-trigger="controller.hunt">
+
+      <div ng-if="::controller.hunt.value.internal_error">
+        <br>
+        <dt class="alert-danger danger">Error while Opening</dt>
+        <dd>{$ ::controller.hunt.value.internal_error.value $}</dd>
+        <br><br>
+      </div>
+
       <dt>Name</dt>
       <dd><grr-semantic-value value="::controller.hunt.value.name" /></dd>
 

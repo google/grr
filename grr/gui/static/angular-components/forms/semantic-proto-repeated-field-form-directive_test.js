@@ -23,13 +23,16 @@ describe('semantic proto repeated field form directive', function() {
     $q = $injector.get('$q');
   }));
 
-  var renderTestTemplate = function(value, descriptor, field) {
+  var renderTestTemplate = function(value, descriptor, field,
+                                    noCustomTemplate) {
     $rootScope.value = value;
     $rootScope.descriptor = descriptor;
     $rootScope.field = field;
+    $rootScope.noCustomTemplate = noCustomTemplate;
 
     var template = '<grr-form-proto-repeated-field value="value" ' +
-        'descriptor="descriptor" field="field" />';
+        'descriptor="descriptor" field="field" ' +
+        'no-custom-template="noCustomTemplate" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -122,8 +125,6 @@ describe('semantic proto repeated field form directive', function() {
 
   describe('with custom directive', function() {
     beforeEach(inject(function($injector) {
-      // Always return false here - i.e. no custom directives are registered for
-      // repeated fields.
       var grrSemanticRepeatedFormDirectivesRegistryService = $injector.get(
           'grrSemanticRepeatedFormDirectivesRegistryService');
 
@@ -157,5 +158,46 @@ describe('semantic proto repeated field form directive', function() {
       expect(element.find('foo-bar').length).toBe(1);
     });
 
+    it('ignores custom directive if no-custom-template binding is true', function() {
+      var element = renderTestTemplate(
+          [{type: 'PrimitiveType', value: 42},
+           {type: 'PrimitiveType', value: 43}],
+          primitiveValueDescriptor, {}, true);
+
+      // No custom directive should be present.
+      expect(element.find('foo-bar').length).toBe(0);
+
+      // Default rendering should be used instead.
+      expect(element.find('grr-form-value').length).toBe(2);
+    });
+  });
+
+  describe('with custom directive with "hideCustomTemplateLabel" set', function() {
+    beforeEach(inject(function($injector) {
+      var grrSemanticRepeatedFormDirectivesRegistryService = $injector.get(
+          'grrSemanticRepeatedFormDirectivesRegistryService');
+
+      spyOn(grrSemanticRepeatedFormDirectivesRegistryService,
+            'findDirectiveForType')
+                .and.callFake(
+                    function(type) {
+                      var q = $q.defer();
+                      q.resolve({
+                        directive_name: 'fooBar',
+                        hideCustomTemplateLabel: true
+                      });
+
+                      return q.promise;
+                    });
+    }));
+
+    it('does not render custom field\'s label', function() {
+      var element = renderTestTemplate([], primitiveValueDescriptor, {});
+
+      expect(element.find('label[title="Field documentation"]').length)
+          .toBe(0);
+      expect(element.text()).not.toContain('Field friendly name');
+      expect(element.find('foo-bar').length).toBe(1);
+    });
   });
 });
