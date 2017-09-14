@@ -10794,6 +10794,11 @@
             "age": 42000000,
             "type": "ApiFile",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "is_directory": {
                 "age": 0,
                 "type": "RDFBool",
@@ -10830,6 +10835,11 @@
             "age": 42000000,
             "type": "ApiFile",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "is_directory": {
                 "age": 0,
                 "type": "RDFBool",
@@ -10868,6 +10878,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "age": 42000000,
             "is_directory": false,
             "last_collected": 42000000,
             "last_collected_size": 11,
@@ -10876,6 +10887,7 @@
             "type": "VFSMemoryFile"
           },
           {
+            "age": 42000000,
             "is_directory": false,
             "last_collected": 42000000,
             "last_collected_size": 11,
@@ -10896,6 +10908,11 @@
             "age": 42000000,
             "type": "ApiFile",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "is_directory": {
                 "age": 0,
                 "type": "RDFBool",
@@ -10932,6 +10949,11 @@
             "age": 42000000,
             "type": "ApiFile",
             "value": {
+              "age": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
               "is_directory": {
                 "age": 0,
                 "type": "RDFBool",
@@ -10970,6 +10992,7 @@
       "type_stripped_response": {
         "items": [
           {
+            "age": 42000000,
             "is_directory": false,
             "last_collected": 42000000,
             "last_collected_size": 11,
@@ -10978,6 +11001,7 @@
             "type": "VFSMemoryFile"
           },
           {
+            "age": 42000000,
             "is_directory": false,
             "last_collected": 42000000,
             "last_collected_size": 11,

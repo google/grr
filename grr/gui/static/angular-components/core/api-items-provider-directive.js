@@ -18,11 +18,11 @@ goog.scope(function() {
  * @param {!angular.Attributes} $attrs
  * @param {!angular.$parse} $parse
  * @param {!grrUi.core.apiService.ApiService} grrApiService
- *
+ * @param {!angular.$log} $log
  * @ngInject
  */
 grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
-    $scope, $attrs, $parse, grrApiService) {
+    $scope, $attrs, $parse, grrApiService, $log) {
 
   // Injected dependencies.
 
@@ -31,6 +31,9 @@ grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!angular.$log} */
+  this.log_ = $log;
 
   // Internal state.
 
@@ -174,10 +177,18 @@ ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
   if (angular.isDefined(result.items) &&
       angular.isDefined(this.transformItems)) {
 
-    result.items = this.transformItems(this.scope_,
-                                       {'items': result.items});
+    try {
+      result.items = this.transformItems(this.scope_,
+                                         {'items': result.items});
+    } catch (e) {
+      this.log_.error('transformItems (on url ' + this.url +
+                      ') failed: ' + e);
+      throw e;
+    }
     if (angular.isUndefined(result.items)) {
-      throw new Error('transform-items function returned undefined');
+      var errorStr = 'transform-items function returned undefined';
+      this.log_.error(errorStr);
+      throw new Error(errorStr);
     }
   }
 

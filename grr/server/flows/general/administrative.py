@@ -97,10 +97,13 @@ class GetClientStatsProcessResponseMixin(object):
     """Actually processes the contents of the response."""
     urn = client_id.Add("stats")
 
+    downsampled = response.DownSample()
     with aff4.FACTORY.Create(
         urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.
-      stats_fd.AddAttribute(stats_fd.Schema.STATS, response.DownSample())
+      stats_fd.AddAttribute(stats_fd.Schema.STATS, downsampled)
+
+    return downsampled
 
 
 class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
@@ -121,7 +124,8 @@ class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
       return
 
     for response in responses:
-      self.ProcessResponse(self.client_id, response)
+      downsampled = self.ProcessResponse(self.client_id, response)
+      self.SendReply(downsampled)
 
 
 class GetClientStatsAuto(flow.WellKnownFlow,

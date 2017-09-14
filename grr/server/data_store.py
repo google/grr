@@ -473,6 +473,10 @@ class MutationPool(object):
       self.MultiSet(
           subject, new_attributes, to_delete=delete_attributes, timestamp=0)
 
+  def FileHashIndexAddItem(self, subject, file_path):
+    predicate = (DataStore.FILE_HASH_TEMPLATE % file_path).lower()
+    self.MultiSet(subject, {predicate: file_path})
+
 
 class DataStore(object):
   """Abstract database access."""
@@ -500,6 +504,9 @@ class DataStore(object):
   LABEL_ATTRIBUTE_PREFIX = "index:label_"
   LABEL_ATTRIBUTE_TEMPLATE = "index:label_%s"
   LABEL_PLACEHOLDER_VALUE = "X"
+
+  FILE_HASH_PREFIX = "index:target:"
+  FILE_HASH_TEMPLATE = "index:target:%s"
 
   mutation_pool_cls = MutationPool
 
@@ -1525,6 +1532,43 @@ class DataStore(object):
         subject, self.LABEL_ATTRIBUTE_PREFIX, token=token):
       result.append(attribute[len(self.LABEL_ATTRIBUTE_PREFIX):])
     return sorted(result)
+
+  def FileHashIndexQuery(self, subject, target_prefix, limit=100, token=None):
+    """Search the index for matches starting with target_prefix.
+
+    Args:
+       subject: The index to use. Should be a urn that points to the sha256
+                namespace.
+       target_prefix: The prefix to match against the index.
+       limit: Either a tuple of (start, limit) or a maximum number of results to
+              return.
+       token: A DB token.
+
+    Yields:
+      URNs of files which have the same data as this file - as read from the
+      index.
+    """
+    if isinstance(limit, (tuple, list)):
+      start, length = limit  # pylint: disable=unpacking-non-sequence
+    else:
+      start = 0
+      length = limit
+
+    prefix = (DataStore.FILE_HASH_TEMPLATE % target_prefix).lower()
+    results = self.ResolvePrefix(subject, prefix, limit=limit, token=token)
+
+    for i, (_, hit, _) in enumerate(results):
+      if i < start:
+        continue
+      if i >= start + length:
+        break
+      yield rdfvalue.RDFURN(hit)
+
+  def FileHashIndexQueryMultiple(self, locations, timestamp=None, token=None):
+    results = self.MultiResolvePrefix(
+        locations, DataStore.FILE_HASH_PREFIX, timestamp=timestamp, token=token)
+    for hash_obj, matches in results:
+      yield (hash_obj, [file_urn for _, file_urn, _ in matches])
 
 
 class DBSubjectLock(object):

@@ -9,6 +9,7 @@ from google.protobuf import symbol_database
 
 from grr.client.components.rekall_support import rekall_pb2
 
+from grr.proto import checks_pb2
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
@@ -182,6 +183,7 @@ def RegisterProtoDescriptors(db, *additional_descriptors):
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
 
+  db.RegisterFileDescriptor(checks_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)

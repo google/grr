@@ -10,6 +10,14 @@
         <span class="Description">
           {$ controller.currentPage.title $}
         </span>
+        <span ng-if="controller.currentPage.helpLink">
+          <a ng-href="{$ controller.currentPage.helpLink $}" target="_blank">
+            <i class="glyphicon glyphicon-question-sign"></i>
+          </a>
+        </span>
+        <span class="page-indicator">
+          Step {$ controller.currentPageIndex + 1 $} out of {$ controller.pages.length $}
+        </span>
       </h3>
     </div>
 
@@ -17,8 +25,8 @@
   </div>
 
   <div class="modal-footer navbar-inner">
-    <ul class="nav nav pull-right">
-      <button ng-if="!controller.isFirstPage && !controller.currentPage.noBackButton"
+    <ul class="nav pull-right">
+      <button ng-if="controller.currentPageIndex > 0 && !controller.currentPage.noBackButton"
               class="btn btn-default Back"
               ng-click="controller.back()">
         {$ controller.currentPage.prevButtonLabel $}

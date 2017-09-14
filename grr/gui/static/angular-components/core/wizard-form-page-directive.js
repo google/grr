@@ -28,6 +28,9 @@ grrUi.core.wizardFormPageDirective.WizardFormPageController = function(
   this.title;
 
   /** @type {string} */
+  this.helpLink;
+
+  /** @type {string} */
   this.prevButtonLabel = 'Back';
 
   /** @type {string} */
@@ -65,6 +68,10 @@ grrUi.core.wizardFormPageDirective.WizardFormPageController = function(
       this.isValid = newValue;
     }
   }.bind(this));
+
+  this.scope_.$watch('helpLink', function(newValue) {
+    this.helpLink = newValue;
+  }.bind(this));
 };
 var WizardFormPageController =
     grrUi.core.wizardFormPageDirective.WizardFormPageController;
@@ -90,6 +97,7 @@ grrUi.core.wizardFormPageDirective.WizardFormPageDirective = function() {
   return {
     scope: {
       title: '@',
+      helpLink: '@',
       prevButtonLabel: '@',
       nextButtonLabel: '@',
       noBackButton: '=?',

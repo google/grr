@@ -199,9 +199,8 @@ class HashFileStore(FileStore):
     # self._AddToIndex(index_urn, file_urn)
 
   def _AddToIndex(self, index_urn, file_urn):
-    predicate = ("index:target:%s" % file_urn).lower()
-    data_store.DB.MultiSet(
-        index_urn, {predicate: file_urn}, token=self.token, replace=True)
+    with data_store.MutationPool(token=self.token) as mutation_pool:
+      mutation_pool.FileHashIndexAddItem(index_urn, file_urn)
 
   @classmethod
   def Query(cls, index_urn, target_prefix="", limit=100, token=None):
@@ -216,31 +215,12 @@ class HashFileStore(FileStore):
          return.
        token: A DB token.
 
-    Yields:
+    Returns:
       URNs of files which have the same data as this file - as read from the
       index.
     """
-    # Make the full prefix.
-    prefix = ["index:target:%s" % target_prefix.lower()]
-    if isinstance(limit, (tuple, list)):
-      start, length = limit  # pylint: disable=unpacking-non-sequence
-
-    else:
-      start = 0
-      length = limit
-
-    # Get all the unique hits
-    for i, (_, hit, _) in enumerate(
-        data_store.DB.ResolvePrefix(
-            index_urn, prefix, token=token, limit=limit)):
-
-      if i < start:
-        continue
-
-      if i >= start + length:
-        break
-
-      yield rdfvalue.RDFURN(hit)
+    return data_store.DB.FileHashIndexQuery(
+        index_urn, target_prefix, limit=limit, token=token)
 
   @classmethod
   def GetReferencesMD5(cls, md5_hash, target_prefix="", limit=100, token=None):
@@ -522,13 +502,12 @@ class HashFileStore(FileStore):
     index_locations = {}
     for o in index_objects:
       index_locations.setdefault(o.urn, []).append(o.symlink_urn)
-    for hash_obj, client_files in data_store.DB.MultiResolvePrefix(
-        index_locations, "index:target:", token=token, timestamp=timestamp):
+    for hash_obj, client_files in data_store.DB.FileHashIndexQueryMultiple(
+        index_locations, token=token, timestamp=timestamp):
       symlinks = index_locations[hash_obj]
       for original_hash in symlinks:
         hash_obj = original_hash or hash_obj
-        yield (FileStoreHash(hash_obj),
-               [file_urn for _, file_urn, _ in client_files])
+        yield (FileStoreHash(hash_obj), client_files)
 
 
 class NSRLFile(FileStoreImage):

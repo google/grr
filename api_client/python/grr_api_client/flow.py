@@ -19,6 +19,16 @@ class FlowResult(object):
     return utils.UnpackAny(self.data.payload)
 
 
+class FlowLog(object):
+  """Wrapper class for flow logs."""
+
+  def __init__(self, data=None):
+    super(FlowLog, self).__init__()
+
+    self.data = data
+    self.log_message = self.data.log_message
+
+
 class FlowBase(object):
   """Base class for FlowRef and Flow."""
 
@@ -48,6 +58,12 @@ class FlowBase(object):
         client_id=self.client_id, flow_id=self.flow_id)
     items = self._context.SendIteratorRequest("ListFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
+
+  def ListLogs(self):
+    args = flow_pb2.ApiListFlowLogsArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+    items = self._context.SendIteratorRequest("ListFlowLogs", args)
+    return utils.MapItemsIterator(lambda data: FlowLog(data=data), items)
 
   def GetFilesArchive(self):
     args = flow_pb2.ApiGetFlowFilesArchiveArgs(

@@ -58,15 +58,26 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsChecked, "css=label:contains('Fetch Binaries') "
                    "~ * input[type=checkbox]")
 
-    # Go to next page and check that we did not copy the output plugins.
+    # Go to output plugins page and check that we did not copy the output
+    # plugins.
     self.Click("css=button:contains('Next')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('How to process results')")
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-output-plugin-descriptor-form")
 
     # Nothing else to check, so finish the hunt.
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Where to run?')")
     self.Click("css=button:contains('Next')")
-    self.Click("css=button:contains('Next')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Review')")
     self.Click("css=button:contains('Create Hunt')")
     self.Click("css=button:contains('Done')")
 

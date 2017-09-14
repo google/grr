@@ -11,11 +11,10 @@ import traceback
 import unittest
 
 from grr.gui import gui_test_lib
-from grr.gui.api_plugins import hunt as api_hunt
-
 from grr.lib import flags
 from grr.lib import utils
 from grr.server import aff4
+from grr.server import data_store
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -133,29 +132,26 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt = self.CreateSampleHunt()
     broken_hunt = self.CreateSampleHunt()
 
-    with broken_hunt:
-      broken_hunt.runner_args.original_object.object_type = "HUNT_REFERENCE"
+    # Break the hunt.
+    data_store.DB.DeleteAttributes(
+        broken_hunt.urn,
+        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS],
+        token=self.token)
+    data_store.DB.Flush()
 
-    def RaiseError():
-      raise ValueError("Broken on purpose for testing.")
+    # Open up and click on View Hunts then the first Hunt.
+    self.Open("/#/hunts")
 
-    with utils.Stubber(api_hunt, "ApiFlowLikeObjectReference", RaiseError):
-      # Open up and click on View Hunts then the first Hunt.
-      self.Open("/")
-      self.WaitUntil(self.IsElementPresent, "client_query")
-      self.Click("css=a[grrtarget=hunts]")
+    hunt_id = hunt.urn.Path().strip("/")
+    broken_hunt_id = broken_hunt.urn.Path().strip("/")
 
-      hunt_id = hunt.urn.Path().strip("/")
-      broken_hunt_id = broken_hunt.urn.Path().strip("/")
+    # Both hunts are shown even though one throws an error.
+    self.WaitUntil(self.IsTextPresent, hunt_id)
+    self.WaitUntil(self.IsTextPresent, broken_hunt_id)
 
-      # Both hunts are shown even though one throws an error.
-      self.WaitUntil(self.IsTextPresent, hunt_id)
-      self.WaitUntil(self.IsTextPresent, broken_hunt_id)
-
-      self.Click("css=td:contains('%s')" % broken_hunt_id)
-      self.WaitUntil(self.IsTextPresent, "Error while Opening")
-      self.WaitUntil(self.IsTextPresent,
-                     "Error while opening hunt: Broken on purpose for testing.")
+    self.Click("css=td:contains('%s')" % broken_hunt_id)
+    self.WaitUntil(self.IsTextPresent, "Error while Opening")
+    self.WaitUntil(self.IsTextPresent, "Error while opening hunt:")
 
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""

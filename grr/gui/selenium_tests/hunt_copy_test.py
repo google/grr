@@ -65,6 +65,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("TSK", self.GetText, "css=grr-new-hunt-wizard-form "
                         "label:contains('Pathtype') ~ * select option:selected")
 
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
+
     self.WaitUntilEqual("model hunt (copy)", self.GetValue,
                         "css=grr-new-hunt-wizard-form "
                         "label:contains('Description') ~ * input:text")
@@ -74,7 +79,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
 
     # Check that output plugins list is prefilled.
     self.WaitUntilEqual("DummyOutputPlugin", self.GetText,
@@ -128,9 +133,14 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
     # Wait until dialog appears and then click through.
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
+
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -185,6 +195,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
     self.Select("css=grr-new-hunt-wizard-form label:contains('Pathtype') "
                 "~ * select", "OS")
 
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
+
     self.Type("css=grr-new-hunt-wizard-form label:contains('Description') "
               "~ * input:text", "my personal copy")
 
@@ -193,7 +208,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
 
     # Change output plugin and add another one.
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
@@ -303,9 +318,13 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
                         "css=grr-new-hunt-wizard-form "
                         "label:contains('Literal') ~ * input:text")
 
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
@@ -358,9 +377,13 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
 
     # Wait until dialog appears.
     self.WaitUntil(self.IsTextPresent, "What to run?")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
@@ -383,7 +406,12 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-wizard-form:contains('Hunt parameters')")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "How to process results")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")

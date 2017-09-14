@@ -129,7 +129,7 @@ class ClientBase(object):
 
     request.flow.name = name
     if runner_args:
-      request.flow.runner_args = runner_args
+      request.flow.runner_args.CopyFrom(runner_args)
 
     if args:
       request.flow.args.value = args.SerializeToString()

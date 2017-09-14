@@ -221,11 +221,23 @@ FlowsListController.prototype.transformItems = function(items) {
       toggleFlowExpansion(flattenedItems, index);
     };
 
+    // If the flow couldn't be parsed by the AdminUI, it won't have
+    // proper "state" and "last_active_at" attributes. Getting
+    // these attributes conditionally.
+    // NOTE: It's only safe to assume that the "flow_id" attribute
+    // is present.
+    var state = 'BROKEN';
+    if (angular.isDefined(item['value']['state'])) {
+      state = item['value']['state']['value'];
+    }
+
+    var last_active_at = 0;
+    if (angular.isDefined(item['value']['last_active_at'])) {
+      last_active_at = item['value']['last_active_at']['value'];
+    }
+
     item[TABLE_KEY_NAME] = item['value']['flow_id']['value'];
-    item[TABLE_ROW_HASH] = [
-      item['value']['state']['value'],
-      item['value']['last_active_at']['value'],
-    ];
+    item[TABLE_ROW_HASH] = [state, last_active_at];
   }.bind(this));
 
   return flattenedItems;

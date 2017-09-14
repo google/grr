@@ -7,11 +7,9 @@ import os
 
 import unittest
 from grr.gui import gui_test_lib
-from grr.gui.api_plugins import flow as api_flow
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -304,29 +302,28 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         gui_test_lib.FlowWithOneHashEntryResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token,
-        original_flow=rdf_flows.FlowReference(flow_id="F:123456")):
+        token=self.token):
       broken_flow_urn = s
 
-    def RaiseError():
-      raise ValueError("Broken on purpose for testing.")
+    # Break the flow.
+    data_store.DB.DeleteAttributes(
+        broken_flow_urn, [flow.GRRFlow.SchemaCls.FLOW_CONTEXT],
+        token=self.token)
+    data_store.DB.Flush()
 
     flow_id = flow_urn.Basename()
     broken_flow_id = broken_flow_urn.Basename()
 
-    with utils.Stubber(api_flow, "ApiFlowReference", RaiseError):
-      self.Open("/#c=C.0000000000000001")
-      self.Click("css=a[grrtarget='client.flows']")
+    self.Open("/#/clients/C.0000000000000001/flows")
 
-      # Both flows are shown in the list even though one is broken.
-      self.WaitUntil(self.IsTextPresent, flow_id)
-      self.WaitUntil(self.IsTextPresent, broken_flow_id)
+    # Both flows are shown in the list even though one is broken.
+    self.WaitUntil(self.IsTextPresent, flow_id)
+    self.WaitUntil(self.IsTextPresent, broken_flow_id)
 
-      # The broken flow shows the error message.
-      self.Click("css=td:contains('%s')" % broken_flow_id)
-      self.WaitUntil(self.IsTextPresent, "Error while Opening")
-      self.WaitUntil(self.IsTextPresent,
-                     "Error while opening flow: Broken on purpose for testing.")
+    # The broken flow shows the error message.
+    self.Click("css=td:contains('%s')" % broken_flow_id)
+    self.WaitUntil(self.IsTextPresent, "Error while Opening")
+    self.WaitUntil(self.IsTextPresent, "Error while opening flow:")
 
   def testApiExampleIsShown(self):
     flow_urn = flow.GRRFlow.StartFlow(

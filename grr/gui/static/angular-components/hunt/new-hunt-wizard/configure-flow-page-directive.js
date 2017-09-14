@@ -47,8 +47,7 @@ grrUi.hunt.newHuntWizard.configureFlowPageDirective
   return {
     scope: {
       flowName: '=',
-      flowArguments: '=',
-      huntRunnerArgs: '='
+      flowArguments: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/new-hunt-wizard/' +

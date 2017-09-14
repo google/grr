@@ -235,6 +235,9 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     if type_obj is not None:
       self.type = type_obj
       self.age = type_obj.age
+      # Without self.Set self.age would reference "age" attribute instead of a
+      # protobuf field.
+      self.Set("age", type_obj.age)
 
     if with_details:
       self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(file_obj)

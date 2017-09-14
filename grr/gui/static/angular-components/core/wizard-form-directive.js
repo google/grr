@@ -22,8 +22,8 @@ grrUi.core.wizardFormDirective.WizardFormController = function($scope) {
   /** @type {Object} */
   this.currentPage;
 
-  /** @type {boolean} */
-  this.isFirstPage;
+  /** @type {number} */
+  this.currentPageIndex;
 
   this.scope_.$watchCollection('controller.pages',
                                this.onPagesOrCurrentPageChange_.bind(this));
@@ -44,7 +44,7 @@ var WizardFormController = grrUi.core.wizardFormDirective.WizardFormController;
  * @private
  */
 WizardFormController.prototype.onPagesOrCurrentPageChange_ = function() {
-  this.isFirstPage = this.pages.indexOf(this.currentPage) == 0;
+  this.currentPageIndex = this.pages.indexOf(this.currentPage);
 };
 
 /**

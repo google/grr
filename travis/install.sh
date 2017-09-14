@@ -30,6 +30,9 @@ if [[ -z "${PROTOC}" && "${PATH}" != *'protoc'* && -f "${default_protoc_path}" ]
   export PROTOC="${default_protoc_path}"
 fi
 
+# Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
+unset _JAVA_OPTIONS
+
 # Install grr packages as links pointing to code in the
 # checked-out repository.
 # Note that because of dependencies, order here is important.

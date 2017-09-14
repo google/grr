@@ -404,6 +404,7 @@ InfiniteTableController.prototype.onAutoRefreshDataFetched_ = function(newItems)
  */
 InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
   this.loadingInProgress_ = true;
+
   if (!this.filterValue_) {
     this.itemsProvider.fetchItems(
         this.currentPage_ * this.pageSize_,

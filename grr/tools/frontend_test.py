@@ -65,7 +65,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       cls.address_family = socket.AF_INET6
       cls.base_url = "http://[%s]:%d/" % (ip, port)
     else:
-      cls.address_family = socket.AF_INET4
+      cls.address_family = socket.AF_INET
       cls.base_url = "http://%s:%d/" % (ip, port)
 
     cls.httpd_thread = threading.Thread(target=cls.httpd.serve_forever)
