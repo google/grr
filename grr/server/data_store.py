@@ -465,7 +465,7 @@ class MutationPool(object):
     new_attributes = {}
     for label in new_labels:
       new_attributes[DataStore.LABEL_ATTRIBUTE_TEMPLATE % label] = (
-          DataStore.LABEL_PLACEHOLDER_VALUE)
+          DataStore.EMPTY_DATA_PLACEHOLDER)
     delete_attributes = [
         DataStore.LABEL_ATTRIBUTE_TEMPLATE % label for label in to_delete
     ]
@@ -476,6 +476,20 @@ class MutationPool(object):
   def FileHashIndexAddItem(self, subject, file_path):
     predicate = (DataStore.FILE_HASH_TEMPLATE % file_path).lower()
     self.MultiSet(subject, {predicate: file_path})
+
+  def AFF4AddChild(self, subject, child, extra_attributes=None):
+    attributes = {
+        DataStore.AFF4_INDEX_DIR_TEMPLATE % utils.SmartStr(child): [
+            DataStore.EMPTY_DATA_PLACEHOLDER
+        ]
+    }
+    if extra_attributes:
+      attributes.update(extra_attributes)
+    self.MultiSet(subject, attributes)
+
+  def AFF4DeleteChild(self, subject, child):
+    self.DeleteAttributes(
+        subject, [DataStore.AFF4_INDEX_DIR_TEMPLATE % utils.SmartStr(child)])
 
 
 class DataStore(object):
@@ -503,10 +517,14 @@ class DataStore(object):
 
   LABEL_ATTRIBUTE_PREFIX = "index:label_"
   LABEL_ATTRIBUTE_TEMPLATE = "index:label_%s"
-  LABEL_PLACEHOLDER_VALUE = "X"
+
+  EMPTY_DATA_PLACEHOLDER = "X"
 
   FILE_HASH_PREFIX = "index:target:"
   FILE_HASH_TEMPLATE = "index:target:%s"
+
+  AFF4_INDEX_DIR_PREFIX = "index:dir/"
+  AFF4_INDEX_DIR_TEMPLATE = "index:dir/%s"
 
   mutation_pool_cls = MutationPool
 
@@ -1569,6 +1587,34 @@ class DataStore(object):
         locations, DataStore.FILE_HASH_PREFIX, timestamp=timestamp, token=token)
     for hash_obj, matches in results:
       yield (hash_obj, [file_urn for _, file_urn, _ in matches])
+
+  def AFF4FetchChildren(self, subject, timestamp=None, limit=None, token=None):
+    results = self.ResolvePrefix(
+        subject,
+        DataStore.AFF4_INDEX_DIR_PREFIX,
+        timestamp=timestamp,
+        limit=limit,
+        token=token)
+    for predicate, _, timestamp in results:
+      yield (predicate[len(DataStore.AFF4_INDEX_DIR_PREFIX):], timestamp)
+
+  def AFF4MultiFetchChildren(self,
+                             subjects,
+                             timestamp=None,
+                             limit=None,
+                             token=None):
+    results = self.MultiResolvePrefix(
+        subjects,
+        DataStore.AFF4_INDEX_DIR_PREFIX,
+        timestamp=timestamp,
+        limit=limit,
+        token=token)
+    for subject, matches in results:
+      children = []
+      for predicate, _, timestamp in matches:
+        children.append((predicate[len(DataStore.AFF4_INDEX_DIR_PREFIX):],
+                         timestamp))
+      yield (subject, children)
 
 
 class DBSubjectLock(object):

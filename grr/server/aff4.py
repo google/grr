@@ -379,20 +379,20 @@ class Factory(object):
           self.intermediate_cache.Get(urn)
           return
         except KeyError:
-          attributes = {
-              # This updates the directory index.
-              "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
-          }
+          extra_attributes = None
           # This is a performance optimization. On the root there is no point
           # setting the last access time since it gets accessed all the time.
           # TODO(user): Can we get rid of the index in the root node entirely?
           # It's too big to query anyways...
           if dirname != u"/":
-            attributes[AFF4Object.SchemaCls.LAST] = [
-                rdfvalue.RDFDatetime.Now().SerializeToDataStore()
-            ]
+            extra_attributes = {
+                AFF4Object.SchemaCls.LAST: [
+                    rdfvalue.RDFDatetime.Now().SerializeToDataStore()
+                ]
+            }
 
-          mutation_pool.MultiSet(dirname, attributes, replace=True)
+          mutation_pool.AFF4AddChild(
+              dirname, basename, extra_attributes=extra_attributes)
 
           self.intermediate_cache.Put(urn, 1)
 
@@ -416,8 +416,7 @@ class Factory(object):
       except KeyError:
         pass
 
-      pool.DeleteAttributes(dirname,
-                            ["index:dir/%s" % utils.SmartStr(basename)])
+      pool.AFF4DeleteChild(dirname, basename)
       to_set = {
           AFF4Object.SchemaCls.LAST: [
               rdfvalue.RDFDatetime.Now().SerializeToDataStore()
@@ -1115,10 +1114,8 @@ class Factory(object):
     """
     checked_subjects = set()
 
-    index_prefix = "index:dir/"
-    for subject, values in data_store.DB.MultiResolvePrefix(
+    for subject, values in data_store.DB.AFF4MultiFetchChildren(
         urns,
-        index_prefix,
         token=token,
         timestamp=Factory.ParseAgeSpecification(age),
         limit=limit):
@@ -1126,8 +1123,8 @@ class Factory(object):
       checked_subjects.add(subject)
 
       subject_result = []
-      for predicate, _, timestamp in values:
-        urn = rdfvalue.RDFURN(subject).Add(predicate[len(index_prefix):])
+      for child, timestamp in values:
+        urn = rdfvalue.RDFURN(subject).Add(child)
         urn.age = rdfvalue.RDFDatetime(timestamp)
         subject_result.append(urn)
 
@@ -2375,14 +2372,12 @@ class AFF4Volume(AFF4Object):
       RDFURNs instances of each child.
     """
     # Just grab all the children from the index.
-    index_prefix = "index:dir/"
-    for predicate, _, timestamp in data_store.DB.ResolvePrefix(
+    for predicate, timestamp in data_store.DB.AFF4FetchChildren(
         self.urn,
-        index_prefix,
         token=self.token,
         timestamp=Factory.ParseAgeSpecification(age),
         limit=limit):
-      urn = self.urn.Add(predicate[len(index_prefix):])
+      urn = self.urn.Add(predicate)
       urn.age = rdfvalue.RDFDatetime(timestamp)
       yield urn
 

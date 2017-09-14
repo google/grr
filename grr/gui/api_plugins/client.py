@@ -157,12 +157,12 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     index = client_index.CreateClientIndex(token=token)
     result_urns = sorted(
-        index.LookupClients(keywords), key=str)[args.offset:args.offset + end]
+        index.LookupClients(keywords))[args.offset:args.offset + end]
 
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
     api_clients = []
-    for child in result_set:
+    for child in sorted(result_set):
       api_clients.append(ApiClient().InitFromAff4Object(child))
 
     return ApiSearchClientsResult(items=api_clients)
