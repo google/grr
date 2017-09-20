@@ -167,7 +167,7 @@ class GRRBaseTest(unittest.TestCase):
     self.config_set_disable.Start()
 
   def tearDown(self):
-    super(GRRBaseTest, self).setUp()
+    super(GRRBaseTest, self).tearDown()
 
     self.config_set_disable.Stop()
     self.smtp_patcher.stop()

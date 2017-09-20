@@ -571,7 +571,7 @@ class LabelSet(aff4.AFF4Object):
 
     self.to_delete = self.to_delete.difference(self.to_set)
 
-    with data_store.MutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       mutation_pool.LabelUpdateLabels(
           self.urn, self.to_set, to_delete=self.to_delete)
     self.to_set = set()

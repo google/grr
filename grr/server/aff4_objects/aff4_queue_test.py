@@ -5,7 +5,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import aff4
 from grr.server import data_store
-from grr.server.aff4_objects import queue as aff4_queue
+from grr.server.aff4_objects import aff4_queue
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 
@@ -34,8 +34,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       results = queue.ClaimRecords()
 
     self.assertEqual(100, len(results))
-    self.assertEqual(0, results[0][1])
-    self.assertEqual(99, results[99][1])
+    self.assertEqual(0, results[0].value)
+    self.assertEqual(99, results[99].value)
 
   def testClaimIgnoresClaimedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
@@ -95,9 +95,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
-      queue.DeleteRecord(results[0][0], token=self.token)
-      queue.DeleteRecords(
-          [record_id for (record_id, _) in results][1:], token=self.token)
+      queue.DeleteRecord(results[0], token=self.token)
+      queue.DeleteRecords(results[1:], token=self.token)
 
     # Wait past the default claim length, to make sure that delete actually did
     # something.
@@ -120,9 +119,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
-      odd_ids = [
-          record_id for (record_id, value) in results if int(value) % 2 == 1
-      ]
+      odd_ids = [record for record in results if int(record.value) % 2 == 1]
       queue.ReleaseRecord(odd_ids[0], token=self.token)
       queue.ReleaseRecords(odd_ids[1:], token=self.token)
 
@@ -131,8 +128,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       odd_results = queue.ClaimRecords()
 
     self.assertEqual(50, len(odd_results))
-    self.assertEqual(1, odd_results[0][1])
-    self.assertEqual(99, odd_results[49][1])
+    self.assertEqual(1, odd_results[0].value)
+    self.assertEqual(99, odd_results[49].value)
 
   def testClaimFiltersRecordsIfFilterIsSpecified(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersRecordsIfFilterIsSpecified"
@@ -151,8 +148,8 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
     # Should have all the odd records.
     self.assertEqual(50, len(results))
-    self.assertEqual(1, results[0][1])
-    self.assertEqual(99, results[49][1])
+    self.assertEqual(1, results[0].value)
+    self.assertEqual(99, results[49].value)
 
   def testClaimFiltersByStartTime(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersByStartTime"
@@ -169,7 +166,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       results = queue.ClaimRecords(start_time=middle)
 
     self.assertEqual(50, len(results))
-    self.assertEqual(50, results[0][1])
+    self.assertEqual(50, results[0].value)
 
   def testClaimCleansSpuriousLocks(self):
     queue_urn = "aff4:/queue_test/testClaimCleansSpuriousLocks"
@@ -185,7 +182,9 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       results = queue.ClaimRecords()
     self.assertEqual(100, len(results))
 
-    for subject, _ in results:
+    for record in results:
+      subject, _, _ = data_store.DataStore.CollectionMakeURN(
+          record.queue_id, record.timestamp, record.suffix, record.subpath)
       data_store.DB.DeleteAttributes(
           subject, [data_store.DataStore.COLLECTION_ATTRIBUTE],
           sync=True,

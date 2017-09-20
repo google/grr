@@ -403,30 +403,29 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
     index = client_index.CreateClientIndex(token=token)
     clients = index.LookupClients(["."])
   clients.sort()
-  pool = data_store.MutationPool(token=token)
+  with data_store.DB.GetMutationPool(token=token) as pool:
 
-  logging.info("checking %d clients", len(clients))
+    logging.info("checking %d clients", len(clients))
 
-  client_infos = data_store.DB.MultiResolvePrefix(
-      clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS, token=token)
+    client_infos = data_store.DB.MultiResolvePrefix(
+        clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS, token=token)
 
-  for client, type_list in client_infos:
-    logging.info("%s: has %d versions", client, len(type_list))
-    cleared = 0
-    kept = 1
-    last_kept = type_list[0][2]
-    for _, _, ts in type_list[1:]:
-      if last_kept - ts > 60 * 60 * 1000000:  # 1 hour
-        last_kept = ts
-        kept += 1
-      else:
-        if not dry_run:
-          pool.DeleteAttributes(client, ["aff4:type"], start=ts, end=ts)
-        cleared += 1
-        if pool.Size() > 10000:
-          pool.Flush()
-    logging.info("%s: kept %d and cleared %d", client, kept, cleared)
-  pool.Flush()
+    for client, type_list in client_infos:
+      logging.info("%s: has %d versions", client, len(type_list))
+      cleared = 0
+      kept = 1
+      last_kept = type_list[0][2]
+      for _, _, ts in type_list[1:]:
+        if last_kept - ts > 60 * 60 * 1000000:  # 1 hour
+          last_kept = ts
+          kept += 1
+        else:
+          if not dry_run:
+            pool.DeleteAttributes(client, ["aff4:type"], start=ts, end=ts)
+          cleared += 1
+          if pool.Size() > 10000:
+            pool.Flush()
+      logging.info("%s: kept %d and cleared %d", client, kept, cleared)
 
 
 def ExportClientsByKeywords(keywords, filename, token=None):

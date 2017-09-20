@@ -734,9 +734,9 @@ message ArtifactCollectorFlowArgs {
   optional uint64 max_file_size = 9 [(sem_type) = {
       type: "ByteSize",
       description: "The maximum size of files we will download in bytes,"
-      " 100MB by default.",
+      " 500MB by default.",
       label: ADVANCED
-    }, default=100000000];
+    }, default=500000000];
 
   enum Dependency {
     USE_CACHED = 0 [(description) = "Use the knowledgebase as a cache. If "
@@ -775,9 +775,9 @@ message ArtifactFilesDownloaderFlowArgs {
   optional uint64 max_file_size = 9 [(sem_type) = {
       type: "ByteSize",
       description: "The maximum size of files we will download in bytes,"
-      " 100MB by default.",
+      " 500MB by default.",
       label: ADVANCED
-    }, default=100000000];
+    }, default=500000000];
 }
 
 // Next field ID: 5
@@ -1496,7 +1496,7 @@ message FileFinderHashActionOptions {
       type: "ByteSize",
       description: "The maximum size of files we will hash."
       label: ADVANCED
-    }, default=100000000];
+    }, default=500000000];  // 500 MB
 
   enum OversizedFilePolicy {
     SKIP = 0 [(description) = "Skip oversized files"];
@@ -1516,7 +1516,7 @@ message FileFinderDownloadActionOptions {
       type: "ByteSize",
       description: "The maximum size of files we will download.",
       label: ADVANCED
-    }, default=100000000];
+    }, default=500000000];  // 500 MB
 
   enum OversizedFilePolicy {
     SKIP = 0 [(description) = "Skip oversized files"];

@@ -214,6 +214,9 @@ def main(argv=None):
         if flags.FLAGS.config:
           argv.extend(["--config", flags.FLAGS.config])
 
+        if flags.FLAGS.test_data_store:
+          argv.extend(["--test_data_store", flags.FLAGS.test_data_store])
+
         argv.extend(["--tests", name])
         argv.extend(["--labels", ",".join(flags.FLAGS.labels)])
 

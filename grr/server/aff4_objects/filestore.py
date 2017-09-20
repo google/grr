@@ -199,7 +199,7 @@ class HashFileStore(FileStore):
     # self._AddToIndex(index_urn, file_urn)
 
   def _AddToIndex(self, index_urn, file_urn):
-    with data_store.MutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       mutation_pool.FileHashIndexAddItem(index_urn, file_urn)
 
   @classmethod

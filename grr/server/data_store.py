@@ -37,6 +37,7 @@ able to filter it directly).
 
 import abc
 import atexit
+import collections
 import logging
 import os
 import random
@@ -101,6 +102,19 @@ def GetDefaultToken(token):
         "instance of grr.lib.access_control.ACLToken()")
 
   return token
+
+
+# This represents a record stored in a queue. The attributes are:
+# queue_id:  Id of the queue this record is stored in.
+# timestamp: Timestamp this record was stored at.
+# suffix:    A random number that is used to differentiate between records that
+#            have the same timestamp.
+# subpath:   Queues store records in different subpaths, this attribute
+#            specifies which one was used to store the record.
+# value:     The actual data that the record contains.
+
+Record = collections.namedtuple(
+    "Record", ["queue_id", "timestamp", "suffix", "subpath", "value"])
 
 
 class MutationPool(object):
@@ -289,7 +303,13 @@ class MutationPool(object):
         if max_filtered and filtered_count >= max_filtered:
           break
         continue
-      results.append((subject, rdf_value))
+      results.append(
+          Record(
+              queue_id=queue_id,
+              timestamp=values[DataStore.COLLECTION_ATTRIBUTE][0],
+              suffix=int(subject[-6:], 16),
+              subpath="Records",
+              value=rdf_value))
       self.Set(subject, DataStore.QUEUE_LOCK_ATTRIBUTE, expiration)
 
       filtered_count = 0
@@ -298,19 +318,27 @@ class MutationPool(object):
 
     return results
 
-  def QueueRefreshClaims(self, ids, timeout="30m"):
+  def QueueRefreshClaims(self, records, timeout="30m"):
     expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
-    for subject in ids:
+    for record in records:
+      subject, _, _ = DataStore.CollectionMakeURN(
+          record.queue_id, record.timestamp, record.suffix, record.subpath)
       self.Set(subject, DataStore.QUEUE_LOCK_ATTRIBUTE, expiration)
 
-  def QueueDeleteRecords(self, ids):
-    for i in ids:
-      self.DeleteAttributes(
-          i, [DataStore.QUEUE_LOCK_ATTRIBUTE, DataStore.COLLECTION_ATTRIBUTE])
+  def QueueDeleteRecords(self, records):
+    for record in records:
+      subject, _, _ = DataStore.CollectionMakeURN(
+          record.queue_id, record.timestamp, record.suffix, record.subpath)
 
-  def QueueReleaseRecords(self, ids):
-    for i in ids:
-      self.DeleteAttributes(i, [DataStore.QUEUE_LOCK_ATTRIBUTE])
+      self.DeleteAttributes(subject, [
+          DataStore.QUEUE_LOCK_ATTRIBUTE, DataStore.COLLECTION_ATTRIBUTE
+      ])
+
+  def QueueReleaseRecords(self, records):
+    for record in records:
+      subject, _, _ = DataStore.CollectionMakeURN(
+          record.queue_id, record.timestamp, record.suffix, record.subpath)
+      self.DeleteAttributes(subject, [DataStore.QUEUE_LOCK_ATTRIBUTE])
 
   def QueueDeleteTasks(self, queue, tasks):
     """Removes the given tasks from the queue."""
@@ -325,9 +353,8 @@ class MutationPool(object):
                                              lambda x: x.queue).iteritems():
       to_schedule = {}
       for task in queued_tasks:
-        to_schedule[DataStore.QueueTaskIdToColumn(task.task_id)] = [
-            task.SerializeToString()
-        ]
+        to_schedule[DataStore.QueueTaskIdToColumn(
+            task.task_id)] = [task.SerializeToString()]
       self.MultiSet(queue, to_schedule, timestamp=timestamp)
 
   def QueueQueryAndOwn(self, queue, lease_seconds, limit, timestamp):
@@ -395,8 +422,8 @@ class MutationPool(object):
         if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
           stats.STATS.IncrementCounter("grr_task_retransmission_count")
 
-        serialized_tasks_dict.setdefault(predicate,
-                                         []).append(task.SerializeToString())
+        serialized_tasks_dict.setdefault(predicate, []).append(
+            task.SerializeToString())
         tasks.append(task)
         if len(tasks) >= limit:
           break

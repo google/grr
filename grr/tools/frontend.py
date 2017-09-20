@@ -80,11 +80,18 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_GET(self):  # pylint: disable=g-bad-name
     """Serve the server pem with GET requests."""
+
     if self.path.startswith("/server.pem"):
+      stats.STATS.IncrementCounter(
+          "frontend_http_requests", fields=["cert", "http"])
       self.ServerPem()
     elif self.path.startswith(self.rekall_profile_path):
+      stats.STATS.IncrementCounter(
+          "frontend_http_requests", fields=["rekall", "http"])
       self.ServeRekallProfile(self.path)
     elif self.path.startswith(self.static_content_path):
+      stats.STATS.IncrementCounter(
+          "frontend_http_requests", fields=["static", "http"])
       self.ServeStatic(self.path[len(self.static_content_path):])
 
   def ServeRekallProfile(self, path):
@@ -212,10 +219,15 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_POST(self):  # pylint: disable=g-bad-name
     """Process encrypted message bundles."""
+
     try:
       if self.path.startswith("/upload"):
+        stats.STATS.IncrementCounter(
+            "frontend_http_requests", fields=["upload", "http"])
         self.HandleUploads()
       else:
+        stats.STATS.IncrementCounter(
+            "frontend_http_requests", fields=["control", "http"])
         self.Control()
 
     except Exception as e:  # pylint: disable=broad-except

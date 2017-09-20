@@ -9,7 +9,7 @@ from grr.proto import jobs_pb2
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import sequential_collection
-from grr.server.aff4_objects import queue as aff4_queue
+from grr.server.aff4_objects import aff4_queue
 
 
 class HuntResultNotification(rdf_structs.RDFProtoStruct):
@@ -76,12 +76,12 @@ class HuntResultQueue(aff4_queue.Queue):
         blocking_sleep_interval=15,
         blocking_lock_timeout=600,
         token=token) as queue:
-      for record_id, value in queue.ClaimRecords(
+      for record in queue.ClaimRecords(
           record_filter=f.FilterRecord,
           start_time=start_time,
           timeout=lease_time,
           limit=100000):
-        results.append((record_id, value.timestamp, value.suffix))
+        results.append((record, record.value.timestamp, record.value.suffix))
     return (f.collection, results)
 
   @classmethod

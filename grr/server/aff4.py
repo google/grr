@@ -18,7 +18,6 @@ from grr import config
 from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import aff4_rdfvalues
@@ -3076,15 +3075,9 @@ class AFF4InitHook(registry.InitHook):
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""
-    # pylint: disable=unused-variable,global-statement,g-import-not-at-top
-    from grr.server import aff4_objects
-
-    global FACTORY
+    global FACTORY  # pylint: disable=global-statement
 
     FACTORY = Factory()  # pylint: disable=g-bad-name
-    # pylint: enable=unused-variable,global-statement,g-import-not-at-top
-    stats.STATS.RegisterCounterMetric("aff4_cache_hits")
-    stats.STATS.RegisterCounterMetric("aff4_cache_misses")
 
 
 class AFF4Filter(object):

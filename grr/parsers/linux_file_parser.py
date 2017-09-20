@@ -25,7 +25,7 @@ class PCIDevicesInfoParser(parsers.FileParser):
 
     # Each file gives us only partial information for a particular PCI device.
     # Iterate through all the files first to create a dictionary encapsulating
-    # complete information for each of the PCI device on the sysytem. We need
+    # complete information for each of the PCI device on the system. We need
     # all information for a PCI device before a proto for it can be created.
     # We will store data in a dictionary of dictionaries that looks like this:
     # data = { '0000:7f:0d.0': { 'class': '0x088000',

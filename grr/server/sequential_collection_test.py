@@ -144,75 +144,82 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(collection), 100)
 
   def testIndexCreate(self):
-    urn = "aff4:/sequential_collection/testIndexCreate"
-    collection = self._TestCollection(urn)
-    # TODO(user): Without using a mutation pool, this test is really
-    # slow on MySQL data store.
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
-      for i in range(10 * 1024):
-        collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
+    spacing = 10
+    with utils.Stubber(sequential_collection.IndexedSequentialCollection,
+                       "INDEX_SPACING", spacing):
 
-    # It is too soon to build an index, check that we don't.
-    self.assertEqual(collection._index, None)
-    self.assertEqual(collection.CalculateLength(), 10 * 1024)
-    self.assertEqual(sorted(collection._index.keys()), [0])
+      urn = "aff4:/sequential_collection/testIndexCreate"
+      collection = self._TestCollection(urn)
+      # TODO(user): Without using a mutation pool, this test is really
+      # slow on MySQL data store.
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        for i in range(10 * spacing):
+          collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
 
-    now = time.time() * 1e6
-    ten_seconds_ago = (time.time() - 10) * 1e6
-
-    # Push the clock forward 10m, and we should build an index on access.
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                           rdfvalue.Duration("10m")):
-      # Read from start doesn't rebuild index (lazy rebuild)
-      _ = collection[0]
+      # It is too soon to build an index, check that we don't.
+      self.assertEqual(collection._index, None)
+      self.assertEqual(collection.CalculateLength(), 10 * spacing)
       self.assertEqual(sorted(collection._index.keys()), [0])
 
-      self.assertEqual(collection.CalculateLength(), 10 * 1024)
+      now = time.time() * 1e6
+      twenty_seconds_ago = (time.time() - 20) * 1e6
+
+      # Push the clock forward 10m, and we should build an index on access.
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                             rdfvalue.Duration("10m")):
+        # Read from start doesn't rebuild index (lazy rebuild)
+        _ = collection[0]
+        self.assertEqual(sorted(collection._index.keys()), [0])
+
+        self.assertEqual(collection.CalculateLength(), 10 * spacing)
+        self.assertEqual(
+            sorted(collection._index.keys()), [i * spacing for i in xrange(10)])
+        for index in collection._index:
+          if not index:
+            continue
+          timestamp, suffix = collection._index[index]
+          self.assertLessEqual(twenty_seconds_ago, timestamp)
+          self.assertLessEqual(timestamp, now)
+          self.assertTrue(0 <= suffix <= 0xFFFFFF)
+
+      # Now check that the index was persisted to aff4 by re-opening
+      # and checking that a read from head does load full index
+      # (optimistic load):
+
+      collection = self._TestCollection(
+          "aff4:/sequential_collection/testIndexCreate")
+      self.assertEqual(collection._index, None)
+      _ = collection[0]
       self.assertEqual(
-          sorted(collection._index.keys()),
-          [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
+          sorted(collection._index.keys()), [i * spacing for i in xrange(10)])
       for index in collection._index:
         if not index:
           continue
         timestamp, suffix = collection._index[index]
-        self.assertTrue(ten_seconds_ago <= timestamp <= now)
+        self.assertLessEqual(twenty_seconds_ago, timestamp)
+        self.assertLessEqual(timestamp, now)
         self.assertTrue(0 <= suffix <= 0xFFFFFF)
 
-    # Now check that the index was persisted to aff4 by re-opening and checking
-    # that a read from head does load full index (optimistic load):
-
-    collection = self._TestCollection(
-        "aff4:/sequential_collection/testIndexCreate")
-    self.assertEqual(collection._index, None)
-    _ = collection[0]
-    self.assertEqual(
-        sorted(collection._index.keys()),
-        [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
-    for index in collection._index:
-      if not index:
-        continue
-      timestamp, suffix = collection._index[index]
-      self.assertTrue(ten_seconds_ago <= timestamp <= now)
-      self.assertTrue(0 <= suffix <= 0xFFFFFF)
-
   def testIndexedReads(self):
-    urn = "aff4:/sequential_collection/testIndexedReads"
-    collection = self._TestCollection(urn)
-    data_size = 4 * 1024
-    # TODO(user): Without using a mutation pool, this test is really
-    # slow on MySQL data store.
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
-      for i in range(data_size):
-        collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                           rdfvalue.Duration("10m")):
-      for i in range(data_size - 1, data_size - 20, -1):
-        self.assertEqual(collection[i], i)
-      self.assertEqual(collection[1023], 1023)
-      self.assertEqual(collection[1024], 1024)
-      self.assertEqual(collection[1025], 1025)
-      for i in range(data_size - 1020, data_size - 1040, -1):
-        self.assertEqual(collection[i], i)
+    spacing = 10
+    with utils.Stubber(sequential_collection.IndexedSequentialCollection,
+                       "INDEX_SPACING", spacing):
+      urn = "aff4:/sequential_collection/testIndexedReads"
+      collection = self._TestCollection(urn)
+      data_size = 4 * spacing
+      # TODO(user): Without using a mutation pool, this test is really
+      # slow on MySQL data store.
+      with data_store.DB.GetMutationPool(token=self.token) as pool:
+        for i in range(data_size):
+          collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                             rdfvalue.Duration("10m")):
+        for i in range(data_size - 1, data_size - 20, -1):
+          self.assertEqual(collection[i], i)
+        for i in [spacing - 1, spacing, spacing + 1]:
+          self.assertEqual(collection[i], i)
+        for i in range(data_size - spacing + 5, data_size - spacing - 5, -1):
+          self.assertEqual(collection[i], i)
 
   def testListing(self):
     test_urn = "aff4:/sequential_collection/testIndexedListing"

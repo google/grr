@@ -514,6 +514,8 @@ class FrontendInit(registry.InitHook):
         "frontend_active_count", int, fields=[("source", str)])
     stats.STATS.RegisterGaugeMetric("frontend_max_active_count", int)
     stats.STATS.RegisterCounterMetric(
+        "frontend_http_requests", fields=[("action", str), ("protocol", str)])
+    stats.STATS.RegisterCounterMetric(
         "frontend_in_bytes", fields=[("source", str)])
     stats.STATS.RegisterCounterMetric(
         "frontend_out_bytes", fields=[("source", str)])
