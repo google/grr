@@ -37,9 +37,9 @@ def SearchClients(query_str, token=None, limit=1000):
   result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
   results = []
   for result in result_set:
-    results.append((result, str(result.Get(client_schema.HOSTNAME)),
-                    str(result.Get(client_schema.OS_VERSION)),
-                    str(result.Get(client_schema.PING))))
+    results.append((result, str(result.Get(client_schema.HOSTNAME)), str(
+        result.Get(client_schema.OS_VERSION)), str(
+            result.Get(client_schema.PING))))
     if len(results) >= limit:
       break
 
@@ -407,6 +407,7 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
 
     logging.info("checking %d clients", len(clients))
 
+    # TODO(user): This only works on datastores that use the Bigtable scheme.
     client_infos = data_store.DB.MultiResolvePrefix(
         clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS, token=token)
 

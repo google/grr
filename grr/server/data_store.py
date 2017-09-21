@@ -104,7 +104,7 @@ def GetDefaultToken(token):
   return token
 
 
-# This represents a record stored in a queue. The attributes are:
+# This represents a record stored in a queue/collection. The attributes are:
 # queue_id:  Id of the queue this record is stored in.
 # timestamp: Timestamp this record was stored at.
 # suffix:    A random number that is used to differentiate between records that
@@ -1176,8 +1176,10 @@ class DataStore(object):
 
     for response_urn, request in sorted(response_subjects.items()):
       responses = []
-      for _, serialized, _ in response_data.get(response_urn, []):
-        responses.append(rdf_flows.GrrMessage.FromSerializedString(serialized))
+      for _, serialized, timestamp in response_data.get(response_urn, []):
+        msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
+        msg.timestamp = timestamp
+        responses.append(msg)
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -1484,7 +1486,45 @@ class DataStore(object):
       if attribute.startswith(self.COLLECTION_VALUE_TYPE_PREFIX):
         yield attribute[len(self.COLLECTION_VALUE_TYPE_PREFIX):]
 
-  def QueueQueryTasks(self, queue, limit=1, task_id=None, token=None):
+  def CollectionReadItems(self, records, token=None):
+    for _, v in self.MultiResolvePrefix(
+        [
+            DataStore.CollectionMakeURN(record.queue_id, record.timestamp,
+                                        record.suffix, record.subpath)[0]
+            for record in records
+        ],
+        DataStore.COLLECTION_ATTRIBUTE,
+        token=token):
+      _, value, timestamp = v[0]
+      yield (value, timestamp)
+
+  def QueueMultiQuery(self, queues, token=None):
+    """Retrieves tasks from multiple queues without leasing them.
+
+    Args:
+      queues: The task queues to query.
+      token: Database access token.
+    Returns:
+      A dict mapping queue to list of Task() objects.
+    """
+    tasks = {}
+    prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
+
+    for queue, raw_tasks in self.MultiResolvePrefix(
+        queues, prefix, timestamp=DataStore.ALL_TIMESTAMPS, token=token):
+
+      for _, serialized, ts in raw_tasks:
+        task = rdf_flows.GrrMessage.FromSerializedString(serialized)
+        task.eta = ts
+        tasks.setdefault(queue, []).append(task)
+
+    # Sort the tasks in order of priority.
+    for task_list in tasks.values():
+      task_list.sort(key=lambda task: task.priority, reverse=True)
+
+    return tasks
+
+  def QueueQueryTasks(self, queue, limit=1, token=None):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -1493,16 +1533,11 @@ class DataStore(object):
       queue: The task queue that this task belongs to, usually client.Queue()
             where client is the ClientURN object you want to schedule msgs on.
       limit: Number of values to fetch.
-      task_id: If an id is provided we only query for this id.
       token: Database access token.
     Returns:
       A list of Task() objects.
     """
-    if task_id is None:
-      prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
-    else:
-      prefix = utils.SmartStr(task_id)
-
+    prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
     all_tasks = []
 
     for _, serialized, ts in self.ResolvePrefix(

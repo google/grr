@@ -592,7 +592,7 @@ class QueueManager(object):
       self.data_store.DeleteNotifications(
           queue_shards, ids, start, end, token=self.token)
 
-  def Query(self, queue, limit=1, task_id=None):
+  def Query(self, queue, limit=1):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -601,7 +601,6 @@ class QueueManager(object):
        queue: The task queue that this task belongs to, usually client.Queue()
               where client is the ClientURN object you want to schedule msgs on.
        limit: Number of values to fetch.
-       task_id: If an id is provided we only query for this id.
 
     Returns:
         A list of Task() objects.
@@ -611,8 +610,7 @@ class QueueManager(object):
     if isinstance(queue, rdf_client.ClientURN):
       queue = queue.Queue()
 
-    return self.data_store.QueueQueryTasks(
-        queue, limit=limit, task_id=task_id, token=self.token)
+    return self.data_store.QueueQueryTasks(queue, limit=limit, token=self.token)
 
   def QueryAndOwn(self, queue, lease_seconds=10, limit=1):
     """Returns a list of Tasks leased for a certain time.

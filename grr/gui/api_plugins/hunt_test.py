@@ -87,9 +87,52 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
 
+class ApiListHuntClientsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                    standard_test.StandardHuntTestMixin):
+  """Test for ApiListHuntClientsHandler."""
+
+  def setUp(self):
+    super(ApiListHuntClientsHandlerTest, self).setUp()
+    self.handler = hunt_plugin.ApiListHuntClientsHandler()
+
+  def testListHuntClients(self):
+    hunt = implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[os.path.join(self.base_path, "test.plist")],
+            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),),
+        client_rate=0,
+        token=self.token)
+    hunt.Run()
+
+    client_ids = self.SetupClients(5)
+    self.AssignTasksToClients(client_ids=client_ids)
+    action_mock = action_mocks.FileFinderClientMock()
+    hunt_test_lib.TestHuntHelper(
+        action_mock, client_ids, iteration_limit=10, token=self.token)
+
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntClientsArgs(hunt_id=hunt.urn.Basename()),
+        token=self.token)
+
+    # TODO(user): This still uses data store internals and will fail on some
+    # data stores.
+
+    # This is not super deterministic, we start processing some
+    # clients, run the hunt for a bit but there is no order to all
+    # this. We should have some clients half finished though (i.e.,
+    # with pending requests) and five clients in total.
+    self.assertEqual(result.total_count, 5)
+    clients = list(result.items)
+    pending_requests = [client.pending_requests for client in clients]
+    self.assertTrue(any(r.next_state) for r in pending_requests)
+
+
 class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
                               standard_test.StandardHuntTestMixin):
-  """Test for ApiAff4Handler."""
+  """Test for ApiListHuntsHandler."""
 
   def setUp(self):
     super(ApiListHuntsHandlerTest, self).setUp()

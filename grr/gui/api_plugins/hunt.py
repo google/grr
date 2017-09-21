@@ -32,7 +32,6 @@ from grr.server import flow
 from grr.server import foreman
 from grr.server import instant_output_plugin
 from grr.server import output_plugin
-from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import users as aff4_users
 from grr.server.flows.general import export
 
@@ -1074,8 +1073,8 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     all_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
         hunt_urn, all_clients_urns, token=token)
     flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns, token)
-    client_requests = aff4_grr.VFSGRRClient.GetClientRequests(
-        all_clients_urns, token)
+    client_requests = data_store.DB.QueueMultiQuery(
+        [cid.Queue() for cid in all_clients_urns], token=token)
 
     waitingfor = {}
     status_by_request = {}
@@ -1091,10 +1090,11 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
 
     response_urns = []
 
+    # TODO(user): This only works with aff4 based data stores. Find
+    # a better way to do this.
     for request_base_urn, request in waitingfor.iteritems():
       response_urns.append(
           rdfvalue.RDFURN(request_base_urn).Add("request:%08X" % request.id))
-
     response_dict = dict(
         data_store.DB.MultiResolvePrefix(response_urns, "flow:", token=token))
 
@@ -1116,10 +1116,13 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
         if request_obj.id in status_by_request.setdefault(request_urn, {}):
           status_available = True
           status = status_by_request[request_urn][request_obj.id]
-          responses_expected = status.response_id
+          # responses_expected ends up in a string field and will
+          # complain if we don't convert to string here.
+          responses_expected = str(status.response_id)
 
         client_requests_available = 0
-        for client_req in client_requests.setdefault(client_id, []):
+        queue = rdf_client.ClientURN(client_id).Queue()
+        for client_req in client_requests.setdefault(queue, []):
           if request_obj.request.session_id == client_req.session_id:
             client_requests_available += 1
 

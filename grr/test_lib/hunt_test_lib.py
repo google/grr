@@ -74,7 +74,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
     check_flow_errors: If True, raises when one of hunt-initiated flows fails.
     token: An instance of access_control.ACLToken security token.
     iteration_limit: If None, hunt will run until it's finished. Otherwise,
-        worker_mock.Next() will be called iteration_limit number of tiems.
+        worker_mock.Next() will be called iteration_limit number of times.
         Every iteration processes worker's message queue. If new messages
         are sent to the queue during the iteration processing, they will
         be processed on next iteration,

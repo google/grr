@@ -866,17 +866,19 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertNotEqual(flow_obj.context.state,
                         rdf_flows.FlowContext.State.ERROR)
 
-    request_data = data_store.DB.ResolvePrefix(
-        session_id.Add("state"), "flow:", token=self.token)
-    subjects = [r[0] for r in request_data]
+    request_data = data_store.DB.ReadResponsesForRequestId(
+        session_id, 2, token=self.token)
+    request_data.sort(key=lambda msg: msg.response_id)
+    self.assertEqual(len(request_data), 2)
 
-    # Make sure the status field and the original request are still there.
-    self.assertIn("flow:request:00000002", subjects)
-    self.assertIn("flow:status:00000002", subjects)
+    # Make sure the status and the original request are still there.
+    self.assertEqual(request_data[0].args_rdf_name, "DataBlob")
+    self.assertEqual(request_data[1].args_rdf_name, "GrrStatus")
 
-    # Everything from request 1 should have been deleted.
-    self.assertNotIn("flow:request:00000001", subjects)
-    self.assertNotIn("flow:status:00000001", subjects)
+    # But there is nothing for request 1.
+    request_data = data_store.DB.ReadResponsesForRequestId(
+        session_id, 1, token=self.token)
+    self.assertEqual(request_data, [])
 
     # The notification for request 2 should have survived.
     with queue_manager.QueueManager(token=self.token) as manager:
@@ -908,19 +910,14 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     frozen_timestamp = int(self.SendResponse(session_id, "Hey"))
 
     request_id = 1
-    request_urn = session_id.Add("state")
-    res = data_store.DB.ResolvePrefix(
-        request_urn, "flow:status:00000001", token=self.token)
-    self.assertTrue(res)
-    self.assertEqual(res[0][2], frozen_timestamp)
+    messages = data_store.DB.ReadResponsesForRequestId(
+        session_id, request_id, token=self.token)
+    self.assertEqual(len(messages), 2)
+    self.assertItemsEqual([m.args_rdf_name
+                           for m in messages], ["DataBlob", "GrrStatus"])
 
-    response_urn = data_store.DB.GetFlowResponseSubject(session_id, request_id)
-    res = data_store.DB.ResolvePrefix(
-        response_urn, "flow:response:00000001:", token=self.token)
-    self.assertTrue(res)
-
-    for (_, _, timestamp) in res:
-      self.assertEqual(timestamp, frozen_timestamp)
+    for m in messages:
+      self.assertEqual(m.timestamp, frozen_timestamp)
 
   def testEqualTimestampNotifications(self):
     frontend_server = front_end.FrontEndServer(

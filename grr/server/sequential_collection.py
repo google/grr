@@ -158,16 +158,10 @@ class SequentialCollection(object):
       else:
         yield (timestamp, item)
 
-  def MultiResolve(self, timestamps):
-    """Lookup multiple values by (timestamp, suffix) pairs."""
-    for _, v in data_store.DB.MultiResolvePrefix(
-        [
-            data_store.DB.CollectionMakeURN(self.collection_id, ts, suffix)[0]
-            for (ts, suffix) in timestamps
-        ],
-        data_store.DataStore.COLLECTION_ATTRIBUTE,
-        token=self.token):
-      _, value, timestamp = v[0]
+  def MultiResolve(self, records):
+    """Lookup multiple values by their record objects."""
+    for value, timestamp in data_store.DB.CollectionReadItems(
+        records, token=self.token):
       rdf_value = self.RDF_TYPE.FromSerializedString(value)
       rdf_value.age = timestamp
       yield rdf_value
@@ -399,8 +393,8 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
         mutation_pool=mutation_pool)
 
   def Scan(self, **kwargs):
-    for (timestamp, rdf_value) in super(GeneralIndexedCollection, self).Scan(
-        **kwargs):
+    for (timestamp, rdf_value) in super(GeneralIndexedCollection,
+                                        self).Scan(**kwargs):
       yield (timestamp, rdf_value.payload)
 
 

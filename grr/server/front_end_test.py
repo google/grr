@@ -98,6 +98,8 @@ class GRRFEServerTest(GRRFEServerTestBase):
     stored_messages.sort(key=lambda m: m.response_id)
     # Check that messages were stored correctly
     for stored_message, message in zip(stored_messages, messages):
+      # We don't care about the last queueing time.
+      stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, message)
 
   def testReceiveMessagesWithStatus(self):
@@ -140,6 +142,8 @@ class GRRFEServerTest(GRRFEServerTestBase):
     stored_messages.sort(key=lambda m: m.response_id)
     # Check that messages were stored correctly
     for stored_message, message in zip(stored_messages, messages):
+      # We don't care about the last queueing time.
+      stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, message)
 
   def testReceiveUnsolicitedClientMessage(self):
@@ -192,11 +196,6 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
                      list(range(1, 10)))
 
-    # There should be nothing in the client_queue
-    self.assertEqual([],
-                     data_store.DB.ResolvePrefix(
-                         self.client_id, "task:", token=self.token))
-
   def testWellKnownFlowsBlacklist(self):
     """Make sure that well known flows can run on the front end."""
     with test_lib.ConfigOverrider({
@@ -226,11 +225,6 @@ class GRRFEServerTest(GRRFEServerTestBase):
       # Check that no processing took place.
       self.assertFalse(flow_test_lib.WellKnownSessionTest.messages)
 
-      # There should be nothing in the client_queue
-      self.assertEqual([],
-                       data_store.DB.ResolvePrefix(
-                           self.client_id, "task:", token=self.token))
-
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
     flow_test_lib.WellKnownSessionTest.messages = []
@@ -254,18 +248,10 @@ class GRRFEServerTest(GRRFEServerTestBase):
     # None get processed now
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
 
-    # There should be nothing in the client_queue
-    self.assertEqual([],
-                     data_store.DB.ResolvePrefix(
-                         self.client_id, "task:", token=self.token))
-
-    # The well known flow messages should be waiting in the flow state now:
-    queued_messages = []
-    for predicate, _, _ in data_store.DB.ResolvePrefix(
-        session_id.Add("state/request:00000000"), "flow:", token=self.token):
-      queued_messages.append(predicate)
-
-    self.assertEqual(len(queued_messages), 9)
+    # The well known flow messages should be queued now.
+    responses = data_store.DB.ReadResponsesForRequestId(
+        session_id, 0, token=self.token)
+    self.assertEqual(len(responses), 9)
 
   def testWellKnownFlowsNotifications(self):
     flow_test_lib.WellKnownSessionTest.messages = []

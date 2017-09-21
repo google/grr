@@ -64,13 +64,19 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def testMultiResolve(self):
     collection = self._TestCollection("aff4:/sequential_collection/testAddScan")
-    timestamps = []
+    records = []
     with data_store.DB.GetMutationPool(token=self.token) as pool:
       for i in range(100):
-        timestamps.append(
-            collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool))
+        ts, suffix = collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool)
+        records.append(
+            data_store.Record(
+                queue_id=collection.collection_id,
+                timestamp=ts,
+                suffix=suffix,
+                subpath="Results",
+                value=None))
 
-    even_results = sorted([r for r in collection.MultiResolve(timestamps[::2])])
+    even_results = sorted([r for r in collection.MultiResolve(records[::2])])
     self.assertEqual(len(even_results), 50)
     self.assertEqual(even_results[0], 0)
     self.assertEqual(even_results[49], 98)

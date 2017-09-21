@@ -27,6 +27,7 @@ message HttpRequest {
 }
 
 // This message is sent between the client and the server.
+// Next field: 23
 message GrrMessage {
   optional string session_id = 1 [(sem_type) = {
       type: "FlowSessionID",
@@ -148,6 +149,10 @@ message GrrMessage {
                    "towards the limit but only during TransferBuffer is the "
                    "limit enforced. This means we can blockfile transfers but "
                    "still communicate after the limit is reached."
+    }];
+  optional uint64 timestamp = 22 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "An optional timestamp when this message was stored.",
     }];
 };
 

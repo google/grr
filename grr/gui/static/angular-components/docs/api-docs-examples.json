@@ -9649,6 +9649,11 @@
                       "type": "long",
                       "value": 6
                     },
+                    "timestamp": {
+                      "age": 0,
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    },
                     "type": {
                       "age": 0,
                       "type": "EnumNamedValue",
@@ -9700,6 +9705,7 @@
                 "session_id": "aff4:/C.1000000000000000/flows/F:123456",
                 "task_id": 43,
                 "task_ttl": 6,
+                "timestamp": 42000000,
                 "type": "STATUS"
               }
             ],

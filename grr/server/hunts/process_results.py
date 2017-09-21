@@ -154,12 +154,12 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
         for batch in utils.Grouper(results, batch_size):
           results = list(
-              collection_obj.MultiResolve([(ts, suffix)
-                                           for (_, ts, suffix) in batch]))
+              collection_obj.MultiResolve(
+                  [r.value.ResultRecord() for r in batch]))
           self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
 
           hunts_results.HuntResultQueue.DeleteNotifications(
-              [record_id for (record_id, _, _) in batch], token=self.token)
+              batch, token=self.token)
           num_processed += len(batch)
           num_processed_for_hunt += len(batch)
           self.HeartBeat()

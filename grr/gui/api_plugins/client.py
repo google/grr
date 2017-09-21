@@ -601,20 +601,6 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
   REQUESTS_NUM_LIMIT = 1000
 
-  def _GetRequestResponses(self, manager, client_urn, task_id):
-    task_id = "task:%s" % task_id
-
-    request_messages = manager.Query(client_urn, task_id=task_id)
-    if not request_messages:
-      return []
-
-    request_message = request_messages[0]
-
-    return data_store.DB.ReadResponsesForRequestId(
-        request_message.session_id,
-        request_message.request_id,
-        token=manager.token)
-
   def Handle(self, args, token=None):
     manager = queue_manager.QueueManager(token=token)
 
@@ -630,8 +616,8 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
           client_action=task.name)
 
       if args.fetch_responses:
-        request.responses = self._GetRequestResponses(
-            manager, args.client_id.ToClientURN(), task.task_id)
+        request.responses = data_store.DB.ReadResponsesForRequestId(
+            task.session_id, task.request_id, token=token)
 
       result.items.append(request)
 
@@ -690,26 +676,26 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
     points = []
     for stat_value in reversed(stat_values):
       if args.metric == args.Metric.CPU_PERCENT:
-        points.extend((s.cpu_percent, s.timestamp)
-                      for s in stat_value.cpu_samples)
+        points.extend(
+            (s.cpu_percent, s.timestamp) for s in stat_value.cpu_samples)
       elif args.metric == args.Metric.CPU_SYSTEM:
-        points.extend((s.system_cpu_time, s.timestamp)
-                      for s in stat_value.cpu_samples)
+        points.extend(
+            (s.system_cpu_time, s.timestamp) for s in stat_value.cpu_samples)
       elif args.metric == args.Metric.CPU_USER:
-        points.extend((s.user_cpu_time, s.timestamp)
-                      for s in stat_value.cpu_samples)
+        points.extend(
+            (s.user_cpu_time, s.timestamp) for s in stat_value.cpu_samples)
       elif args.metric == args.Metric.IO_READ_BYTES:
-        points.extend((s.read_bytes, s.timestamp)
-                      for s in stat_value.io_samples)
+        points.extend(
+            (s.read_bytes, s.timestamp) for s in stat_value.io_samples)
       elif args.metric == args.Metric.IO_WRITE_BYTES:
-        points.extend((s.write_bytes, s.timestamp)
-                      for s in stat_value.io_samples)
+        points.extend(
+            (s.write_bytes, s.timestamp) for s in stat_value.io_samples)
       elif args.metric == args.Metric.IO_READ_OPS:
-        points.extend((s.read_count, s.timestamp)
-                      for s in stat_value.io_samples)
+        points.extend(
+            (s.read_count, s.timestamp) for s in stat_value.io_samples)
       elif args.metric == args.Metric.IO_WRITE_OPS:
-        points.extend((s.write_count, s.timestamp)
-                      for s in stat_value.io_samples)
+        points.extend(
+            (s.write_count, s.timestamp) for s in stat_value.io_samples)
       elif args.metric == args.Metric.NETWORK_BYTES_RECEIVED:
         points.append((stat_value.bytes_received, stat_value.age))
       elif args.metric == args.Metric.NETWORK_BYTES_SENT:

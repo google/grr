@@ -44,8 +44,8 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
     values_read = []
     collection = hunts_results.HuntResultCollection(
         collection_urn, token=self.token)
-    for message in collection.MultiResolve([(ts, suffix)
-                                            for (_, ts, suffix) in results[1]]):
+    for message in collection.MultiResolve(
+        [r.value.ResultRecord() for r in results[1]]):
       values_read.append(message.request_id)
     self.assertEqual(sorted(values_read), range(5))
 
@@ -90,7 +90,7 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(5, len(results_1[1]))
 
     hunts_results.HuntResultQueue.DeleteNotifications(
-        [record_id for (record_id, _, _) in results_1[1]], token=self.token)
+        results_1[1], token=self.token)
 
     # Push time forward past the default claim timeout, then we should still
     # read nothing.
@@ -137,10 +137,10 @@ class ResultTest(aff4_test_lib.AFF4ObjectTest):
     values_read = []
     collection_2 = hunts_results.HuntResultCollection(
         collection_urn_2, token=self.token)
-    for message in collection_2.MultiResolve([(ts, suffix)
-                                              for (_, ts,
-                                                   suffix) in results_2[1]]):
+    for message in collection_2.MultiResolve(
+        [r.value.ResultRecord() for r in results_2[1]]):
       values_read.append(message.request_id)
+
     self.assertEqual(sorted(values_read), range(100, 200))
 
 

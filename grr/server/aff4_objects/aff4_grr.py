@@ -321,26 +321,6 @@ class VFSGRRClient(standard.VFSDirectory):
       for label_name in label_names:
         client_labels_index.Add(label_name)
 
-  @staticmethod
-  def GetClientRequests(client_urns, token=None):
-    """Returns all client requests for the given client urns."""
-    task_urns = [urn.Add("tasks") for urn in client_urns]
-
-    client_requests_raw = data_store.DB.MultiResolvePrefix(
-        task_urns, "task:", token=token)
-
-    client_requests = {}
-    for client_urn, requests in client_requests_raw:
-      client_id = str(client_urn)[6:6 + 18]
-
-      client_requests.setdefault(client_id, [])
-
-      for _, serialized, _ in requests:
-        msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
-        client_requests[client_id].append(msg)
-
-    return client_requests
-
 
 class UpdateVFSFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateVFSFileArgs

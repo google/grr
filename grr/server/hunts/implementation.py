@@ -1415,12 +1415,11 @@ class GRRHunt(flow.FlowBase):
 
     collections_dict = dict(
         (urn, col_type(urn, token=self.token))
-        for urn, col_type in [(self.all_clients_collection_urn,
-                               grr_collections.ClientUrnCollection), (
-                                   self.completed_clients_collection_urn,
-                                   grr_collections.ClientUrnCollection), (
-                                       self.clients_errors_collection_urn,
-                                       grr_collections.HuntErrorCollection)])
+        for urn, col_type in
+        [(self.all_clients_collection_urn, grr_collections.ClientUrnCollection),
+         (self.completed_clients_collection_urn, grr_collections.
+          ClientUrnCollection), (self.clients_errors_collection_urn,
+                                 grr_collections.HuntErrorCollection)])
 
     def CollectionLen(collection_urn):
       if collection_urn in collections_dict:
@@ -1487,6 +1486,9 @@ class GRRHunt(flow.FlowBase):
   def GetAllSubflowUrns(hunt_urn, client_urns, top_level_only=False,
                         token=None):
     """Lists all subflows for a given hunt for all clients in client_urns."""
+
+    # TODO(user): This should be in the data store.
+
     client_ids = [urn.Split()[0] for urn in client_urns]
     client_bases = [hunt_urn.Add(client_id) for client_id in client_ids]
 

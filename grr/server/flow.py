@@ -984,8 +984,8 @@ class GRRFlow(FlowBase):
       # This calls runner.Terminate to kill the flow
       runner.Error(reason, status=status)
 
-      flow_obj.Log(
-          "Terminated by user {0}. Reason: {1}".format(token.username, reason))
+      flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
+          token.username, reason))
 
       # From now on we run with supervisor access
       super_token = token.SetUID()
@@ -1061,6 +1061,9 @@ class GRRFlow(FlowBase):
   @staticmethod
   def GetFlowRequests(flow_urns, token=None):
     """Returns all outstanding requests for the flows in flow_urns."""
+
+    # TODO(user): This should be in the data store.
+
     flow_requests = {}
     flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
 

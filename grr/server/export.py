@@ -1830,7 +1830,6 @@ def GetMetadata(client, token=None):
   Returns:
     ExportedMetadata object with metadata of the client.
   """
-
   if isinstance(client, rdfvalue.RDFURN):
     client_fd = aff4.FACTORY.Open(client, mode="r", token=token)
   else:
@@ -1907,13 +1906,11 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
                       converters, only the last one will be specified in the
                       exception message.
   """
-
   no_converter_found_error = None
-  for rdf_type, metadata_values_group in utils.GroupBy(
+  for _, metadata_values_group in utils.GroupBy(
       metadata_value_pairs,
       lambda pair: pair[1].__class__.__name__).iteritems():
 
-    _ = rdf_type
     _, first_value = metadata_values_group[0]
     converters_classes = ExportConverter.GetConvertersByValue(first_value)
     if not converters_classes:
