@@ -118,16 +118,13 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(all_requests), 1)
     self.assertEqual(all_requests[0][0], request)
 
-    # Ensure the rows are in the data store:
-    self.assertEqual(
-        data_store.DB.ResolveRow(session_id.Add("state"),
-                                 token=self.token)[0][0],
-        "flow:request:00000001")
-
-    self.assertEqual(
-        data_store.DB.ResolveRow(
-            session_id.Add("state/request:00000001"), token=self.token)[0][0],
-        "flow:response:00000001:00000001")
+    # Read the response directly.
+    responses = data_store.DB.ReadResponsesForRequestId(session_id, 1)
+    self.assertEqual(len(responses), 1)
+    response = responses[0]
+    self.assertEqual(response.request_id, 1)
+    self.assertEqual(response.response_id, 1)
+    self.assertEqual(response.session_id, session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.DestroyFlowStates(session_id)
@@ -135,7 +132,13 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
     self.assertEqual(len(all_requests), 0)
 
-    # Ensure the rows are gone from the data store.
+    # Check that the response is gone.
+    responses = data_store.DB.ReadResponsesForRequestId(session_id, 1)
+    self.assertEqual(len(responses), 0)
+
+    # Ensure the rows are gone from the data store. Some data stores
+    # don't store the queues in that way but there is no harm in
+    # checking.
     self.assertEqual(
         data_store.DB.ResolveRow(
             session_id.Add("state/request:00000001"), token=self.token), [])
@@ -162,14 +165,14 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
                      & 0x1fffffff00000000)
     self.assertEqual(task.task_ttl, 5)
 
-    value, ts = data_store.DB.Resolve(
-        test_queue,
-        data_store.DataStore.QueueTaskIdToColumn(task.task_id),
-        token=self.token)
+    stored_tasks = data_store.DB.QueueQueryTasks(
+        test_queue, limit=100000, token=self.token)
+    self.assertEqual(len(stored_tasks), 1)
+    stored_task = stored_tasks[0]
+    self.assertGreater(stored_task.eta, 0)
+    stored_task.eta = None
 
-    decoded = rdf_flows.GrrMessage.FromSerializedString(value)
-    self.assertRDFValuesEqual(decoded, task)
-    self.assertGreater(ts, 0)
+    self.assertRDFValuesEqual(stored_task, task)
 
     # Get a lease on the task
     tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
@@ -260,12 +263,10 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     with data_store.DB.GetMutationPool(token=self.token) as pool:
       manager.Delete(test_queue, tasks, mutation_pool=pool)
 
-    # Should not exist in the table
-    value, ts = data_store.DB.Resolve(
-        test_queue, "task:%08d" % task.task_id, token=self.token)
+    # Task is now deleted.
+    tasks = manager.QueryAndOwn(test_queue, lease_seconds=100, limit=100)
 
-    self.assertEqual(value, None)
-    self.assertEqual(ts, 0)
+    self.assertEqual(len(tasks), 0)
 
     # If we try to get another lease on it we should fail - even after
     # expiry time.
