@@ -1459,7 +1459,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
           "Data read back from aff4image doesn't match.")
 
   def testDotsInDirectory(self):
-    """Dots are special in MongoDB, check that they work in rows/indexes."""
+    """Check that dots work in rows/indexes."""
 
     for directory in [
         "aff4:/C.1240/dir", "aff4:/C.1240/dir/a.b", "aff4:/C.1240/dir/a.b/c",
@@ -1472,14 +1472,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     aff4.FACTORY.Open(
         "aff4:/C.1240/dir/a.b/c", standard.VFSDirectory, token=self.token)
 
-    index = data_store.DB.ResolvePrefix(
-        "aff4:/C.1240/dir", "index:dir/", token=self.token)
-    subjects = [s for (s, _, _) in index]
-    self.assertTrue("index:dir/b" in subjects)
-    self.assertTrue("index:dir/a.b" in subjects)
     directory = aff4.FACTORY.Open("aff4:/C.1240/dir", token=self.token)
-    self.assertEqual(2, len(list(directory.OpenChildren())))
-    self.assertEqual(2, len(list(directory.ListChildren())))
+    dirs = list(directory.OpenChildren())
+    self.assertEqual(2, len(dirs))
+    self.assertItemsEqual([d.urn.Basename() for d in dirs], ["b", "a.b"])
+    urns = list(directory.ListChildren())
+    self.assertEqual(2, len(urns))
+    self.assertItemsEqual([u.Basename() for u in urns], ["b", "a.b"])
 
   OPEN_WITH_LOCK_NUM_THREADS = 5
   OPEN_WITH_LOCK_TRIES_PER_THREAD = 3
@@ -1495,8 +1494,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         self.client_urn, aff4_grr.VFSGRRClient, mode="w", token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Set(
-        client.Schema.LEASED_UNTIL(rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-            0)))
+        client.Schema.LEASED_UNTIL(
+            rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)))
     client.Close()
 
     self.open_failures = 0
@@ -2498,8 +2497,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for _ in range(self.READ_COUNT):
-      for _ in indexed_collection.GenerateItems(offset=self.rand.randint(
-          0, self.RECORDS - 1)):
+      for _ in indexed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - 1)):
         break
     elapsed_time = time.time() - start_time
     self.AddResult("Seq. Coll. random 1 record reads", elapsed_time,
@@ -2508,8 +2507,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     start_time = time.time()
     for _ in range(self.READ_COUNT):
       count = 0
-      for _ in indexed_collection.GenerateItems(offset=self.rand.randint(
-          0, self.RECORDS - self.BIG_READ_SIZE)):
+      for _ in indexed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - self.BIG_READ_SIZE)):
         count += 1
         if count >= self.BIG_READ_SIZE:
           break
