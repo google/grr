@@ -271,6 +271,10 @@ matrix:
           sudo docker exec "${DOCKER_CONTAINER}"
           travis/build_server_deb.sh && `# Needs to be run as root.`
 
+          (gsutil rm -r gs://${GCS_BUCKET}/_latest_server_deb/ || true) &&
+
+          gsutil -m cp gcs_upload_dir/* gs://${GCS_BUCKET}/_latest_server_deb/ &&
+
           travis/deploy_to_gcs.sh &&
 
           `# Trigger build of a new GRR Docker image (grrdocker/grr)`
