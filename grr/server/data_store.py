@@ -91,7 +91,7 @@ def GetDefaultToken(token):
     token: A token or None.
 
   Raises:
-    access_control.UnauthorizedAccess, if no token was provided.
+    access_control.UnauthorizedAccess: no token was provided.
   """
   if token is None:
     token = default_token
@@ -1466,7 +1466,7 @@ class DataStore(object):
       item = rdf_type.FromSerializedString(serialized_rdf_value)
       item.age = timestamp
       # The urn is timestamp.suffix where suffix is 6 hex digits.
-      suffix = int(subject[-6:], 16)
+      suffix = int(str(subject)[-6:], 16)
       yield (item, timestamp, suffix)
 
   def CollectionReadIndex(self, collection_id, token=None):

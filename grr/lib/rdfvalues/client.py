@@ -7,11 +7,14 @@ client.
 
 
 import hashlib
+import logging
 import platform
 import re
 import socket
 import stat
 import struct
+
+import psutil
 
 from grr import config
 from grr.lib import ipv6_utils
@@ -622,6 +625,120 @@ class Process(structs.RDFProtoStruct):
   rdf_deps = [
       NetworkConnection,
   ]
+
+  @classmethod
+  def FromPsutilProcess(cls, psutil_process):
+    response = cls()
+    process_fields = ["pid", "ppid", "name", "exe", "username", "terminal"]
+
+    for field in process_fields:
+      try:
+        value = getattr(psutil_process, field)
+        if value is None:
+          continue
+
+        if callable(value):
+          value = value()
+
+        if not isinstance(value, (int, long)):
+          value = utils.SmartUnicode(value)
+
+        setattr(response, field, value)
+      except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
+        pass
+
+    try:
+      for arg in psutil_process.cmdline():
+        response.cmdline.append(utils.SmartUnicode(arg))
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      response.nice = psutil_process.nice()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      # Not available on Windows.
+      if hasattr(psutil_process, "uids"):
+        (response.real_uid, response.effective_uid,
+         response.saved_uid) = psutil_process.uids()
+        (response.real_gid, response.effective_gid,
+         response.saved_gid) = psutil_process.gids()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      response.ctime = long(psutil_process.create_time() * 1e6)
+      response.status = str(psutil_process.status())
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      # Not available on OSX.
+      if hasattr(psutil_process, "cwd"):
+        response.cwd = utils.SmartUnicode(psutil_process.cwd())
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      response.num_threads = psutil_process.num_threads()
+    except (psutil.NoSuchProcess, psutil.AccessDenied, RuntimeError):
+      pass
+
+    try:
+      cpu_times = psutil_process.cpu_times()
+      response.user_cpu_time = cpu_times.user
+      response.system_cpu_time = cpu_times.system
+      # This is very time consuming so we do not collect cpu_percent here.
+      # response.cpu_percent = psutil_process.get_cpu_percent()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    try:
+      pmem = psutil_process.memory_info()
+      response.RSS_size = pmem.rss  # pylint: disable=invalid-name
+      response.VMS_size = pmem.vms  # pylint: disable=invalid-name
+      response.memory_percent = psutil_process.memory_percent()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    # Due to a bug in psutil, this function is disabled for now
+    # (https://github.com/giampaolo/psutil/issues/340)
+    # try:
+    #  for f in psutil_process.open_files():
+    #    response.open_files.append(utils.SmartUnicode(f.path))
+    # except (psutil.NoSuchProcess, psutil.AccessDenied):
+    #  pass
+
+    try:
+      for c in psutil_process.connections():
+        conn = response.connections.Append(
+            family=c.family, type=c.type, pid=psutil_process.pid)
+
+        try:
+          conn.state = c.status
+        except ValueError:
+          logging.info("Encountered unknown connection status (%s).", c.status)
+
+        try:
+          conn.local_address.ip, conn.local_address.port = c.laddr
+
+          # Could be in state LISTEN.
+          if c.raddr:
+            conn.remote_address.ip, conn.remote_address.port = c.raddr
+        except AttributeError:
+          conn.local_address.ip, conn.local_address.port = c.local_address
+
+          # Could be in state LISTEN.
+          if c.remote_address:
+            (conn.remote_address.ip,
+             conn.remote_address.port) = c.remote_address
+
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+      pass
+
+    return response
 
 
 class SoftwarePackage(structs.RDFProtoStruct):

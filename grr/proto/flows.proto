@@ -1826,3 +1826,77 @@ message DumpACPITableArgs {
       label: ADVANCED
     }, default="1.2.4.1"];
 }
+
+message YaraProcessScanRequest {
+  optional string yara_signature = 1 [(sem_type) = {
+      type: "YaraSignature",
+      description: "The yara signature(s) to use for scanning.",
+    }];
+  repeated uint64 pids = 2 [(sem_type) = {
+      description: "The pids to scan. No pids given indicates all processes.",
+    }];
+  optional string process_regex = 3 [(sem_type) = {
+      description: "A regex to match against the process name. Only matching "
+      "names will be scanned.",
+    }];
+  optional bool ignore_grr_process = 4 [ default = true, (sem_type) = {
+      description: "By default, the GRR process is not scanned. Clear this "
+      "flag to change this behavior.",
+      label: ADVANCED,
+    }];
+  optional uint32 per_process_timeout = 5 [(sem_type) = {
+      description: "A timeout in seconds that is applied while scanning; "
+      "applies to each scan individually.",
+    }];
+}
+
+message YaraProcessScanError {
+  optional Process process = 1 [(sem_type) = {
+      description: "The process that returned an error while scanning.",
+    }];
+  optional string error = 2 [(sem_type) = {
+      description: "The error that was returned.",
+    }];
+}
+
+message YaraStringMatch {
+  optional string string_id = 1 [(sem_type) = {
+      description: "The name of the string that matched.",
+    }];
+  optional uint64 offset = 2 [(sem_type) = {
+      description: "The offset into the data.",
+    }];
+  optional bytes data = 3 [(sem_type) = {
+      description: "The actual data that matched.",
+    }];
+}
+
+message YaraMatch {
+  optional string rule_name = 1 [(sem_type) = {
+      description: "The name of the rule that triggered.",
+    }];
+  repeated YaraStringMatch string_matches = 2 [(sem_type) = {
+      description: "The list of strings that matched.",
+    }];
+}
+
+message YaraProcessScanMatch {
+  optional Process process = 1 [(sem_type) = {
+      description: "The process that returned one or more matches.",
+    }];
+  repeated YaraMatch match = 2 [(sem_type) = {
+      description: "Details about the matches.",
+    }];
+}
+
+message YaraProcessScanResponse {
+  repeated YaraProcessScanMatch matches = 1 [(sem_type) = {
+      description: "A list of processes with signature matches.",
+    }];
+  repeated YaraProcessScanError errors = 2 [(sem_type) = {
+      description: "A list of processes that we failed to scan.",
+    }];
+  repeated Process misses = 3 [(sem_type) = {
+      description: "A list of processes that came back without matches.",
+    }];
+}

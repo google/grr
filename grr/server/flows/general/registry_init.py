@@ -31,6 +31,7 @@ from grr.server.flows.general import registry
 from grr.server.flows.general import transfer
 from grr.server.flows.general import webhistory
 from grr.server.flows.general import windows_vsc
+from grr.server.flows.general import yara_flows
 
 # This must be imported last to allow for all rdfvalues defined in flows to be
 # imported first.

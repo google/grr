@@ -18,6 +18,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rdf_yara
 
 
 class ClientActionStub(object):
@@ -418,3 +419,11 @@ class GetMemoryInformation(ClientActionStub):
 
   in_rdfvalue = rdf_paths.PathSpec
   out_rdfvalues = [rekall_types.MemoryInformation]
+
+
+# from yara_actions.py
+class YaraProcessScan(ClientActionStub):
+  """Scans the memory of a number of processes using Yara."""
+
+  in_rdfvalue = rdf_yara.YaraProcessScanRequest
+  out_rdfvalues = [rdf_yara.YaraProcessScanResponse]

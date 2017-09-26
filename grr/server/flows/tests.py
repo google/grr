@@ -34,3 +34,4 @@ from grr.server.flows.general import registry_test
 from grr.server.flows.general import transfer_test
 from grr.server.flows.general import webhistory_test
 from grr.server.flows.general import windows_vsc_test
+from grr.server.flows.general import yara_flows_test

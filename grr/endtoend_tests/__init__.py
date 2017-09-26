@@ -13,7 +13,6 @@ from grr.endtoend_tests import filesystem
 from grr.endtoend_tests import fingerprint
 from grr.endtoend_tests import grep
 from grr.endtoend_tests import limits
-from grr.endtoend_tests import memory
 from grr.endtoend_tests import network
 from grr.endtoend_tests import processes
 from grr.endtoend_tests import registry

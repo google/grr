@@ -101,13 +101,17 @@ class OSSpecificClientTests(EmptyActionTest):
 class MockWindowsProcess(object):
   """A mock windows process."""
 
-  pid = 10
+  def __init__(self, name="cmd", pid=10, ppid=1):
 
-  def ppid(self):
-    return 1
+    self._name = name
+    self.pid = pid
+    self._ppid = ppid
 
   def name(self):
-    return "cmd"
+    return self._name
+
+  def ppid(self):
+    return self._ppid
 
   def exe(self):
     return "cmd.exe"
