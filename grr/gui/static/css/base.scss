@@ -682,12 +682,29 @@ dd.histogram {
   }
 
   &.toolbar-margin {
-    top: 45px !important;
+    top: 48px !important;
   }
 }
 
 .no-overflow {
   overflow: hidden !important;
+}
+
+.toolbar {
+  border-bottom: 1px solid $color-proto-border;
+  height: 48px;
+  box-sizing: content-box;
+  overflow: visible;
+  z-index: 2000; // Bootstrap z-indices are guaranteed to be less than 2000.
+}
+
+.fill-parent-with-toolbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 49px;
+  bottom: 0;
+  overflow-y: auto;
 }
 
 .monospace {

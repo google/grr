@@ -171,7 +171,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
               "&t=_fs-os-c-proc")
 
     self.Click("css=grr-vfs-files-archive-button")
-    self.Click("css=a[name=downloadEverything]")
+    self.Click("css=a[name=downloadEverything]:not([disabled])")
     self.WaitUntilEqual(1, lambda: mock_method.call_count)
     mock_method.assert_called_once_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(client_id="C.0000000000000001"),

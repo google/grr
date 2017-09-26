@@ -263,8 +263,8 @@ class FlowCreationTest(BasicFlowTest):
     # The child URN should be contained within the parent session_id URN.
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
 
-    children = list(obj for obj in flow_obj.OpenChildren()
-                    if isinstance(obj, flow.GRRFlow))
+    children = list(
+        obj for obj in flow_obj.OpenChildren() if isinstance(obj, flow.GRRFlow))
     self.assertEqual(len(children), 1)
 
     reason = "just so"
@@ -378,33 +378,37 @@ class FlowCreationTest(BasicFlowTest):
         "the flow was created.")
 
   def testCallClientChildFlowRace(self):
-    with test_lib.Instrument(data_store.DB, "MultiSet") as set_function:
-      session_id = flow.GRRFlow.StartFlow(
+    close_call_times = []
+
+    def Close(self):
+      if isinstance(self, CallClientParentFlow):
+        close_call_times.append(time.time())
+      return aff4.AFF4Object.Close.old_target(self)
+
+    qst_call_times = []
+
+    def QueueScheduleTasks(self, *args):
+      qst_call_times.append(time.time())
+      return data_store.DB.mutation_pool_cls.QueueScheduleTasks.old_target(
+          self, *args)
+
+    with utils.MultiStubber(
+        (aff4.AFF4Object, "Close", Close),
+        # This is a pool method and will only get written once the
+        # pool is flushed. The flush will happen after the queuing and
+        # doesn't change the test.
+        (data_store.DB.mutation_pool_cls, "QueueScheduleTasks",
+         QueueScheduleTasks)):
+      flow.GRRFlow.StartFlow(
           client_id=self.client_id,
           flow_name="CallClientParentFlow",
           token=self.token)
 
-    client_request_pos = None
-    flow_obj_pos = None
-
-    for i, (subject, attributes) in enumerate(set_function.args):
-      for attribute in attributes:
-        if subject == self.client_id.Queue() and attribute.startswith("task:"):
-          if client_request_pos is not None:
-            self.fail("Found multiple request writes, confused.")
-          client_request_pos = i
-        if subject == session_id and attribute == "aff4:type":
-          if flow_obj_pos is not None:
-            self.fail("Found multiple flow obj writes, confused.")
-          flow_obj_pos = i
-
-    if client_request_pos is None:
-      self.fail("Client request write not found.")
-    if flow_obj_pos is None:
-      self.fail("Flow object write not found.")
+    self.assertEqual(len(close_call_times), 1)
+    self.assertEqual(len(qst_call_times), 1)
 
     # Check that the client request was written after the flow was created.
-    self.assertLess(flow_obj_pos, client_request_pos,
+    self.assertLess(close_call_times[0], qst_call_times[0],
                     "The client request was issued before "
                     "the flow was created.")
 

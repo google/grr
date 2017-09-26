@@ -150,7 +150,6 @@ class GRRFuseDatastoreOnly(object):
     """True if and only if the path has the directory bit set in its mode."""
     return stat.S_ISDIR(int(self.getattr(path)["st_mode"]))
 
-  # pylint: disable=unused-argument
   def Readdir(self, path, fh=None):
     """Reads a directory given by path.
 
@@ -165,6 +164,8 @@ class GRRFuseDatastoreOnly(object):
       FuseOSError: If we try and list a file.
 
     """
+    del fh
+
     # We can't read a path if it's a file.
     if not self._IsDir(path):
       raise fuse.FuseOSError(errno.ENOTDIR)
@@ -201,6 +202,7 @@ class GRRFuseDatastoreOnly(object):
       self.root.Add, returns a path for aff4:/, the root directory, which is not
       the behaviour we want.)
     """
+    del fh
 
     if not path:
       raise fuse.FuseOSError(errno.ENOENT)
@@ -263,6 +265,8 @@ class GRRFuseDatastoreOnly(object):
       object that doesn't support reading.
 
     """
+    del fh
+
     if self._IsDir(path):
       raise fuse.FuseOSError(errno.EISDIR)
 
