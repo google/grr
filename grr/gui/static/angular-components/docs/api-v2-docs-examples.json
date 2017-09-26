@@ -4835,6 +4835,7 @@
                 "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
                 "taskId": "42",
                 "taskTtl": 6,
+                "timestamp": "42000000",
                 "type": "STATUS"
               }
             ]

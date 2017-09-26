@@ -1095,8 +1095,10 @@ class DataStore(object):
     for urn, request_data in sorted(requests.items()):
       request = rdf_flows.RequestState.FromSerializedString(request_data)
       responses = []
-      for _, serialized, _ in response_data.get(urn, []):
-        responses.append(rdf_flows.GrrMessage.FromSerializedString(serialized))
+      for _, serialized, timestamp in response_data.get(urn, []):
+        msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
+        msg.timestamp = timestamp
+        responses.append(msg)
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -1326,14 +1328,16 @@ class DataStore(object):
                                      token=None):
     subject = session_id.Add("state/request:00000000")
 
-    for _, serialized, _ in sorted(
+    for _, serialized, timestamp in sorted(
         self.ResolvePrefix(
             subject,
             self.FLOW_RESPONSE_PREFIX,
             token=token,
             limit=response_limit,
             timestamp=timestamp)):
-      yield rdf_flows.GrrMessage.FromSerializedString(serialized)
+      msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
+      msg.timestamp = timestamp
+      yield msg
 
   # Index handling.
 

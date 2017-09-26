@@ -107,9 +107,9 @@ class ApiListFlowRequestsHandlerRegressionTest(
           client_id=self.client_id,
           token=self.token)
 
-    mock = flow_test_lib.MockClient(self.client_id, None, token=self.token)
-    while mock.Next():
-      pass
+      mock = flow_test_lib.MockClient(self.client_id, None, token=self.token)
+      while mock.Next():
+        pass
 
     replace = {flow_urn.Basename(): "W:ABCDEF"}
 

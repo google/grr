@@ -155,12 +155,7 @@ class ApiRegressionTest(test_lib.GRRBaseTest):
       # replacements include each other and therefore order
       # of replacements affects the result.
       for substr in sorted(replace, key=len, reverse=True):
-        repl = replace[substr]
-
-        if hasattr(substr, "sub"):  # regex
-          content = substr.sub(repl, content)
-        else:
-          content = content.replace(substr, repl)
+        content = content.replace(substr, replace[substr])
 
     return content
 
