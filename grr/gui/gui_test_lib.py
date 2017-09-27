@@ -417,6 +417,12 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     element.click()
 
   @SeleniumAction
+  def MoveMouseTo(self, target):
+    self._WaitForAjaxCompleted()
+    element = self.WaitUntil(self.GetVisibleElement, target)
+    action_chains.ActionChains(self.driver).move_to_element(element).perform()
+
+  @SeleniumAction
   def DoubleClick(self, target):
     # Selenium clicks elements by obtaining their position and then issuing a
     # click action in the middle of this area. This may lead to misclicks when

@@ -390,11 +390,11 @@ class ExportTest(ExportTestBase):
     results = list(converter.Convert(self.metadata, stat, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(
-        results[0].urn,
-        rdfvalue.RDFURN(
-            self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
-                               "Microsoft/Windows/CurrentVersion/Run/Sidebar")))
+    self.assertEqual(results[0].urn,
+                     rdfvalue.RDFURN(
+                         self.client_id.Add(
+                             "registry/HKEY_USERS/S-1-5-20/Software/"
+                             "Microsoft/Windows/CurrentVersion/Run/Sidebar")))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].data, "")
@@ -602,8 +602,8 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[2].anomaly.type, checkresults[1].anomaly[1].type)
     self.assertEqual(results[2].anomaly.symptom,
                      checkresults[1].anomaly[1].symptom)
-    self.assertEqual(results[2].anomaly.anomaly_reference_id,
-                     "\n".join(checkresults[1].anomaly[1].anomaly_reference_id))
+    self.assertEqual(results[2].anomaly.anomaly_reference_id, "\n".join(
+        checkresults[1].anomaly[1].anomaly_reference_id))
     self.assertEqual(results[2].anomaly.finding,
                      checkresults[1].anomaly[1].finding[0])
 
@@ -863,6 +863,19 @@ class ExportTest(ExportTestBase):
     self.assertEqual(exported_bytes[0].data, data)
     self.assertEqual(exported_bytes[0].length, 6)
 
+  def testRDFStringConverter(self):
+    data = rdfvalue.RDFString("foobar")
+
+    converters = export.ExportConverter.GetConvertersByValue(data)
+    self.assertTrue(converters)
+    for converter in converters:
+      converted_data = list(converter().Convert(
+          self.metadata, data, token=self.token))
+      self.assertEqual(len(converted_data), 1)
+      for converted in converted_data:
+        self.assertIsInstance(converted, export.ExportedString)
+        self.assertEqual(converted.data, str(data))
+
   def testGrrMessageConverter(self):
     payload = DummyRDFValue4(
         "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
@@ -1074,8 +1087,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
         found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),
-        downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="foo", pathtype="OS")))
+        downloaded_file=rdf_client.StatEntry(
+            pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS")))
 
     converter = export.ArtifactFilesDownloaderResultConverter()
     converted = list(converter.Convert(self.metadata, result, token=self.token))

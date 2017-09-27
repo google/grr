@@ -161,6 +161,13 @@ class ExportedBytes(rdf_structs.RDFProtoStruct):
   ]
 
 
+class ExportedString(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedString
+  rdf_deps = [
+      ExportedMetadata,
+  ]
+
+
 class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedArtifactFilesDownloaderResult
   rdf_deps = [
@@ -309,12 +316,11 @@ class DataAgnosticExportConverter(ExportConverter):
         if hasattr(self, desc.name) and value_to_flatten.HasField(desc.name):
           setattr(self, desc.name, getattr(value_to_flatten, desc.name))
 
-    output_class = type(
-        self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
-        dict(Flatten=Flatten))
+    descriptors = []
+    enums = {}
 
     # Metadata is always the first field of exported data.
-    output_class.AddDescriptor(
+    descriptors.append(
         rdf_structs.ProtoEmbedded(
             name="metadata", field_number=1, nested=ExportedMetadata))
 
@@ -331,24 +337,36 @@ class DataAgnosticExportConverter(ExportConverter):
                            rdf_structs.ProtoUnsignedInteger,
                            rdf_structs.ProtoRDFValue, rdf_structs.ProtoEnum)):
         # Incrementing field number by 1, as 1 is always occuppied by metadata.
-        output_class.AddDescriptor(desc.Copy(field_number=number + 1))
+        descriptors.append(desc.Copy(field_number=number + 1))
 
       if (isinstance(desc, rdf_structs.ProtoEnum) and
           not isinstance(desc, rdf_structs.ProtoBoolean)):
         # Attach the enum container to the class for easy reference:
-        setattr(output_class, desc.enum_name, desc.enum_container)
+        enums[desc.enum_name] = desc.enum_container
+
+    # Create the class as late as possible. This will modify a
+    # metaclass registry, we need to make sure there are no problems.
+    output_class = type(
+        self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
+        dict(Flatten=Flatten))
+
+    for descriptor in descriptors:
+      output_class.AddDescriptor(descriptor)
+
+    for name, container in enums.iteritems():
+      setattr(output_class, name, container)
 
     return output_class
 
   def Convert(self, metadata, value, token=None):
     class_name = self.ExportedClassNameForValue(value)
     try:
-      class_obj = DataAgnosticExportConverter.classes_cache[class_name]
+      cls = DataAgnosticExportConverter.classes_cache[class_name]
     except KeyError:
-      class_obj = self.MakeFlatRDFClass(value)
-      DataAgnosticExportConverter.classes_cache[class_name] = class_obj
+      cls = self.MakeFlatRDFClass(value)
+      DataAgnosticExportConverter.classes_cache[class_name] = cls
 
-    result_obj = class_obj()
+    result_obj = cls()
     result_obj.Flatten(metadata, value)
     yield result_obj
 
@@ -942,6 +960,14 @@ class RDFBytesToExportedBytesConverter(ExportConverter):
     result = ExportedBytes(
         metadata=metadata, data=data.SerializeToString(), length=len(data))
     return [result]
+
+
+class RDFStringToExportedStringConverter(ExportConverter):
+
+  input_rdf_type = "RDFString"
+
+  def Convert(self, metadata, data, token=None):
+    return [ExportedString(data=data.SerializeToString())]
 
 
 class GrrMessageConverter(ExportConverter):

@@ -353,6 +353,11 @@ message ExportedBytes {
   optional uint64 length = 3;
 }
 
+message ExportedString {
+  optional ExportedMetadata metadata = 1;
+
+  optional string data = 2;
+}
 
 // Next field id: 6
 message ExportedArtifactFilesDownloaderResult {

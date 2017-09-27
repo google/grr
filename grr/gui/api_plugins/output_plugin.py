@@ -64,6 +64,12 @@ class ApiListOutputPluginDescriptorsHandler(
     items = []
     for name in sorted(base_class.classes.keys()):
       cls = base_class.classes[name]
+      # While technically a valid plugin, UnknownOutputPlugin is only used as
+      # a placeholder when unserializing old and now-deleted output plugins.
+      # No need to display it in the UI.
+      if cls == output_plugin.UnknownOutputPlugin:
+        continue
+
       if cls.description:
         items.append(ApiOutputPluginDescriptor().InitFromOutputPluginClass(cls))
 

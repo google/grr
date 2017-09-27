@@ -94,13 +94,13 @@ describe('semantic versioned proto directive', function() {
 
   it('adds history button to 1st-level field', function() {
     var element = renderTestTemplate(oneLevelValue, function() {}, 1);
-    expect(element.find('td.proto_history button').length).toBe(1);
+    expect(element.find('.proto_history button').length).toBe(1);
   });
 
   it('passes a correct field path for a 1st-level field', function() {
     var callback = jasmine.createSpy();
     var element = renderTestTemplate(oneLevelValue, callback, 1);
-    browserTrigger(element.find('td.proto_history button'), 'click');
+    browserTrigger(element.find('.proto_history button'), 'click');
 
     expect(callback.calls.count()).toBe(1);
     expect(callback.calls.first().args).toEqual(['foo']);
@@ -108,14 +108,14 @@ describe('semantic versioned proto directive', function() {
 
   it('adds history button to 2nd-level field', function() {
     var element = renderTestTemplate(twoLevelValue, function() {}, 2);
-    expect(element.find('td.proto_value td.proto_history button').length).toBe(1);
+    expect(element.find('td.proto_value .proto_history button').length).toBe(1);
   });
 
 
   it('passes a correct field path for a 2nd-level field', function() {
     var callback = jasmine.createSpy();
     var element = renderTestTemplate(twoLevelValue, callback, 2);
-    browserTrigger(element.find('td.proto_value td.proto_history button'), 'click');
+    browserTrigger(element.find('td.proto_value .proto_history button'), 'click');
 
     expect(callback.calls.count()).toBe(1);
     expect(callback.calls.first().args).toEqual(['field.foo']);
@@ -123,6 +123,6 @@ describe('semantic versioned proto directive', function() {
 
   it('does not add history button outside history-depth', function() {
     var element = renderTestTemplate(twoLevelValue, function() {}, 1);
-    expect(element.find('td.proto_value td.proto_history button').length).toBe(0);
+    expect(element.find('td.proto_value .proto_history button').length).toBe(0);
   });
 });

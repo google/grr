@@ -119,8 +119,10 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
     self.Click("css=label:contains('Full details')")
 
+    self.MoveMouseTo("css=tr:contains('Os info') tr:contains('Node') "
+                     "td.proto_key")
     self.Click("css=tr:contains('Os info') tr:contains('Node') "
-               "td.proto_history button")
+               ".proto_history button")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=h4:contains('os_info.node history')")
