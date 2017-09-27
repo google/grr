@@ -192,3 +192,11 @@ grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs").GetFilesArchive().WriteToFile("./all_client_files.zip")' \
   http://localhost:1234
 ```
+
+Print all results of a particular flow in a text-protobuf format:
+
+```
+grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
+  --exec_code 'for r in grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").ListResults(): print str(r.payload)' \
+  http://localhost:1234
+```
