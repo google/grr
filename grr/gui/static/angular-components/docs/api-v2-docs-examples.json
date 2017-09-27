@@ -1233,6 +1233,9 @@
         "flowName": "GetFile",
         "huntId": "H:123456",
         "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -1310,6 +1313,9 @@
         "flowName": "GetFile",
         "huntId": "H:123456",
         "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -1385,6 +1391,9 @@
         "flowName": "GetFile",
         "huntId": "H:123456",
         "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
           "clientRate": 0.0,
           "clientRuleSet": {
             "rules": [
@@ -5939,6 +5948,9 @@
         "flowName": "GetFile",
         "huntId": "H:123456",
         "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
           "clientLimit": "142",
           "clientRate": 0.0,
           "clientRuleSet": {
@@ -6007,6 +6019,9 @@
         "flowName": "GetFile",
         "huntId": "H:123456",
         "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
           "clientLimit": "142",
           "clientRate": 0.0,
           "clientRuleSet": {

@@ -28,6 +28,8 @@ from grr.server import output_plugin
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import administrative
 from grr.server.flows.general import file_finder
+from grr.server.flows.general import processes
+from grr.server.flows.general import processes_test
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import process_results
@@ -160,16 +162,17 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     # Only initialize default flow_args value if default flow_runner_args value
     # is to be used.
     if not flow_runner_args:
-      flow_args = (flow_args or
-                   transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-                       path="/tmp/evil.txt",
-                       pathtype=rdf_paths.PathSpec.PathType.OS)))
+      flow_args = (
+          flow_args or transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+              path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)))
 
-    flow_runner_args = (flow_runner_args or rdf_flows.FlowRunnerArgs(
-        flow_name=transfer.GetFile.__name__))
+    flow_runner_args = (
+        flow_runner_args or
+        rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
 
-    client_rule_set = (client_rule_set or rdf_foreman.ForemanClientRuleSet(
-        rules=[
+    client_rule_set = (
+        client_rule_set or
+        rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
@@ -1008,6 +1011,135 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
     self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
+
+  def testHuntIsStoppedIfAveragePerClientResultsCountTooHigh(self):
+    with utils.Stubber(implementation.GRRHunt,
+                       "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
+
+      flow_args = processes.ListProcessesArgs()
+      flow_runner_args = rdf_flows.FlowRunnerArgs(
+          flow_name=processes.ListProcesses.__name__)
+
+      hunt_urn = self.StartHunt(
+          flow_args=flow_args,
+          flow_runner_args=flow_runner_args,
+          avg_results_per_client_limit=1,
+          token=self.token)
+
+      def RunOnClients(client_ids, num_processes):
+        client_mock = processes_test.ListProcessesMock(
+            [rdf_client.Process(pid=1, exe="a.exe")] * num_processes)
+        self.AssignTasksToClients(client_ids)
+        hunt_test_lib.TestHuntHelper(
+            client_mock, client_ids, check_flow_errors=False, token=self.token)
+
+      def CheckState(expected_state, expected_results_count):
+        hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+        self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), expected_state)
+        self.assertEqual(hunt_obj.context.results_count, expected_results_count)
+
+      RunOnClients(self.client_ids[:2], 1)
+      # Hunt should still be running: we got 1 response from 2 clients. We need
+      # at least 3 clients to start calculating the average.
+      CheckState("STARTED", 2)
+
+      RunOnClients([self.client_ids[2]], 2)
+      # Hunt should still be running: we got 1 response for first 2 clients and
+      # 2 responses for the third. This is over the limit but we need at least 4
+      # clients to start applying thresholds.
+      CheckState("STARTED", 4)
+
+      RunOnClients([self.client_ids[3]], 0)
+      # Hunt should still be running: we got 1 response for first 2 clients,
+      # 2 responses for the third and zero for the 4th. This makes it 1 result
+      # per client on average. This is within the limit of 1.
+      CheckState("STARTED", 4)
+
+      RunOnClients([self.client_ids[4]], 2)
+      # Hunt should be terminated: 5 clients did run and we got 6 results.
+      # That's more than the allowed average of 1.
+      CheckState("STOPPED", 6)
+
+  def testHuntIsStoppedIfAveragePerClientCpuUsageTooHigh(self):
+    with utils.Stubber(implementation.GRRHunt,
+                       "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
+      hunt_urn = self.StartHunt(
+          avg_cpu_seconds_per_client_limit=3, token=self.token)
+
+      def RunOnClients(client_ids, user_cpu_time, system_cpu_time):
+        self.AssignTasksToClients(client_ids)
+        self.RunHunt(
+            client_ids=client_ids,
+            user_cpu_time=user_cpu_time,
+            system_cpu_time=system_cpu_time)
+
+      def CheckState(expected_state, expected_user_cpu, expected_system_cpu):
+        hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+        self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), expected_state)
+        self.assertEqual(
+            hunt_obj.context.client_resources.cpu_usage.user_cpu_time,
+            expected_user_cpu)
+        self.assertEqual(
+            hunt_obj.context.client_resources.cpu_usage.system_cpu_time,
+            expected_system_cpu)
+
+      RunOnClients(self.client_ids[:2], 1, 2)
+      # Hunt should still be running: we need at least 3 clients to start
+      # calculating the average.
+      CheckState("STARTED", 2, 4)
+
+      RunOnClients([self.client_ids[2]], 2, 4)
+      # Hunt should still be running: even though the average is higher than the
+      # limit, number of clients is not enough.
+      CheckState("STARTED", 4, 8)
+
+      RunOnClients([self.client_ids[3]], 0, 0)
+      # Hunt should still be running: we got 4 clients, which is enough to check
+      # average per-client CPU usage. But 4 user cpu + 8 system cpu seconds for
+      # 4 clients make an average of 3 seconds per client - this is within the
+      # limit.
+      CheckState("STARTED", 4, 8)
+
+      RunOnClients([self.client_ids[4]], 2, 4)
+      # Hunt should be terminated: the average is exceeded.
+      CheckState("STOPPED", 6, 12)
+
+  def testHuntIsStoppedIfAveragePerClientNetworkUsageTooHigh(self):
+    with utils.Stubber(implementation.GRRHunt,
+                       "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
+      hunt_urn = self.StartHunt(
+          avg_network_bytes_per_client_limit=1, token=self.token)
+
+      def RunOnClients(client_ids, network_bytes_sent):
+        self.AssignTasksToClients(client_ids)
+        self.RunHunt(
+            client_ids=client_ids, network_bytes_sent=network_bytes_sent)
+
+      def CheckState(expected_state, expected_network_bytes_sent):
+        hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+        self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), expected_state)
+        self.assertEqual(hunt_obj.context.network_bytes_sent,
+                         expected_network_bytes_sent)
+
+      RunOnClients(self.client_ids[:2], 1)
+      # Hunt should still be running: we need at least 3 clients to start
+      # calculating the average.
+      CheckState("STARTED", 2)
+
+      RunOnClients([self.client_ids[2]], 2)
+      # Hunt should still be running: even though the average is higher than the
+      # limit, number of clients is not enough.
+      CheckState("STARTED", 4)
+
+      RunOnClients([self.client_ids[3]], 0)
+      # Hunt should still be running: we got 4 clients, which is enough to check
+      # average per-client network bytes usage, but 4 bytes for 4 clients is
+      # within the limit of 1 byte per client on average.
+      CheckState("STARTED", 4)
+
+      RunOnClients([self.client_ids[4]], 2)
+      # Hunt should be terminated: the limit is exceeded.
+      CheckState("STOPPED", 6)
 
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""

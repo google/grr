@@ -80,7 +80,7 @@ message FlowContext {
 }
 
 // The hunt context.
-// Next field: 15
+// Next field: 16
 message HuntContext {
   optional ClientResources client_resources = 1;
   optional uint64 create_time = 2 [(sem_type) = {
@@ -107,6 +107,7 @@ message HuntContext {
   optional ClientResourcesStats usage_stats = 12;
   optional uint64 clients_with_results_count = 13;
   optional uint64 results_count = 14;
+  optional uint64 completed_clients_count = 15;
 }
 
 // This is the user's access token.
@@ -321,7 +322,7 @@ message FlowRunnerArgs {
     }];
 }
 
-// Next field ID: 27
+// Next field ID: 30
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
       description: "The name of the class implementing the hunt to run.",
@@ -379,6 +380,33 @@ message HuntRunnerArgs {
       description: "Maximum number of clients that are allowed to crash "
       "before the hunt is automatically stopped.",
       friendly_name: "Crash Limit",
+    }];
+
+  optional uint64 avg_results_per_client_limit = 27 [(sem_type) = {
+      description: "If the average number of results per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+      label: ADVANCED,
+      friendly_name: "Average Results-per-Client Limit"
+    }];
+
+  optional uint64 avg_cpu_seconds_per_client_limit = 28 [(sem_type) = {
+      description: "If the average CPU usage seconds per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+      label: ADVANCED,
+      friendly_name: "Average CPU-Usage-per-Client Limit (seconds)"
+    }];
+
+  optional uint64 avg_network_bytes_per_client_limit = 29 [(sem_type) = {
+      description: "If the average network usage per client becomes "
+      "greater than this limit, the hunt will be automatically stopped. The "
+      "average is calculated only after 1000 clients report back to the "
+      "hunt.",
+      label: ADVANCED,
+      friendly_name: "Average Network-Usage-per-Client Limit (bytes)"
     }];
 
   optional uint64 expiry_time = 11 [(sem_type) = {

@@ -11,11 +11,20 @@ from grr.test_lib import worker_test_lib
 class SampleHuntMock(object):
   """Client mock for sample hunts."""
 
-  def __init__(self, failrate=2, data="Hello World!"):
+  def __init__(self,
+               failrate=2,
+               data="Hello World!",
+               user_cpu_time=None,
+               system_cpu_time=None,
+               network_bytes_sent=None):
     self.responses = 0
     self.data = data
     self.failrate = failrate
     self.count = 0
+
+    self.user_cpu_time = user_cpu_time
+    self.system_cpu_time = system_cpu_time
+    self.network_bytes_sent = network_bytes_sent
 
   def StatFile(self, args):
     """StatFile action mock."""
@@ -39,9 +48,20 @@ class SampleHuntMock(object):
 
     # Create status message to report sample resource usage
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    status.cpu_time_used.user_cpu_time = self.responses
-    status.cpu_time_used.system_cpu_time = self.responses * 2
-    status.network_bytes_sent = self.responses * 3
+    if self.user_cpu_time is None:
+      status.cpu_time_used.user_cpu_time = self.responses
+    else:
+      status.cpu_time_used.user_cpu_time = self.user_cpu_time
+
+    if self.system_cpu_time is None:
+      status.cpu_time_used.system_cpu_time = self.responses * 2
+    else:
+      status.cpu_time_used.system_cpu_time = self.system_cpu_time
+
+    if self.network_bytes_sent is None:
+      status.network_bytes_sent = self.responses * 3
+    else:
+      status.network_bytes_sent = self.network_bytes_sent
 
     # Every "failrate" client does not have this file.
     if self.count == self.failrate:

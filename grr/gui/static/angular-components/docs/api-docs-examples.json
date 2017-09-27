@@ -372,6 +372,9 @@
             }
           },
           "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
             "client_rule_set": {
               "rules": [
                 {
@@ -441,6 +444,21 @@
                 "age": 0,
                 "type": "HuntRunnerArgs",
                 "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
                   "client_rule_set": {
                     "age": 0,
                     "type": "ForemanClientRuleSet",
@@ -544,6 +562,9 @@
             }
           },
           "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
             "client_rule_set": {
               "rules": [
                 {
@@ -3904,6 +3925,21 @@
             "age": 0,
             "type": "HuntRunnerArgs",
             "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 1000
+              },
               "client_rate": {
                 "age": 0,
                 "type": "float",
@@ -4089,6 +4125,9 @@
         "flow_name": "GetFile",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -4258,6 +4297,21 @@
             "age": 0,
             "type": "HuntRunnerArgs",
             "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 1000
+              },
               "client_rate": {
                 "age": 0,
                 "type": "float",
@@ -4433,6 +4487,9 @@
         "flow_name": "GetFile",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -4600,6 +4657,21 @@
             "age": 0,
             "type": "HuntRunnerArgs",
             "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 1000
+              },
               "client_rate": {
                 "age": 0,
                 "type": "float",
@@ -4736,6 +4808,9 @@
         "flow_name": "GetFile",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -16264,6 +16339,21 @@
             "age": 0,
             "type": "HuntRunnerArgs",
             "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 1000
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -16405,6 +16495,9 @@
         "flow_name": "GetFile",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
           "client_limit": 142,
           "client_rate": 0.0,
           "client_rule_set": {
@@ -16565,6 +16658,21 @@
             "age": 0,
             "type": "HuntRunnerArgs",
             "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 1000
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -16706,6 +16814,9 @@
         "flow_name": "GetFile",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
           "client_limit": 142,
           "client_rate": 0.0,
           "client_rule_set": {

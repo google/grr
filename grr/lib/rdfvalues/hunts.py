@@ -76,8 +76,21 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, **kwargs):
     super(HuntRunnerArgs, self).__init__(initializer=initializer, **kwargs)
 
-    if initializer is None and not self.HasField("crash_limit"):
-      self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
+    if initializer is None:
+      if not self.HasField("crash_limit"):
+        self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
+
+      if not self.HasField("avg_results_per_client_limit"):
+        self.avg_results_per_client_limit = config.CONFIG[
+            "Hunt.default_avg_results_per_client_limit"]
+
+      if not self.HasField("avg_cpu_seconds_per_client_limit"):
+        self.avg_cpu_seconds_per_client_limit = config.CONFIG[
+            "Hunt.default_avg_cpu_seconds_per_client_limit"]
+
+      if not self.HasField("avg_network_bytes_per_client_limit"):
+        self.avg_network_bytes_per_client_limit = config.CONFIG[
+            "Hunt.default_avg_network_bytes_per_client_limit"]
 
   def Validate(self):
     if self.HasField("client_rule_set"):

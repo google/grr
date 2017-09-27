@@ -844,6 +844,8 @@ class HuntRunner(object):
 class GRRHunt(flow.FlowBase):
   """The GRR Hunt class."""
 
+  MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
+
   class SchemaCls(flow.FlowBase.SchemaCls):
     """The schema for hunts.
 
@@ -1252,6 +1254,53 @@ class GRRHunt(flow.FlowBase):
     """A shortcut method for stopping the hunt."""
     self.GetRunner().Stop(reason=reason)
 
+  def StopHuntIfAverageLimitsExceeded(self):
+    if (self.context.completed_clients_count <
+        self.MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS):
+      return
+
+    # Check average per-client results count limit.
+    if self.runner_args.avg_results_per_client_limit:
+      avg_results_per_client = (self.context.results_count / float(
+          self.context.completed_clients_count))
+      if (avg_results_per_client >
+          self.runner_args.avg_results_per_client_limit):
+        # Stop the hunt since we get too many results per client.
+        reason = ("Hunt %s reached the average results per client "
+                  "limit of %d and was stopped.") % (
+                      self.urn.Basename(),
+                      self.runner_args.avg_results_per_client_limit)
+        self.Stop(reason=reason)
+
+    # Check average per-client CPU seconds limit.
+    if self.runner_args.avg_cpu_seconds_per_client_limit:
+      avg_cpu_seconds_per_client = (
+          (self.context.client_resources.cpu_usage.user_cpu_time +
+           self.context.client_resources.cpu_usage.system_cpu_time) / float(
+               self.context.completed_clients_count))
+      if (avg_cpu_seconds_per_client >
+          self.runner_args.avg_cpu_seconds_per_client_limit):
+        # Stop the hunt since we use too many CPUs per client.
+        reason = ("Hunt %s reached the average CPU seconds per client "
+                  "limit of %d and was stopped.") % (
+                      self.urn.Basename(),
+                      self.runner_args.avg_cpu_seconds_per_client_limit)
+        self.Stop(reason=reason)
+
+    # Check average per-client network bytes limit.
+    if self.runner_args.avg_network_bytes_per_client_limit:
+      avg_network_bytes_per_client = (self.context.network_bytes_sent / float(
+          self.context.completed_clients_count))
+      if (avg_network_bytes_per_client >
+          self.runner_args.avg_network_bytes_per_client_limit):
+        # Stop the hunt since we use too many network bytes sent
+        # per client.
+        reason = ("Hunt %s reached the average network bytes per client "
+                  "limit of %d and was stopped.") % (
+                      self.urn.Basename(),
+                      self.runner_args.avg_network_bytes_per_client_limit)
+        self.Stop(reason=reason)
+
   def AddResultsToCollection(self, responses, client_id):
     if responses.success:
       with self.lock:
@@ -1271,10 +1320,13 @@ class GRRHunt(flow.FlowBase):
             multi_type_collection.MultiTypeCollection.StaticAdd(
                 self.multi_type_output_urn, msg, mutation_pool=pool)
 
+        self.context.completed_clients_count += 1
         if responses:
           self.RegisterClientWithResults(client_id)
           self.context.clients_with_results_count += 1
           self.context.results_count += len(responses)
+
+        self.StopHuntIfAverageLimitsExceeded()
 
         # Update stats.
         stats.STATS.IncrementCounter("hunt_results_added", delta=len(msgs))

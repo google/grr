@@ -259,6 +259,27 @@ config_lib.DEFINE_integer(
     "maximum number of clients that are allowed to crash before the hunt is "
     "automatically hard-stopped.")
 
+config_lib.DEFINE_integer(
+    "Hunt.default_avg_results_per_client_limit",
+    default=1000,
+    help="Default value for HuntRunnerArgs.avg_results_per_client_limit. "
+    "If the average number of results per client is greater than "
+    "avg_results_per_client_limit, the hunt gets stopped.")
+
+config_lib.DEFINE_integer(
+    "Hunt.default_avg_cpu_seconds_per_client_limit",
+    default=60,
+    help="Default value for HuntRunnerArgs.avg_cpu_seconds_per_client_limit. "
+    "If the average CPU usage seconds per client becomes "
+    "greater than this limit, the hunt gets stopped.")
+
+config_lib.DEFINE_integer(
+    "Hunt.default_avg_network_bytes_per_client_limit",
+    default=10 * 1024 * 1024,  # 10Mb
+    help="Default value for HuntRunnerArgs.avg_network_bytes_per_client_limit. "
+    "If the average network usage per client becomes "
+    "greater than this limit, the hunt gets stopped.")
+
 config_lib.DEFINE_bool("Rekall.enabled", False,
                        "If True then Rekall-based flows (AnalyzeClientMemory, "
                        "MemoryCollector, ListVADBinaries) will be enabled in "
