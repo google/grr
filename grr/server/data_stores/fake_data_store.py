@@ -74,7 +74,7 @@ class FakeDataStore(data_store.DataStore):
         return utils.SmartStr(value)
 
   @utils.Synchronized
-  def DeleteSubject(self, subject, sync=False, token=None):
+  def DeleteSubject(self, subject, sync=False):
     _ = sync
     subject = utils.SmartUnicode(subject)
     try:
@@ -86,8 +86,8 @@ class FakeDataStore(data_store.DataStore):
   def ClearTestDB(self):
     self.subjects = {}
 
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
-    return FakeDBSubjectLock(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None):
+    return FakeDBSubjectLock(self, subject, lease_time=lease_time)
 
   @utils.Synchronized
   def Set(self,
@@ -95,7 +95,6 @@ class FakeDataStore(data_store.DataStore):
           attribute,
           value,
           timestamp=None,
-          token=None,
           replace=True,
           sync=True):
     """Set the value into the data store."""
@@ -122,13 +121,12 @@ class FakeDataStore(data_store.DataStore):
                subject,
                values,
                timestamp=None,
-               token=None,
                replace=True,
                sync=True,
                to_delete=None):
     subject = utils.SmartUnicode(subject)
     if to_delete:
-      self.DeleteAttributes(subject, to_delete, sync=sync, token=token)
+      self.DeleteAttributes(subject, to_delete, sync=sync)
 
     for k, seq in values.items():
       for v in seq:
@@ -142,7 +140,6 @@ class FakeDataStore(data_store.DataStore):
             k,
             v,
             timestamp=element_timestamp,
-            token=token,
             replace=replace,
             sync=sync)
 
@@ -152,7 +149,6 @@ class FakeDataStore(data_store.DataStore):
                        attributes,
                        start=None,
                        end=None,
-                       token=None,
                        sync=None):
     _ = sync  # Unimplemented.
     if isinstance(attributes, basestring):
@@ -191,7 +187,6 @@ class FakeDataStore(data_store.DataStore):
                      attributes,
                      after_urn="",
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
@@ -220,12 +215,7 @@ class FakeDataStore(data_store.DataStore):
         yield (s, results)
 
   @utils.Synchronized
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     subject = utils.SmartUnicode(subject)
 
     # Does timestamp represent a range?
@@ -284,7 +274,6 @@ class FakeDataStore(data_store.DataStore):
   def MultiResolvePrefix(self,
                          subjects,
                          attribute_prefix,
-                         token=None,
                          timestamp=None,
                          limit=None):
     unicode_to_orig = {utils.SmartUnicode(s): s for s in subjects}
@@ -292,11 +281,7 @@ class FakeDataStore(data_store.DataStore):
     for unicode_subject, orig_subject in unicode_to_orig.iteritems():
 
       values = self.ResolvePrefix(
-          unicode_subject,
-          attribute_prefix,
-          token=token,
-          timestamp=timestamp,
-          limit=limit)
+          unicode_subject, attribute_prefix, timestamp=timestamp, limit=limit)
 
       if not values:
         continue
@@ -317,11 +302,7 @@ class FakeDataStore(data_store.DataStore):
     pass
 
   @utils.Synchronized
-  def ResolvePrefix(self,
-                    subject,
-                    attribute_prefix,
-                    token=None,
-                    timestamp=None,
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
                     limit=None):
     """Resolve all attributes for a subject starting with a prefix."""
     subject = utils.SmartUnicode(subject)

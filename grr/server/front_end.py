@@ -197,8 +197,8 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = (flow.WellKnownFlow.GetAllWellKnownFlows(
-        token=self.token))
+    self.well_known_flows = (
+        flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token))
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config.CONFIG["Frontend.well_known_flows"]:
@@ -258,7 +258,7 @@ class FrontEndServer(object):
     except communicator.UnknownClientCert:
       # We can not encode messages to the client yet because we do not have the
       # client certificate - return them to the queue so we can try again later.
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         queue_manager.QueueManager(token=self.token).Schedule(tasks, pool)
       raise
 

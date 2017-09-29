@@ -726,18 +726,15 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
       and an action describing the nature of the file change.
     """
     child_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
-        folder_urn, token=token):
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn):
       child_urns.extend(children)
 
     # Get the stats attributes for all clients.
     attribute = aff4.Attribute.GetAttributeByName("stat")
     items = []
     for subject, values in data_store.DB.MultiResolvePrefix(
-        child_urns,
-        attribute.predicate,
-        timestamp=data_store.DB.ALL_TIMESTAMPS,
-        token=token):
+        child_urns, attribute.predicate,
+        timestamp=data_store.DB.ALL_TIMESTAMPS):
       for _, serialized, _ in values:
         stat = rdf_client.StatEntry.FromSerializedString(serialized)
 
@@ -923,8 +920,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     while folders_urns:
       next_urns = set()
-      for _, children in aff4.FACTORY.MultiListChildren(
-          folders_urns, token=token):
+      for _, children in aff4.FACTORY.MultiListChildren(folders_urns):
         for urn in children:
           next_urns.add(urn)
 

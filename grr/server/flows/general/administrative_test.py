@@ -183,9 +183,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Make sure crashes collections are created and written
     # into proper locations. First check the per-client crashes collection.
     client_crashes = sorted(
-        list(
-            aff4_grr.VFSGRRClient.CrashCollectionForCID(
-                self.client_id, token=self.token)),
+        list(aff4_grr.VFSGRRClient.CrashCollectionForCID(self.client_id)),
         key=lambda x: x.timestamp)
 
     self.assertTrue(len(client_crashes) >= 1)
@@ -266,8 +264,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # Make sure crashes collections are created and written
       # into proper locations. First check the per-client crashes collection.
       client_crashes = list(
-          aff4_grr.VFSGRRClient.CrashCollectionForCID(
-              self.client_id, token=self.token))
+          aff4_grr.VFSGRRClient.CrashCollectionForCID(self.client_id))
 
       self.assertEqual(len(client_crashes), 1)
       crash = client_crashes[0]

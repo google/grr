@@ -292,8 +292,8 @@ class FilterCollectionTest(test_lib.GRRBaseTest):
     super(FilterCollectionTest, self).setUp()
 
     self.fd = sequential_collection.GeneralIndexedCollection(
-        rdfvalue.RDFURN("aff4:/tmp/foo/bar"), token=self.token)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+        rdfvalue.RDFURN("aff4:/tmp/foo/bar"))
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(10):
         self.fd.Add(
             rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"),

@@ -55,8 +55,8 @@ class GetFile(flow.GRRFlow):
   CHUNK_SIZE = 512 * 1024
 
   @classmethod
-  def GetDefaultArgs(cls, token=None):
-    _ = token
+  def GetDefaultArgs(cls, username=None):
+    del username
     result = cls.args_type()
     result.pathspec.pathtype = "OS"
 
@@ -100,8 +100,8 @@ class GetFile(flow.GRRFlow):
     self.state.max_chunk_number = (self.state.file_size / self.CHUNK_SIZE) + 1
 
     self.FetchWindow(
-        min(self.WINDOW_SIZE, self.state.max_chunk_number -
-            self.state["current_chunk_number"]))
+        min(self.WINDOW_SIZE,
+            self.state.max_chunk_number - self.state["current_chunk_number"]))
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
@@ -493,10 +493,7 @@ class MultiGetFileMixin(object):
         target_urn = stat_entry.pathspec.AFF4Path(self.client_id)
 
         aff4.FACTORY.Copy(
-            filestore_file_urn,
-            target_urn,
-            update_timestamps=True,
-            token=self.token)
+            filestore_file_urn, target_urn, update_timestamps=True)
 
         with aff4.FACTORY.Open(
             target_urn, mode="rw", token=self.token) as new_fd:

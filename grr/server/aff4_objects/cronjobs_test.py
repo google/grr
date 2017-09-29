@@ -288,8 +288,8 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
 
       random_start_time = random_time_job.Get(
           random_time_job.Schema.CRON_ARGS).start_time
-      self.assertTrue(now < random_start_time <
-                      (now + DummySystemCronJob.frequency))
+      self.assertTrue(
+          now < random_start_time < (now + DummySystemCronJob.frequency))
 
   def testCronJobRunMonitorsRunningFlowState(self):
     cron_manager = cronjobs.CronManager()
@@ -503,8 +503,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
       self.assertFalse(cron_job.IsRunning())
 
       # Check the termination log
-      log_collection = flow.GRRFlow.LogCollectionForFID(
-          flow_urn, token=self.token)
+      log_collection = flow.GRRFlow.LogCollectionForFID(flow_urn)
 
       for line in log_collection:
         if line.urn == flow_urn:

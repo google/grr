@@ -26,8 +26,7 @@ class TestSystemRootSystemDriveFallbackFlow(flow_test_lib.FlowTestsBaseclass):
           artifact_name="WindowsEnvironmentVariableSystemRoot"):
         session_id = s
 
-      output_fd = flow.GRRFlow.ResultCollectionForFID(
-          session_id, token=self.token)
+      output_fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
       self.assertEqual(len(output_fd), 1)
       self.assertEqual(

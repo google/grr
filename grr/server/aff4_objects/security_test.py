@@ -131,8 +131,8 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
 
     approval_id = list(
         aff4.FACTORY.ListChildren(
-            "aff4:/users/test/approvals/client/C.1000000000000000",
-            token=self.token))[0].Basename()
+            "aff4:/users/test/approvals/client/C.1000000000000000"))[
+                0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
     fd = aff4.FACTORY.Open(
@@ -160,8 +160,7 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
 
     approval_id = list(
         aff4.FACTORY.ListChildren(
-            "aff4:/users/test/approvals/cron/CronJobName", token=self.token))[
-                0].Basename()
+            "aff4:/users/test/approvals/cron/CronJobName"))[0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
     fd = aff4.FACTORY.Open(
@@ -189,8 +188,7 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
 
     approval_id = list(
         aff4.FACTORY.ListChildren(
-            "aff4:/users/test/approvals/hunt/H:ABCD1234", token=self.token))[
-                0].Basename()
+            "aff4:/users/test/approvals/hunt/H:ABCD1234"))[0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
     fd = aff4.FACTORY.Open(

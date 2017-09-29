@@ -522,7 +522,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     res = {chunk_number: False for chunk_number in chunk_numbers}
 
-    for metadata in aff4.FACTORY.Stat(index_urns, token=self.token):
+    for metadata in aff4.FACTORY.Stat(index_urns):
       res[index_urns[metadata["urn"]]] = True
 
     return res
@@ -535,7 +535,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     res = {}
 
-    for metadata in aff4.FACTORY.Stat(index_urns, token=self.token):
+    for metadata in aff4.FACTORY.Stat(index_urns):
       res[index_urns[metadata["urn"]]] = metadata
 
     return res
@@ -571,7 +571,7 @@ class LabelSet(aff4.AFF4Object):
 
     self.to_delete = self.to_delete.difference(self.to_set)
 
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.LabelUpdateLabels(
           self.urn, self.to_set, to_delete=self.to_delete)
     self.to_set = set()
@@ -591,7 +591,7 @@ class LabelSet(aff4.AFF4Object):
     # Flush, so that any pending changes are visible.
     if self.to_set or self.to_delete:
       self.Flush()
-    return data_store.DB.LabelFetchAll(self.urn, token=self.token)
+    return data_store.DB.LabelFetchAll(self.urn)
 
 
 class TempMemoryFile(aff4.AFF4MemoryStream):

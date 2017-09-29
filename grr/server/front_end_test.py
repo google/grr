@@ -90,8 +90,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     tasks_on_client_queue = manager.Query(self.client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
-    stored_messages = data_store.DB.ReadResponsesForRequestId(
-        session_id, 1, token=self.token)
+    stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
 
     self.assertEqual(len(stored_messages), len(messages))
 
@@ -134,8 +133,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     tasks_on_client_queue = manager.Query(self.client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
-    stored_messages = data_store.DB.ReadResponsesForRequestId(
-        session_id, 1, token=self.token)
+    stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
 
     self.assertEqual(len(stored_messages), len(messages))
 
@@ -249,8 +247,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
 
     # The well known flow messages should be queued now.
-    responses = data_store.DB.ReadResponsesForRequestId(
-        session_id, 0, token=self.token)
+    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
     self.assertEqual(len(responses), 9)
 
   def testWellKnownFlowsNotifications(self):
@@ -322,8 +319,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
     requests_by_id = {}
 
-    for request, _ in data_store.DB.ReadRequestsAndResponses(
-        session_id, token=self.token):
+    for request, _ in data_store.DB.ReadRequestsAndResponses(session_id):
       requests_by_id[request.id] = request
 
     # Check that the response state objects have the correct ts_id set

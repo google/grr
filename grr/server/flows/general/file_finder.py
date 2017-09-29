@@ -354,8 +354,8 @@ class ClientFileFinder(flow.GRRFlow):
   args_type = rdf_file_finder.FileFinderArgs
 
   @classmethod
-  def GetDefaultArgs(cls, token=None):
-    _ = token
+  def GetDefaultArgs(cls, username=None):
+    del username
     return cls.args_type(paths=[r"c:\windows\**\*.exe"])
 
   @flow.StateHandler()
@@ -396,7 +396,7 @@ class ClientFileFinder(flow.GRRFlow):
       raise flow.FlowError(responses.status)
 
     self.state.files_found = len(responses)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         if response.uploaded_file:
           self._CreateAFF4ObjectForUploadedFile(response.uploaded_file)

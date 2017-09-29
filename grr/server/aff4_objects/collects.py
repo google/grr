@@ -53,7 +53,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
       the URN of the new object written.
     """
     aff4.FACTORY.Delete(urn, token=token)
-    with data_store.DB.GetMutationPool(token=token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       with aff4.FACTORY.Create(
           urn, cls, mode="w", mutation_pool=pool, token=token) as fd:
         for start_of_chunk in xrange(0, len(content), chunk_size):
@@ -83,7 +83,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
     if self.collection is None:
 
       self.collection = grr_collections.SignedBlobCollection(
-          self.urn.Add("collection"), token=self.token)
+          self.urn.Add("collection"))
       self.fd = cStringIO.StringIO()
       self._size = 0
 

@@ -234,7 +234,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
           client_id=self.client_id):
         session_id = s
 
-      fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(session_id)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertTrue(len(fd) == 1)
 
@@ -263,13 +263,13 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
       # Check that we got two separate collections based on artifact name
       fd = collectors.ArtifactCollectorFlow.ResultCollectionForArtifact(
-          session_id, "FakeArtifact", token=self.token)
+          session_id, "FakeArtifact")
 
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertEqual(len(fd), 1)
 
       fd = collectors.ArtifactCollectorFlow.ResultCollectionForArtifact(
-          session_id, "FakeArtifact2", token=self.token)
+          session_id, "FakeArtifact2")
       self.assertEqual(len(fd), 1)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
 
@@ -334,7 +334,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
           session_id = s
 
     # Test the statentry got stored.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     urn = fd[0].pathspec.AFF4Path(self.client_id)
     self.assertTrue(str(urn).endswith("BootExecute"))
@@ -364,7 +364,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
             client_id=self.client_id):
           session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertEqual(fd[0].registry_data.GetValue(), "DefaultValue")
 
@@ -416,7 +416,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    return flow.GRRFlow.ResultCollectionForFID(session_id)
 
 
 def main(argv):

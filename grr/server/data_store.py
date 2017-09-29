@@ -45,6 +45,8 @@ import socket
 import sys
 import time
 
+import psutil
+
 from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -128,8 +130,7 @@ class MutationPool(object):
   not.
   """
 
-  def __init__(self, token=None):
-    self.token = token
+  def __init__(self):
     self.delete_subject_requests = []
     self.set_requests = []
     self.delete_attributes_requests = []
@@ -159,18 +160,11 @@ class MutationPool(object):
 
   def Flush(self):
     """Flushing actually applies all the operations in the pool."""
-    DB.DeleteSubjects(
-        self.delete_subject_requests, token=self.token, sync=False)
+    DB.DeleteSubjects(self.delete_subject_requests, sync=False)
 
     for req in self.delete_attributes_requests:
       subject, attributes, start, end = req
-      DB.DeleteAttributes(
-          subject,
-          attributes,
-          start=start,
-          end=end,
-          token=self.token,
-          sync=False)
+      DB.DeleteAttributes(subject, attributes, start=start, end=end, sync=False)
 
     for req in self.set_requests:
       subject, values, timestamp, replace, to_delete = req
@@ -180,7 +174,6 @@ class MutationPool(object):
           timestamp=timestamp,
           replace=replace,
           to_delete=to_delete,
-          token=self.token,
           sync=False)
 
     if (self.delete_subject_requests or self.delete_attributes_requests or
@@ -188,7 +181,7 @@ class MutationPool(object):
       DB.Flush()
 
     for queue, notifications in self.new_notifications:
-      DB.CreateNotifications(queue, notifications, token=self.token)
+      DB.CreateNotifications(queue, notifications)
     self.new_notifications = []
 
     self.delete_subject_requests = []
@@ -243,9 +236,7 @@ class MutationPool(object):
 
   def CollectionDelete(self, collection_id):
     for subject, _, _ in DB.ScanAttribute(
-        collection_id.Add("Results"),
-        DataStore.COLLECTION_ATTRIBUTE,
-        token=self.token):
+        collection_id.Add("Results"), DataStore.COLLECTION_ATTRIBUTE):
       self.DeleteSubject(subject)
       if self.Size() > 50000:
         self.Flush()
@@ -283,8 +274,7 @@ class MutationPool(object):
         queue_id.Add("Records"),
         [DataStore.COLLECTION_ATTRIBUTE, DataStore.QUEUE_LOCK_ATTRIBUTE],
         max_records=4 * limit,
-        after_urn=after_urn,
-        token=self.token):
+        after_urn=after_urn):
       if DataStore.COLLECTION_ATTRIBUTE not in values:
         # Unlikely case, but could happen if, say, a thread called RefreshClaims
         # so late that another thread already deleted the record. Go ahead and
@@ -368,18 +358,13 @@ class MutationPool(object):
     Returns:
         A list of GrrMessage() objects leased.
     """
-    user = ""
-    if self.token:
-      user = self.token.username
     # Do the real work in a transaction
     try:
-      lock = DB.LockRetryWrapper(
-          queue, lease_time=lease_seconds, token=self.token)
+      lock = DB.LockRetryWrapper(queue, lease_time=lease_seconds)
       return self._QueueQueryAndOwn(
           lock.subject,
           lease_seconds=lease_seconds,
           limit=limit,
-          user=user,
           timestamp=timestamp)
     except DBSubjectLockError:
       # This exception just means that we could not obtain the lock on the queue
@@ -394,7 +379,6 @@ class MutationPool(object):
                         subject,
                         lease_seconds=100,
                         limit=1,
-                        user="",
                         timestamp=None):
     """Business logic helper for QueueQueryAndOwn()."""
     tasks = []
@@ -407,11 +391,11 @@ class MutationPool(object):
     for predicate, task, timestamp in DB.ResolvePrefix(
         subject,
         DataStore.QUEUE_TASK_PREDICATE_PREFIX,
-        timestamp=(0, timestamp or rdfvalue.RDFDatetime.Now()),
-        token=self.token):
+        timestamp=(0, timestamp or rdfvalue.RDFDatetime.Now())):
       task = rdf_flows.GrrMessage.FromSerializedString(task)
       task.eta = timestamp
-      task.last_lease = "%s@%s:%d" % (user, socket.gethostname(), os.getpid())
+      task.last_lease = "%s@%s:%d" % (psutil.Process().name(),
+                                      socket.gethostname(), os.getpid())
       # Decrement the ttl
       task.task_ttl -= 1
       if task.task_ttl <= 0:
@@ -605,20 +589,19 @@ class DataStore(object):
     self.InitializeBlobstore()
 
   @abc.abstractmethod
-  def DeleteSubject(self, subject, sync=False, token=None):
+  def DeleteSubject(self, subject, sync=False):
     """Completely deletes all information about this subject."""
 
-  def DeleteSubjects(self, subjects, sync=False, token=None):
+  def DeleteSubjects(self, subjects, sync=False):
     """Delete multiple subjects at once."""
     for subject in subjects:
-      self.DeleteSubject(subject, sync=sync, token=token)
+      self.DeleteSubject(subject, sync=sync)
 
   def Set(self,
           subject,
           attribute,
           value,
           timestamp=None,
-          token=None,
           replace=True,
           sync=True):
     """Set a single value for this subject's attribute.
@@ -629,7 +612,6 @@ class DataStore(object):
       value: serialized value into one of the supported types.
       timestamp: The timestamp for this entry in microseconds since the
               epoch. If None means now.
-      token: An ACL token.
       replace: Bool whether or not to overwrite current records.
       sync: If true we ensure the new values are committed before returning.
     """
@@ -637,14 +619,12 @@ class DataStore(object):
     self.MultiSet(
         subject, {attribute: [value]},
         timestamp=timestamp,
-        token=token,
         replace=replace,
         sync=sync)
 
   def LockRetryWrapper(self,
                        subject,
                        retrywrap_timeout=1,
-                       token=None,
                        retrywrap_max_timeout=10,
                        blocking=True,
                        lease_time=None):
@@ -653,7 +633,6 @@ class DataStore(object):
     Args:
       subject: The subject which the lock applies to.
       retrywrap_timeout: How long to wait before retrying the lock.
-      token: An ACL token.
       retrywrap_max_timeout: The maximum time to wait for a retry until we
          raise.
       blocking: If False, raise on first lock failure.
@@ -668,7 +647,7 @@ class DataStore(object):
     timeout = 0
     while timeout < retrywrap_max_timeout:
       try:
-        return self.DBSubjectLock(subject, token=token, lease_time=lease_time)
+        return self.DBSubjectLock(subject, lease_time=lease_time)
       except DBSubjectLockError:
         if not blocking:
           raise
@@ -679,7 +658,7 @@ class DataStore(object):
     raise DBSubjectLockError("Retry number exceeded.")
 
   @abc.abstractmethod
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
+  def DBSubjectLock(self, subject, lease_time=None):
     """Returns a DBSubjectLock object for a subject.
 
     This opens a read/write lock to the subject. Any read access to the subject
@@ -695,7 +674,6 @@ class DataStore(object):
           single subject may be locked in a lock.
         lease_time: The minimum amount of time the lock should remain
           alive.
-        token: An ACL token.
 
     Returns:
         A lock object.
@@ -708,8 +686,7 @@ class DataStore(object):
                timestamp=None,
                replace=True,
                sync=True,
-               to_delete=None,
-               token=None):
+               to_delete=None):
     """Set multiple attributes' values for this subject in one operation.
 
     Args:
@@ -722,7 +699,6 @@ class DataStore(object):
       replace: Bool whether or not to overwrite current records.
       sync: If true we block until the operation completes.
       to_delete: An array of attributes to clear prior to setting.
-      token: An ACL token.
     """
 
   def MultiDeleteAttributes(self,
@@ -730,8 +706,7 @@ class DataStore(object):
                             attributes,
                             start=None,
                             end=None,
-                            sync=True,
-                            token=None):
+                            sync=True):
     """Remove all specified attributes from a list of subjects.
 
     Args:
@@ -740,11 +715,10 @@ class DataStore(object):
       start: A timestamp, attributes older than start will not be deleted.
       end: A timestamp, attributes newer than end will not be deleted.
       sync: If true we block until the operation completes.
-      token: An ACL token.
     """
     for subject in subjects:
       self.DeleteAttributes(
-          subject, attributes, start=start, end=end, sync=sync, token=token)
+          subject, attributes, start=start, end=end, sync=sync)
 
   @abc.abstractmethod
   def DeleteAttributes(self,
@@ -752,8 +726,7 @@ class DataStore(object):
                        attributes,
                        start=None,
                        end=None,
-                       sync=True,
-                       token=None):
+                       sync=True):
     """Remove all specified attributes.
 
     Args:
@@ -762,10 +735,9 @@ class DataStore(object):
       start: A timestamp, attributes older than start will not be deleted.
       end: A timestamp, attributes newer than end will not be deleted.
       sync: If true we block until the operation completes.
-      token: An ACL token.
     """
 
-  def Resolve(self, subject, attribute, token=None):
+  def Resolve(self, subject, attribute):
     """Retrieve a value set for a subject's attribute.
 
     This method is easy to use but always gets the latest version of the
@@ -775,7 +747,6 @@ class DataStore(object):
     Args:
       subject: The subject URN.
       attribute: The attribute.
-      token: An ACL token.
 
     Returns:
       A (value, timestamp in microseconds) stored in the datastore cell, or
@@ -785,7 +756,7 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, value, timestamp in self.ResolveMulti(
-        subject, [attribute], token=token, timestamp=self.NEWEST_TIMESTAMP):
+        subject, [attribute], timestamp=self.NEWEST_TIMESTAMP):
 
       # Just return the first one.
       return value, timestamp
@@ -797,8 +768,7 @@ class DataStore(object):
                          subjects,
                          attribute_prefix,
                          timestamp=None,
-                         limit=None,
-                         token=None):
+                         limit=None):
     """Generate a set of values matching for subjects' attribute.
 
     This method provides backwards compatibility for the old method of
@@ -814,7 +784,6 @@ class DataStore(object):
           NEWEST_TIMESTAMP or a tuple of ints (start, end). Inclusive of both
           lower and upper bounds.
       limit: The total number of result values to return.
-      token: An ACL token.
 
     Returns:
        A dict keyed by subjects, with values being a list of (attribute, value
@@ -828,12 +797,8 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
 
-  def ResolvePrefix(self,
-                    subject,
-                    attribute_prefix,
-                    timestamp=None,
-                    limit=None,
-                    token=None):
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
+                    limit=None):
     """Retrieve a set of value matching for this subject's attribute.
 
     Args:
@@ -845,7 +810,6 @@ class DataStore(object):
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
       limit: The number of results to fetch.
-      token: An ACL token.
 
     Returns:
        A list of (attribute, value string, timestamp).
@@ -858,22 +822,13 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, values in self.MultiResolvePrefix(
-        [subject],
-        attribute_prefix,
-        timestamp=timestamp,
-        token=token,
-        limit=limit):
+        [subject], attribute_prefix, timestamp=timestamp, limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 
     return []
 
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """Resolve multiple attributes for a subject.
 
     Results may be in unsorted order.
@@ -886,7 +841,6 @@ class DataStore(object):
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
       limit: The maximum total number of results we return.
-      token: The security token used in this call.
     """
 
   def ResolveRow(self, subject, **kw):
@@ -931,7 +885,6 @@ class DataStore(object):
                      attributes,
                      after_urn=None,
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     """Scan for values of multiple attributes across a range of rows.
 
@@ -949,8 +902,6 @@ class DataStore(object):
 
       max_records: The maximum number of records to scan.
 
-      token: The security token to authenticate with.
-
       relaxed_order: By default, ScanAttribute yields results in lexographic
         order. If this is set, a datastore may yield results in a more
         convenient order. For certain datastores this might greatly increase
@@ -967,13 +918,11 @@ class DataStore(object):
                     attribute,
                     after_urn=None,
                     max_records=None,
-                    token=None,
                     relaxed_order=False):
     for s, r in self.ScanAttributes(
         subject_prefix, [attribute],
         after_urn=after_urn,
         max_records=max_records,
-        token=token,
         relaxed_order=relaxed_order):
       ts, v = r[attribute]
       yield (s, ts, v)
@@ -1002,36 +951,30 @@ class DataStore(object):
   def DeleteBlobs(self, identifiers, token=None):
     return self.blobstore.DeleteBlobs(identifiers, token=token)
 
-  def GetMutationPool(self, token=None):
-    return self.mutation_pool_cls(token=token)
+  def GetMutationPool(self):
+    return self.mutation_pool_cls()
 
-  def CreateNotifications(self, queue_shard, notifications, token=None):
+  def CreateNotifications(self, queue_shard, notifications):
     values = {}
     for notification in notifications:
       values[self.NOTIFY_PREDICATE_TEMPLATE % notification.session_id] = [
           (notification.SerializeToString(), notification.timestamp)
       ]
-    self.MultiSet(queue_shard, values, replace=False, sync=True, token=token)
+    self.MultiSet(queue_shard, values, replace=False, sync=True)
 
-  def DeleteNotifications(self,
-                          queue_shards,
-                          session_ids,
-                          start,
-                          end,
-                          token=None):
+  def DeleteNotifications(self, queue_shards, session_ids, start, end):
     attributes = [
         self.NOTIFY_PREDICATE_TEMPLATE % session_id
         for session_id in session_ids
     ]
     self.MultiDeleteAttributes(
-        queue_shards, attributes, start=start, end=end, sync=True, token=token)
+        queue_shards, attributes, start=start, end=end, sync=True)
 
-  def GetNotifications(self, queue_shard, end, limit=10000, token=None):
+  def GetNotifications(self, queue_shard, end, limit=10000):
     for predicate, serialized_notification, ts in self.ResolvePrefix(
         queue_shard,
         self.NOTIFY_PREDICATE_PREFIX,
         timestamp=(0, end),
-        token=token,
         limit=limit):
       try:
         # Parse the notification.
@@ -1043,7 +986,6 @@ class DataStore(object):
         self.DeleteAttributes(
             queue_shard,
             [predicate],
-            token=token,
             # Make the time range narrow, but be sure to include the needed
             # notification.
             start=ts,
@@ -1066,8 +1008,7 @@ class DataStore(object):
                                session_id,
                                timestamp=None,
                                request_limit=None,
-                               response_limit=None,
-                               token=None):
+                               response_limit=None):
     """Fetches all Requests and Responses for a given session_id."""
     subject = session_id.Add("state")
     requests = {}
@@ -1076,7 +1017,6 @@ class DataStore(object):
     for predicate, serialized, _ in self.ResolvePrefix(
         subject,
         self.FLOW_REQUEST_PREFIX,
-        token=token,
         limit=request_limit,
         timestamp=timestamp):
 
@@ -1089,7 +1029,6 @@ class DataStore(object):
             requests.keys(),
             self.FLOW_RESPONSE_PREFIX,
             limit=response_limit,
-            token=token,
             timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
@@ -1102,11 +1041,7 @@ class DataStore(object):
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
-  def ReadCompletedRequests(self,
-                            session_id,
-                            timestamp=None,
-                            limit=None,
-                            token=None):
+  def ReadCompletedRequests(self, session_id, timestamp=None, limit=None):
     """Fetches all the requests with a status message queued for them."""
     subject = session_id.Add("state")
     requests = {}
@@ -1114,7 +1049,6 @@ class DataStore(object):
 
     for predicate, serialized, _ in self.ResolvePrefix(
         subject, [self.FLOW_REQUEST_PREFIX, self.FLOW_STATUS_PREFIX],
-        token=token,
         limit=limit,
         timestamp=timestamp):
 
@@ -1130,34 +1064,27 @@ class DataStore(object):
         yield (rdf_flows.RequestState.FromSerializedString(serialized),
                rdf_flows.GrrMessage.FromSerializedString(status[request_id]))
 
-  def ReadResponsesForRequestId(self,
-                                session_id,
-                                request_id,
-                                timestamp=None,
-                                token=None):
+  def ReadResponsesForRequestId(self, session_id, request_id, timestamp=None):
     """Reads responses for one request.
 
     Args:
       session_id: The session id to use.
       request_id: The id of the request.
       timestamp: A timestamp as used in the data store.
-      token: A data store token.
 
     Yields:
       fetched responses for the request
     """
     request = rdf_flows.RequestState(id=request_id, session_id=session_id)
-    for _, responses in self.ReadResponses(
-        [request], timestamp=timestamp, token=token):
+    for _, responses in self.ReadResponses([request], timestamp=timestamp):
       return responses
 
-  def ReadResponses(self, request_list, timestamp=None, token=None):
+  def ReadResponses(self, request_list, timestamp=None):
     """Reads responses for multiple requests at the same time.
 
     Args:
       request_list: The list of requests the responses should be fetched for.
       timestamp: A timestamp as used in the data store.
-      token: A data store token.
 
     Yields:
       tuples (request, lists of fetched responses for the request)
@@ -1171,10 +1098,7 @@ class DataStore(object):
 
     response_data = dict(
         self.MultiResolvePrefix(
-            response_subjects,
-            self.FLOW_RESPONSE_PREFIX,
-            token=token,
-            timestamp=timestamp))
+            response_subjects, self.FLOW_RESPONSE_PREFIX, timestamp=timestamp))
 
     for response_urn, request in sorted(response_subjects.items()):
       responses = []
@@ -1188,8 +1112,7 @@ class DataStore(object):
   def StoreRequestsAndResponses(self,
                                 new_requests=None,
                                 new_responses=None,
-                                requests_to_delete=None,
-                                token=None):
+                                requests_to_delete=None):
     """Stores new flow requests and responses to the data store.
 
     Args:
@@ -1199,7 +1122,6 @@ class DataStore(object):
                      data store.
       requests_to_delete: A list of requests that should be deleted from the
                           data store.
-      token: A data store token.
     """
     to_write = {}
     if new_requests is not None:
@@ -1239,18 +1161,17 @@ class DataStore(object):
           subject,
           to_write.get(subject, {}),
           to_delete=to_delete.get(subject, []),
-          sync=True,
-          token=token)
+          sync=True)
 
-  def CheckRequestsForCompletion(self, requests, token=None):
+  def CheckRequestsForCompletion(self, requests):
     """Checks if there is a status message queued for a number of requests."""
 
     subjects = [r.session_id.Add("state") for r in requests]
 
     statuses_found = {}
 
-    for subject, result in self.MultiResolvePrefix(
-        subjects, self.FLOW_STATUS_PREFIX, token=token):
+    for subject, result in self.MultiResolvePrefix(subjects,
+                                                   self.FLOW_STATUS_PREFIX):
       for predicate, _, _ in result:
         request_nr = int(predicate.split(":")[-1], 16)
         statuses_found.setdefault(subject, set()).add(request_nr)
@@ -1262,28 +1183,27 @@ class DataStore(object):
 
     return status_available
 
-  def DeleteRequest(self, request, token=None):
-    return self.DeleteRequests([request], token=token)
+  def DeleteRequest(self, request):
+    return self.DeleteRequests([request])
 
-  def DeleteRequests(self, requests, token=None):
+  def DeleteRequests(self, requests):
     # Efficiently drop all responses to this request.
     subjects = [
         self.GetFlowResponseSubject(request.session_id, request.id)
         for request in requests
     ]
 
-    self.DeleteSubjects(subjects, sync=True, token=token)
+    self.DeleteSubjects(subjects, sync=True)
 
   def DestroyFlowStates(self, session_id):
     return self.MultiDestroyFlowStates([session_id])
 
-  def MultiDestroyFlowStates(self, session_ids, request_limit=None, token=None):
+  def MultiDestroyFlowStates(self, session_ids, request_limit=None):
     """Deletes all requests and responses for the given flows.
 
     Args:
       session_ids: A lists of flows to destroy.
       request_limit: A limit on the number of requests to delete.
-      token: A data store token.
 
     Returns:
       A list of requests that were deleted.
@@ -1294,7 +1214,7 @@ class DataStore(object):
     deleted_requests = []
 
     for subject, values in self.MultiResolvePrefix(
-        subjects, self.FLOW_REQUEST_PREFIX, token=token, limit=request_limit):
+        subjects, self.FLOW_REQUEST_PREFIX, limit=request_limit):
       for _, serialized, _ in values:
 
         request = rdf_flows.RequestState.FromSerializedString(serialized)
@@ -1309,30 +1229,26 @@ class DataStore(object):
       to_delete.append(subject)
 
     # Drop them all at once.
-    self.DeleteSubjects(to_delete, sync=True, token=token)
+    self.DeleteSubjects(to_delete, sync=True)
     return deleted_requests
 
-  def DeleteWellKnownFlowResponses(self, session_id, responses, token=None):
+  def DeleteWellKnownFlowResponses(self, session_id, responses):
     subject = session_id.Add("state/request:00000000")
     predicates = []
     for response in responses:
       predicates.append(self.FLOW_RESPONSE_TEMPLATE % (response.request_id,
                                                        response.response_id))
 
-    self.DeleteAttributes(subject, predicates, sync=True, start=0, token=token)
+    self.DeleteAttributes(subject, predicates, sync=True, start=0)
 
-  def FetchResponsesForWellKnownFlow(self,
-                                     session_id,
-                                     response_limit,
-                                     timestamp,
-                                     token=None):
+  def FetchResponsesForWellKnownFlow(self, session_id, response_limit,
+                                     timestamp):
     subject = session_id.Add("state/request:00000000")
 
     for _, serialized, timestamp in sorted(
         self.ResolvePrefix(
             subject,
             self.FLOW_RESPONSE_PREFIX,
-            token=token,
             limit=response_limit,
             timestamp=timestamp)):
       msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
@@ -1348,9 +1264,9 @@ class DataStore(object):
   def _KeywordToURN(self, urn, keyword):
     return urn.Add(keyword)
 
-  def IndexAddKeywordsForName(self, index_urn, name, keywords, token=None):
+  def IndexAddKeywordsForName(self, index_urn, name, keywords):
     timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
-    with self.GetMutationPool(token=token) as mutation_pool:
+    with self.GetMutationPool() as mutation_pool:
       for keyword in set(keywords):
         mutation_pool.Set(
             self._KeywordToURN(index_urn, keyword),
@@ -1358,8 +1274,8 @@ class DataStore(object):
             "",
             timestamp=timestamp)
 
-  def IndexRemoveKeywordsForName(self, index_urn, name, keywords, token=None):
-    with self.GetMutationPool(token=token) as mutation_pool:
+  def IndexRemoveKeywordsForName(self, index_urn, name, keywords):
+    with self.GetMutationPool() as mutation_pool:
       for keyword in set(keywords):
         mutation_pool.DeleteAttributes(
             self._KeywordToURN(index_urn, keyword),
@@ -1370,8 +1286,7 @@ class DataStore(object):
                             keywords,
                             start_time,
                             end_time,
-                            last_seen_map=None,
-                            token=None):
+                            last_seen_map=None):
     """Finds all objects associated with any of the keywords.
 
     Args:
@@ -1381,7 +1296,7 @@ class DataStore(object):
       end_time: Only considers keywords at or before this point in time.
       last_seen_map: If present, is treated as a dict and populated to map pairs
         (keyword, name) to the timestamp of the latest connection found.
-      token: A data store token.
+
     Returns:
       A dict mapping each keyword to a set of relevant names.
     """
@@ -1393,8 +1308,7 @@ class DataStore(object):
     for keyword_urn, value in self.MultiResolvePrefix(
         keyword_urns.keys(),
         self._INDEX_PREFIX,
-        timestamp=(start_time, end_time + 1),
-        token=token):
+        timestamp=(start_time, end_time + 1)):
       for column, _, ts in value:
         kw = keyword_urns[keyword_urn]
         name = column[self._INDEX_PREFIX_LEN:]
@@ -1447,8 +1361,7 @@ class DataStore(object):
                           rdf_type,
                           after_timestamp=None,
                           after_suffix=None,
-                          limit=None,
-                          token=None):
+                          limit=None):
     after_urn = None
     if after_timestamp:
       after_urn = utils.SmartStr(
@@ -1461,53 +1374,47 @@ class DataStore(object):
         collection_id.Add("Results"),
         self.COLLECTION_ATTRIBUTE,
         after_urn=after_urn,
-        max_records=limit,
-        token=token):
+        max_records=limit):
       item = rdf_type.FromSerializedString(serialized_rdf_value)
       item.age = timestamp
       # The urn is timestamp.suffix where suffix is 6 hex digits.
       suffix = int(str(subject)[-6:], 16)
       yield (item, timestamp, suffix)
 
-  def CollectionReadIndex(self, collection_id, token=None):
+  def CollectionReadIndex(self, collection_id):
     """Reads all index entries for the given collection.
 
     Args:
       collection_id: ID of the collection for which the indexes should be
                      retrieved.
-      token: Datastore token.
 
     Yields:
       Tuples (index, ts, suffix).
     """
     for (attr, value, ts) in self.ResolvePrefix(
-        collection_id, self.COLLECTION_INDEX_ATTRIBUTE_PREFIX, token=token):
+        collection_id, self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):
       i = int(attr[len(self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):], 16)
       yield (i, ts, int(value, 16))
 
-  def CollectionReadStoredTypes(self, collection_id, token=None):
-    for attribute, _, _ in self.ResolveRow(collection_id, token=token):
+  def CollectionReadStoredTypes(self, collection_id):
+    for attribute, _, _ in self.ResolveRow(collection_id):
       if attribute.startswith(self.COLLECTION_VALUE_TYPE_PREFIX):
         yield attribute[len(self.COLLECTION_VALUE_TYPE_PREFIX):]
 
-  def CollectionReadItems(self, records, token=None):
-    for _, v in self.MultiResolvePrefix(
-        [
-            DataStore.CollectionMakeURN(record.queue_id, record.timestamp,
-                                        record.suffix, record.subpath)[0]
-            for record in records
-        ],
-        DataStore.COLLECTION_ATTRIBUTE,
-        token=token):
+  def CollectionReadItems(self, records):
+    for _, v in self.MultiResolvePrefix([
+        DataStore.CollectionMakeURN(record.queue_id, record.timestamp,
+                                    record.suffix, record.subpath)[0]
+        for record in records
+    ], DataStore.COLLECTION_ATTRIBUTE):
       _, value, timestamp = v[0]
       yield (value, timestamp)
 
-  def QueueMultiQuery(self, queues, token=None):
+  def QueueMultiQuery(self, queues):
     """Retrieves tasks from multiple queues without leasing them.
 
     Args:
       queues: The task queues to query.
-      token: Database access token.
     Returns:
       A dict mapping queue to list of Task() objects.
     """
@@ -1515,7 +1422,7 @@ class DataStore(object):
     prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
 
     for queue, raw_tasks in self.MultiResolvePrefix(
-        queues, prefix, timestamp=DataStore.ALL_TIMESTAMPS, token=token):
+        queues, prefix, timestamp=DataStore.ALL_TIMESTAMPS):
 
       for _, serialized, ts in raw_tasks:
         task = rdf_flows.GrrMessage.FromSerializedString(serialized)
@@ -1528,7 +1435,7 @@ class DataStore(object):
 
     return tasks
 
-  def QueueQueryTasks(self, queue, limit=1, token=None):
+  def QueueQueryTasks(self, queue, limit=1):
     """Retrieves tasks from a queue without leasing them.
 
     This is good for a read only snapshot of the tasks.
@@ -1537,7 +1444,6 @@ class DataStore(object):
       queue: The task queue that this task belongs to, usually client.Queue()
             where client is the ClientURN object you want to schedule msgs on.
       limit: Number of values to fetch.
-      token: Database access token.
     Returns:
       A list of Task() objects.
     """
@@ -1545,7 +1451,7 @@ class DataStore(object):
     all_tasks = []
 
     for _, serialized, ts in self.ResolvePrefix(
-        queue, prefix, timestamp=DataStore.ALL_TIMESTAMPS, token=token):
+        queue, prefix, timestamp=DataStore.ALL_TIMESTAMPS):
       task = rdf_flows.GrrMessage.FromSerializedString(serialized)
       task.eta = ts
       all_tasks.append(task)
@@ -1560,13 +1466,11 @@ class DataStore(object):
                                 metric_name,
                                 metrics_metadata,
                                 timestamp=None,
-                                limit=10000,
-                                token=None):
+                                limit=10000):
     """Reads historical stats data for multiple processes at once."""
     multi_query_results = self.MultiResolvePrefix(
         processes,
         DataStore.STATS_STORE_PREFIX + (metric_name or ""),
-        token=token,
         timestamp=timestamp,
         limit=limit)
 
@@ -1610,14 +1514,14 @@ class DataStore(object):
       results[subject.Basename()] = part_results
     return results
 
-  def LabelFetchAll(self, subject, token=None):
+  def LabelFetchAll(self, subject):
     result = []
-    for attribute, _, _ in self.ResolvePrefix(
-        subject, self.LABEL_ATTRIBUTE_PREFIX, token=token):
+    for attribute, _, _ in self.ResolvePrefix(subject,
+                                              self.LABEL_ATTRIBUTE_PREFIX):
       result.append(attribute[len(self.LABEL_ATTRIBUTE_PREFIX):])
     return sorted(result)
 
-  def FileHashIndexQuery(self, subject, target_prefix, limit=100, token=None):
+  def FileHashIndexQuery(self, subject, target_prefix, limit=100):
     """Search the index for matches starting with target_prefix.
 
     Args:
@@ -1626,7 +1530,6 @@ class DataStore(object):
        target_prefix: The prefix to match against the index.
        limit: Either a tuple of (start, limit) or a maximum number of results to
               return.
-       token: A DB token.
 
     Yields:
       URNs of files which have the same data as this file - as read from the
@@ -1639,7 +1542,7 @@ class DataStore(object):
       length = limit
 
     prefix = (DataStore.FILE_HASH_TEMPLATE % target_prefix).lower()
-    results = self.ResolvePrefix(subject, prefix, limit=limit, token=token)
+    results = self.ResolvePrefix(subject, prefix, limit=limit)
 
     for i, (_, hit, _) in enumerate(results):
       if i < start:
@@ -1648,33 +1551,27 @@ class DataStore(object):
         break
       yield rdfvalue.RDFURN(hit)
 
-  def FileHashIndexQueryMultiple(self, locations, timestamp=None, token=None):
+  def FileHashIndexQueryMultiple(self, locations, timestamp=None):
     results = self.MultiResolvePrefix(
-        locations, DataStore.FILE_HASH_PREFIX, timestamp=timestamp, token=token)
+        locations, DataStore.FILE_HASH_PREFIX, timestamp=timestamp)
     for hash_obj, matches in results:
       yield (hash_obj, [file_urn for _, file_urn, _ in matches])
 
-  def AFF4FetchChildren(self, subject, timestamp=None, limit=None, token=None):
+  def AFF4FetchChildren(self, subject, timestamp=None, limit=None):
     results = self.ResolvePrefix(
         subject,
         DataStore.AFF4_INDEX_DIR_PREFIX,
         timestamp=timestamp,
-        limit=limit,
-        token=token)
+        limit=limit)
     for predicate, _, timestamp in results:
       yield (predicate[len(DataStore.AFF4_INDEX_DIR_PREFIX):], timestamp)
 
-  def AFF4MultiFetchChildren(self,
-                             subjects,
-                             timestamp=None,
-                             limit=None,
-                             token=None):
+  def AFF4MultiFetchChildren(self, subjects, timestamp=None, limit=None):
     results = self.MultiResolvePrefix(
         subjects,
         DataStore.AFF4_INDEX_DIR_PREFIX,
         timestamp=timestamp,
-        limit=limit,
-        token=token)
+        limit=limit)
     for subject, matches in results:
       children = []
       for predicate, _, timestamp in matches:
@@ -1693,7 +1590,7 @@ class DBSubjectLock(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __init__(self, data_store, subject, lease_time=None, token=None):
+  def __init__(self, data_store, subject, lease_time=None):
     """Obtain the subject lock for lease_time seconds.
 
     This is never called directly but produced from the
@@ -1704,13 +1601,11 @@ class DBSubjectLock(object):
       subject: The name of a subject to lock.
       lease_time: The minimum length of time the lock will remain valid in
         seconds. Note this will be converted to usec for storage.
-      token: An ACL token which applies to all methods in this lock.
     Raises:
       RuntimeError: No lease time was provided.
     """
     self.subject = utils.SmartStr(subject)
     self.store = data_store
-    self.token = token
     # expires should be stored as usec
     self.expires = None
     self.locked = False

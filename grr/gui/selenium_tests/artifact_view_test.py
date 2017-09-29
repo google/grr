@@ -29,7 +29,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     with open(test_artifacts_file, "rb") as fd:
-      artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
+      artifact.UploadArtifactYamlFile(fd.read())
 
   def _LoadSystemArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()

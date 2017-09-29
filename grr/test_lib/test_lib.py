@@ -391,7 +391,7 @@ class GRRBaseTest(unittest.TestCase):
   def DeleteClient(self, client_nr):
     """Cleans up a test client mock."""
     client_id = rdf_client.ClientURN("C.1%015x" % client_nr)
-    data_store.DB.DeleteSubject(client_id, token=self.token)
+    data_store.DB.DeleteSubject(client_id)
 
   def DeleteClients(self, nr_clients):
     """Cleans up test client mocks. Analogous to .SetupClients(nr_clients) ."""

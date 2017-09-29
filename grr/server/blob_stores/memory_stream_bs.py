@@ -26,7 +26,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
     urns = {self._BlobUrn(digest): digest for digest in contents_by_digest}
 
-    mutation_pool = data_store.DB.GetMutationPool(token=token)
+    mutation_pool = data_store.DB.GetMutationPool()
 
     existing = aff4.FACTORY.MultiOpen(
         urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)

@@ -230,10 +230,10 @@ class CloudBigTableDataStore(data_store.DataStore):
 
     return btinstance
 
-  def DeleteSubject(self, subject, sync=False, token=None):
-    self.DeleteSubjects([subject], sync=sync, token=token)
+  def DeleteSubject(self, subject, sync=False):
+    self.DeleteSubjects([subject], sync=sync)
 
-  def DeleteSubjects(self, subjects, sync=False, token=None):
+  def DeleteSubjects(self, subjects, sync=False):
     # Currently there is no multi-row mutation support, but it exists in the
     # RPC API.
     # https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2411
@@ -282,8 +282,8 @@ class CloudBigTableDataStore(data_store.DataStore):
     else:
       return value
 
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
-    return CloudBigtableLock(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None):
+    return CloudBigtableLock(self, subject, lease_time=lease_time)
 
   def DatetimeToMicroseconds(self, datetime_utc):
     # How much do I hate datetime? let me count the ways.
@@ -317,16 +317,11 @@ class CloudBigTableDataStore(data_store.DataStore):
           attribute,
           value,
           timestamp=None,
-          token=None,
           replace=True,
           sync=True):
 
     self.MultiSet(
-        subject, {attribute: [value]},
-        timestamp,
-        token=token,
-        replace=replace,
-        sync=sync)
+        subject, {attribute: [value]}, timestamp, replace=replace, sync=sync)
 
   def MultiSet(self,
                subject,
@@ -334,8 +329,7 @@ class CloudBigTableDataStore(data_store.DataStore):
                timestamp=None,
                replace=True,
                sync=True,
-               to_delete=None,
-               token=None):
+               to_delete=None):
     row = self.table.row(utils.SmartStr(subject))
     if to_delete:
       self._DeleteAllTimeStamps(row, to_delete)
@@ -377,18 +371,16 @@ class CloudBigTableDataStore(data_store.DataStore):
                        attributes,
                        start=None,
                        end=None,
-                       sync=True,
-                       token=None):
+                       sync=True):
     self.MultiDeleteAttributes(
-        [subject], attributes, start=start, end=end, sync=sync, token=token)
+        [subject], attributes, start=start, end=end, sync=sync)
 
   def MultiDeleteAttributes(self,
                             subjects,
                             attributes,
                             start=None,
                             end=None,
-                            sync=True,
-                            token=None):
+                            sync=True):
 
     subjects = [utils.SmartStr(subject) for subject in subjects]
 
@@ -533,8 +525,7 @@ class CloudBigTableDataStore(data_store.DataStore):
                          subjects,
                          attribute_prefix,
                          timestamp=None,
-                         limit=None,
-                         token=None):
+                         limit=None):
     """Get results from multiple rows matching multiple attributes.
 
     We could implement this using read_rows, but it is a table scan. Our current
@@ -554,7 +545,6 @@ class CloudBigTableDataStore(data_store.DataStore):
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
       limit: The total number of result values to return.
-      token: An ACL token.
 
     Yields:
        A list of tuples:
@@ -642,13 +632,12 @@ class CloudBigTableDataStore(data_store.DataStore):
     self.pool.join()
     self.pool = ThreadPool(config.CONFIG["CloudBigtable.threadpool_size"])
 
-  def Resolve(self, subject, attribute, token=None):
+  def Resolve(self, subject, attribute):
     """Retrieve the latest value set for a subject's attribute.
 
     Args:
       subject: The subject URN.
       attribute: The attribute.
-      token: The security token used in this call.
 
     Returns:
       A (string, timestamp in microseconds) stored in the bigtable
@@ -673,17 +662,12 @@ class CloudBigTableDataStore(data_store.DataStore):
 
     if row_data:
       for cell in row_data.cells[family][column]:
-        return self.Decode(
-            attribute, cell.value), self.DatetimeToMicroseconds(cell.timestamp)
+        return self.Decode(attribute, cell.value), self.DatetimeToMicroseconds(
+            cell.timestamp)
 
     return None, 0
 
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """Resolve multiple attributes for a subject.
 
     Results will be returned in arbitrary order (i.e. not ordered by attribute
@@ -697,7 +681,6 @@ class CloudBigTableDataStore(data_store.DataStore):
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
       limit: The maximum total number of results we return.
-      token: The security token used in this call.
 
     Yields:
        A unordered list of (attribute, value string, timestamp).
@@ -745,9 +728,9 @@ class CloudBigTableDataStore(data_store.DataStore):
           if max_results <= 0:
             raise StopIteration
           max_results -= 1
-          yield attribute, self.Decode(
-              attribute,
-              cell.value), self.DatetimeToMicroseconds(cell.timestamp)
+          yield attribute, self.Decode(attribute,
+                                       cell.value), self.DatetimeToMicroseconds(
+                                           cell.timestamp)
 
   def _GetAttributeFilterUnion(self, attributes, timestamp_filter=None):
     filters = []
@@ -787,9 +770,8 @@ class CloudBigTableDataStore(data_store.DataStore):
         attribute = ":".join((family, column))
         subject_results[attribute] = []
         for cell in cells:
-          subject_results[attribute].append(
-              (self.DatetimeToMicroseconds(cell.timestamp), self.Decode(
-                  attribute, cell.value)))
+          subject_results[attribute].append((self.DatetimeToMicroseconds(
+              cell.timestamp), self.Decode(attribute, cell.value)))
 
           subject_results[attribute] = sorted(
               subject_results[attribute], key=lambda x: -x[0])
@@ -802,7 +784,6 @@ class CloudBigTableDataStore(data_store.DataStore):
                      attributes,
                      after_urn=None,
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     subject_prefix = self._CleanSubjectPrefix(subject_prefix)
     after_urn = self._CleanAfterURN(after_urn, subject_prefix)

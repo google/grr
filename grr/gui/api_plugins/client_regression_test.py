@@ -4,11 +4,14 @@
 
 
 
+import psutil
+
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server import flow
@@ -18,6 +21,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.general import processes
 from grr.server.hunts import standard_test
+from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -186,8 +190,7 @@ class ApiListClientCrashesHandlerRegressionTest(
           client_id: client_mock
       }, False, self.token)
 
-    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-        client_id, token=self.token)
+    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id)
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
@@ -228,11 +231,13 @@ class ApiListClientActionRequestsHandlerRegressionTest(
           token=self.token)
       replace[flow_urn.Basename()] = "F:123456"
 
-      # Here we emulate a mock client with no actions (None) that should produce
-      # an error.
-      mock = flow_test_lib.MockClient(client_id, None, token=self.token)
-      while mock.Next():
-        pass
+      test_process = client_test_lib.MockWindowsProcess(name="test_process")
+      with utils.Stubber(psutil, "Process", lambda: test_process):
+        # Here we emulate a mock client with no actions (None) that
+        # should produce an error.
+        mock = flow_test_lib.MockClient(client_id, None, token=self.token)
+        while mock.Next():
+          pass
 
     manager = queue_manager.QueueManager(token=self.token)
     requests_responses = manager.FetchRequestsAndResponses(flow_urn)

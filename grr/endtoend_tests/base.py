@@ -35,13 +35,13 @@ class TestStateUncleanError(Error):
   """Raised when tests encounter bad state that indicates a cleanup failure."""
 
 
-def RecursiveListChildren(prefix=None, token=None):
+def RecursiveListChildren(prefix=None):
   all_urns = set()
   act_urns = set([prefix])
 
   while act_urns:
     next_urns = set()
-    for _, children in aff4.FACTORY.MultiListChildren(act_urns, token=token):
+    for _, children in aff4.FACTORY.MultiListChildren(act_urns):
       for urn in children:
         next_urns.add(urn)
     all_urns |= next_urns
@@ -145,8 +145,8 @@ class ClientTestBase(unittest.TestCase):
 
   def DeleteUrn(self, urn):
     """Deletes an object from the db and the index, and flushes the caches."""
-    data_store.DB.DeleteSubject(urn, sync=True, token=self.token)
-    aff4.FACTORY._DeleteChildFromIndex(urn, token=self.token)
+    data_store.DB.DeleteSubject(urn, sync=True)
+    aff4.FACTORY._DeleteChildFromIndex(urn)
     aff4.FACTORY.Flush()
 
   def GetGRRBinaryName(self, run_interrogate=True):
@@ -200,7 +200,7 @@ class ClientTestBase(unittest.TestCase):
       ErrorEmptyCollection: if the collection has no results after
       self.RESULTS_SLA_SECONDS
     """
-    coll = flow.GRRFlow.ResultCollectionForFID(flow_urn, token=self.token)
+    coll = flow.GRRFlow.ResultCollectionForFID(flow_urn)
     coll_list = list(coll)
     if not coll_list:
       for _ in range(self.RESULTS_SLA_SECONDS):
@@ -232,8 +232,7 @@ class ClientTestBase(unittest.TestCase):
     if pos > 0:
       base_urn = self.client_id.Add(path[:pos])
       for _ in range(self.RESULTS_SLA_SECONDS):
-        for file_urn in RecursiveListChildren(
-            prefix=base_urn, token=self.token):
+        for file_urn in RecursiveListChildren(prefix=base_urn):
           if re.search(path + "$", str(file_urn)):
             self.delete_urns.add(file_urn)
             return file_urn

@@ -126,7 +126,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     if fnames:
       # If results are expected, check that they are present in the collection.
       # Also check that there are no other files.
-      output = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+      output = flow.GRRFlow.ResultCollectionForFID(session_id)
       self.assertEqual(len(output), len(fnames))
 
       sorted_output = sorted(
@@ -138,8 +138,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
             result.stat_entry.AFF4Path(self.client_id).Basename(), fname)
     else:
       # No results expected.
-      results = flow.GRRFlow.ResultCollectionForFID(
-          session_id, token=self.token)
+      results = flow.GRRFlow.ResultCollectionForFID(session_id)
       self.assertEqual(len(results), 0)
 
   def CheckReplies(self, replies, action, expected_files):
@@ -306,8 +305,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
       # Check that the results' matches fields are correctly filled.
-      fd = flow.GRRFlow.ResultCollectionForFID(
-          self.last_session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(self.last_session_id)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
       self.assertEqual(fd[0].matches[0].offset, 350)
@@ -340,7 +338,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     # Check that the results' matches fields are correctly filled. Expecting a
     # match from hello.exe
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd[0].matches), 1)
     self.assertEqual(fd[0].matches[0].offset, 0)
     self.assertEqual(fd[0].matches[0].data,
@@ -367,8 +365,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           expected_files=expected_files,
           non_expected_files=non_expected_files)
 
-      fd = flow.GRRFlow.ResultCollectionForFID(
-          self.last_session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(self.last_session_id)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
       self.assertEqual(fd[0].matches[0].offset, 350)
@@ -406,8 +403,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
       # Check the output file is created
-      fd = flow.GRRFlow.ResultCollectionForFID(
-          self.last_session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(self.last_session_id)
 
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 2)
@@ -445,8 +441,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           expected_files=expected_files,
           non_expected_files=non_expected_files)
 
-      fd = flow.GRRFlow.ResultCollectionForFID(
-          self.last_session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(self.last_session_id)
 
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 2)
@@ -729,7 +724,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
           self.CheckFilesInCollection(["auth.log"], session_id=session_id)
 
-          fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+          fd = flow.GRRFlow.ResultCollectionForFID(session_id)
           self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(), paths[0])
           self.assertEqual(len(fd), 1)
           self.assertEqual(len(fd[0].matches), 1)
@@ -830,8 +825,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    collection = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
     self.assertEqual(len(results), 4)
     relpaths = [

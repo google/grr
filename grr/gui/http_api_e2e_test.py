@@ -182,8 +182,8 @@ class ApiClientLibFlowTest(ApiE2ETest):
         flow_urn, client_mock, client_id=client_urn, token=self.token):
       pass
 
-    result_flow = self.api.Client(
-        client_id=client_urn.Basename()).Flow(flow_urn.Basename())
+    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
+        flow_urn.Basename())
     results = list(result_flow.ListResults())
 
     self.assertEqual(len(results), 1)
@@ -423,10 +423,8 @@ class ApiClientLibVfsTest(ApiE2ETest):
     self.assertEqual(out.getvalue(), "Hello world")
 
   def testGetBlobUnicode(self):
-    aff4.FACTORY.Copy(
-        "aff4:/C.1000000000000000/fs/tsk/c/bin/bash",
-        "aff4:/C.1000000000000000/fs/tsk/c/bin/中国新闻网新闻中",
-        token=self.token)
+    aff4.FACTORY.Copy("aff4:/C.1000000000000000/fs/tsk/c/bin/bash",
+                      "aff4:/C.1000000000000000/fs/tsk/c/bin/中国新闻网新闻中")
 
     out = StringIO.StringIO()
     self.api.Client(client_id=self.client_urn.Basename()).File(
@@ -839,9 +837,9 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
     self.approver.Stop()
 
   def testClientNoLabels(self):
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_nolabel_id).File("fs/os/foo").Get)
 
     # approvers.yaml rules don't get checked because this client has no
     # labels. Regular approvals still required.
@@ -852,16 +850,16 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
 
   def testClientApprovalSingleLabel(self):
     """Client requires an approval from a member of "legal_approval"."""
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_legal_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_legal_id).File("fs/os/foo").Get)
 
     self.RequestAndGrantClientApproval(self.client_legal, self.token)
     # This approval isn't enough, we need one from legal, so it should still
     # fail.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_legal_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_legal_id).File("fs/os/foo").Get)
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
@@ -884,16 +882,16 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # No approvals yet, this should fail.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
     self.RequestAndGrantClientApproval(self.client_prod, self.token)
 
     # This approval from "approver" isn't enough.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
@@ -904,9 +902,9 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
         approver="legal1")
 
     # We have "approver", "legal1": not enough.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
     # Grant an approval from a user in the prod_admin_approval list in
     # approvers.yaml
@@ -917,9 +915,9 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
         approver="prod2")
 
     # We have "approver", "legal1", "prod2": not enough.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
     self.GrantClientApproval(
         self.client_prod,
@@ -934,9 +932,9 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
   def testClientApprovalMultiLabelCheckRequester(self):
     """Requester must be listed as prod_admin_approval in approvals.yaml."""
     # No approvals yet, this should fail.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
     # Grant all the necessary approvals
     self.RequestAndGrantClientApproval(self.client_prod, self.token)
@@ -960,9 +958,9 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
     # "notprod" user isn't in prod_admin_approval and
     # requester_must_be_authorized is True it should still fail. This user can
     # never get a complete approval.
-    self.assertRaises(
-        grr_api_errors.AccessForbiddenError,
-        self.api.Client(self.client_prod_id).File("fs/os/foo").Get)
+    self.assertRaises(grr_api_errors.AccessForbiddenError,
+                      self.api.Client(
+                          self.client_prod_id).File("fs/os/foo").Get)
 
 
 def main(argv):

@@ -23,9 +23,9 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
         source_urn=rdfvalue.RDFURN("aff4:/foo/bar"), token=self.token)
 
     self.client_id = self.SetupClients(1)[0]
-    self.pool = data_store.DB.GetMutationPool(token=self.token)
+    self.pool = data_store.DB.GetMutationPool()
     self.collection = multi_type_collection.MultiTypeCollection(
-        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
+        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"))
 
   def ProcessPlugin(self, source_urn=None):
     return list(

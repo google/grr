@@ -422,8 +422,7 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id):
       flow_urn = session_id
 
-    log_collection = flow.GRRFlow.LogCollectionForFID(
-        flow_urn, token=self.token)
+    log_collection = flow.GRRFlow.LogCollectionForFID(flow_urn)
     self.assertEqual(len(log_collection), 8)
     for log in log_collection:
       self.assertEqual(log.client_id, self.client_id)
@@ -445,7 +444,7 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id):
       flow_urn = session_id
 
-    c = flow.GRRFlow.TypedResultCollectionForFID(flow_urn, token=self.token)
+    c = flow.GRRFlow.TypedResultCollectionForFID(flow_urn)
     self.assertEqual(
         set(c.ListStoredTypes()),
         set([
@@ -664,7 +663,7 @@ class FlowTerminationTest(BasicFlowTest):
 
   def testFlowMarkedForTerminationTerminatesInStateHandler(self):
     flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.MarkForTermination(
           flow_obj.urn, reason="because i can", mutation_pool=pool)
 

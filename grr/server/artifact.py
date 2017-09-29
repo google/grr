@@ -534,7 +534,6 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
 def UploadArtifactYamlFile(file_content,
                            base_urn=None,
-                           token=None,
                            overwrite=True,
                            overwrite_system_artifacts=False):
   """Upload a yaml or json file as an artifact to the datastore."""
@@ -553,7 +552,7 @@ def UploadArtifactYamlFile(file_content,
     new_artifact_names.add(artifact_value.name)
 
   # Iterate through each artifact adding it to the collection.
-  artifact_coll = artifact_registry.ArtifactCollection(base_urn, token=token)
+  artifact_coll = artifact_registry.ArtifactCollection(base_urn)
   current_artifacts = list(artifact_coll)
 
   # We need to remove artifacts we are overwriting.
@@ -562,7 +561,7 @@ def UploadArtifactYamlFile(file_content,
   ]
 
   artifact_coll.Delete()
-  with data_store.DB.GetMutationPool(token=token) as pool:
+  with data_store.DB.GetMutationPool() as pool:
     for artifact_value in filtered_artifacts:
       artifact_coll.Add(artifact_value, mutation_pool=pool)
 

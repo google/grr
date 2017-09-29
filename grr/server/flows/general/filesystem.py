@@ -100,7 +100,7 @@ class ListDirectory(flow.GRRFlow):
 
     self.Status("Listed %s", self.state.urn)
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       with aff4.FACTORY.Create(
           self.state.urn,
           standard.VFSDirectory,
@@ -117,8 +117,8 @@ class ListDirectory(flow.GRRFlow):
 
   def NotifyAboutEnd(self):
     if self.state.urn:
-      self.Notify("ViewObject", self.state.urn,
-                  u"Listed {0}".format(self.args.pathspec))
+      self.Notify("ViewObject", self.state.urn, u"Listed {0}".format(
+          self.args.pathspec))
     else:
       super(ListDirectory, self).NotifyAboutEnd()
 
@@ -183,7 +183,7 @@ class IteratedListDirectory(ListDirectory):
     if not self.state.urn:
       self.state.urn = urn
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       with aff4.FACTORY.Create(
           urn, standard.VFSDirectory, mutation_pool=pool, token=self.token):
         pass
@@ -194,8 +194,8 @@ class IteratedListDirectory(ListDirectory):
         self.SendReply(st)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
-    self.Notify("ViewObject", self.state.urn,
-                "List of {0} completed.".format(self.args.pathspec))
+    self.Notify("ViewObject", self.state.urn, "List of {0} completed.".format(
+        self.args.pathspec))
 
 
 class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -270,7 +270,7 @@ class RecursiveListDirectory(flow.GRRFlow):
 
   def StoreDirectory(self, responses):
     """Stores all stat responses."""
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for st in responses:
         st = rdf_client.StatEntry(st)
         CreateAFF4Object(st, self.client_id, pool, token=self.token)
@@ -664,7 +664,7 @@ class GlobMixin(object):
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""
     # By default write the stat_response to the AFF4 VFS.
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       CreateAFF4Object(stat_response, self.client_id, pool, token=self.token)
 
   # A regex indicating if there are shell globs in this path.

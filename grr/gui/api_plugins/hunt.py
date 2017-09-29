@@ -440,7 +440,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     results_collection = implementation.GRRHunt.ResultCollectionForHID(
-        args.hunt_id.ToURN(), token=token)
+        args.hunt_id.ToURN())
     items = api_call_handler_utils.FilterCollection(
         results_collection, args.offset, args.count, args.filter)
     wrapped_items = [ApiHuntResult().InitFromGrrMessage(item) for item in items]
@@ -470,8 +470,7 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListHuntCrashesResult
 
   def Handle(self, args, token=None):
-    crashes = implementation.GRRHunt.CrashCollectionForHID(
-        args.hunt_id.ToURN(), token=token)
+    crashes = implementation.GRRHunt.CrashCollectionForHID(args.hunt_id.ToURN())
     total_count = len(crashes)
     result = api_call_handler_utils.FilterCollection(crashes, args.offset,
                                                      args.count, args.filter)
@@ -556,7 +555,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  def CreateCollection(self, hunt_id, token=None):
+  def CreateCollection(self, hunt_id):
     raise NotImplementedError()
 
   def Handle(self, args, token=None):
@@ -577,7 +576,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
     # TODO(user): Write errors/logs per-plugin, so that we don't
     # have to do the filtering.
 
-    logs_collection = self.CreateCollection(args.hunt_id.ToURN(), token=token)
+    logs_collection = self.CreateCollection(args.hunt_id.ToURN())
 
     if len(plugins) == 1:
       total_count = len(logs_collection)
@@ -618,9 +617,8 @@ class ApiListHuntOutputPluginLogsHandler(
   args_type = ApiListHuntOutputPluginLogsArgs
   result_type = ApiListHuntOutputPluginLogsResult
 
-  def CreateCollection(self, hunt_id, token=None):
-    return implementation.GRRHunt.PluginStatusCollectionForHID(
-        hunt_id, token=token)
+  def CreateCollection(self, hunt_id):
+    return implementation.GRRHunt.PluginStatusCollectionForHID(hunt_id)
 
 
 class ApiListHuntOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
@@ -644,9 +642,8 @@ class ApiListHuntOutputPluginErrorsHandler(
   args_type = ApiListHuntOutputPluginErrorsArgs
   result_type = ApiListHuntOutputPluginErrorsResult
 
-  def CreateCollection(self, hunt_id, token=None):
-    return implementation.GRRHunt.PluginErrorCollectionForHID(
-        hunt_id, token=token)
+  def CreateCollection(self, hunt_id):
+    return implementation.GRRHunt.PluginErrorCollectionForHID(hunt_id)
 
 
 class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
@@ -672,7 +669,7 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
     logs_collection = implementation.GRRHunt.LogCollectionForHID(
-        args.hunt_id.ToURN(), token=token)
+        args.hunt_id.ToURN())
 
     result = api_call_handler_utils.FilterCollection(
         logs_collection, args.offset, args.count, args.filter)
@@ -703,7 +700,7 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
     errors_collection = implementation.GRRHunt.ErrorCollectionForHID(
-        args.hunt_id.ToURN(), token=token)
+        args.hunt_id.ToURN())
 
     result = api_call_handler_utils.FilterCollection(
         errors_collection, args.offset, args.count, args.filter)
@@ -906,8 +903,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                     hunt_api_object.description, hunt_api_object.creator,
                     hunt_api_object.created))
 
-    collection = implementation.GRRHunt.ResultCollectionForHID(
-        hunt_urn, token=token)
+    collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
 
     target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
 
@@ -972,7 +968,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     api_vfs.ValidateVfsPath(args.vfs_path)
 
     results = implementation.GRRHunt.ResultCollectionForHID(
-        args.hunt_id.ToURN(), token=token)
+        args.hunt_id.ToURN())
 
     expected_aff4_path = args.client_id.ToClientURN().Add(args.vfs_path)
     # TODO(user): should after_timestamp be strictly less than the desired
@@ -1066,15 +1062,15 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntClientsArgs
   result_type = ApiListHuntClientsResult
 
-  def IncludeRequestInformationInResults(self, hunt_urn, results, token=None):
+  def IncludeRequestInformationInResults(self, hunt_urn, results):
     all_clients_urns = [i.client_id.ToClientURN() for i in results]
     clients_to_results_map = {i.client_id: i for i in results}
 
     all_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, all_clients_urns, token=token)
-    flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns, token)
+        hunt_urn, all_clients_urns)
+    flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns)
     client_requests = data_store.DB.QueueMultiQuery(
-        [cid.Queue() for cid in all_clients_urns], token=token)
+        [cid.Queue() for cid in all_clients_urns])
 
     waitingfor = {}
     status_by_request = {}
@@ -1096,7 +1092,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
       response_urns.append(
           rdfvalue.RDFURN(request_base_urn).Add("request:%08X" % request.id))
     response_dict = dict(
-        data_store.DB.MultiResolvePrefix(response_urns, "flow:", token=token))
+        data_store.DB.MultiResolvePrefix(response_urns, "flow:"))
 
     for flow_urn in sorted(all_flow_urns):
       request_urn = flow_urn.Add("state")
@@ -1154,7 +1150,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
       hunt_clients = sorted(hunt_clients)[args.offset:]
 
     top_level_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, hunt_clients, top_level_only=True, token=token)
+        hunt_urn, hunt_clients, top_level_only=True)
     top_level_flows = list(
         aff4.FACTORY.MultiOpen(
             top_level_flow_urns, aff4_type=flow.GRRFlow, token=token))
@@ -1169,7 +1165,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
           network_bytes_sent=runner.context.network_bytes_sent)
       results.append(item)
 
-    self.IncludeRequestInformationInResults(hunt_urn, results, token=token)
+    self.IncludeRequestInformationInResults(hunt_urn, results)
 
     return ApiListHuntClientsResult(items=results, total_count=total_count)
 
@@ -1457,7 +1453,7 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
           "Hunt with id %s could not be found" % args.hunt_id)
 
     output_collection = implementation.GRRHunt.TypedResultCollectionForHID(
-        hunt_urn, token=token)
+        hunt_urn)
 
     plugin = plugin_cls(source_urn=hunt_urn, token=token)
     return api_call_handler_base.ApiBinaryStream(

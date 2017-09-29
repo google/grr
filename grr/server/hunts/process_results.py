@@ -118,14 +118,12 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             batch_size=len(results))
         exceptions_by_plugin.setdefault(plugin_def, []).append(e)
 
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
-        implementation.GRRHunt.PluginStatusCollectionForHID(
-            hunt_urn, token=self.token).Add(
-                plugin_status, mutation_pool=pool)
+      with data_store.DB.GetMutationPool() as pool:
+        implementation.GRRHunt.PluginStatusCollectionForHID(hunt_urn).Add(
+            plugin_status, mutation_pool=pool)
         if plugin_status.status == plugin_status.Status.ERROR:
-          implementation.GRRHunt.PluginErrorCollectionForHID(
-              hunt_urn, token=self.token).Add(
-                  plugin_status, mutation_pool=pool)
+          implementation.GRRHunt.PluginErrorCollectionForHID(hunt_urn).Add(
+              plugin_status, mutation_pool=pool)
 
   def ProcessOneHunt(self, exceptions_by_hunt):
     """Reads results for one hunt and process them."""
@@ -144,8 +142,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     metadata_urn = hunt_urn.Add("ResultsMetadata")
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
-    collection_obj = implementation.GRRHunt.ResultCollectionForHID(
-        hunt_urn, token=self.token)
+    collection_obj = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
     try:
       with aff4.FACTORY.OpenWithLock(
           metadata_urn, lease_time=600, token=self.token) as metadata_obj:

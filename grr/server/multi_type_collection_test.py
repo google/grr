@@ -17,9 +17,9 @@ class MultiTypeCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(MultiTypeCollectionTest, self).setUp()
-    self.pool = data_store.DB.GetMutationPool(token=self.token)
+    self.pool = data_store.DB.GetMutationPool()
     self.collection = multi_type_collection.MultiTypeCollection(
-        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"), token=self.token)
+        rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"))
 
   def testWrapsValueInGrrMessageIfNeeded(self):
     with self.pool:

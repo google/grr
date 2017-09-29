@@ -325,7 +325,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Ensure that processed requests are removed from state subject
     outstanding_requests = list(
-        data_store.DB.ReadRequestsAndResponses(session_id_1, token=self.token))
+        data_store.DB.ReadRequestsAndResponses(session_id_1))
 
     self.assertEqual(len(outstanding_requests), 9)
     for request, _ in outstanding_requests:
@@ -378,7 +378,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       with queue_manager.QueueManager(token=self.token) as manager:
         notification = rdf_flows.GrrNotification(
             session_id=session_id, timestamp=time.time(), last_status=1)
-        with data_store.DB.GetMutationPool(token=self.token) as pool:
+        with data_store.DB.GetMutationPool() as pool:
           manager.NotifyQueue(notification, mutation_pool=pool)
 
         notifications = manager.GetNotifications(queues.FLOWS)
@@ -699,7 +699,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
     notification = rdf_flows.GrrNotification(session_id=session_id)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       manager.NotifyQueue(notification, mutation_pool=pool)
 
     notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
@@ -736,13 +736,12 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         token=self.token)
     # Overwrite the type of the object such that opening it will now fail.
-    data_store.DB.Set(
-        session_id, "aff4:type", "DeprecatedClass", token=self.token)
+    data_store.DB.Set(session_id, "aff4:type", "DeprecatedClass")
 
     # Starting a new flow schedules notifications for the worker already but
     # this test actually checks that there are none. Thus, we have to delete
     # them or the test fails.
-    data_store.DB.DeleteSubject(queues.FLOWS, token=self.token)
+    data_store.DB.DeleteSubject(queues.FLOWS)
 
     # Check it really does.
     with self.assertRaises(aff4.InstantiationError):
@@ -767,7 +766,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     # the notification.
     notification = rdf_flows.GrrNotification(
         session_id=session_id, last_status=1)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       manager.NotifyQueue(notification, mutation_pool=pool)
 
     notifications = manager.GetNotifications(queues.FLOWS)
@@ -840,8 +839,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         type=rdf_flows.GrrMessage.Type.STATUS)
 
     # Now we write half the status information.
-    data_store.DB.StoreRequestsAndResponses(
-        new_responses=[(status, None)], token=self.token)
+    data_store.DB.StoreRequestsAndResponses(new_responses=[(status, None)])
 
     # We make the race even a bit harder by saying the new notification gets
     # written right before the old one gets deleted. If we are not careful here,
@@ -866,8 +864,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertNotEqual(flow_obj.context.state,
                         rdf_flows.FlowContext.State.ERROR)
 
-    request_data = data_store.DB.ReadResponsesForRequestId(
-        session_id, 2, token=self.token)
+    request_data = data_store.DB.ReadResponsesForRequestId(session_id, 2)
     request_data.sort(key=lambda msg: msg.response_id)
     self.assertEqual(len(request_data), 2)
 
@@ -876,8 +873,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(request_data[1].args_rdf_name, "GrrStatus")
 
     # But there is nothing for request 1.
-    request_data = data_store.DB.ReadResponsesForRequestId(
-        session_id, 1, token=self.token)
+    request_data = data_store.DB.ReadResponsesForRequestId(session_id, 1)
     self.assertEqual(request_data, [])
 
     # The notification for request 2 should have survived.
@@ -910,8 +906,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     frozen_timestamp = int(self.SendResponse(session_id, "Hey"))
 
     request_id = 1
-    messages = data_store.DB.ReadResponsesForRequestId(
-        session_id, request_id, token=self.token)
+    messages = data_store.DB.ReadResponsesForRequestId(session_id, request_id)
     self.assertEqual(len(messages), 2)
     self.assertItemsEqual([m.args_rdf_name
                            for m in messages], ["DataBlob", "GrrStatus"])

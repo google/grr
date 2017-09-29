@@ -72,12 +72,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     """
     return data_store.DB.IndexReadPostingLists(
-        self.urn,
-        keywords,
-        start_time,
-        end_time,
-        last_seen_map=last_seen_map,
-        token=self.token)
+        self.urn, keywords, start_time, end_time, last_seen_map=last_seen_map)
 
   def AddKeywordsForName(self, name, keywords):
     """Associates keywords with name.
@@ -88,8 +83,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       name: A name which should be associated with some keywords.
       keywords: A collection of keywords to associate with name.
     """
-    data_store.DB.IndexAddKeywordsForName(
-        self.urn, name, keywords, token=self.token)
+    data_store.DB.IndexAddKeywordsForName(self.urn, name, keywords)
 
   def RemoveKeywordsForName(self, name, keywords):
     """Removes keywords for a name.
@@ -98,5 +92,4 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       name: A name which should not be associated with some keywords anymore.
       keywords: A collection of keywords.
     """
-    data_store.DB.IndexRemoveKeywordsForName(
-        self.urn, name, keywords, token=self.token)
+    data_store.DB.IndexRemoveKeywordsForName(self.urn, name, keywords)

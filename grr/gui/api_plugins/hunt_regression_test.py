@@ -63,9 +63,8 @@ class ApiListHuntResultsRegressionTest(
 
   def Run(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
-    results = implementation.GRRHunt.ResultCollectionForHID(
-        hunt_urn, token=self.token)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    results = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
+    with data_store.DB.GetMutationPool() as pool:
       result = rdf_flows.GrrMessage(
           payload=rdfvalue.RDFString("blah1"),
           age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
@@ -262,8 +261,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
       hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
                                                     self.token)
 
-    crashes = implementation.GRRHunt.CrashCollectionForHID(
-        hunt_obj.urn, token=self.token)
+    crashes = implementation.GRRHunt.CrashCollectionForHID(hunt_obj.urn)
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
@@ -510,7 +508,7 @@ class ApiListHuntClientsHandlerRegressionTest(
 
     # Add all sub flows to replace dict.
     all_flows = implementation.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, self.client_ids, token=self.token)
+        hunt_urn, self.client_ids)
 
     for flow_urn in all_flows:
       replace[flow_urn.Basename()] = "W:123456"

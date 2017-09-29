@@ -68,12 +68,11 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     return session_id
 
   def AssertNoResults(self, session_id):
-    res = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    res = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(res), 0)
 
   def GetResults(self, session_id):
-    return list(
-        flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token))
+    return list(flow.GRRFlow.ResultCollectionForFID(session_id))
 
   def testFindsNothingIfNothingMatchesTheGlob(self):
     session_id = self.RunFlow([

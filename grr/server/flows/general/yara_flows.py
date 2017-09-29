@@ -12,6 +12,7 @@ class YaraProcessScan(flow.GRRFlow):
   """Scans process memory using Yara."""
 
   category = "/Yara/"
+  friendly_name = "Yara Process Scan"
 
   args_type = rdf_yara.YaraProcessScanRequest
 

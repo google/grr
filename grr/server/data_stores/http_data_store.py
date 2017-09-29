@@ -532,8 +532,7 @@ class HTTPDataStore(data_store.DataStore):
                        attributes,
                        start=None,
                        end=None,
-                       sync=True,
-                       token=None):
+                       sync=True):
     request = rdf_data_store.DataStoreRequest(subject=[subject])
 
     if isinstance(attributes, basestring):
@@ -550,8 +549,6 @@ class HTTPDataStore(data_store.DataStore):
         end=end,
         type=rdf_data_store.TimestampSpec.Type.RANGED_TIME)
 
-    if token:
-      request.token = token
     if sync:
       request.sync = sync
 
@@ -561,30 +558,19 @@ class HTTPDataStore(data_store.DataStore):
     typ = rdf_data_server.DataStoreCommand.Command.DELETE_ATTRIBUTES
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
-  def DeleteSubject(self, subject, sync=False, token=None):
+  def DeleteSubject(self, subject, sync=False):
     request = rdf_data_store.DataStoreRequest(subject=[subject])
-    if token:
-      request.token = token
 
     typ = rdf_data_server.DataStoreCommand.Command.DELETE_SUBJECT
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
-  def _MakeRequest(self,
-                   subjects,
-                   attributes,
-                   timestamp=None,
-                   token=None,
-                   limit=None):
+  def _MakeRequest(self, subjects, attributes, timestamp=None, limit=None):
     if isinstance(attributes, basestring):
       attributes = [attributes]
 
     request = rdf_data_store.DataStoreRequest(subject=subjects)
     if limit:
       request.limit = limit
-
-    token = token or data_store.default_token
-    if token:
-      request.token = token
 
     if timestamp is not None:
       request.timestamp = self.TimestampSpecFromTimestamp(timestamp)
@@ -598,8 +584,7 @@ class HTTPDataStore(data_store.DataStore):
                          subjects,
                          attribute_prefix,
                          timestamp=None,
-                         limit=None,
-                         token=None):
+                         limit=None):
     """MultiResolvePrefix."""
     typ = rdf_data_server.DataStoreCommand.Command.MULTI_RESOLVE_PREFIX
     results = {}
@@ -609,7 +594,6 @@ class HTTPDataStore(data_store.DataStore):
           [subject],
           attribute_prefix,
           timestamp=timestamp,
-          token=token,
           limit=remaining_limit)
 
       response = self._MakeSyncRequest(request, typ)
@@ -632,7 +616,6 @@ class HTTPDataStore(data_store.DataStore):
                      attributes,
                      after_urn=None,
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     """ScanAttribute."""
 
@@ -644,8 +627,7 @@ class HTTPDataStore(data_store.DataStore):
     subjects = [subject_prefix]
     if after_urn:
       subjects.append(after_urn)
-    request = self._MakeRequest(
-        subjects, attributes, token=token, limit=max_records)
+    request = self._MakeRequest(subjects, attributes, limit=max_records)
     if relaxed_order:
       for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
         for result in response.results:
@@ -670,13 +652,9 @@ class HTTPDataStore(data_store.DataStore):
                timestamp=None,
                replace=True,
                sync=True,
-               to_delete=None,
-               token=None):
+               to_delete=None):
     """MultiSet."""
     request = rdf_data_store.DataStoreRequest(sync=sync)
-    token = token or data_store.default_token
-    if token:
-      request.token = token
 
     request.subject.Append(subject)
     now = time.time() * 1000000
@@ -717,15 +695,10 @@ class HTTPDataStore(data_store.DataStore):
     typ = rdf_data_server.DataStoreCommand.Command.MULTI_SET
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """ResolveMulti."""
     request = self._MakeRequest(
-        [subject], attributes, timestamp=timestamp, limit=limit, token=token)
+        [subject], attributes, timestamp=timestamp, limit=limit)
 
     typ = rdf_data_server.DataStoreCommand.Command.RESOLVE_MULTI
     response = self._MakeSyncRequest(request, typ)
@@ -750,19 +723,16 @@ class HTTPDataStore(data_store.DataStore):
 
     return result
 
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
+  def DBSubjectLock(self, subject, lease_time=None):
     """We do not support locks directly."""
-    return HTTPDBSubjectLock(self, subject, lease_time=lease_time, token=token)
+    return HTTPDBSubjectLock(self, subject, lease_time=lease_time)
 
-  def LockSubject(self, subject, lease_time, token):
+  def LockSubject(self, subject, lease_time):
     """Locks a specific subject."""
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
     request.timestamp = rdf_data_store.TimestampSpec(
         start=lease_time, type=specific)
-
-    if token:
-      request.token = token
 
     typ = rdf_data_server.DataStoreCommand.Command.LOCK_SUBJECT
     response = self._MakeSyncRequest(request, typ)
@@ -774,14 +744,12 @@ class HTTPDataStore(data_store.DataStore):
       return None
     return result.values[0].value.string
 
-  def ExtendSubjectLock(self, subject, transid, lease_time, token):
+  def ExtendSubjectLock(self, subject, transid, lease_time):
     """Extends lock of subject."""
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
     request.timestamp = rdf_data_store.TimestampSpec(
         start=lease_time, type=specific)
-    if token:
-      request.token = token
     blob = rdf_protodict.DataBlob(string=transid)
     value = rdf_data_store.DataStoreValue(value=blob)
     request.values.Append(value)
@@ -797,11 +765,9 @@ class HTTPDataStore(data_store.DataStore):
     value = result.values[0].value.string
     return transid if transid == value else None
 
-  def UnlockSubject(self, subject, transid, token):
+  def UnlockSubject(self, subject, transid):
     """Unlocks subject using lock id."""
     request = rdf_data_store.DataStoreRequest(subject=[subject])
-    if token:
-      request.token = token
     blob = rdf_protodict.DataBlob(string=transid)
     value = rdf_data_store.DataStoreValue(value=blob)
     request.values.Append(value)
@@ -853,8 +819,7 @@ class HTTPDBSubjectLock(data_store.DBSubjectLock):
   locked = False
 
   def _Acquire(self, lease_time):
-    self.transid = self.store.LockSubject(self.subject, lease_time * 1e6,
-                                          self.token)
+    self.transid = self.store.LockSubject(self.subject, lease_time * 1e6)
     if not self.transid:
       raise data_store.DBSubjectLockError(
           "Unable to lock subject %s" % self.subject)
@@ -863,7 +828,7 @@ class HTTPDBSubjectLock(data_store.DBSubjectLock):
 
   def UpdateLease(self, duration):
     ret = self.store.ExtendSubjectLock(self.subject, self.transid,
-                                       duration * 1e6, self.token)
+                                       duration * 1e6)
     if ret != self.transid:
       raise data_store.DBSubjectLockError(
           "Unable to update the lease on %s" % self.subject)
@@ -871,5 +836,5 @@ class HTTPDBSubjectLock(data_store.DBSubjectLock):
 
   def Release(self):
     if self.locked:
-      self.store.UnlockSubject(self.subject, self.transid, self.token)
+      self.store.UnlockSubject(self.subject, self.transid)
       self.locked = False

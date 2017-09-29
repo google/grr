@@ -12,7 +12,6 @@ from grr.lib import registry
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-from grr.server import access_control
 from grr.server import data_store
 
 
@@ -27,11 +26,10 @@ class SequentialCollection(object):
   # The type which we store, subclasses must set this to a subclass of RDFValue.
   RDF_TYPE = None
 
-  def __init__(self, collection_id, token=None):
+  def __init__(self, collection_id):
     super(SequentialCollection, self).__init__()
     # The collection_id for this collection is a RDFURN for now.
     self.collection_id = collection_id
-    self.token = token
 
   @classmethod
   def StaticAdd(cls,
@@ -151,8 +149,7 @@ class SequentialCollection(object):
         self.RDF_TYPE,
         after_timestamp=after_timestamp,
         after_suffix=suffix,
-        limit=max_records,
-        token=self.token):
+        limit=max_records):
       if include_suffix:
         yield ((timestamp, suffix), item)
       else:
@@ -160,8 +157,7 @@ class SequentialCollection(object):
 
   def MultiResolve(self, records):
     """Lookup multiple values by their record objects."""
-    for value, timestamp in data_store.DB.CollectionReadItems(
-        records, token=self.token):
+    for value, timestamp in data_store.DB.CollectionReadItems(records):
       rdf_value = self.RDF_TYPE.FromSerializedString(value)
       rdf_value.age = timestamp
       yield rdf_value
@@ -171,7 +167,7 @@ class SequentialCollection(object):
       yield item
 
   def Delete(self):
-    pool = data_store.DB.GetMutationPool(self.token)
+    pool = data_store.DB.GetMutationPool()
     with pool:
       pool.CollectionDelete(self.collection_id)
 
@@ -198,12 +194,10 @@ class BackgroundIndexUpdater(object):
                               time.time() + self.INDEX_DELAY))
       self.cv.notify()
 
-  def ProcessCollection(self, collection_cls, collection_id, token):
-    collection_cls(collection_id, token=token).UpdateIndex()
+  def ProcessCollection(self, collection_cls, collection_id):
+    collection_cls(collection_id).UpdateIndex()
 
   def UpdateLoop(self):
-    token = access_control.ACLToken(
-        username="Background Index Updater", reason="Updating An Index")
     while not self.exit_now:
       with self.cv:
         while not self.to_process:
@@ -220,7 +214,7 @@ class BackgroundIndexUpdater(object):
         time.sleep(next_time - now)
         now = time.time()
 
-      self.ProcessCollection(next_cls, next_urn, token)
+      self.ProcessCollection(next_cls, next_urn)
 
 
 BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()
@@ -275,7 +269,7 @@ class IndexedSequentialCollection(SequentialCollection):
     self._index = {0: (0, 0)}
     self._max_indexed = 0
     for (index, ts, suffix) in data_store.DB.CollectionReadIndex(
-        self.collection_id, token=self.token):
+        self.collection_id):
       self._index[index] = (ts, suffix)
       self._max_indexed = max(index, self._max_indexed)
 
@@ -314,7 +308,7 @@ class IndexedSequentialCollection(SequentialCollection):
     if max_records is not None:
       max_records += i - idx
 
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       for (ts, value) in self.Scan(
           after_timestamp=start_ts,
           max_records=max_records,

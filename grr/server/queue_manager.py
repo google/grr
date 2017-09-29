@@ -182,8 +182,7 @@ class QueueManager(object):
 
   def MultiCheckStatus(self, requests):
     """Checks if there is a status message queued for a number of requests."""
-    return self.data_store.CheckRequestsForCompletion(
-        requests, token=self.token)
+    return self.data_store.CheckRequestsForCompletion(requests)
 
   def FetchCompletedRequests(self, session_id, timestamp=None):
     """Fetch all the requests with a status message queued for them."""
@@ -191,10 +190,7 @@ class QueueManager(object):
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     for request, status in self.data_store.ReadCompletedRequests(
-        session_id,
-        timestamp=timestamp,
-        limit=self.request_limit,
-        token=self.token):
+        session_id, timestamp=timestamp, limit=self.request_limit):
       yield request, status
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
@@ -226,8 +222,7 @@ class QueueManager(object):
         if projected_total_size > limit:
           break
 
-      for request, responses in self.data_store.ReadResponses(
-          request_list, token=self.token):
+      for request, responses in self.data_store.ReadResponses(request_list):
 
         yield (request, responses)
         total_size += len(responses)
@@ -261,8 +256,7 @@ class QueueManager(object):
         session_id,
         timestamp=timestamp,
         request_limit=self.request_limit,
-        response_limit=self.response_limit,
-        token=self.token):
+        response_limit=self.response_limit):
       yield (request, responses)
       num_requests += 1
 
@@ -276,7 +270,7 @@ class QueueManager(object):
     if request and request.HasField("request"):
       self.DeQueueClientRequest(request.client_id, request.request.task_id)
 
-    data_store.DB.DeleteRequest(request, token=self.token)
+    data_store.DB.DeleteRequest(request)
 
   def DestroyFlowStates(self, session_id):
     """Deletes all states in this flow and dequeues all client messages."""
@@ -285,7 +279,7 @@ class QueueManager(object):
   def MultiDestroyFlowStates(self, session_ids):
     """Deletes all states in multiple flows and dequeues all client messages."""
     deleted_requests = self.data_store.MultiDestroyFlowStates(
-        session_ids, request_limit=self.request_limit, token=self.token)
+        session_ids, request_limit=self.request_limit)
 
     for request in deleted_requests:
       if request.HasField("request"):
@@ -298,12 +292,11 @@ class QueueManager(object):
     self.data_store.StoreRequestsAndResponses(
         new_requests=self.request_queue,
         new_responses=self.response_queue,
-        requests_to_delete=self.requests_to_delete,
-        token=self.token)
+        requests_to_delete=self.requests_to_delete)
 
     # We need to make sure that notifications are written after the requests so
     # we flush after writing all requests and only notify afterwards.
-    mutation_pool = self.data_store.GetMutationPool(token=self.token)
+    mutation_pool = self.data_store.GetMutationPool()
     with mutation_pool:
       for client_id, messages in self.client_messages_to_delete.iteritems():
         self.Delete(client_id.Queue(), messages, mutation_pool=mutation_pool)
@@ -503,8 +496,7 @@ class QueueManager(object):
     if notifications_by_session_id is None:
       notifications_by_session_id = {}
     end_time = self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
-    for notification in self.data_store.GetNotifications(
-        queue_shard, end_time, token=self.token):
+    for notification in self.data_store.GetNotifications(queue_shard, end_time):
 
       existing = notifications_by_session_id.get(notification.session_id)
       if existing:
@@ -589,8 +581,7 @@ class QueueManager(object):
     for queue, ids in utils.GroupBy(
         session_ids, lambda session_id: session_id.Queue()).iteritems():
       queue_shards = self.GetAllNotificationShards(queue)
-      self.data_store.DeleteNotifications(
-          queue_shards, ids, start, end, token=self.token)
+      self.data_store.DeleteNotifications(queue_shards, ids, start, end)
 
   def Query(self, queue, limit=1):
     """Retrieves tasks from a queue without leasing them.
@@ -610,7 +601,7 @@ class QueueManager(object):
     if isinstance(queue, rdf_client.ClientURN):
       queue = queue.Queue()
 
-    return self.data_store.QueueQueryTasks(queue, limit=limit, token=self.token)
+    return self.data_store.QueueQueryTasks(queue, limit=limit)
 
   def QueryAndOwn(self, queue, lease_seconds=10, limit=1):
     """Returns a list of Tasks leased for a certain time.
@@ -622,7 +613,7 @@ class QueueManager(object):
     Returns:
         A list of GrrMessage() objects leased.
     """
-    with self.data_store.GetMutationPool(token=self.token) as mutation_pool:
+    with self.data_store.GetMutationPool() as mutation_pool:
       return mutation_pool.QueueQueryAndOwn(queue, lease_seconds, limit,
                                             self.frozen_timestamp)
 
@@ -637,8 +628,7 @@ class WellKnownQueueManager(QueueManager):
 
   def DeleteWellKnownFlowResponses(self, session_id, responses):
     """Deletes given responses from the flow state queue."""
-    self.data_store.DeleteWellKnownFlowResponses(
-        session_id, responses, token=self.token)
+    self.data_store.DeleteWellKnownFlowResponses(session_id, responses)
 
   def FetchResponses(self, session_id):
     """Retrieves responses for a well known flow.
@@ -652,7 +642,7 @@ class WellKnownQueueManager(QueueManager):
     timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     for response in self.data_store.FetchResponsesForWellKnownFlow(
-        session_id, self.response_limit, timestamp=timestamp, token=self.token):
+        session_id, self.response_limit, timestamp=timestamp):
       yield response
 
 

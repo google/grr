@@ -391,7 +391,7 @@ class GenericHunt(implementation.GRRHunt):
           next_state="MarkDone",
           sync=False,
           runner_args=self.args.flow_runner_args)
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         grr_collections.RDFUrnCollection.StaticAdd(
             self.started_flows_collection_urn, flow_urn, mutation_pool=pool)
 
@@ -399,11 +399,11 @@ class GenericHunt(implementation.GRRHunt):
     super(GenericHunt, self).Stop(reason=reason)
 
     started_flows = grr_collections.RDFUrnCollection(
-        self.started_flows_collection_urn, token=self.token)
+        self.started_flows_collection_urn)
 
     self.Log("Hunt stop. Terminating all the started flows.")
     num_terminated_flows = 0
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       for started_flow in started_flows:
         flow.GRRFlow.MarkForTermination(
             started_flow,
@@ -486,7 +486,7 @@ class VariableGenericHunt(GenericHunt):
   @flow.StateHandler()
   def RunClient(self, responses):
     client_ids_to_schedule = set(responses)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for flow_request in self.args.flows:
         for requested_client_id in flow_request.client_ids:
           if requested_client_id in client_ids_to_schedule:

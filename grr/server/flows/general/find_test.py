@@ -53,7 +53,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Should match ["bash" and "rbash"].
     matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
@@ -84,7 +84,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Make sure that bash is a file.
     matches = set([x.AFF4Path(self.client_id).Basename() for x in fd])
@@ -116,7 +116,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Make sure that bin is a directory
     self.assertEqual(len(fd), 2)
@@ -147,8 +147,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the output file is created
-    collection = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Make sure we got the right number of results.
     self.assertEqual(len(collection), 7)
@@ -173,7 +172,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(fd), 2)
 
@@ -189,7 +188,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd), 1)
 
 

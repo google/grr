@@ -210,8 +210,8 @@ sources:
     args: ["h", "-ewwo", "pid,ppid,uid,comm,cmd"]
 supported_os: [Linux]
 """
-    artifact.UploadArtifactYamlFile(content_good1, token=self.token)
-    artifact.UploadArtifactYamlFile(content_good2, token=self.token)
+    artifact.UploadArtifactYamlFile(content_good1)
+    artifact.UploadArtifactYamlFile(content_good2)
     # Add these new artifacts to the supported ones for the parser.
     parser.supported_artifacts.extend(["GoodPsArgs1", "GoodPsArgs2"])
     parser.Validate()
@@ -235,8 +235,8 @@ sources:
     args: ["-ewwo", "pid,ppid,uid,cmd,comm"]
 supported_os: [Linux]
 """
-    artifact.UploadArtifactYamlFile(content_bad1, token=self.token)
-    artifact.UploadArtifactYamlFile(content_bad2, token=self.token)
+    artifact.UploadArtifactYamlFile(content_bad1)
+    artifact.UploadArtifactYamlFile(content_bad2)
     orig = parser.supported_artifacts
     for bad_artifact in ["BadPsArgsDuplicateCmd", "BadPsArgsCmdNotAtEnd"]:
       with self.assertRaises(parsers.ParserDefinitionError):

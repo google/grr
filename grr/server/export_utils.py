@@ -204,14 +204,13 @@ def RecursiveDownload(dir_obj,
     thread_pool.Stop()
 
 
-def _OpenCollectionPath(coll_path, token=None):
+def _OpenCollectionPath(coll_path):
   """Tries to open various types of collections at the given path."""
-  collection = results.HuntResultCollection(coll_path, token=token)
+  collection = results.HuntResultCollection(coll_path)
   if collection and collection[0].payload:
     return collection
 
-  collection = sequential_collection.GeneralIndexedCollection(
-      coll_path, token=token)
+  collection = sequential_collection.GeneralIndexedCollection(coll_path)
   if collection:
     return collection
 
@@ -238,7 +237,7 @@ def DownloadCollection(coll_path,
     max_threads: Use this many threads to do the downloads.
   """
   completed_clients = set()
-  coll = _OpenCollectionPath(coll_path, token=token)
+  coll = _OpenCollectionPath(coll_path)
   if coll is None:
     logging.error("%s is not a valid collection. Typo? "
                   "Are you sure something was written to it?", coll_path)

@@ -35,7 +35,7 @@ class TestPlistFlows(flow_test_lib.FlowTestsBaseclass):
     return session_id
 
   def _CheckOutput(self, session_id):
-    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0]["nested1"]["nested11"]["key112"], "value112")
 

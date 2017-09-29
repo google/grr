@@ -124,7 +124,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
 
   def testListHashes(self):
     self.AddFile("/Ext2IFS_1_10b.exe")
-    hashes = list(filestore.HashFileStore.ListHashes(token=self.token))
+    hashes = list(filestore.HashFileStore.ListHashes())
     self.assertEqual(len(hashes), 5)
 
     self.assertTrue(
@@ -158,21 +158,18 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
 
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=41e6))
+    hashes = list(filestore.HashFileStore.ListHashes(age=41e6))
     self.assertEqual(len(hashes), 0)
 
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=43e6))
+    hashes = list(filestore.HashFileStore.ListHashes(age=43e6))
     self.assertEqual(len(hashes), 5)
 
-    hashes = list(filestore.HashFileStore.ListHashes(token=self.token))
+    hashes = list(filestore.HashFileStore.ListHashes())
     self.assertEqual(len(hashes), 5)
 
   def testHashAgeUpdatedWhenNewHitAddedWithinAFF4IndexCacheAge(self):
     # Check that there are no hashes.
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
@@ -183,8 +180,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
           client_id=self.client_id,
           token=self.token)
 
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(41e6, 1e10)))
     self.assertTrue(hashes)
     hits = list(
         filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
@@ -205,14 +201,12 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(hits), 2)
 
     # Check that new hit doesn't affect hash age.
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(43e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(43e6, 1e10)))
     self.assertFalse(hashes)
 
   def testHashAgeUpdatedWhenNewHitAddedAfterAFF4IndexCacheAge(self):
     # Check that there are no hashes.
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
     with utils.Stubber(time, "time", lambda: 42):
@@ -223,8 +217,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
           client_id=self.client_id,
           token=self.token)
 
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(41e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(41e6, 1e10)))
     self.assertTrue(hashes)
     hits = list(
         filestore.HashFileStore.GetClientsForHash(hashes[0], token=self.token))
@@ -246,8 +239,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(hits), 2)
 
     # Check that new hit affects hash age.
-    hashes = list(
-        filestore.HashFileStore.ListHashes(token=self.token, age=(43e6, 1e10)))
+    hashes = list(filestore.HashFileStore.ListHashes(age=(43e6, 1e10)))
     self.assertTrue(hashes)
 
   def testGetClientsForHash(self):

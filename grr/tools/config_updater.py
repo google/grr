@@ -910,8 +910,8 @@ def main(argv):
       dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)
     else:
       dest_path = grr_config.CONFIG.Get(
-          "Executables.aff4_path",
-          context=context).Add(os.path.basename(flags.FLAGS.file))
+          "Executables.aff4_path", context=context).Add(
+              os.path.basename(flags.FLAGS.file))
 
     # Now upload to the destination.
     maintenance_utils.UploadSignedConfigBlob(
@@ -957,7 +957,6 @@ def main(argv):
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file, "rb").read(1000000),
           base_urn=base_urn,
-          token=token,
           overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e

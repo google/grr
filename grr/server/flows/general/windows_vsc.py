@@ -66,7 +66,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError("Unable to list directory.")
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         stat_entry = rdf_client.StatEntry(response)
         filesystem.CreateAFF4Object(

@@ -431,7 +431,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     aff4_crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-        args.client_id.ToClientURN(), token=token)
+        args.client_id.ToClientURN())
 
     total_count = len(aff4_crashes)
     result = api_call_handler_utils.FilterCollection(aff4_crashes, args.offset,
@@ -617,7 +617,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
       if args.fetch_responses:
         request.responses = data_store.DB.ReadResponsesForRequestId(
-            task.session_id, task.request_id, token=token)
+            task.session_id, task.request_id)
 
       result.items.append(request)
 

@@ -47,8 +47,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the output collection
-    processes = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
@@ -92,15 +91,14 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Expect one result that matches regex
-    processes = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
     self.assertEqual(processes[0].cmdline, ["cmd2.exe"])
 
     # Expect two skipped results
-    logs = flow.GRRFlow.LogCollectionForFID(flow_urn, token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(flow_urn)
     for log in logs:
       if "Skipped 2" in log.log_message:
         return
@@ -139,8 +137,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       session_id = s
 
-    processes = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(processes), 2)
     states = set()
     for process in processes:
@@ -175,8 +172,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # No output matched.
-    processes = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(processes), 0)
 
   def testFetchesAndStoresBinary(self):
@@ -197,7 +193,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process.exe)
@@ -228,8 +224,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    processes = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(processes), 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
@@ -258,7 +253,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         check_flow_errors=False):
       session_id = s
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(results)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)

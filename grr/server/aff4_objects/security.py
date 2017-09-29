@@ -112,8 +112,7 @@ class Approval(aff4.AFF4Object):
     approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(
         object_urn.Path()).Add(username)
 
-    children_urns = list(
-        aff4.FACTORY.ListChildren(approvals_root_urn, token=token))
+    children_urns = list(aff4.FACTORY.ListChildren(approvals_root_urn))
     if not children_urns:
       raise access_control.UnauthorizedAccess(
           "No approval found for user %s" % utils.SmartStr(username),
@@ -578,8 +577,7 @@ class ApprovalGrantor(AbstractApprovalBase):
 
     approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(
         self.subject_urn.Path()).Add(self.delegate)
-    children_urns = list(
-        aff4.FACTORY.ListChildren(approvals_root_urn, token=self.token))
+    children_urns = list(aff4.FACTORY.ListChildren(approvals_root_urn))
     if not children_urns:
       raise access_control.UnauthorizedAccess(
           "No approval found for user %s" % utils.SmartStr(self.token.username),

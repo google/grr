@@ -9661,7 +9661,7 @@
                     "last_lease": {
                       "age": 0,
                       "type": "unicode",
-                      "value": "api_test_user@test.host:42"
+                      "value": "test_process@test.host:42"
                     },
                     "name": {
                       "age": 0,
@@ -9766,7 +9766,7 @@
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
                 "eta": 42000000,
-                "last_lease": "api_test_user@test.host:42",
+                "last_lease": "test_process@test.host:42",
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
@@ -11783,7 +11783,7 @@
                     "last_lease": {
                       "age": 0,
                       "type": "unicode",
-                      "value": "api_test_user@test.host:42"
+                      "value": "test_process@test.host:42"
                     },
                     "name": {
                       "age": 0,
@@ -11889,7 +11889,7 @@
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
                 "eta": 42000000,
-                "last_lease": "api_test_user@test.host:42",
+                "last_lease": "test_process@test.host:42",
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"

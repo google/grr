@@ -84,7 +84,7 @@ class FindFiles(flow.GRRFlow):
     if not responses.success:
       raise IOError(responses.status)
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for response in responses:
         # Create the file in the VFS
         vfs_urn = response.hit.pathspec.AFF4Path(self.client_id)

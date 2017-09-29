@@ -199,7 +199,7 @@ class HashFileStore(FileStore):
     # self._AddToIndex(index_urn, file_urn)
 
   def _AddToIndex(self, index_urn, file_urn):
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.FileHashIndexAddItem(index_urn, file_urn)
 
   @classmethod
@@ -220,7 +220,7 @@ class HashFileStore(FileStore):
       index.
     """
     return data_store.DB.FileHashIndexQuery(
-        index_urn, target_prefix, limit=limit, token=token)
+        index_urn, target_prefix, limit=limit)
 
   @classmethod
   def GetReferencesMD5(cls, md5_hash, target_prefix="", limit=100, token=None):
@@ -264,7 +264,7 @@ class HashFileStore(FileStore):
         hash_map[aff4.ROOT_URN.Add("files/hash/generic/sha256").Add(
             str(hsh.sha256))] = hsh
 
-    for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
+    for metadata in aff4.FACTORY.Stat(list(hash_map)):
       yield metadata["urn"], hash_map[metadata["urn"]]
 
   def _GetHashers(self, hash_types):
@@ -379,8 +379,8 @@ class HashFileStore(FileStore):
 
     # sha256 is the canonical location.
     canonical_urn = self.PATH.Add("generic/sha256").Add(str(hashes.sha256))
-    if not list(aff4.FACTORY.Stat(canonical_urn, token=self.token)):
-      aff4.FACTORY.Copy(fd.urn, canonical_urn, token=self.token)
+    if not list(aff4.FACTORY.Stat(canonical_urn)):
+      aff4.FACTORY.Copy(fd.urn, canonical_urn)
       # Remove the STAT entry, it makes no sense to copy it between clients.
       with aff4.FACTORY.Open(
           canonical_urn, mode="rw", token=self.token) as new_fd:
@@ -413,11 +413,10 @@ class HashFileStore(FileStore):
     return None
 
   @staticmethod
-  def ListHashes(token=None, age=aff4.NEWEST_TIME):
+  def ListHashes(age=aff4.NEWEST_TIME):
     """Yields all the hashes in the file store.
 
     Args:
-      token: Security token, instance of ACLToken.
       age: AFF4 age specification. Only get hits corresponding to the given
            age spec. Should be aff4.NEWEST_TIME or a time range given as a
            tuple (start, end) in microseconds since Jan 1st, 1970. If just
@@ -439,7 +438,7 @@ class HashFileStore(FileStore):
       for hash_type in hash_types:
         urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
 
-    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token, age=age):
+    for _, values in aff4.FACTORY.MultiListChildren(urns, age=age):
       for value in values:
         yield FileStoreHash(value)
 
@@ -503,7 +502,7 @@ class HashFileStore(FileStore):
     for o in index_objects:
       index_locations.setdefault(o.urn, []).append(o.symlink_urn)
     for hash_obj, client_files in data_store.DB.FileHashIndexQueryMultiple(
-        index_locations, token=token, timestamp=timestamp):
+        index_locations, timestamp=timestamp):
       symlinks = index_locations[hash_obj]
       for original_hash in symlinks:
         hash_obj = original_hash or hash_obj
@@ -587,7 +586,7 @@ class NSRLFileStore(HashFileStore):
         logging.debug("Checking URN %s", str(hash_urn))
         hash_map[hash_urn] = hsh
 
-    for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
+    for metadata in aff4.FACTORY.Stat(list(hash_map)):
       yield metadata["urn"], hash_map[metadata["urn"]]
 
   def AddHash(self, sha1, md5, crc, file_name, file_size, product_code_list,

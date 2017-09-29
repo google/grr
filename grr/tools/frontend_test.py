@@ -223,8 +223,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     action = rdf_file_finder.FileFinderAction(action_type=action_type)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
     self.assertEqual(len(results), 4)
     relpaths = [
@@ -268,8 +267,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
     self.assertEqual(len(results), 4)
     relpaths = [
@@ -298,8 +296,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
-    collection = flow.GRRFlow.ResultCollectionForFID(
-        session_id, token=self.token)
+    collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
     # Only two instead of the usual four results.
     self.assertEqual(len(results), 2)
@@ -326,7 +323,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         for c in client_ids
     }
     collections = {
-        c: flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+        c: flow.GRRFlow.ResultCollectionForFID(session_id)
         for c, session_id in session_ids.iteritems()
     }
     for client_id, collection in collections.iteritems():

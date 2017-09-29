@@ -18,7 +18,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(QueueTest, self).setUp()
-    self.pool = data_store.DB.GetMutationPool(token=self.token)
+    self.pool = data_store.DB.GetMutationPool()
 
   def testClaimReturnsRecordsInOrder(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
@@ -186,17 +186,14 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
       subject, _, _ = data_store.DataStore.CollectionMakeURN(
           record.queue_id, record.timestamp, record.suffix, record.subpath)
       data_store.DB.DeleteAttributes(
-          subject, [data_store.DataStore.COLLECTION_ATTRIBUTE],
-          sync=True,
-          token=self.token)
+          subject, [data_store.DataStore.COLLECTION_ATTRIBUTE], sync=True)
     data_store.DB.Flush()
 
     self.assertEqual(100,
                      sum(1
                          for _ in data_store.DB.ScanAttribute(
                              queue.urn.Add("Records"),
-                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE,
-                             token=self.token)))
+                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
@@ -207,8 +204,7 @@ class QueueTest(aff4_test_lib.AFF4ObjectTest):
                      sum(1
                          for _ in data_store.DB.ScanAttribute(
                              queue.urn.Add("Records"),
-                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE,
-                             token=self.token)))
+                             data_store.DataStore.QUEUE_LOCK_ATTRIBUTE)))
 
 
 def main(argv):

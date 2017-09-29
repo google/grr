@@ -202,7 +202,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         **kw):
       session_id = s
 
-    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    return flow.GRRFlow.ResultCollectionForFID(session_id)
 
 
 class GRRArtifactTest(ArtifactTest):
@@ -240,7 +240,7 @@ class GRRArtifactTest(ArtifactTest):
       test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
       filecontent = open(test_artifacts_file, "rb").read()
-      artifact.UploadArtifactYamlFile(filecontent, token=self.token)
+      artifact.UploadArtifactYamlFile(filecontent)
       loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
       self.assertEqual(len(loaded_artifacts), 18)
       self.assertIn("DepsWindirRegex", [a.name for a in loaded_artifacts])
@@ -268,7 +268,7 @@ sources:
 supported_os: [Linux]
 """
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.UploadArtifactYamlFile(content, token=self.token)
+      artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileBadList(self):
     content = """name: BadList
@@ -281,7 +281,7 @@ sources:
 supported_os: [Linux]
 """
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.UploadArtifactYamlFile(content, token=self.token)
+      artifact.UploadArtifactYamlFile(content)
 
   def testUploadArtifactYamlFileMissingNamesAttribute(self):
     content = """name: BadGroupMissingNames
@@ -295,7 +295,7 @@ supported_os: [Linux]
 """
 
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.UploadArtifactYamlFile(content, token=self.token)
+      artifact.UploadArtifactYamlFile(content)
 
   def testCommandArgumentOrderIsPreserved(self):
     content = """name: CommandOrder
@@ -307,7 +307,7 @@ sources:
     cmd: /sbin/iptables
 supported_os: [Linux]
 """
-    artifact.UploadArtifactYamlFile(content, token=self.token)
+    artifact.UploadArtifactYamlFile(content)
     artifact_obj = artifact_registry.REGISTRY.GetArtifacts(
         name_list=["CommandOrder"]).pop()
     arglist = artifact_obj.sources[0].attributes.get("args")
@@ -343,14 +343,13 @@ supported_os: [Linux]
 
     # WMIActiveScriptEventConsumer is a system artifact, we can't overwrite it.
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
-      artifact.UploadArtifactYamlFile(content, token=self.token)
+      artifact.UploadArtifactYamlFile(content)
 
     # Override the check and upload anyways. This simulates the case
     # where an artifact ends up shadowing a system artifact somehow -
     # for example when the system artifact was created after the
     # artifact was uploaded to the data store for testing.
-    artifact.UploadArtifactYamlFile(
-        content, overwrite_system_artifacts=True, token=self.token)
+    artifact.UploadArtifactYamlFile(content, overwrite_system_artifacts=True)
 
     # The shadowing artifact is at this point stored in the
     # collection. On the next full reload of the registry, there will
@@ -371,8 +370,7 @@ supported_os: [Linux]
     self.assertTrue(artifact_obj.loaded_from.startswith("file:"))
 
     # The artifact is gone from the collection.
-    coll = artifact_registry.ArtifactCollection(
-        artifact_store_urn, token=self.token)
+    coll = artifact_registry.ArtifactCollection(artifact_store_urn)
     self.assertNotIn("WMIActiveScriptEventConsumer", coll)
 
 
@@ -415,8 +413,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     self.assertEqual(len(packages), 2)
     self.assertEqual(packages[0].__class__.__name__, "SoftwarePackage")
 
-    anomaly_coll = aff4_grr.VFSGRRClient.AnomalyCollectionForCID(
-        self.client_id, token=self.token)
+    anomaly_coll = aff4_grr.VFSGRRClient.AnomalyCollectionForCID(self.client_id)
     self.assertEqual(len(anomaly_coll), 1)
     self.assertTrue("gremlin" in anomaly_coll[0].symptom)
 

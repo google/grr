@@ -49,7 +49,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
       log = aff4.CurrentAuditLog()
-      stored_events = audit.AuditEventCollection(log, token=self.token)
+      stored_events = audit.AuditEventCollection(log)
 
       self.assertEqual(len(stored_events), 2)
       for event in stored_events:
@@ -76,11 +76,11 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(len(logs), 2)
 
       # One with two events
-      stored_events = audit.AuditEventCollection(logs[0], token=self.token)
+      stored_events = audit.AuditEventCollection(logs[0])
       self.assertEqual(len(stored_events), 2)
 
       # The other with one
-      stored_events = audit.AuditEventCollection(logs[1], token=self.token)
+      stored_events = audit.AuditEventCollection(logs[1])
       self.assertEqual(len(stored_events), 1)
 
 

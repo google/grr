@@ -20,12 +20,11 @@ class TestSequentialCollection(sequential_collection.SequentialCollection):
 class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def _TestCollection(self, collection_id):
-    return TestSequentialCollection(
-        rdfvalue.RDFURN(collection_id), token=self.token)
+    return TestSequentialCollection(rdfvalue.RDFURN(collection_id))
 
   def testAddScan(self):
     collection = self._TestCollection("aff4:/sequential_collection/testAddScan")
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool)
 
@@ -36,7 +35,7 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       self.assertEqual(i, v)
       i += 1
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for j in range(100):
         collection.Add(rdfvalue.RDFInteger(j + 100), mutation_pool=pool)
 
@@ -50,7 +49,7 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     collection = self._TestCollection(
         "aff4:/sequential_collection/testDuplicateTimestamps")
     t = rdfvalue.RDFDatetime.Now()
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(10):
         ts = collection.Add(
             rdfvalue.RDFInteger(i), timestamp=t, mutation_pool=pool)
@@ -65,7 +64,7 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
   def testMultiResolve(self):
     collection = self._TestCollection("aff4:/sequential_collection/testAddScan")
     records = []
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         ts, suffix = collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool)
         records.append(
@@ -83,7 +82,7 @@ class SequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def testDelete(self):
     collection = self._TestCollection("aff4:/sequential_collection/testDelete")
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool)
 
@@ -102,8 +101,7 @@ class TestIndexedSequentialCollection(
 class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def _TestCollection(self, collection_id):
-    return TestIndexedSequentialCollection(
-        rdfvalue.RDFURN(collection_id), token=self.token)
+    return TestIndexedSequentialCollection(rdfvalue.RDFURN(collection_id))
 
   def setUp(self):
     super(IndexedSequentialCollectionTest, self).setUp()
@@ -124,7 +122,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
   def testAddGet(self):
     collection = self._TestCollection("aff4:/sequential_collection/testAddGet")
     self.assertEqual(collection.CalculateLength(), 0)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool)
     for i in range(100):
@@ -137,7 +135,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     collection = self._TestCollection(
         "aff4:/sequential_collection/testStaticAddGet")
     self.assertEqual(collection.CalculateLength(), 0)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         TestIndexedSequentialCollection.StaticAdd(
             "aff4:/sequential_collection/testStaticAddGet",
@@ -158,7 +156,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       collection = self._TestCollection(urn)
       # TODO(user): Without using a mutation pool, this test is really
       # slow on MySQL data store.
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         for i in range(10 * spacing):
           collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
 
@@ -215,7 +213,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       data_size = 4 * spacing
       # TODO(user): Without using a mutation pool, this test is really
       # slow on MySQL data store.
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         for i in range(data_size):
           collection.StaticAdd(urn, rdfvalue.RDFInteger(i), mutation_pool=pool)
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
@@ -231,7 +229,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     test_urn = "aff4:/sequential_collection/testIndexedListing"
     collection = self._TestCollection(test_urn)
     timestamps = []
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(100):
         timestamps.append(
             collection.Add(rdfvalue.RDFInteger(i), mutation_pool=pool))
@@ -262,7 +260,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       collection = self._TestCollection(urn)
       # TODO(user): Without using a mutation pool, this test is really
       # slow on MySQL data store.
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         for i in range(2048):
           collection.StaticAdd(
               rdfvalue.RDFURN(urn), rdfvalue.RDFInteger(i), mutation_pool=pool)
@@ -276,9 +274,8 @@ class GeneralIndexedCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAddGet(self):
     collection = sequential_collection.GeneralIndexedCollection(
-        rdfvalue.RDFURN("aff4:/sequential_collection/testAddGetIndexed"),
-        token=self.token)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+        rdfvalue.RDFURN("aff4:/sequential_collection/testAddGetIndexed"))
+    with data_store.DB.GetMutationPool() as pool:
       collection.Add(rdfvalue.RDFInteger(42), mutation_pool=pool)
       collection.Add(
           rdfvalue.RDFString("the meaning of life"), mutation_pool=pool)

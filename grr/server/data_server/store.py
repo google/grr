@@ -129,8 +129,7 @@ class DataStoreService(object):
         values,
         to_delete=to_delete,
         sync=request.sync,
-        replace=False,
-        token=request.token)
+        replace=False)
 
   @RPCWrapper
   def ResolveMulti(self, request, response):
@@ -144,11 +143,7 @@ class DataStoreService(object):
     subject = request.subject[0]
 
     values = self.db.ResolveMulti(
-        subject,
-        attribute_prefix,
-        timestamp=timestamp,
-        limit=request.limit,
-        token=request.token)
+        subject, attribute_prefix, timestamp=timestamp, limit=request.limit)
 
     response.results.Append(
         subject=subject,
@@ -164,11 +159,7 @@ class DataStoreService(object):
     subjects = list(request.subject)
 
     for subject, values in self.db.MultiResolvePrefix(
-        subjects,
-        attribute_prefix,
-        timestamp=timestamp,
-        token=request.token,
-        limit=request.limit):
+        subjects, attribute_prefix, timestamp=timestamp, limit=request.limit):
       response.results.Append(
           subject=subject,
           payload=[(utils.SmartStr(attribute), self._Encode(value), int(ts))
@@ -187,7 +178,6 @@ class DataStoreService(object):
         attributes,
         after_urn=after_urn,
         max_records=max_records,
-        token=request.token,
         relaxed_order=True):
       encoded_results = []
       for attribute, (ts, value) in results.iteritems():
@@ -200,17 +190,15 @@ class DataStoreService(object):
     timestamp = self.FromTimestampSpec(request.timestamp)
     subject = request.subject[0]
     sync = request.sync
-    token = request.token
     attributes = [v.attribute for v in request.values]
     start, end = timestamp  # pylint: disable=unpacking-non-sequence
     self.db.DeleteAttributes(
-        subject, attributes, start=start, end=end, token=token, sync=sync)
+        subject, attributes, start=start, end=end, sync=sync)
 
   @RPCWrapper
   def DeleteSubject(self, request, unused_response):
     subject = request.subject[0]
-    token = request.token
-    self.db.DeleteSubject(subject, token=token)
+    self.db.DeleteSubject(subject)
 
   def _NewTransaction(self, subject, duration, response):
     transid = utils.SmartStr(uuid.uuid4())
@@ -313,9 +301,7 @@ class DataStoreService(object):
   def LoadServerMapping(self):
     """Retrieve server mapping from database."""
     # TODO(user): this SetUID can likely be replaced with a read ACL.
-    token = access_control.ACLToken(username="GRRSystem").SetUID()
-    mapping_str, _ = self.db.Resolve(
-        MAP_SUBJECT, MAP_VALUE_PREDICATE, token=token)
+    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE)
     if not mapping_str:
       return None
     mapping = rdf_data_server.DataServerMapping.FromSerializedString(
@@ -348,9 +334,7 @@ class DataStoreService(object):
       if self._DifferentPathing(new_pathing):
         self.pathing = new_pathing
         self.db.RecreatePathing(new_pathing)
-    # SetUID is required to write to aff4:/servers_map
-    token = access_control.ACLToken(username="GRRSystem").SetUID()
-    self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping}, token=token)
+    self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping})
 
   def GetLocation(self):
     return self.db.Location()

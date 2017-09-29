@@ -46,7 +46,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
     root = aff4.FACTORY.Open(aff4.ROOT_URN, token=token)
     for client_urn in root.ListChildren():
       if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_urn.Basename()):
-        data_store.DB.DeleteSubject(client_urn, token=token)
+        data_store.DB.DeleteSubject(client_urn)
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0

@@ -263,8 +263,8 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 
   notified_users = approval_obj.Get(approval_obj.Schema.NOTIFIED_USERS)
   if notified_users:
-    api_approval.notified_users = sorted(u.strip()
-                                         for u in notified_users.split(","))
+    api_approval.notified_users = sorted(
+        u.strip() for u in notified_users.split(","))
 
   email_cc = approval_obj.Get(approval_obj.Schema.EMAIL_CC)
   email_cc_addresses = sorted(s.strip() for s in email_cc.split(","))
@@ -384,8 +384,7 @@ class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(
         token.username).Add("approvals").Add(approval_type)
 
-    all_children = aff4.FACTORY.RecursiveMultiListChildren(
-        [approvals_base_urn], token=token)
+    all_children = aff4.FACTORY.RecursiveMultiListChildren([approvals_base_urn])
 
     approvals_urns = []
     for subject, children in all_children:

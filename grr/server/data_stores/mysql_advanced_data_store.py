@@ -210,8 +210,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     self._CreateTables()
 
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
-    return MySQLDBSubjectLock(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None):
+    return MySQLDBSubjectLock(self, subject, lease_time=lease_time)
 
   def Size(self):
     query = ("SELECT table_schema, Sum(data_length + index_length) `size` "
@@ -229,8 +229,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                        attributes,
                        start=None,
                        end=None,
-                       sync=True,
-                       token=None):
+                       sync=True):
     """Remove some attributes from a subject."""
     _ = sync  # Unused
     if not attributes:
@@ -246,17 +245,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       queries = self._BuildDelete(subject, attribute, timestamp)
       self._ExecuteQueries(queries)
 
-  def DeleteSubject(self, subject, sync=False, token=None):
+  def DeleteSubject(self, subject, sync=False):
     _ = sync
     queries = self._BuildDelete(subject)
     self._ExecuteQueries(queries)
 
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """Resolves multiple attributes at once for one subject."""
     for attribute in attributes:
       query, args = self._BuildQuery(subject, attribute, timestamp, limit)
@@ -277,18 +271,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                          subjects,
                          attribute_prefix,
                          timestamp=None,
-                         limit=None,
-                         token=None):
+                         limit=None):
     """Result multiple subjects using one or more attribute regexps."""
     result = {}
 
     for subject in subjects:
       values = self.ResolvePrefix(
-          subject,
-          attribute_prefix,
-          token=token,
-          timestamp=timestamp,
-          limit=limit)
+          subject, attribute_prefix, timestamp=timestamp, limit=limit)
 
       if values:
         result[subject] = values
@@ -300,12 +289,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def ResolvePrefix(self,
-                    subject,
-                    attribute_prefix,
-                    timestamp=None,
-                    limit=None,
-                    token=None):
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
+                    limit=None):
     """ResolvePrefix."""
     if isinstance(attribute_prefix, basestring):
       attribute_prefix = [attribute_prefix]
@@ -327,8 +312,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                      subject_prefix,
                      attribute,
                      after_urn=None,
-                     limit=None,
-                     token=None):
+                     limit=None):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
@@ -365,7 +349,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                      attributes,
                      after_urn=None,
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     _ = relaxed_order  # Unused
 
@@ -378,11 +361,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for attribute in attributes:
       attribute_results = self._ScanAttribute(
-          subject_prefix,
-          attribute,
-          after_urn=after_urn,
-          limit=max_records,
-          token=token)
+          subject_prefix, attribute, after_urn=after_urn, limit=max_records)
 
       for row in attribute_results:
         subject = row["subject"]
@@ -406,8 +385,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                timestamp=None,
                replace=True,
                sync=True,
-               to_delete=None,
-               token=None):
+               to_delete=None):
     """Set multiple attributes' values for this subject in one operation."""
     to_delete = set(to_delete or [])
 
@@ -450,7 +428,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           to_insert.append([subject, attribute, data, entry_timestamp])
 
     if to_delete:
-      self.DeleteAttributes(subject, to_delete, token=token)
+      self.DeleteAttributes(subject, to_delete)
 
     if sync:
       if to_replace:

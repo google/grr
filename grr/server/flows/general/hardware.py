@@ -63,8 +63,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
           self.Log(log)
 
     if not responses.success:
-      raise flow.FlowError(
-          "Failed to dump the flash image: {0}".format(responses.status))
+      raise flow.FlowError("Failed to dump the flash image: {0}".format(
+          responses.status))
     elif not responses.First().path:
       self.Log("No path returned. Skipping host.")
       self.CallState(next_state="End")
@@ -80,8 +80,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   def DeleteTemporaryImage(self, responses):
     """Remove the temporary image from the client."""
     if not responses.success:
-      raise flow.FlowError(
-          "Unable to collect the flash image: {0}".format(responses.status))
+      raise flow.FlowError("Unable to collect the flash image: {0}".format(
+          responses.status))
 
     response = responses.First()
     self.SendReply(response)
@@ -163,7 +163,7 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
 
     if response.acpi_tables:
       self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
-      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      with data_store.DB.GetMutationPool() as mutation_pool:
 
         # TODO(user): Make this work in the UI!?
         collection_urn = self.client_id.Add(

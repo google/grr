@@ -209,20 +209,19 @@ class VFSGRRClient(standard.VFSDirectory):
     return client_id.Add("crashes")
 
   @classmethod
-  def CrashCollectionForCID(cls, client_id, token=None):
+  def CrashCollectionForCID(cls, client_id):
     """Returns the collection storing crash information for the given client.
 
     Args:
       client_id: The id of the client, a rdfvalue.ClientURN.
-      token: A data store token.
     Returns:
       The collection containing the crash information objects for the client.
     """
     return grr_collections.CrashCollection(
-        cls.CrashCollectionURNForCID(client_id), token=token)
+        cls.CrashCollectionURNForCID(client_id))
 
   def CrashCollection(self):
-    return self.CrashCollectionForCID(self.client_id, token=self.token)
+    return self.CrashCollectionForCID(self.client_id)
 
   # A collection of Anomalies found on this client.
   @classmethod
@@ -230,12 +229,12 @@ class VFSGRRClient(standard.VFSDirectory):
     return client_id.Add("anomalies")
 
   @classmethod
-  def AnomalyCollectionForCID(cls, client_id, token=None):
+  def AnomalyCollectionForCID(cls, client_id):
     return grr_collections.AnomalyCollection(
-        cls.AnomalyCollectionURNForCID(client_id), token=token)
+        cls.AnomalyCollectionURNForCID(client_id))
 
   def AnomalyCollection(self):
-    return self.AnomalyCollectionForCID(self.client_id, token=self.token)
+    return self.AnomalyCollectionForCID(self.client_id)
 
   @property
   def age(self):
@@ -459,7 +458,7 @@ class GRRForeman(aff4.AFF4Object):
             expired_session_ids.add(action.hunt_id)
 
     if expired_session_ids:
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         # Notify the worker to mark this hunt as terminated.
         manager = queue_manager.QueueManager(token=self.token)
         manager.MultiNotifyQueue(
@@ -476,8 +475,7 @@ class GRRForeman(aff4.AFF4Object):
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
     for _ in aff4.FACTORY.Stat(
-        [client_id.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())],
-        token=self.token):
+        [client_id.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())]):
       return True
 
     return False

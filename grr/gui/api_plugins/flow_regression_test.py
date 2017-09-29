@@ -4,6 +4,8 @@
 
 
 
+import psutil
+
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import flow as flow_plugin
 
@@ -22,6 +24,7 @@ from grr.server.flows.general import transfer
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import email_plugin
 from grr.test_lib import acl_test_lib
+from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -107,9 +110,11 @@ class ApiListFlowRequestsHandlerRegressionTest(
           client_id=self.client_id,
           token=self.token)
 
-      mock = flow_test_lib.MockClient(self.client_id, None, token=self.token)
-      while mock.Next():
-        pass
+      test_process = client_test_lib.MockWindowsProcess(name="test_process")
+      with utils.Stubber(psutil, "Process", lambda: test_process):
+        mock = flow_test_lib.MockClient(self.client_id, None, token=self.token)
+        while mock.Next():
+          pass
 
     replace = {flow_urn.Basename(): "W:ABCDEF"}
 

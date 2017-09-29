@@ -29,14 +29,14 @@ class AuditEventCollection(sequential_collection.IndexedSequentialCollection):
 def AllAuditLogs(token=None):
   # TODO(user): This is not great, we should store this differently.
   for log in aff4.FACTORY.Open("aff4:/audit/logs", token=token).ListChildren():
-    yield AuditEventCollection(log, token=token)
+    yield AuditEventCollection(log)
 
 
 def AuditLogsForTimespan(start_time, end_time, token=None):
   # TODO(user): This is not great, we should store this differently.
   for log in aff4.FACTORY.Open(
       "aff4:/audit/logs", token=token).ListChildren(age=(start_time, end_time)):
-    yield AuditEventCollection(log, token=token)
+    yield AuditEventCollection(log)
 
 
 class AuditEventListener(flow.EventListener):
@@ -61,5 +61,5 @@ class AuditEventListener(flow.EventListener):
     _ = message
     log_urn = aff4.CurrentAuditLog()
     self.EnsureLogIsIndexed(log_urn)
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       AuditEventCollection.StaticAdd(log_urn, event, mutation_pool=pool)

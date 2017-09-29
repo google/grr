@@ -441,7 +441,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.hunt.urn, token=self.token)
     result = results[0]
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       for i in range(self.handler.MAX_RECORDS_TO_CHECK):
         wrong_result = rdf_flows.GrrMessage(
             payload=rdfvalue.RDFString("foo/bar"),

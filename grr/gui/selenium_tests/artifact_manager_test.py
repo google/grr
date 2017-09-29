@@ -93,7 +93,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
   def testArtifactDeletion(self):
     with open(self.json_file, "rb") as fd:
-      artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
+      artifact.UploadArtifactYamlFile(fd.read())
 
     self.Open("/#main=ArtifactManagerView")
 
@@ -120,7 +120,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
   def testArtifactRemovedFromFormsImmediatelyAfterDeletion(self):
     with open(self.json_file, "rb") as fd:
-      artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
+      artifact.UploadArtifactYamlFile(fd.read())
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
     # Test that we have TestDrivers available.

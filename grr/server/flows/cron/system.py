@@ -75,8 +75,8 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       for label in self.categories[active_time].keys():
         histograms.setdefault(label, self.attribute())
-        graph = rdfstats.Graph(title="%s day actives for %s label" %
-                               (active_time, label))
+        graph = rdfstats.Graph(
+            title="%s day actives for %s label" % (active_time, label))
         for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
 
@@ -319,7 +319,7 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
     client_urns = export_utils.GetAllClients(token=self.token)
 
     for batch in utils.Grouper(client_urns, 10000):
-      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      with data_store.DB.GetMutationPool() as mutation_pool:
         for client_urn in batch:
           mutation_pool.DeleteAttributes(
               client_urn.Add("stats"), [u"aff4:stats"],

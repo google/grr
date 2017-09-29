@@ -56,8 +56,8 @@ class SearchFileContent(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @classmethod
-  def GetDefaultArgs(cls, token=None):
-    _ = token
+  def GetDefaultArgs(cls, username=None):
+    del username
     return cls.args_type(paths=[r"%%Users.homedir%%/.bash_history"])
 
   @flow.StateHandler()

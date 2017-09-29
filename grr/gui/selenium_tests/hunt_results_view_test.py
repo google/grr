@@ -44,7 +44,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     client_id = self.SetupClients(1)[0]
     h = self.CreateSampleHunt()
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       h.ResultCollection().Add(
           rdf_flows.GrrMessage(
               payload=rdfvalue.RDFString("foo-result"), source=client_id),
@@ -64,7 +64,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-results-collection td:contains('bar-result')")
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       h.ResultCollection().Add(
           rdf_flows.GrrMessage(
               payload=rdfvalue.RDFString("bar-result"), source=client_id),

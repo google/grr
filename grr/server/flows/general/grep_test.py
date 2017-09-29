@@ -94,7 +94,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         grep=grepspec):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0].offset, 3)
@@ -120,7 +120,7 @@ class TestSearchFileContentWithFixture(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(fd), 100)
     self.assertEqual(fd[15].offset, 523)
@@ -151,7 +151,7 @@ class TestSearchFileContentWithFixture(GrepTests):
           grep=grepspec):
         session_id = s
 
-      fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+      fd = flow.GRRFlow.ResultCollectionForFID(session_id)
       self.assertEqual(len(fd), 1)
       self.assertEqual(fd[0].offset, searching.Grep.BUFF_SIZE - len("HIT"))
       self.assertEqual(fd[0].length, 23)
@@ -185,7 +185,7 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Make sure that there is a hit.
     self.assertEqual(len(fd), 1)
@@ -214,7 +214,7 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(fd), 3)
 
@@ -237,7 +237,7 @@ class TestSearchFileContent(GrepTests):
         token=self.token):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     self.assertEqual(len(fd), 3)
 

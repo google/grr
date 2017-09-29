@@ -306,9 +306,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
       broken_flow_urn = s
 
     # Break the flow.
-    data_store.DB.DeleteAttributes(
-        broken_flow_urn, [flow.GRRFlow.SchemaCls.FLOW_CONTEXT],
-        token=self.token)
+    data_store.DB.DeleteAttributes(broken_flow_urn,
+                                   [flow.GRRFlow.SchemaCls.FLOW_CONTEXT])
     data_store.DB.Flush()
 
     flow_id = flow_urn.Basename()
@@ -541,7 +540,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(f).Add(
           rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo-result")),
           mutation_pool=pool)
@@ -562,7 +561,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-results-collection td:contains('bar-result')")
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(f).Add(
           rdf_flows.GrrMessage(payload=rdfvalue.RDFString("bar-result")),
           mutation_pool=pool)

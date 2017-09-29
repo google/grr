@@ -71,8 +71,8 @@ class RegistryFinder(flow.GRRFlow):
     return result
 
   @classmethod
-  def GetDefaultArgs(cls, token=None):
-    _ = token
+  def GetDefaultArgs(cls, username=None):
+    del username
     return cls.args_type(keys_paths=[
         "HKEY_USERS/%%users.sid%%/Software/"
         "Microsoft/Windows/CurrentVersion/Run/*"

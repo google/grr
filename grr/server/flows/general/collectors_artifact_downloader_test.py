@@ -80,7 +80,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     for _ in flow_test_lib.TestFlowHelper(urn, token=self.token):
       pass
 
-    results_fd = flow.GRRFlow.ResultCollectionForFID(urn, token=self.token)
+    results_fd = flow.GRRFlow.ResultCollectionForFID(urn)
     return list(results_fd)
 
   def MakeRegistryStatEntry(self, path, value):

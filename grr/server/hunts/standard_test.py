@@ -378,8 +378,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Results collection is always written, even if there are no output
       # plugins.
-      collection = implementation.GRRHunt.ResultCollectionForHID(
-          hunt_urn, token=self.token)
+      collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
 
       # We should receive stat entries.
       i = 0
@@ -391,7 +390,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(i, 4)
 
       per_type_collection = implementation.GRRHunt.TypedResultCollectionForHID(
-          hunt_urn, token=self.token)
+          hunt_urn)
 
       for i, x in enumerate(per_type_collection):
         self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
@@ -490,9 +489,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.ProcessHuntOutputPlugins()
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 1)
@@ -519,9 +518,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.ProcessHuntOutputPlugins()
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 2)
@@ -554,9 +553,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       pass
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 2)
@@ -595,9 +594,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       pass
 
     status_collection = implementation.GRRHunt.PluginStatusCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
     errors_collection = implementation.GRRHunt.PluginErrorCollectionForHID(
-        hunt_urn, token=self.token)
+        hunt_urn)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 1)
@@ -1349,8 +1348,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt()
 
     # Check logs were written to the hunt collection
-    hunt_logs = implementation.GRRHunt.LogCollectionForHID(
-        hunt_urn, token=self.token)
+    hunt_logs = implementation.GRRHunt.LogCollectionForHID(hunt_urn)
     count = 0
     for log in hunt_logs:
       if log.client_id:

@@ -74,7 +74,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
     children = list(
         aff4.FACTORY.MultiOpen(
-            list(aff4.FACTORY.ListChildren(flow_urn, token=self.token)),
+            list(aff4.FACTORY.ListChildren(flow_urn)),
             aff4_type=flow.GRRFlow,
             token=self.token))
     self.assertEqual(len(children), 1)
@@ -102,8 +102,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
     self._StartHunt()
 
     client_flows_urns = list(
-        aff4.FACTORY.ListChildren(
-            self.client_urn.Add("flows"), token=self.token))
+        aff4.FACTORY.ListChildren(self.client_urn.Add("flows")))
     self.assertEqual(len(client_flows_urns), 1)
 
     flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename())
@@ -116,8 +115,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
     self._StartHunt()
 
     client_flows_urns = list(
-        aff4.FACTORY.ListChildren(
-            self.client_urn.Add("flows"), token=self.token))
+        aff4.FACTORY.ListChildren(self.client_urn.Add("flows")))
     self.assertEqual(len(client_flows_urns), 1)
 
     flow_fd = aff4.FACTORY.Open(client_flows_urns[0], token=self.token)

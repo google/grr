@@ -79,7 +79,7 @@ class CloudBigTableDataStoreIntegrationTest(CloudBigTableDataStoreMixin,
                                             data_store_test._DataStoreTest):
 
   def _ClearDB(self, subjects):
-    data_store.DB.DeleteSubjects(subjects, sync=True, token=self.token)
+    data_store.DB.DeleteSubjects(subjects, sync=True)
 
   def setUp(self):
     super(CloudBigTableDataStoreIntegrationTest, self).setUp()
@@ -103,18 +103,17 @@ class CloudBigTableDataStoreIntegrationTest(CloudBigTableDataStoreMixin,
     data_store.DB.MultiSet(
         self.test_row,
         {"aff4:size": [(1, None)],
-         "aff4:stored": [(unicode_string, 2000)]},
-        token=self.token)
+         "aff4:stored": [(unicode_string, 2000)]})
     end_time = time.time() * 1e6
     trunc_end = self._TruncateToMilliseconds(end_time)
     stored, ts = data_store.DB.Resolve(
-        self.test_row, "aff4:size", token=self.token)
+        self.test_row, "aff4:size")
     self.assertEqual(stored, 1)
     self.assertGreaterEqual(ts, trunc_start)
     self.assertLessEqual(ts, trunc_end)
 
     stored, ts = data_store.DB.Resolve(
-        self.test_row, "aff4:stored", token=self.token)
+        self.test_row, "aff4:stored")
     self.assertEqual(stored, unicode_string)
     self.assertEqual(ts, 2000)
 

@@ -123,8 +123,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
                    "css=tr:contains('%s')" % client_id.Basename())
 
     hunt_flows = list(
-        aff4.FACTORY.ListChildren(
-            hunt.urn.Add(client_id.Basename()), token=self.token))
+        aff4.FACTORY.ListChildren(hunt.urn.Add(client_id.Basename())))
     self.assertEqual(len(hunt_flows), 1)
     self.WaitUntil(self.IsTextPresent, utils.SmartStr(hunt_flows[0]))
 
@@ -133,10 +132,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     broken_hunt = self.CreateSampleHunt()
 
     # Break the hunt.
-    data_store.DB.DeleteAttributes(
-        broken_hunt.urn,
-        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS],
-        token=self.token)
+    data_store.DB.DeleteAttributes(broken_hunt.urn, [
+        broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS
+    ])
     data_store.DB.Flush()
 
     # Open up and click on View Hunts then the first Hunt.
@@ -232,8 +230,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testHuntNotificationIsShownAndClickable(self):
-    hunt = self.CreateSampleHunt(path=os.path.join(self.base_path,
-                                                   "test.plist"))
+    hunt = self.CreateSampleHunt(
+        path=os.path.join(self.base_path, "test.plist"))
 
     self.GrantHuntApproval(hunt.urn)
 
@@ -255,8 +253,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
-      self.WaitUntil(self.IsTextPresent, "File %s transferred successfully." %
-                     str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntil(self.IsTextPresent,
+                     "File %s transferred successfully." % str(
+                         client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabGetsAutoRefreshed(self):
     h = self.CreateSampleHunt()
@@ -293,13 +292,15 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-hunt-log button:contains('Filter')")
 
     self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
-    self.WaitUntil(self.IsTextPresent, "File %s transferred successfully." %
-                   str(self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
+    self.WaitUntil(self.IsTextPresent,
+                   "File %s transferred successfully." % str(
+                       self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
-      self.WaitUntilNot(self.IsTextPresent, "File %s transferred successfully."
-                        % str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntilNot(self.IsTextPresent,
+                        "File %s transferred successfully." % str(
+                            client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     with self.CreateSampleHunt() as hunt:

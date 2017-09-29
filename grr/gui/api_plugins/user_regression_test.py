@@ -143,8 +143,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
       approvals = list(
           aff4.FACTORY.ListChildren(
               aff4.ROOT_URN.Add("ACL").Add(client_id.Basename()).Add(
-                  self.token.username),
-              token=self.token))
+                  self.token.username)))
 
       return {approvals[0].Basename(): "approval:112233"}
 
@@ -337,8 +336,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
       approvals = list(
           aff4.FACTORY.ListChildren(
               aff4.ROOT_URN.Add("ACL").Add("hunts").Add(hunt_id).Add(
-                  self.token.username),
-              token=self.token))
+                  self.token.username)))
 
       return {approvals[0].Basename(): "approval:112233", hunt_id: "H:123456"}
 
@@ -511,8 +509,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
       approvals = list(
           aff4.FACTORY.ListChildren(
               aff4.ROOT_URN.Add("ACL").Add("cron").Add(cron_id).Add(
-                  self.token.username),
-              token=self.token))
+                  self.token.username)))
 
       return {
           approvals[0].Basename(): "approval:112233",

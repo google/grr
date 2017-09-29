@@ -47,7 +47,7 @@ class ClientCrashEventListener(flow.EventListener):
   """EventListener with additional helper methods to save crash details."""
 
   def _AppendCrashDetails(self, path, crash_details):
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       grr_collections.CrashCollection.StaticAdd(
           path, crash_details, mutation_pool=pool)
 
@@ -263,8 +263,8 @@ class UpdateConfiguration(flow.GRRFlow):
   def Confirmation(self, responses):
     """Confirmation."""
     if not responses.success:
-      raise flow.FlowError(
-          "Failed to write config. Err: {0}".format(responses.status))
+      raise flow.FlowError("Failed to write config. Err: {0}".format(
+          responses.status))
 
 
 class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
@@ -429,9 +429,9 @@ class OnlineNotification(flow.GRRFlow):
   args_type = OnlineNotificationArgs
 
   @classmethod
-  def GetDefaultArgs(cls, token=None):
-    return cls.args_type(email="%s@%s" % (token.username,
-                                          config.CONFIG.Get("Logging.domain")))
+  def GetDefaultArgs(cls, username=None):
+    return cls.args_type(
+        email="%s@%s" % (username, config.CONFIG.Get("Logging.domain")))
 
   @flow.StateHandler()
   def Start(self):

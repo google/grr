@@ -81,10 +81,7 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     artifact.UploadArtifactYamlFile(
-        args.artifact,
-        token=token,
-        overwrite=True,
-        overwrite_system_artifacts=False)
+        args.artifact, overwrite=True, overwrite_system_artifacts=False)
 
 
 class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
@@ -97,4 +94,4 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteArtifactsArgs
 
   def Handle(self, args, token=None):
-    artifact_registry.DeleteArtifactsFromDatastore(set(args.names), token=token)
+    artifact_registry.DeleteArtifactsFromDatastore(set(args.names))

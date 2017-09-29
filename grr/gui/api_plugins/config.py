@@ -182,8 +182,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
     roots = _GetSignedBlobsRoots()
 
     binary_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
-        roots.values(), token=token):
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(roots.values()):
       binary_urns.extend(children)
 
     binary_fds = list(
@@ -209,7 +208,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
   def _ListComponents(self, token=None):
     components_urns = aff4.FACTORY.ListChildren(
-        aff4.FACTORY.GetComponentSummariesRoot(), token=token)
+        aff4.FACTORY.GetComponentSummariesRoot())
 
     blobs_root_urns = []
     components_fds = aff4.FACTORY.MultiOpen(
@@ -224,8 +223,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
       blobs_root_urns.append(aff4.FACTORY.GetComponentRoot().Add(desc.seed))
 
     blobs_urns = []
-    for _, children in aff4.FACTORY.MultiListChildren(
-        blobs_root_urns, token=token):
+    for _, children in aff4.FACTORY.MultiListChildren(blobs_root_urns):
       blobs_urns.extend(children)
     blobs_fds = aff4.FACTORY.MultiOpen(
         blobs_urns, aff4_type=aff4.AFF4Stream, token=token)
@@ -237,8 +235,9 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
       items.append(
           ApiGrrBinary(
-              path="%s/%s" % (component_fd.urn.Basename(), fd.urn.RelativeName(
-                  aff4.FACTORY.GetComponentRoot())),
+              path="%s/%s" %
+              (component_fd.urn.Basename(),
+               fd.urn.RelativeName(aff4.FACTORY.GetComponentRoot())),
               type=ApiGrrBinary.Type.COMPONENT,
               size=fd.size,
               timestamp=fd.Get(fd.Schema.TYPE).age))
@@ -276,8 +275,8 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
       # First path component of the identifies the component summary, the
       # rest identifies the data blob.
       path_components = args.path.split("/")
-      binary_urn = aff4.FACTORY.GetComponentRoot().Add(
-          "/".join(path_components[1:]))
+      binary_urn = aff4.FACTORY.GetComponentRoot().Add("/".join(
+          path_components[1:]))
 
       component_fd = aff4.FACTORY.Open(
           aff4.FACTORY.GetComponentSummariesRoot().Add(path_components[0]),

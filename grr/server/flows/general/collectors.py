@@ -145,8 +145,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def ConvertSupportedOSToConditions(self, src_object, filter_list):
     """Turn supported_os into a condition."""
     if src_object.supported_os:
-      filter_str = " OR ".join("os == '%s'" % o
-                               for o in src_object.supported_os)
+      filter_str = " OR ".join(
+          "os == '%s'" % o for o in src_object.supported_os)
       return filter_list.append(filter_str)
 
   def Collect(self, artifact_obj):
@@ -629,7 +629,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
     if self.state.client_anomalies:
-      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      with data_store.DB.GetMutationPool() as mutation_pool:
         collection_urn = aff4_grr.VFSGRRClient.AnomalyCollectionURNForCID(
             self.client_id)
         for anomaly_value in self.state.client_anomalies:
@@ -651,7 +651,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.CallStateInline(next_state="ProcessCollected", responses=responses)
       return
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       new_responses = []
       for response in responses:
         # Create the aff4object and add the aff4path to the response object.
@@ -756,7 +756,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
     if result_iterator:
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         # If we have a parser, do something with the results it produces.
         for result in result_iterator:
           result_type = result.__class__.__name__
@@ -779,7 +779,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def ResultCollectionForArtifact(cls, session_id, artifact_name, token=None):
     urn = rdfvalue.RDFURN("_".join((str(session_id.Add(flow.RESULTS_SUFFIX)),
                                     utils.SmartStr(artifact_name))))
-    return sequential_collection.GeneralIndexedCollection(urn, token=token)
+    return sequential_collection.GeneralIndexedCollection(urn)
 
   def _WriteResultToSplitCollection(self, result, artifact_name,
                                     output_collection_map, mutation_pool):
@@ -798,8 +798,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # TODO(user): Make this work in the UI...
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
-        collection = self.ResultCollectionForArtifact(
-            self.urn, artifact_name, token=self.token)
+        collection = self.ResultCollectionForArtifact(self.urn, artifact_name)
         output_collection_map[artifact_name] = collection
       output_collection_map[artifact_name].Add(
           result, mutation_pool=mutation_pool)

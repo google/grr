@@ -79,13 +79,13 @@ class StatsStoreProcessData(aff4.AFF4Object):
   def WriteStats(self, timestamp=None):
     metrics_metadata = stats.STATS.GetAllMetricsMetadata()
     self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp)
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.StatsWriteMetrics(
           self.urn, metrics_metadata, timestamp=timestamp)
 
   def DeleteStats(self, timestamp=data_store.DataStore.ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.StatsDeleteStatsInRange(self.urn, timestamp)
 
 
@@ -194,12 +194,7 @@ class StatsStore(aff4.AFF4Volume):
         self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
     ]
     return data_store.DB.StatsReadDataForProcesses(
-        subjects,
-        metric_name,
-        multi_metadata,
-        timestamp=timestamp,
-        limit=limit,
-        token=self.token)
+        subjects, metric_name, multi_metadata, timestamp=timestamp, limit=limit)
 
   def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS):
     """Deletes all stats in the given time range."""

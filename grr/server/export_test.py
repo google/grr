@@ -157,8 +157,8 @@ class ExportTest(ExportTestBase):
                      result[1] == DummyRDFValue("someA")))
 
   def _ConvertsCollectionWithValuesWithSingleConverter(self, coll_type):
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
-      fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
+    with data_store.DB.GetMutationPool() as pool:
+      fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"))
       src1 = rdf_client.ClientURN("C.0000000000000000")
       fd.AddAsMessage(DummyRDFValue("some"), src1, mutation_pool=pool)
       fixture_test_lib.ClientFixture(src1, token=self.token)
@@ -179,9 +179,9 @@ class ExportTest(ExportTestBase):
         hunts_results.HuntResultCollection)
 
   def _ConvertsCollectionWithMultipleConverters(self, coll_type):
-    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"), token=self.token)
+    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"))
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       src1 = rdf_client.ClientURN("C.0000000000000000")
       fd.AddAsMessage(DummyRDFValue3("some1"), src1, mutation_pool=pool)
       fixture_test_lib.ClientFixture(src1, token=self.token)

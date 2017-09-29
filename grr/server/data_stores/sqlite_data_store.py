@@ -653,8 +653,7 @@ class SqliteDataStore(data_store.DataStore):
                timestamp=None,
                replace=True,
                sync=True,
-               to_delete=None,
-               token=None):
+               to_delete=None):
     """Set multiple values at once."""
     # All operations are synchronized.
     _ = sync
@@ -690,8 +689,7 @@ class SqliteDataStore(data_store.DataStore):
                        attributes,
                        start=None,
                        end=None,
-                       sync=True,
-                       token=None):
+                       sync=True):
     """Remove some attributes from a subject."""
     _ = sync
 
@@ -713,7 +711,7 @@ class SqliteDataStore(data_store.DataStore):
         for attribute in list(attributes):
           sqlite_connection.DeleteAttributeRange(subject, attribute, start, end)
 
-  def DeleteSubject(self, subject, sync=False, token=None):
+  def DeleteSubject(self, subject, sync=False):
     _ = sync
 
     with self.cache.Get(subject) as sqlite_connection:
@@ -723,19 +721,14 @@ class SqliteDataStore(data_store.DataStore):
                          subjects,
                          attribute_prefix,
                          timestamp=None,
-                         limit=None,
-                         token=None):
+                         limit=None):
     """Result multiple subjects using one or more attribute prefixes."""
     result = {}
 
     remaining_limit = limit
     for subject in subjects:
       values = self.ResolvePrefix(
-          subject,
-          attribute_prefix,
-          token=token,
-          timestamp=timestamp,
-          limit=remaining_limit)
+          subject, attribute_prefix, timestamp=timestamp, limit=remaining_limit)
 
       if values:
         if limit:
@@ -761,12 +754,8 @@ class SqliteDataStore(data_store.DataStore):
       except ValueError:
         return timestamp, timestamp
 
-  def ResolvePrefix(self,
-                    subject,
-                    attribute_prefix,
-                    timestamp=None,
-                    limit=None,
-                    token=None):
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
+                    limit=None):
     """Resolve all attributes for a subject matching a prefix."""
     if isinstance(attribute_prefix, str):
       attribute_prefix = [attribute_prefix]
@@ -826,7 +815,6 @@ class SqliteDataStore(data_store.DataStore):
                      attributes,
                      after_urn=None,
                      max_records=None,
-                     token=None,
                      relaxed_order=False):
     subject_prefix = self._CleanSubjectPrefix(subject_prefix)
     after_urn = self._CleanAfterURN(after_urn, subject_prefix)
@@ -876,12 +864,7 @@ class SqliteDataStore(data_store.DataStore):
         sorted(raw_results, key=lambda x: x[0]), max_records):
       yield r
 
-  def ResolveMulti(self,
-                   subject,
-                   attributes,
-                   timestamp=None,
-                   limit=None,
-                   token=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None):
     """Resolve multiple attributes for a subject."""
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
@@ -912,7 +895,7 @@ class SqliteDataStore(data_store.DataStore):
 
     return results
 
-  def DumpDatabase(self, token=None):
+  def DumpDatabase(self):
     for _, sql_connection in self.cache:
       sql_connection.PrettyPrint()
 
@@ -939,9 +922,8 @@ class SqliteDataStore(data_store.DataStore):
   def Flush(self):
     pass
 
-  def DBSubjectLock(self, subject, lease_time=None, token=None):
-    return SqliteDBSubjectLock(
-        self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None):
+    return SqliteDBSubjectLock(self, subject, lease_time=lease_time)
 
   @classmethod
   def SetupTestDB(cls):

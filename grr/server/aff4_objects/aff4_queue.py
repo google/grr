@@ -102,7 +102,7 @@ class Queue(aff4.AFF4Object):
     if not self.locked:
       raise aff4.LockError("Queue must be locked to claim records.")
 
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       return mutation_pool.QueueClaimRecords(
           self.urn,
           self.rdf_type,
@@ -124,7 +124,7 @@ class Queue(aff4.AFF4Object):
       LockError: If the queue is not locked.
 
     """
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.QueueRefreshClaims(ids, timeout=timeout)
 
   @classmethod
@@ -138,7 +138,7 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    with data_store.DB.GetMutationPool(token=token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.QueueDeleteRecords(ids)
 
   @classmethod
@@ -159,7 +159,7 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    with data_store.DB.GetMutationPool(token=token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       mutation_pool.QueueReleaseRecords(ids)
 
   @classmethod

@@ -52,7 +52,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
@@ -64,7 +64,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id):
       session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(fd), 1)
     # Filesystem gives WINDOWS, registry gives Windows
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
@@ -207,8 +207,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
                 artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW)):
           session_id = s
 
-        output = flow.GRRFlow.ResultCollectionForFID(
-            session_id, token=self.token)
+        output = flow.GRRFlow.ResultCollectionForFID(session_id)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], r"C:\Windows")
 

@@ -403,13 +403,13 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
     index = client_index.CreateClientIndex(token=token)
     clients = index.LookupClients(["."])
   clients.sort()
-  with data_store.DB.GetMutationPool(token=token) as pool:
+  with data_store.DB.GetMutationPool() as pool:
 
     logging.info("checking %d clients", len(clients))
 
     # TODO(user): This only works on datastores that use the Bigtable scheme.
     client_infos = data_store.DB.MultiResolvePrefix(
-        clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS, token=token)
+        clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS)
 
     for client, type_list in client_infos:
       logging.info("%s: has %d versions", client, len(type_list))

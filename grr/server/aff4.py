@@ -174,8 +174,7 @@ class DeletionPool(object):
         not_listed_urns.append(urn)
 
     if not_listed_urns:
-      for urn, children in FACTORY.MultiListChildren(
-          not_listed_urns, token=self._token):
+      for urn, children in FACTORY.MultiListChildren(not_listed_urns):
         result[urn] = self._children_lists_cache[urn] = children
 
       for urn in not_listed_urns:
@@ -207,8 +206,7 @@ class DeletionPool(object):
       if not urns_to_check:
         break
 
-    for urn, children in FACTORY.RecursiveMultiListChildren(
-        not_cached_urns, token=self._token):
+    for urn, children in FACTORY.RecursiveMultiListChildren(not_cached_urns):
       result[urn] = self._children_lists_cache[urn] = children
 
     return result
@@ -308,10 +306,10 @@ class Factory(object):
 
     raise RuntimeError("Unknown age specification: %s" % age)
 
-  def GetAttributes(self, urns, token=None, age=NEWEST_TIME):
+  def GetAttributes(self, urns, age=NEWEST_TIME):
     """Retrieves all the attributes for all the urns."""
     urns = set([utils.SmartUnicode(u) for u in urns])
-    to_read = {urn: self._MakeCacheInvariant(urn, token, age) for urn in urns}
+    to_read = {urn: self._MakeCacheInvariant(urn, age) for urn in urns}
 
     # Urns not present in the cache we need to get from the database.
     if to_read:
@@ -319,7 +317,6 @@ class Factory(object):
           to_read,
           AFF4_PREFIXES,
           timestamp=self.ParseAgeSpecification(age),
-          token=token,
           limit=None):
 
         # Ensure the values are sorted.
@@ -332,8 +329,7 @@ class Factory(object):
                     attributes,
                     to_delete,
                     add_child_index=True,
-                    mutation_pool=None,
-                    token=None):
+                    mutation_pool=None):
     """Sets the attributes in the data store."""
 
     attributes[AFF4Object.SchemaCls.LAST] = [
@@ -343,7 +339,7 @@ class Factory(object):
     if mutation_pool:
       pool = mutation_pool
     else:
-      pool = data_store.DB.GetMutationPool(token=token)
+      pool = data_store.DB.GetMutationPool()
 
     pool.MultiSet(urn, attributes, replace=False, to_delete=to_delete)
 
@@ -400,11 +396,11 @@ class Factory(object):
     except access_control.UnauthorizedAccess:
       pass
 
-  def _DeleteChildFromIndex(self, urn, token, mutation_pool=None):
+  def _DeleteChildFromIndex(self, urn, mutation_pool=None):
     if mutation_pool:
       pool = mutation_pool
     else:
-      pool = data_store.DB.GetMutationPool(token=token)
+      pool = data_store.DB.GetMutationPool()
 
     try:
       basename = urn.Basename()
@@ -428,7 +424,7 @@ class Factory(object):
     except access_control.UnauthorizedAccess:
       pass
 
-  def _MakeCacheInvariant(self, urn, token, age):
+  def _MakeCacheInvariant(self, urn, age):
     """Returns an invariant key for an AFF4 object.
 
     The object will be cached based on this key. This function is specifically
@@ -437,15 +433,13 @@ class Factory(object):
 
     Args:
        urn: The urn of the object.
-       token: The access token used to receive the object.
        age: The age policy used to build this object. Should be one
             of ALL_TIMES, NEWEST_TIME or a range.
 
     Returns:
        A key into the cache.
     """
-    return "%s:%s:%s" % (utils.SmartStr(urn), utils.SmartStr(token),
-                         self.ParseAgeSpecification(age))
+    return "%s:%s" % (utils.SmartStr(urn), self.ParseAgeSpecification(age))
 
   def CreateWithLock(self,
                      urn,
@@ -486,7 +480,6 @@ class Factory(object):
 
     transaction = self._AcquireLock(
         urn,
-        token=token,
         blocking=blocking,
         blocking_lock_timeout=blocking_lock_timeout,
         blocking_sleep_interval=blocking_sleep_interval,
@@ -547,7 +540,6 @@ class Factory(object):
 
     transaction = self._AcquireLock(
         urn,
-        token=token,
         blocking=blocking,
         blocking_lock_timeout=blocking_lock_timeout,
         blocking_sleep_interval=blocking_sleep_interval,
@@ -566,15 +558,11 @@ class Factory(object):
 
   def _AcquireLock(self,
                    urn,
-                   token=None,
                    blocking=None,
                    blocking_lock_timeout=None,
                    lease_time=None,
                    blocking_sleep_interval=None):
     """This actually acquires the lock for a given URN."""
-    if token is None:
-      token = data_store.default_token
-
     if urn is None:
       raise ValueError("URN cannot be None")
 
@@ -586,8 +574,7 @@ class Factory(object):
           retrywrap_timeout=blocking_sleep_interval,
           retrywrap_max_timeout=blocking_lock_timeout,
           blocking=blocking,
-          lease_time=lease_time,
-          token=token)
+          lease_time=lease_time)
     except data_store.DBSubjectLockError as e:
       raise LockError(e)
 
@@ -595,13 +582,9 @@ class Factory(object):
            old_urn,
            new_urn,
            age=NEWEST_TIME,
-           token=None,
            limit=None,
            update_timestamps=False):
     """Make a copy of one AFF4 object to a different URN."""
-    if token is None:
-      token = data_store.default_token
-
     new_urn = rdfvalue.RDFURN(new_urn)
 
     if update_timestamps and age != NEWEST_TIME:
@@ -613,7 +596,6 @@ class Factory(object):
         old_urn,
         AFF4_PREFIXES,
         timestamp=self.ParseAgeSpecification(age),
-        token=token,
         limit=limit):
       if update_timestamps:
         values.setdefault(predicate, []).append((value, None))
@@ -621,7 +603,7 @@ class Factory(object):
         values.setdefault(predicate, []).append((value, ts))
 
     if values:
-      with data_store.DB.GetMutationPool(token=token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         pool.MultiSet(new_urn, values, replace=False)
         self._UpdateChildIndex(new_urn, pool)
 
@@ -698,7 +680,7 @@ class Factory(object):
       token = data_store.default_token
 
     if "r" in mode and (local_cache is None or urn not in local_cache):
-      local_cache = dict(self.GetAttributes([urn], age=age, token=token))
+      local_cache = dict(self.GetAttributes([urn], age=age))
 
     # Read the row from the table. We know the object already exists if there is
     # some data in the local_cache already for this object.
@@ -751,7 +733,7 @@ class Factory(object):
 
     aff4_type = _ValidateAFF4Type(aff4_type)
 
-    for urn, values in self.GetAttributes(urns, token=token, age=age):
+    for urn, values in self.GetAttributes(urns, age=age):
       try:
         obj = self.Open(
             urn,
@@ -906,14 +888,13 @@ class Factory(object):
       new_obj.Initialize()  # This is required to set local attributes.
       yield new_obj
 
-  def Stat(self, urns, token=None):
+  def Stat(self, urns):
     """Returns metadata about all urns.
 
     Currently the metadata include type, and last update time.
 
     Args:
       urns: The urns of the objects to open.
-      token: The token to use.
 
     Yields:
       A dict of metadata.
@@ -921,13 +902,10 @@ class Factory(object):
     Raises:
       RuntimeError: A string was passed instead of an iterable.
     """
-    if token is None:
-      token = data_store.default_token
-
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolvePrefix(
-        urns, ["aff4:type", "metadata:last"], token=token):
+        urns, ["aff4:type", "metadata:last"]):
       res = dict(urn=rdfvalue.RDFURN(subject))
       for v in values:
         if v[0] == "aff4:type":
@@ -936,10 +914,10 @@ class Factory(object):
           res["last"] = rdfvalue.RDFDatetime(v[1])
       yield res
 
-  def Exists(self, urn, token=None):
+  def Exists(self, urn):
     """Returns whether the provided urn exists."""
     try:
-      self.Stat(urn, token=token).next()
+      self.Stat(urn).next()
       return True
     except StopIteration:
       return False
@@ -1062,12 +1040,12 @@ class Factory(object):
                   utils.SmartUnicode(urns),
                   utils.SmartUnicode(marked_root_urns))
 
-    pool = data_store.DB.GetMutationPool(token=token)
+    pool = data_store.DB.GetMutationPool()
     for root in marked_root_urns:
       # Only the index of the parent object should be updated. Everything
       # below the target object (along with indexes) is going to be
       # deleted.
-      self._DeleteChildFromIndex(root, token, mutation_pool=pool)
+      self._DeleteChildFromIndex(root, mutation_pool=pool)
 
     for urn_to_delete in marked_urns:
       try:
@@ -1098,12 +1076,11 @@ class Factory(object):
     """
     self.MultiDelete([urn], token=token)
 
-  def MultiListChildren(self, urns, token=None, limit=None, age=NEWEST_TIME):
+  def MultiListChildren(self, urns, limit=None, age=NEWEST_TIME):
     """Lists bunch of directories efficiently.
 
     Args:
       urns: List of urns to list children.
-      token: Security token.
       limit: Max number of children to list (NOTE: this is per urn).
       age: The age of the items to retrieve. Should be one of ALL_TIMES,
            NEWEST_TIME or a range.
@@ -1114,10 +1091,7 @@ class Factory(object):
     checked_subjects = set()
 
     for subject, values in data_store.DB.AFF4MultiFetchChildren(
-        urns,
-        token=token,
-        timestamp=Factory.ParseAgeSpecification(age),
-        limit=limit):
+        urns, timestamp=Factory.ParseAgeSpecification(age), limit=limit):
 
       checked_subjects.add(subject)
 
@@ -1132,12 +1106,11 @@ class Factory(object):
     for subject in set(urns) - checked_subjects:
       yield subject, []
 
-  def ListChildren(self, urn, token=None, limit=None, age=NEWEST_TIME):
+  def ListChildren(self, urn, limit=None, age=NEWEST_TIME):
     """Lists bunch of directories efficiently.
 
     Args:
       urn: Urn to list children.
-      token: Security token.
       limit: Max number of children to list.
       age: The age of the items to retrieve. Should be one of ALL_TIMES,
            NEWEST_TIME or a range.
@@ -1146,19 +1119,14 @@ class Factory(object):
       RDFURNs instances of each child.
     """
     _, children_urns = list(
-        self.MultiListChildren([urn], token=token, limit=limit, age=age))[0]
+        self.MultiListChildren([urn], limit=limit, age=age))[0]
     return children_urns
 
-  def RecursiveMultiListChildren(self,
-                                 urns,
-                                 token=None,
-                                 limit=None,
-                                 age=NEWEST_TIME):
+  def RecursiveMultiListChildren(self, urns, limit=None, age=NEWEST_TIME):
     """Recursively lists bunch of directories.
 
     Args:
       urns: List of urns to list children.
-      token: Security token.
       limit: Max number of children to list (NOTE: this is per urn).
       age: The age of the items to retrieve. Should be one of ALL_TIMES,
            NEWEST_TIME or a range.
@@ -1183,7 +1151,7 @@ class Factory(object):
       found_children = []
 
       for subject, values in self.MultiListChildren(
-          urns_to_check, token=token, limit=limit, age=age):
+          urns_to_check, limit=limit, age=age):
 
         found_children.extend(values)
         yield subject, values
@@ -1745,8 +1713,7 @@ class AFF4Object(object):
             pass
         else:
           # Populate the caches from the data store.
-          for urn, values in FACTORY.GetAttributes(
-              [urn], age=age, token=self.token):
+          for urn, values in FACTORY.GetAttributes([urn], age=age):
             for attribute_name, value, ts in values:
               self.DecodeValueFromAttribute(attribute_name, value, ts)
 
@@ -1911,10 +1878,8 @@ class AFF4Object(object):
       # object version. The type of an object is versioned and represents a
       # version point in the life of the object.
       if self._new_version:
-        to_set[self.Schema.TYPE] = [
-            (utils.SmartUnicode(self.__class__.__name__),
-             rdfvalue.RDFDatetime.Now())
-        ]
+        to_set[self.Schema.TYPE] = [(utils.SmartUnicode(
+            self.__class__.__name__), rdfvalue.RDFDatetime.Now())]
 
       # We only update indexes if the schema does not forbid it and we are not
       # sure that the object already exists.
@@ -1928,8 +1893,7 @@ class AFF4Object(object):
           to_set,
           self._to_delete,
           add_child_index=add_child_index,
-          mutation_pool=self.mutation_pool,
-          token=self.token)
+          mutation_pool=self.mutation_pool)
 
   @utils.Synchronized
   def _SyncAttributes(self):
@@ -2372,10 +2336,7 @@ class AFF4Volume(AFF4Object):
     """
     # Just grab all the children from the index.
     for predicate, timestamp in data_store.DB.AFF4FetchChildren(
-        self.urn,
-        token=self.token,
-        timestamp=Factory.ParseAgeSpecification(age),
-        limit=limit):
+        self.urn, timestamp=Factory.ParseAgeSpecification(age), limit=limit):
       urn = self.urn.Add(predicate)
       urn.age = rdfvalue.RDFDatetime(timestamp)
       yield urn

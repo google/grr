@@ -53,7 +53,7 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
       session_id = s
 
     # Check the results are correct.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     conns = list(fd)
     self.assertEqual(len(conns), 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")

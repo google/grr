@@ -73,8 +73,8 @@ supported_os: [ "Linux" ]
 
       # Add artifact to datastore but not registry
       artifact_coll = artifact_registry.ArtifactCollection(
-          rdfvalue.RDFURN("aff4:/artifact_store"), token=self.token)
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+          rdfvalue.RDFURN("aff4:/artifact_store"))
+      with data_store.DB.GetMutationPool() as pool:
         for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
             cmd_artifact):
           artifact_coll.Add(artifact_val, mutation_pool=pool)

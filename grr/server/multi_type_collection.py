@@ -12,11 +12,10 @@ from grr.server import sequential_collection
 class MultiTypeCollection(object):
   """A collection that stores multiple types of data in per-type sequences."""
 
-  def __init__(self, collection_id, token=None):
+  def __init__(self, collection_id):
     super(MultiTypeCollection, self).__init__()
     # The collection_id for this collection is a RDFURN for now.
     self.collection_id = collection_id
-    self.token = token
 
   @classmethod
   def StaticAdd(cls,
@@ -80,8 +79,7 @@ class MultiTypeCollection(object):
     mutation_pool.CollectionAddStoredTypeIndex(collection_urn, value_type)
 
   def ListStoredTypes(self):
-    for t in data_store.DB.CollectionReadStoredTypes(
-        self.collection_id, token=self.token):
+    for t in data_store.DB.CollectionReadStoredTypes(self.collection_id):
       yield t
 
   def ScanByType(self,
@@ -112,7 +110,7 @@ class MultiTypeCollection(object):
     """
     sub_collection_urn = self.collection_id.Add(type_name)
     sub_collection = sequential_collection.GrrMessageCollection(
-        sub_collection_urn, token=self.token)
+        sub_collection_urn)
     for item in sub_collection.Scan(
         after_timestamp=after_timestamp,
         include_suffix=include_suffix,
@@ -122,7 +120,7 @@ class MultiTypeCollection(object):
   def LengthByType(self, type_name):
     sub_collection_urn = self.collection_id.Add(type_name)
     sub_collection = sequential_collection.GrrMessageCollection(
-        sub_collection_urn, token=self.token)
+        sub_collection_urn)
     return len(sub_collection)
 
   def Add(self, rdf_value, timestamp=None, suffix=None, mutation_pool=None):
@@ -167,7 +165,7 @@ class MultiTypeCollection(object):
     ]
     for sub_collection_urn in sub_collection_urns:
       sub_collection = sequential_collection.GrrMessageCollection(
-          sub_collection_urn, token=self.token)
+          sub_collection_urn)
       for item in sub_collection:
         yield item
 
@@ -179,19 +177,17 @@ class MultiTypeCollection(object):
     ]
     for sub_collection_urn in sub_collection_urns:
       sub_collection = sequential_collection.GrrMessageCollection(
-          sub_collection_urn, token=self.token)
+          sub_collection_urn)
       l += len(sub_collection)
 
     return l
 
   def Delete(self):
-    mutation_pool = data_store.DB.GetMutationPool(self.token)
+    mutation_pool = data_store.DB.GetMutationPool()
     with mutation_pool:
       mutation_pool.DeleteSubject(self.collection_id)
       for urn, _, _ in data_store.DB.ScanAttribute(
-          self.collection_id,
-          data_store.DataStore.COLLECTION_ATTRIBUTE,
-          token=self.token):
+          self.collection_id, data_store.DataStore.COLLECTION_ATTRIBUTE):
         mutation_pool.DeleteSubject(rdfvalue.RDFURN(urn))
         if mutation_pool.Size() > 50000:
           mutation_pool.Flush()

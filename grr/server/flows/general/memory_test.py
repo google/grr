@@ -291,7 +291,7 @@ class ListVADBinariesTest(MemoryTest):
           token=self.token):
         session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Sorting output collection to make the test deterministic
     paths = sorted([x.CollapsePath() for x in fd])
@@ -313,7 +313,7 @@ class ListVADBinariesTest(MemoryTest):
           fetch_binaries=True):
         session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Sorting output collection to make the test deterministic
     binaries = sorted(fd, key=lambda x: x.pathspec.path)
@@ -343,7 +343,7 @@ class ListVADBinariesTest(MemoryTest):
           token=self.token):
         session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -368,7 +368,7 @@ class ListVADBinariesTest(MemoryTest):
           fetch_binaries=True):
         session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -392,7 +392,7 @@ class ListVADBinariesTest(MemoryTest):
           fetch_binaries=True):
         session_id = s
 
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -435,14 +435,14 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     request.plugins = [
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
-            plugin="pslist", args=dict(method=["PsActiveProcessHead",
-                                               "CSRSS"])),
+            plugin="pslist",
+            args=dict(method=["PsActiveProcessHead", "CSRSS"])),
         rdf_rekall_types.PluginRequest(plugin="modules")
     ]
     session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
@@ -486,7 +486,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -508,7 +508,7 @@ class TestAnalyzeClientMemory(rekall_test_lib.RekallTestBase):
     session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)

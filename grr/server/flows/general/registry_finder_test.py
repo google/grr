@@ -38,8 +38,7 @@ class TestRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    return list(
-        flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token))
+    return list(flow.GRRFlow.ResultCollectionForFID(session_id))
 
   def testRegistryFinder(self):
     # Listing inside a key gives the values.

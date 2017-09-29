@@ -265,8 +265,7 @@ class HuntRunner(object):
 
   def Publish(self, event_name, msg, delay=0):
     """Sends the message to event listeners."""
-    events_lib.Events.PublishEvent(
-        event_name, msg, delay=delay, token=self.token)
+    events_lib.Events.PublishEvent(event_name, msg, delay=delay)
 
   def CallFlow(self,
                flow_name=None,
@@ -584,7 +583,7 @@ class HuntRunner(object):
         flow_name=self.hunt_obj.__class__.__name__,
         log_message=status)
     logs_collection_urn = self.hunt_obj.logs_collection_urn
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       grr_collections.LogCollection.StaticAdd(
           logs_collection_urn, log_entry, mutation_pool=pool)
 
@@ -630,7 +629,7 @@ class HuntRunner(object):
         action=event_action,
         urn=self.hunt_obj.urn,
         description=self.runner_args.description)
-    events_lib.Events.PublishEvent("Audit", event, token=self.hunt_obj.token)
+    events_lib.Events.PublishEvent("Audit", event)
 
   def Start(self):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
@@ -943,11 +942,10 @@ class GRRHunt(flow.FlowBase):
     Returns:
       The collection containing the results for the hunt identified by the id.
     """
-    return hunts_results.HuntResultCollection(
-        hunt_id.Add("Results"), token=token)
+    return hunts_results.HuntResultCollection(hunt_id.Add("Results"))
 
   def ResultCollection(self):
-    return self.ResultCollectionForHID(self.session_id, token=self.token)
+    return self.ResultCollectionForHID(self.session_id)
 
   # Collection for results by type.
   @property
@@ -955,12 +953,12 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("ResultsPerType")
 
   @classmethod
-  def TypedResultCollectionForHID(cls, hunt_id, token=None):
+  def TypedResultCollectionForHID(cls, hunt_id):
     return multi_type_collection.MultiTypeCollection(
-        hunt_id.Add("ResultsPerType"), token=token)
+        hunt_id.Add("ResultsPerType"))
 
   def TypedResultCollection(self):
-    return self.TypedResultCollectionForHID(self.session_id, token=self.token)
+    return self.TypedResultCollectionForHID(self.session_id)
 
   # Collection for logs.
   @property
@@ -968,11 +966,11 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("Logs")
 
   @classmethod
-  def LogCollectionForHID(cls, hunt_id, token=None):
-    return grr_collections.LogCollection(hunt_id.Add("Logs"), token=token)
+  def LogCollectionForHID(cls, hunt_id):
+    return grr_collections.LogCollection(hunt_id.Add("Logs"))
 
   def LogCollection(self):
-    return self.LogCollectionForHID(self.session_id, token=self.token)
+    return self.LogCollectionForHID(self.session_id)
 
   # Collection for crashes.
   @classmethod
@@ -980,14 +978,14 @@ class GRRHunt(flow.FlowBase):
     return hunt_id.Add("Crashes")
 
   @classmethod
-  def CrashCollectionForHID(cls, hunt_id, token=None):
-    return grr_collections.CrashCollection(hunt_id.Add("Crashes"), token=token)
+  def CrashCollectionForHID(cls, hunt_id):
+    return grr_collections.CrashCollection(hunt_id.Add("Crashes"))
 
   def RegisterCrash(self, crash_details):
     hunt_crashes = self.__class__.CrashCollectionForHID(self.urn)
     hunt_crashes_len = hunt_crashes.CalculateLength()
 
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       hunt_crashes.Add(crash_details, mutation_pool=pool)
 
     # Account for a crash detail that we've just added.
@@ -1006,9 +1004,8 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("ErrorClients")
 
   @classmethod
-  def ErrorCollectionForHID(cls, hunt_id, token=None):
-    return grr_collections.HuntErrorCollection(
-        hunt_id.Add("ErrorClients"), token=token)
+  def ErrorCollectionForHID(cls, hunt_id):
+    return grr_collections.HuntErrorCollection(hunt_id.Add("ErrorClients"))
 
   # Collection for output plugin status objects.
   @property
@@ -1016,9 +1013,9 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("OutputPluginsStatus")
 
   @classmethod
-  def PluginStatusCollectionForHID(cls, hunt_id, token=None):
+  def PluginStatusCollectionForHID(cls, hunt_id):
     return grr_collections.PluginStatusCollection(
-        hunt_id.Add("OutputPluginsStatus"), token=token)
+        hunt_id.Add("OutputPluginsStatus"))
 
   # Collection for output plugin status errors.
   @property
@@ -1026,9 +1023,9 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("OutputPluginsErrors")
 
   @classmethod
-  def PluginErrorCollectionForHID(cls, hunt_id, token=None):
+  def PluginErrorCollectionForHID(cls, hunt_id):
     return grr_collections.PluginStatusCollection(
-        hunt_id.Add("OutputPluginsErrors"), token=token)
+        hunt_id.Add("OutputPluginsErrors"))
 
   # Collection for clients that reported an error.
   @property
@@ -1036,13 +1033,12 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("ClientsWithResults")
 
   @classmethod
-  def ClientsWithResultsCollectionForHID(cls, hunt_id, token=None):
+  def ClientsWithResultsCollectionForHID(cls, hunt_id):
     return grr_collections.ClientUrnCollection(
-        hunt_id.Add("ClientsWithResults"), token=token)
+        hunt_id.Add("ClientsWithResults"))
 
   def ClientsWithResultsCollection(self):
-    return self.ClientsWithResultsCollectionForHID(
-        self.session_id, token=self.token)
+    return self.ClientsWithResultsCollectionForHID(self.session_id)
 
   # Collection for clients the hunt ran on.
   @property
@@ -1050,9 +1046,8 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("AllClients")
 
   @classmethod
-  def AllClientsCollectionForHID(cls, hunt_id, token=None):
-    return grr_collections.ClientUrnCollection(
-        hunt_id.Add("AllClients"), token=token)
+  def AllClientsCollectionForHID(cls, hunt_id):
+    return grr_collections.ClientUrnCollection(hunt_id.Add("AllClients"))
 
   # Collection for clients that have completed this hunt.
   @property
@@ -1060,9 +1055,8 @@ class GRRHunt(flow.FlowBase):
     return self.urn.Add("CompletedClients")
 
   @classmethod
-  def CompletedClientsCollectionForHID(cls, hunt_id, token=None):
-    return grr_collections.ClientUrnCollection(
-        hunt_id.Add("CompletedClients"), token=token)
+  def CompletedClientsCollectionForHID(cls, hunt_id):
+    return grr_collections.ClientUrnCollection(hunt_id.Add("CompletedClients"))
 
   @property
   def results_metadata_urn(self):
@@ -1077,12 +1071,12 @@ class GRRHunt(flow.FlowBase):
     return self.context.creator
 
   def _AddURNToCollection(self, urn, collection_urn):
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       grr_collections.ClientUrnCollection.StaticAdd(
           collection_urn, urn, mutation_pool=pool)
 
   def _AddHuntErrorToCollection(self, error, collection_urn):
-    with data_store.DB.GetMutationPool(token=self.token) as pool:
+    with data_store.DB.GetMutationPool() as pool:
       grr_collections.HuntErrorCollection.StaticAdd(
           collection_urn, error, mutation_pool=pool)
 
@@ -1311,7 +1305,7 @@ class GRRHunt(flow.FlowBase):
             for response in responses
         ]
 
-        with data_store.DB.GetMutationPool(token=self.token) as pool:
+        with data_store.DB.GetMutationPool() as pool:
           for msg in msgs:
             hunts_results.HuntResultCollection.StaticAdd(
                 self.results_collection_urn, msg, mutation_pool=pool)
@@ -1386,7 +1380,7 @@ class GRRHunt(flow.FlowBase):
   @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
-    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+    with data_store.DB.GetMutationPool() as mutation_pool:
       self.CreateCollections(mutation_pool)
 
     if not self.runner_args.description:
@@ -1466,7 +1460,7 @@ class GRRHunt(flow.FlowBase):
   def GetClientsCounts(self):
 
     collections_dict = dict(
-        (urn, col_type(urn, token=self.token))
+        (urn, col_type(urn))
         for urn, col_type in
         [(self.all_clients_collection_urn, grr_collections.ClientUrnCollection),
          (self.completed_clients_collection_urn, grr_collections.
@@ -1488,7 +1482,7 @@ class GRRHunt(flow.FlowBase):
 
   def GetClientsErrors(self, client_id=None):
     collection = grr_collections.HuntErrorCollection(
-        self.clients_errors_collection_urn, token=self.token)
+        self.clients_errors_collection_urn)
     errors = collection.GenerateItems()
     if not client_id:
       return errors
@@ -1496,12 +1490,11 @@ class GRRHunt(flow.FlowBase):
       return [error for error in errors if error.client_id == client_id]
 
   def GetClients(self):
-    col = self.AllClientsCollectionForHID(self.session_id, token=self.token)
+    col = self.AllClientsCollectionForHID(self.session_id)
     return set(col.GenerateItems())
 
   def GetCompletedClients(self):
-    col = self.CompletedClientsCollectionForHID(
-        self.session_id, token=self.token)
+    col = self.CompletedClientsCollectionForHID(self.session_id)
     return set(col.GenerateItems())
 
   def GetClientsByStatus(self):
@@ -1535,8 +1528,7 @@ class GRRHunt(flow.FlowBase):
       runner.CheckExpiry()
 
   @staticmethod
-  def GetAllSubflowUrns(hunt_urn, client_urns, top_level_only=False,
-                        token=None):
+  def GetAllSubflowUrns(hunt_urn, client_urns, top_level_only=False):
     """Lists all subflows for a given hunt for all clients in client_urns."""
 
     # TODO(user): This should be in the data store.
@@ -1549,7 +1541,7 @@ class GRRHunt(flow.FlowBase):
 
     while act_flows:
       next_flows = []
-      for _, children in aff4.FACTORY.MultiListChildren(act_flows, token=token):
+      for _, children in aff4.FACTORY.MultiListChildren(act_flows):
         for flow_urn in children:
           if flow_urn.Basename() != flow.RESULTS_PER_TYPE_SUFFIX:
             next_flows.append(flow_urn)

@@ -16,7 +16,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
-from grr.server import access_control
 from grr.server import artifact_utils
 from grr.server import data_store
 from grr.server import sequential_collection
@@ -47,19 +46,15 @@ class ArtifactRegistry(object):
 
   def _LoadArtifactsFromDatastore(self,
                                   source_urns=None,
-                                  token=None,
                                   overwrite_if_exists=True):
     """Load artifacts from the data store."""
-    if token is None:
-      token = access_control.ACLToken(
-          username="GRRArtifactRegistry", reason="Managing Artifacts.")
     loaded_artifacts = []
     # A collection of artifacts that shadow system artifacts and need
     # to be deleted from the data store.
     to_delete = []
 
     for artifact_coll_urn in source_urns or set():
-      artifact_coll = ArtifactCollection(artifact_coll_urn, token=token)
+      artifact_coll = ArtifactCollection(artifact_coll_urn)
       for artifact_value in artifact_coll:
         try:
           self.RegisterArtifact(
@@ -76,8 +71,7 @@ class ArtifactRegistry(object):
             raise
 
     if to_delete:
-      DeleteArtifactsFromDatastore(
-          to_delete, reload_artifacts=False, token=token)
+      DeleteArtifactsFromDatastore(to_delete, reload_artifacts=False)
       self._dirty = True
       raise ArtifactDefinitionError(
           "Artifacts %s were shadowing system artifacts and had to be deleted.")
@@ -865,9 +859,7 @@ class ArtifactCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = Artifact
 
 
-def DeleteArtifactsFromDatastore(artifact_names,
-                                 reload_artifacts=True,
-                                 token=None):
+def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
   """Deletes a list of artifacts from the data store."""
   artifacts = sorted(
       REGISTRY.GetArtifacts(reload_datastore_artifacts=reload_artifacts))
@@ -886,8 +878,7 @@ def DeleteArtifactsFromDatastore(artifact_names,
         "Artifact(s) %s depend(s) on one of the artifacts to delete." %
         (",".join(deps)))
 
-  store = ArtifactCollection(
-      rdfvalue.RDFURN("aff4:/artifact_store"), token=token)
+  store = ArtifactCollection(rdfvalue.RDFURN("aff4:/artifact_store"))
   all_artifacts = list(store)
 
   filtered_artifacts, found_artifact_names = set(), set()
@@ -909,7 +900,7 @@ def DeleteArtifactsFromDatastore(artifact_names,
   # in the same folder.
   store.Delete()
 
-  with data_store.DB.GetMutationPool(token=token) as pool:
+  with data_store.DB.GetMutationPool() as pool:
     for artifact_value in filtered_artifacts:
       store.Add(artifact_value, mutation_pool=pool)
 

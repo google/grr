@@ -88,7 +88,7 @@ class TestDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
       pass
 
-    logs = flow.GRRFlow.LogCollectionForFID(flow_urn, token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(flow_urn)
     self.assertIn("Unknown chipset", [l.log_message for l in logs])
 
   def testFailedDumpImage(self):
@@ -161,20 +161,17 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
       pass
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/DSDT"),
-        token=self.token)
+        self.client_id.Add("/devices/chipsec/acpi/tables/DSDT"))
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["DSDT"][0])
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/XSDT"),
-        token=self.token)
+        self.client_id.Add("/devices/chipsec/acpi/tables/XSDT"))
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["XSDT"][0])
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/SSDT"),
-        token=self.token)
+        self.client_id.Add("/devices/chipsec/acpi/tables/SSDT"))
     self.assertEqual(len(fd), 2)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["SSDT"][0])
     self.assertEqual(fd[1], DumpACPITableMock.ACPI_TABLES["SSDT"][1])
@@ -193,7 +190,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token):
       session_id = s
 
-    logs = flow.GRRFlow.LogCollectionForFID(session_id, token=self.token)
+    logs = flow.GRRFlow.LogCollectionForFID(session_id)
     self.assertIn("Unable to retrieve ACPI table with signature ABC",
                   [log.log_message for log in logs])
 

@@ -76,11 +76,11 @@ class TestClientRegistry(base.AutomatedTest):
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
     children = list(fd.OpenChildren())
-    self.assertTrue("SYSTEM" in [
-        os.path.basename(utils.SmartUnicode(child.urn)) for child in children
-    ])
+    self.assertTrue(
+        "SYSTEM" in
+        [os.path.basename(utils.SmartUnicode(child.urn)) for child in children])
 
   def tearDown(self):
     urn = self.client_id.Add(self.output_path)
-    data_store.DB.DeleteSubject(str(urn.Add("SYSTEM")), token=self.token)
-    data_store.DB.DeleteSubject(str(urn), token=self.token)
+    data_store.DB.DeleteSubject(str(urn.Add("SYSTEM")))
+    data_store.DB.DeleteSubject(str(urn))

@@ -122,7 +122,7 @@ def CreateBinaryConfigPaths(token=None):
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
     existing_urns = [
-        x["urn"] for x in aff4.FACTORY.Stat(list(required_urns), token=token)
+        x["urn"] for x in aff4.FACTORY.Stat(list(required_urns))
     ]
 
     missing_urns = required_urns - set(existing_urns)
@@ -292,7 +292,7 @@ def ListComponents(token=None):
     versions = []
     base_urn = "aff4:/web%s" % desc.url
     for urn, _, _ in data_store.DB.ScanAttribute(
-        base_urn, "aff4:type", token=token):
+        base_urn, "aff4:type"):
       versions.append(urn.split("/")[-1])
 
     if not versions:

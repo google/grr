@@ -95,8 +95,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
           client_id=self.client_id):
         pass
 
-      results = flow.GRRFlow.ResultCollectionForFID(
-          session_id, token=self.token)
+      results = flow.GRRFlow.ResultCollectionForFID(session_id)
 
       self.assertEqual(len(results), 1)
       for stat_entry in results:
@@ -191,7 +190,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
         pathspec=pathspec):
       session_id = s
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertEqual(len(results), 1)
     res_pathspec = results[0].pathspec
 

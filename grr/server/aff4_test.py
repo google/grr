@@ -570,7 +570,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         urn.Add("child"), aff4_type=aff4.AFF4Volume, token=self.token) as _:
       pass
 
-    mutation_pool = data_store.DB.GetMutationPool(token=self.token)
+    mutation_pool = data_store.DB.GetMutationPool()
     with mutation_pool:
       with aff4.FACTORY.Create(
           urn,
@@ -872,7 +872,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     path1 = "aff4:/test/pool_memory_stream"
     path2 = "aff4:/test/pool_memory_stream2"
 
-    pool = data_store.DB.GetMutationPool(token=self.token)
+    pool = data_store.DB.GetMutationPool()
 
     for path in [path1, path2]:
       fd = aff4.FACTORY.Create(
@@ -892,13 +892,13 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
       for subject in data_store.DB.subjects:
         self.assertNotIn(path1, subject)
     else:
-      self.assertFalse(data_store.DB.ResolveRow(path1, token=self.token))
-      self.assertFalse(data_store.DB.ResolveRow(path2, token=self.token))
+      self.assertFalse(data_store.DB.ResolveRow(path1))
+      self.assertFalse(data_store.DB.ResolveRow(path2))
 
     pool.Flush()
 
-    self.assertTrue(data_store.DB.ResolveRow(path1, token=self.token))
-    self.assertTrue(data_store.DB.ResolveRow(path2, token=self.token))
+    self.assertTrue(data_store.DB.ResolveRow(path1))
+    self.assertTrue(data_store.DB.ResolveRow(path2))
 
     fd = aff4.FACTORY.Open(path1, token=self.token)
     self.assertEqual(fd.read(100), content)
@@ -1025,7 +1025,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
     else:
       for subject in subjects:
-        self.assertFalse(data_store.DB.ResolveRow(subject, token=self.token))
+        self.assertFalse(data_store.DB.ResolveRow(subject))
 
   def testClientObject(self):
     fd = aff4.FACTORY.Create(
@@ -1312,8 +1312,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     f.Close()
 
     root = aff4.FACTORY.Open(root_urn, token=self.token)
-    all_children = list(
-        aff4.FACTORY.MultiOpen(root.ListChildren(), token=self.token))
+    all_children = list(aff4.FACTORY.MultiOpen(root.ListChildren()))
     self.assertListEqual(
         sorted([x.urn for x in all_children]),
         [root_urn.Add("some1"), root_urn.Add("some2")])
@@ -1348,9 +1347,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         client2_urn.Add("some2"), aff4.AFF4Volume, token=self.token):
       pass
 
-    children = dict(
-        aff4.FACTORY.MultiListChildren(
-            [client1_urn, client2_urn], token=self.token))
+    children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn]))
 
     self.assertListEqual(sorted(children.keys()), [client1_urn, client2_urn])
     self.assertListEqual(children[client1_urn], [client1_urn.Add("some1")])
@@ -1367,7 +1364,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
         client_urn.Add("some2"), aff4.AFF4Volume, token=self.token):
       pass
 
-    children = aff4.FACTORY.ListChildren(client_urn, token=self.token)
+    children = aff4.FACTORY.ListChildren(client_urn)
     self.assertListEqual(
         sorted(children), [client_urn.Add("some1"),
                            client_urn.Add("some2")])

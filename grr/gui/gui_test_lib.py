@@ -633,7 +633,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
       runner.Start()
 
       collection = hunt.ResultCollection()
-      with data_store.DB.GetMutationPool(token=self.token) as pool:
+      with data_store.DB.GetMutationPool() as pool:
         for value in values:
           collection.Add(
               rdf_flows.GrrMessage(payload=value, source=self.client_ids[0]),

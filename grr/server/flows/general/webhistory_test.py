@@ -83,7 +83,7 @@ class TestWebHistory(WebHistoryFlowTest):
     self.assertTrue(fd.size > 20000)
 
     # Check for analysis file.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertGreater(len(fd), 50)
     self.assertIn("funnycats.exe",
                   "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()]))
@@ -104,15 +104,15 @@ class TestWebHistory(WebHistoryFlowTest):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
     # Check if the History file is created.
-    output_path = self.client_id.Add("fs/tsk").Add(
-        "/".join([self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
+    output_path = self.client_id.Add("fs/tsk").Add("/".join(
+        [self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
             fs_path.replace("\\", "/"))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
     self.assertEqual(fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
     self.assertGreater(len(fd), 3)
     data = "\n".join([utils.SmartStr(x) for x in fd.GenerateItems()])
     self.assertTrue(data.find("Welcome to Firefox") != -1)
@@ -133,7 +133,7 @@ class TestWebHistory(WebHistoryFlowTest):
       session_id = s
 
     # Check if the collection file was created.
-    fd = flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    fd = flow.GRRFlow.ResultCollectionForFID(session_id)
 
     # There should be one hit.
     self.assertEqual(len(fd), 1)
@@ -199,7 +199,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
         **kw):
       session_id = s
 
-    return flow.GRRFlow.ResultCollectionForFID(session_id, token=self.token)
+    return flow.GRRFlow.ResultCollectionForFID(session_id)
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""
