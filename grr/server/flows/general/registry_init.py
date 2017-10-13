@@ -21,7 +21,6 @@ from grr.server.flows.general import filesystem
 from grr.server.flows.general import filetypes
 from grr.server.flows.general import find
 from grr.server.flows.general import fingerprint
-from grr.server.flows.general import grep
 from grr.server.flows.general import hardware
 
 from grr.server.flows.general import memory

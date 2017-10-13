@@ -387,6 +387,10 @@ class HuntRunner(object):
 
     return child_urn
 
+  def FlushQueuedReplies(self):
+    # Hunts do not send replies.
+    pass
+
   def FlushMessages(self):
     """Flushes the messages that were queued."""
     self.queue_manager.Flush()

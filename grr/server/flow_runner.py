@@ -868,12 +868,7 @@ class FlowRunner(object):
       # Only write the reply to the collection if we are the parent flow.
       self.QueueReplyForResultCollection(response)
 
-  def FlushMessages(self):
-    """Flushes the messages that were queued."""
-    # Only flush queues if we are the top level runner.
-    if self.parent_runner is None:
-      self.queue_manager.Flush()
-
+  def FlushQueuedReplies(self):
     if self.queued_replies:
       with data_store.DB.GetMutationPool() as pool:
         for response in self.queued_replies:
@@ -882,6 +877,12 @@ class FlowRunner(object):
           multi_type_collection.MultiTypeCollection.StaticAdd(
               self.flow_obj.multi_type_output_urn, response, mutation_pool=pool)
       self.queued_replies = []
+
+  def FlushMessages(self):
+    """Flushes the messages that were queued."""
+    # Only flush queues if we are the top level runner.
+    if self.parent_runner is None:
+      self.queue_manager.Flush()
 
   def Error(self, backtrace, client_id=None, status=None):
     """Kills this flow with an error."""

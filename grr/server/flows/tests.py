@@ -25,7 +25,6 @@ from grr.server.flows.general import filesystem_test
 from grr.server.flows.general import filetypes_test
 from grr.server.flows.general import find_test
 from grr.server.flows.general import fingerprint_test
-from grr.server.flows.general import grep_test
 from grr.server.flows.general import hardware_test
 from grr.server.flows.general import memory_test
 from grr.server.flows.general import network_test

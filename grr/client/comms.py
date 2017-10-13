@@ -1460,7 +1460,7 @@ class GRRHTTPClient(object):
 
     cn = self.communicator.common_name
     logging.info("%s: Sending %s(%s), Received %s messages in %s sec. "
-                 "Sleeping for %s", cn,
+                 "Sleeping for %s sec.", cn,
                  len(message_list),
                  len(payload_data),
                  len(response.messages), response.duration,

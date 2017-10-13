@@ -453,14 +453,16 @@ message HuntRunnerArgs {
       description: "A cpu limit imposed on each client in the hunt.",
       label: ADVANCED,
       friendly_name: "Per Client CPU Limit",
-    }];
+    },
+    default=600];  // 10 minutes.
 
   optional uint64 per_client_network_limit_bytes = 24 [(sem_type) = {
       description: "A network limit (in bytes) imposed on each client in the "
       "hunt.",
       label: ADVANCED,
       friendly_name: "Per Client Network Limit (bytes)",
-    }];
+    },
+    default=100000000];  // 100 MB
 
   optional FlowLikeObjectReference original_object = 26 [(sem_type) = {
       description: "If this hunt is a copy of another hunt or flow, we store "
@@ -1000,36 +1002,6 @@ message GlobArgs {
       label: HIDDEN,
     }, default=false];
 
-}
-
-// Next field ID: 6
-message SearchFileContentArgs {
-  repeated string paths = 1 [(sem_type) = {
-      type: "GlobExpression",
-      description: "A path to glob that supports: ** path recursion, * "
-          "wildcards and %% expansions",
-    }];
-
-  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
-      description: "Type of access to glob in.",
-    }, default=OS];
-
-  optional PathSpec root_path = 5 [(sem_type) = {
-    description: "The root path to begin the glob.  Users should almost never"
-                  " need to change this. root_path.pathtype is unused in"
-                  " favor of pathtype to allow it to be modified by users.",
-    label: ADVANCED;
-  }];
-
-  optional BareGrepSpec grep = 3 [(sem_type) = {
-      friendly_name: "File Content Search",
-      description: "Leave empty to match files by filename only."
-    }];
-
-  optional bool also_download = 4 [(sem_type) = {
-      friendly_name: "Download matching files",
-      description: "If checked, download any matching files."
-    }];
 }
 
 // Next field ID: 5

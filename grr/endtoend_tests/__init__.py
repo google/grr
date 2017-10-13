@@ -11,7 +11,6 @@ from grr.endtoend_tests import discovery
 from grr.endtoend_tests import file_finder
 from grr.endtoend_tests import filesystem
 from grr.endtoend_tests import fingerprint
-from grr.endtoend_tests import grep
 from grr.endtoend_tests import limits
 from grr.endtoend_tests import network
 from grr.endtoend_tests import processes

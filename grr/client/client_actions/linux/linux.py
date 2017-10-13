@@ -238,30 +238,32 @@ class EnumerateUsers(actions.ActionPlugin):
     """Enumerates all the users on this system."""
     users = self.ParseWtmp()
     for user, last_login in users.iteritems():
+
       # Lose the null termination
       username = user.split("\x00", 1)[0]
 
       if username:
-        try:
-          pwdict = pwd.getpwnam(username)
-          homedir = pwdict[5]  # pw_dir
-          full_name = pwdict[4]  # pw_gecos
-        except KeyError:
-          homedir = ""
-          full_name = ""
-
         # Somehow the last login time can be < 0. There is no documentation
         # what this means so we just set it to 0 (the rdfvalue field is
         # unsigned so we can't send negative values).
         if last_login < 0:
           last_login = 0
 
-        self.SendReply(
-            rdf_client.User(
-                username=utils.SmartUnicode(username),
-                homedir=utils.SmartUnicode(homedir),
-                full_name=utils.SmartUnicode(full_name),
-                last_logon=last_login * 1000000))
+        result = rdf_client.User(
+            username=utils.SmartUnicode(username),
+            last_logon=last_login * 1000000)
+
+        try:
+          pwdict = pwd.getpwnam(username)
+          result.homedir = utils.SmartUnicode(pwdict.pw_dir)
+          result.full_name = utils.SmartUnicode(pwdict.pw_gecos)
+          result.uid = pwdict.pw_uid
+          result.gid = pwdict.pw_gid
+          result.shell = utils.SmartUnicode(pwdict.pw_shell)
+        except KeyError:
+          pass
+
+        self.SendReply(result)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

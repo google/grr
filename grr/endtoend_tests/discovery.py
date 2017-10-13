@@ -53,8 +53,7 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
     super(TestClientInterrogateEndToEnd, self).setUp()
     data_store.DB.DeleteAttributes(
         self.client_id, [str(attribute) for attribute in self.attributes],
-        sync=True,
-        token=self.token)
+        sync=True)
     aff4.FACTORY.Flush()
 
     self.assertRaises(AssertionError, self.CheckFlow)

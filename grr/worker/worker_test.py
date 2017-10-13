@@ -1021,6 +1021,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner_args,
         cpu_limit=5000,
+        per_client_cpu_limit=10000,
         network_bytes_limit=1000000,
         client_rate=0,
         token=self.token) as hunt:
