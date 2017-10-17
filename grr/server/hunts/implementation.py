@@ -358,8 +358,9 @@ class HuntRunner(object):
       subflow_network_limit = self.runner_args.per_client_network_limit_bytes
 
     if self.runner_args.network_bytes_limit:
-      remaining_network_quota = (self.runner_args.network_bytes_limit -
-                                 self.context.network_bytes_sent)
+      remaining_network_quota = (
+          self.runner_args.network_bytes_limit -
+          self.context.network_bytes_sent)
       if subflow_network_limit is None:
         subflow_network_limit = remaining_network_quota
       else:
@@ -1259,8 +1260,9 @@ class GRRHunt(flow.FlowBase):
 
     # Check average per-client results count limit.
     if self.runner_args.avg_results_per_client_limit:
-      avg_results_per_client = (self.context.results_count / float(
-          self.context.completed_clients_count))
+      avg_results_per_client = (
+          self.context.results_count / float(
+              self.context.completed_clients_count))
       if (avg_results_per_client >
           self.runner_args.avg_results_per_client_limit):
         # Stop the hunt since we get too many results per client.
@@ -1287,8 +1289,9 @@ class GRRHunt(flow.FlowBase):
 
     # Check average per-client network bytes limit.
     if self.runner_args.avg_network_bytes_per_client_limit:
-      avg_network_bytes_per_client = (self.context.network_bytes_sent / float(
-          self.context.completed_clients_count))
+      avg_network_bytes_per_client = (
+          self.context.network_bytes_sent / float(
+              self.context.completed_clients_count))
       if (avg_network_bytes_per_client >
           self.runner_args.avg_network_bytes_per_client_limit):
         # Stop the hunt since we use too many network bytes sent
@@ -1530,32 +1533,6 @@ class GRRHunt(flow.FlowBase):
     runner = self.GetRunner()
     if not runner.IsCompleted():
       runner.CheckExpiry()
-
-  @staticmethod
-  def GetAllSubflowUrns(hunt_urn, client_urns, top_level_only=False):
-    """Lists all subflows for a given hunt for all clients in client_urns."""
-
-    # TODO(user): This should be in the data store.
-
-    client_ids = [urn.Split()[0] for urn in client_urns]
-    client_bases = [hunt_urn.Add(client_id) for client_id in client_ids]
-
-    all_flows = []
-    act_flows = client_bases
-
-    while act_flows:
-      next_flows = []
-      for _, children in aff4.FACTORY.MultiListChildren(act_flows):
-        for flow_urn in children:
-          if flow_urn.Basename() != flow.RESULTS_PER_TYPE_SUFFIX:
-            next_flows.append(flow_urn)
-      all_flows.extend(next_flows)
-      act_flows = next_flows
-
-      if top_level_only:
-        break
-
-    return all_flows
 
   def _ValidateState(self):
     if self.context is None:

@@ -24,10 +24,7 @@ from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto.api import hunt_pb2
 from grr.server import aff4
-from grr.server import data_store
-
 from grr.server import events
-
 from grr.server import flow
 from grr.server import foreman
 from grr.server import instant_output_plugin
@@ -226,20 +223,11 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
     return self
 
 
-class ApiHuntClientPendingRequest(rdf_structs.RDFProtoStruct):
-  protobuf = hunt_pb2.ApiHuntClientPendingRequest
-  rdf_deps = [
-      rdfvalue.RDFURN,
-  ]
-
-
 class ApiHuntClient(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiHuntClient
   rdf_deps = [
       api_client.ApiClientId,
-      ApiHuntClientPendingRequest,
-      rdf_client.CpuSeconds,
-      rdfvalue.RDFURN,
+      api_flow.ApiFlowId,
   ]
 
 
@@ -1062,78 +1050,6 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntClientsArgs
   result_type = ApiListHuntClientsResult
 
-  def IncludeRequestInformationInResults(self, hunt_urn, results):
-    all_clients_urns = [i.client_id.ToClientURN() for i in results]
-    clients_to_results_map = {i.client_id: i for i in results}
-
-    all_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, all_clients_urns)
-    flow_requests = flow.GRRFlow.GetFlowRequests(all_flow_urns)
-    client_requests = data_store.DB.QueueMultiQuery(
-        [cid.Queue() for cid in all_clients_urns])
-
-    waitingfor = {}
-    status_by_request = {}
-
-    for flow_urn in flow_requests:
-      for obj in flow_requests[flow_urn]:
-        if isinstance(obj, rdf_flows.RequestState):
-          waitingfor.setdefault(flow_urn, obj)
-          if waitingfor[flow_urn].id > obj.id:
-            waitingfor[flow_urn] = obj
-        elif isinstance(obj, rdf_flows.GrrMessage):
-          status_by_request.setdefault(flow_urn, {})[obj.request_id] = obj
-
-    response_urns = []
-
-    # TODO(user): This only works with aff4 based data stores. Find
-    # a better way to do this.
-    for request_base_urn, request in waitingfor.iteritems():
-      response_urns.append(
-          rdfvalue.RDFURN(request_base_urn).Add("request:%08X" % request.id))
-    response_dict = dict(
-        data_store.DB.MultiResolvePrefix(response_urns, "flow:"))
-
-    for flow_urn in sorted(all_flow_urns):
-      request_urn = flow_urn.Add("state")
-      client_id = flow_urn.Split()[2]
-
-      try:
-        request_obj = waitingfor[request_urn]
-      except KeyError:
-        request_obj = None
-
-      if request_obj:
-        response_urn = rdfvalue.RDFURN(request_urn).Add(
-            "request:%08X" % request_obj.id)
-        responses_available = len(response_dict.setdefault(response_urn, []))
-        status_available = False
-        responses_expected = "Unknown"
-        if request_obj.id in status_by_request.setdefault(request_urn, {}):
-          status_available = True
-          status = status_by_request[request_urn][request_obj.id]
-          # responses_expected ends up in a string field and will
-          # complain if we don't convert to string here.
-          responses_expected = str(status.response_id)
-
-        client_requests_available = 0
-        queue = rdf_client.ClientURN(client_id).Queue()
-        for client_req in client_requests.setdefault(queue, []):
-          if request_obj.request.session_id == client_req.session_id:
-            client_requests_available += 1
-
-        pending_request = ApiHuntClientPendingRequest(
-            flow_urn=flow_urn,
-            incomplete_request_id=str(request_obj.id),
-            next_state=request_obj.next_state,
-            expected_args=request_obj.request.args_rdf_name,
-            available_responses_count=responses_available,
-            expected_responses=responses_expected,
-            is_status_available=status_available,
-            available_client_requests_count=client_requests_available)
-        clients_to_results_map[client_id].pending_requests.append(
-            pending_request)
-
   def Handle(self, args, token=None):
     """Retrieves the clients for a hunt."""
     hunt_urn = args.hunt_id.ToURN()
@@ -1149,24 +1065,11 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     else:
       hunt_clients = sorted(hunt_clients)[args.offset:]
 
-    top_level_flow_urns = implementation.GRRHunt.GetAllSubflowUrns(
-        hunt_urn, hunt_clients, top_level_only=True)
-    top_level_flows = list(
-        aff4.FACTORY.MultiOpen(
-            top_level_flow_urns, aff4_type=flow.GRRFlow, token=token))
-
-    results = []
-    for flow_fd in sorted(top_level_flows, key=lambda f: f.urn):
-      runner = flow_fd.GetRunner()
-      item = ApiHuntClient(
-          client_id=flow_fd.client_id,
-          flow_urn=flow_fd.urn,
-          cpu_usage=runner.context.client_resources.cpu_usage,
-          network_bytes_sent=runner.context.network_bytes_sent)
-      results.append(item)
-
-    self.IncludeRequestInformationInResults(hunt_urn, results)
-
+    flow_id = "%s:hunt" % hunt_urn.Basename()
+    results = [
+        ApiHuntClient(client_id=c.Basename(), flow_id=flow_id)
+        for c in hunt_clients
+    ]
     return ApiListHuntClientsResult(items=results, total_count=total_count)
 
 

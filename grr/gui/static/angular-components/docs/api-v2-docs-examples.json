@@ -5009,96 +5009,23 @@
         "items": [
           {
             "clientId": "C.1000000000000000",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000001",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000002",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000003",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000004",
-            "cpuUsage": {
-              "systemCpuTime": 2.0,
-              "userCpuTime": 1.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
-            "networkBytesSent": "3"
+            "flowId": "H:123456:hunt"
           }
         ],
         "totalCount": "5"
@@ -5113,87 +5040,19 @@
         "items": [
           {
             "clientId": "C.1000000000000000",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000001",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000002",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           },
           {
             "clientId": "C.1000000000000003",
-            "cpuUsage": {
-              "systemCpuTime": 0.0,
-              "userCpuTime": 0.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-            "networkBytesSent": "0",
-            "pendingRequests": [
-              {
-                "availableClientRequestsCount": "1",
-                "availableResponsesCount": "0",
-                "expectedArgs": "ListDirRequest",
-                "expectedResponses": "Unknown",
-                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-                "incompleteRequestId": "2",
-                "isStatusAvailable": false,
-                "nextState": "Stat"
-              }
-            ]
+            "flowId": "H:123456:hunt"
           }
         ],
         "totalCount": "4"
@@ -5208,12 +5067,7 @@
         "items": [
           {
             "clientId": "C.1000000000000004",
-            "cpuUsage": {
-              "systemCpuTime": 2.0,
-              "userCpuTime": 1.0
-            },
-            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
-            "networkBytesSent": "3"
+            "flowId": "H:123456:hunt"
           }
         ],
         "totalCount": "1"

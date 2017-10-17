@@ -12,7 +12,6 @@ import unittest
 
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.lib import utils
 from grr.server import aff4
 from grr.server import data_store
 from grr.test_lib import flow_test_lib
@@ -101,7 +100,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntClientsView(self):
     """Test the detailed client view works."""
-    hunt = self._CreateHuntWithDownloadedFile()
+    self._CreateHuntWithDownloadedFile()
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
@@ -122,19 +121,21 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % client_id.Basename())
 
-    hunt_flows = list(
-        aff4.FACTORY.ListChildren(hunt.urn.Add(client_id.Basename())))
-    self.assertEqual(len(hunt_flows), 1)
-    self.WaitUntil(self.IsTextPresent, utils.SmartStr(hunt_flows[0]))
+    self.RequestAndGrantClientApproval(client_id)
+
+    self.Click(
+        "css=tr:contains('%s') td:nth-of-type(2) a" % client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, "Flow Information")
+    self.WaitUntil(self.IsTextPresent, self.base_path)
 
   def testHuntOverviewShowsBrokenHunt(self):
     hunt = self.CreateSampleHunt()
     broken_hunt = self.CreateSampleHunt()
 
     # Break the hunt.
-    data_store.DB.DeleteAttributes(broken_hunt.urn, [
-        broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS
-    ])
+    data_store.DB.DeleteAttributes(
+        broken_hunt.urn,
+        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
     data_store.DB.Flush()
 
     # Open up and click on View Hunts then the first Hunt.

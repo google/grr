@@ -478,50 +478,16 @@ message ApiListHuntClientsArgs {
     }];
 };
 
-message ApiHuntClientPendingRequest {
-  optional string flow_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The flow urn."
-    }];
-  optional string incomplete_request_id = 2 [(sem_type) = {
-      description: "The id of the incomplete request."
-    }];
-  optional string next_state = 3 [(sem_type) = {
-      description: "The next state of the flow."
-    }];
-  optional string expected_args = 4 [(sem_type) = {
-      description: "The name of the expected arguments."
-    }];
-  optional int64 available_responses_count = 5 [(sem_type) = {
-      description: "The number of available responses."
-    }];
-  optional string expected_responses = 6 [(sem_type) = {
-      description: "The expected responses."
-    }];
-  optional bool is_status_available = 7 [(sem_type) = {
-      description: "Whether the status is available or not."
-    }];
-  optional int64 available_client_requests_count = 8 [(sem_type) = {
-      description: "The number of client requests available."
-    }];
-}
-
+// Next message id: 14
 message ApiHuntClient {
   optional string client_id = 1 [(sem_type) = {
       type: "ApiClientId",
       description: "The client id."
     }];
-  optional string flow_urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The flow urn."
+  optional string flow_id = 13 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Id of the hunt flow started on this client."
     }];
-  optional CpuSeconds cpu_usage = 10 [(sem_type) = {
-      description: "CPU usage (in seconds)."
-    }];
-  optional int64 network_bytes_sent = 11 [(sem_type) = {
-      description: "Network usage (in bytes)."
-    }];
-  repeated ApiHuntClientPendingRequest pending_requests = 12;
 };
 
 message ApiListHuntClientsResult {

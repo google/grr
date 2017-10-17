@@ -19,24 +19,18 @@
       <tr>
         <th>Client</th>
         <th>Flow</th>
-        <th>User CPU (s)</th>
-        <th>System CPU (s)</th>
-        <th>Network Traffic</th>
-        <th>Pending Requests</th>
       </tr>
     </thead>
     <tbody>
-      <tr grr-infinite-table grr-api-items-provider url="::controller.huntClientsUrl">
+      <tr grr-infinite-table grr-api-items-provider
+          transform-items="controller.transformItems(items)"
+          url="::controller.huntClientsUrl">
         <td><grr-semantic-value value="::item.value.client_id" /></td>
-        <td><grr-semantic-value value="::item.value.flow_urn" /></td>
-        <td>{$ ::item.value.cpu_usage.value.user_cpu_time.value || 0 | number: 2 $}s</td>
-        <td>{$ ::item.value.cpu_usage.value.system_cpu_time.value || 0 | number: 2 $}s</td>
-        <td>{$ ::item.value.network_bytes_sent.value || 0 | number: 0 $}b</td>
         <td>
-          <span ng-repeat="pendingRequest in ::item.value.pending_requests">
-            <grr-semantic-value="::pendingRequest"></grr-semantic-value>
-            <hr ng-if="::!$last">
-          </span>
+          <a ng-href="{$ ::item.flowRef $}"
+             ng-click="controller.onFlowClick(item)">
+            {$ ::item.value.flow_id.value $}
+          </a>
         </td>
       </tr>
     </tbody>

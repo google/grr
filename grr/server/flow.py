@@ -1056,30 +1056,6 @@ class GRRFlow(FlowBase):
         output.append("")
     return "\n".join(output)
 
-  @staticmethod
-  def GetFlowRequests(flow_urns):
-    """Returns all outstanding requests for the flows in flow_urns."""
-
-    # TODO(user): This should be in the data store.
-
-    flow_requests = {}
-    flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
-
-    for flow_urn, values in data_store.DB.MultiResolvePrefix(
-        flow_request_urns, "flow:"):
-      for subject, serialized, _ in values:
-        try:
-          if "status" in subject:
-            msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
-          else:
-            msg = rdf_flows.RequestState.FromSerializedString(serialized)
-        except Exception as e:  # pylint: disable=broad-except
-          logging.warn("Error while parsing: %s", e)
-          continue
-
-        flow_requests.setdefault(flow_urn, []).append(msg)
-    return flow_requests
-
   # All the collections flows use.
 
   # Results collection.

@@ -135,8 +135,8 @@ grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type =
-    'ClientURN';
+grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_types =
+      ['ClientURN', 'ApiClientId'];
 
 
 });  // goog.scope

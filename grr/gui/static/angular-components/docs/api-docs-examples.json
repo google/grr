@@ -12492,80 +12492,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000000"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -12577,80 +12508,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000001"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -12662,80 +12524,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000002"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -12747,80 +12540,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000003"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -12832,31 +12556,10 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000004"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 2.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 1.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 3
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
               }
             }
           }
@@ -12868,96 +12571,23 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000001",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000002",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000003",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000004",
-            "cpu_usage": {
-              "system_cpu_time": 2.0,
-              "user_cpu_time": 1.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
-            "network_bytes_sent": 3
+            "flow_id": "H:123456:hunt"
           }
         ],
         "total_count": 5
@@ -12978,80 +12608,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000000"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -13063,80 +12624,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000001"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -13148,80 +12640,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000002"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           },
           {
@@ -13233,80 +12656,11 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000003"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "pending_requests": [
-                {
-                  "age": 0,
-                  "type": "ApiHuntClientPendingRequest",
-                  "value": {
-                    "available_client_requests_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 1
-                    },
-                    "available_responses_count": {
-                      "age": 0,
-                      "type": "long",
-                      "value": 0
-                    },
-                    "expected_args": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "ListDirRequest"
-                    },
-                    "expected_responses": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Unknown"
-                    },
-                    "flow_urn": {
-                      "age": 42000000,
-                      "type": "RDFURN",
-                      "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-                    },
-                    "incomplete_request_id": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "2"
-                    },
-                    "is_status_available": {
-                      "age": 0,
-                      "type": "RDFBool",
-                      "value": false
-                    },
-                    "next_state": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Stat"
-                    }
-                  }
-                }
-              ]
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
+              }
             }
           }
         ],
@@ -13317,87 +12671,19 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000001",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000002",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           },
           {
             "client_id": "C.1000000000000003",
-            "cpu_usage": {
-              "system_cpu_time": 0.0,
-              "user_cpu_time": 0.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-            "network_bytes_sent": 0,
-            "pending_requests": [
-              {
-                "available_client_requests_count": 1,
-                "available_responses_count": 0,
-                "expected_args": "ListDirRequest",
-                "expected_responses": "Unknown",
-                "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
-                "incomplete_request_id": "2",
-                "is_status_available": false,
-                "next_state": "Stat"
-              }
-            ]
+            "flow_id": "H:123456:hunt"
           }
         ],
         "total_count": 4
@@ -13418,31 +12704,10 @@
                 "type": "ApiClientId",
                 "value": "C.1000000000000004"
               },
-              "cpu_usage": {
+              "flow_id": {
                 "age": 0,
-                "type": "CpuSeconds",
-                "value": {
-                  "system_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 2.0
-                  },
-                  "user_cpu_time": {
-                    "age": 0,
-                    "type": "float",
-                    "value": 1.0
-                  }
-                }
-              },
-              "flow_urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 3
+                "type": "ApiFlowId",
+                "value": "H:123456:hunt"
               }
             }
           }
@@ -13454,12 +12719,7 @@
         "items": [
           {
             "client_id": "C.1000000000000004",
-            "cpu_usage": {
-              "system_cpu_time": 2.0,
-              "user_cpu_time": 1.0
-            },
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
-            "network_bytes_sent": 3
+            "flow_id": "H:123456:hunt"
           }
         ],
         "total_count": 1
