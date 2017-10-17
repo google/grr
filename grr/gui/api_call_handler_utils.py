@@ -16,10 +16,11 @@ import yaml
 
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_utils_pb2
 from grr.server import aff4
+from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import export as flow_export
 
 
@@ -94,8 +95,8 @@ class CollectionArchiveGenerator(object):
       except flow_export.ItemNotExportableError:
         pass
 
-  def _WriteDescription(self):
-    """Writes description into a MANIFEST file in the archive."""
+  def _GenerateDescription(self):
+    """Generates description into a MANIFEST file in the archive."""
 
     manifest = {
         "description": self.description,
@@ -122,6 +123,17 @@ class CollectionArchiveGenerator(object):
         manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
       yield chunk
 
+  def _GenerateClientInfo(self, client_fd):
+    summary = yaml.safe_dump(
+        client_fd.GetSummary().ToPrimitiveDict(serialize_leaf_fields=True))
+    client_info_path = os.path.join(self.prefix,
+                                    client_fd.urn.Basename(),
+                                    "client_info.yaml")
+    st = os.stat_result((0644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))
+    yield self.archive_generator.WriteFileHeader(client_info_path, st=st)
+    yield self.archive_generator.WriteFileChunk(summary)
+    yield self.archive_generator.WriteFileFooter()
+
   def Generate(self, collection, token=None):
     """Generates archive from a given collection.
 
@@ -135,7 +147,7 @@ class CollectionArchiveGenerator(object):
     Yields:
       Binary chunks comprising the generated archive.
     """
-    hashes = set()
+    clients = set()
     for fd_urn_batch in utils.Grouper(
         self._ItemsToUrns(collection), self.BATCH_SIZE):
 
@@ -149,24 +161,16 @@ class CollectionArchiveGenerator(object):
 
         # Any file-like object with data in AFF4 should inherit AFF4Stream.
         if isinstance(fd, aff4.AFF4Stream):
-          archive_path = os.path.join(self.prefix, *fd.urn.Split())
+          urn_components = fd.urn.Split()
+          clients.add(rdf_client.ClientURN(urn_components[0]))
 
-          sha256_hash = fd.Get(fd.Schema.HASH, rdf_crypto.Hash()).sha256
-          if not sha256_hash:
-            continue
+          content_path = os.path.join(self.prefix, *urn_components)
           self.archived_files += 1
 
-          content_path = os.path.join(self.prefix, "hashes", str(sha256_hash))
-          if sha256_hash not in hashes:
-            # Make sure size of the original file is passed. It's required
-            # when output_writer is StreamingTarWriter.
-            st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
-            fds_to_write[fd] = (content_path, st)
-            hashes.add(sha256_hash)
-
-          up_prefix = "../" * len(fd.urn.Split())
-          yield self.archive_generator.WriteSymlink(up_prefix + content_path,
-                                                    archive_path)
+          # Make sure size of the original file is passed. It's required
+          # when output_writer is StreamingTarWriter.
+          st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
+          fds_to_write[fd] = (content_path, st)
 
       if fds_to_write:
         prev_fd = None
@@ -191,7 +195,14 @@ class CollectionArchiveGenerator(object):
         if self.archive_generator.is_file_write_in_progress:
           yield self.archive_generator.WriteFileFooter()
 
-    for chunk in self._WriteDescription():
+    if clients:
+      for client_urn_batch in utils.Grouper(clients, self.BATCH_SIZE):
+        for fd in aff4.FACTORY.MultiOpen(
+            client_urn_batch, aff4_type=aff4_grr.VFSGRRClient, token=token):
+          for chunk in self._GenerateClientInfo(fd):
+            yield chunk
+
+    for chunk in self._GenerateDescription():
       yield chunk
 
     yield self.archive_generator.Close()

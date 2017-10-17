@@ -3,7 +3,6 @@
 
 
 
-import hashlib
 import os
 import StringIO
 import zipfile
@@ -330,8 +329,8 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)
 
-    router = self._CreateRouter(get_flow=rr.RobotRouterGetFlowParams(
-        enabled=True))
+    router = self._CreateRouter(
+        get_flow=rr.RobotRouterGetFlowParams(enabled=True))
     with self.assertRaises(access_control.UnauthorizedAccess):
       router.GetFlow(
           api_flow.ApiGetFlowArgs(
@@ -340,8 +339,8 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
 
   def testGetFlowWorksIfFlowWasCreatedBySameRouter(self):
     flow_id = self._CreateFlowWithRobotId()
-    router = self._CreateRouter(get_flow=rr.RobotRouterGetFlowParams(
-        enabled=True))
+    router = self._CreateRouter(
+        get_flow=rr.RobotRouterGetFlowParams(enabled=True))
     router.GetFlow(
         api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_id),
         token=self.token)
@@ -464,8 +463,9 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
   def testAllOtherMethodsAreNotImplemented(self):
     router = self._CreateRouter()
 
-    unchecked_methods = (set(router.__class__.GetAnnotatedMethods().keys()) -
-                         set(self.IMPLEMENTED_METHODS))
+    unchecked_methods = (
+        set(router.__class__.GetAnnotatedMethods().keys()) -
+        set(self.IMPLEMENTED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:
@@ -581,14 +581,12 @@ users:
     # First component of every path in the archive is the containing folder,
     # we should strip it.
     namelist = [os.path.join(*n.split(os.sep)[1:]) for n in namelist]
-    with open(os.path.join(self.base_path, "test.plist")) as test_plist_fd:
-      test_plist_hash = hashlib.sha256(test_plist_fd.read()).hexdigest()
     self.assertEqual(
         sorted([
             # pyformat: disable
             os.path.join(self.client_id.Basename(), "fs", "os",
                          self.base_path.strip("/"), "test.plist"),
-            os.path.join("hashes", test_plist_hash),
+            os.path.join(self.client_id.Basename(), "client_info.yaml"),
             "MANIFEST"
             # pyformat: enable
         ]),
@@ -602,8 +600,8 @@ users:
         flow_name=file_finder.FileFinder.__name__,
         token=self.token)
 
-    flow_ref = self.api.Client(
-        client_id=self.client_id.Basename()).Flow(flow_urn.Basename())
+    flow_ref = self.api.Client(client_id=self.client_id.Basename()).Flow(
+        flow_urn.Basename())
     with self.assertRaises(RuntimeError):
       flow_ref.Get()
 

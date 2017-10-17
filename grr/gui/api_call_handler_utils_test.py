@@ -16,6 +16,7 @@ from grr.gui import api_call_handler_utils
 
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -30,8 +31,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(CollectionArchiveGeneratorTest, self).setUp()
-    self.client_id = rdf_client.ClientURN("aff4:/C.0000000000000000")
+    self.client_id = self.SetupClients(1)[0]
     path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
+    archive_path1 = (
+        u"test_prefix/%s/fs/os/foo/bar/hello1.txt" % self.client_id.Basename())
+
     with aff4.FACTORY.Create(
         path1, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello1")
@@ -40,6 +44,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
           rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
     path2 = self.client_id.Add(u"fs/os/foo/bar/中国新闻网新闻中.txt")
+    archive_path2 = (u"test_prefix/%s/fs/os/foo/bar/"
+                     u"中国新闻网新闻中.txt") % self.client_id.Basename()
     with aff4.FACTORY.Create(
         path2, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello2")
@@ -49,6 +55,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     self.stat_entries = []
     self.paths = [path1, path2]
+    self.archive_paths = [archive_path1, archive_path2]
     for path in self.paths:
       self.stat_entries.append(
           rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
@@ -83,7 +90,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     super(CollectionArchiveGeneratorTest, self).tearDown()
 
-  def testSkipsFilesWithoutHashWhenZipArchiving(self):
+  def testDoesNotSkipFilesWithoutHashWhenZipArchiving(self):
     for path in self.paths:
       with aff4.FACTORY.Open(path, mode="rw", token=self.token) as fd:
         fd.DeleteAttribute(fd.Schema.HASH)
@@ -93,13 +100,13 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP)
 
     with zipfile.ZipFile(fd_path) as zip_fd:
-      names = zip_fd.namelist()
+      names = [utils.SmartUnicode(s) for s in zip_fd.namelist()]
 
-      # Check that nothing was written except for the MANIFEST file.
-      self.assertEqual(len(names), 1)
-      self.assertEqual(names[0], "test_prefix/MANIFEST")
+      # Check that both files are in the archive.
+      for p in self.archive_paths:
+        self.assertTrue(p in names)
 
-  def testSkipsFilesWithoutHashWhenTarArchiving(self):
+  def testDoesNotSkipFilesWithoutHashWhenTarArchiving(self):
     for path in self.paths:
       with aff4.FACTORY.Open(path, mode="rw", token=self.token) as fd:
         fd.DeleteAttribute(fd.Schema.HASH)
@@ -111,50 +118,31 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     with tarfile.open(fd_path) as tar_fd:
       infos = list(tar_fd)
 
-      # Check that nothing was written except for the MANIFEST file.
-      self.assertEqual(len(infos), 1)
-      self.assertEqual(infos[0].name, "test_prefix/MANIFEST")
+      # Check that both files are in the archive.
+      names = [utils.SmartUnicode(i.name) for i in infos]
+      for p in self.archive_paths:
+        self.assertTrue(p in names)
 
-  def testCreatesZipContainingDeduplicatedCollectionFilesAndManifest(self):
+  def testCreatesZipContainingFilesAndClientInfosAndManifest(self):
     _, fd_path = self._GenerateArchive(
         self.stat_entries,
         archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP)
 
     zip_fd = zipfile.ZipFile(fd_path)
-    names = sorted(zip_fd.namelist())
+    names = [utils.SmartUnicode(s) for s in sorted(zip_fd.namelist())]
 
-    link1_name = "test_prefix/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    link2_name = ("test_prefix/C.0000000000000000/fs/os/foo/bar/"
-                  "中国新闻网新闻中.txt")
-    link1_dest = ("test_prefix/hashes/91e9240f415223982edc345532630710"
-                  "e94a7f52cd5f48f5ee1afc555078f0ab")
-    link2_dest = ("test_prefix/hashes/87298cc2f31fba73181ea2a9e6ef10dc"
-                  "e21ed95e98bdac9c4e1504ea16f486e4")
-    manifest_name = "test_prefix/MANIFEST"
+    client_info_name = (
+        u"test_prefix/%s/client_info.yaml" % self.client_id.Basename())
+    manifest_name = u"test_prefix/MANIFEST"
 
     self.assertEqual(
-        names,
-        sorted([link1_name, link2_name, link1_dest, link2_dest, manifest_name]))
+        names, sorted(self.archive_paths + [client_info_name, manifest_name]))
 
-    link_info = zip_fd.getinfo(link1_name)
-    self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
-    self.assertEqual(link_info.create_system, 3)
+    contents = zip_fd.read(self.archive_paths[0])
+    self.assertEqual(contents, "hello1")
 
-    link_contents = zip_fd.read(link1_name)
-    self.assertEqual(link_contents, "../../../../../../" + link1_dest)
-
-    dest_contents = zip_fd.read(link1_dest)
-    self.assertEqual(dest_contents, "hello1")
-
-    link_info = zip_fd.getinfo(link2_name)
-    self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
-    self.assertEqual(link_info.create_system, 3)
-
-    link_contents = zip_fd.read(link2_name)
-    self.assertEqual(link_contents, "../../../../../../" + link2_dest)
-
-    dest_contents = zip_fd.read(link2_dest)
-    self.assertEqual(dest_contents, "hello2")
+    contents = zip_fd.read(self.archive_paths[1])
+    self.assertEqual(contents, "hello2")
 
     manifest = yaml.safe_load(zip_fd.read(manifest_name))
     self.assertEqual(manifest, {
@@ -165,27 +153,21 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "failed_files": 0
     })
 
-  def testCreatesTarContainingDeduplicatedCollectionFilesAndReadme(self):
+    client_info = yaml.safe_load(zip_fd.read(client_info_name))
+    self.assertEqual(client_info["system_info"]["node"], "Host-0")
+
+  def testCreatesTarContainingFilesAndClientInfosAndManifest(self):
     _, fd_path = self._GenerateArchive(
         self.stat_entries,
         archive_format=api_call_handler_utils.CollectionArchiveGenerator.TAR_GZ)
 
     with tarfile.open(fd_path) as tar_fd:
-      link1_name = "test_prefix/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-      link2_name = ("test_prefix/C.0000000000000000/fs/os/foo/bar/"
-                    "中国新闻网新闻中.txt")
-      link1_dest = ("test_prefix/hashes/91e9240f415223982edc345532630710"
-                    "e94a7f52cd5f48f5ee1afc555078f0ab")
-      link2_dest = ("test_prefix/hashes/87298cc2f31fba73181ea2a9e6ef10dc"
-                    "e21ed95e98bdac9c4e1504ea16f486e4")
-
-      link_info = tar_fd.getmember(link1_name)
-      self.assertEqual(link_info.linkname, "../../../../../../" + link1_dest)
-      self.assertEqual(tar_fd.extractfile(link1_dest).read(), "hello1")
-
-      link_info = tar_fd.getmember(link2_name)
-      self.assertEqual(link_info.linkname, "../../../../../../" + link2_dest)
-      self.assertEqual(tar_fd.extractfile(link2_dest).read(), "hello2")
+      self.assertEqual(
+          tar_fd.extractfile(utils.SmartStr(self.archive_paths[0])).read(),
+          "hello1")
+      self.assertEqual(
+          tar_fd.extractfile(utils.SmartStr(self.archive_paths[1])).read(),
+          "hello2")
 
       manifest_fd = tar_fd.extractfile("test_prefix/MANIFEST")
       self.assertEqual(
@@ -197,15 +179,20 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
               "failed_files": 0
           })
 
+      client_info_name = (
+          "test_prefix/%s/client_info.yaml" % self.client_id.Basename())
+      client_info = yaml.safe_load(tar_fd.extractfile(client_info_name).read())
+      self.assertEqual(client_info["system_info"]["node"], "Host-0")
+
   def testCorrectlyAccountsForFailedFiles(self):
-    path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+    path2 = (u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id.Basename())
     with aff4.FACTORY.Create(path2, aff4.AFF4Image, token=self.token) as fd:
       fd.Write("hello2")
 
     # Delete a single chunk
     aff4.FACTORY.Delete(
-        "aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-        "/0000000000",
+        utils.SmartStr("aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt/0000000000") %
+        utils.SmartStr(self.client_id.Basename()),
         token=self.token)
 
     _, fd_path = self._GenerateArchive(
@@ -213,31 +200,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP)
 
     zip_fd = zipfile.ZipFile(fd_path)
-    names = sorted(zip_fd.namelist())
+    names = [utils.SmartUnicode(s) for s in sorted(zip_fd.namelist())]
+    self.assertTrue(self.archive_paths[0] in names)
+    self.assertTrue(self.archive_paths[1] not in names)
 
-    link1_name = "test_prefix/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    link2_name = ("test_prefix/C.0000000000000000/fs/os/foo/bar/"
-                  "中国新闻网新闻中.txt")
-    link1_dest = ("test_prefix/hashes/91e9240f415223982edc345532630710"
-                  "e94a7f52cd5f48f5ee1afc555078f0ab")
-    manifest_name = "test_prefix/MANIFEST"
-
-    # Link 2 should be present, but the contents should be missing.
-    self.assertEqual(names,
-                     sorted([link1_name, link1_dest, link2_name,
-                             manifest_name]))
-
-    link_info = zip_fd.getinfo(link1_name)
-    self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
-    self.assertEqual(link_info.create_system, 3)
-
-    link_contents = zip_fd.read(link1_name)
-    self.assertEqual(link_contents, "../../../../../../" + link1_dest)
-
-    dest_contents = zip_fd.read(link1_dest)
-    self.assertEqual(dest_contents, "hello1")
-
-    manifest = yaml.safe_load(zip_fd.read(manifest_name))
+    manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
     self.assertEqual(manifest, {
         "description":
             "Test description",
@@ -250,7 +217,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "failed_files":
             1,
         "failed_files_list": [
-            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+            u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id.Basename()
         ]
     })
 
@@ -263,8 +230,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     zip_fd = zipfile.ZipFile(fd_path)
     names = sorted(zip_fd.namelist())
 
-    # The archive is expected to contain 1 file contents blob, 1 link to this
-    # blob, and a manifest.
+    # The archive is expected to contain 1 file contents blob, 1 client info and
+    # a manifest.
     self.assertEqual(len(names), 3)
 
     manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
@@ -280,7 +247,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "failed_files":
             0,
         "ignored_files_list": [
-            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+            u"aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id.Basename()
         ]
     })
 
