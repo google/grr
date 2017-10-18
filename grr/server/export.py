@@ -17,6 +17,7 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import export_pb2
 from grr.server import aff4
@@ -166,6 +167,11 @@ class ExportedString(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ExportedMetadata,
   ]
+
+
+class ExportedDictItem(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedDictItem
+  rdf_deps = [ExportedMetadata]
 
 
 class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
@@ -387,8 +393,8 @@ class StatEntryToExportedFileConverter(ExportConverter):
     super(StatEntryToExportedFileConverter, self).__init__(*args, **kwargs)
     # If either of these are true we need to open the file to get more
     # information
-    self.open_file_for_read = (self.options.export_files_hashes or
-                               self.options.export_files_contents)
+    self.open_file_for_read = (
+        self.options.export_files_hashes or self.options.export_files_contents)
 
   @staticmethod
   def ParseSignedData(signed_data, result):
@@ -967,7 +973,48 @@ class RDFStringToExportedStringConverter(ExportConverter):
   input_rdf_type = "RDFString"
 
   def Convert(self, metadata, data, token=None):
-    return [ExportedString(data=data.SerializeToString())]
+    return [ExportedString(metadata=metadata, data=data.SerializeToString())]
+
+
+class DictToExportedDictItemsConverter(ExportConverter):
+  """Export converter that converts Dict to ExportedDictItems."""
+
+  input_rdf_type = "Dict"
+
+  def _IterateDict(self, d, key=""):
+    if isinstance(d, (list, tuple)):
+      for i, v in enumerate(d):
+        next_key = "%s[%d]" % (key, i)
+        for v in self._IterateDict(v, key=next_key):
+          yield v
+    elif isinstance(d, set):
+      for i, v in enumerate(sorted(d)):
+        next_key = "%s[%d]" % (key, i)
+        for v in self._IterateDict(v, key=next_key):
+          yield v
+    elif isinstance(d, (dict, rdf_protodict.Dict)):
+      for k in sorted(d):
+        k = utils.SmartStr(k)
+
+        v = d[k]
+        if not key:
+          next_key = k
+        else:
+          next_key = key + "." + k
+
+        for v in self._IterateDict(v, key=next_key):
+          yield v
+    else:
+      yield key, d
+
+  def Convert(self, metadata, data, token=None):
+    result = []
+    d = data.ToDict()
+    for k, v in self._IterateDict(d):
+      result.append(
+          ExportedDictItem(metadata=metadata, key=k, value=utils.SmartStr(v)))
+
+    return result
 
 
 class GrrMessageConverter(ExportConverter):

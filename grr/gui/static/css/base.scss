@@ -695,7 +695,7 @@ dd.histogram {
   height: 48px;
   box-sizing: content-box;
   overflow: visible;
-  z-index: 2000; // Bootstrap z-indices are guaranteed to be less than 2000.
+  z-index: 1025; // Toolbar should be below the modal background (1050) but above everything else.
 }
 
 .fill-parent-with-toolbar {

@@ -260,6 +260,38 @@ describe('paged filtered table', function() {
       checkItemsAreShown(someItems, element);
     });
 
+    it('updates total count', function() {
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'}
+      ];
+
+      var element = render(someItems, true);
+      expect(element.text().indexOf('2 entries') != -1 ).toBe(true);
+
+      for (var i = 0; i < 5; ++i) {
+        someItems.push({message: 'somethingelse'});
+      }
+      $interval.flush(1000);
+      expect(element.text().indexOf('7 entries') != -1 ).toBe(true);
+    });
+
+    it('updates paging', function() {
+      var someItems = [
+        {message: 'some1'},
+        {message: 'some2'}
+      ];
+
+      var element = render(someItems, true);
+      expect(element.find('ul.pagination li:contains("2")').length).toBe(0);
+
+      for (var i = 0; i < 5; ++i) {
+        someItems.push({message: 'somethingelse'});
+      }
+      $interval.flush(1000);
+      expect(element.find('ul.pagination li:contains("2")').length).toBe(1);
+    });
+
     it('does not auto-update in filtered mode', function() {
       var someItems = [
         {message: 'some1'},

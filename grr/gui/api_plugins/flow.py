@@ -198,6 +198,10 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
 
       if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
         self.state = "CLIENT_CRASHED"
+      elif flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION):
+        self.state = flow_obj.context.state = "ERROR"
+        reason = flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION).reason
+        flow_obj.context.status = "Pending termination: %s" % reason
       else:
         self.state = flow_obj.context.state
 
@@ -226,8 +230,9 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
           flow_state_data = flow_state_dict.ToDict()
 
           if flow_state_data:
-            self.state_data = (api_call_handler_utils.ApiDataObject()
-                               .InitFromDataObject(flow_state_data))
+            self.state_data = (
+                api_call_handler_utils.ApiDataObject()
+                .InitFromDataObject(flow_state_data))
     except Exception as e:  # pylint: disable=broad-except
       self.internal_error = "Error while opening flow: %s" % str(e)
 

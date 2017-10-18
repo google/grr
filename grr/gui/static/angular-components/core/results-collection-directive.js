@@ -12,6 +12,9 @@ goog.scope(function() {
 /** @const {number} */
 grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
 
+/** @const {number} */
+var MAX_ITEMS_TO_CHECK_FOR_FILES = 50;
+
 
 /**
  * Controller for ResultsCollectionDirective..
@@ -35,10 +38,12 @@ grrUi.core.resultsCollectionDirective.ResultsCollectionController = function(
   /** @type {number} */
   this.autoRefreshInterval =
       grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS;
+
+  /** @private {number} */
+  this.numCheckedItems_ = 0;
 };
 var ResultsCollectionController =
     grrUi.core.resultsCollectionDirective.ResultsCollectionController;
-
 
 /**
  * Transformation callback for results table items provider that determines
@@ -53,9 +58,12 @@ ResultsCollectionController.prototype.transformItems = function(items) {
     this.resultsArePresent = true;
   }
 
-  if (!angular.isDefined(this.resultsAreFiles)) {
+  if (!this.resultsAreFiles &&
+      this.numCheckedItems_ < MAX_ITEMS_TO_CHECK_FOR_FILES) {
+    this.numCheckedItems_ += items.length;
+
     this.resultsAreFiles = false;
-    for (var i = 0; i <= items.length > 0; i++) {
+    for (var i = 0; i < items.length; i++) {
       if (grrUi.core.fileDownloadUtils.getPathSpecFromValue(items[i]) != null) {
         this.resultsAreFiles = true;
         break;

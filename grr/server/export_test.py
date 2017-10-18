@@ -528,11 +528,13 @@ class ExportTest(ExportTestBase):
                 ),
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET,
-                    packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
+                    packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
+                ),
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET6,
                     packed_bytes=socket.inet_pton(socket.AF_INET6,
-                                                  "2001:720:1500:1::a100"),)
+                                                  "2001:720:1500:1::a100"),
+                )
             ])
     ])
 
@@ -552,14 +554,17 @@ class ExportTest(ExportTestBase):
         addresses=[
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),),
+                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
+            ),
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
+                packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
+            ),
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET6,
                 packed_bytes=socket.inet_pton(socket.AF_INET6,
-                                              "2001:720:1500:1::a100"),)
+                                              "2001:720:1500:1::a100"),
+            )
         ])
 
     converter = export.InterfaceToExportedNetworkInterfaceConverter()
@@ -809,8 +814,8 @@ class ExportTest(ExportTestBase):
     converter = export.FileFinderResultConverter()
     results = list(
         converter.BatchConvert(
-            [(self.metadata, file_finder_result), (self.metadata,
-                                                   file_finder_result2)],
+            [(self.metadata, file_finder_result),
+             (self.metadata, file_finder_result2)],
             token=self.token))
 
     exported_files = [
@@ -969,6 +974,121 @@ class ExportTest(ExportTestBase):
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].dns_servers, " ".join(dns_servers))
     self.assertEqual(results[0].dns_suffixes, " ".join(dns_suffixes))
+
+
+class DictToExportedDictItemsConverterTest(ExportTestBase):
+  """Tests for DictToExportedDictItemsConverter."""
+
+  def setUp(self):
+    super(DictToExportedDictItemsConverterTest, self).setUp()
+    self.converter = export.DictToExportedDictItemsConverter()
+
+  def testConvertsDictWithPrimitiveValues(self):
+    source = rdf_protodict.Dict()
+    source["foo"] = "bar"
+    source["bar"] = 42
+
+    # Serialize/unserialize to make sure we deal with the object that is
+    # similar to what we may get from the datastore.
+    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+
+    converted = list(
+        self.converter.Convert(self.metadata, source, token=self.token))
+
+    self.assertEqual(len(converted), 2)
+
+    # Output should be stable sorted by dict's keys.
+    self.assertEqual(converted[0].key, "bar")
+    self.assertEqual(converted[0].value, "42")
+    self.assertEqual(converted[1].key, "foo")
+    self.assertEqual(converted[1].value, "bar")
+
+  def testConvertsDictWithNestedSetListOrTuple(self):
+    # Note that set's contents will be sorted on export.
+    variants = [set([43, 42, 44]), (42, 43, 44), [42, 43, 44]]
+
+    for variant in variants:
+      source = rdf_protodict.Dict()
+      source["foo"] = "bar"
+      source["bar"] = variant
+
+      # Serialize/unserialize to make sure we deal with the object that is
+      # similar to what we may get from the datastore.
+      source = rdf_protodict.Dict.FromSerializedString(
+          source.SerializeToString())
+
+      converted = list(
+          self.converter.Convert(self.metadata, source, token=self.token))
+
+      self.assertEqual(len(converted), 4)
+      self.assertEqual(converted[0].key, "bar[0]")
+      self.assertEqual(converted[0].value, "42")
+      self.assertEqual(converted[1].key, "bar[1]")
+      self.assertEqual(converted[1].value, "43")
+      self.assertEqual(converted[2].key, "bar[2]")
+      self.assertEqual(converted[2].value, "44")
+      self.assertEqual(converted[3].key, "foo")
+      self.assertEqual(converted[3].value, "bar")
+
+  def testConvertsDictWithNestedDict(self):
+    source = rdf_protodict.Dict()
+    source["foo"] = "bar"
+    source["bar"] = {"a": 42, "b": 43}
+
+    # Serialize/unserialize to make sure we deal with the object that is
+    # similar to what we may get from the datastore.
+    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+
+    converted = list(
+        self.converter.Convert(self.metadata, source, token=self.token))
+
+    self.assertEqual(len(converted), 3)
+
+    # Output should be stable sorted by dict's keys.
+    self.assertEqual(converted[0].key, "bar.a")
+    self.assertEqual(converted[0].value, "42")
+    self.assertEqual(converted[1].key, "bar.b")
+    self.assertEqual(converted[1].value, "43")
+    self.assertEqual(converted[2].key, "foo")
+    self.assertEqual(converted[2].value, "bar")
+
+  def testConvertsDictWithNestedDictAndIterables(self):
+    source = rdf_protodict.Dict()
+    source["foo"] = "bar"
+    # pyformat: disable
+    source["bar"] = {
+        "a": {
+            "c": [42, 43, 44, {"x": "y"}],
+            "d": "oh"
+        },
+        "b": 43
+    }
+    # pyformat: enable
+
+    # Serialize/unserialize to make sure we deal with the object that is
+    # similar to what we may get from the datastore.
+    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+
+    converted = list(
+        self.converter.Convert(self.metadata, source, token=self.token))
+
+    self.assertEqual(len(converted), 7)
+
+    # Output should be stable sorted by dict's keys.
+    self.assertEqual(converted[0].key, "bar.a.c[0]")
+    self.assertEqual(converted[0].value, "42")
+    self.assertEqual(converted[1].key, "bar.a.c[1]")
+    self.assertEqual(converted[1].value, "43")
+    self.assertEqual(converted[2].key, "bar.a.c[2]")
+    self.assertEqual(converted[2].value, "44")
+    self.assertEqual(converted[3].key, "bar.a.c[3].x")
+    self.assertEqual(converted[3].value, "y")
+    self.assertEqual(converted[4].key, "bar.a.d")
+    self.assertEqual(converted[4].value, "oh")
+    self.assertEqual(converted[5].key, "bar.b")
+    self.assertEqual(converted[5].value, "43")
+    self.assertEqual(converted[6].key, "foo")
+    self.assertEqual(converted[6].value, "bar")
 
 
 class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):

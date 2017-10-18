@@ -542,8 +542,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(f).Add(
-          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo-result")),
-          mutation_pool=pool)
+          rdfvalue.RDFString("foo-result"), mutation_pool=pool)
 
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
@@ -563,10 +562,44 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(f).Add(
-          rdf_flows.GrrMessage(payload=rdfvalue.RDFString("bar-result")),
-          mutation_pool=pool)
+          rdfvalue.RDFString("bar-result"), mutation_pool=pool)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection td:contains('bar-result')")
+
+  def testDownloadFilesPanelIsShownWhenNewResultsAreAdded(self):
+    f = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    with data_store.DB.GetMutationPool() as pool:
+      flow.GRRFlow.ResultCollectionForFID(f).Add(
+          rdfvalue.RDFString("foo-result"), mutation_pool=pool)
+
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset.
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=tr:contains('%s')" % f.Basename())
+    self.Click("css=li[heading=Results]:not([disabled]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection td:contains('foo-result')")
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-results-collection grr-download-collection-files")
+
+    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    with data_store.DB.GetMutationPool() as pool:
+      flow.GRRFlow.ResultCollectionForFID(f).Add(stat_entry, mutation_pool=pool)
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection grr-download-collection-files")
 
 
 def main(argv):

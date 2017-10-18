@@ -320,9 +320,9 @@ class MutationPool(object):
       subject, _, _ = DataStore.CollectionMakeURN(
           record.queue_id, record.timestamp, record.suffix, record.subpath)
 
-      self.DeleteAttributes(subject, [
-          DataStore.QUEUE_LOCK_ATTRIBUTE, DataStore.COLLECTION_ATTRIBUTE
-      ])
+      self.DeleteAttributes(
+          subject,
+          [DataStore.QUEUE_LOCK_ATTRIBUTE, DataStore.COLLECTION_ATTRIBUTE])
 
   def QueueReleaseRecords(self, records):
     for record in records:
@@ -1409,31 +1409,6 @@ class DataStore(object):
     ], DataStore.COLLECTION_ATTRIBUTE):
       _, value, timestamp = v[0]
       yield (value, timestamp)
-
-  def QueueMultiQuery(self, queues):
-    """Retrieves tasks from multiple queues without leasing them.
-
-    Args:
-      queues: The task queues to query.
-    Returns:
-      A dict mapping queue to list of Task() objects.
-    """
-    tasks = {}
-    prefix = DataStore.QUEUE_TASK_PREDICATE_PREFIX
-
-    for queue, raw_tasks in self.MultiResolvePrefix(
-        queues, prefix, timestamp=DataStore.ALL_TIMESTAMPS):
-
-      for _, serialized, ts in raw_tasks:
-        task = rdf_flows.GrrMessage.FromSerializedString(serialized)
-        task.eta = ts
-        tasks.setdefault(queue, []).append(task)
-
-    # Sort the tasks in order of priority.
-    for task_list in tasks.values():
-      task_list.sort(key=lambda task: task.priority, reverse=True)
-
-    return tasks
 
   def QueueQueryTasks(self, queue, limit=1):
     """Retrieves tasks from a queue without leasing them.

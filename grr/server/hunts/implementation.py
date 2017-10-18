@@ -1254,6 +1254,11 @@ class GRRHunt(flow.FlowBase):
     self.GetRunner().Stop(reason=reason)
 
   def StopHuntIfAverageLimitsExceeded(self):
+    # Do nothing if the hunt is already stopped.
+    state = self.Get(self.Schema.STATE)
+    if state == "STOPPED":
+      return
+
     if (self.context.completed_clients_count <
         self.MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS):
       return

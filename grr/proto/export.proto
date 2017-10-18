@@ -359,6 +359,13 @@ message ExportedString {
   optional string data = 2;
 }
 
+message ExportedDictItem {
+  optional ExportedMetadata metadata = 1;
+
+  optional string key = 2;
+  optional string value = 3;
+}
+
 // Next field id: 6
 message ExportedArtifactFilesDownloaderResult {
   optional ExportedMetadata metadata = 1;

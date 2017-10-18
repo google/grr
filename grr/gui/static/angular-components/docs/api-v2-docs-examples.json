@@ -808,6 +808,43 @@
       },
       "test_class": "ApiGetFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/F:ABCDEF12"
+    },
+    {
+      "api_method": "GetFlow",
+      "method": "GET",
+      "response": {
+        "args": {
+          "@type": "type.googleapis.com/InterrogateArgs"
+        },
+        "context": {
+          "clientResources": {
+            "cpuUsage": {}
+          },
+          "createTime": "42000000",
+          "creator": "api_test_user",
+          "currentState": "Start",
+          "nextOutboundId": "9",
+          "outstandingRequests": "8",
+          "sessionId": "aff4:/C.1000000000000000/flows/F:ABCDEF13",
+          "state": "ERROR",
+          "status": "Pending termination: Some reason",
+          "userNotified": false
+        },
+        "creator": "api_test_user",
+        "flowId": "F:ABCDEF13",
+        "lastActiveAt": "42000000",
+        "name": "Interrogate",
+        "runnerArgs": {
+          "clientId": "aff4:/C.1000000000000000",
+          "flowName": "Interrogate",
+          "originalFlow": {}
+        },
+        "startedAt": "42000000",
+        "state": "ERROR",
+        "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF13"
+      },
+      "test_class": "ApiGetFlowHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows/F:ABCDEF13"
     }
   ],
   "ApiGetFlowResultsExportCommandHandler": [

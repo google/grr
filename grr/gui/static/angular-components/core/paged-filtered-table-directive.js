@@ -405,14 +405,13 @@ PagedFilteredTableController.prototype.onAutoRefresh_ = function() {
     return;
   }
 
-  var callback = this.wrapWithCounterCheck_(function(data) {
-    this.setItems_(data['items']);
-  }.bind(this));
+  var callback = this.wrapWithCounterCheck_(
+      this.onFetchedUnfilteredItems_.bind(this));
 
   this.autoRefreshInProgress_ = true;
   this.itemsProvider.fetchItems(
       this.currentPage * this.pageSize,
-      this.pageSize, false).then(callback).finally(function() {
+      this.pageSize, true).then(callback).finally(function() {
         this.autoRefreshInProgress_ = false;
       }.bind(this));
 };

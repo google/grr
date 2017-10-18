@@ -25,7 +25,9 @@ from grr.server import aff4
 from grr.server import flow
 from grr.server import foreman as rdf_foreman
 from grr.server import output_plugin
+from grr.server import queue_manager
 from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import users as aff4_users
 from grr.server.flows.general import administrative
 from grr.server.flows.general import file_finder
 from grr.server.flows.general import processes
@@ -270,7 +272,8 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
             paths=[path],
-            action=rdf_file_finder.FileFinderAction(action_type="STAT"),),
+            action=rdf_file_finder.FileFinderAction(action_type="STAT"),
+        ),
         client_rate=0,
         token=self.token)
     hunt.Run()
@@ -322,7 +325,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
       self.assertFalse(list(flows_fd.ListChildren()))
 
-  def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
+  def testStoppingHuntMarksFlowsForTerminationAndCleansQueues(self):
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
@@ -344,8 +347,8 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(iteration_limit=len(self.client_ids) * 2)
     self.StopHunt(hunt.urn)
 
-    # All flows should be marked for termination now. RunHunt should raise.
-    # If something is wrong with GRRFlow.MarkForTermination mechanism, then
+    # All flows states should be destroyed by now.
+    # If something is wrong with the GenericHunt.Stop implementation,
     # this will run forever.
     self.RunHunt()
 
@@ -355,10 +358,16 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Only one flow (issued by the hunt) is expected.
       self.assertEqual(len(flows_list), 1)
 
+      # Check that flow's queues are deleted.
+      with queue_manager.QueueManager(token=self.token) as manager:
+        req_resp = list(manager.FetchRequestsAndResponses(flows_list[0]))
+        self.assertFalse(req_resp)
+
       flow_obj = aff4.FACTORY.Open(
           flows_list[0], aff4_type=InfiniteFlow, token=self.token)
-      self.assertEqual(flow_obj.context.state, "ERROR")
-      self.assertEqual(flow_obj.context.backtrace, "Parent hunt stopped.")
+      self.assertEqual(
+          flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION).reason,
+          "Parent hunt stopped.")
 
   def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
@@ -1011,6 +1020,16 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
     self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
 
+  def _CheckHuntStoppedNotification(self, str_match):
+    user_record = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type=aff4_users.GRRUser,
+        mode="r",
+        token=self.token)
+    pending = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
+    self.assertEqual(len(pending), 1)
+    self.assertTrue(str_match in pending[0].message)
+
   def testHuntIsStoppedIfAveragePerClientResultsCountTooHigh(self):
     with utils.Stubber(implementation.GRRHunt,
                        "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
@@ -1054,10 +1073,15 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # per client on average. This is within the limit of 1.
       CheckState("STARTED", 4)
 
-      RunOnClients([self.client_ids[4]], 2)
+      RunOnClients(self.client_ids[4:5], 2)
       # Hunt should be terminated: 5 clients did run and we got 6 results.
       # That's more than the allowed average of 1.
+      # Note that this check also implicitly checks that the 6th client didn't
+      # run at all (otherwise total number of results would be 8, not 6).
       CheckState("STOPPED", 6)
+
+      self._CheckHuntStoppedNotification(
+          "reached the average results per client")
 
   def testHuntIsStoppedIfAveragePerClientCpuUsageTooHigh(self):
     with utils.Stubber(implementation.GRRHunt,
@@ -1103,6 +1127,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Hunt should be terminated: the average is exceeded.
       CheckState("STOPPED", 6, 12)
 
+      self._CheckHuntStoppedNotification(
+          "reached the average CPU seconds per client")
+
   def testHuntIsStoppedIfAveragePerClientNetworkUsageTooHigh(self):
     with utils.Stubber(implementation.GRRHunt,
                        "MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS", 4):
@@ -1139,6 +1166,9 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       RunOnClients([self.client_ids[4]], 2)
       # Hunt should be terminated: the limit is exceeded.
       CheckState("STOPPED", 6)
+
+      self._CheckHuntStoppedNotification(
+          "reached the average network bytes per client")
 
   def testHuntExpiration(self):
     """This tests that hunts with a client limit terminate correctly."""
@@ -1275,7 +1305,8 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.OS,)),
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+        )),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
                 rdf_foreman.ForemanClientRule(
