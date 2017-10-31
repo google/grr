@@ -145,7 +145,7 @@ setup_args = dict(
         "Werkzeug==0.11.3",
         "wheel==0.29",
         "virtualenv==15.0.3",
-        "yara-procdump-python==0.1.0.post5",
+        "yara-python==3.6.3",
     ],
     extras_require={
         # The following requirements are needed in Windows.

@@ -3,6 +3,7 @@
 
 
 
+import copy
 import os
 
 from grr import config
@@ -15,7 +16,31 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
+class ArtifactRegistryCleanupMixin(object):
+  """Mixin used to cleanup changes made to the global artifact registry."""
+
+  # TODO(hanuszczak): Using mixins like this is dirty. Find a better way to
+  # handle registry changes. Refer to `ArtifactHandlingTest` comment in [1] for
+  # similar hacks.
+  #
+  # [1]: grr/server/artifact_utils_test.py
+
+  def setUp(self):
+    super(ArtifactRegistryCleanupMixin, self).setUp()
+    registry = artifact_registry.REGISTRY
+    self._original_registry_sources = copy.deepcopy(registry._sources)
+    self._original_registry_artifacts = copy.deepcopy(registry._artifacts)
+
+  def tearDown(self):
+    super(ArtifactRegistryCleanupMixin, self).tearDown()
+    registry = artifact_registry.REGISTRY
+    registry._artifacts = self._original_registry_artifacts
+    registry._sources = self._original_registry_sources
+    registry._dirty = True
+
+
+class ApiListArtifactsHandlerTest(ArtifactRegistryCleanupMixin,
+                                  flow_test_lib.FlowTestsBaseclass):
   """Test for ApiListArtifactsHandler."""
 
   def setUp(self):
@@ -59,7 +84,8 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 
-class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiUploadArtifactHandlerTest(ArtifactRegistryCleanupMixin,
+                                   api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiUploadArtifactHandlerTest, self).setUp()
@@ -81,7 +107,8 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
     artifact_registry.REGISTRY.GetArtifact("TestDrivers")
 
 
-class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiDeleteArtifactsHandlerTest(ArtifactRegistryCleanupMixin,
+                                    api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiDeleteArtifactsHandlerTest, self).setUp()
