@@ -472,7 +472,6 @@ message PrintStr {
 //  - length: total number of bytes to copy (default 0 will copy whole file)
 //  - block_size: how many bytes to copy at a time (default 10 MB)
 //  - src_path: source pathspec to copy from
-//  - dest_dir: destination directory to copy to
 //  - dest_path: unset (GRRTempfile will create a random filename in dest_dir)
 //  - gzip_output: if true, output file will be gzipped (default true)
 //  - lifetime: number of seconds the file will stay on disk before being
@@ -492,7 +491,8 @@ message CopyPathToFile {
   optional uint64 offset = 1 [ default = 0 ];
   optional uint64 length = 2 [ default = 0 ];
   optional PathSpec src_path = 3;
-  optional string dest_dir = 4;
+  // DEPRECATED, goes to the GRR temp fir by default.
+  // optional string dest_dir = 4;
   optional PathSpec dest_path = 5;
   optional bool gzip_output = 6 [ default = true ];
   optional float lifetime = 7 [ default = 0 ];
@@ -1854,6 +1854,7 @@ message CloudInstance {
 }
 
 // This is a summary of a GRR client.
+// Next field: 14
 message ClientSummary {
   option (semantic) = {
     description: "A summary of the client information."
@@ -1896,6 +1897,10 @@ message ClientSummary {
   optional string system_manufacturer = 9 [(sem_type) = {
       description: "System Manufacturer from HW info."
    }];
+
+  optional string system_uuid = 13 [(sem_type) = {
+    description: "System UUID.",
+  }];
 
   repeated User users = 10 [(sem_type) = {
       description: "User accounts on the system."

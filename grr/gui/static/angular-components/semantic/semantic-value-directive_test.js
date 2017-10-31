@@ -51,7 +51,7 @@ describe('semantic value directive', function() {
     expect(element.text().trim()).toBe('');
   });
 
-  it('does not show anything when valu is undefined', function() {
+  it('does not show anything when value is undefined', function() {
     var element = renderTestTemplate(undefined);
     expect(element.text().trim()).toBe('');
   });
@@ -143,6 +143,101 @@ describe('semantic value directive', function() {
     });
 
     expect(element.text().trim()).toBe('42');
+  });
+
+  it('respects type override done with grr-semantic-value-registry-override', function() {
+    var directiveMock = {
+      directive_name: 'theTestDirective'
+    };
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'SomeType', directiveMock);
+
+    // This directive does not exist and Angular won't process it,
+    // but it still will be inserted into DOM and we can check
+    // that it's inserted correctly.
+    var overrideDirectiveMock = {
+      directive_name: 'theTestDirectiveOverride'
+    };
+    $rootScope.override = overrideDirectiveMock;
+
+    $rootScope.value = {
+      type: 'SomeType',
+      value: 42
+    };
+    var template = '<grr-semantic-value-registry-override ' +
+        'map="{\'SomeType\': override}">' +
+        '<grr-semantic-value value="value"></grr-semantic-value>' +
+        '</grr-semantic-value-registry-override>';
+    var element = $compile(template)($rootScope);
+    $rootScope.$apply();
+
+    expect($('the-test-directive-override', element).length).toBe(1);
+  });
+
+  it('respects the override even if an RDF type was rendered once before', function() {
+    var directiveMock = {
+      directive_name: 'theTestDirective'
+    };
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'SomeType', directiveMock);
+
+    var element = renderTestTemplate({
+      type: 'SomeType',
+      value: 42
+    });
+    expect($('the-test-directive', element).length).toBe(1);
+
+    // This directive does not exist and Angular won't process it,
+    // but it still will be inserted into DOM and we can check
+    // that it's inserted correctly.
+    var overrideDirectiveMock = {
+      directive_name: 'theTestDirectiveOverride'
+    };
+    $rootScope.override = overrideDirectiveMock;
+
+    var template = '<grr-semantic-value-registry-override ' +
+        'map="{\'SomeType\': override}">' +
+        '<grr-semantic-value value="value"></grr-semantic-value>' +
+        '</grr-semantic-value-registry-override>';
+    var element = $compile(template)($rootScope);
+    $rootScope.$apply();
+
+    expect($('the-test-directive-override', element).length).toBe(1);
+  });
+
+  it('caches templates for overrides using unique keys', function() {
+    var directiveMock = {
+      directive_name: 'theTestDirective'
+    };
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'SomeType', directiveMock);
+
+    var element = renderTestTemplate({
+      type: 'SomeType',
+      value: 42
+    });
+    expect($('the-test-directive', element).length).toBe(1);
+
+    // This directive does not exist and Angular won't process it,
+    // but it still will be inserted into DOM and we can check
+    // that it's inserted correctly.
+    var overrideDirectiveMock = {
+      directive_name: 'theTestDirectiveOverride'
+    };
+    $rootScope.override = overrideDirectiveMock;
+
+    var template = '<grr-semantic-value-registry-override ' +
+        'map="{\'SomeType\': override, \'AnotherType\': override}">' +
+        '<grr-semantic-value value="value"></grr-semantic-value>' +
+        '</grr-semantic-value-registry-override>';
+    var element = $compile(template)($rootScope);
+    $rootScope.$apply();
+
+    var cache = grrUi.semantic.semanticValueDirective.singleValueTemplateCache;
+    expect(Object.keys(cache).length).toBe(2);
+    expect(cache['SomeType']).toBeDefined();
+    expect(cache['SomeType:AnotherType_theTestDirectiveOverride:' +
+                 'SomeType_theTestDirectiveOverride']).toBeDefined();
   });
 });
 

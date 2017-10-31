@@ -2,8 +2,8 @@
 """Tests for grr.client.client_actions.tempfiles."""
 
 import os
+import posix
 import tempfile
-import time
 
 from grr import config
 from grr.client.client_actions import tempfiles
@@ -12,56 +12,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
-
-
-class GRRTempFileTestDirectory(test_lib.GRRBaseTest):
-  """Tests for GRR temp file utils when directory is provided."""
-
-  def setUp(self):
-    """Create fake filesystem."""
-    super(GRRTempFileTestDirectory, self).setUp()
-    self.prefix = config.CONFIG.Get("Client.tempfile_prefix")
-    self.existsdir = os.path.join(self.temp_dir, "this/exists/")
-    os.makedirs(self.existsdir)
-    self.not_exists = os.path.join(self.temp_dir, "does/not/exist/")
-    self.new_temp_file = os.path.join(self.not_exists, self.prefix)
-
-  def _CheckPermissions(self, filename, expected):
-    # Just look at the last 3 octets.
-    file_mode = os.stat(filename).st_mode & 0777
-    self.assertEqual(file_mode, expected)
-
-  def testCreateGRRTempFile(self):
-    fd = tempfiles.CreateGRRTempFile(self.not_exists, suffix=".exe")
-    self.assertTrue(fd.name.startswith(self.new_temp_file))
-    self.assertTrue(fd.name.endswith(".exe"))
-    self.assertTrue(os.path.exists(fd.name))
-    self._CheckPermissions(fd.name, 0700)
-    self._CheckPermissions(os.path.dirname(fd.name), 0700)
-
-  def testCreateGRRTempFileRelativePath(self):
-    self.assertRaises(tempfiles.ErrorBadPath, tempfiles.CreateGRRTempFile,
-                      "../../blah")
-
-  def testCreateGRRTempFileWithLifetime(self):
-    fd = tempfiles.CreateGRRTempFile(self.not_exists, lifetime=0.1)
-    self.assertTrue(os.path.exists(fd.name))
-    time.sleep(1)
-    self.assertFalse(os.path.exists(fd.name))
-
-  def testDeleteGRRTempFile(self):
-    grr_tempfile = os.path.join(self.existsdir, self.prefix)
-    open(grr_tempfile, "wb").write("something")
-    tempfiles.DeleteGRRTempFile(grr_tempfile)
-    self.assertFalse(os.path.exists(grr_tempfile))
-
-  def testDeleteGRRTempFileBadPrefix(self):
-    self.assertRaises(tempfiles.ErrorNotTempFile, tempfiles.DeleteGRRTempFile,
-                      os.path.join(self.existsdir, "/blah"))
-
-  def testDeleteGRRTempFileRelativePath(self):
-    self.assertRaises(tempfiles.ErrorBadPath, tempfiles.DeleteGRRTempFile,
-                      "../../blah")
 
 
 class GRRTempFileTestFilename(test_lib.GRRBaseTest):
@@ -103,6 +53,32 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
                       fd.name)
     self.assertTrue(os.path.exists(fd.name))
 
+  def testWrongOwnerGetsFixed(self):
+
+    def mystat(filename):
+      stat_info = os.lstat.old_target(filename)
+      stat_list = list(stat_info)
+      # Adjust the UID.
+      stat_list[4] += 1
+      return posix.stat_result(stat_list)
+
+    # Place a malicious file in the temp dir. This needs to be deleted
+    # before we can use the temp dir.
+    fd = tempfiles.CreateGRRTempFile(filename="maliciousfile", mode="wb")
+    fd.close()
+
+    self.assertTrue(os.path.exists(fd.name))
+
+    with utils.Stubber(os, "lstat", mystat):
+      fd2 = tempfiles.CreateGRRTempFile(filename="temptemp", mode="wb")
+      fd2.close()
+
+    # Old file is gone.
+    self.assertFalse(os.path.exists(fd.name))
+
+    # Cleanup.
+    tempfiles.DeleteGRRTempFile(fd2.name)
+
 
 class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
   """Test DeleteGRRTempFiles client action."""
@@ -122,8 +98,8 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     self.not_tempfile = os.path.join(self.temp_dir, "notatempfile")
     open(self.not_tempfile, "wb").write("something")
 
-    self.temp_fd = tempfiles.CreateGRRTempFile(self.dirname)
-    self.temp_fd2 = tempfiles.CreateGRRTempFile(self.dirname)
+    self.temp_fd = tempfiles.CreateGRRTempFile(filename="file1")
+    self.temp_fd2 = tempfiles.CreateGRRTempFile(filename="file2")
     self.assertTrue(os.path.exists(self.not_tempfile))
     self.assertTrue(os.path.exists(self.temp_fd.name))
     self.assertTrue(os.path.exists(self.temp_fd2.name))

@@ -45,6 +45,9 @@ var ClientUrnController = function(
   /** @export {?string} */
   this.clientUrn;
 
+  /** @private {?string} */
+  this.clientId_;
+
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
@@ -62,8 +65,8 @@ ClientUrnController.prototype.onValueChange = function() {
   }
 
   if (angular.isString(this.clientUrn)) {
-    var clientId = this.clientUrn.replace(/^aff4:\//, '');
-    this.refParams = {clientId: clientId};
+    this.clientId_ = this.clientUrn.replace(/^aff4:\//, '');
+    this.refParams = {clientId: this.clientId_};
     this.ref = this.grrRoutingService_.href('client.hostInfo', this.refParams);
   }
 };
@@ -81,8 +84,7 @@ ClientUrnController.prototype.onInfoClick = function() {
     scope: this.scope_
   });
 
-  var clientId = this.clientUrn.split('/')[1];
-  this.grrApiService_.get('clients/' + clientId).then(
+  this.grrApiService_.get('clients/' + this.clientId_).then(
       function(response) {
         this.clientDetails = response.data;
       }.bind(this));

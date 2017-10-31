@@ -19,6 +19,7 @@ if sys.platform == "win32":
 
   KeepAlive = client_utils_windows.KeepAlive
   WinChmod = client_utils_windows.WinChmod
+  VerifyFileOwner = client_utils_windows.WinVerifyFileOwner
 
 elif sys.platform == "darwin":
   from grr.client import client_utils_osx
@@ -35,6 +36,7 @@ elif sys.platform == "darwin":
   NannyController = client_utils_linux.NannyController
 
   KeepAlive = client_utils_osx.KeepAlive
+  VerifyFileOwner = client_utils_linux.LinVerifyFileOwner
 
 else:
   from grr.client import client_utils_linux
@@ -46,3 +48,4 @@ else:
   NannyController = client_utils_linux.NannyController
 
   KeepAlive = client_utils_linux.KeepAlive
+  VerifyFileOwner = client_utils_linux.LinVerifyFileOwner

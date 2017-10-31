@@ -49,11 +49,11 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
-class TestDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
+class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
   def setUp(self):
-    super(TestDumpFlashImage, self).setUp()
+    super(TestHardwareDumpFlashImage, self).setUp()
 
     # Setup a specific client so the knowledge base is correctly
     # initialised for the artifact collection.

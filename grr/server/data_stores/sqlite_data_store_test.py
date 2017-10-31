@@ -25,7 +25,8 @@ class SqliteTestMixin(object):
         isinstance(data_store.DB, sqlite_data_store.SqliteDataStore))
 
 
-class SqliteDataStoreTest(SqliteTestMixin, data_store_test._DataStoreTest):
+class SqliteDataStoreTest(data_store_test.DataStoreTestMixin, SqliteTestMixin,
+                          test_lib.GRRBaseTest):
   """Test the sqlite data store."""
 
 

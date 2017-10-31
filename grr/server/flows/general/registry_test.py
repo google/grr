@@ -38,7 +38,7 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.vfs_overrider.Stop()
 
 
-class TestRegistryFinderFlow(RegistryFlowTest):
+class TestFakeRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
   runkey = "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"

@@ -123,9 +123,7 @@ setup_args = dict(
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
-    ext_modules=[Extension(
-        "grr._semantic",
-        ["accelerated/accelerated.c"],)],
+    ext_modules=[Extension("grr._semantic", ["accelerated/accelerated.c"])],
     cmdclass={
         "develop": Develop,
         "install": install,
@@ -147,6 +145,7 @@ setup_args = dict(
         "Werkzeug==0.11.3",
         "wheel==0.29",
         "virtualenv==15.0.3",
+        "yara-procdump-python==0.1.0.post5",
     ],
     extras_require={
         # The following requirements are needed in Windows.

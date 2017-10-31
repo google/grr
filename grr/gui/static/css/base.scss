@@ -10,6 +10,9 @@
 
 // Directive style includes
 @import 'grr/gui/static/angular-components/acl/approval-info';
+@import 'grr/gui/static/angular-components/acl/hunt-approval-view';
+@import 'grr/gui/static/angular-components/acl/hunt-from-flow-copy-review';
+@import 'grr/gui/static/angular-components/acl/hunt-from-hunt-copy-review';
 @import 'grr/gui/static/angular-components/acl/request-approval-dialog';
 @import 'grr/gui/static/angular-components/artifact/artifacts-list-form';
 @import 'grr/gui/static/angular-components/artifact/artifact-name';
@@ -32,6 +35,7 @@
 @import 'grr/gui/static/angular-components/forms/semantic-proto-form';
 @import 'grr/gui/static/angular-components/hunt/hunt-graph';
 @import 'grr/gui/static/angular-components/semantic/rekall/rekall';
+@import 'grr/gui/static/angular-components/semantic/semantic-diff-annotated-proto';
 @import 'grr/gui/static/angular-components/semantic/semantic-versioned-proto';
 @import 'grr/gui/static/angular-components/semantic/stat-entry';
 @import 'grr/gui/static/angular-components/sidebar/client-summary';
@@ -475,7 +479,6 @@ tr.tree_hidden {
 .proto_key,
 .proto_value {
   padding: 0;
-  background: $color-proto-background;
   word-wrap: break-word;
 }
 
@@ -491,9 +494,12 @@ tr.tree_hidden {
 .proto-table {
   width: 100%;
   border: 1px solid $color-proto-table-border;
+  background: $color-proto-background;
 
-  tr:odd {
-    background-color: $color-proto-table-row-odd;
+  // Make sure nested tables don't have explicit background set.
+  .proto_table,
+  proto-table {
+    background: none;
   }
 
   td {

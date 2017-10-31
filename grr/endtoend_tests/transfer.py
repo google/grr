@@ -47,7 +47,6 @@ class MultiGetFileTestFlow(flow.GRRFlow):
           offset=0,
           length=2 * 1024 * 1024,  # 4 default sized blobs
           src_path=urandom,
-          dest_dir="",
           gzip_output=False,
           lifetime=600,
           next_state="HashFile")

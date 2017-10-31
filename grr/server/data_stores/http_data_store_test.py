@@ -197,7 +197,8 @@ class HTTPDataStoreMixin(object):
 
 @unittest.skipUnless(platform.system() == "Linux",
                      "We only expect the datastore to work on Linux")
-class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
+class HTTPDataStoreTest(data_store_test.DataStoreTestMixin, HTTPDataStoreMixin,
+                        test_lib.GRRBaseTest):
   """Test the remote data store."""
 
 

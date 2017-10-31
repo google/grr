@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoController');
 goog.provide('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective.buildItems');
+goog.require('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
 
 goog.scope(function() {
 
@@ -32,7 +32,8 @@ var SemanticVersionedProtoController = function($scope, grrReflectionService) {
 /**
  * Annotates items with properties necessary to show them in the template.
  *
- * @param {Array<Object>} items Items built by grr-semantic-proto's buildItems.
+ * @param {Array<Object>} items Items built by grr-semantic-proto's
+ *     buildNonUnionItems.
  * @param {!Object<string, Object>} descriptors Dictionary with descriptors for
  *     all the types used by the items.
  * @return {Array<Object>} Processed items.
@@ -72,7 +73,7 @@ SemanticVersionedProtoController.prototype.onValueChange_ = function() {
     var valueType = this.scope_['value']['type'];
     this.grrReflectionService_.getRDFValueDescriptor(valueType, true).then(
         function success(descriptors) {
-          var items = grrUi.semantic.semanticProtoDirective.buildItems(
+          var items = grrUi.semantic.semanticProtoDirective.buildNonUnionItems(
               this.scope_['value'],
               descriptors[valueType]);
           this.items = this.processItems_(items, descriptors);

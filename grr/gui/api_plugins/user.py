@@ -263,8 +263,8 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 
   notified_users = approval_obj.Get(approval_obj.Schema.NOTIFIED_USERS)
   if notified_users:
-    api_approval.notified_users = sorted(
-        u.strip() for u in notified_users.split(","))
+    api_approval.notified_users = sorted(u.strip()
+                                         for u in notified_users.split(","))
 
   email_cc = approval_obj.Get(approval_obj.Schema.EMAIL_CC)
   email_cc_addresses = sorted(s.strip() for s in email_cc.split(","))
@@ -296,6 +296,7 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiHuntApproval
   rdf_deps = [
+      api_flow.ApiFlow,
       api_hunt.ApiHunt,
   ]
 
@@ -305,9 +306,26 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
           approval_obj.Get(approval_obj.Schema.SUBJECT),
           aff4_type=implementation.GRRHunt,
           token=approval_obj.token)
-    self.subject = api_hunt.ApiHunt().InitFromAff4Object(approval_subject_obj)
+    self.subject = api_hunt.ApiHunt().InitFromAff4Object(
+        approval_subject_obj, with_full_summary=True)
 
-    return _InitApiApprovalFromAff4Object(self, approval_obj)
+    result = _InitApiApprovalFromAff4Object(self, approval_obj)
+
+    original_object = approval_subject_obj.runner_args.original_object
+    if original_object.object_type == "FLOW_REFERENCE":
+      urn = original_object.flow_reference.ToFlowURN()
+      original_flow = aff4.FACTORY.Open(
+          urn, aff4_type=flow.GRRFlow, token=approval_obj.token)
+      result.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
+          original_flow, flow_id=original_flow.urn.Basename())
+    elif original_object.object_type == "HUNT_REFERENCE":
+      urn = original_object.hunt_reference.ToHuntURN()
+      original_hunt = aff4.FACTORY.Open(
+          urn, aff4_type=implementation.GRRHunt, token=approval_obj.token)
+      result.copied_from_hunt = api_hunt.ApiHunt().InitFromAff4Object(
+          original_hunt, with_full_summary=True)
+
+    return result
 
 
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
@@ -634,8 +652,9 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
 
     approvals, subjects_by_urn = self._GetApprovals(
         "client", args.offset, args.count, filter_func=filter_func, token=token)
-    return ApiListClientApprovalsResult(items=self._HandleApprovals(
-        approvals, subjects_by_urn, self._ApprovalToApiApproval))
+    return ApiListClientApprovalsResult(
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
 
 
 class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
@@ -724,8 +743,9 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
   def Handle(self, args, token=None):
     approvals, subjects_by_urn = self._GetApprovals(
         "hunt", args.offset, args.count, token=token)
-    return ApiListHuntApprovalsResult(items=self._HandleApprovals(
-        approvals, subjects_by_urn, self._ApprovalToApiApproval))
+    return ApiListHuntApprovalsResult(
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
 
 
 class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
@@ -807,8 +827,9 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
   def Handle(self, args, token=None):
     approvals, subjects_by_urn = self._GetApprovals(
         "cron", args.offset, args.count, token=token)
-    return ApiListCronJobApprovalsResult(items=self._HandleApprovals(
-        approvals, subjects_by_urn, self._ApprovalToApiApproval))
+    return ApiListCronJobApprovalsResult(
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
 
 
 class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
@@ -835,8 +856,8 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
     except IOError:
       result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
-    result.interface_traits = (self.interface_traits or
-                               ApiGrrUserInterfaceTraits())
+    result.interface_traits = (
+        self.interface_traits or ApiGrrUserInterfaceTraits())
 
     return result
 

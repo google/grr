@@ -36,6 +36,9 @@ class HuntContext(rdf_structs.RDFProtoStruct):
 class HuntReference(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntReference
 
+  def ToHuntURN(self):
+    return rdfvalue.RDFURN("aff4:/hunts").Add(self.hunt_id)
+
 
 class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
   """A reference to a flow or a hunt."""

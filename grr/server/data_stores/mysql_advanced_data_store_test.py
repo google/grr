@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Tests the mysql data store."""
 
-import logging
-
 from grr.lib import flags
 from grr.server import data_store
 from grr.server import data_store_test
@@ -12,27 +10,20 @@ from grr.test_lib import test_lib
 
 class MysqlAdvancedTestMixin(object):
 
-  disabled = False
-
   @classmethod
   def setUpClass(cls):
     super(MysqlAdvancedTestMixin, cls).setUpClass()
-    try:
-      data_store_cls = mysql_advanced_data_store.MySQLAdvancedDataStore
-      data_store.DB = data_store_cls.SetupTestDB()
-      data_store.DB.Initialize()
-    except Exception as e:  # pylint: disable=broad-except
-      logging.debug("Error while setting up MySQL data store: %s.", e)
-      MysqlAdvancedTestMixin.disabled = True
+    data_store_cls = mysql_advanced_data_store.MySQLAdvancedDataStore
+    data_store.DB = data_store_cls.SetupTestDB()
+    data_store.DB.Initialize()
 
   def testCorrectDataStore(self):
-    self.assertTrue(
-        isinstance(data_store.DB,
-                   mysql_advanced_data_store.MySQLAdvancedDataStore))
+    self.assertIsInstance(data_store.DB,
+                          mysql_advanced_data_store.MySQLAdvancedDataStore)
 
 
-class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin,
-                                 data_store_test._DataStoreTest):
+class MysqlAdvancedDataStoreTest(data_store_test.DataStoreTestMixin,
+                                 MysqlAdvancedTestMixin, test_lib.GRRBaseTest):
   """Test the mysql data store abstraction."""
 
   def testMysqlVersion(self):

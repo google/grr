@@ -3,6 +3,7 @@
 goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoController');
 goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.provide('grrUi.semantic.semanticProtoDirective.buildItems');
+goog.provide('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
 goog.provide('grrUi.semantic.semanticProtoDirective.buildUnionItems');
 goog.provide('grrUi.semantic.semanticProtoDirective.getUnionFieldValue');
 
@@ -92,7 +93,7 @@ var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
 
 
 /**
- * Builds a list of items to display from the given value. If value
+ * Builds a list of items to display from a given non-union-type value. If value
  * has type descriptors, friendly names will be used as keys and
  * description will be filled in.
  *
@@ -107,7 +108,7 @@ var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
  * @return {Array.<Object>} List of items to display.
  * @export
  */
-grrUi.semantic.semanticProtoDirective.buildItems = function(
+grrUi.semantic.semanticProtoDirective.buildNonUnionItems = function(
     value, descriptor, opt_visibleFields, opt_hiddenFields) {
   if (angular.isUndefined(descriptor['fields'])) {
     return [];
@@ -141,14 +142,44 @@ grrUi.semantic.semanticProtoDirective.buildItems = function(
       'key': field['friendly_name'] || field['name'],
       'structKey': field['name'],
       'desc': field['doc'],
-      'fieldDescriptor': field
+      'fieldDescriptor': field,
     });
   }
 
   return items;
 };
-var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
+var buildNonUnionItems =
+    grrUi.semantic.semanticProtoDirective.buildNonUnionItems;
 
+
+/**
+ * Builds a list of items to display from the given value. If value
+ * has type descriptors, friendly names will be used as keys and
+ * description will be filled in.
+ *
+ * @param {!Object} value Value to be converted to an array of items.
+ * @param {!Object} descriptor Descriptor of the value to be converted to an
+ *     array of items. Expected to have 'fields' attribute with list of fields
+ *     descriptors.
+ * @param {Object=} opt_visibleFields If provided, only shows fields with names
+ *     from this list.
+ * @param {Object=} opt_hiddenFields If provided, doesn't show fields with names
+ *     from this list.
+ * @return {Array.<Object>} List of items to display.
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.buildItems = function(
+    value, descriptor, opt_visibleFields, opt_hiddenFields) {
+  if (angular.isDefined(descriptor['union_field'])) {
+    return buildUnionItems(value, descriptor);
+  } else {
+    return buildNonUnionItems(value,
+                              descriptor,
+                              opt_visibleFields,
+                              opt_hiddenFields);
+  }
+};
+var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
 
 /**
  * Controller for SemanticProtoDirective.
@@ -182,14 +213,10 @@ SemanticProtoController.prototype.onValueChange = function() {
     var valueType = this.scope_['value']['type'];
     this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
         function success(descriptor) {
-          if (angular.isDefined(descriptor['union_field'])) {
-            this.items = buildUnionItems(this.scope_['value'], descriptor);
-          } else {
-            this.items = buildItems(this.scope_['value'],
-                                    descriptor,
-                                    this.scope_['visibleFields'],
-                                    this.scope_['hiddenFields']);
-          }
+          this.items = buildItems(this.scope_['value'],
+                                  descriptor,
+                                  this.scope_['visibleFields'],
+                                  this.scope_['hiddenFields']);
         }.bind(this)); // TODO(user): Reflection failure scenario should be
                        // handled globally by reflection service.
   } else {

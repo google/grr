@@ -112,6 +112,11 @@ def LocalPathToCanonicalPath(path):
   return utils.NormalizePath(path)
 
 
+def LinVerifyFileOwner(filename):
+  stat_info = os.lstat(filename)
+  return os.getuid() == stat_info.st_uid
+
+
 class NannyThread(threading.Thread):
   """This is the thread which watches the nanny running."""
 

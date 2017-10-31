@@ -410,6 +410,7 @@ class WriteRekallProfile(ClientActionStub):
 
 class RekallAction(ClientActionStub):
   """Runs a Rekall command on live memory."""
+
   in_rdfvalue = rekall_types.RekallRequest
   out_rdfvalues = [rekall_types.RekallResponse]
 
@@ -427,3 +428,10 @@ class YaraProcessScan(ClientActionStub):
 
   in_rdfvalue = rdf_yara.YaraProcessScanRequest
   out_rdfvalues = [rdf_yara.YaraProcessScanResponse]
+
+
+class YaraProcessDump(ClientActionStub):
+  """Dumps a process to disk and returns pathspecs for GRR to pick up."""
+
+  in_rdfvalue = rdf_yara.YaraProcessDumpArgs
+  out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]

@@ -73,7 +73,7 @@ def DBSubjectLockTest(f):
   return Decorator
 
 
-class _DataStoreTest(test_lib.GRRBaseTest):
+class DataStoreTestMixin(object):
   """Test the data store abstraction.
 
   Note that when testing timestamp behavior the cloud bigtable datastore only
@@ -89,7 +89,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   TEST_DBSUBJECTLOCKS = True
 
   def setUp(self):
-    super(_DataStoreTest, self).setUp()
+    super(DataStoreTestMixin, self).setUp()
     data_store.DB.ClearTestDB()
 
   def _TruncateToMilliseconds(self, timestamp_int):

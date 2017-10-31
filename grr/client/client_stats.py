@@ -3,7 +3,6 @@
 
 
 
-import os
 import threading
 import time
 
@@ -22,7 +21,7 @@ class ClientStatsCollector(threading.Thread):
     super(ClientStatsCollector, self).__init__()
     self.sleep_time = sleep_time
     self.daemon = True
-    self.proc = psutil.Process(os.getpid())
+    self.proc = psutil.Process()
     self.cpu_samples = []
     self.io_samples = []
     self.worker = worker

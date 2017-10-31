@@ -8,12 +8,15 @@ from grr.gui.api_plugins import user as user_plugin
 
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import flow
+
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.aff4_objects import security
 from grr.server.aff4_objects import users as aff4_users
-
+from grr.server.flows.general import discovery
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 
@@ -72,14 +75,18 @@ class ApiGetClientApprovalHandlerRegressionTest(
               client_id=clients[0].Basename(),
               approval_id=approval1_id,
               username=self.token.username),
-          replace={approval1_id: "approval:111111"})
+          replace={
+              approval1_id: "approval:111111"
+          })
       self.Check(
           "GetClientApproval",
           args=user_plugin.ApiGetClientApprovalArgs(
               client_id=clients[1].Basename(),
               approval_id=approval2_id,
               username=self.token.username),
-          replace={approval2_id: "approval:222222"})
+          replace={
+              approval2_id: "approval:222222"
+          })
 
 
 class ApiGrantClientApprovalHandlerRegressionTest(
@@ -117,7 +124,9 @@ class ApiGrantClientApprovalHandlerRegressionTest(
               client_id=clients[0].Basename(),
               approval_id=approval_id,
               username="requestor"),
-          replace={approval_id: "approval:111111"})
+          replace={
+              approval_id: "approval:111111"
+          })
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(
@@ -228,7 +237,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
   api_method = "GetHuntApproval"
   handler = user_plugin.ApiGetHuntApprovalHandler
 
-  def Run(self):
+  def _RunTestForNormalApprovals(self):
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
@@ -271,16 +280,99 @@ class ApiGetHuntApprovalHandlerRegressionTest(
               username=self.token.username,
               hunt_id=hunt1_id,
               approval_id=approval1_id),
-          replace={hunt1_id: "H:123456",
-                   approval1_id: "approval:111111"})
+          replace={
+              hunt1_id: "H:123456",
+              approval1_id: "approval:111111"
+          })
       self.Check(
           "GetHuntApproval",
           args=user_plugin.ApiGetHuntApprovalArgs(
               username=self.token.username,
               hunt_id=hunt2_id,
               approval_id=approval2_id),
-          replace={hunt2_id: "H:567890",
-                   approval2_id: "approval:222222"})
+          replace={
+              hunt2_id: "H:567890",
+              approval2_id: "approval:222222"
+          })
+
+  def _RunTestForApprovalForHuntCopiedFromAnotherHunt(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      with self.CreateHunt(description="original hunt") as hunt_obj:
+        hunt1_urn = hunt_obj.urn
+        hunt1_id = hunt1_urn.Basename()
+
+      ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(hunt1_id)
+      with self.CreateHunt(
+          description="copied hunt", original_object=ref) as hunt_obj:
+        hunt2_urn = hunt_obj.urn
+        hunt2_id = hunt2_urn.Basename()
+
+    with test_lib.FakeTime(44):
+      approval_urn = security.HuntApprovalRequestor(
+          reason="foo",
+          subject_urn=hunt2_urn,
+          approver="approver",
+          token=self.token).Request()
+      approval_id = approval_urn.Basename()
+
+    with test_lib.FakeTime(126):
+      self.Check(
+          "GetHuntApproval",
+          args=user_plugin.ApiGetHuntApprovalArgs(
+              username=self.token.username,
+              hunt_id=hunt2_id,
+              approval_id=approval_id),
+          replace={
+              hunt1_id: "H:556677",
+              hunt2_id: "H:DDEEFF",
+              approval_id: "approval:333333"
+          })
+
+  def _RunTestForApprovalForHuntCopiedFromFlow(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      client_urn = self.SetupClients(1)[0]
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=discovery.Interrogate.__name__,
+          client_id=client_urn,
+          token=self.token)
+
+      ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
+          flow_urn.Basename(), client_urn.Basename())
+      with self.CreateHunt(
+          description="hunt started from flow",
+          original_object=ref) as hunt_obj:
+        hunt_urn = hunt_obj.urn
+        hunt_id = hunt_urn.Basename()
+
+    with test_lib.FakeTime(44):
+      approval_urn = security.HuntApprovalRequestor(
+          reason="foo",
+          subject_urn=hunt_urn,
+          approver="approver",
+          token=self.token).Request()
+      approval_id = approval_urn.Basename()
+
+    with test_lib.FakeTime(126):
+      self.Check(
+          "GetHuntApproval",
+          args=user_plugin.ApiGetHuntApprovalArgs(
+              username=self.token.username,
+              hunt_id=hunt_id,
+              approval_id=approval_id),
+          replace={
+              flow_urn.Basename(): "F:112233",
+              hunt_id: "H:667788",
+              approval_id: "approval:444444"
+          })
+
+  def Run(self):
+    self._RunTestForNormalApprovals()
+    self._RunTestForApprovalForHuntCopiedFromAnotherHunt()
+    self._RunTestForApprovalForHuntCopiedFromFlow()
 
 
 class ApiGrantHuntApprovalHandlerRegressionTest(
@@ -313,8 +405,10 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
           "GrantHuntApproval",
           args=user_plugin.ApiGrantHuntApprovalArgs(
               hunt_id=hunt_id, approval_id=approval_id, username="requestor"),
-          replace={hunt_id: "H:123456",
-                   approval_id: "approval:111111"})
+          replace={
+              hunt_id: "H:123456",
+              approval_id: "approval:111111"
+          })
 
 
 class ApiCreateHuntApprovalHandlerRegressionTest(

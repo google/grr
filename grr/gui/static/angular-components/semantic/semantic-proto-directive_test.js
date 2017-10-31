@@ -2,6 +2,7 @@
 
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.semantic.semanticProtoDirective.buildItems');
+goog.require('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
 goog.require('grrUi.semantic.semanticProtoDirective.buildUnionItems');
 goog.require('grrUi.semantic.semanticProtoDirective.getUnionFieldValue');
 goog.require('grrUi.tests.module');
@@ -149,8 +150,9 @@ describe('semantic proto directive', function() {
     });
   });
 
-  describe('buildItems()', function() {
-    var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
+  describe('buildNonUnionItems()', function() {
+    var buildNonUnionItems =
+        grrUi.semantic.semanticProtoDirective.buildNonUnionItems;
 
     var descriptor = {
       fields: [
@@ -182,12 +184,78 @@ describe('semantic proto directive', function() {
     };
 
     it('includes set fields only', function() {
-      var items = buildItems(value, descriptor);
+      var items = buildNonUnionItems(value, descriptor);
       expect(items.length).toBe(1);
       expect(items[0]['key']).toBe('foo');
       expect(items[0]['value']['value']).toBe('theFoo');
     });
   });
+
+  describe('buildItems()', function() {
+    var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
+
+    it('builds items for a non-union-type value', function() {
+      var descriptor = {
+        fields: [
+          {
+            name: 'foo',
+          }
+        ]
+      };
+
+      var value = {
+        type: 'Struct',
+        value: {
+          foo: {
+            type: 'unicode',
+            value: 'theFoo'
+          }
+        }
+      };
+
+      var items = buildItems(value, descriptor);
+      expect(items.length).toBe(1);
+      expect(items[0]['key']).toBe('foo');
+      expect(items[0]['value']['value']).toBe('theFoo');
+    });
+
+    it('builds items for a union-type value', function() {
+
+      var descriptor = {
+        union_field: 'action_type',
+        fields: [
+          {
+            name: 'action_type'
+          },
+          {
+            name: 'send_to_socket',
+          }
+        ]
+      };
+
+
+      var valueWithSetFields = {
+      type: 'FooType',
+        value: {
+          action_type: {
+            type: 'unicode',
+            value: 'SEND_TO_SOCKET'
+          },
+          send_to_socket: {
+            type: 'unicode',
+            value: 'bar'
+          }
+        }
+      };
+
+      var items = buildItems(valueWithSetFields, descriptor);
+      expect(items[0]['key']).toBe('action_type');
+      expect(items[0]['value']['value']).toBe('SEND_TO_SOCKET');
+      expect(items[1]['key']).toBe('send_to_socket');
+      expect(items[1]['value']['value']).toBe('bar');
+    });
+  });
+
 
   var $compile, $rootScope, $q, grrReflectionService;
 
@@ -388,6 +456,7 @@ describe('semantic proto directive', function() {
       expect($('tr:nth(1)', element).text()).toContain('download');
     });
   });
+
 });
 
 });  // goog.scope

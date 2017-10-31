@@ -125,12 +125,44 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
             nested_flows_urns, aff4_type=flow.GRRFlow, token=self.token))
     self.assertEqual(len(nested_flows), 1)
 
-    flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename() + "/" +
-                                    nested_flows[0].urn.Basename())
+    flow_id = flow_plugin.ApiFlowId(
+        client_flows_urns[0].Basename() + "/" + nested_flows[0].urn.Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
             client_plugin.ApiClientId(self.client_urn), token=self.token),
         nested_flows[0].urn)
+
+
+class ApiFlowTest(test_lib.GRRBaseTest):
+  """Test for ApiFlow."""
+
+  def testInitializesClientIdForClientBasedFlows(self):
+    client_id = self.SetupClients(1)[0]
+    flow_urn = flow.GRRFlow.StartFlow(
+        # Override base session id, so that the flow URN looks
+        # like: aff4:/F:112233
+        base_session_id="aff4:/",
+        client_id=client_id,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    flow_api_obj = flow_plugin.ApiFlow().InitFromAff4Object(
+        flow_obj, flow_id=flow_urn.Basename())
+
+    self.assertIsNone(flow_api_obj.client_id)
+
+  def testLeavesClientIdEmptyForNonClientBasedFlows(self):
+    client_id = self.SetupClients(1)[0]
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    flow_api_obj = flow_plugin.ApiFlow().InitFromAff4Object(
+        flow_obj, flow_id=flow_urn.Basename())
+
+    self.assertEquals(flow_api_obj.client_id,
+                      client_plugin.ApiClientId(client_id))
 
 
 class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):

@@ -6,14 +6,20 @@ import unittest
 from grr.gui import gui_test_lib
 
 from grr.lib import flags
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server import access_control
+from grr.server import flow
 from grr.server import foreman as rdf_foreman
+from grr.server import output_plugin
 from grr.server.aff4_objects import security
+from grr.server.flows.general import file_finder
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 
 
-class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"
@@ -181,10 +187,10 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   def Create2HuntsForDifferentUsers(self):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
-    hunt1_id = self.CreateSampleHunt(token=access_control.ACLToken(
-        username="otheruser"))
-    hunt2_id = self.CreateSampleHunt(token=access_control.ACLToken(
-        username=self.token.username))
+    hunt1_id = self.CreateSampleHunt(
+        token=access_control.ACLToken(username="otheruser"))
+    hunt2_id = self.CreateSampleHunt(
+        token=access_control.ACLToken(username=self.token.username))
     self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
@@ -325,6 +331,141 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
+
+  def _RequestAndOpenApprovalFromSelf(self, hunt_id):
+    security.HuntApprovalRequestor(
+        subject_urn=hunt_id,
+        reason=self.reason,
+        approver=self.token.username,
+        token=self.token).Request()
+
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
+    self.Open("/")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
+    self.Click("notification_button")
+    self.Click("css=td:contains('Please grant access to hunt')")
+
+  def testWarningIsShownIfReviewedHuntIsNotACopy(self):
+    hunt_id = self.CreateSampleHunt()
+    self._RequestAndOpenApprovalFromSelf(hunt_id)
+
+    self.WaitUntil(self.IsTextPresent,
+                   "This hunt is new. It wasn't copied from another hunt")
+    # Make sure that only the correct message appears and the others are not
+    # shown.
+    self.WaitUntilNot(self.IsTextPresent, "This hunt was copied from")
+    self.WaitUntilNot(self.IsTextPresent, "This hunt was created from a flow")
+
+  def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
+    client_id = self.SetupClients(1)[0]
+
+    flow_args = rdf_file_finder.FileFinderArgs(
+        paths=["a/*", "b/*"],
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"))
+    flow_runner_args = rdf_flows.FlowRunnerArgs(
+        flow_name=file_finder.FileFinder.__name__)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        args=flow_args,
+        runner_args=flow_runner_args,
+        token=self.token)
+
+    ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
+        flow_urn.Basename(), client_id.Basename())
+    # Modify flow_args so that there are differences.
+    flow_args.paths = ["b/*", "c/*"]
+    flow_args.action.action_type = "DOWNLOAD"
+    flow_args.conditions = [
+        rdf_file_finder.FileFinderCondition(
+            condition_type="SIZE",
+            size=rdf_file_finder.FileFinderSizeCondition(min_file_size=42))
+    ]
+    h = self.CreateHunt(
+        flow_args=flow_args,
+        flow_runner_args=flow_runner_args,
+        original_object=ref)
+
+    self._RequestAndOpenApprovalFromSelf(h.urn)
+
+    self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
+    # Make sure that only the correct message appears and the others are not
+    # shown.
+    self.WaitUntilNot(self.IsTextPresent,
+                      "This hunt is new. It wasn't copied from another hunt")
+    self.WaitUntilNot(self.IsTextPresent, "This hunt was copied from")
+
+    self.WaitUntil(self.IsElementPresent, "css=.diff-removed:contains('a/*')")
+    self.WaitUntil(self.IsElementPresent, "css=.diff-added:contains('c/*')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.diff-changed:contains('Action'):contains('STAT')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr.diff-changed:contains('Action'):contains('DOWNLOAD')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.diff-added:contains('Conditions'):contains('Size')"
+                   ":contains('42')")
+
+  def testHuntDiffIsShownIfHuntIsCopied(self):
+    flow_args = rdf_file_finder.FileFinderArgs(
+        paths=["a/*", "b/*"],
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"))
+    flow_runner_args = rdf_flows.FlowRunnerArgs(
+        flow_name=file_finder.FileFinder.__name__)
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                attribute_name="GRR client", attribute_regex="GRR"))
+    ])
+    source_h = self.CreateHunt(
+        flow_args=flow_args,
+        flow_runner_args=flow_runner_args,
+        description="foo-description",
+        client_rule_set=client_rule_set)
+
+    ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(source_h.urn.Basename())
+
+    # Modify flow_args so that there are differences.
+    flow_args.paths = ["b/*", "c/*"]
+    client_rule_set.rules[0].regex.attribute_name = "Something else"
+    output_plugins = [
+        output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
+    ]
+    new_h = self.CreateHunt(
+        flow_args=flow_args,
+        flow_runner_args=flow_runner_args,
+        description="bar-description",
+        client_rule_set=client_rule_set,
+        output_plugins=output_plugins,
+        original_object=ref)
+
+    self._RequestAndOpenApprovalFromSelf(new_h.urn)
+
+    self.WaitUntil(self.IsTextPresent, "This hunt was copied from")
+    # Make sure that only the correct message appears and the others are not
+    # shown.
+    self.WaitUntilNot(self.IsTextPresent, "This hunt was created from a flow")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "This hunt is new. It wasn't copied from another hunt")
+
+    self.WaitUntil(self.IsElementPresent, "css=.diff-removed:contains('a/*')")
+    self.WaitUntil(self.IsElementPresent, "css=.diff-added:contains('c/*')")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.diff-changed:contains('foo-description')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.diff-changed:contains('bar-description')")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr.diff-added:contains('Output Plugins'):"
+                   "contains('TestOutputPlugin')")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td table.diff-removed:contains('Rule type'):"
+                   "contains('REGEX'):contains('GRR client')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td table.diff-added:contains('Rule type'):"
+                   "contains('REGEX'):contains('Something else')")
 
 
 def main(argv):

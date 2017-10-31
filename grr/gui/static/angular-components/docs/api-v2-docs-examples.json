@@ -137,6 +137,7 @@
           "fetchBinaries": true,
           "filenameRegex": "."
         },
+        "clientId": "C.1000000000000000",
         "creator": "api_test_user",
         "flowId": "W:ABCDEF",
         "lastActiveAt": "42000000",
@@ -188,17 +189,60 @@
         ],
         "reason": "really important reason!",
         "subject": {
+          "allClientsCount": "0",
           "clientLimit": "100",
           "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
           "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
           "crashLimit": "100",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "foo",
           "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
           "huntId": "H:123456",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "foo",
+            "huntName": "GenericHunt",
+            "originalObject": {}
+          },
           "isRobot": false,
           "name": "GenericHunt",
+          "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
           "totalCpuUsage": 0.0,
@@ -780,6 +824,7 @@
         "args": {
           "@type": "type.googleapis.com/InterrogateArgs"
         },
+        "clientId": "C.1000000000000000",
         "context": {
           "clientResources": {
             "cpuUsage": {}
@@ -816,6 +861,7 @@
         "args": {
           "@type": "type.googleapis.com/InterrogateArgs"
         },
+        "clientId": "C.1000000000000000",
         "context": {
           "clientResources": {
             "cpuUsage": {}
@@ -922,17 +968,60 @@
         ],
         "reason": "foo",
         "subject": {
+          "allClientsCount": "0",
           "clientLimit": "100",
           "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
           "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
           "crashLimit": "100",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt1",
           "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
           "huntId": "H:123456",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "hunt1",
+            "huntName": "GenericHunt",
+            "originalObject": {}
+          },
           "isRobot": false,
           "name": "GenericHunt",
+          "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
           "totalCpuUsage": 0.0,
@@ -958,17 +1047,60 @@
         ],
         "reason": "bar",
         "subject": {
+          "allClientsCount": "0",
           "clientLimit": "100",
           "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
           "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
           "crashLimit": "100",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt2",
           "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
           "huntId": "H:567890",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "hunt2",
+            "huntName": "GenericHunt",
+            "originalObject": {}
+          },
           "isRobot": false,
           "name": "GenericHunt",
+          "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
           "totalCpuUsage": 0.0,
@@ -978,6 +1110,267 @@
       },
       "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/api_test_user/approvals/hunt/H:567890/approval:222222"
+    },
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "api_test_user"
+        ],
+        "copiedFromHunt": {
+          "allClientsCount": "0",
+          "clientLimit": "100",
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
+          "crashLimit": "100",
+          "created": "42000000",
+          "creator": "api_test_user",
+          "description": "original hunt",
+          "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
+          "huntId": "H:556677",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "original hunt",
+            "huntName": "GenericHunt",
+            "originalObject": {}
+          },
+          "isRobot": false,
+          "name": "GenericHunt",
+          "remainingClientsCount": "0",
+          "resultsCount": "0",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:556677"
+        },
+        "id": "approval:333333",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "allClientsCount": "0",
+          "clientLimit": "100",
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
+          "crashLimit": "100",
+          "created": "42000000",
+          "creator": "api_test_user",
+          "description": "copied hunt",
+          "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
+          "huntId": "H:DDEEFF",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "copied hunt",
+            "huntName": "GenericHunt",
+            "originalObject": {
+              "huntReference": {
+                "huntId": "H:556677"
+              },
+              "objectType": "HUNT_REFERENCE"
+            }
+          },
+          "isRobot": false,
+          "name": "GenericHunt",
+          "originalObject": {
+            "huntReference": {
+              "huntId": "H:556677"
+            },
+            "objectType": "HUNT_REFERENCE"
+          },
+          "remainingClientsCount": "0",
+          "resultsCount": "0",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:DDEEFF"
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/api_test_user/approvals/hunt/H:DDEEFF/approval:333333"
+    },
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "api_test_user"
+        ],
+        "copiedFromFlow": {
+          "args": {
+            "@type": "type.googleapis.com/InterrogateArgs"
+          },
+          "clientId": "C.1000000000000000",
+          "creator": "api_test_user",
+          "flowId": "F:112233",
+          "lastActiveAt": "42000000",
+          "name": "Interrogate",
+          "runnerArgs": {
+            "clientId": "aff4:/C.1000000000000000",
+            "flowName": "Interrogate",
+            "originalFlow": {}
+          },
+          "startedAt": "42000000",
+          "state": "RUNNING",
+          "urn": "aff4:/C.1000000000000000/flows/F:112233"
+        },
+        "id": "approval:444444",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "allClientsCount": "0",
+          "clientLimit": "100",
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
+          "crashLimit": "100",
+          "created": "42000000",
+          "creator": "api_test_user",
+          "description": "hunt started from flow",
+          "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
+          "huntId": "H:667788",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "hunt started from flow",
+            "huntName": "GenericHunt",
+            "originalObject": {
+              "flowReference": {
+                "clientId": "aff4:/C.1000000000000000",
+                "flowId": "F:112233"
+              },
+              "objectType": "FLOW_REFERENCE"
+            }
+          },
+          "isRobot": false,
+          "name": "GenericHunt",
+          "originalObject": {
+            "flowReference": {
+              "clientId": "C.1000000000000000",
+              "flowId": "F:112233"
+            },
+            "objectType": "FLOW_REFERENCE"
+          },
+          "remainingClientsCount": "0",
+          "resultsCount": "0",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:667788"
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v2",
+      "url": "/api/v2/users/api_test_user/approvals/hunt/H:667788/approval:444444"
     }
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
@@ -1771,6 +2164,15 @@
             "name": "flow_id",
             "repeated": false,
             "type": "ApiFlowId"
+          },
+          {
+            "doc": "Client id.",
+            "dynamic": false,
+            "friendlyName": "Client id",
+            "index": 15,
+            "name": "client_id",
+            "repeated": false,
+            "type": "ApiClientId"
           },
           {
             "default": {
@@ -4187,17 +4589,60 @@
         ],
         "reason": "foo",
         "subject": {
+          "allClientsCount": "0",
           "clientLimit": "100",
           "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
           "clientsWithResultsCount": "0",
+          "completedClientsCount": "0",
           "crashLimit": "100",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "a hunt",
           "expires": "1209642000000",
+          "flowArgs": {
+            "@type": "type.googleapis.com/GetFileArgs",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flowName": "GetFile",
           "huntId": "H:123456",
+          "huntRunnerArgs": {
+            "avgCpuSecondsPerClientLimit": "60",
+            "avgNetworkBytesPerClientLimit": "10485760",
+            "avgResultsPerClientLimit": "1000",
+            "clientRate": 0.0,
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "regex": {
+                    "attributeName": "GRR client",
+                    "attributeRegex": "GRR"
+                  },
+                  "ruleType": "REGEX"
+                }
+              ]
+            },
+            "crashLimit": "100",
+            "description": "a hunt",
+            "huntName": "GenericHunt",
+            "originalObject": {}
+          },
           "isRobot": false,
           "name": "GenericHunt",
+          "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
           "totalCpuUsage": 0.0,
@@ -4936,6 +5381,7 @@
             "args": {
               "@type": "type.googleapis.com/ListProcessesArgs"
             },
+            "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF11",
             "lastActiveAt": "44000000",
@@ -4953,6 +5399,7 @@
             "args": {
               "@type": "type.googleapis.com/InterrogateArgs"
             },
+            "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF10",
             "lastActiveAt": "43000000",
@@ -5014,17 +5461,32 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "allClientsCount": "0",
               "clientLimit": "100",
               "clientRate": 20.5,
+              "clientRuleSet": {},
               "clientsWithResultsCount": "0",
+              "completedClientsCount": "0",
               "crashLimit": "100",
               "created": "42000000",
               "creator": "api_test_user",
               "description": "",
               "expires": "1209642000000",
+              "flowName": "",
               "huntId": "H:123456",
+              "huntRunnerArgs": {
+                "avgCpuSecondsPerClientLimit": "60",
+                "avgNetworkBytesPerClientLimit": "10485760",
+                "avgResultsPerClientLimit": "1000",
+                "clientRuleSet": {},
+                "crashLimit": "100",
+                "description": "",
+                "huntName": "GenericHunt",
+                "originalObject": {}
+              },
               "isRobot": false,
               "name": "GenericHunt",
+              "remainingClientsCount": "0",
               "resultsCount": "0",
               "state": "PAUSED",
               "totalCpuUsage": 0.0,

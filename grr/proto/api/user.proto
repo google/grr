@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "grr/proto/api/cron.proto";
+import "grr/proto/api/flow.proto";
 import "grr/proto/api/hunt.proto";
 import "grr/proto/api/client.proto";
 
@@ -13,6 +14,7 @@ import "grr/proto/semantic.proto";
 // Entities.
 //
 
+// Next message id: 11
 message ApiHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {
       description: "A hunt that has to be accessed after this approval "
@@ -48,6 +50,15 @@ message ApiHuntApproval {
   repeated string approvers = 7 [(sem_type) = {
       description: "List of GRR users who granted this approval. Note: this "
       "list always includes the original approval requestor."
+    }];
+
+  optional ApiHunt copied_from_hunt = 9 [(sem_type) = {
+      description: "If the hunt was copied from another hunt, the original "
+      "hunt information will be stored here."
+    }];
+  optional ApiFlow copied_from_flow = 10 [(sem_type) = {
+      description: "If the hunt was started from a flow, the original "
+      "flow information will be stored here."
     }];
 }
 

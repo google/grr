@@ -8,7 +8,8 @@ from grr.server import data_store_test
 from grr.test_lib import test_lib
 
 
-class FakeDataStoreTest(data_store_test._DataStoreTest):
+class FakeDataStoreTest(data_store_test.DataStoreTestMixin,
+                        test_lib.GRRBaseTest):
   """Test the fake data store."""
 
   def testApi(self):

@@ -94,6 +94,17 @@ def FlagOverrider(**flag_kwargs):
   return Decorator
 
 
+def Initialize():
+  """Parses the arguments and setups the `FLAGS` namespace.
+
+  Returns:
+    A list of extra arguments that were not recognized by the parser.
+  """
+  global FLAGS
+  FLAGS, extra_args = PARSER.parse_known_args()
+  return extra_args
+
+
 def StartMain(main):
   """The main entry point to start applications.
 
@@ -102,9 +113,7 @@ def StartMain(main):
   Args:
      main: A main function to call.
   """
-  global FLAGS
-
-  FLAGS, extra_args = PARSER.parse_known_args()
+  extra_args = Initialize()
 
   exec_name = sys.argv[0]
   sys.argv = [exec_name] + extra_args

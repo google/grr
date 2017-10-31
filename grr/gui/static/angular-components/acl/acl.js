@@ -4,6 +4,8 @@ goog.require('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
 goog.require('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
 goog.require('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
 goog.require('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
+goog.require('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
+goog.require('grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective');
 goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 goog.require('grrUi.core.apiService');
 
@@ -28,6 +30,12 @@ grrUi.acl.module.directive(
 grrUi.acl.module.directive(
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective.directive_name,
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective);
+grrUi.acl.module.directive(
+    grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective.directive_name,
+    grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective);
+grrUi.acl.module.directive(
+    grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective.directive_name,
+    grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective);
 grrUi.acl.module.directive(
     grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective.directive_name,
     grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective);

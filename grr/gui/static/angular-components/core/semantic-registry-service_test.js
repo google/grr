@@ -18,33 +18,74 @@ describe('Semantic registry', function() {
         grrUi.core.semanticRegistry.SemanticRegistryService, {});
   }));
 
-  it('finds previously registered directive',
-     function() {
-       testRegistry.registerDirective('SomeType', Object);
-       var foundDirective = testRegistry.findDirectiveForMro(
-           ['SomeType']);
-       expect(foundDirective).toBe(Object);
-     });
+  describe('findDirectiveForMro', function() {
+    it('finds previously registered directive', function() {
+      testRegistry.registerDirective('SomeType', Object);
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeType']);
+      expect(foundDirective).toBe(Object);
+    });
 
-  it('returns undefined when searching for not registered directive',
-     function() {
-       var foundDirective = testRegistry.findDirectiveForMro(
-           ['SomeType']);
-       expect(foundDirective).toBeUndefined();
-     });
+    it('returns undefined when searching for not registered directive', function() {
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeType']);
+      expect(foundDirective).toBeUndefined();
+    });
 
-  it('returns more specific directive when multiple directives match',
-     function() {
-       var directive1 = Object();
-       var directive2 = Object();
+    it('returns more specific directive when multiple directives match', function() {
+      var directive1 = Object();
+      var directive2 = Object();
 
-       testRegistry.registerDirective('SomeChildType', directive1);
-       testRegistry.registerDirective('SomeParentType', directive2);
+      testRegistry.registerDirective('SomeChildType', directive1);
+      testRegistry.registerDirective('SomeParentType', directive2);
 
-       var foundDirective = testRegistry.findDirectiveForMro(
-           ['SomeChildType', 'SomeParentType']);
-       expect(foundDirective).toBe(directive1);
-     });
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeChildType', 'SomeParentType']);
+      expect(foundDirective).toBe(directive1);
+    });
+
+    it('respects override for a type without directive', function() {
+      var someDirective = Object();
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeType'], {'SomeType': someDirective});
+      expect(foundDirective).toBe(someDirective);
+    });
+
+    it('respects override for a single and only MRO type', function() {
+      var someDirective = Object();
+      var directiveOverride = Object();
+
+      testRegistry.registerDirective('SomeType', someDirective);
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeType'], {'SomeType': directiveOverride});
+      expect(foundDirective).toBe(directiveOverride);
+    });
+
+    it('respects override for a non-leaf MRO type', function() {
+      var someDirective = Object();
+      var directiveOverride = Object();
+
+      testRegistry.registerDirective('SomeParentType', someDirective);
+
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeChildType', 'SomeParentType'], {'SomeParentType': directiveOverride});
+      expect(foundDirective).toBe(directiveOverride);
+    });
+
+    it('respects override for a leaf MRO type', function() {
+      var directive1 = Object();
+      var directive2 = Object();
+
+      testRegistry.registerDirective('SomeChildType', directive1);
+      testRegistry.registerDirective('SomeParentType', directive2);
+
+      var directiveOverride = Object();
+      var foundDirective = testRegistry.findDirectiveForMro(
+          ['SomeChildType', 'SomeParentType'],
+          {'SomeChildType': directiveOverride});
+      expect(foundDirective).toBe(directiveOverride);
+    });
+  });
 
   describe('findDirectiveByType', function() {
     it('returns registered directive without using reflection', function(
@@ -54,6 +95,21 @@ describe('Semantic registry', function() {
           'SomeType');
       promise.then(function(value) {
         expect(value).toBe(Object);
+        done();
+      });
+      $rootScope.$apply();
+    });
+
+    it('returns overridden directive without using reflection', function(
+        done) {
+      var someDirective = Object();
+      var directiveOverride = Object();
+      testRegistry.registerDirective('SomeType', someDirective);
+
+      var promise = testRegistry.findDirectiveForType(
+          'SomeType', {'SomeType': directiveOverride});
+      promise.then(function(value) {
+        expect(value).toBe(directiveOverride);
         done();
       });
       $rootScope.$apply();
@@ -75,6 +131,29 @@ describe('Semantic registry', function() {
       promise.then(function(value) {
         expect(grrReflectionService.getRDFValueDescriptor).toHaveBeenCalled();
         expect(value).toBe(Object);
+        done();
+      });
+      $rootScope.$apply();
+    });
+
+    it('respects overrides for parent types', function() {
+      var someDirective = Object();
+      var directiveOverride = Object();
+      testRegistry.registerDirective('SomeParentType', someDirective);
+
+
+      var deferred = $q.defer();
+      deferred.resolve({
+        mro: ['SomeChildType', 'SomeParentType']
+      });
+      grrReflectionService.getRDFValueDescriptor = jasmine.createSpy(
+          'getRDFValueDescriptor').and.returnValue(deferred.promise);
+
+      var promise = testRegistry.findDirectiveForType(
+          'SomeChildType', {'SomeParentType': directiveOverride});
+      promise.then(function(value) {
+        expect(grrReflectionService.getRDFValueDescriptor).toHaveBeenCalled();
+        expect(value).toBe(directiveOverride);
         done();
       });
       $rootScope.$apply();

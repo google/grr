@@ -148,10 +148,8 @@ print "Done."
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(open("/bin/ls", "rb").read(), self.signing_key)
 
-    writefile = utils.Join(self.temp_dir, "binexecute", "ablob")
-    os.makedirs(os.path.dirname(writefile))
     request = rdf_client.ExecuteBinaryRequest(
-        executable=signed_blob, args=[__file__], write_path=writefile)
+        executable=signed_blob, args=[__file__], write_path="ablob")
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
@@ -209,23 +207,15 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
 
   def testCopyPathToFile(self):
     request = rdf_client.CopyPathToFileRequest(
-        offset=0,
-        length=0,
-        src_path=self.pathspec,
-        dest_dir=self.temp_dir,
-        gzip_output=False)
+        offset=0, length=0, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
-    hash_out = hashlib.sha1(
-        open(result.dest_path.path, "rb").read()).hexdigest()
+    hash_out = hashlib.sha1(open(result.dest_path.path,
+                                 "rb").read()).hexdigest()
     self.assertEqual(self.hash_in, hash_out)
 
   def testCopyPathToFileLimitLength(self):
     request = rdf_client.CopyPathToFileRequest(
-        offset=0,
-        length=23,
-        src_path=self.pathspec,
-        dest_dir=self.temp_dir,
-        gzip_output=False)
+        offset=0, length=23, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 23)
@@ -238,11 +228,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
       hash_in = hashlib.sha1(out).hexdigest()
 
     request = rdf_client.CopyPathToFileRequest(
-        offset=38,
-        length=25,
-        src_path=self.pathspec,
-        dest_dir=self.temp_dir,
-        gzip_output=False)
+        offset=38, length=25, src_path=self.pathspec, gzip_output=False)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 25)
@@ -251,11 +237,7 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
 
   def testCopyPathToFileGzip(self):
     request = rdf_client.CopyPathToFileRequest(
-        offset=0,
-        length=0,
-        src_path=self.pathspec,
-        dest_dir=self.temp_dir,
-        gzip_output=True)
+        offset=0, length=0, src_path=self.pathspec, gzip_output=True)
     result = self.RunAction(standard.CopyPathToFile, request)[0]
     self.assertEqual(
         hashlib.sha1(gzip.open(result.dest_path.path).read()).hexdigest(),
@@ -266,7 +248,6 @@ class TestCopyPathToFile(client_test_lib.EmptyActionTest):
         offset=0,
         length=23,
         src_path=self.pathspec,
-        dest_dir=self.temp_dir,
         gzip_output=False,
         lifetime=0.1)
     result = self.RunAction(standard.CopyPathToFile, request)[0]

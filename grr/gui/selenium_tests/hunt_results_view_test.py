@@ -40,6 +40,24 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 
+  def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
+    client_id = self.SetupClients(1)[0]
+    h = self.CreateSampleHunt()
+
+    with data_store.DB.GetMutationPool() as pool:
+      h.ResultCollection().Add(
+          rdf_flows.GrrMessage(
+              payload=rdfvalue.RDFString("foo-result"), source=client_id),
+          mutation_pool=pool)
+
+    self.Open("/#/hunts/%s/results" % h.urn.Basename())
+    self.Click("css=td:contains('%s') button:has(.glyphicon-info-sign)" %
+               client_id.Basename())
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.modal-dialog:contains('Client %s')" % client_id.Basename())
+
   def testResultsViewGetsAutoRefreshed(self):
     client_id = self.SetupClients(1)[0]
     h = self.CreateSampleHunt()

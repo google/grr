@@ -218,7 +218,7 @@ class CopyPathToFile(actions.ActionPlugin):
     suffix = ".gz" if args.gzip_output else ""
 
     dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(
-        directory=args.dest_dir, lifetime=args.lifetime, suffix=suffix)
+        lifetime=args.lifetime, suffix=suffix)
 
     dest_file = dest_fd.name
     with dest_fd:
@@ -237,7 +237,6 @@ class CopyPathToFile(actions.ActionPlugin):
             offset=offset,
             length=written,
             src_path=args.src_path,
-            dest_dir=args.dest_dir,
             dest_path=dest_pathspec,
             gzip_output=args.gzip_output))
 

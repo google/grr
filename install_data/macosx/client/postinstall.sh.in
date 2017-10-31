@@ -2,6 +2,8 @@
 #
 # Post installation script for GRR client MacOS-X package
 
+[[ $3 != "/" ]] && exit 0
+
 # Run the installation routines.
 "%(ClientBuilder.install_dir)/%(Client.binary_name)" --install --config="%(ClientBuilder.install_dir)/%(ClientBuilder.config_filename)"
 

@@ -30,7 +30,10 @@ goog.require('grrUi.semantic.pseudo.module');
 goog.require('grrUi.semantic.rekall.module');
 goog.require('grrUi.semantic.rekallResponseDirective.RekallResponseDirective');
 
+goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective');
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
+goog.require('grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective');
+goog.require('grrUi.semantic.semanticValueDirective.RegistryOverrideDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
 goog.require('grrUi.semantic.statEntryDirective.StatEntryDirective');
@@ -107,11 +110,23 @@ grrUi.semantic.module.directive(
     grrUi.semantic.rekallResponseDirective.RekallResponseDirective);
 
 grrUi.semantic.module.directive(
+    grrUi.semantic.semanticDiffAnnotatedProtoDirective
+      .SemanticDiffAnnotatedProtoDirective.directive_name,
+    grrUi.semantic.semanticDiffAnnotatedProtoDirective
+      .SemanticDiffAnnotatedProtoDirective);
+grrUi.semantic.module.directive(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
 grrUi.semantic.module.directive(
+    grrUi.semantic.semanticValueDirective.RegistryOverrideDirective.directive_name,
+    grrUi.semantic.semanticValueDirective.RegistryOverrideDirective);
+grrUi.semantic.module.directive(
     grrUi.semantic.semanticValueDirective.SemanticValueDirective.directive_name,
     grrUi.semantic.semanticValueDirective.SemanticValueDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective
+      .directive_name,
+    grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.semanticVersionedProtoDirective
         .SemanticVersionedProtoDirective.directive_name,

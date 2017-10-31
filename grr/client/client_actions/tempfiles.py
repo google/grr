@@ -7,6 +7,7 @@ Utilities for working with GRR temp files.
 
 
 import os
+import shutil
 import stat
 import sys
 import tempfile
@@ -54,11 +55,63 @@ def GetDefaultGRRTempDirectory():
   return GetTempDirForRoot(config.CONFIG["Client.tempdir_roots"][0])
 
 
-def CreateGRRTempFile(directory=None,
-                      filename=None,
-                      lifetime=0,
-                      mode="w+b",
-                      suffix=""):
+def EnsureTempDirIsSane(directory):
+  """Checks that the directory exists and has the correct permissions set."""
+
+  if not os.path.isabs(directory):
+    raise ErrorBadPath("Directory %s is not absolute" % directory)
+
+  if os.path.isdir(directory):
+    # The temp dir already exists, we probably created it already but
+    # let's check to make sure.
+    if not client_utils.VerifyFileOwner(directory):
+      # Just delete it, it's only temp dirs and we don't own it. If
+      # this goes wrong we just raise.
+      shutil.rmtree(directory)
+
+  if not os.path.isdir(directory):
+    os.makedirs(directory)
+
+    # Make directory 700 before we write the file
+    if sys.platform == "win32":
+      client_utils.WinChmod(directory,
+                            ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
+    else:
+      os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+
+
+class TemporaryDirectory(object):
+  """Context Manager for a temporary directory.
+
+  This manager will create a new temporary directory when entered. Its path
+  is accessible via the path attribute. The directory will be automatically
+  deleted when exiting if the cleanup attribute is set to True (default) or
+  if any exception has been raised.
+
+  Attributes:
+    path: The path to the temporary directory.
+    cleanup: A boolean to delete the directory when exiting. Note that if an
+      exception is raised, the directory will be deleted regardless of the
+      value of cleanup.
+  """
+
+  def __init__(self, cleanup=True):
+    self.cleanup = cleanup
+
+  def __enter__(self):
+    tmp_root = GetDefaultGRRTempDirectory()
+    EnsureTempDirIsSane(tmp_root)
+    self.path = tempfile.mkdtemp(dir=tmp_root)
+    # return the manager instead of the path so that the caller may modify
+    # the cleanup attribute even after the context is entered.
+    return self
+
+  def __exit__(self, exc_type, unused_exc_value, unused_traceback):
+    if self.cleanup or exc_type:
+      shutil.rmtree(self.path, ignore_errors=True)
+
+
+def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
   """Open file with GRR prefix in directory to allow easy deletion.
 
   Missing parent dirs will be created. If an existing directory is specified
@@ -74,10 +127,6 @@ def CreateGRRTempFile(directory=None,
   after lifetime seconds.  Files won't be deleted by default.
 
   Args:
-    directory: string representing absolute directory where file should be
-               written. If None, use 'tmp' under the directory we're running
-               from.
-
     filename: The name of the file to use. Note that setting both filename and
        directory name is not allowed.
 
@@ -95,30 +144,18 @@ def CreateGRRTempFile(directory=None,
     ErrorBadPath: if path is not absolute
     ValueError: if Client.tempfile_prefix is undefined in the config.
   """
-  if filename and directory:
-    raise ErrorBadPath("Providing both filename and directory name forbidden.")
+  directory = GetDefaultGRRTempDirectory()
 
-  if not directory:
-    directory = GetDefaultGRRTempDirectory()
-
-  if not os.path.isabs(directory):
-    raise ErrorBadPath("Directory %s is not absolute" % directory)
-
-  if not os.path.isdir(directory):
-    os.makedirs(directory)
-
-    # Make directory 700 before we write the file
-    if sys.platform == "win32":
-      client_utils.WinChmod(directory,
-                            ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
-    else:
-      os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+  EnsureTempDirIsSane(directory)
 
   prefix = config.CONFIG.Get("Client.tempfile_prefix")
   if filename is None:
     outfile = tempfile.NamedTemporaryFile(
         prefix=prefix, suffix=suffix, dir=directory, delete=False)
   else:
+    if filename.startswith("/") or filename.startswith("\\"):
+      raise ValueError("Filename must be relative")
+
     if suffix:
       filename = "%s.%s" % (filename, suffix)
 
@@ -138,21 +175,13 @@ def CreateGRRTempFile(directory=None,
   return outfile
 
 
-def CreateGRRTempFileVFS(directory=None,
-                         filename=None,
-                         lifetime=0,
-                         mode="w+b",
-                         suffix=""):
+def CreateGRRTempFileVFS(filename=None, lifetime=0, mode="w+b", suffix=""):
   """Creates a GRR VFS temp file.
 
   This function is analogous to CreateGRRTempFile but returns an open VFS handle
   to the newly created file. Arguments are the same as for CreateGRRTempFile:
 
   Args:
-    directory: string representing absolute directory where file should be
-               written. If None, use 'tmp' under the directory we're running
-               from.
-
     filename: The name of the file to use. Note that setting both filename and
        directory name is not allowed.
 
@@ -167,11 +196,7 @@ def CreateGRRTempFileVFS(directory=None,
   """
 
   fd = CreateGRRTempFile(
-      directory=directory,
-      filename=filename,
-      lifetime=lifetime,
-      mode=mode,
-      suffix=suffix)
+      filename=filename, lifetime=lifetime, mode=mode, suffix=suffix)
   pathspec = rdf_paths.PathSpec(
       path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
   return fd, pathspec

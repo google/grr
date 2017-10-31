@@ -297,6 +297,7 @@ class VFSGRRClient(standard.VFSDirectory):
     if hwi:
       summary.serial_number = hwi.serial_number
       summary.system_manufacturer = hwi.system_manufacturer
+      summary.system_uuid = hwi.system_uuid
     summary.timestamp = self.age
     cloud_instance = self.Get(self.Schema.CLOUD_INSTANCE)
     if cloud_instance:

@@ -72,14 +72,27 @@ SemanticRegistryService.prototype.registerDirective = function(
  * Returns most specific directive for a given MRO.
  *
  * @param {!Array<string>} mro MRO of an object to be rendered by the directive.
+ * @param {Object<string, Object>=} overrides Map with type <-> directive
+ *     overrides. Note that overrides are first-class citizens in the
+ *     registry. I.e. passing an overrides map is equivalent to registering
+ *     directive V for type K for every <K, V> item in the overrides map.
+ *
  * @return {Object|undefined} An object representing found directive, or
  *     undefined if nothing was found.
  * @export
  */
-SemanticRegistryService.prototype.findDirectiveForMro = function(mro) {
+SemanticRegistryService.prototype.findDirectiveForMro = function(
+    mro, overrides) {
+  overrides = overrides || {};
+
   for (var i = 0; i < mro.length; ++i) {
     var objType = mro[i];
-    var directive = this.directivesByType_[objType];
+
+    var directive = overrides[objType];
+    if (angular.isUndefined(directive)) {
+      directive = this.directivesByType_[objType];
+    }
+
     if (angular.isDefined(directive)) {
       return directive;
     }
@@ -92,12 +105,29 @@ SemanticRegistryService.prototype.findDirectiveForMro = function(mro) {
  * Returns directive for a given value type.
  *
  * @param {string} type Type of an object to be rendered by the directive.
+ * @param {Object<string, Object>=} overrides Map with type <-> directive
+ *     overrides. Note that overrides are first-class citizens in the
+ *     registry. I.e. passing an overrides map is equivalent to registering
+ *     directive V for type K for every <K, V> item in the overrides map.
+ *
  * @return {!angular.$q.Promise} Promise that resolves to the found directive or
  *     rejects otherwise.
  * @export
  */
-SemanticRegistryService.prototype.findDirectiveForType = function(type) {
-  // If we have an exact match, no need for the MRO check.
+SemanticRegistryService.prototype.findDirectiveForType = function(
+    type, overrides) {
+  overrides = overrides || {};
+
+  // If we have an exact match with one of the overrides, no need for
+  // the MRO check.
+  if (angular.isDefined(overrides[type])) {
+    var deferred = this.q_.defer();
+    deferred.resolve(overrides[type]);
+    return deferred.promise;
+  }
+
+  // If we have an exact match with one of the registered types, no need
+  // for the MRO check.
   if (angular.isDefined(this.directivesByType_[type])) {
     var deferred = this.q_.defer();
     deferred.resolve(this.directivesByType_[type]);
@@ -105,7 +135,7 @@ SemanticRegistryService.prototype.findDirectiveForType = function(type) {
   }
 
   var handleDescriptor = function(descriptor) {
-    var directive = this.findDirectiveForMro(descriptor['mro']);
+    var directive = this.findDirectiveForMro(descriptor['mro'], overrides);
     if (angular.isDefined(directive)) {
       return directive;
     } else {

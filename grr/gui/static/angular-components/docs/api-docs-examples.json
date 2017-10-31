@@ -629,6 +629,11 @@
               }
             }
           },
+          "client_id": {
+            "age": 0,
+            "type": "ApiClientId",
+            "value": "C.1000000000000000"
+          },
           "creator": {
             "age": 0,
             "type": "unicode",
@@ -703,6 +708,7 @@
           "fetch_binaries": true,
           "filename_regex": "."
         },
+        "client_id": "C.1000000000000000",
         "creator": "api_test_user",
         "flow_id": "W:ABCDEF",
         "last_active_at": 42000000,
@@ -791,6 +797,11 @@
             "age": 0,
             "type": "ApiHunt",
             "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -801,7 +812,47 @@
                 "type": "float",
                 "value": 0.0
               },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
               "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
                 "age": 0,
                 "type": "long",
                 "value": 0
@@ -831,10 +882,118 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
               "hunt_id": {
                 "age": 0,
                 "type": "ApiHuntId",
                 "value": "H:123456"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "foo"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {}
+                  }
+                }
               },
               "is_robot": {
                 "age": 0,
@@ -845,6 +1004,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "results_count": {
                 "age": 0,
@@ -892,17 +1056,59 @@
         ],
         "reason": "really important reason!",
         "subject": {
+          "all_clients_count": 0,
           "client_limit": 100,
           "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
           "clients_with_results_count": 0,
+          "completed_clients_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "foo",
           "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
           "hunt_id": "H:123456",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "foo",
+            "hunt_name": "GenericHunt",
+            "original_object": {}
+          },
           "is_robot": false,
           "name": "GenericHunt",
+          "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
@@ -2898,6 +3104,11 @@
             "type": "InterrogateArgs",
             "value": {}
           },
+          "client_id": {
+            "age": 0,
+            "type": "ApiClientId",
+            "value": "C.1000000000000000"
+          },
           "context": {
             "age": 0,
             "type": "FlowContext",
@@ -3016,6 +3227,7 @@
       "test_class": "ApiGetFlowHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "args": {},
+        "client_id": "C.1000000000000000",
         "context": {
           "client_resources": {
             "cpu_usage": {}
@@ -3055,6 +3267,11 @@
             "age": 0,
             "type": "InterrogateArgs",
             "value": {}
+          },
+          "client_id": {
+            "age": 0,
+            "type": "ApiClientId",
+            "value": "C.1000000000000000"
           },
           "context": {
             "age": 0,
@@ -3179,6 +3396,7 @@
       "test_class": "ApiGetFlowHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "args": {},
+        "client_id": "C.1000000000000000",
         "context": {
           "client_resources": {
             "cpu_usage": {}
@@ -3423,6 +3641,11 @@
             "age": 0,
             "type": "ApiHunt",
             "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -3433,7 +3656,47 @@
                 "type": "float",
                 "value": 0.0
               },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
               "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
                 "age": 0,
                 "type": "long",
                 "value": 0
@@ -3463,10 +3726,118 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
               "hunt_id": {
                 "age": 0,
                 "type": "ApiHuntId",
                 "value": "H:123456"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "hunt1"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {}
+                  }
+                }
               },
               "is_robot": {
                 "age": 0,
@@ -3477,6 +3848,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "results_count": {
                 "age": 0,
@@ -3521,17 +3897,59 @@
         ],
         "reason": "foo",
         "subject": {
+          "all_clients_count": 0,
           "client_limit": 100,
           "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
           "clients_with_results_count": 0,
+          "completed_clients_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt1",
           "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
           "hunt_id": "H:123456",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "hunt1",
+            "hunt_name": "GenericHunt",
+            "original_object": {}
+          },
           "is_robot": false,
           "name": "GenericHunt",
+          "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
@@ -3587,6 +4005,11 @@
             "age": 0,
             "type": "ApiHunt",
             "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -3597,7 +4020,47 @@
                 "type": "float",
                 "value": 0.0
               },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
               "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
                 "age": 0,
                 "type": "long",
                 "value": 0
@@ -3627,10 +4090,118 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
               "hunt_id": {
                 "age": 0,
                 "type": "ApiHuntId",
                 "value": "H:567890"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "hunt2"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {}
+                  }
+                }
               },
               "is_robot": {
                 "age": 0,
@@ -3641,6 +4212,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "results_count": {
                 "age": 0,
@@ -3685,17 +4261,59 @@
         ],
         "reason": "bar",
         "subject": {
+          "all_clients_count": 0,
           "client_limit": 100,
           "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
           "clients_with_results_count": 0,
+          "completed_clients_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt2",
           "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
           "hunt_id": "H:567890",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "hunt2",
+            "hunt_name": "GenericHunt",
+            "original_object": {}
+          },
           "is_robot": false,
           "name": "GenericHunt",
+          "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
@@ -3704,6 +4322,1238 @@
         }
       },
       "url": "/api/users/api_test_user/approvals/hunt/H:567890/approval:222222"
+    },
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHuntApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "api_test_user"
+            }
+          ],
+          "copied_from_hunt": {
+            "age": 0,
+            "type": "ApiHunt",
+            "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "created": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "original hunt"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1209642000000
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:556677"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "original hunt"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {}
+                  }
+                }
+              },
+              "is_robot": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "total_cpu_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "total_net_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:556677"
+              }
+            }
+          },
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:333333"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "foo"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiHunt",
+            "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "created": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "copied hunt"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1209642000000
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:DDEEFF"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "copied hunt"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {
+                      "hunt_reference": {
+                        "age": 0,
+                        "type": "HuntReference",
+                        "value": {
+                          "hunt_id": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "H:556677"
+                          }
+                        }
+                      },
+                      "object_type": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "HUNT_REFERENCE"
+                      }
+                    }
+                  }
+                }
+              },
+              "is_robot": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "ApiFlowLikeObjectReference",
+                "value": {
+                  "hunt_reference": {
+                    "age": 0,
+                    "type": "ApiHuntReference",
+                    "value": {
+                      "hunt_id": {
+                        "age": 0,
+                        "type": "ApiHuntId",
+                        "value": "H:556677"
+                      }
+                    }
+                  },
+                  "object_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "HUNT_REFERENCE"
+                  }
+                }
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "total_cpu_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "total_net_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:DDEEFF"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "approvers": [
+          "api_test_user"
+        ],
+        "copied_from_hunt": {
+          "all_clients_count": 0,
+          "client_limit": 100,
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "clients_with_results_count": 0,
+          "completed_clients_count": 0,
+          "crash_limit": 100,
+          "created": 42000000,
+          "creator": "api_test_user",
+          "description": "original hunt",
+          "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
+          "hunt_id": "H:556677",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "original hunt",
+            "hunt_name": "GenericHunt",
+            "original_object": {}
+          },
+          "is_robot": false,
+          "name": "GenericHunt",
+          "remaining_clients_count": 0,
+          "results_count": 0,
+          "state": "PAUSED",
+          "total_cpu_usage": 0,
+          "total_net_usage": 0,
+          "urn": "aff4:/hunts/H:556677"
+        },
+        "email_cc_addresses": [],
+        "id": "approval:333333",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "all_clients_count": 0,
+          "client_limit": 100,
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "clients_with_results_count": 0,
+          "completed_clients_count": 0,
+          "crash_limit": 100,
+          "created": 42000000,
+          "creator": "api_test_user",
+          "description": "copied hunt",
+          "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
+          "hunt_id": "H:DDEEFF",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "copied hunt",
+            "hunt_name": "GenericHunt",
+            "original_object": {
+              "hunt_reference": {
+                "hunt_id": "H:556677"
+              },
+              "object_type": "HUNT_REFERENCE"
+            }
+          },
+          "is_robot": false,
+          "name": "GenericHunt",
+          "original_object": {
+            "hunt_reference": {
+              "hunt_id": "H:556677"
+            },
+            "object_type": "HUNT_REFERENCE"
+          },
+          "remaining_clients_count": 0,
+          "results_count": 0,
+          "state": "PAUSED",
+          "total_cpu_usage": 0,
+          "total_net_usage": 0,
+          "urn": "aff4:/hunts/H:DDEEFF"
+        }
+      },
+      "url": "/api/users/api_test_user/approvals/hunt/H:DDEEFF/approval:333333"
+    },
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHuntApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "api_test_user"
+            }
+          ],
+          "copied_from_flow": {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "InterrogateArgs",
+                "value": {}
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "age": 0,
+                "type": "ApiFlowId",
+                "value": "F:112233"
+              },
+              "last_active_at": {
+                "age": 42000000,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Interrogate"
+                  },
+                  "original_flow": {
+                    "age": 0,
+                    "type": "FlowReference",
+                    "value": {}
+                  }
+                }
+              },
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:112233"
+              }
+            }
+          },
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:444444"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "foo"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiHunt",
+            "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "crash_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "created": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt started from flow"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1209642000000
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
+              "hunt_id": {
+                "age": 0,
+                "type": "ApiHuntId",
+                "value": "H:667788"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "hunt started from flow"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {
+                      "flow_reference": {
+                        "age": 0,
+                        "type": "FlowReference",
+                        "value": {
+                          "client_id": {
+                            "age": 0,
+                            "type": "ClientURN",
+                            "value": "aff4:/C.1000000000000000"
+                          },
+                          "flow_id": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "F:112233"
+                          }
+                        }
+                      },
+                      "object_type": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "FLOW_REFERENCE"
+                      }
+                    }
+                  }
+                }
+              },
+              "is_robot": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "original_object": {
+                "age": 0,
+                "type": "ApiFlowLikeObjectReference",
+                "value": {
+                  "flow_reference": {
+                    "age": 0,
+                    "type": "ApiFlowReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
+                      },
+                      "flow_id": {
+                        "age": 0,
+                        "type": "ApiFlowId",
+                        "value": "F:112233"
+                      }
+                    }
+                  },
+                  "object_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "FLOW_REFERENCE"
+                  }
+                }
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "total_cpu_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "total_net_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:667788"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "approvers": [
+          "api_test_user"
+        ],
+        "copied_from_flow": {
+          "args": {},
+          "client_id": "C.1000000000000000",
+          "creator": "api_test_user",
+          "flow_id": "F:112233",
+          "last_active_at": 42000000,
+          "name": "Interrogate",
+          "runner_args": {
+            "client_id": "aff4:/C.1000000000000000",
+            "flow_name": "Interrogate",
+            "original_flow": {}
+          },
+          "started_at": 42000000,
+          "state": "RUNNING",
+          "urn": "aff4:/C.1000000000000000/flows/F:112233"
+        },
+        "email_cc_addresses": [],
+        "id": "approval:444444",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "all_clients_count": 0,
+          "client_limit": 100,
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "clients_with_results_count": 0,
+          "completed_clients_count": 0,
+          "crash_limit": 100,
+          "created": 42000000,
+          "creator": "api_test_user",
+          "description": "hunt started from flow",
+          "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
+          "hunt_id": "H:667788",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "hunt started from flow",
+            "hunt_name": "GenericHunt",
+            "original_object": {
+              "flow_reference": {
+                "client_id": "aff4:/C.1000000000000000",
+                "flow_id": "F:112233"
+              },
+              "object_type": "FLOW_REFERENCE"
+            }
+          },
+          "is_robot": false,
+          "name": "GenericHunt",
+          "original_object": {
+            "flow_reference": {
+              "client_id": "C.1000000000000000",
+              "flow_id": "F:112233"
+            },
+            "object_type": "FLOW_REFERENCE"
+          },
+          "remaining_clients_count": 0,
+          "results_count": 0,
+          "state": "PAUSED",
+          "total_cpu_usage": 0,
+          "total_net_usage": 0,
+          "urn": "aff4:/hunts/H:667788"
+        }
+      },
+      "url": "/api/users/api_test_user/approvals/hunt/H:667788/approval:444444"
     }
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
@@ -6118,6 +7968,15 @@
             "type": "ApiFlowId"
           },
           {
+            "doc": "Client id.",
+            "dynamic": false,
+            "friendly_name": "Client id",
+            "index": 15,
+            "name": "client_id",
+            "repeated": false,
+            "type": "ApiClientId"
+          },
+          {
             "default": {
               "age": 0,
               "type": "RDFString",
@@ -6306,6 +8165,15 @@
             "name": "flow_id",
             "repeated": false,
             "type": "ApiFlowId"
+          },
+          {
+            "doc": "Client id.",
+            "dynamic": false,
+            "friendly_name": "Client id",
+            "index": 15,
+            "name": "client_id",
+            "repeated": false,
+            "type": "ApiClientId"
           },
           {
             "default": "",
@@ -9203,6 +11071,11 @@
             "age": 0,
             "type": "ApiHunt",
             "value": {
+              "all_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "client_limit": {
                 "age": 0,
                 "type": "long",
@@ -9213,7 +11086,47 @@
                 "type": "float",
                 "value": 0.0
               },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
               "clients_with_results_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "completed_clients_count": {
                 "age": 0,
                 "type": "long",
                 "value": 0
@@ -9243,10 +11156,118 @@
                 "type": "RDFDatetime",
                 "value": 1209642000000
               },
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GetFile"
+              },
               "hunt_id": {
                 "age": 0,
                 "type": "ApiHuntId",
                 "value": "H:123456"
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "avg_cpu_seconds_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 60
+                  },
+                  "avg_network_bytes_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 10485760
+                  },
+                  "avg_results_per_client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1000
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
+                          "age": 0,
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "regex": {
+                              "age": 0,
+                              "type": "ForemanRegexClientRule",
+                              "value": {
+                                "attribute_name": {
+                                  "age": 0,
+                                  "type": "AFF4Attribute",
+                                  "value": "GRR client"
+                                },
+                                "attribute_regex": {
+                                  "age": 0,
+                                  "type": "RegularExpression",
+                                  "value": "GRR"
+                                }
+                              }
+                            },
+                            "rule_type": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "REGEX"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "crash_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "a hunt"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "original_object": {
+                    "age": 0,
+                    "type": "FlowLikeObjectReference",
+                    "value": {}
+                  }
+                }
               },
               "is_robot": {
                 "age": 0,
@@ -9257,6 +11278,11 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
+              },
+              "remaining_clients_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "results_count": {
                 "age": 0,
@@ -9301,17 +11327,59 @@
         ],
         "reason": "foo",
         "subject": {
+          "all_clients_count": 0,
           "client_limit": 100,
           "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
           "clients_with_results_count": 0,
+          "completed_clients_count": 0,
           "crash_limit": 100,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "a hunt",
           "expires": 1209642000000,
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_name": "GetFile",
           "hunt_id": "H:123456",
+          "hunt_runner_args": {
+            "avg_cpu_seconds_per_client_limit": 60,
+            "avg_network_bytes_per_client_limit": 10485760,
+            "avg_results_per_client_limit": 1000,
+            "client_rate": 0.0,
+            "client_rule_set": {
+              "rules": [
+                {
+                  "regex": {
+                    "attribute_name": "GRR client",
+                    "attribute_regex": "GRR"
+                  },
+                  "rule_type": "REGEX"
+                }
+              ]
+            },
+            "crash_limit": 100,
+            "description": "a hunt",
+            "hunt_name": "GenericHunt",
+            "original_object": {}
+          },
           "is_robot": false,
           "name": "GenericHunt",
+          "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
           "total_cpu_usage": 0,
@@ -12218,6 +14286,11 @@
                 "type": "ListProcessesArgs",
                 "value": {}
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "creator": {
                 "age": 0,
                 "type": "unicode",
@@ -12286,6 +14359,11 @@
                 "type": "InterrogateArgs",
                 "value": {}
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "creator": {
                 "age": 0,
                 "type": "unicode",
@@ -12352,6 +14430,7 @@
         "items": [
           {
             "args": {},
+            "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF11",
             "last_active_at": 44000000,
@@ -12368,6 +14447,7 @@
           },
           {
             "args": {},
+            "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
             "last_active_at": 43000000,
@@ -12516,6 +14596,11 @@
                 "age": 0,
                 "type": "ApiHunt",
                 "value": {
+                  "all_clients_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
                   "client_limit": {
                     "age": 0,
                     "type": "long",
@@ -12526,7 +14611,17 @@
                     "type": "float",
                     "value": 20.5
                   },
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {}
+                  },
                   "clients_with_results_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "completed_clients_count": {
                     "age": 0,
                     "type": "long",
                     "value": 0
@@ -12556,10 +14651,61 @@
                     "type": "RDFDatetime",
                     "value": 1209642000000
                   },
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  },
                   "hunt_id": {
                     "age": 0,
                     "type": "ApiHuntId",
                     "value": "H:123456"
+                  },
+                  "hunt_runner_args": {
+                    "age": 0,
+                    "type": "HuntRunnerArgs",
+                    "value": {
+                      "avg_cpu_seconds_per_client_limit": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 60
+                      },
+                      "avg_network_bytes_per_client_limit": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 10485760
+                      },
+                      "avg_results_per_client_limit": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1000
+                      },
+                      "client_rule_set": {
+                        "age": 0,
+                        "type": "ForemanClientRuleSet",
+                        "value": {}
+                      },
+                      "crash_limit": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 100
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "original_object": {
+                        "age": 0,
+                        "type": "FlowLikeObjectReference",
+                        "value": {}
+                      }
+                    }
                   },
                   "is_robot": {
                     "age": 0,
@@ -12570,6 +14716,11 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "GenericHunt"
+                  },
+                  "remaining_clients_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
                   },
                   "results_count": {
                     "age": 0,
@@ -12618,17 +14769,32 @@
             ],
             "reason": "Running tests",
             "subject": {
+              "all_clients_count": 0,
               "client_limit": 100,
               "client_rate": 20.5,
+              "client_rule_set": {},
               "clients_with_results_count": 0,
+              "completed_clients_count": 0,
               "crash_limit": 100,
               "created": 42000000,
               "creator": "api_test_user",
               "description": "",
               "expires": 1209642000000,
+              "flow_name": "",
               "hunt_id": "H:123456",
+              "hunt_runner_args": {
+                "avg_cpu_seconds_per_client_limit": 60,
+                "avg_network_bytes_per_client_limit": 10485760,
+                "avg_results_per_client_limit": 1000,
+                "client_rule_set": {},
+                "crash_limit": 100,
+                "description": "",
+                "hunt_name": "GenericHunt",
+                "original_object": {}
+              },
               "is_robot": false,
               "name": "GenericHunt",
+              "remaining_clients_count": 0,
               "results_count": 0,
               "state": "PAUSED",
               "total_cpu_usage": 0,

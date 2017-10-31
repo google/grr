@@ -76,11 +76,11 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
     self.chipsec_patch.stop()
 
 
-class TestDumpFlashImage(GRRChipsecTest):
+class TestChipsecDumpFlashImage(GRRChipsecTest):
   """Test the client dump flash image action."""
 
   def setUp(self):
-    super(TestDumpFlashImage, self).setUp()
+    super(TestChipsecDumpFlashImage, self).setUp()
     self.chipsec_mock.hal.spi = mock.MagicMock()
     self.chipsec_mock.hal.spi.SPI = MockSPI
     self.grr_chipsec_module.spi = self.chipsec_mock.hal.spi

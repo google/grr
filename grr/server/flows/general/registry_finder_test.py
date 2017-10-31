@@ -12,16 +12,16 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class TestRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
+class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the RegistryFinder flow."""
 
   def setUp(self):
-    super(TestRegistryFinderFlow, self).setUp()
+    super(TestStubbedRegistryFinderFlow, self).setUp()
     self.registry_stubber = vfs_test_lib.RegistryVFSStubber()
     self.registry_stubber.Start()
 
   def tearDown(self):
-    super(TestRegistryFinderFlow, self).tearDown()
+    super(TestStubbedRegistryFinderFlow, self).tearDown()
     self.registry_stubber.Stop()
 
   def _RunRegistryFinder(self, paths=None):

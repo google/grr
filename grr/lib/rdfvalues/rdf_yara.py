@@ -5,6 +5,7 @@ import yara
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs
 from grr.proto import flows_pb2
 
@@ -20,8 +21,8 @@ class YaraProcessScanRequest(structs.RDFProtoStruct):
   rdf_deps = [YaraSignature]
 
 
-class YaraProcessScanError(structs.RDFProtoStruct):
-  protobuf = flows_pb2.YaraProcessScanError
+class YaraProcessError(structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraProcessError
   rdf_deps = [rdf_client.Process]
 
 
@@ -57,6 +58,26 @@ class YaraProcessScanMatch(structs.RDFProtoStruct):
   rdf_deps = [rdf_client.Process, YaraMatch]
 
 
+class YaraProcessScanMiss(structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraProcessScanMiss
+  rdf_deps = [rdf_client.Process]
+
+
 class YaraProcessScanResponse(structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessScanResponse
-  rdf_deps = [YaraProcessScanMatch, YaraProcessScanError, rdf_client.Process]
+  rdf_deps = [YaraProcessScanMatch, YaraProcessScanMiss, YaraProcessError]
+
+
+class YaraProcessDumpArgs(structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraProcessDumpArgs
+  rdf_deps = [rdfvalue.ByteSize]
+
+
+class YaraProcessDumpInformation(structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraProcessDumpInformation
+  rdf_deps = [rdf_client.Process, rdf_paths.PathSpec]
+
+
+class YaraProcessDumpResponse(structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraProcessDumpResponse
+  rdf_deps = [YaraProcessDumpInformation, YaraProcessError]

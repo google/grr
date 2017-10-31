@@ -88,6 +88,10 @@ ApprovalInfoController.prototype.onApprovalFetchUrlChanged_ = function() {
 
   if (angular.isString(this.fetchUrl)) {
     this.grrApiService_.get(this.fetchUrl).then(function(response) {
+      // Set the out-binding so that other directives in the same
+      // template can have access to the approval object.
+      this.scope_['approvalObject'] = response['data'];
+
       this.approvalObject = stripTypeInfo(response['data']);
 
       if (this.approvalObject['is_valid']) {
@@ -129,7 +133,11 @@ grrUi.acl.approvalInfoDirective.ApprovalInfoDirective = function() {
       approvalType: '=',
       username: '=',
       objectId: '=',
-      approvalId: '='
+      approvalId: '=',
+
+      // Out-binding. Will be set so that other directives can reuse
+      // the fetched object.
+      approvalObject: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/acl/approval-info.html',

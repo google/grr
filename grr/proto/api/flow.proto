@@ -43,7 +43,7 @@ message ApiFlowDescriptor {
     }];
 }
 
-// Next id: 15
+// Next id: 16
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -60,6 +60,10 @@ message ApiFlow {
   optional string flow_id = 12 [(sem_type) = {
       type: "ApiFlowId",
       description: "Flow id."
+    }];
+  optional string client_id = 15 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
     }];
 
   optional string name = 2 [(sem_type) = {

@@ -1,0 +1,23 @@
+<grr-semantic-value-registry-override map="::controller.overrideMap">
+
+  <div class="row">
+    <div class="col-md-6">
+      <grr-semantic-diff-annotated-proto ng-if="::controller.annotatedOriginalValue"
+                                         value="::controller.annotatedOriginalValue"
+                                         visible-fields="::visibleFields"
+                                         hidden-fields="::hiddenFields">
+      </grr-semantic-diff-annotated-proto>
+      <span ng-if="::!controller.annotatedOriginalValue">-</span>
+    </div>
+
+    <div class="col-md-6">
+      <grr-semantic-diff-annotated-proto ng-if="::controller.annotatedNewValue"
+                                         value="::controller.annotatedNewValue"
+                                         visible-fields="::visibleFields"
+                                         hidden-fields="::hiddenFields">
+      </grr-semantic-diff-annotated-proto>
+      <span ng-if="::!controller.annotatedNewValue">-</span>
+    </div>
+  </div>
+
+</grr-semantic-value-registry-override>

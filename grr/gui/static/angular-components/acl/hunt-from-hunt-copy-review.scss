@@ -1,0 +1,27 @@
+%grr-hunt-from-hunt-copy-review {
+  background: linear-gradient(to right,
+                             transparent 0%,
+                             transparent calc(50% - .81px),
+                             $color-proto-border calc(50% - .8px),
+                             $color-proto-border calc(50% + .8px),
+                             transparent calc(50% + .81px),
+                             transparent 100%);
+
+  div.comparison-header {
+    background-color: $color-proto-background;
+    padding: 1em;
+    font-style: italic;
+
+    margin-top: 1em;
+    margin-bottom: .5em;
+  }
+
+  div.comparison-section {
+    margin-top: .5em;
+    margin-bottom: .5em;
+  }
+}
+
+grr-hunt-from-flow-copy-review {
+  @extend %grr-hunt-from-hunt-copy-review;
+}

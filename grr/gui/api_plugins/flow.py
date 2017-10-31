@@ -157,6 +157,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlow
   rdf_deps = [
       api_call_handler_utils.ApiDataObject,
+      client.ApiClientId,
       "ApiFlow",  # TODO(user): recursive dependency.
       ApiFlowId,
       ApiFlowReference,
@@ -190,6 +191,13 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # which we create symlinks and name them.
       self.flow_id = flow_id
       self.urn = flow_obj.urn
+
+      first_component = self.urn.Split()[0]
+      try:
+        self.client_id = first_component
+      except ValueError:
+        # This is not a client-based flow, nothing to be done here.
+        pass
 
       self.name = flow_obj.runner_args.flow_name
       self.started_at = flow_obj.context.create_time

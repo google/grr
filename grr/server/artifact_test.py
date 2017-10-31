@@ -72,7 +72,14 @@ WMI_SAMPLE = [
 ]
 
 
-class TestCmdProcessor(parsers.CommandParser):
+# TODO(hanuszczak): Rename it back to `TestCmdProcessor` once new testing
+# framework is properly set up.
+#
+# Class of this name is clashing with other `TestCmdProcessor` (declared in
+# `//grr/gui/selenium_tests/artifact_view_test.py`) and breaks
+# the test class register. This should be fixed when the test class register
+# is gone and new test discovery (`pytest`) is deployed.
+class CmdProcessor(parsers.CommandParser):
 
   output_types = ["SoftwarePackage"]
   supported_artifacts = ["TestCmdArtifact"]

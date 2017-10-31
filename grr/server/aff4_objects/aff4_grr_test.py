@@ -229,6 +229,14 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
     cloud_instance = cloud.CloudInstance(
         cloud_type="GOOGLE", google=google_cloud_instance)
 
+    serial_number = "DSD33679FZ"
+    system_manufacturer = "Foobar Inc."
+    system_uuid = "C31292AD-6Z4F-55D8-28AC-EC1100E42222"
+    hwinfo = rdf_client.HardwareInfo(
+        serial_number=serial_number,
+        system_manufacturer=system_manufacturer,
+        system_uuid=system_uuid)
+
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
       with aff4.FACTORY.Create(
@@ -255,6 +263,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.INSTALL_DATE(install_time))
         fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
         fd.Set(fd.Schema.USERNAMES([user]))
+        fd.Set(fd.Schema.HARDWARE_INFO(hwinfo))
         fd.Set(fd.Schema.INTERFACES([interface]))
         fd.Set(fd.Schema.CLOUD_INSTANCE(cloud_instance))
 
@@ -279,6 +288,10 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(summary.cloud_type, "GOOGLE")
         self.assertEqual(summary.cloud_instance_id,
                          "us-central1-a/myproject/1771384456894610289")
+
+        self.assertEqual(summary.serial_number, serial_number)
+        self.assertEqual(summary.system_manufacturer, system_manufacturer)
+        self.assertEqual(summary.system_uuid, system_uuid)
 
 
 def main(argv):

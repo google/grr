@@ -1,0 +1,40 @@
+<div class="container-fluid">
+  <div class="row comparison">
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="comparison-header">Was:</div>
+      </div>
+      <div class="col-md-6">
+        <div class="comparison-header">Is:</div>
+      </div>
+    </div>
+
+    <div class="comparison-section">
+      <grr-semantic-protos-diff original-value="sourceHunt"
+                                new-value="newHunt"
+                                visible-fields="['flow_name', 'flow_args']">
+      </grr-semantic-protos-diff>
+    </div>
+
+    <div class="comparison-section">
+      <grr-semantic-protos-diff original-value="sourceHunt.value.hunt_runner_args"
+                                new-value="newHunt.value.hunt_runner_args"
+                                hidden-fields="['client_rule_set', 'original_object']">
+      </grr-semantic-protos-diff>
+    </div>
+
+    <div class="comparison-section">
+      <grr-semantic-protos-diff original-value="sourceHunt.value.client_rule_set"
+                                new-value="newHunt.value.client_rule_set">
+      </grr-semantic-protos-diff>
+    </div>
+
+    <div class="comparison-section">
+      <grr-semantic-protos-diff original-value="sourceHunt.value.hunt_runner_args.value.output_plugins"
+                                new-value="newHunt.value.hunt_runner_args.value.output_plugins">
+      </grr-semantic-protos-diff>
+    </div>
+
+  </div>
+</div>

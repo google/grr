@@ -13,7 +13,7 @@ from grr.server.aff4_objects import security
 from grr.server.flows.cron import system as cron_system
 
 
-class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
+class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"

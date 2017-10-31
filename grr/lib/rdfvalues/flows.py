@@ -301,6 +301,9 @@ class FlowReference(rdf_structs.RDFProtoStruct):
       client.ClientURN,
   ]
 
+  def ToFlowURN(self):
+    return self.client_id.Add("flows").Add(self.flow_id)
+
 
 class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   """The argument to the flow runner.

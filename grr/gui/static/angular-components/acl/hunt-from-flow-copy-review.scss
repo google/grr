@@ -1,0 +1,5 @@
+@import 'grr/gui/static/angular-components/acl/hunt-from-hunt-copy-review';
+
+grr-hunt-from-flow-copy-review {
+  @extend %grr-hunt-from-hunt-copy-review;
+}

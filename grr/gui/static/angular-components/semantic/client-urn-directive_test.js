@@ -112,6 +112,13 @@ describe('client urn directive', function() {
           'Client aff4:/C.0000000000000001');
     });
 
+    it('is shown when info button is clicked and value has no "aff4" prefix', function() {
+      var element = renderTestTemplate('C.0000000000000001');
+      browserTrigger($('button', element), 'click');
+      expect($(document.body).text()).toContain(
+          'Client C.0000000000000001');
+    });
+
     it('closed when close button is clicked', function() {
       var element = renderTestTemplate('aff4:/C.0000000000000001');
       browserTrigger($('button', element), 'click');

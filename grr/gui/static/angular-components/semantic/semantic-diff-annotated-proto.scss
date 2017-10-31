@@ -1,0 +1,19 @@
+grr-semantic-diff-annotated-proto {
+  div.repeated.diff_changed,
+  table.diff-changed > tbody > tr > td,
+  tr.diff-changed > td {
+    background: $color-diff-changed
+  }
+
+  div.repeated.diff-added,
+  table.diff-added > tbody > tr > td,
+  tr.diff-added > td {
+    background: $color-diff-added !important;
+  }
+
+  div.repeated.diff-removed,
+  table.diff-removed > tbody > tr > td,
+  tr.diff-removed > td {
+    background: $color-diff-removed !important;
+  }
+}

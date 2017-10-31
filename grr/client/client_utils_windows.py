@@ -115,6 +115,14 @@ def WinChmod(filename, acl_list, user=None):
       filename, win32security.DACL_SECURITY_INFORMATION, security_descriptor)
 
 
+def WinVerifyFileOwner(filename):
+  f = win32security.GetFileSecurity(filename,
+                                    win32security.OWNER_SECURITY_INFORMATION)
+  username, _, _ = win32security.LookupAccountSid(
+      None, f.GetSecurityDescriptorOwner())
+  return username == win32api.GetUserName()
+
+
 def WinFindProxies():
   """Tries to find proxies by interrogating all the user's settings.
 
@@ -138,8 +146,9 @@ def WinFindProxies():
       break
 
     try:
-      subkey = (sid + "\\Software\\Microsoft\\Windows"
-                "\\CurrentVersion\\Internet Settings")
+      subkey = (
+          sid + "\\Software\\Microsoft\\Windows"
+          "\\CurrentVersion\\Internet Settings")
 
       internet_settings = _winreg.OpenKey(_winreg.HKEY_USERS, subkey)
 

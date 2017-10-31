@@ -38,7 +38,6 @@ class CloudBigTableDataStoreMixin(object):
   def setUpClass(cls):
     """Create a test bigtable instance."""
     super(CloudBigTableDataStoreMixin, cls).setUpClass()
-    data_store_test._DataStoreTest.setUpClass()
     cls.test_project_id = config.CONFIG["CloudBigtable.test_project_id"]
 
     if not cls.test_project_id:
@@ -65,7 +64,6 @@ class CloudBigTableDataStoreMixin(object):
   @classmethod
   def tearDownClass(cls):
     """Delete the test bigtable instance if we created one."""
-    data_store_test._DataStoreTest.tearDownClass()
     # If we auto-created this instance, delete it now
     if cls.btinstance.instance_id.startswith(cls.TEST_BIGTABLE_INSTANCE_PREFIX):
       cls.DeleteTestBigtableInstance()
@@ -75,8 +73,9 @@ class CloudBigTableDataStoreMixin(object):
                      config.CONFIG["CloudBigtable.table_name"])
 
 
-class CloudBigTableDataStoreIntegrationTest(CloudBigTableDataStoreMixin,
-                                            data_store_test._DataStoreTest):
+class CloudBigTableDataStoreIntegrationTest(data_store_test.DataStoreTestMixin,
+                                            CloudBigTableDataStoreMixin,
+                                            test_lib.GRRBaseTest):
 
   def _ClearDB(self, subjects):
     data_store.DB.DeleteSubjects(subjects, sync=True)

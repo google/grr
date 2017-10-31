@@ -30,6 +30,9 @@ grrUi.acl.huntApprovalViewDirective.HuntApprovalViewController = function(
   /** @type {string} */
   this.approvalId;
 
+  /** @type {Object} */
+  this.approvalObject;
+
   this.grrRoutingService_.uiOnParamsChanged(
       this.scope_, ['username', 'huntId', 'approvalId'],
       function(params) {

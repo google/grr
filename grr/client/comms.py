@@ -236,7 +236,8 @@ class HTTPManager(object):
           headers=headers,
           method=method,
           timeout=timeout,
-          verify_cb=verify_cb,)
+          verify_cb=verify_cb,
+      )
 
       if not result.Success():
         tries += 1
@@ -311,7 +312,8 @@ class HTTPManager(object):
             headers=headers,
             method=method,
             timeout=timeout,
-            proxies=proxydict,)
+            proxies=proxydict,
+        )
 
         data = handle.content
 
@@ -553,7 +555,7 @@ class GRRClientWorker(object):
     # Last time when we've sent stats back to the server.
     self.last_stats_sent_time = None
 
-    self.proc = psutil.Process(os.getpid())
+    self.proc = psutil.Process()
 
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
@@ -744,7 +746,8 @@ class GRRClientWorker(object):
     return rdf_client.UploadedFile(
         bytes_uploaded=gzip_fd.total_read,
         file_id=response.data,
-        hash=gzip_fd.HashObject(),)
+        hash=gzip_fd.HashObject(),
+    )
 
   def GetRekallProfile(self, profile_name, version="v1.0"):
     response = self.http_manager.OpenServerEndpoint(u"/rekall_profiles/%s/%s" %
@@ -1347,7 +1350,9 @@ class GRRHTTPClient(object):
         path="control?api=%s" % config.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
         data=data,
-        headers={"Content-Type": "binary/octet-stream"})
+        headers={
+            "Content-Type": "binary/octet-stream"
+        })
 
     if response.code == 406:
       self.InitiateEnrolment()

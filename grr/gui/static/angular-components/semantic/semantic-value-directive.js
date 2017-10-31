@@ -1,6 +1,8 @@
 'use strict';
 
 goog.provide('grrUi.semantic.semanticValueDirective');
+goog.provide('grrUi.semantic.semanticValueDirective.RegistryOverrideController');
+goog.provide('grrUi.semantic.semanticValueDirective.RegistryOverrideDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueController');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.clearCaches');
@@ -35,6 +37,77 @@ grrUi.semantic.semanticValueDirective.clearCaches = function() {
 };
 
 
+/**
+ * Controller for the RegistryOverrideDirective.
+ *
+ * @constructor
+ * @param {!angular.Scope} $scope
+ * @ngInject
+ */
+grrUi.semantic.semanticValueDirective.RegistryOverrideController = function(
+    $scope) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {Object<string, Object>} */
+  this.map;
+
+  /** @type {string} */
+  this.overrideKey;
+
+  this.scope_.$watch(function() { return this.map; }.bind(this),
+                     this.onMapChange_.bind(this));
+};
+
+var RegistryOverrideController =
+    grrUi.semantic.semanticValueDirective.RegistryOverrideController;
+
+
+/**
+ * Handles changes of the 'map' binding and calculates unique map identifier
+ * to be used in the templates cache.
+ *
+ * @param {Object} newValue
+ * @private
+ */
+RegistryOverrideController.prototype.onMapChange_ = function(newValue) {
+  this.overrideKey = '';
+  angular.forEach(Object.keys(/** @type {!Object} */(this.map)).sort(), function(key) {
+    var value = this.map[key];
+    this.overrideKey += ':' + key + '_' + value['directive_name'];
+  }.bind(this));
+};
+
+
+/**
+ * RegistryOverrideDirective allows users to override "RDF type <-> directive"
+ * bindings registered in grrSemanticValueDirectivesRegistryService.
+ *
+ * @return {!angular.Directive} Directive definition object.
+ */
+grrUi.semantic.semanticValueDirective.RegistryOverrideDirective = function() {
+  return {
+    scope: {
+      map: '='
+    },
+    controller: RegistryOverrideController,
+    bindToController: true,
+    restrict: 'E',
+    transclude: true,
+    template: '<ng-transclude></ng-transclude>'
+  };
+};
+
+
+/**
+ * Directive's name in Angular.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.semanticValueDirective.RegistryOverrideDirective.directive_name =
+    'grrSemanticValueRegistryOverride';
+
 
 /**
  * Controller for the SemanticValueDirective.
@@ -64,6 +137,9 @@ grrUi.semantic.semanticValueDirective.SemanticValueController = function(
   /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
   this.grrSemanticValueDirectivesRegistryService_ =
       grrSemanticValueDirectivesRegistryService;
+
+  /** @type {RegistryOverrideController} */
+  this.registryOverrideController;
 
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
@@ -110,8 +186,14 @@ SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
     return this.compile_(element);
   }.bind(this);
 
+  var overrides;
+  if (this.registryOverrideController) {
+    overrides = this.registryOverrideController.map;
+  }
+
   return this.grrSemanticValueDirectivesRegistryService_.
-      findDirectiveForType(value['type']).then(successHandler, failureHandler);
+      findDirectiveForType(value['type'], overrides)
+      .then(successHandler, failureHandler);
 };
 
 
@@ -160,10 +242,17 @@ SemanticValueController.prototype.onValueChange = function() {
     var singleValueTemplateCache = grrUi.semantic.semanticValueDirective
         .singleValueTemplateCache;
 
-    template = singleValueTemplateCache[value['type']];
+    // Make sure that templates for overrides do not collide with either
+    // templates for other overrides or with default templates.
+    var cacheKey = value['type'];
+    if (this.registryOverrideController) {
+      cacheKey += this.registryOverrideController.overrideKey;
+    }
+
+    template = singleValueTemplateCache[cacheKey];
     if (angular.isUndefined(template)) {
       this.compileSingleTypedValueTemplate_(value).then(function(tmpl) {
-        singleValueTemplateCache[value['type']] = tmpl;
+        singleValueTemplateCache[cacheKey] = tmpl;
         handleTemplate(tmpl);
       }.bind(this));
     } else {
@@ -210,9 +299,16 @@ grrUi.semantic.semanticValueDirective.SemanticValueDirective = function() {
     scope: {
       value: '='
     },
+    require: '?^grrSemanticValueRegistryOverride',
     restrict: 'E',
     controller: SemanticValueController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, grrSemanticValueRegistryOverrideCtrl) {
+      if (grrSemanticValueRegistryOverrideCtrl) {
+        scope['controller']['registryOverrideController'] =
+            grrSemanticValueRegistryOverrideCtrl;
+      }
+    }
   };
 };
 

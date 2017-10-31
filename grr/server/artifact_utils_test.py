@@ -17,13 +17,29 @@ from grr.test_lib import test_lib
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
+  # FIXME(hanuszczak): So, this test class clears the artifact registry sources.
+  # This is a problem, because other test classes might depend on original
+  # artifacts and we do not want to have them wiped out completely (only
+  # temporarily). As a quick and dirty hack we just store the internal registry
+  # sources during the test class initialization and restore it later. This is
+  # far from nice solution and should be refactored in the future.
+
+  @classmethod
+  def setUpClass(cls):
+    super(ArtifactHandlingTest, cls).setUpClass()
+    cls._original_registry_sources = artifact_registry.REGISTRY._sources
+
+  @classmethod
+  def tearDownClass(cls):
+    super(ArtifactHandlingTest, cls).tearDownClass()
+    artifact_registry.REGISTRY._sources = cls._original_registry_sources
+    artifact_registry.REGISTRY._dirty = True
+
   def setUp(self):
     super(ArtifactHandlingTest, self).setUp()
     self.test_artifacts_dir = os.path.join(self.base_path, "artifacts")
     self.test_artifacts_file = os.path.join(self.test_artifacts_dir,
                                             "test_artifacts.json")
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
 
   def testArtifactsValidate(self):
     """Check each artifact we have passes validation."""
