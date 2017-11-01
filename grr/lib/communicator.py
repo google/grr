@@ -270,8 +270,7 @@ class Communicator(object):
     """
     self.private_key = private_key
     self.certificate = certificate
-    self.server_cipher = None
-    self.server_cipher_age = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    self._ClearServerCipherCache()
 
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
@@ -290,6 +289,10 @@ class Communicator(object):
       packed_message_list.compression = (
           rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION)
       packed_message_list.message_list = compressed_data
+
+  def _ClearServerCipherCache(self):
+    self.server_cipher = None
+    self.server_cipher_age = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
 
   def _GetServerCipher(self):
     """Returns the cipher for self.server_name."""

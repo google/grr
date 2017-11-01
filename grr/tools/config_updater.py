@@ -318,6 +318,18 @@ set_global_notification.add_argument(
     help="How much time the notification is valid (duration in "
     "human-readable form, i.e. 1h, 1d, etc).")
 
+parser_rotate_key = subparsers.add_parser(
+    "rotate_server_key", parents=[], help="Sets a new server key.")
+
+parser_rotate_key.add_argument(
+    "--common_name", default="grr", help="The common name to use for the cert.")
+
+parser_rotate_key.add_argument(
+    "--keylength",
+    default=None,
+    help="The key length for the new server key. "
+    "Defaults to the Server.rsa_key_length config option.")
+
 
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
@@ -995,6 +1007,27 @@ def main(argv):
         mode="rw",
         token=token) as storage:
       storage.AddNotification(notification)
+  elif flags.FLAGS.subparser_name == "rotate_server_key":
+    print """
+You are about to rotate the server key. Note that:
+
+  - Clients might experience intermittent connection problems after
+    the server keys rotated.
+
+  - It's not possible to go back to an earlier key. Clients that see a
+    new certificate will remember the cert's serial number and refuse
+    to accept any certificate with a smaller serial number from that
+    point on.
+    """
+
+    if raw_input("Continue? [yN]: ").upper() == "Y":
+      if flags.FLAGS.keylength:
+        keylength = int(flags.FLAGS.keylength)
+      else:
+        keylength = grr_config.CONFIG["Server.rsa_key_length"]
+
+      maintenance_utils.RotateServerKey(
+          cn=flags.FLAGS.common_name, keylength=keylength)
 
 
 if __name__ == "__main__":

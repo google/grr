@@ -25,6 +25,7 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import aff4
 from grr.server import front_end
+from grr.server import maintenance_utils
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import ca_enroller
 from grr.test_lib import test_lib
@@ -144,12 +145,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.ClientServerCommunicate(timestamp=client_now)
 
       client_obj = aff4.FACTORY.Open(new_client.urn, token=self.token)
-      self.assertEqual(
-          now.AsSecondsFromEpoch(),
-          client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
-      self.assertEqual(
-          client_now.AsSecondsFromEpoch(),
-          client_obj.Get(client_obj.Schema.CLOCK).AsSecondsFromEpoch())
+      self.assertEqual(now.AsSecondsFromEpoch(),
+                       client_obj.Get(
+                           client_obj.Schema.PING).AsSecondsFromEpoch())
+      self.assertEqual(client_now.AsSecondsFromEpoch(),
+                       client_obj.Get(
+                           client_obj.Schema.CLOCK).AsSecondsFromEpoch())
 
     now += 60
     client_now += 40
@@ -157,12 +158,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.ClientServerCommunicate(timestamp=client_now)
 
       client_obj = aff4.FACTORY.Open(new_client.urn, token=self.token)
-      self.assertEqual(
-          now.AsSecondsFromEpoch(),
-          client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
-      self.assertEqual(
-          client_now.AsSecondsFromEpoch(),
-          client_obj.Get(client_obj.Schema.CLOCK).AsSecondsFromEpoch())
+      self.assertEqual(now.AsSecondsFromEpoch(),
+                       client_obj.Get(
+                           client_obj.Schema.PING).AsSecondsFromEpoch())
+      self.assertEqual(client_now.AsSecondsFromEpoch(),
+                       client_obj.Get(
+                           client_obj.Schema.CLOCK).AsSecondsFromEpoch())
 
   def testClientPingStatsUpdated(self):
     """Check client ping stats are updated."""
@@ -253,8 +254,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     # 4) The modification may have no effect on the data at all.
     for x in range(0, len(cipher_text), 50):
       # Futz with the cipher text (Make sure it's really changed)
-      mod_cipher_text = (cipher_text[:x] + chr((ord(cipher_text[x]) % 250) + 1)
-                         + cipher_text[x + 1:])
+      mod_cipher_text = (
+          cipher_text[:x] + chr((ord(cipher_text[x]) % 250) + 1) +
+          cipher_text[x + 1:])
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -287,6 +289,42 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     csr = self.client_communicator.GetCSR()
     cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
     self.assertEqual(cn, csr.GetCN())
+
+  def testServerKeyRotation(self):
+    self.MakeClientAFF4Record()
+
+    # Now the server should know about the client.
+    decoded_messages = self.ClientServerCommunicate()
+    for i in range(len(decoded_messages)):
+      self.assertEqual(decoded_messages[i].auth_state,
+                       rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+
+    # Suppress the output.
+    with utils.Stubber(maintenance_utils, "EPrint", lambda msg: None):
+      maintenance_utils.RotateServerKey()
+
+    server_certificate = config.CONFIG["Frontend.certificate"]
+    server_private_key = config.CONFIG["PrivateKeys.server_key"]
+
+    self.assertNotEqual(server_certificate, self.server_certificate)
+    self.assertNotEqual(server_private_key, self.server_private_key)
+
+    self.server_communicator = front_end.ServerCommunicator(
+        certificate=server_certificate,
+        private_key=server_private_key,
+        token=self.token)
+
+    # Clients can't connect at this point since they use the outdated
+    # session key.
+    with self.assertRaises(communicator.DecryptionError):
+      self.ClientServerCommunicate()
+
+    # After the client reloads the server cert, this should start
+    # working again.
+    self.client_communicator.LoadServerCertificate(
+        server_certificate=server_certificate,
+        ca_certificate=config.CONFIG["CA.certificate"])
+    self.assertEqual(len(list(self.ClientServerCommunicate())), 10)
 
 
 class HTTPClientTests(test_lib.GRRBaseTest):
@@ -803,9 +841,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.MultiStubber((requests, "request", self.RaiseError),
-                            (client_obj.http_manager, "connection_error_limit",
-                             8)):
+    with utils.MultiStubber(
+        (requests, "request", self.RaiseError),
+        (client_obj.http_manager, "connection_error_limit", 8)):
       # Simulate a client run. The client will retry the connection limit by
       # itself. The Run() method will quit when connection_error_limit is
       # reached. This will make the real client quit.

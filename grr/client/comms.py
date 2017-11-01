@@ -1673,6 +1673,8 @@ class ClientCommunicator(communicator.Communicator):
     self.server_certificate = server_certificate
     self.ca_certificate = ca_certificate
     self.server_public_key = server_certificate.GetPublicKey()
+    # If we still have a cached session key, we need to remove it.
+    self._ClearServerCipherCache()
 
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
