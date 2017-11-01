@@ -253,7 +253,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Log]")
 
     for client_id in self.client_ids:
-      self.WaitUntil(self.IsTextPresent, str(client_id))
+      self.WaitUntil(self.IsTextPresent, client_id.Basename())
       self.WaitUntil(self.IsTextPresent,
                      "File %s transferred successfully." % str(
                          client_id.Add("fs/os/tmp/evil.txt")))
@@ -292,13 +292,13 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
               self.client_ids[-1].Basename())
     self.Click("css=grr-hunt-log button:contains('Filter')")
 
-    self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
+    self.WaitUntil(self.IsTextPresent, self.client_ids[-1].Basename())
     self.WaitUntil(self.IsTextPresent,
                    "File %s transferred successfully." % str(
                        self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
 
     for client_id in self.client_ids[:-1]:
-      self.WaitUntilNot(self.IsTextPresent, str(client_id))
+      self.WaitUntilNot(self.IsTextPresent, client_id.Basename())
       self.WaitUntilNot(self.IsTextPresent,
                         "File %s transferred successfully." % str(
                             client_id.Add("fs/os/tmp/evil.txt")))
@@ -322,7 +322,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Errors]")
 
     for client_id in self.client_ids:
-      self.WaitUntil(self.IsTextPresent, str(client_id))
+      self.WaitUntil(self.IsTextPresent, client_id.Basename())
 
   def testErrorsTabGetsAutoRefreshed(self):
     with self.CreateSampleHunt() as hunt:
@@ -373,10 +373,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
               self.client_ids[-1].Basename())
     self.Click("css=grr-hunt-errors button:contains('Filter')")
 
-    self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
+    self.WaitUntil(self.IsTextPresent, self.client_ids[-1].Basename())
 
     for client_id in self.client_ids[:-1]:
-      self.WaitUntilNot(self.IsTextPresent, str(client_id))
+      self.WaitUntilNot(self.IsTextPresent, client_id.Basename())
 
   def testCrashesTabShowsNoErrorWhenCrashesAreMissing(self):
     self.SetupHuntDetailView()

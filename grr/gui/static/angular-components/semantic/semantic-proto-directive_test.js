@@ -293,6 +293,63 @@ describe('semantic proto directive', function() {
     return element;
   };
 
+  it('renders only after the "value" binding is set', function() {
+    var element = renderTestTemplate(undefined, {
+      'Struct': {
+        fields: [
+          {
+            name: 'foo',
+          }
+        ]
+      }
+    });
+
+    expect(element.find('td:contains("foo")').length).toBe(0);
+
+    $rootScope.value = {
+      type: 'Struct',
+      value: {
+        foo: {
+          type: 'unicode',
+          value: 'theFoo'
+        }
+      }
+    };
+    $rootScope.$apply();
+    expect(element.find('td:contains("foo")').length).toBe(1);
+  });
+
+  it('"value" binding is effectively a one-time binding', function() {
+    var value = {
+      type: 'Struct',
+      value: {
+        foo: {
+          type: 'unicode',
+          value: 'theFoo'
+        }
+      }
+    };
+    var element = renderTestTemplate(value, {
+      'Struct': {
+        fields: [
+          {
+            name: 'foo',
+            name: 'bar'
+          }
+        ]
+      }
+    });
+    expect(element.find('td:contains("bar")').length).toBe(0);
+    var newValue = angular.copy(value);
+    newValue['value']['bar'] = {
+      type: 'unicode',
+      value: 'theBar'
+    };
+    $rootScope.value = newValue;
+    $rootScope.$apply();
+    expect(element.find('td:contains("bar")').length).toBe(0);
+  });
+
   describe('with non-union-type value', function() {
     it('does not show anything when value is empty', function() {
       var element = renderTestTemplate(null);

@@ -1,0 +1,8 @@
+<nobr ng-if="::value">
+  <a ng-if="::controller.clientId !== undefined"
+    title="Flow {$ ::value.value $} ran on client {$ ::controller.clientId $}"
+    ui-sref="client.flows(::{clientId: controller.clientId, flowId: value.value })">
+    {$ ::value.value $}
+  </a>
+  <span ng-if="::controller.clientId === undefined">{$ ::value.value $}</span>
+</nobr>

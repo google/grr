@@ -22,9 +22,9 @@ describe('grr-semantic-diff-annotated-proto directive', function() {
       'Bar': {},
       'Foo': {
         fields: [
-          {
-            name: 'a'
-          }
+          { name: 'a' },
+          { name: 'foo' },
+          { name: 'bar' },
         ]
       }
     };
@@ -46,6 +46,47 @@ describe('grr-semantic-diff-annotated-proto directive', function() {
     return element;
   };
 
+  it('renders only after the "value" binding is set', function() {
+    var element = renderTestTemplate(undefined);
+    expect(element.find('td:contains("foo")').length).toBe(0);
+
+    $rootScope.value = {
+      type: 'Foo',
+      value: {
+        foo: {
+          type: 'Bar',
+          value: 42,
+          }
+      }
+    };
+    $rootScope.$apply();
+
+    expect(element.find('td:contains("foo")').length).toBe(1);
+  });
+
+  it('"value" binding is effectively a one-time binding', function() {
+    var value = {
+      type: 'Foo',
+      value: {
+        foo: {
+          type: 'Bar',
+          value: 42
+        }
+      }
+    };
+    var element = renderTestTemplate(value);
+    expect(element.find('td:contains("bar")').length).toBe(0);
+
+    var newValue = angular.copy(value);
+    newValue['value']['bar'] = {
+      type: 'Bar',
+      value: 43
+    };
+    $rootScope.value = newValue;
+    $rootScope.$apply();
+
+    expect(element.find('td:contains("bar")').length).toBe(0);
+  });
 
   angular.forEach(['added', 'changed', 'removed'], function(annotation) {
     it('renders "' + annotation + '" annotation on the value itself correctly', function() {

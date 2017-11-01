@@ -4787,7 +4787,7 @@
         ],
         "totalCount": "1"
       },
-      "test_class": "ApiListArtifacstHandlerRegressionTest_http_v2",
+      "test_class": "ApiListArtifactsHandlerRegressionTest_http_v2",
       "url": "/api/v2/artifacts"
     }
   ],

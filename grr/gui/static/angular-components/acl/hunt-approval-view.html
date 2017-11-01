@@ -46,11 +46,14 @@
       <div class="col-md-12">
         <div class="panel panel-default">
           <div class="panel-body">
-            <h3>This hunt was created from a flow <grr-semantic-value value="controller.approvalObject.value.copied_from_flow.value.flow_id"></grr-semantic-value></h3>
+            <!-- grr-client-context is needed to render the flow ID link correctly. -->
+            <grr-client-context client-id="controller.approvalObject.value.copied_from_flow.value.client_id.value">
+              <h3>This hunt was created from a flow <grr-semantic-value value="controller.approvalObject.value.copied_from_flow.value.flow_id"></grr-semantic-value></h3>
 
-            <grr-hunt-from-flow-copy-review source-flow="controller.approvalObject.value.copied_from_flow"
-                                            new-hunt="controller.approvalObject.value.subject">
-            </grr-hunt-from-flow-copy-review>
+              <grr-hunt-from-flow-copy-review source-flow="controller.approvalObject.value.copied_from_flow"
+                                              new-hunt="controller.approvalObject.value.subject">
+              </grr-hunt-from-flow-copy-review>
+            </grr-client-context>
           </div>
         </div>
       </div>

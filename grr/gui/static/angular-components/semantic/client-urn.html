@@ -1,7 +1,7 @@
 <nobr ng-if="::value">
-  <a href="{$ ::controller.ref $}"
-     ng-click="controller.onLinkClick()">
-    {$ ::controller.clientUrn $}
+  <a ng-if="::controller.clientId"
+     ui-sref="client.hostInfo(::{clientId: controller.clientId })">
+    {$ ::controller.clientId $}
   </a>
 
   <button class="btn btn-default btn-xs" ng-click="controller.onInfoClick()">

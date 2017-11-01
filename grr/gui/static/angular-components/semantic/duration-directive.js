@@ -106,7 +106,7 @@ grrUi.semantic.durationDirective.DurationDirective = function() {
       value: '='
     },
     restrict: 'E',
-    template: '<nobr ng-if="::controller.stringifiedDuration !== undefined">' +
+    template: '<nobr ng-if="::controller.stringifiedDuration">' +
         '{$ ::controller.stringifiedDuration $}</nobr>',
     controller: DurationController,
     controllerAs: 'controller'

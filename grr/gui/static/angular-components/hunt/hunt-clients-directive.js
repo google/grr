@@ -11,16 +11,11 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.hunt.huntClientsDirective.HuntClientsController = function(
-    $scope, grrRoutingService) {
+grrUi.hunt.huntClientsDirective.HuntClientsController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
-
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
 
   /** @export {string} */
   this.huntClientsUrl;
@@ -53,37 +48,6 @@ HuntClientsController.prototype.onHuntUrnOrClientTypeChange_ = function() {
   var huntId = components[components.length - 1];
   this.huntClientsUrl = '/hunts/' + huntId + '/clients/' + this.clientType;
 };
-
-
-/**
- * Transforms the requested items for displaying.
- *
- * @param {Array<Object>} items to transform.
- * @return {Array<Object>} transformed items.
- *
- * @export
- */
-HuntClientsController.prototype.transformItems = function(items) {
-  angular.forEach(items, function(item) {
-    var clientId = item['value']['client_id']['value'];
-    var flowId = item['value']['flow_id']['value'];
-    item.refParams = {clientId: clientId, flowId: flowId};
-    item.flowRef = this.grrRoutingService_.href('client.flows', item.refParams);
-  }.bind(this));
-
-  return items;
-};
-
-
-/**
- * Handles clicks on flow links.
- *
- * @export
- */
-HuntClientsController.prototype.onFlowClick = function(item) {
-   this.grrRoutingService_.go('client.flows', item.refParams);
-};
-
 
 
 /**

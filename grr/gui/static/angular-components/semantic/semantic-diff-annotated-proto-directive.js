@@ -26,7 +26,7 @@ var SemanticDiffAnnotatedProtoController = function(
   this.grrReflectionService_ = grrReflectionService;
 
   /** @type {Array<Object>} */
-  this.items = [];
+  this.items;
 
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
@@ -35,9 +35,20 @@ var SemanticDiffAnnotatedProtoController = function(
 /**
  * Handles value changes.
  *
+ * @param {Object} newValue
+ * @param {Object} oldValue
  * @private
  */
-SemanticDiffAnnotatedProtoController.prototype.onValueChange_ = function() {
+SemanticDiffAnnotatedProtoController.prototype.onValueChange_ = function(
+    newValue, oldValue) {
+  // newValue and oldValue are both undefined if the watcher is called to do
+  // initialization before the value binding is actually set. In this case
+  // we have to do nothing and wait until the watcher is called with a real
+  // value.
+  if (newValue === undefined && oldValue === undefined) {
+    return;
+  }
+
   if (angular.isObject(this.scope_['value'])) {
     this.grrReflectionService_.getRDFValueDescriptor(
         this.scope_['value']['type']).then(

@@ -356,8 +356,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "This hunt was copied from")
     self.WaitUntilNot(self.IsTextPresent, "This hunt was created from a flow")
 
-  def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
-    client_id = self.SetupClients(1)[0]
+  def _CreateHuntFromFlow(self):
+    self.client_id = self.SetupClients(1)[0]
 
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
@@ -365,13 +365,13 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_runner_args = rdf_flows.FlowRunnerArgs(
         flow_name=file_finder.FileFinder.__name__)
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=client_id,
+        client_id=self.client_id,
         args=flow_args,
         runner_args=flow_runner_args,
         token=self.token)
 
     ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-        flow_urn.Basename(), client_id.Basename())
+        flow_urn.Basename(), self.client_id.Basename())
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
     flow_args.action.action_type = "DOWNLOAD"
@@ -380,11 +380,13 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
             condition_type="SIZE",
             size=rdf_file_finder.FileFinderSizeCondition(min_file_size=42))
     ]
-    h = self.CreateHunt(
+    return self.CreateHunt(
         flow_args=flow_args,
         flow_runner_args=flow_runner_args,
-        original_object=ref)
+        original_object=ref), flow_urn
 
+  def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
+    h, _ = self._CreateHuntFromFlow()
     self._RequestAndOpenApprovalFromSelf(h.urn)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
@@ -405,7 +407,17 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                    "css=tr.diff-added:contains('Conditions'):contains('Size')"
                    ":contains('42')")
 
-  def testHuntDiffIsShownIfHuntIsCopied(self):
+  def testOriginalFlowLinkIsShownIfHuntCreatedFromFlow(self):
+    h, flow_urn = self._CreateHuntFromFlow()
+    self.RequestAndGrantClientApproval(self.client_id)
+    self._RequestAndOpenApprovalFromSelf(h.urn)
+
+    self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
+    self.Click("css=a:contains('%s')" % flow_urn.Basename())
+
+    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-view")
+
+  def _CreateHuntFromHunt(self):
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
@@ -439,6 +451,10 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         output_plugins=output_plugins,
         original_object=ref)
 
+    return new_h, source_h
+
+  def testHuntDiffIsShownIfHuntIsCopied(self):
+    new_h, _ = self._CreateHuntFromHunt()
     self._RequestAndOpenApprovalFromSelf(new_h.urn)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was copied from")
@@ -466,6 +482,15 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=td table.diff-added:contains('Rule type'):"
                    "contains('REGEX'):contains('Something else')")
+
+  def testOriginalHuntLinkIsShownIfHuntCreatedFromHunt(self):
+    new_h, source_h = self._CreateHuntFromHunt()
+    self._RequestAndOpenApprovalFromSelf(new_h.urn)
+
+    self.WaitUntil(self.IsTextPresent, "This hunt was copied from")
+    self.Click("css=a:contains('%s')" % source_h.urn.Basename())
+
+    self.WaitUntil(self.IsElementPresent, "css=grr-hunts-view")
 
 
 def main(argv):

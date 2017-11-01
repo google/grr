@@ -58,11 +58,11 @@ def TestInit():
   if test_ds is None:
     test_ds = fake_data_store.FakeDataStore.__name__
 
-  config.CONFIG.Set("Datastore.implementation", test_ds)
-  config.CONFIG.Set("Blobstore.implementation",
-                    memory_stream_bs.MemoryStreamBlobstore.__name__)
-
   if not INIT_RAN:
+    config.CONFIG.Set("Datastore.implementation", test_ds)
+    config.CONFIG.Set("Blobstore.implementation",
+                      memory_stream_bs.MemoryStreamBlobstore.__name__)
+
     server_logging.ServerLoggingStartupInit()
     server_logging.SetTestVerbosity()
 

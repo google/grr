@@ -23,7 +23,7 @@ var SemanticVersionedProtoController = function($scope, grrReflectionService) {
   this.grrReflectionService_ = grrReflectionService;
 
   /** @export {Array<Object>} */
-  this.items = [];
+  this.items;
 
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
@@ -66,9 +66,20 @@ SemanticVersionedProtoController.prototype.processItems_ = function(
 /**
  * Handles value changes.
  *
+ * @param {Object} newValue
+ * @param {Object} oldValue
  * @private
  */
-SemanticVersionedProtoController.prototype.onValueChange_ = function() {
+SemanticVersionedProtoController.prototype.onValueChange_ = function(
+    newValue, oldValue) {
+  // newValue and oldValue are both undefined if the watcher is called to do
+  // initialization before the value binding is actually set. In this case
+  // we have to do nothing and wait until the watcher is called with a real
+  // value.
+  if (newValue === undefined && oldValue === undefined) {
+    return;
+  }
+
   if (angular.isObject(this.scope_['value'])) {
     var valueType = this.scope_['value']['type'];
     this.grrReflectionService_.getRDFValueDescriptor(valueType, true).then(

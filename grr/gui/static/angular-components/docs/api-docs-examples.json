@@ -11766,7 +11766,7 @@
         ],
         "total_count": 1
       },
-      "test_class": "ApiListArtifacstHandlerRegressionTest_http_v1",
+      "test_class": "ApiListArtifactsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "items": [
           {

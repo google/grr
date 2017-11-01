@@ -7,7 +7,7 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('client urn directive', function() {
-  var $q, $compile, $rootScope, $timeout, grrApiService, grrRoutingService;
+  var $q, $compile, $rootScope, $timeout, grrApiService;
 
   beforeEach(module('/static/angular-components/semantic/client-urn.html'));
   beforeEach(module('/static/angular-components/semantic/client-urn-modal.html'));
@@ -20,7 +20,6 @@ describe('client urn directive', function() {
     $rootScope = $injector.get('$rootScope');
     $timeout = $injector.get('$timeout');
     grrApiService = $injector.get('grrApiService');
-    grrRoutingService = $injector.get('grrRoutingService');
   }));
 
   var renderTestTemplate = function(value) {
@@ -60,29 +59,9 @@ describe('client urn directive', function() {
       value: 'aff4:/C.0000000000000001'
     };
 
-    spyOn(grrRoutingService, 'href').and.returnValue('#test/href');
-
     var element = renderTestTemplate(clientUrn);
-    expect(element.find('a').attr('href')).toBe('#test/href');
-
-    expect(grrRoutingService.href).toHaveBeenCalledWith(
-        'client.hostInfo', {clientId: 'C.0000000000000001'});
-  });
-
-  it('redirects to host info page when clicked', function() {
-    var clientUrn = {
-      age: 0,
-      type: 'ClientURN',
-      value: 'aff4:/C.0000000000000001'
-    };
-
-    spyOn(grrRoutingService, 'go');
-
-    var element = renderTestTemplate(clientUrn);
-    browserTrigger($('a', element), 'click');
-
-    expect(grrRoutingService.go).toHaveBeenCalledWith('client.hostInfo',
-        {clientId: 'C.0000000000000001'});
+    expect(element.find('a').attr('href')).toBe(
+        '#!/clients/C.0000000000000001/host-info');
   });
 
   describe('client urn summary modal dialog', function() {
@@ -109,7 +88,7 @@ describe('client urn directive', function() {
       var element = renderTestTemplate('aff4:/C.0000000000000001');
       browserTrigger($('button', element), 'click');
       expect($(document.body).text()).toContain(
-          'Client aff4:/C.0000000000000001');
+          'Client C.0000000000000001');
     });
 
     it('is shown when info button is clicked and value has no "aff4" prefix', function() {
@@ -123,13 +102,13 @@ describe('client urn directive', function() {
       var element = renderTestTemplate('aff4:/C.0000000000000001');
       browserTrigger($('button', element), 'click');
       expect($(document.body).text()).toContain(
-          'Client aff4:/C.0000000000000001');
+          'Client C.0000000000000001');
 
       browserTrigger($('button.close'), 'click');
       $timeout.flush();
 
       expect($(document.body).text()).not.toContain(
-          'Client aff4:/C.0000000000000001');
+          'Client C.0000000000000001');
     });
   });
 });

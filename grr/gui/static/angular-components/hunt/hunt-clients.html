@@ -23,12 +23,11 @@
     </thead>
     <tbody>
       <tr grr-infinite-table grr-api-items-provider
-          transform-items="controller.transformItems(items)"
           url="::controller.huntClientsUrl">
         <td><grr-semantic-value value="::item.value.client_id" /></td>
         <td>
-          <a ng-href="{$ ::item.flowRef $}"
-             ng-click="controller.onFlowClick(item)">
+          <a ui-sref="client.flows(::{clientId: item.value.client_id.value,
+                      flowId: item.value.flow_id.value})">
             {$ ::item.value.flow_id.value $}
           </a>
         </td>

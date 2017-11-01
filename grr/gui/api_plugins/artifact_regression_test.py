@@ -13,11 +13,27 @@ from grr.lib import flags
 from grr.server import artifact_registry
 
 
-class ApiListArtifacstHandlerRegressionTest(
+class ApiListArtifactsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListArtifacts"
   handler = artifact_plugin.ApiListArtifactsHandler
+
+  # TODO(hanuszczak): This is again a hack to cleanup changes made to the
+  # artifact registry. Similar things are done in [1] and [2]. This should be
+  # refactored in some nicer way in the future.
+  #
+  # [1]: grr/server/artifact_utils_test.py
+  # [2]: grr/gui/api_plugins/artifact_test.py
+
+  def setUp(self):
+    super(ApiListArtifactsHandlerRegressionTest, self).setUp()
+    self.original_registry_sources = artifact_registry.REGISTRY._sources
+
+  def tearDown(self):
+    super(ApiListArtifactsHandlerRegressionTest, self).tearDown()
+    artifact_registry.REGISTRY._sources = self.original_registry_sources
+    artifact_registry.REGISTRY._dirty = True
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()

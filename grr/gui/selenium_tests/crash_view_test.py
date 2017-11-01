@@ -114,7 +114,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     # Check that all crashes were registered for this hunt.
     self.WaitUntil(self.AllTextsPresent,
-                   [client_id for client_id in client_ids])
+                   [client_id.Basename() for client_id in client_ids])
 
     # Search for the C.0000000000000001 and select it.
     self.Type("client_query", "C.0000000000000001")

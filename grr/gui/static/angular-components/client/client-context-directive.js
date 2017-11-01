@@ -50,7 +50,7 @@ grrUi.client.clientContextDirective.ClientContextDirective = function() {
     },
     restrict: 'E',
     transclude: true,
-    template: '<ng-transclude></ng-transclude>',
+    template: '<ng-transclude ng-if="controller.clientId"></ng-transclude>',
     controller: ClientContextController,
     controllerAs: 'controller'
   };

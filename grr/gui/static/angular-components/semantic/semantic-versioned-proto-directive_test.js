@@ -92,6 +92,26 @@ describe('semantic versioned proto directive', function() {
     }
   };
 
+  it('renders only after the "value" binding is set', function() {
+    var element = renderTestTemplate(undefined, function() {}, 1);
+    expect(element.find('.proto_history button').length).toBe(0);
+
+    $rootScope.value = oneLevelValue;
+    $rootScope.$apply();
+    expect(element.find('.proto_history button').length).toBe(1);
+  });
+
+  it('"value" binding is effectively a one-time binding', function() {
+    var element = renderTestTemplate(oneLevelValue, function() {}, 1);
+    expect(element.find('.proto_history button').length).toBe(1);
+
+    var newValue = angular.copy(oneLevelValue);
+    newValue['value'] = {};
+    $rootScope.value = newValue;
+    $rootScope.$apply();
+    expect(element.find('.proto_history button').length).toBe(1);
+  });
+
   it('adds history button to 1st-level field', function() {
     var element = renderTestTemplate(oneLevelValue, function() {}, 1);
     expect(element.find('.proto_history button').length).toBe(1);

@@ -12,12 +12,10 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope Directive's scope.
  * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService GRR Aff4 service.
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @constructor
  * @ngInject
  */
-var ClientUrnController = function(
-    $scope, $uibModal, grrApiService, grrRoutingService) {
+var ClientUrnController = function($scope, $uibModal, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -30,23 +28,11 @@ var ClientUrnController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
-
   /** @export {Object} */
   this.clientDetails;
 
-  /** @export {?string} */
-  this.ref;
-
-  /** @type {Object} */
-  this.refParams;
-
-  /** @export {?string} */
-  this.clientUrn;
-
   /** @private {?string} */
-  this.clientId_;
+  this.clientId;
 
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
@@ -58,16 +44,15 @@ var ClientUrnController = function(
  * @export
  */
 ClientUrnController.prototype.onValueChange = function() {
+  var clientUrn;
   if (angular.isObject(this.scope_.value)) {
-    this.clientUrn = this.scope_.value.value;
+    clientUrn = this.scope_.value.value;
   } else {
-    this.clientUrn = this.scope_.value;
+    clientUrn = this.scope_.value;
   }
 
-  if (angular.isString(this.clientUrn)) {
-    this.clientId_ = this.clientUrn.replace(/^aff4:\//, '');
-    this.refParams = {clientId: this.clientId_};
-    this.ref = this.grrRoutingService_.href('client.hostInfo', this.refParams);
+  if (angular.isString(clientUrn)) {
+    this.clientId = clientUrn.replace(/^aff4:\//, '');
   }
 };
 
@@ -84,20 +69,10 @@ ClientUrnController.prototype.onInfoClick = function() {
     scope: this.scope_
   });
 
-  this.grrApiService_.get('clients/' + this.clientId_).then(
+  this.grrApiService_.get('clients/' + this.clientId).then(
       function(response) {
         this.clientDetails = response.data;
       }.bind(this));
-};
-
-
-/**
- * Called when the link is clicked. Opens corresponding client.
- *
- * @export
- */
-ClientUrnController.prototype.onLinkClick = function() {
-  this.grrRoutingService_.go('client.hostInfo', this.refParams);
 };
 
 
