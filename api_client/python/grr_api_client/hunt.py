@@ -4,6 +4,7 @@
 from grr_api_client import client
 from grr_api_client import utils
 from grr.proto.api import hunt_pb2
+from grr.proto.api import user_pb2
 
 
 class HuntApprovalBase(object):
@@ -40,20 +41,37 @@ class HuntApprovalBase(object):
     return HuntApproval(
         data=data, username=self.username, context=self._context)
 
-
-class HuntApprovalRef(HuntApprovalBase):
-  """Ref to the hunt approval."""
-
   def Get(self):
     """Fetch and return a proper HuntApproval object."""
 
-    args = hunt_pb2.ApiGetHuntApprovalArgs(
+    args = user_pb2.ApiGetHuntApprovalArgs(
         hunt_id=self.hunt_id,
         approval_id=self.approval_id,
         username=self.username)
     result = self._context.SendRequest("GetHuntApproval", args)
     return HuntApproval(
         data=result, username=self._context.username, context=self._context)
+
+  def WaitUntilValid(self, timeout=None):
+    """Wait until the approval is valid (i.e. - approved).
+
+    Args:
+      timeout: timeout in seconds. None means default timeout (1 hour).
+               0 means no timeout (wait forever).
+    Returns:
+      Operation object with refreshed target_file.
+    Raises:
+      PollTimeoutError: if timeout is reached.
+    """
+
+    return utils.Poll(
+        generator=self.Get,
+        condition=lambda f: f.data.is_valid,
+        timeout=timeout)
+
+
+class HuntApprovalRef(HuntApprovalBase):
+  """Hunt approval reference (points to the approval, but has no data)."""
 
 
 class HuntApproval(HuntApprovalBase):
@@ -160,11 +178,11 @@ class HuntBase(object):
     if not notified_users:
       raise ValueError("notified_users list can't be empty.")
 
-    approval = hunt_pb2.ApiHuntApproval(
+    approval = user_pb2.ApiHuntApproval(
         reason=reason,
         notified_users=notified_users,
         email_cc_addresses=email_cc_addresses or [])
-    args = hunt_pb2.ApiCreateHuntApprovalArgs(
+    args = user_pb2.ApiCreateHuntApprovalArgs(
         hunt_id=self.hunt_id, approval=approval)
 
     data = self._context.SendRequest("CreateHuntApproval", args)

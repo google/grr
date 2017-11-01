@@ -43,10 +43,6 @@ class ClientApprovalBase(object):
     return ClientApproval(
         data=data, username=self.username, context=self._context)
 
-
-class ClientApprovalRef(ClientApprovalBase):
-  """Ref to the client approval."""
-
   def Get(self):
     """Fetch and return a proper ClientApproval object."""
 
@@ -57,6 +53,27 @@ class ClientApprovalRef(ClientApprovalBase):
     result = self._context.SendRequest("GetClientApproval", args)
     return ClientApproval(
         data=result, username=self._context.username, context=self._context)
+
+  def WaitUntilValid(self, timeout=None):
+    """Wait until the approval is valid (i.e. - approved).
+
+    Args:
+      timeout: timeout in seconds. None means default timeout (1 hour).
+               0 means no timeout (wait forever).
+    Returns:
+      Operation object with refreshed target_file.
+    Raises:
+      PollTimeoutError: if timeout is reached.
+    """
+
+    return utils.Poll(
+        generator=self.Get,
+        condition=lambda f: f.data.is_valid,
+        timeout=timeout)
+
+
+class ClientApprovalRef(ClientApprovalBase):
+  """Client approval reference (pointer to an object without data)."""
 
 
 class ClientApproval(ClientApprovalBase):

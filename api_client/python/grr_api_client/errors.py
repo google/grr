@@ -20,3 +20,11 @@ class ApiNotImplementedError(Error):
 
 class UnknownError(Error):
   """Unknown server error."""
+
+
+class PollTimeoutError(Error):
+  """Raised when poll operations times out."""
+
+
+class FlowFailedError(Error):
+  """Raised when waiting on a flow that eventually fails."""

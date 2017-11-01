@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Flows-related part of GRR API client library."""
 
+from grr_api_client import errors
 from grr_api_client import utils
 from grr.proto.api import flow_pb2
 
@@ -70,10 +71,6 @@ class FlowBase(object):
         client_id=self.client_id, flow_id=self.flow_id)
     return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 
-
-class FlowRef(FlowBase):
-  """Ref to a flow."""
-
   def Get(self):
     """Fetch flow's data and return proper Flow object."""
 
@@ -81,6 +78,33 @@ class FlowRef(FlowBase):
         client_id=self.client_id, flow_id=self.flow_id)
     data = self._context.SendRequest("GetFlow", args)
     return Flow(data=data, context=self._context)
+
+  def WaitUntilDone(self, timeout=None):
+    """Wait until the flow completes.
+
+    Args:
+      timeout: timeout in seconds. None means default timeout (1 hour).
+               0 means no timeout (wait forever).
+    Returns:
+      Fresh flow object.
+    Raises:
+      PollTimeoutError: if timeout is reached.
+      FlowFailedError: if the flow is not successful.
+    """
+
+    f = utils.Poll(
+        generator=self.Get,
+        condition=lambda f: f.data.state != f.data.RUNNING,
+        timeout=timeout)
+    if f.data.state != f.data.TERMINATED:
+      raise errors.FlowFailedError("Flow %s (%s) failed: %s" %
+                                   (self.flow_id, self.client_id,
+                                    f.data.context.current_state))
+    return f
+
+
+class FlowRef(FlowBase):
+  """Flow reference (points to the flow, but has no data)."""
 
 
 class Flow(FlowBase):

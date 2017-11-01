@@ -8,7 +8,15 @@ from grr.proto.api import vfs_pb2
 class FileOperation(object):
   """Base wrapper class for file operations."""
 
-  def __init__(self, client_id=None, operation_id=None, context=None):
+  # States have to be defined by child classes.
+  STATE_RUNNING = None
+  STATE_FINISHED = None
+
+  def __init__(self,
+               client_id=None,
+               operation_id=None,
+               target_file=None,
+               context=None):
     super(FileOperation, self).__init__()
 
     if not client_id:
@@ -17,15 +25,38 @@ class FileOperation(object):
     if not operation_id:
       raise ValueError("operation_id can't be empty")
 
+    if not target_file:
+      raise ValueError("target_file can't be empty")
+
     if not context:
       raise ValueError("context can't be empty")
 
     self.client_id = client_id
     self.operation_id = operation_id
+    self.target_file = target_file
     self._context = context
 
   def GetState(self):
     raise NotImplementedError()
+
+  def WaitUntilDone(self, timeout=None):
+    """Wait until the operation is done.
+
+    Args:
+      timeout: timeout in seconds. None means default timeout (1 hour).
+               0 means no timeout (wait forever).
+    Returns:
+      Operation object with refreshed target_file.
+    Raises:
+      PollTimeoutError: if timeout is reached.
+    """
+
+    utils.Poll(
+        generator=self.GetState,
+        condition=lambda s: s != self.__class__.STATE_RUNNING,
+        timeout=timeout)
+    self.target_file = self.target_file.Get()
+    return self
 
 
 class RefreshOperation(FileOperation):
@@ -105,6 +136,7 @@ class FileBase(object):
     return RefreshOperation(
         client_id=self.client_id,
         operation_id=result.operation_id,
+        target_file=self,
         context=self._context)
 
   def Collect(self):
@@ -114,6 +146,7 @@ class FileBase(object):
     return CollectOperation(
         client_id=self.client_id,
         operation_id=result.operation_id,
+        target_file=self,
         context=self._context)
 
   def GetTimeline(self):
@@ -126,10 +159,6 @@ class FileBase(object):
         client_id=self.client_id, file_path=self.path)
     return self._context.SendStreamingRequest("GetVfsTimelineAsCsv", args)
 
-
-class FileRef(FileBase):
-  """Ref to a file."""
-
   def Get(self):
     """Fetch file's data and return proper File object."""
 
@@ -137,6 +166,10 @@ class FileRef(FileBase):
         client_id=self.client_id, file_path=self.path)
     data = self._context.SendRequest("GetFileDetails", args).file
     return File(client_id=self.client_id, data=data, context=self._context)
+
+
+class FileRef(FileBase):
+  """File reference (points to a file, but has no data)."""
 
 
 class File(FileBase):

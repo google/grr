@@ -10,6 +10,6 @@ Package: grr-server
 Section: python
 Architecture: any
 Pre-Depends:
-Depends: debhelper, dpkg (>= 1.16.1), dpkg-dev, python2.7-dev, rpm, systemd, zip
+Depends: debhelper, dpkg (>= 1.16.1), dpkg-dev, python-mysqldb, python2.7-dev, rpm, systemd, zip
 Description: GRR Rapid Response is an Incident Response Framework
  GRR Rapid Response is an Incident Response Framework.

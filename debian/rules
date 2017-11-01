@@ -62,6 +62,8 @@ override_dh_strip:
 
 override_dh_virtualenv:
 	dh_virtualenv --python python2.7 \
+		--use-system-packages \
+		--extra-pip-arg "--ignore-installed" \
 		--extra-pip-arg "--no-index" \
 		--extra-pip-arg "--find-links=${LOCAL_DEB_PYINDEX}" \
 		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${API_SDIST}" \

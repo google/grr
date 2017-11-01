@@ -12,6 +12,7 @@ import logging
 import os
 import StringIO
 import threading
+import time
 import zipfile
 
 import portpicker
@@ -21,6 +22,7 @@ import unittest
 
 from grr_api_client import api as grr_api
 from grr_api_client import errors as grr_api_errors
+from grr_api_client import utils as grr_api_utils
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
@@ -32,9 +34,11 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.proto import jobs_pb2
 from grr.proto.api import vfs_pb2
+from grr.server import access_control
 from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import security
 from grr.server.authorization import client_approval_auth
 from grr.server.flows.general import processes
 from grr.server.flows.general import processes_test
@@ -60,6 +64,15 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.port = ApiE2ETest.server_port
     self.endpoint = "http://localhost:%s" % self.port
     self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
+
+    self.poll_stubber = utils.MultiStubber(
+        (grr_api_utils, "DEFAULT_POLL_INTERVAL", 0.1),
+        (grr_api_utils, "DEFAULT_POLL_TIMEOUT", 10))
+    self.poll_stubber.Start()
+
+  def tearDown(self):
+    super(ApiE2ETest, self).tearDown()
+    self.poll_stubber.Stop()
 
   _api_set_up_lock = threading.RLock()
   _api_set_up_done = False
@@ -189,8 +202,63 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(len(results), 1)
     self.assertEqual(process.AsPrimitiveProto(), results[0].payload)
 
+  def testWaitUntilDoneReturnsWhenFlowCompletes(self):
+    client_urn = self.SetupClients(1)[0]
 
-class ApiClientLibHuntTest(standard_test.StandardHuntTestMixin, ApiE2ETest):
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
+        flow_urn.Basename()).Get()
+    self.assertEqual(result_flow.data.state, result_flow.data.RUNNING)
+
+    def ProcessFlow():
+      time.sleep(1)
+      client_mock = processes_test.ListProcessesMock([])
+      for _ in flow_test_lib.TestFlowHelper(
+          flow_urn, client_mock, client_id=client_urn, token=self.token):
+        pass
+
+    threading.Thread(target=ProcessFlow).start()
+    f = result_flow.WaitUntilDone()
+    self.assertEqual(f.data.state, f.data.TERMINATED)
+
+  def testWaitUntilDoneRaisesWhenFlowFails(self):
+    client_urn = self.SetupClients(1)[0]
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
+        flow_urn.Basename()).Get()
+
+    def ProcessFlow():
+      time.sleep(1)
+      with aff4.FACTORY.Open(flow_urn, mode="rw", token=self.token) as fd:
+        fd.GetRunner().Error("")
+
+    threading.Thread(target=ProcessFlow).start()
+    with self.assertRaises(grr_api_errors.FlowFailedError):
+      result_flow.WaitUntilDone()
+
+  def testWaitUntilDoneRasiesWhenItTimesOut(self):
+    client_urn = self.SetupClients(1)[0]
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+    result_flow = self.api.Client(client_id=client_urn.Basename()).Flow(
+        flow_urn.Basename()).Get()
+
+    with self.assertRaises(grr_api_errors.PollTimeoutError):
+      with utils.Stubber(grr_api_utils, "DEFAULT_POLL_TIMEOUT", 1):
+        result_flow.WaitUntilDone()
+
+
+class ApiClientLibHuntTest(ApiE2ETest, standard_test.StandardHuntTestMixin):
   """Tests flows-related part of GRR Python API client library."""
 
   def setUp(self):
@@ -457,11 +525,51 @@ class ApiClientLibVfsTest(ApiE2ETest):
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
+  def testRefreshWaitUntilDone(self):
+    f = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads")
+    operation = f.Refresh()
+    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+    def ProcessOperation():
+      time.sleep(1)
+      # We assume that the operation id is the URN of a flow.
+      for _ in flow_test_lib.TestFlowHelper(
+          rdfvalue.RDFURN(operation.operation_id),
+          client_id=self.client_urn,
+          token=self.token):
+        pass
+
+    threading.Thread(target=ProcessOperation).start()
+    result_f = operation.WaitUntilDone().target_file
+    self.assertEqual(f.path, result_f.path)
+    self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
+
   def testCollect(self):
     operation = self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs/os/c/Downloads/a.txt").Collect()
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+  def testCollectWaitUntilDone(self):
+    f = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads/a.txt")
+    operation = f.Collect()
+    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+    def ProcessOperation():
+      time.sleep(1)
+      # We assume that the operation id is the URN of a flow.
+      for _ in flow_test_lib.TestFlowHelper(
+          rdfvalue.RDFURN(operation.operation_id),
+          client_id=self.client_urn,
+          token=self.token):
+        pass
+
+    threading.Thread(target=ProcessOperation).start()
+    result_f = operation.WaitUntilDone().target_file
+    self.assertEqual(f.path, result_f.path)
+    self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testGetTimeline(self):
     timeline = self.api.Client(
@@ -548,8 +656,8 @@ class CSRFProtectionTest(ApiE2ETest):
     self.assertEquals(response.status_code, 405)
 
   def testHEADRequestNotEnabledForDeleteUrls(self):
-    response = requests.head(self.base_url +
-                             "/api/users/me/notifications/pending/0")
+    response = requests.head(
+        self.base_url + "/api/users/me/notifications/pending/0")
     self.assertEquals(response.status_code, 405)
 
   def testPOSTRequestWithoutCSRFTokenFails(self):
@@ -667,8 +775,8 @@ class CSRFProtectionTest(ApiE2ETest):
     self.assertTrue("Non-matching" in response.text)
 
   def testDELETERequestWithoutCSRFTokenFails(self):
-    response = requests.delete(self.base_url +
-                               "/api/users/me/notifications/pending/0")
+    response = requests.delete(
+        self.base_url + "/api/users/me/notifications/pending/0")
 
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
@@ -762,7 +870,9 @@ class CSRFProtectionTest(ApiE2ETest):
 
     # Check that calling GetGrrUser method doesn't update the cookie.
     get_user_response = requests.get(
-        self.base_url + "/api/users/me", cookies={"csrftoken": csrf_token})
+        self.base_url + "/api/users/me", cookies={
+            "csrftoken": csrf_token
+        })
     csrf_token_2 = get_user_response.cookies.get("csrftoken")
 
     self.assertIsNone(csrf_token_2)
@@ -771,11 +881,91 @@ class CSRFProtectionTest(ApiE2ETest):
     # token.
     notifications_response = requests.get(
         self.base_url + "/api/users/me/notifications/pending/count",
-        cookies={"csrftoken": csrf_token})
+        cookies={
+            "csrftoken": csrf_token
+        })
     csrf_token_3 = notifications_response.cookies.get("csrftoken")
 
     self.assertTrue(csrf_token_3)
     self.assertNotEqual(csrf_token, csrf_token_3)
+
+
+class ApiClientLibApprovalsTest(ApiE2ETest,
+                                standard_test.StandardHuntTestMixin):
+
+  def setUp(self):
+    super(ApiClientLibApprovalsTest, self).setUp()
+
+    cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
+    cls.ClearCache()
+
+    self.config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": cls.__name__
+    })
+    self.config_overrider.Start()
+
+  def tearDown(self):
+    super(ApiClientLibApprovalsTest, self).tearDown()
+    self.config_overrider.Stop()
+
+  def testCreateClientApproval(self):
+    client_id = self.SetupClients(1)[0]
+
+    approval = self.api.Client(client_id.Basename()).CreateApproval(
+        reason="blah", notified_users=["foo"])
+    self.assertEqual(approval.client_id, client_id.Basename())
+    self.assertEqual(approval.data.subject.client_id, client_id.Basename())
+    self.assertEqual(approval.data.reason, "blah")
+    self.assertFalse(approval.data.is_valid)
+
+  def testWaitUntilClientApprovalValid(self):
+    client_id = self.SetupClients(1)[0]
+
+    approval = self.api.Client(client_id.Basename()).CreateApproval(
+        reason="blah", notified_users=["foo"])
+    self.assertFalse(approval.data.is_valid)
+
+    def ProcessApproval():
+      time.sleep(1)
+      self.GrantClientApproval(
+          client_id, self.token.username, reason="blah", approver="foo")
+
+    threading.Thread(target=ProcessApproval).start()
+
+    result_approval = approval.WaitUntilValid()
+    self.assertTrue(result_approval.data.is_valid)
+
+  def testCreateHuntApproval(self):
+    h = self.CreateHunt()
+
+    approval = self.api.Hunt(h.urn.Basename()).CreateApproval(
+        reason="blah", notified_users=["foo"])
+    self.assertEqual(approval.hunt_id, h.urn.Basename())
+    self.assertEqual(approval.data.subject.hunt_id, h.urn.Basename())
+    self.assertEqual(approval.data.reason, "blah")
+    self.assertFalse(approval.data.is_valid)
+
+  def testWaitUntilHuntApprovalValid(self):
+    h = self.CreateHunt()
+
+    approval = self.api.Hunt(h.urn.Basename()).CreateApproval(
+        reason="blah", notified_users=["approver"])
+    self.assertFalse(approval.data.is_valid)
+
+    def ProcessApproval():
+      time.sleep(1)
+      self.CreateAdminUser("approver")
+      approver_token = access_control.ACLToken(username="approver")
+      security.HuntApprovalGrantor(
+          subject_urn=h.urn,
+          reason="blah",
+          delegate=self.token.username,
+          token=approver_token).Grant()
+
+    ProcessApproval()
+    threading.Thread(target=ProcessApproval).start()
+    result_approval = approval.WaitUntilValid()
+    self.assertTrue(result_approval.data.is_valid)
 
 
 class ApprovalByLabelE2ETest(ApiE2ETest):

@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 """Types-related part of GRR API client library."""
 
+from grr_api_client import errors
 from grr_api_client import utils
 
 from grr.proto import flows_pb2
 
 
-class Error(Exception):
-  pass
-
-
-class UnknownFlowName(Error):
+class UnknownFlowName(errors.Error):
   pass
 
 

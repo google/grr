@@ -2,10 +2,13 @@
 """Utility functions and classes for GRR API client library."""
 
 import itertools
+import time
 
 from google.protobuf import wrappers_pb2
 
 from google.protobuf import symbol_database
+
+from grr_api_client import errors
 
 from grr.client.components.rekall_support import rekall_pb2
 
@@ -26,11 +29,7 @@ from grr.proto.api import user_pb2
 from grr.proto.api import vfs_pb2
 
 
-class Error(Exception):
-  pass
-
-
-class ProtobufTypeNotFound(Error):
+class ProtobufTypeNotFound(errors.Error):
   pass
 
 
@@ -95,6 +94,41 @@ class BinaryChunkIterator(object):
   def WriteToFile(self, file_name):
     with open(file_name, "wb") as fd:
       self.WriteToStream(fd)
+
+
+# Default poll interval in seconds.
+DEFAULT_POLL_INTERVAL = 15
+
+# Default poll timeout in seconds.
+DEFAULT_POLL_TIMEOUT = 3600
+
+
+def Poll(generator=None, condition=None, interval=None, timeout=None):
+  """Periodically calls generator function until a condition is satisfied."""
+
+  if not generator:
+    raise ValueError("generator has to be a lambda")
+
+  if not condition:
+    raise ValueError("condition has to be a lambda")
+
+  if interval is None:
+    interval = DEFAULT_POLL_INTERVAL
+
+  if timeout is None:
+    timeout = DEFAULT_POLL_TIMEOUT
+
+  started = time.time()
+  while True:
+    obj = generator()
+    check_result = condition(obj)
+    if check_result:
+      return obj
+
+    if timeout and (time.time() - started) > timeout:
+      raise errors.PollTimeoutError("Polling on %s timed out after %ds." %
+                                    (obj, timeout))
+    time.sleep(interval)
 
 
 AFF4_PREFIX = "aff4:/"
