@@ -29,6 +29,10 @@ class Error(data_store.Error):
   """Base class for all exceptions in this module."""
 
 
+class TooManyRetriesError(Error):
+  """Raised when query's retry number exceeds Mysql.max_retries."""
+
+
 # pylint: enable=nonstandard-exception
 
 
@@ -55,21 +59,18 @@ class MySQLConnection(object):
     try:
       self.dbh = self._MakeConnection(database=database_name)
       self.cursor = self.dbh.cursor()
-      self.cursor.connection.autocommit(True)
       self.cursor.execute("SET NAMES binary")
     except MySQLdb.OperationalError as e:
       # Database does not exist
       if "Unknown database" in str(e):
         dbh = self._MakeConnection()
         cursor = dbh.cursor()
-        cursor.connection.autocommit(True)
         cursor.execute("Create database `%s`" % database_name)
         cursor.close()
         dbh.close()
 
         self.dbh = self._MakeConnection(database=database_name)
         self.cursor = self.dbh.cursor()
-        self.cursor.connection.autocommit(True)
         self.cursor.execute("SET NAMES binary")
       else:
         raise
@@ -85,6 +86,7 @@ class MySQLConnection(object):
             db=database,
             charset="utf8",
             passwd=config.CONFIG["Mysql.database_password"],
+            autocommit=True,
             cursorclass=cursors.DictCursor,
             host=config.CONFIG["Mysql.host"],
             port=config.CONFIG["Mysql.port"])
@@ -165,6 +167,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self._CalculateAttributeStorageTypes()
     self.buffer_lock = threading.RLock()
     self.lock = threading.RLock()
+
+    self.max_query_size = config.CONFIG["Mysql.max_query_size"]
+    self.max_values_per_query = config.CONFIG["Mysql.max_values_per_query"]
+    self.max_retries = config.CONFIG["Mysql.max_retries"]
 
     super(MySQLAdvancedDataStore, self).__init__()
 
@@ -501,25 +507,33 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     transaction.extend(self._BuildInserts(to_insert))
     return transaction
 
+  def _BuildAff4InsertQuery(self, args):
+    return ("INSERT INTO aff4 (subject_hash, attribute_hash, "
+            "timestamp, value) VALUES") + ", ".join([
+                "(unhex(md5(%s)), unhex(md5(%s)), "
+                "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
+                "unhex(%s))"
+            ] * (len(args) / 5))
+
   def _BuildInserts(self, values):
     subjects_q = {}
     attributes_q = {}
-    aff4_q = {}
 
     subjects_q["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
     attributes_q["query"] = (
         "INSERT IGNORE INTO attributes (hash, attribute) VALUES")
-    aff4_q["query"] = ("INSERT INTO aff4 (subject_hash, attribute_hash, "
-                       "timestamp, value) VALUES")
 
     subjects_q["args"] = []
     attributes_q["args"] = []
-    aff4_q["args"] = []
 
     seen = {}
     seen["subjects"] = []
     seen["attributes"] = []
 
+    result_queries = []
+    current_args = []
+    total_value_len = 0
+    max_args = self.max_values_per_query * 5
     for (subject, attribute, value, timestamp) in values:
       if subject not in seen["subjects"]:
         subjects_q["args"].extend([subject, subject])
@@ -527,41 +541,54 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if attribute not in seen["attributes"]:
         attributes_q["args"].extend([attribute, attribute])
         seen["attributes"].append(attribute)
-      aff4_q["args"].extend([subject, attribute, timestamp, timestamp, value])
+
+      current_args.extend([subject, attribute, timestamp, timestamp, value])
+      total_value_len += len(value)
+      if (total_value_len > self.max_query_size or
+          len(current_args) > max_args):
+        result_queries.append(
+            dict(
+                query=self._BuildAff4InsertQuery(current_args),
+                args=current_args))
+        current_args = []
+        total_value_len = 0
+
+    if current_args:
+      result_queries.append(
+          dict(
+              query=self._BuildAff4InsertQuery(current_args),
+              args=current_args))
 
     subjects_q["query"] += ", ".join(["(unhex(md5(%s)), %s)"] *
                                      (len(subjects_q["args"]) / 2))
     attributes_q["query"] += ", ".join(["(unhex(md5(%s)), %s)"] *
                                        (len(attributes_q["args"]) / 2))
-    aff4_q["query"] += ", ".join([
-        "(unhex(md5(%s)), unhex(md5(%s)), "
-        "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
-        "unhex(%s))"
-    ] * (len(aff4_q["args"]) / 5))
+    result_queries.extend([attributes_q, subjects_q])
+    return result_queries
 
-    return [aff4_q, attributes_q, subjects_q]
-
-  def ExecuteQuery(self, query, args=None):
-    """Get connection from pool and execute query."""
-    while True:
+  def _RetryWrapper(self, action_fn):
+    for _ in xrange(self.max_retries):
       # Connectivity issues and deadlocks should not cause threads to die and
       # create inconsistency.  Any MySQL errors here should be temporary in
       # nature and GRR should be able to recover when the server is available or
       # deadlocks have been resolved.
       connection = self.pool.GetConnection()
       try:
-        connection.cursor.execute(query, args)
-        rowcount = connection.cursor.rowcount
-        results = connection.cursor.fetchall()
+        result = action_fn(connection)
         self.pool.PutConnection(connection)
-        return results, rowcount
+        return result
+      except MySQLdb.OperationalError as e:
+        self.pool.DropConnection(connection)
+        logging.error("OperationalError: %s. This may be due to an incorrect "
+                      "MySQL 'max_allowed_packet' setting (try increasing "
+                      "it). Retrying.", str(e))
+        time.sleep(1)
       except MySQLdb.Error as e:
-        # If there was an error attempt to clean up this connection and let it
-        # drop
         self.pool.DropConnection(connection)
         if "doesn't exist" in str(e):
+          logging.error("Fatal error: %s.", str(e))
           # This should indicate missing tables and raise immediately
-          raise e
+          raise
         else:
           logging.warning("Datastore query retrying after failed with %s.",
                           str(e))
@@ -572,6 +599,20 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         # Reduce the open connection count by calling task_done. This will
         # increment again if the connection is returned to the pool.
         self.pool.connections.task_done()
+
+    raise TooManyRetriesError(
+        "Query was unsuccessfully retried %d times." % self.max_retries)
+
+  def ExecuteQuery(self, query, args=None):
+    """Get connection from pool and execute query."""
+
+    def Action(connection):
+      connection.cursor.execute(query, args)
+      rowcount = connection.cursor.rowcount
+      results = connection.cursor.fetchall()
+      return results, rowcount
+
+    return self._RetryWrapper(Action)
 
   def _ExecuteQueries(self, queries):
     """Get connection from pool and execute queries."""
@@ -580,37 +621,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _ExecuteTransaction(self, transaction):
     """Get connection from pool and execute transaction."""
-    while True:
-      # Connectivity issues and deadlocks should not cause threads to die and
-      # create inconsistency.  Any MySQL errors here should be temporary in
-      # nature and GRR should be able to recover when the server is available or
-      # deadlocks have been resolved.
-      connection = self.pool.GetConnection()
-      try:
-        connection.cursor.execute("START TRANSACTION")
-        for query in transaction:
-          connection.cursor.execute(query["query"], query["args"])
-        connection.cursor.execute("COMMIT")
-        results = connection.cursor.fetchall()
-        self.pool.PutConnection(connection)
-        return results
-      except MySQLdb.Error as e:
-        # If there was an error attempt to clean up this connection and let it
-        # drop
-        self.pool.DropConnection(connection)
-        if "doesn't exist" in str(e):
-          # This should indicate missing tables and raise immediately
-          raise e
-        else:
-          logging.warning("Datastore query retrying after failed with %s.",
-                          str(e))
-          # Most errors encountered here need a reasonable backoff time to
-          # resolve.
-          time.sleep(1)
-      finally:
-        # Reduce the open connection count by calling task_done. This will
-        # increment again if the connection is returned to the pool.
-        self.pool.connections.task_done()
+
+    def Action(connection):
+      connection.cursor.execute("START TRANSACTION")
+      for query in transaction:
+        connection.cursor.execute(query["query"], query["args"])
+      connection.cursor.execute("COMMIT")
+      return connection.cursor.fetchall()
+
+    return self._RetryWrapper(Action)
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""

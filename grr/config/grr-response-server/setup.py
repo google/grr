@@ -94,7 +94,7 @@ setup_args = dict(
         # This is an optional component. Install to get MySQL data
         # store support:
         # pip install grr-response[mysqldatastore]
-        "mysqldatastore": ["MySQL-python==1.2.5"],
+        "mysqldatastore": ["mysqlclient==1.3.12"],
     },
     data_files=["version.ini"])
 

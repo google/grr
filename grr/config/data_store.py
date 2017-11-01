@@ -108,6 +108,24 @@ config_lib.DEFINE_integer(
           "connection before failing (0 means we wait "
           "forever)."))
 
+config_lib.DEFINE_integer(
+    "Mysql.max_query_size",
+    8 * 1024 * 1024,
+    help=("Maximum query size (in bytes). Queries sent by GRR to MySQL "
+          "may be slightly bigger than the specified maximum. This "
+          "value has to be smaller than MySQL's max_allowed_packet "
+          "configuration value."))
+
+config_lib.DEFINE_integer(
+    "Mysql.max_values_per_query",
+    10000,
+    help=("Maximum number of subjects touched by a single query."))
+
+config_lib.DEFINE_integer(
+    "Mysql.max_retries",
+    10,
+    help="Maximum number of retries (happens in case a query fails).")
+
 # HTTP data store.
 config_lib.DEFINE_string(
     "HTTPDataStore.username",
