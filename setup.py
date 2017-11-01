@@ -143,7 +143,7 @@ setup_args = dict(
         "requests==2.9.1",
         "protobuf==3.3.0",
         "Werkzeug==0.11.3",
-        "wheel==0.29",
+        "wheel==0.30",
         "virtualenv==15.0.3",
         "yara-python==3.6.3",
     ],
