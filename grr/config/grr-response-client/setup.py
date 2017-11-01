@@ -75,6 +75,9 @@ setup_args = dict(
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "rekall-core==1.6.0",
+        # TODO(user): PyAFF4 is a rekall-core dependency, but it's not properly
+        # pinned. Remove it when Rekall dependency is removed or updated.
+        "pyaff4==0.24.post3",
         "pyinstaller==3.2.1",
         "yara-procdump-python==0.1.0.post7",
     ] + (["chipsec==1.2.4"] if platform.system() == "Linux" else []),
