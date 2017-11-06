@@ -11,7 +11,6 @@ import zipfile
 from grr.gui import api_auth_manager
 from grr.gui import api_call_robot_router as rr
 from grr.gui import http_api_e2e_test
-from grr.gui import webauth
 
 from grr.gui.api_plugins import flow as api_flow
 
@@ -510,8 +509,6 @@ users:
   def setUp(self):
     super(ApiCallRobotRouterE2ETest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    self.token.username = "api_test_robot_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
   def tearDown(self):
     super(ApiCallRobotRouterE2ETest, self).tearDown()

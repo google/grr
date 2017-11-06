@@ -1652,9 +1652,9 @@ class ClientCommunicator(communicator.Communicator):
     # Check that the server certificate verifies
     try:
       server_certificate.Verify(ca_certificate.GetPublicKey())
-    except rdf_crypto.VerificationError:
+    except rdf_crypto.VerificationError as e:
       self.server_name = None
-      raise IOError("Server cert is invalid.")
+      raise IOError("Server cert is invalid: %s" % e)
 
     # Make sure that the serial number is higher.
     server_cert_serial = server_certificate.GetSerialNumber()

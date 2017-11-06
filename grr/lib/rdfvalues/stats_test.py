@@ -11,7 +11,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class RunningStatsTest(test_base.RDFValueTestCase):
+class RunningStatsTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = stats_rdf.RunningStats
 
   def GenerateSample(self, number=0):

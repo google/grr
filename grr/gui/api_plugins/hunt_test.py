@@ -37,7 +37,7 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiHuntIdTest(rdf_test_base.RDFValueTestCase):
+class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test for ApiHuntId."""
 
   rdfvalue_class = hunt_plugin.ApiHuntId

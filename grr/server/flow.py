@@ -980,7 +980,7 @@ class GRRFlow(FlowBase):
         reason = "Manual termination by console."
 
       # This calls runner.Terminate to kill the flow
-      runner.Error(reason, status=status)
+      runner.Error(reason, status_code=status)
 
       flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
           token.username, reason))

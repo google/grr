@@ -545,6 +545,32 @@ sys.test_code_ran_here = py_args['value']
     self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
     self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)
 
+  def testOnlineNotificationEmail(self):
+    """Tests that the mail is sent in the OnlineNotification flow."""
+    self.email_messages = []
+
+    def SendEmail(address, sender, title, message, **_):
+      self.email_messages.append(
+          dict(address=address, sender=sender, title=title, message=message))
+
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      client_mock = action_mocks.ActionMock(admin.Echo)
+      for _ in flow_test_lib.TestFlowHelper(
+          administrative.OnlineNotification.__name__,
+          client_mock,
+          args=administrative.OnlineNotificationArgs(email="test@localhost"),
+          token=self.token,
+          client_id=self.client_id):
+        pass
+
+    self.assertEqual(len(self.email_messages), 1)
+    email_message = self.email_messages[0]
+
+    # We expect the email to be sent.
+    self.assertEqual(email_message.get("address", ""), "test@localhost")
+    self.assertEqual(email_message["title"],
+                     "GRR Client on Host-0 became available.")
+
 
 def main(argv):
   # Run the full test suite

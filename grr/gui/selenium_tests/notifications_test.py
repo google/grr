@@ -62,15 +62,16 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
 
-    # There should be 6 notifications ready (5 that we generate + 1 about
-    # approval).
+    # There should be 5 notifications, 4 that we generate + 1 about
+    # approval. Those are:
     #
-    # NOTE: until recently, this number was "7", since requesting an
-    # approval generated a notification about
-    # RequestClientApprovalFlow finishing. This flow no longer exists
-    # and running flows is not needed to request approvals. Therefore
-    # the number has decreased to "6".
-    self.WaitUntilEqual("6", self.GetText, "css=button[id=notification_button]")
+    # - Fake discovery message.
+    # - File fetch completed.
+    # - Fake view flow message.
+    # - Fake flow error (shows up as "Flow <id> terminated due to error").
+    # and the approval
+    # - approver has granted you access to GRR client...
+    self.WaitUntilEqual("5", self.GetText, "css=button[id=notification_button]")
 
     # Clicking on this should show the table
     self.Click("css=button[id=notification_button]")

@@ -30,6 +30,7 @@ class ObjcTest(test_lib.GRRBaseTest):
     self.cftable = [('CFMockFunc', self.argtypes, self.restype)]
 
   def tearDown(self):
+    super(ObjcTest, self).tearDown()
     self.mox.UnsetStubs()
 
   def testSetCTypesForLibraryLibNotFound(self):

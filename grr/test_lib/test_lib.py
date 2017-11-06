@@ -48,6 +48,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import filestore
 from grr.server.aff4_objects import users
 
+from grr.server.flows.general import audit
 from grr.server.flows.general import discovery
 from grr.server.hunts import results as hunts_results
 
@@ -137,6 +138,7 @@ class GRRBaseTest(unittest.TestCase):
     filestore.FileStoreInit().Run()
     hunts_results.ResultQueueInitHook().Run()
     email_alerts.EmailAlerterInit().RunOnce()
+    audit.AuditEventListener.created_logs.clear()
 
     # Stub out the email function
     self.emails_sent = []

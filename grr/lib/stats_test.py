@@ -25,6 +25,7 @@ class StatsTests(test_lib.GRRBaseTest):
     time.time = lambda: self.mock_time
 
   def tearDown(self):
+    super(StatsTests, self).tearDown()
     time.time = self.time_orig
 
   def testSimpleCounter(self):

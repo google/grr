@@ -237,7 +237,8 @@ class FlowRunner(object):
         state=rdf_flows.FlowContext.State.RUNNING,
 
         # Have we sent a notification to the user.
-        user_notified=False,)
+        user_notified=False,
+    )
 
     return context
 
@@ -796,8 +797,9 @@ class FlowRunner(object):
     # child flows.  This allows write_intermediate_results to be set to True
     # either at the top level parent, or somewhere in the middle of
     # the call chain.
-    write_intermediate = (kwargs.pop("write_intermediate_results", False) or
-                          self.runner_args.write_intermediate_results)
+    write_intermediate = (
+        kwargs.pop("write_intermediate_results", False) or
+        self.runner_args.write_intermediate_results)
 
     try:
       event_id = self.runner_args.event_id
@@ -884,33 +886,40 @@ class FlowRunner(object):
     if self.parent_runner is None:
       self.queue_manager.Flush()
 
-  def Error(self, backtrace, client_id=None, status=None):
-    """Kills this flow with an error."""
+  def Error(self, backtrace, client_id=None, status_code=None):
+    """Terminates this flow with an error."""
+    try:
+      self.queue_manager.DestroyFlowStates(self.session_id)
+    except queue_manager.MoreDataException:
+      pass
+
+    if not self.IsRunning():
+      return
+
+    # Set an error status
+    reply = rdf_flows.GrrStatus()
+    if status_code is None:
+      reply.status = rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR
+    else:
+      reply.status = status_code
+
     client_id = client_id or self.runner_args.client_id
-    if self.IsRunning():
-      # Set an error status
-      reply = rdf_flows.GrrStatus()
-      if status is None:
-        reply.status = rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR
-      else:
-        reply.status = status
 
-      if backtrace:
-        reply.error_message = backtrace
+    if backtrace:
+      reply.error_message = backtrace
+      logging.error("Error in flow %s (%s). Trace: %s", self.session_id,
+                    client_id, backtrace)
+      self.context.backtrace = backtrace
+    else:
+      logging.error("Error in flow %s (%s).", self.session_id, client_id)
 
-      self.flow_obj.Terminate(status=reply)
+    self._SendTerminationMessage(reply)
 
-      self.context.state = rdf_flows.FlowContext.State.ERROR
+    self.context.state = rdf_flows.FlowContext.State.ERROR
+    self.Notify("FlowStatus", client_id,
+                "Flow (%s) terminated due to error" % self.session_id)
 
-      if backtrace:
-        logging.error("Error in flow %s (%s). Trace: %s", self.session_id,
-                      client_id, backtrace)
-        self.context.backtrace = backtrace
-      else:
-        logging.error("Error in flow %s (%s).", self.session_id, client_id)
-
-      self.Notify("FlowStatus", client_id,
-                  "Flow (%s) terminated due to error" % self.session_id)
+    self.flow_obj.Flush()
 
   def GetState(self):
     return self.context.state
@@ -953,6 +962,39 @@ class FlowRunner(object):
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)
 
+  def _SendTerminationMessage(self, status=None):
+    """This notifies the parent flow of our termination."""
+    if not self.runner_args.request_state.session_id:
+      # No parent flow, nothing to do here.
+      return
+
+    if status is None:
+      status = rdf_flows.GrrStatus()
+
+    client_resources = self.context.client_resources
+    user_cpu = client_resources.cpu_usage.user_cpu_time
+    sys_cpu = client_resources.cpu_usage.system_cpu_time
+    status.cpu_time_used.user_cpu_time = user_cpu
+    status.cpu_time_used.system_cpu_time = sys_cpu
+    status.network_bytes_sent = self.context.network_bytes_sent
+    status.child_session_id = self.session_id
+
+    request_state = self.runner_args.request_state
+    request_state.response_count += 1
+
+    # Make a response message
+    msg = rdf_flows.GrrMessage(
+        session_id=request_state.session_id,
+        request_id=request_state.id,
+        response_id=request_state.response_count,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+        type=rdf_flows.GrrMessage.Type.STATUS,
+        payload=status)
+
+    # Queue the response now
+    self.queue_manager.QueueResponse(msg)
+    self.QueueNotification(session_id=request_state.session_id)
+
   def Terminate(self, status=None):
     """Terminates this flow."""
     try:
@@ -961,38 +1003,10 @@ class FlowRunner(object):
       pass
 
     # This flow might already not be running.
-    if self.context.state != rdf_flows.FlowContext.State.RUNNING:
+    if not self.IsRunning():
       return
 
-    if self.runner_args.request_state.session_id:
-      # Make a response or use the existing one.
-      response = status or rdf_flows.GrrStatus()
-
-      client_resources = self.context.client_resources
-      user_cpu = client_resources.cpu_usage.user_cpu_time
-      sys_cpu = client_resources.cpu_usage.system_cpu_time
-      response.cpu_time_used.user_cpu_time = user_cpu
-      response.cpu_time_used.system_cpu_time = sys_cpu
-      response.network_bytes_sent = self.context.network_bytes_sent
-      response.child_session_id = self.session_id
-
-      request_state = self.runner_args.request_state
-      request_state.response_count += 1
-
-      # Make a response message
-      msg = rdf_flows.GrrMessage(
-          session_id=request_state.session_id,
-          request_id=request_state.id,
-          response_id=request_state.response_count,
-          auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
-          type=rdf_flows.GrrMessage.Type.STATUS,
-          payload=response)
-
-      try:
-        # Queue the response now
-        self.queue_manager.QueueResponse(msg)
-      finally:
-        self.QueueNotification(session_id=request_state.session_id)
+    self._SendTerminationMessage(status=status)
 
     # Mark as terminated.
     self.context.state = rdf_flows.FlowContext.State.TERMINATED
@@ -1170,8 +1184,9 @@ class FlowRunner(object):
       self.context.user_notified = True
 
     # Allow the flow to either specify an event name or an event handler URN.
-    notification_event = (self.runner_args.notification_event or
-                          self.runner_args.notification_urn)
+    notification_event = (
+        self.runner_args.notification_event or
+        self.runner_args.notification_urn)
     if notification_event:
       if self.context.state == rdf_flows.FlowContext.State.ERROR:
         status = rdf_flows.FlowNotification.Status.ERROR

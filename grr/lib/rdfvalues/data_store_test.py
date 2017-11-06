@@ -10,7 +10,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class ResultSetTest(test_base.RDFValueTestCase):
+class ResultSetTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Tests for ResultSet."""
 
   rdfvalue_class = data_store.ResultSet

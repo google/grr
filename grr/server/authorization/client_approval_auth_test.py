@@ -9,7 +9,8 @@ from grr.server.authorization import client_approval_auth
 from grr.test_lib import test_lib
 
 
-class ClientApprovalAuthorizationTest(test_base.RDFValueTestCase):
+class ClientApprovalAuthorizationTest(test_base.RDFValueTestMixin,
+                                      test_lib.GRRBaseTest):
   rdfvalue_class = client_approval_auth.ClientApprovalAuthorization
 
   def setUp(self):

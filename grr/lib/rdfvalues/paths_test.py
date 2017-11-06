@@ -13,7 +13,7 @@ from grr.proto import jobs_pb2
 from grr.test_lib import test_lib
 
 
-class PathSpecTest(test_base.RDFProtoTestCase):
+class PathSpecTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   """Test the PathSpec implementation."""
 
   rdfvalue_class = rdf_paths.PathSpec
@@ -129,7 +129,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     self.assertEqual(sample.last.path, "foo")
 
 
-class GlobExpressionTest(test_base.RDFValueTestCase):
+class GlobExpressionTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_paths.GlobExpression
 
   USER_ACCOUNT = dict(

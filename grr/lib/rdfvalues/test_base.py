@@ -15,11 +15,7 @@ from grr.test_lib import test_lib
 # pylint:mode=test
 
 
-class RDFValueBaseTest(test_lib.GRRBaseTest):
-  pass
-
-
-class GenericRDFProtoTest(RDFValueBaseTest):
+class GenericRDFProtoTest(test_lib.GRRBaseTest):
 
   def testNestedProtobufAssignment(self):
     """Check that we can assign a nested protobuf."""
@@ -166,7 +162,7 @@ class GenericRDFProtoTest(RDFValueBaseTest):
     self.assertEqual(str(sample.status), "OK")
 
 
-class RDFValueTestCase(RDFValueBaseTest):
+class RDFValueTestMixin(object):
   """The base class for testing RDFValue implementations."""
 
   # This should be overridden by the RDFValue class we want to test.
@@ -255,7 +251,7 @@ class RDFValueTestCase(RDFValueBaseTest):
     self.CheckRDFValue(rdfvalue_object, sample)
 
 
-class RDFProtoTestCase(RDFValueTestCase):
+class RDFProtoTestMixin(RDFValueTestMixin):
   """A harness for testing RDFProto implementations."""
 
   __abstract = True  # Do not register this class so pylint: disable=g-bad-name

@@ -335,7 +335,7 @@ class UserMergeTest(test_lib.GRRBaseTest):
                                        u"/home/blakey/Desktop")])
 
 
-class ArtifactTests(rdf_test_base.RDFValueTestCase):
+class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
   rdfvalue_class = artifact_registry.Artifact

@@ -14,7 +14,7 @@ var gulpSourcemaps = require('gulp-sourcemaps');
 
 
 var config = {};
-config.bowerDir = './bower_components';
+config.nodeModulesDir = './node_modules';
 config.distDir = 'dist';
 config.tempDir = 'tmp';
 
@@ -24,35 +24,33 @@ var isWatching = false;
  * Third-party tasks.
  */
 gulp.task('compile-third-party-js', function() {
-  return gulp.src([config.bowerDir + '/jquery/dist/jquery.js',
-                   config.bowerDir + '/jquery-migrate/index.js',
+  return gulp.src([config.nodeModulesDir + '/jquery/dist/jquery.js',
+                   config.nodeModulesDir + '/jquery-migrate/dist/jquery-migrate.js',
 
-                   config.bowerDir + '/closurelibrary/closure/goog/base.js',
+                   config.nodeModulesDir + '/google-closure-library/closure/goog/base.js',
 
-                   config.bowerDir + '/bootstrap/dist/js/bootstrap.js',
+                   config.nodeModulesDir + '/bootstrap/dist/js/bootstrap.js',
 
-                   config.bowerDir + '/angular/angular.js',
-                   config.bowerDir + '/angular-animate/angular-animate.js',
-                   config.bowerDir + '/angular-cookies/angular-cookies.js',
-                   config.bowerDir + '/angular-resource/angular-resource.js',
+                   config.nodeModulesDir + '/angular/angular.js',
+                   config.nodeModulesDir + '/angular-animate/angular-animate.js',
+                   config.nodeModulesDir + '/angular-cookies/angular-cookies.js',
+                   config.nodeModulesDir + '/angular-resource/angular-resource.js',
 
-                   config.bowerDir + '/bootstrap/dist/js/bootstrap.js',
+                   config.nodeModulesDir + '/angular-ui-bootstrap/dist/ui-bootstrap-tpls.js',
+                   config.nodeModulesDir + '/angular-ui-router/release/angular-ui-router.js',
 
-                   config.bowerDir + '/angular-bootstrap/ui-bootstrap-tpls.js',
-                   config.bowerDir + '/angular-ui-router/release/angular-ui-router.js',
+                   config.nodeModulesDir + '/firebase/firebase-app.js',
+                   config.nodeModulesDir + '/firebase/firebase-auth.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.navigate.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.pie.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.resize.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.stack.js',
+                   config.nodeModulesDir + '/Flot/jquery.flot.time.js',
 
-                   config.bowerDir + '/firebase/firebase-app.js',
-                   config.bowerDir + '/firebase/firebase-auth.js',
-                   config.bowerDir + '/Flot/jquery.flot.js',
-                   config.bowerDir + '/Flot/jquery.flot.navigate.js',
-                   config.bowerDir + '/Flot/jquery.flot.pie.js',
-                   config.bowerDir + '/Flot/jquery.flot.resize.js',
-                   config.bowerDir + '/Flot/jquery.flot.stack.js',
-                   config.bowerDir + '/Flot/jquery.flot.time.js',
-
-                   config.bowerDir + '/jquery-ui/jquery-ui.js',
-                   config.bowerDir + '/jstree/dist/jstree.js',
-                   config.bowerDir + '/moment/moment.js',
+                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui.js',
+                   config.nodeModulesDir + '/jstree/dist/jstree.js',
+                   config.nodeModulesDir + '/moment/moment.js',
 
                    'third-party/jquery.splitter.js'])
       .pipe(gulpNewer(config.distDir + '/third-party.bundle.js'))
@@ -62,22 +60,22 @@ gulp.task('compile-third-party-js', function() {
 
 
 gulp.task('copy-jquery-ui-images', function() {
-  return gulp.src([config.bowerDir + '/jquery-ui/themes/smoothness/images/*.png'])
+  return gulp.src([config.nodeModulesDir + '/jquery-ui-dist/images/*.png'])
       .pipe(gulpNewer(config.distDir + '/images'))
       .pipe(gulp.dest(config.distDir + '/images'));
 });
 
 
 gulp.task('copy-fontawesome-fonts', function() {
-  return gulp.src([config.bowerDir + '/font-awesome/fonts/fontawesome-webfont.*'])
+  return gulp.src([config.nodeModulesDir + '/font-awesome/fonts/fontawesome-webfont.*'])
       .pipe(gulp.dest('fonts')); // TODO(user): should be copied to 'dist' folder.
 });
 
 gulp.task('copy-third-party-resources', ['copy-jquery-ui-images',
                                          'copy-fontawesome-fonts'], function() {
-  return gulp.src([config.bowerDir + '/jstree/dist/themes/default/*.gif',
-                   config.bowerDir + '/jstree/dist/themes/default/*.png',
-                   config.bowerDir + '/bootstrap/fonts/glyphicons-halflings-regular.*'])
+  return gulp.src([config.nodeModulesDir + '/jstree/dist/themes/default/*.gif',
+                   config.nodeModulesDir + '/jstree/dist/themes/default/*.png',
+                   config.nodeModulesDir + '/bootstrap/fonts/glyphicons-halflings-regular.*'])
       .pipe(gulp.dest(config.distDir));
 });
 
@@ -87,7 +85,7 @@ gulp.task('compile-third-party-bootstrap-css', function() {
       .pipe(gulpNewer(config.tempDir + '/grr-bootstrap.css'))
       .pipe(gulpLess({
         paths: [
-          config.bowerDir + '/bootstrap/less'
+          config.nodeModulesDir + '/bootstrap/less'
         ]
       }))
       .pipe(gulpConcat('grr-bootstrap.css'))
@@ -97,12 +95,12 @@ gulp.task('compile-third-party-bootstrap-css', function() {
 
 gulp.task('compile-third-party-css', ['copy-third-party-resources',
                                       'compile-third-party-bootstrap-css'], function() {
-  return gulp.src([config.bowerDir + '/jstree/dist/themes/default/style.css',
-                   config.bowerDir + '/bootstrap/dist/css/bootstrap.css',
-                   config.bowerDir + '/angular-bootstrap/ui-bootstrap-csp.css',
-                   config.bowerDir + '/font-awesome/css/font-awesome.css',
-                   config.bowerDir + '/jquery-ui/themes/smoothness/jquery-ui.css',
-                   config.bowerDir + '/jquery-ui/themes/smoothness/theme.css',
+  return gulp.src([config.nodeModulesDir + '/jstree/dist/themes/default/style.css',
+                   config.nodeModulesDir + '/bootstrap/dist/css/bootstrap.css',
+                   config.nodeModulesDir + '/angular-ui-bootstrap/dist/ui-bootstrap-csp.css',
+                   config.nodeModulesDir + '/font-awesome/css/font-awesome.css',
+                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui.css',
+                   config.nodeModulesDir + '/jquery-ui-dist/jquery-ui-theme.css',
 
                    config.tempDir + '/grr-bootstrap.css',
 
@@ -147,7 +145,7 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
         }
       }))
       .pipe(gulpClosureCompiler({
-        compilerPath: config.bowerDir + '/closure-compiler/compiler.jar',
+        compilerPath: config.nodeModulesDir + '/google-closure-compiler/compiler.jar',
         fileName: 'grr-ui.bundle.js',
         compilerFlags: {
           angular_pass: true,

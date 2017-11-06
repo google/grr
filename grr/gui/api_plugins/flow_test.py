@@ -34,8 +34,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
-                    standard_test.StandardHuntTestMixin):
+class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
+                    standard_test.StandardHuntTestMixin, test_lib.GRRBaseTest):
   """Test for ApiFlowId."""
 
   rdfvalue_class = flow_plugin.ApiFlowId

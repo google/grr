@@ -13,7 +13,7 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-IGNORE_GUI_DIRS = ["node_modules", "bower_components", "tmp"]
+IGNORE_GUI_DIRS = ["node_modules", "tmp"]
 
 
 def find_data_files(source, ignore_dirs=None):
@@ -51,8 +51,7 @@ def run_make_files(make_docs=False,
   if make_ui_files:
     subprocess.check_call(["npm", "install"], cwd="grr/gui/static")
     subprocess.check_call(
-        ["npm", "install", "-g", "bower", "gulp"], cwd="grr/gui/static")
-    subprocess.check_call(["bower", "update"], cwd="grr/gui/static")
+        ["npm", "install", "-g", "gulp"], cwd="grr/gui/static")
     subprocess.check_call(["gulp", "compile"], cwd="grr/gui/static")
 
 

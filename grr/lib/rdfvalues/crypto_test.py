@@ -17,7 +17,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class SignedBlobTest(test_base.RDFValueTestCase):
+class SignedBlobTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_crypto.SignedBlob
 
   def setUp(self):
@@ -253,7 +253,7 @@ class CryptoUtilTest(CryptoTestBase):
     self.assertRaises(rdf_crypto.CipherError, cipher.Decrypt, plain_text)
 
 
-class SymmetricCipherTest(test_base.RDFValueTestCase):
+class SymmetricCipherTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_crypto.SymmetricCipher
 
   sample_cache = {}

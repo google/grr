@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Helper library for config testing."""
 
+import copy
 import logging
 
 
@@ -44,7 +45,7 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
     return errors
 
   def ValidateConfigs(self, configs):
-    test_filter_map = config_lib.ConfigFilter.classes_by_name
+    test_filter_map = copy.deepcopy(config_lib.ConfigFilter.classes_by_name)
     for filter_name in self.disabled_filters:
       test_filter_map[filter_name] = config_lib.ConfigFilter
 

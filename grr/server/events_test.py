@@ -165,7 +165,6 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(NoClientListener.received_events[i][1].path, "foobar")
 
   def testUserModificationAudit(self):
-    audit.AuditEventListener.created_logs.clear()
     worker = worker_test_lib.MockWorker(token=self.token)
     token = self.GenerateToken(username="usermodtest", reason="reason")
 

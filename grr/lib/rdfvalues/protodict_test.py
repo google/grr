@@ -28,7 +28,7 @@ class TestRDFValueArray(rdf_protodict.RDFValueArray):
   rdf_type = rdfvalue.RDFString
 
 
-class DictTest(test_base.RDFProtoTestCase):
+class DictTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   """Test the Dict implementation."""
 
   rdfvalue_class = rdf_protodict.Dict
@@ -180,7 +180,7 @@ class DictTest(test_base.RDFProtoTestCase):
     self.assertEqual(len(list(req.client_state.items())), 0)
 
 
-class AttributedDictTest(test_base.RDFValueTestCase):
+class AttributedDictTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test AttributedDictFile operations."""
 
   rdfvalue_class = rdf_protodict.AttributedDict
@@ -208,7 +208,7 @@ class AttributedDictTest(test_base.RDFValueTestCase):
     self.assertEquals(terminator.mission, "Terminate")
 
 
-class RDFValueArrayTest(test_base.RDFProtoTestCase):
+class RDFValueArrayTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   """Test the Dict implementation."""
 
   rdfvalue_class = rdf_protodict.RDFValueArray
@@ -273,7 +273,7 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     self.assertEqual(sample.Pop(), "world")
 
 
-class EmbeddedRDFValueTest(test_base.RDFProtoTestCase):
+class EmbeddedRDFValueTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_protodict.EmbeddedRDFValue
 
   def GenerateSample(self, number=0):

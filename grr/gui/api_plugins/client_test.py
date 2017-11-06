@@ -19,7 +19,7 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
 
-class ApiClientIdTest(rdf_test_base.RDFValueTestCase):
+class ApiClientIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test for ApiClientId."""
 
   rdfvalue_class = client_plugin.ApiClientId
@@ -122,9 +122,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     mock_worker.Simulate()
 
     event = self._FindAuditEvent()
-
-    self.assertFalse(event is None)
-
+    self.assertIsNotNone(event)
     self.assertEqual(event.user, self.token.username)
     self.assertEqual(event.description, "%s.drei,%s.ein,%s.zwei" %
                      (self.token.username, self.token.username,

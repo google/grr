@@ -74,10 +74,6 @@ def AddFakeAuditLog(description=None,
 
 class ReportUtilsTest(test_lib.GRRBaseTest):
 
-  def setUp(self):
-    super(ReportUtilsTest, self).setUp()
-    audit.AuditEventListener.created_logs.clear()
-
   def testAuditLogsForTimespan(self):
     two_weeks_ago = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("2w")
     with test_lib.FakeTime(two_weeks_ago):
@@ -402,10 +398,6 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
 
 
 class ServerReportPluginsTest(test_lib.GRRBaseTest):
-
-  def setUp(self):
-    super(ServerReportPluginsTest, self).setUp()
-    audit.AuditEventListener.created_logs.clear()
 
   def testClientApprovalsReportPlugin(self):
     with test_lib.FakeTime(

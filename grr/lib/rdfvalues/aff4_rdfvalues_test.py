@@ -15,7 +15,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class AFF4ObjectLabelTest(test_base.RDFValueTestCase):
+class AFF4ObjectLabelTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test AFF4ObjectLabel."""
 
   rdfvalue_class = aff4_rdfvalues.AFF4ObjectLabel
@@ -64,7 +64,8 @@ class AFF4ObjectLabelTest(test_base.RDFValueTestCase):
         name="label\\42")
 
 
-class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
+class AFF4ObjectLabelsListTest(test_base.RDFValueTestMixin,
+                               test_lib.GRRBaseTest):
   """Test AFF4ObjectLabelsList."""
 
   rdfvalue_class = aff4_rdfvalues.AFF4ObjectLabelsList

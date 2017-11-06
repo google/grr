@@ -163,7 +163,7 @@ class UnionTest(structs.RDFProtoStruct):
           description="An integer value"),)
 
 
-class RDFStructsTest(test_base.RDFValueTestCase):
+class RDFStructsTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the RDFStruct implementation."""
 
   rdfvalue_class = TestStruct

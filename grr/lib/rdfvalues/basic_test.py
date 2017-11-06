@@ -14,14 +14,14 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class RDFBytesTest(test_base.RDFValueTestCase):
+class RDFBytesTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBytes
 
   def GenerateSample(self, number=0):
     return rdfvalue.RDFBytes("\x00hello%s\x01" % number)
 
 
-class RDFStringTest(test_base.RDFValueTestCase):
+class RDFStringTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFString
 
   def GenerateSample(self, number=0):
@@ -34,7 +34,7 @@ class RDFStringTest(test_base.RDFValueTestCase):
     self.assertEqual(rdfstring[3:-3], "456")
 
 
-class RDFIntegerTest(test_base.RDFValueTestCase):
+class RDFIntegerTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFInteger
 
   def GenerateSample(self, number=0):
@@ -94,7 +94,7 @@ class RDFIntegerTest(test_base.RDFValueTestCase):
     TestAnd(True, True, True)
 
 
-class RDFBoolTest(test_base.RDFValueTestCase):
+class RDFBoolTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBool
 
   def GenerateSample(self, number=0):
@@ -145,7 +145,7 @@ class RDFBoolTest(test_base.RDFValueTestCase):
     TestAnd(True, True, True)
 
 
-class DurationTest(test_base.RDFValueTestCase):
+class DurationTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.Duration
 
   def GenerateSample(self, number=5):
@@ -175,7 +175,7 @@ class DurationTest(test_base.RDFValueTestCase):
     self.assertEqual(t2.seconds, int(300 * (-10)))
 
 
-class ByteSizeTest(test_base.RDFValueTestCase):
+class ByteSizeTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.ByteSize
 
   def GenerateSample(self, number=5):
@@ -187,7 +187,7 @@ class ByteSizeTest(test_base.RDFValueTestCase):
       self.assertEqual(expected, rdfvalue.ByteSize(string))
 
 
-class RDFURNTest(test_base.RDFValueTestCase):
+class RDFURNTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFURN
 
   def GenerateSample(self, number=0):
@@ -264,7 +264,7 @@ class RDFURNTest(test_base.RDFValueTestCase):
     super(RDFURNTest, self).testSerialization(sample=sample)
 
 
-class RDFDatetimeTest(test_base.RDFValueTestCase):
+class RDFDatetimeTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFDatetime
 
   def GenerateSample(self, number=0):
@@ -402,7 +402,7 @@ class RDFDatetimeSecondsTest(RDFDatetimeTest):
   rdfvalue_class = rdfvalue.RDFDatetimeSeconds
 
 
-class HashDigestTest(test_base.RDFValueTestCase):
+class HashDigestTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.HashDigest
 
   def GenerateSample(self, number=0):

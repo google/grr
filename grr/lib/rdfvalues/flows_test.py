@@ -9,7 +9,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class SessionIDTest(test_base.RDFValueTestCase):
+class SessionIDTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test SessionID."""
 
   rdfvalue_class = rdfvalue.SessionID

@@ -13,7 +13,7 @@ from grr.proto import knowledge_base_pb2
 from grr.test_lib import test_lib
 
 
-class UserTests(test_base.RDFValueTestCase):
+class UserTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the User ProtoStruct implementation."""
 
   rdfvalue_class = rdf_client.User
@@ -111,7 +111,7 @@ class UserTests(test_base.RDFValueTestCase):
       self.assertEqual(unicode(value), result)
 
 
-class ClientURNTests(test_base.RDFValueTestCase):
+class ClientURNTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the ClientURN."""
 
   rdfvalue_class = rdf_client.ClientURN
@@ -156,7 +156,7 @@ class ClientURNTests(test_base.RDFValueTestCase):
       self.assertRaises(type_info.TypeValueError, rdf_client.ClientURN, badurn)
 
 
-class NetworkAddressTests(test_base.RDFValueTestCase):
+class NetworkAddressTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the NetworkAddress."""
 
   rdfvalue_class = rdf_client.NetworkAddress
@@ -189,7 +189,7 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
       self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
 
-class UnameTests(test_base.RDFValueTestCase):
+class UnameTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Uname."""
 
   rdfvalue_class = rdf_client.Uname

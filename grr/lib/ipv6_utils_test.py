@@ -28,9 +28,8 @@ class Ipv6UtilsTest(test_lib.GRRBaseTest):
   """
 
   def testInetPtoNandNtoP(self):
-    with open(
-        os.path.join(config.CONFIG["Test.data_dir"], "ipv6_addresses.yaml"),
-        "rb") as test_data:
+    path = os.path.join(config.CONFIG["Test.data_dir"], "ipv6_addresses.yaml")
+    with open(path, "rb") as test_data:
       test_dict = yaml.safe_load(test_data)
 
     for address in test_dict["ipv6_test_set"]:

@@ -10,7 +10,7 @@ from grr.server.aff4_objects import filestore
 from grr.test_lib import test_lib
 
 
-class FileStoreHashTest(test_base.RDFValueTestCase):
+class FileStoreHashTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the FileStoreHash implementation."""
 
   rdfvalue_class = filestore.FileStoreHash

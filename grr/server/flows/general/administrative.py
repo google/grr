@@ -448,7 +448,7 @@ class OnlineNotification(flow.GRRFlow):
       hostname = client.Get(client.Schema.HOSTNAME)
 
       subject = self.__class__.subject_template.render(hostname=hostname)
-      body = self.__class__template.render(
+      body = self.__class__.template.render(
           client_id=self.client_id,
           admin_ui=config.CONFIG["AdminUI.url"],
           hostname=hostname,

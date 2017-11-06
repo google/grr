@@ -24,7 +24,8 @@ def CollectAff4Objects(paths, client_id, token):
   return objects
 
 
-class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
+class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
+                               test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanClientRuleSet
 
   def GenerateSample(self, number=0):
@@ -165,7 +166,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
             client_id_lin))
 
 
-class ForemanClientRuleTest(test_base.RDFValueTestCase):
+class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanClientRule
 
   @staticmethod
@@ -204,7 +205,8 @@ class ForemanClientRuleTest(test_base.RDFValueTestCase):
             client_id_win))
 
 
-class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
+class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
+                              test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanOsClientRule
 
   @staticmethod
@@ -270,7 +272,8 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
             client_id_dar))
 
 
-class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
+class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
+                                 test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanLabelClientRule
 
   def GenerateSample(self, number=0):
@@ -378,7 +381,8 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
     self.assertTrue(self._Evaluate(r))
 
 
-class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):
+class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
+                                 test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanRegexClientRule
 
   def GenerateSample(self, number=0):
@@ -426,7 +430,8 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):
             client_id))
 
 
-class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
+class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
+                                   test_lib.GRRBaseTest):
   rdfvalue_class = rdf_foreman.ForemanIntegerClientRule
 
   def GenerateSample(self, number=0):

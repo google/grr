@@ -7,7 +7,7 @@ from grr.lib.rdfvalues import test_base
 from grr.test_lib import test_lib
 
 
-class URITests(test_base.RDFValueTestCase):
+class URITests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test URI proto."""
 
   rdfvalue_class = rdf_standard.URI
