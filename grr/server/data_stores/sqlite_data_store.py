@@ -127,8 +127,8 @@ class SqliteConnectionCache(utils.FastStore):
         # Failed because file was created in the meantime (race condition)
         self._WaitUntilReadable(target_path)
       else:
-        logging.error("Could not create database file. Make sure the "
-                      "data_server has write access to the target_path "
+        logging.error("Could not create database file. Make sure "
+                      "GRR has write access to the target_path "
                       "directory to create the file '%s'", target_path)
     finally:
       os.umask(umask_original)

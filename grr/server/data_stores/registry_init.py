@@ -22,11 +22,5 @@ try:
 except ImportError:
   pass
 
-# HTTP remote data store.
-try:
-  from grr.server.data_stores import http_data_store
-except ImportError:
-  pass
-
 # Site specific data stores.
 from grr.server.data_stores import local

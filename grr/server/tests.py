@@ -41,7 +41,6 @@ from grr.server import timeseries_test
 from grr.server.aff4_objects import tests
 from grr.server.authorization import tests
 from grr.server.checks import tests
-from grr.server.data_server import tests
 from grr.server.data_stores import tests
 from grr.server.flows import tests
 from grr.server.hunts import tests

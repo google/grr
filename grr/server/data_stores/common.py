@@ -11,8 +11,6 @@ import stat
 from grr.lib import rdfvalue
 from grr.lib import utils
 
-from grr.server.data_server import constants
-
 
 def ConvertStringToFilename(name):
   """Converts an unicode string to a filesystem safe filename.
@@ -144,7 +142,7 @@ def ResolveSubjectDestination(subject, regexes):
     # No components to work with.
     return "aff4", ""
   # Make all the components safe to use.
-  path = utils.JoinPath(* [ConvertStringToFilename(x) for x in components])
+  path = utils.JoinPath(*[ConvertStringToFilename(x) for x in components])
   for route in regexes:
     m = route.match(path)
     if m:
@@ -174,8 +172,6 @@ def DatabaseDirectorySize(root_path, extension):
     except OSError:
       continue
     for comp in items:
-      if comp == constants.REBALANCE_DIRECTORY:
-        continue
       path = os.path.join(directory, comp)
       try:
         statinfo = os.lstat(path)

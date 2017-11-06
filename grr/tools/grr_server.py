@@ -13,7 +13,6 @@ from grr.lib import server_plugins
 
 from grr.gui import admin_ui
 from grr.lib import flags
-from grr.server.data_server import data_server
 from grr.tools import frontend
 from grr.worker import worker
 
@@ -39,15 +38,6 @@ def main(argv):
   # Start as an AdminUI.
   elif flags.FLAGS.component.startswith("admin_ui"):
     admin_ui.main([argv])
-
-  # Start as the data server master. There can only be one master
-  elif flags.FLAGS.component == "dataserver_master":
-    flags.FLAGS.master = True
-    data_server.main([argv])
-
-  # Start dataserver slave
-  elif flags.FLAGS.component.startswith("dataserver_slave"):
-    data_server.main([argv])
 
   # If no flags were set then raise.
   else:
