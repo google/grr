@@ -4,6 +4,7 @@ goog.provide('grrUi.forms.bytesFormDirective.BytesFormController');
 goog.provide('grrUi.forms.bytesFormDirective.BytesFormDirective');
 goog.provide('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
 goog.provide('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
+goog.provide('grrUi.forms.bytesFormDirective.isByteString');
 
 goog.scope(function() {
 
@@ -70,6 +71,27 @@ var hexEncodedStringToBytes =
 
 
 /**
+ * Checks if the string is a byte string: i.e. that it has no unicode
+ * characters.
+ *
+ * @param {string} str String to be checked.
+ * @return {boolean} True, if the string is a byte string, false otherwise.
+ */
+grrUi.forms.bytesFormDirective.isByteString = function(str) {
+  var blen = str.length;
+  for (var i = 0; i < blen; i += 1) {
+    var c = str.charCodeAt(i);
+    if (c >= 256) {
+      return false;
+    }
+  }
+
+  return true;
+};
+var isByteString = grrUi.forms.bytesFormDirective.isByteString;
+
+
+/**
  * Controller for BytesFormDirective.
  *
  * @constructor
@@ -128,10 +150,24 @@ BytesFormController.prototype.onValueChange_ = function(newValue) {
  * @private
  */
 BytesFormController.prototype.onValueStringChange_ = function(newValue) {
-  if (angular.isDefined(newValue)) {
-    this.scope_.value.value =
-        this.window_.btoa(hexEncodedStringToBytes(newValue));
+  if (angular.isUndefined(newValue)) {
+    return;
   }
+
+  if (!isByteString(newValue)) {
+    // Annotate the value with 'validationError' annotation.
+    // These annotations are meant to be used by the higher-level
+    // UI components to disable submit buttons and show errors
+    // summary.
+    this.scope_['value']['validationError'] =
+        'Unicode characters are not allowed in a byte string.';
+    return;
+  } else {
+    delete this.scope_['value']['validationError'];
+  }
+
+  this.scope_['value']['value'] =
+      this.window_.btoa(hexEncodedStringToBytes(newValue));
 };
 
 

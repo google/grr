@@ -6,12 +6,14 @@
                          name="CopyFlowDialog"
                          title="'Copy ' + controller.flow.value.name.value + ' flow'"
                          proceed="controller.proceed()"
-                         proceed-name="'Launch!'">
+                         proceed-name="'Launch!'"
+                         can-proceed="!controller.flowFormHasErrors">
 
   <grr-flow-form
     flow-args="controller.flow.value.args"
     flow-runner-args="controller.flow.value.runner_args"
-    with-output-plugins="true">
+    with-output-plugins="true"
+    has-errors="controller.flowFormHasErrors">
   </grr-flow-form>
 
 </grr-confirmation-dialog>

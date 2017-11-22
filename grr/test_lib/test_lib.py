@@ -115,14 +115,7 @@ class GRRBaseTest(unittest.TestCase):
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 
-    tmpdir = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
-
-    if platform.system() != "Windows":
-      # Make a temporary directory for test files.
-      self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
-    else:
-      self.temp_dir = tempfile.mkdtemp()
-
+    self.temp_dir = TempDirPath()
     config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
 
     logging.info("Starting test: %s.%s", self.__class__.__name__,
@@ -651,20 +644,6 @@ def RequiresPackage(package_name):
   return Decorator
 
 
-def SetLabel(*labels):
-  """Sets a label on a function so we can run tests with different types."""
-
-  def Decorator(f):
-    # If the method is not already tagged, we replace its label (the default
-    # label is "small").
-    function_labels = getattr(f, "labels", set())
-    f.labels = function_labels.union(set(labels))
-
-    return f
-
-  return Decorator
-
-
 class GrrTestProgram(unittest.TestProgram):
   """A Unit test program which is compatible with conf based args parsing.
 
@@ -727,6 +706,28 @@ class RemotePDB(pdb.Pdb):
     (clientsocket, address) = RemotePDB.skt.accept()
     RemotePDB.handle = clientsocket.makefile("rw", 1)
     logging.warn("Received a connection from %s", address)
+
+
+# TODO(hanuszczak): Consider moving this to some utility module.
+def TempDirPath(suffix="", prefix="tmp"):
+  """Creates a temporary directory based on the environment configuration.
+
+  The directory will be placed in folder as specified by the `TEST_TMPDIR`
+  environment variable if available or fallback to `Test.tmpdir` of the current
+  configuration if not.
+
+  Args:
+    suffix: A suffix to end the directory name with.
+    prefix: A prefix to begin the directory name with.
+
+  Returns:
+    An absolute path to the created directory.
+  """
+  root = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
+  if platform.system() != "Windows":
+    return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=root)
+  else:
+    return tempfile.mkdtemp(suffix=suffix, prefix=prefix)
 
 
 def main(argv=None):

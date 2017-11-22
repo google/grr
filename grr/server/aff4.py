@@ -1036,8 +1036,7 @@ class Factory(object):
                   len(marked_urns), utils.SmartUnicode(urns))
 
     logging.debug(u"Removing %d root objects when removing %s: %s",
-                  len(marked_root_urns),
-                  utils.SmartUnicode(urns),
+                  len(marked_root_urns), utils.SmartUnicode(urns),
                   utils.SmartUnicode(marked_root_urns))
 
     pool = data_store.DB.GetMutationPool()
@@ -1745,8 +1744,7 @@ class AFF4Object(object):
       # Get the Attribute object from our schema.
       attribute = Attribute.PREDICATES[attribute_name]
       cls = attribute.attribute_type
-      self._AddAttributeToCache(attribute,
-                                LazyDecoder(cls, value, ts),
+      self._AddAttributeToCache(attribute, LazyDecoder(cls, value, ts),
                                 self.synced_attributes)
     except KeyError:
       pass
@@ -2323,7 +2321,7 @@ class AFF4Volume(AFF4Object):
     CONTAINS = Attribute("aff4:contains", rdfvalue.RDFURN,
                          "An AFF4 object contained in this container.")
 
-  def ListChildren(self, limit=1000000, age=NEWEST_TIME):
+  def ListChildren(self, limit=None, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
 
     Args:
@@ -2344,7 +2342,7 @@ class AFF4Volume(AFF4Object):
   def OpenChildren(self,
                    children=None,
                    mode="r",
-                   limit=1000000,
+                   limit=None,
                    chunk_limit=100000,
                    age=NEWEST_TIME):
     """Yields AFF4 Objects of all our direct children.
@@ -2380,7 +2378,7 @@ class AFF4Volume(AFF4Object):
           to_read, mode=mode, token=self.token, age=age):
         yield child
         result_count += 1
-        if result_count >= limit:
+        if limit and result_count >= limit:
           return
 
   @property

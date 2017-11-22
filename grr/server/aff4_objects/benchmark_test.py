@@ -3,6 +3,8 @@
 
 
 
+import pytest
+
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
@@ -12,9 +14,9 @@ from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 
 
+@pytest.mark.large
 class AFF4Benchmark(benchmark_test_lib.AverageMicroBenchmarks):
   """Test performance of the AFF4 subsystem."""
-  labels = ["large"]
 
   REPEATS = 50
 

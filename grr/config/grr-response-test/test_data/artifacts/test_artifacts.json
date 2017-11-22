@@ -205,5 +205,26 @@
     "labels": [ "Software" ],
     "supported_os": [ "Windows" ],
     "urls": [ "https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85%29.aspx" ],
-  }
+  },
+
+  { "name": "NoProvides",
+    "sources": [
+      { "type": "DIRECTORY",
+        "attributes": { "paths": ["/"] }
+      }
+    ],
+    "doc": "Doesn't provide anything and can't be used to populate the KB.",
+    "supported_os": [ "Windows" ]
+  },
+
+  { "name": "TooManyProvides",
+    "sources": [
+      { "type": "DIRECTORY",
+        "attributes": { "paths": ["/"] }
+      }
+    ],
+    "provides": ["os", "domain"],
+    "doc": "This one has too many provide specifications for what it returns.",
+    "supported_os": [ "Windows" ]
+  },
 ]

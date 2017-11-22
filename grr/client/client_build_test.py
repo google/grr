@@ -4,7 +4,6 @@
 import multiprocessing
 import os
 import platform
-import tempfile
 import unittest
 
 import mock
@@ -51,12 +50,12 @@ class MultiRepackTest(ClientBuildTests):
         multiprocessing, "Pool", return_value=self.pool_obj)
     self.mock_pool = self.pool_patcher.start()
 
-    config_dir = tempfile.mkdtemp()
+    config_dir = test_lib.TempDirPath()
     self.label1_config = os.path.join(config_dir, "label1.yaml")
     self.label2_config = os.path.join(config_dir, "label2.yaml")
     open(self.label1_config, mode="wb").write("Client.labels: [label1]")
     open(self.label2_config, mode="wb").write("Client.labels: [label2]")
-    self.template_dir = tempfile.mkdtemp()
+    self.template_dir = test_lib.TempDirPath()
     self.deb_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.deb.zip")
     self.exe_template = os.path.join(self.template_dir,
@@ -67,7 +66,7 @@ class MultiRepackTest(ClientBuildTests):
     open(self.exe_template, mode="wb").write("windows")
     open(self.xar_template, mode="wb").write("darwin")
 
-    self.output_dir = tempfile.mkdtemp()
+    self.output_dir = test_lib.TempDirPath()
 
   def tearDown(self):
     super(MultiRepackTest, self).tearDown()

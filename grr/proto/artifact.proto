@@ -129,9 +129,6 @@ message ArtifactDescriptor {
   repeated string path_dependencies = 3 [(sem_type) = {
       description: "Names of KB objects this artifact depends on."
     }];
-  optional string artifact_source = 4 [(sem_type) = {
-      description: "Artifact's JSON source."
-    }];
   repeated ArtifactProcessorDescriptor processors = 5 [(sem_type) = {
       description: "Processors that will process this artifact's output."
     }];

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for the artifact libraries."""
 
+import copy
 import os
 
 from grr import config
@@ -27,13 +28,17 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
   @classmethod
   def setUpClass(cls):
     super(ArtifactHandlingTest, cls).setUpClass()
-    cls._original_registry_sources = artifact_registry.REGISTRY._sources
+
+    registry = artifact_registry.REGISTRY
+    cls._original_registry_sources = copy.deepcopy(registry._sources)
 
   @classmethod
   def tearDownClass(cls):
     super(ArtifactHandlingTest, cls).tearDownClass()
-    artifact_registry.REGISTRY._sources = cls._original_registry_sources
-    artifact_registry.REGISTRY._dirty = True
+
+    registry = artifact_registry.REGISTRY
+    registry._sources = cls._original_registry_sources
+    registry._dirty = True
 
   def setUp(self):
     super(ArtifactHandlingTest, self).setUp()
@@ -173,7 +178,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     for art_obj in artifact_registry.REGISTRY.GetArtifacts():
       # Exercise conversions to ensure we can move back and forth between the
       # different forms.
-      art_json = art_obj.ToPrettyJson(extended=False)
+      art_json = art_obj.ToJson()
       new_art_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(art_json)[0]
       self.assertEqual(new_art_obj.ToPrimitiveDict(), art_obj.ToPrimitiveDict())
 

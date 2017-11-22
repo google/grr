@@ -3,6 +3,7 @@
 
 import collections
 import types
+import pytest
 
 from grr.client import actions
 from grr.client.client_actions import standard
@@ -17,12 +18,11 @@ from grr.server import worker_mocks
 from grr.test_lib import test_lib
 
 
+@pytest.mark.small
 class EmptyActionTest(test_lib.GRRBaseTest):
   """Test the client Actions."""
 
   __metaclass__ = registry.MetaclassRegistry
-
-  labels = ["client_action", "small"]
 
   def RunAction(self, action_cls, arg=None, grr_worker=None):
     if arg is None:

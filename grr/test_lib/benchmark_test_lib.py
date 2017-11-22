@@ -3,15 +3,16 @@
 
 import logging
 import time
+import pytest
 
 from grr.lib import registry
 from grr.test_lib import test_lib
 
 
+@pytest.mark.large
 class MicroBenchmarks(test_lib.GRRBaseTest):
   """This base class created the GRR benchmarks."""
   __metaclass__ = registry.MetaclassRegistry
-  labels = ["large"]
 
   units = "us"
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
 
 
@@ -736,10 +737,12 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def _RunTSKFileFinder(self, paths):
 
     image_path = os.path.join(self.base_path, "ntfs_img.dd")
-    with utils.Stubber(vfs, "VFS_VIRTUALROOTS", {
-        rdf_paths.PathSpec.PathType.TSK:
-            rdf_paths.PathSpec(path=image_path, pathtype="OS", offset=63 * 512)
-    }):
+    with utils.Stubber(
+        vfs, "VFS_VIRTUALROOTS", {
+            rdf_paths.PathSpec.PathType.TSK:
+                rdf_paths.PathSpec(
+                    path=image_path, pathtype="OS", offset=63 * 512)
+        }):
 
       action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
       for _ in flow_test_lib.TestFlowHelper(
@@ -811,9 +814,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
 
-  def testClientFileFinder(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
-    action = rdf_file_finder.FileFinderAction.Action.STAT
+  def _RunCFF(self, paths, action):
     for s in flow_test_lib.TestFlowHelper(
         file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
@@ -824,9 +825,15 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         process_non_regular_files=True,
         token=self.token):
       session_id = s
-
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
+    return results
+
+  def testClientFileFinder(self):
+    paths = [os.path.join(self.base_path, "**/*.plist")]
+    action = rdf_file_finder.FileFinderAction.Action.STAT
+    results = self._RunCFF(paths, action)
+
     self.assertEqual(len(results), 4)
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
@@ -836,6 +843,61 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         "History.plist", "History.xml.plist", "test.plist",
         "parser_test/com.google.code.grr.plist"
     ])
+
+  def testClientFileFinderPathCasing(self):
+    paths = [
+        os.path.join(self.base_path, "PARSER_TEST/*.plist"),
+        os.path.join(self.base_path, "history.plist")
+    ]
+    action = rdf_file_finder.FileFinderAction.Action.STAT
+    results = self._RunCFF(paths, action)
+    self.assertEqual(len(results), 2)
+    relpaths = [
+        os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
+        for p in results
+    ]
+    self.assertItemsEqual(
+        relpaths, ["History.plist", "parser_test/com.google.code.grr.plist"])
+
+  def _SetupUnicodePath(self, path):
+    try:
+      dir_path = os.path.join(path, u"厨房")
+      os.mkdir(dir_path)
+    except UnicodeEncodeError:
+      self.skipTest("Test needs a unicode capable file system.")
+
+    file_path = os.path.join(dir_path, u"卫浴洁.txt")
+
+    with open(utils.SmartStr(file_path), "wb") as f:
+      f.write("hello world!")
+
+  def testClientFileFinderUnicodeRegex(self):
+    self._SetupUnicodePath(self.temp_dir)
+    paths = [
+        os.path.join(self.temp_dir, "*"),
+        os.path.join(self.temp_dir, u"厨房/*.txt")
+    ]
+    action = rdf_file_finder.FileFinderAction.Action.STAT
+    results = self._RunCFF(paths, action)
+    self.assertEqual(len(results), 2)
+    relpaths = [
+        os.path.relpath(p.stat_entry.pathspec.path, self.temp_dir)
+        for p in results
+    ]
+    self.assertItemsEqual(relpaths, [u"厨房", u"厨房/卫浴洁.txt"])
+
+  def testClientFileFinderUnicodeLiteral(self):
+    self._SetupUnicodePath(self.temp_dir)
+
+    paths = [os.path.join(self.temp_dir, u"厨房/卫浴洁.txt")]
+    action = rdf_file_finder.FileFinderAction.Action.STAT
+    results = self._RunCFF(paths, action)
+    self.assertEqual(len(results), 1)
+    relpaths = [
+        os.path.relpath(p.stat_entry.pathspec.path, self.temp_dir)
+        for p in results
+    ]
+    self.assertItemsEqual(relpaths, [u"厨房/卫浴洁.txt"])
 
 
 def main(argv):

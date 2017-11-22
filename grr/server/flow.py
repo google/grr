@@ -330,14 +330,24 @@ class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.EmptyMessage
 
 
-class Behaviour(object):
+# TODO(hanuszczak): Consider refactoring the interface of this class.
+class FlowBehaviour(object):
   """A Behaviour is a property of a flow.
 
   Behaviours advertise what kind of flow this is. The flow can only advertise
   predefined behaviours.
   """
+
   # A constant which defines all the allowed behaviours and their descriptions.
-  LEXICON = {}
+  LEXICON = {
+      # What GUI mode should this flow appear in?
+      "BASIC":
+          "Include in the simple UI. This flow is designed for simpler use.",
+      "ADVANCED":
+          "Include in advanced UI. This flow takes more experience to use.",
+      "DEBUG":
+          "This flow only appears in debug mode.",
+  }
 
   def __init__(self, *args):
     self.set = set()
@@ -365,36 +375,6 @@ class Behaviour(object):
 
   def __iter__(self):
     return iter(self.set)
-
-  def IsSupported(self, other):
-    """Ensure the other Behaviour supports all our Behaviours."""
-    if not isinstance(other, self.__class__):
-      raise TypeError("Must be called on %s" % self.__class__)
-
-    return self.set.issubset(other.set)
-
-
-class FlowBehaviour(Behaviour):
-  # A constant which defines all the allowed behaviours and their descriptions.
-  LEXICON = {
-      # What GUI mode should this flow appear in?
-      "BASIC": ("Include in the simple UI. This flow is designed "
-                "for simpler use."),
-      "ADVANCED": ("Include in advanced UI. This flow takes "
-                   "more experience to use."),
-      "DANGEROUS":
-          "This flow may be dangerous. Only available for Admins",
-      "DEBUG":
-          "This flow only appears in debug mode.",
-
-      # OS Support.
-      "OSX":
-          "This flow works on OSX operating systems.",
-      "Windows":
-          "This flow works on Windows operating systems.",
-      "Linux":
-          "This flow works on Linux operating systems.",
-  }
 
 
 RESULTS_SUFFIX = "Results"

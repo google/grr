@@ -170,9 +170,12 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
   registry.registerDirective(
       grrUi.semantic.byteSizeDirective.ByteSizeDirective.semantic_type,
       grrUi.semantic.byteSizeDirective.ByteSizeDirective);
-  registry.registerDirective(
-      grrUi.semantic.bytesDirective.BytesDirective.semantic_type,
-      grrUi.semantic.bytesDirective.BytesDirective);
+  angular.forEach(
+      grrUi.semantic.bytesDirective.BytesDirective.semantic_types,
+      function(type) {
+        registry.registerDirective(type,
+                                   grrUi.semantic.bytesDirective.BytesDirective);
+      }.bind(this));
   angular.forEach(
       grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_types,
       function(type) {

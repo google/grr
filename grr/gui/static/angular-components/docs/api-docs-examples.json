@@ -11714,7 +11714,7 @@
                             "query": {
                               "age": 0,
                               "type": "str",
-                              "value": "SELECT * from Win32_SystemDriver"
+                              "value": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
                             }
                           }
                         },
@@ -11743,11 +11743,6 @@
                     }
                   ]
                 }
-              },
-              "artifact_source": {
-                "age": 0,
-                "type": "unicode",
-                "value": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}"
               },
               "dependencies": [],
               "error_message": {
@@ -11783,7 +11778,7 @@
               "sources": [
                 {
                   "attributes": {
-                    "query": "SELECT * from Win32_SystemDriver"
+                    "query": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
                   },
                   "conditions": [],
                   "returned_types": [],
@@ -11797,7 +11792,6 @@
                 "http://www.example.com"
               ]
             },
-            "artifact_source": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}",
             "dependencies": [],
             "error_message": "",
             "is_custom": false,

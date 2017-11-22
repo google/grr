@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Pre installation script for Fleetspeak-enabled GRR client MacOS-X package
+
+[[ $3 != "/" ]] && exit 0

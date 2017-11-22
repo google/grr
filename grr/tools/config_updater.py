@@ -964,11 +964,9 @@ def main(argv):
 
   elif flags.FLAGS.subparser_name == "upload_artifact":
     yaml.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
-    base_urn = aff4.ROOT_URN.Add("artifact_store")
     try:
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file, "rb").read(1000000),
-          base_urn=base_urn,
           overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e

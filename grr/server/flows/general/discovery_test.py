@@ -19,7 +19,6 @@ from grr.server import client_index
 from grr.server import flow
 from grr.server.flows.general import discovery
 from grr.test_lib import action_mocks
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -224,7 +223,6 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Linux", os_version="12.04")
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
@@ -249,7 +247,6 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):
@@ -271,7 +268,6 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Linux", os_version="12.04")
 
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -315,7 +311,6 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
 
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,

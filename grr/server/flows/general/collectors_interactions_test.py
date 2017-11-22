@@ -62,6 +62,7 @@ supported_os: [ "Linux" ]
 """
     test_registry = artifact_registry.ArtifactRegistry()
     test_registry.ClearRegistry()
+    test_registry.AddDatastoreSource(rdfvalue.RDFURN("aff4:/artifact_store"))
     test_registry._dirty = False
     with utils.Stubber(artifact_registry, "REGISTRY", test_registry):
       collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)

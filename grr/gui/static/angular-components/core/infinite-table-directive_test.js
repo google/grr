@@ -1,14 +1,19 @@
 'use strict';
 
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
+goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');
 
+goog.scope(function() {
+
+var MemoryItemsProviderController =
+    grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController;
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('infinite table', function() {
-  var $compile, $rootScope, $interval;
+  var $compile, $rootScope, $interval, $q;
 
   beforeEach(module(grrUi.core.module.name));
   beforeEach(module(grrUi.tests.module.name));
@@ -17,6 +22,7 @@ describe('infinite table', function() {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $interval = $injector.get('$interval');
+    $q = $injector.get('$q');
   }));
 
   afterEach(function() {
@@ -44,7 +50,8 @@ describe('infinite table', function() {
         '<tr grr-infinite-table grr-memory-items-provider ' +
         '    items="testItems" page-size="5"' +
         (withAutoRefresh ? '    auto-refresh-interval="1" ' : '') +
-        '    filter-value="filterValue">' +
+        '    filter-value="filterValue"' +
+        '    trigger-update="triggerUpdate">' +
         '  <td>{$ ::item.timestamp $}</td>' +
         '  <td>{$ ::item.message $}</td>' +
         '</tr>' +
@@ -140,6 +147,48 @@ describe('infinite table', function() {
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(0);
+  });
+
+  it('cancels an in-flight request when trigger-update is called', function() {
+    var deferred1 = $q.defer();
+    var deferred2 = $q.defer();
+    spyOn(MemoryItemsProviderController.prototype, 'fetchItems').and
+        .returnValues(deferred1.promise, deferred2.promise);
+
+    var element = render([]);
+    // Only the 'Loading...' row should be displayed.
+    expect($('table tr', element).length).toBe(1);
+
+    // This should trigger yet another call.
+    $rootScope.triggerUpdate();
+    // Run the timer forward, so that newly displayed 'Loading...' element
+    // can be detected.
+    $interval.flush(1000);
+
+    deferred2.resolve({
+      offset: 0,
+      items: [
+        {timestamp: 44, message: 'foo2'},
+        {timestamp: 45, message: 'bar2'}
+      ]
+    });
+    $rootScope.$apply();
+
+    deferred1.resolve({
+      offset: 0,
+      items: [
+        {timestamp: 42, message: 'foo1'},
+        {timestamp: 43, message: 'bar1'}
+      ]
+    });
+    $rootScope.$apply();
+
+    // Check that deferred1's result gets discarded as it
+    // returns after the triggerUpdate is called.
+    expect($('td:contains("foo2")', element).length).toBe(1);
+    expect($('td:contains("bar2")', element).length).toBe(1);
+    expect($('td:contains("bar1")', element).length).toBe(0);
+    expect($('td:contains("bar1")', element).length).toBe(0);
   });
 
   describe('with auto refresh turned on', function() {
@@ -245,4 +294,6 @@ describe('infinite table', function() {
     });
 
   });
+});
+
 });

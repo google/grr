@@ -52,6 +52,9 @@ grrUi.flow.startFlowFormDirective.StartFlowFormController = function(
   /** @type {Object} */
   this.outputPluginDescriptor;
 
+  /** @type {boolean} */
+  this.flowFormHasErrors;
+
   this.scope_.$watch('descriptor', function(flowDescriptor) {
     this.requestSent = false;
     this.responseError = null;

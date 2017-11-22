@@ -7,9 +7,11 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.server import aff4
 from grr.server import flow
 from grr.server import output_plugin
+from grr.server.flows.general import file_finder as flows_file_finder
 from grr.server.flows.general import processes as flows_processes
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import email_plugin
@@ -195,6 +197,35 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    "css=grr-client-flows-list tr:contains('GetFile'):nth(1)")
     self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
                    "tr:contains('GetFile'):nth(0).row-selected")
+
+  def testCopyingFlowWithRawBytesWithNonAsciiCharsInArgumentsWorks(self):
+    args = rdf_file_finder.FileFinderArgs(
+        paths=["a/b/*"],
+        upload_token=rdf_client.UploadToken(
+            # Encrypted policy is defined simply as "bytes" in its proto
+            # definition. We make sure to assign ascii-incompatible value
+            # to it here.
+            encrypted_policy="\xde\xad\xbe\xef"))
+    flow.GRRFlow.StartFlow(
+        flow_name=flows_file_finder.FileFinder.__name__,
+        args=args,
+        client_id=self.client_id,
+        token=self.token)
+
+    # Navigate to client and select newly created flow.
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=td:contains('FileFinder')")
+
+    # Open wizard and launch the copy flow.
+    self.Click("css=button[name=copy_flow]")
+    self.Click("css=button:contains('Launch')")
+
+    # Check that flows list got updated and that the new flow is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-client-flows-list tr:contains('FileFinder'):nth(1)")
+    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
+                   "tr:contains('FileFinder'):nth(0).row-selected")
 
 
 def main(argv):

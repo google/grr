@@ -33,6 +33,7 @@
 @import 'grr/gui/static/angular-components/flow/start-flow-view';
 @import 'grr/gui/static/angular-components/forms/foreman-label-rule-form';
 @import 'grr/gui/static/angular-components/forms/semantic-proto-form';
+@import 'grr/gui/static/angular-components/forms/semantic-proto-union-form';
 @import 'grr/gui/static/angular-components/hunt/hunt-graph';
 @import 'grr/gui/static/angular-components/semantic/rekall/rekall';
 @import 'grr/gui/static/angular-components/semantic/semantic-diff-annotated-proto';
@@ -273,6 +274,7 @@ div[ui-view] {
     bottom: 69px;
     max-height: none;
     padding: 0;
+    overflow: auto;
   }
 
   .modal-footer {
@@ -345,7 +347,10 @@ div[ui-view] {
     &.pickerIcon {
       width: 0;
     }
+  }
 
+  span.glyphicon.form-control-feedback {
+    left: 177px;
   }
 }
 

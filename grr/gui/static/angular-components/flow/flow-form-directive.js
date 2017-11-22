@@ -2,8 +2,11 @@
 
 goog.provide('grrUi.flow.flowFormDirective.FlowFormController');
 goog.provide('grrUi.flow.flowFormDirective.FlowFormDirective');
+goog.require('grrUi.forms.utils.valueHasErrors');
 
 goog.scope(function() {
+
+var valueHasErrors = grrUi.forms.utils.valueHasErrors;
 
 /**
  * Controller for FlowFormDirective.
@@ -44,11 +47,20 @@ grrUi.flow.flowFormDirective.FlowFormController = function(
 
   this.scope_.$watch('flowRunnerArgs.value.output_plugins',
                      this.onOutputPluginsChanged_.bind(this));
+
+  this.scope_.$watch(function() {
+    return [this.scope_['flowArgs'], this.scope_['flowRunnerArgs']];
+  }.bind(this), this.onArgsDeepChange_.bind(this), true);
 };
 
 var FlowFormController =
     grrUi.flow.flowFormDirective.FlowFormController;
 
+
+FlowFormController.prototype.onArgsDeepChange_ = function() {
+  this.scope_['hasErrors'] = valueHasErrors(this.scope_['flowArgs']) ||
+      valueHasErrors(this.scope_['flowRunnerArgs']);
+};
 
 /**
  * Handles changes in output plugins part of flow runner args binding.
@@ -81,7 +93,8 @@ grrUi.flow.flowFormDirective.FlowFormDirective = function() {
     scope: {
       flowArgs: '=',
       flowRunnerArgs: '=',
-      withOutputPlugins: '='
+      withOutputPlugins: '=',
+      hasErrors: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-form.html',

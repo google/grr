@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
+import collections
 import errno
 import fnmatch
 import functools
@@ -14,6 +15,7 @@ import stat
 import psutil
 
 from grr.client import actions
+from grr.client import client_utils
 from grr.client.client_actions import standard as standard_actions
 from grr.client.vfs_handlers import files
 
@@ -86,7 +88,7 @@ class RegexComponent(Component):
   """A component matching the file name against a regex."""
 
   def __init__(self, regex):
-    self.regex = re.compile(regex)
+    self.regex = re.compile(regex, flags=re.I)
 
   def Generate(self, base_path):
     try:
@@ -102,13 +104,32 @@ class RegexComponent(Component):
 
 
 class LiteralComponent(Component):
+  """A component matching literal names."""
 
   def __init__(self, literal):
     self.literal = literal
 
   def Generate(self, base_path):
-    _ = base_path
-    yield self.literal
+    corrected_matches = []
+    literal_lower = self.literal.lower()
+
+    try:
+      for c in os.listdir(base_path):
+        # Perfect match.
+        if c == self.literal:
+          yield self.literal
+          return
+
+        # Case correction.
+        if c.lower() == literal_lower:
+          corrected_matches.append(c)
+
+      for m in corrected_matches:
+        yield m
+
+    except OSError as e:
+      if e.errno == errno.EACCES:  # permission denied.
+        logging.error(e)
 
   def __str__(self):
     return "%s:%s" % (self.__class__, self.literal)
@@ -143,15 +164,14 @@ class FileFinderOS(actions.ActionPlugin):
     elif args.xdev == args.XDev.LOCAL:
       # Descend into file systems on physical devices only.
       self.mountpoints_blacklist = (
-          set([p.mountpoint for p in psutil.disk_partitions(all=True)]) - set(
-              [p.mountpoint for p in psutil.disk_partitions(all=False)]))
+          set([p.mountpoint for p in psutil.disk_partitions(all=True)]) -
+          set([p.mountpoint for p in psutil.disk_partitions(all=False)]))
     elif args.xdev == args.XDev.ALWAYS:
       # Never stop at any device boundary.
       self.mountpoints_blacklist = set()
 
     for fname in self.CollectGlobs(args.paths):
       self.Progress()
-      self.conditions = self.ParseConditions(args)
 
       try:
         stat_object = os.lstat(fname)
@@ -159,18 +179,15 @@ class FileFinderOS(actions.ActionPlugin):
         continue
 
       if (not self.process_non_regular_files and
+          not stat.S_ISDIR(stat_object.st_mode) and
           not stat.S_ISREG(stat_object.st_mode)):
         continue
 
       result = rdf_file_finder.FileFinderResult()
 
-      conditions_apply = True
-      for c in self.conditions:
-        if not c(fname, stat_object, result):
-          conditions_apply = False
-          break
-
-      if not conditions_apply:
+      # `all` lazily evaluates the generator expresion until first failure.
+      conditions = self.ParseConditions(args)
+      if not all(cond(fname, stat_object, result) for cond in conditions):
         continue
 
       if args.action.action_type == args.action.Action.STAT:
@@ -181,6 +198,10 @@ class FileFinderOS(actions.ActionPlugin):
         continue
 
       else:
+        # For directories, only Stat makes sense.
+        if stat.S_ISDIR(stat_object.st_mode):
+          continue
+
         stat_entry = self.Stat(fname, stat_object, True)
 
       # We never want to hash/download the link, always the target.
@@ -229,7 +250,9 @@ class FileFinderOS(actions.ActionPlugin):
         return
 
     pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS, path=fname)
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=client_utils.LocalPathToCanonicalPath(fname),
+        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
     return files.MakeStatResponse(stat_object, pathspec=pathspec)
 
   def Hash(self,
@@ -256,8 +279,8 @@ class FileFinderOS(actions.ActionPlugin):
     with file_obj:
       hashers, bytes_read = standard_actions.HashFile().HashFile(
           ["md5", "sha1", "sha256"], file_obj, max_hash_size)
-    result = rdf_crypto.Hash(**dict((k, v.digest())
-                                    for k, v in hashers.iteritems()))
+    result = rdf_crypto.Hash(**dict(
+        (k, v.digest()) for k, v in hashers.iteritems()))
     result.num_bytes = bytes_read
     return result
 
@@ -265,9 +288,9 @@ class FileFinderOS(actions.ActionPlugin):
     expanded_globs = {}
     for glob in globs:
       initial_component, path = self._SplitInitialPathComponent(
-          utils.SmartStr(glob))
-      expanded_globs.setdefault(initial_component,
-                                []).extend(self._InterpolateGrouping(path))
+          utils.SmartUnicode(glob))
+      expanded_globs.setdefault(initial_component, []).extend(
+          self._InterpolateGrouping(path))
 
     component_tree = {}
     for initial_component, glob_list in expanded_globs.iteritems():
@@ -298,13 +321,13 @@ class FileFinderOS(actions.ActionPlugin):
     """
 
     if platform.system() != "Windows":
-      return "/", path
+      return u"/", path
 
     # In case the path start with: C:
-    if len(path) >= 2 and path[1] == ":":
+    if len(path) >= 2 and path[1] == u":":
       # A backslash is needed after the drive letter to make this an
-      # absolute path.
-      return path[:2] + "\\", path[2:].lstrip("\\")
+      # absolute path. Also, we always capitalize the drive letter.
+      return path[:2].upper() + u"\\", path[2:].lstrip(u"\\")
 
     raise ValueError("Can't handle path: %s" % path)
 
@@ -334,23 +357,22 @@ class FileFinderOS(actions.ActionPlugin):
     Returns:
       A list of interpolated patterns.
     """
-
     result = []
     components = []
     offset = 0
     for match in self.GROUPING_PATTERN.finditer(pattern):
       match_str = match.group(0)
       # Alternatives.
-      if match_str.startswith("{"):
+      if match_str.startswith(u"{"):
         components.append([pattern[offset:match.start()]])
 
         # Expand the attribute into the set of possibilities:
-        alternatives = match.group(2).split(",")
+        alternatives = match.group(2).split(u",")
         components.append(set(alternatives))
         offset = match.end()
 
       # KnowledgeBase interpolation.
-      elif match_str.startswith("%"):
+      elif match_str.startswith(u"%"):
         raise NotImplementedError("Client side knowledgebase not available.")
 
       else:
@@ -422,52 +444,58 @@ class FileFinderOS(actions.ActionPlugin):
 
     return components
 
-  def ModificationTimeCondition(self, condition_obj, path, stat_obj, result):
+  @staticmethod
+  def ModificationTimeCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.modification_time
-    return (params.min_last_modified_time.AsSecondsFromEpoch() <=
-            stat_obj.st_mtime <=
-            params.max_last_modified_time.AsSecondsFromEpoch())
+    min_mtime = params.min_last_modified_time.AsSecondsFromEpoch()
+    max_mtime = params.max_last_modified_time.AsSecondsFromEpoch()
+    return min_mtime <= stat_obj.st_mtime <= max_mtime
 
-  def AccessTimeCondition(self, condition_obj, path, stat_obj, result):
+  @staticmethod
+  def AccessTimeCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.access_time
-    return (params.min_last_access_time.AsSecondsFromEpoch() <=
-            stat_obj.st_atime <=
-            params.max_last_access_time.AsSecondsFromEpoch())
+    min_atime = params.min_last_access_time.AsSecondsFromEpoch()
+    max_atime = params.max_last_access_time.AsSecondsFromEpoch()
+    return min_atime <= stat_obj.st_atime <= max_atime
 
-  def InodeChangeTimeCondition(self, condition_obj, path, stat_obj, result):
+  @staticmethod
+  def InodeChangeTimeCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.inode_change_time
-    return (params.min_last_inode_change_time.AsSecondsFromEpoch() <=
-            stat_obj.st_ctime <=
-            params.max_last_inode_change_time.AsSecondsFromEpoch())
+    min_ctime = params.min_last_inode_change_time.AsSecondsFromEpoch()
+    max_ctime = params.max_last_inode_change_time.AsSecondsFromEpoch()
+    return min_ctime <= stat_obj.st_ctime <= max_ctime
 
-  def SizeCondition(self, condition_obj, path, stat_obj, result):
+  @staticmethod
+  def SizeCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.size
     return params.min_file_size <= stat_obj.st_size <= params.max_file_size
 
   OVERLAP_SIZE = 1024 * 1024
   CHUNK_SIZE = 10 * 1024 * 1024
 
-  def _StreamFile(self, fd, offset, length):
+  @staticmethod
+  def _StreamFile(fd, offset, length):
     """Generates overlapping blocks of data read from a file."""
     to_read = length
     fd.seek(offset)
 
-    overlap = fd.read(min(self.OVERLAP_SIZE, to_read))
+    overlap = fd.read(min(FileFinderOS.OVERLAP_SIZE, to_read))
     to_read -= len(overlap)
 
     yield overlap
 
     while to_read > 0:
-      data = fd.read(min(self.CHUNK_SIZE, to_read))
+      data = fd.read(min(FileFinderOS.CHUNK_SIZE, to_read))
       if not data:
         return
       to_read -= len(data)
 
       combined_data = overlap + data
       yield combined_data
-      overlap = combined_data[-self.OVERLAP_SIZE:]
+      overlap = combined_data[-FileFinderOS.OVERLAP_SIZE:]
 
-  def _MatchRegex(self, regex, chunk, pos):
+  @staticmethod
+  def _MatchRegex(regex, chunk, pos):
     match = regex.Search(chunk[pos:])
     if not match:
       return None, 0
@@ -475,32 +503,33 @@ class FileFinderOS(actions.ActionPlugin):
       start, end = match.span()
       return start + pos, end - start
 
-  def ContentsRegexMatchCondition(self, condition_obj, path, stat_obj, result):
+  @staticmethod
+  def ContentsRegexMatchCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.contents_regex_match
     regex = params.regex
 
-    return self._ScanForMatches(params, path,
-                                functools.partial(self._MatchRegex, regex),
-                                result)
+    matching = functools.partial(FileFinderOS._MatchRegex, regex)
+    return FileFinderOS._ScanForMatches(params, path, matching, result)
 
-  def _MatchLiteral(self, literal, chunk, pos):
+  @staticmethod
+  def _MatchLiteral(literal, chunk, pos):
     pos = chunk.find(literal, pos)
     if pos == -1:
       return None, 0
     else:
       return pos, len(literal)
 
-  def ContentsLiteralMatchCondition(self, condition_obj, path, stat_obj,
-                                    result):
+  @staticmethod
+  def ContentsLiteralMatchCondition(condition_obj, path, stat_obj, result):
     params = condition_obj.contents_literal_match
 
     literal = utils.SmartStr(params.literal)
 
-    return self._ScanForMatches(params, path,
-                                functools.partial(self._MatchLiteral, literal),
-                                result)
+    matching = functools.partial(FileFinderOS._MatchLiteral, literal)
+    return FileFinderOS._ScanForMatches(params, path, matching, result)
 
-  def _ScanForMatches(self, params, path, matching_func, result):
+  @staticmethod
+  def _ScanForMatches(params, path, matching_func, result):
     try:
       fd = open(path, mode="rb")
     except IOError:
@@ -508,11 +537,11 @@ class FileFinderOS(actions.ActionPlugin):
 
     current_offset = params.start_offset
     findings = []
-    for chunk in self._StreamFile(fd, current_offset, params.length):
+    for chunk in FileFinderOS._StreamFile(fd, current_offset, params.length):
       pos, match_length = matching_func(chunk, 0)
       while pos is not None:
-        if (len(chunk) > self.OVERLAP_SIZE and
-            pos + match_length < self.OVERLAP_SIZE):
+        if (len(chunk) > FileFinderOS.OVERLAP_SIZE and
+            pos + match_length < FileFinderOS.OVERLAP_SIZE):
           # We already processed this hit.
           pos, match_length = matching_func(chunk, pos + 1)
           continue
@@ -525,7 +554,8 @@ class FileFinderOS(actions.ActionPlugin):
             rdf_client.BufferReference(
                 offset=current_offset + context_start,
                 length=len(data),
-                data=data,))
+                data=data,
+            ))
         if params.mode == params.Mode.FIRST_HIT:
           for finding in findings:
             result.matches.append(finding)
@@ -533,7 +563,7 @@ class FileFinderOS(actions.ActionPlugin):
 
         pos, match_length = matching_func(chunk, pos + 1)
 
-      current_offset += len(chunk) - self.OVERLAP_SIZE
+      current_offset += len(chunk) - FileFinderOS.OVERLAP_SIZE
 
     if findings:
       for finding in findings:
@@ -542,31 +572,36 @@ class FileFinderOS(actions.ActionPlugin):
     else:
       return False
 
+  _CONDITION_DESCRIPTOR = collections.namedtuple("ConditionDescriptor",
+                                                 ["weight", "handler"])
+
+  _CONDITION_TYPE = rdf_file_finder.FileFinderCondition.Type
+
+  _CONDITIONS = {
+      _CONDITION_TYPE.MODIFICATION_TIME:
+          _CONDITION_DESCRIPTOR(weight=0, handler=ModificationTimeCondition),
+      _CONDITION_TYPE.ACCESS_TIME:
+          _CONDITION_DESCRIPTOR(weight=0, handler=AccessTimeCondition),
+      _CONDITION_TYPE.INODE_CHANGE_TIME:
+          _CONDITION_DESCRIPTOR(weight=0, handler=InodeChangeTimeCondition),
+      _CONDITION_TYPE.SIZE:
+          _CONDITION_DESCRIPTOR(weight=0, handler=SizeCondition),
+      _CONDITION_TYPE.CONTENTS_REGEX_MATCH:
+          _CONDITION_DESCRIPTOR(weight=1, handler=ContentsRegexMatchCondition),
+      _CONDITION_TYPE.CONTENTS_LITERAL_MATCH:
+          _CONDITION_DESCRIPTOR(
+              weight=1, handler=ContentsLiteralMatchCondition),
+  }
+
+  @staticmethod
+  def _GetConditionWeight(cond):
+    return FileFinderOS._CONDITIONS[cond.condition_type].weight
+
+  @staticmethod
+  def _GetConditionHandler(cond):
+    handler = FileFinderOS._CONDITIONS[cond.condition_type].handler
+    return functools.partial(handler.__func__, cond)
+
   def ParseConditions(self, args):
-    type_enum = rdf_file_finder.FileFinderCondition.Type
-    condition_weights = {
-        type_enum.MODIFICATION_TIME: 0,
-        type_enum.ACCESS_TIME: 0,
-        type_enum.INODE_CHANGE_TIME: 0,
-        type_enum.SIZE: 0,
-        type_enum.CONTENTS_REGEX_MATCH: 1,
-        type_enum.CONTENTS_LITERAL_MATCH: 1,
-    }
-    condition_handlers = {
-        type_enum.MODIFICATION_TIME: self.ModificationTimeCondition,
-        type_enum.ACCESS_TIME: self.AccessTimeCondition,
-        type_enum.INODE_CHANGE_TIME: self.InodeChangeTimeCondition,
-        type_enum.SIZE: self.SizeCondition,
-        type_enum.CONTENTS_REGEX_MATCH: self.ContentsRegexMatchCondition,
-        type_enum.CONTENTS_LITERAL_MATCH: self.ContentsLiteralMatchCondition
-    }
-
-    sorted_conditions = sorted(
-        args.conditions,
-        key=lambda cond: condition_weights[cond.condition_type])
-
-    conditions = []
-    for cond in sorted_conditions:
-      conditions.append(
-          functools.partial(condition_handlers[cond.condition_type], cond))
-    return conditions
+    conditions = sorted(args.conditions, key=self._GetConditionWeight)
+    return map(self._GetConditionHandler, conditions)

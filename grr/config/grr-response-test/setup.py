@@ -74,8 +74,10 @@ setup_args = dict(
     install_requires=[
         "mock==1.3.0",
         "mox==0.5.3",
+        "pytest==3.0.5",
         "selenium==2.50.1",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
+        "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
     ],
     cmdclass={"sdist": Sdist},

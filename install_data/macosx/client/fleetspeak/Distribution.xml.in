@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <title>%(Client.name)</title>
+    <organization>%(ClientBuilder.package_maker_organization)</organization>
+    <pkg-ref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"/>
+    <options customize="never" require-scripts="false" rootVolumeOnly="true"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)" visible="false">
+        <pkg-ref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"/>
+    </choice>
+    <pkg-ref id="%(ClientBuilder.package_maker_organization).%(Client.name).%(Client.name)_%(Source.version_string)"
+    version="%(Source.version_string)"
+    onConclusion="none">%(Client.name)-%(Source.version_string).pkg</pkg-ref>
+</installer-gui-script>

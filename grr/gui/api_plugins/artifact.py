@@ -33,7 +33,6 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     for artifact_val in artifacts:
       descriptor = artifact_registry.ArtifactDescriptor(
           artifact=artifact_val,
-          artifact_source=artifact_val.ToPrettyJson(extended=True),
           dependencies=sorted(artifact_val.GetArtifactDependencies()),
           path_dependencies=sorted(artifact_val.GetArtifactPathDependencies()),
           error_message=artifact_val.error_message,

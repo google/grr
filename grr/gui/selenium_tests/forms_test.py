@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 """Tests for the UI forms."""
+
 
 
 import unittest
@@ -8,6 +10,7 @@ from grr.lib import flags
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 from grr.server import flow
+from grr.server.flows.general import file_finder as flows_file_finder
 
 
 class DefaultArgsTestFlowArgs(rdf_structs.RDFProtoStruct):
@@ -21,7 +24,7 @@ class DefaultArgsTestFlow(flow.GRRFlow):
 
 
 class TestForms(gui_test_lib.GRRSeleniumTest):
-  """Tests for NavigatorView (left side bar)."""
+  """Tests basic forms rendering."""
 
   def testControlsWithoutDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
@@ -78,7 +81,7 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     self.Click("css=#_Filesystem > i.jstree-icon")
-    self.Click("link=File Finder")
+    self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=label:contains(Paths) a[href*='help/user_manual']")
@@ -89,10 +92,110 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     self.Click("css=#_Filesystem > i.jstree-icon")
-    self.Click("link=File Finder")
+    self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=input[placeholder*='Type %% for autocompletion']")
+
+
+class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
+  """Tests forms validation in different workflows ."""
+
+  def setUp(self):
+    super(TestFormsValidation, self).setUp()
+    self.client_urn = self.SetupClients(1)[0]
+    self.RequestAndGrantClientApproval(self.client_urn)
+
+  def testLaunchFlowButtonIsDisabledIfFlowArgumentsInvalid(self):
+    self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
+
+    self.Click("css=#_Filesystem")
+    self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
+
+    # FileFinder's literal match condition has bytes field that should
+    # be validated: it shouldn't contain Unicode characters.
+    self.Click("css=label:contains('Conditions') ~ * button")
+    self.Select("css=label:contains('Condition type') ~ * select",
+                "Contents literal match")
+    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.text-danger:contains('Unicode characters are not "
+                   "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Launch'):disabled")
+
+    self.Type("css=label:contains('Literal') ~ * input", "something safe")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=.text-danger:contains('Unicode characters are not "
+                      "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Launch'):not(:disabled)")
+
+  def testLaunchButtonInCopyFlowIsDisabledIfArgumentsInvalid(self):
+    self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
+
+    # Launch the flow.
+    self.Click("css=#_Filesystem")
+    self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
+    self.Type("css=grr-form-proto-repeated-field:contains('Paths') input",
+              "foo/bar")
+    self.Click("css=button:contains('Launch')")
+
+    # Open the copy dialog.
+    self.Open("/#/clients/%s/flows" % self.client_urn.Basename())
+    self.Click("css=tr:contains('%s')" % flows_file_finder.FileFinder.__name__)
+    self.Click("css=button[name=copy_flow]")
+
+    # FileFinder's literal match condition has bytes field that should
+    # be validated: it shouldn't contain Unicode characters.
+    self.Click("css=label:contains('Conditions') ~ * button")
+    self.Select("css=label:contains('Condition type') ~ * select",
+                "Contents literal match")
+    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.text-danger:contains('Unicode characters are not "
+                   "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Launch'):disabled")
+
+    self.Type("css=label:contains('Literal') ~ * input", "something safe")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=.text-danger:contains('Unicode characters are not "
+                      "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Launch'):not(:disabled)")
+
+  def testNextButtonInHuntWizardIsDisabledIfArgumentsInalid(self):
+    self.Open("/#/hunts")
+    self.Click("css=button[name=NewHunt]")
+
+    self.Click("css=#_Filesystem")
+    self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
+
+    # FileFinder's literal match condition has bytes field that should
+    # be validated: it shouldn't contain Unicode characters.
+    self.Click("css=label:contains('Conditions') ~ * button")
+    self.Select("css=label:contains('Condition type') ~ * select",
+                "Contents literal match")
+    self.Type("css=label:contains('Literal') ~ * input", u"昨夜")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.text-danger:contains('Unicode characters are not "
+                   "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Next'):disabled")
+
+    self.Type("css=label:contains('Literal') ~ * input", "something safe")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=.text-danger:contains('Unicode characters are not "
+                      "allowed in a byte string')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Next'):not(:disabled)")
 
 
 def main(argv):

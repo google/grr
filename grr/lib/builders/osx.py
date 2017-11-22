@@ -89,11 +89,16 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.CleanDirectory(self.script_dir)
 
   def InterpolateFiles(self):
-    build_files_dir = config_lib.Resource().Filter("install_data/macosx/client")
-    self.GenerateFile(
-        input_filename=os.path.join(build_files_dir, "grr.plist.in"),
-        output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
-                                     self.plist_name))
+    if config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+      build_files_dir = config_lib.Resource().Filter(
+          "install_data/macosx/client/fleetspeak")
+    else:
+      build_files_dir = config_lib.Resource().Filter(
+          "install_data/macosx/client")
+      self.GenerateFile(
+          input_filename=os.path.join(build_files_dir, "grr.plist.in"),
+          output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
+                                       self.plist_name))
     # We pass in scripts separately with --scripts so they don't go in pkg_root
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "preinstall.sh.in"),
@@ -138,7 +143,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     utils.EnsureDirExists(self.build_dir)
     utils.EnsureDirExists(self.script_dir)
     utils.EnsureDirExists(self.pkg_root)
-    utils.EnsureDirExists(os.path.join(self.pkg_root, "Library/LaunchDaemons"))
+    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+      utils.EnsureDirExists(
+          os.path.join(self.pkg_root, "Library/LaunchDaemons"))
     utils.EnsureDirExists(os.path.join(self.pkg_root, "usr/local/lib/"))
     utils.EnsureDirExists(self.pkgbuild_out_dir)
     utils.EnsureDirExists(self.prodbuild_out_dir)

@@ -2,10 +2,12 @@
 
   <!-- Configure flow -->
   <grr-wizard-form-page title="What to run?"
-                        is-valid="createHuntArgs.value.flow_name.value">
+                        is-valid="createHuntArgs.value.flow_name.value &&
+                                  !controller.configureFlowPageHasErrors">
 
     <grr-configure-flow-page flow-name="createHuntArgs.value.flow_name.value"
-                             flow-arguments="createHuntArgs.value.flow_args">
+                             flow-arguments="createHuntArgs.value.flow_args"
+                             has-errors="controller.configureFlowPageHasErrors">
     </grr-configure-flow-page>
 
   </grr-wizard-form-page>

@@ -353,11 +353,6 @@ class ClientFileFinder(flow.GRRFlow):
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
 
-  @classmethod
-  def GetDefaultArgs(cls, username=None):
-    del username
-    return cls.args_type(paths=[r"c:\windows\**\*.exe"])
-
   @flow.StateHandler()
   def Start(self):
     """Issue the find request."""
@@ -409,13 +404,14 @@ class ClientFileFinder(flow.GRRFlow):
               response.stat_entry, self.client_id, pool, token=self.token)
         self.SendReply(response)
 
-        # Publish the new file event to cause the file to be added to the
-        # filestore. This is not time critical so do it when we have spare
-        # capacity.
-        self.Publish(
-            "FileStore.AddFileToStore",
-            response.stat_entry.pathspec.AFF4Path(self.client_id),
-            priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
+        if stat.S_ISREG(response.stat_entry.st_mode):
+          # Publish the new file event to cause the file to be added to the
+          # filestore. This is not time critical so do it when we have spare
+          # capacity.
+          self.Publish(
+              "FileStore.AddFileToStore",
+              response.stat_entry.pathspec.AFF4Path(self.client_id),
+              priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
   @flow.StateHandler()
   def End(self, responses):

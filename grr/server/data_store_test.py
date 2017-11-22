@@ -21,6 +21,7 @@ import threading
 import time
 
 import mock
+import pytest
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -1196,7 +1197,7 @@ class DataStoreTestMixin(object):
   OPEN_WITH_LOCK_TRIES_PER_THREAD = 3
   OPEN_WITH_LOCK_SYNC_LOCK_SLEEP = 0.2
 
-  @test_lib.SetLabel("large")
+  @pytest.mark.large
   @DBSubjectLockTest
   def testAFF4OpenWithLock(self):
     self.opened = False
@@ -1586,6 +1587,7 @@ class DataStoreTestMixin(object):
     self.assertEqual(len(stored_notifications), 1)
 
 
+@pytest.mark.benchmark
 class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   """Long running benchmarks where the results are dumped to a CSV file.
 
@@ -1596,7 +1598,6 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
   The CSV output filename will be printed in a log message at the end of the
   test.
   """
-  labels = ["large"]
 
   # What we consider as a big number of attributes.
   BIG_NUM_ATTRIBUTES = 1000
@@ -1977,8 +1978,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self.Register(force=True)
     data_store.DB.Flush()
 
-  @test_lib.SetLabel("benchmark")
-  def manySubjectsFewAttrs(self):
+  @pytest.mark.benchmark
+  def testManySubjectsFewAttrs(self):
     """Database with many subjects with few attributes."""
     subjects = self._FillDatabase(25000, 500)
     self._ReadLinear(subjects, 50)
@@ -1990,8 +1991,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self._DoMix(subjects)
     self._Wipeout(subjects)
 
-  @test_lib.SetLabel("benchmark")
-  def manySubjectsFewWithManyAttrs(self):
+  @pytest.mark.benchmark
+  def testManySubjectsFewWithManyAttrs(self):
     """Database where a few subjects have many attributes."""
     subjects = self._FillDatabase(25000, 500)
     self._UpdateRandom(subjects, 50)
@@ -2006,8 +2007,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self._UpdateRandom(subjects, 50)
     self._Wipeout(subjects)
 
-  @test_lib.SetLabel("benchmark")
-  def fewSubjectsManyAttrs(self):
+  @pytest.mark.benchmark
+  def testFewSubjectsManyAttrs(self):
     """Database with a few subjects with many attributes."""
     subjects = self._FillDatabase(100, 5)
     self._UpdateRandom(subjects, 100)
@@ -2017,8 +2018,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self._ReadRandom(subjects, 50)
     self._Wipeout(subjects)
 
-  @test_lib.SetLabel("benchmark")
-  def blobs(self):
+  @pytest.mark.benchmark
+  def testBlobs(self):
     """Database that stores blobs of increasing size."""
     subjects = self._FillDatabase(10000, 200)
 
@@ -2040,8 +2041,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self._AddBlobs(20, 10240 * 10)
     _ReadUpdate()
 
-  @test_lib.SetLabel("benchmark")
-  def manySubjectsManyAttrs(self):
+  @pytest.mark.benchmark
+  def testManySubjectsManyAttrs(self):
     """Database with many subjects with many attributes."""
     subjects = self._FillDatabase(25000, 500, 50)
     self._ReadLinear(subjects, 50)
@@ -2054,6 +2055,7 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     self._Wipeout(subjects)
 
 
+@pytest.mark.benchmark
 class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
   """Datastore micro benchmarks.
 
@@ -2061,7 +2063,6 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
   """
   queue = rdfvalue.RDFURN("BENCHMARK")
   units = "s"
-  labels = ["large"]
 
   def setUp(self):
     super(DataStoreBenchmarks, self).setUp()
@@ -2143,7 +2144,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
   # write records this far in the past in order to force index creation.
   INDEX_DELAY = rdfvalue.Duration("10m")
 
-  @test_lib.SetLabel("benchmark")
+  @pytest.mark.benchmark
   def testCollections(self):
 
     self.rand = random.Random(42)
@@ -2152,14 +2153,16 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     # Populate and exercise an indexed sequential collection.
     #
 
-    indexed_collection = aff4.FACTORY.Create(
-        "aff4:/test_seq_collection", StringSequentialCollection, mode="rw")
+    urn = rdfvalue.RDFURN("aff4:/test_seq_collection")
+    indexed_collection = StringSequentialCollection(urn)
 
     start_time = time.time()
-    for _ in range(self.RECORDS):
-      indexed_collection.Add(
-          rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
-          timestamp=rdfvalue.RDFDatetime.Now() - self.INDEX_DELAY)
+    with data_store.DB.GetMutationPool() as pool:
+      for _ in range(self.RECORDS):
+        indexed_collection.Add(
+            rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
+            timestamp=rdfvalue.RDFDatetime.Now() - self.INDEX_DELAY,
+            mutation_pool=pool)
     elapsed_time = time.time() - start_time
     self.AddResult("Seq. Coll. Add (size %d)" % self.RECORD_SIZE, elapsed_time,
                    self.RECORDS)
@@ -2196,7 +2199,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
     elapsed_time = time.time() - start_time
     self.AddResult("Seq. Coll. full sequential read", elapsed_time, 1)
 
-  @test_lib.SetLabel("benchmark")
+  @pytest.mark.benchmark
   def testSimulateFlows(self):
     self.flow_ids = []
     self.units = "s"
@@ -2221,7 +2224,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (self.nr_clients,
                     self.nr_dirs * self.files_per_dir), time_used, 1)
 
-    my_worker = worker.GRRWorker(queues=[self.queue])
+    my_worker = worker.GRRWorker(queues=[self.queue], token=self.token)
 
     start_time = time.time()
 
@@ -2233,7 +2236,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     self.AddResult("Process Messages", time_used, 1)
 
-  @test_lib.SetLabel("benchmark")
+  @pytest.mark.benchmark
   def testMicroBenchmarks(self):
 
     # Tests run in arbitrary order but for the benchmarks, the order makes a

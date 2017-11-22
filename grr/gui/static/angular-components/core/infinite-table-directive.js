@@ -72,6 +72,14 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   this.showUntilPage_ = 0;
 
   /**
+   * Counter that's incremented every time a full update is triggered.
+   * This is done so that results of requests that are in-flight when
+   * an update is triggered can be safely ignored.
+   * @private {number}
+   */
+  this.updateCounter_ = 0;
+
+  /**
    * @private {string}
    */
   this.filterValue_;
@@ -259,6 +267,12 @@ InfiniteTableController.prototype.triggerUpdate = function(graceful) {
     }
     this.refreshData_();
   } else {
+    // Make sure that in-flight requests' results will be ignored.
+    this.updateCounter_++;
+    // As we cancel the in-flight requests, it's safe to set these flag to false.
+    this.loadingInProgress_ = false;
+    this.autoRefreshInProgress_ = false;
+
     this.setFetchedItems_([]);
     this.currentPage_ = 0;
     this.rootElement_.html(InfiniteTableController.LOADING_TEMPLATE);
@@ -293,10 +307,21 @@ InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
 
   $(this.rootElement_).find('.table-loading').each(
       function(index, loadingElement) {
-        var loadingOffset = $(loadingElement).offset();
+        var loadingOffset = loadingElement.getBoundingClientRect();
+        // NOTE: using Math.ceil here is important since elementFromPoint is
+        // pixel-sensitive and effectively needs integer coordinates, while
+        // getBoundClientRect is not - it returns floating-point coordinates
+        // when zoom level is other than 100%.
+        //
+        // I.e. getBoundingClientRect may return position (30.9, 40.9)
+        // while what we really want is (31, 41). We also have to add +1 to x
+        // and y coordinates, since the bounding client rect returned by the
+        // getBoundingClientRect() is an outer rectangle and the actual element
+        // is positioned within it.
         var elem = document.elementFromPoint(
-            loadingOffset.left - $(window).scrollLeft() + 1,
-            loadingOffset.top - $(window).scrollTop() + 1);
+            Math.ceil(loadingOffset.left) + 1,
+            Math.ceil(loadingOffset.top) + 1);
+
         if ($(elem).hasClass('table-loading')) {
           this.tableLoadingElementWasShown_();
         } else if (this.showUntilPage_ > this.currentPage_) {
@@ -319,10 +344,14 @@ InfiniteTableController.prototype.refreshData_ = function() {
   }
 
   this.autoRefreshInProgress_ = true;
+
+  var prevUpdateCounter = this.updateCounter_;
   this.itemsProvider.fetchItems(0, this.currentPage_ * this.pageSize_).then(
       function(newItems) {
-        this.autoRefreshInProgress_ = false;
-        this.onAutoRefreshDataFetched_(newItems);
+        if (this.updateCounter_ === prevUpdateCounter) {
+          this.autoRefreshInProgress_ = false;
+          this.onAutoRefreshDataFetched_(newItems);
+        }
       }.bind(this));
 };
 
@@ -405,15 +434,24 @@ InfiniteTableController.prototype.onAutoRefreshDataFetched_ = function(newItems)
 InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
   this.loadingInProgress_ = true;
 
+  var prevUpdateCounter = this.updateCounter_;
   if (!this.filterValue_) {
     this.itemsProvider.fetchItems(
         this.currentPage_ * this.pageSize_,
-        this.pageSize_).then(this.onItemsFetched_.bind(this));
+        this.pageSize_).then(function(values) {
+          if (this.updateCounter_ === prevUpdateCounter) {
+            this.onItemsFetched_(values);
+          }
+        }.bind(this));
   } else {
     this.itemsProvider.fetchFilteredItems(
         this.filterValue_,
         this.currentPage_ * this.pageSize_,
-        this.pageSize_).then(this.onItemsFetched_.bind(this));
+        this.pageSize_).then(function(values) {
+          if (this.updateCounter_ === prevUpdateCounter) {
+            this.onItemsFetched_(values);
+          }
+        }.bind(this));
   }
 };
 

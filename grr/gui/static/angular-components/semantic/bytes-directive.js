@@ -116,8 +116,8 @@ grrUi.semantic.bytesDirective.BytesDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.bytesDirective.BytesDirective.semantic_type =
-    'RDFBytes';
+grrUi.semantic.bytesDirective.BytesDirective.semantic_types =
+    ['RDFBytes', 'str'];
 
 
 });  // goog.scope

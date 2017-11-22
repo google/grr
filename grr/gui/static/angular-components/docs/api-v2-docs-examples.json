@@ -4780,7 +4780,6 @@
                 "http://www.example.com"
               ]
             },
-            "artifactSource": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}",
             "errorMessage": "",
             "isCustom": false
           }

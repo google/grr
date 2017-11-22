@@ -4,7 +4,7 @@ name: LinuxUserProfiles
 doc: |
   Linux user profile information.
 
-  * recent logins in wtmp;
+  * recent logins in wtmp and utmp;
   * user metadata in the output of getpwnam.
 sources:
 - type: GRR_CLIENT_ACTION

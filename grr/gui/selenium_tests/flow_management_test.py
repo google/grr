@@ -593,8 +593,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.IsElementPresent,
         "css=grr-results-collection grr-download-collection-files")
 
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     with data_store.DB.GetMutationPool() as pool:
       flow.GRRFlow.ResultCollectionForFID(f).Add(stat_entry, mutation_pool=pool)
 

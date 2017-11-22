@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Test client actions."""
-
 import __builtin__
 import collections
+import glob
 import os
-import platform
 import posix
 import stat
 
@@ -14,6 +13,7 @@ import psutil
 from grr.client import actions
 from grr.client import client_utils
 from grr.client.client_actions import standard
+from grr.client.client_actions.linux import linux
 
 from grr.lib import flags
 from grr.lib import utils
@@ -22,15 +22,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
-
-if platform.system() == "Linux":
-  # pylint: disable=g-import-not-at-top
-  # Trying to import this module on non-Linux platforms won't work.
-  from grr.client.client_actions.linux import linux
-  # pylint: enable=g-import-not-at-top
-
-
-# pylint: mode=test
 
 
 class ProgressAction(actions.ActionPlugin):
@@ -111,37 +102,21 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""
-    # Linux only
-    if platform.system() != "Linux":
-      return
 
-    path = os.path.join(self.base_path, "VFSFixture/var/log/wtmp")
-    old_open = __builtin__.open
-    old_listdir = os.listdir
-
-    # Mock the open call
     def MockedOpen(requested_path, mode="rb"):
-      # Any calls to open the wtmp get the mocked out version.
-      if "wtmp" in requested_path:
-        self.assertEqual(requested_path, "/var/log/wtmp")
-        return old_open(path)
+      try:
+        fixture_path = os.path.join(self.base_path, "VFSFixture",
+                                    requested_path.lstrip("/"))
+        return __builtin__.open.old_target(fixture_path, mode)
+      except IOError:
+        return __builtin__.open.old_target(requested_path, mode)
 
-      # Everything else has to be opened normally.
-      return old_open(requested_path, mode)
-
-    __builtin__.open = MockedOpen
-    os.listdir = lambda x: ["wtmp"]
-    try:
+    with utils.MultiStubber((__builtin__, "open", MockedOpen),
+                            (glob, "glob", lambda x: ["/var/log/wtmp"])):
       results = self.RunAction(linux.EnumerateUsers)
-    finally:
-      # Restore the original methods.
-      __builtin__.open = old_open
-      os.listdir = old_listdir
 
     found = 0
     for result in results:
-      # This appears in ut_type RUN_LVL, not ut_type USER_PROCESS.
-      self.assertNotEqual("runlevel", result.username)
       if result.username == "user1":
         found += 1
         self.assertEqual(result.last_logon, 1296552099 * 1000000)
@@ -151,6 +126,10 @@ class ActionTest(client_test_lib.EmptyActionTest):
       elif result.username == "user3":
         found += 1
         self.assertEqual(result.last_logon, 1296569997 * 1000000)
+      elif result.username == "utuser":
+        self.assertEqual(result.last_logon, 1510318881 * 1000000)
+      else:
+        self.fail("Unexpected user found: %s" % result.username)
 
     self.assertEqual(found, 3)
 
@@ -247,8 +226,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
       """Only return True for the root path."""
       return path == "/"
 
-    with utils.MultiStubber((os, "statvfs", MockStatFS), (os.path, "ismount",
-                                                          MockIsMount)):
+    with utils.MultiStubber((os, "statvfs", MockStatFS),
+                            (os.path, "ismount", MockIsMount)):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(

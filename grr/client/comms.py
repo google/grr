@@ -586,9 +586,6 @@ class GRRClientWorker(object):
   def ClientMachineIsIdle(self):
     return psutil.cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
 
-  def __del__(self):
-    self.nanny_controller.StopNanny()
-
   def Drain(self, max_size=1024):
     """Return a GrrQueue message list from the queue, draining it.
 
@@ -1121,11 +1118,6 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
   def OutQueueSize(self):
     """Returns the total size of messages ready to be sent."""
     return self._out_queue.Size()
-
-  def __del__(self):
-    # This signals our worker thread to quit.
-    self._in_queue.put(None, block=True)
-    self.nanny_controller.StopNanny()
 
   def OnStartup(self):
     """A handler that is called on client startup."""

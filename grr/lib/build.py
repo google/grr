@@ -314,13 +314,14 @@ class ClientRepacker(BuilderBase):
     """Given a generated client config, attempt to check for common errors."""
     errors = []
 
-    location = config_obj.Get("Client.server_urls", context=self.context)
-    if not location:
-      errors.append("Empty Client.server_urls")
+    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+      location = config_obj.Get("Client.server_urls", context=self.context)
+      if not location:
+        errors.append("Empty Client.server_urls")
 
-    for url in location:
-      if not url.startswith("http"):
-        errors.append("Bad Client.server_urls specified %s" % url)
+      for url in location:
+        if not url.startswith("http"):
+          errors.append("Bad Client.server_urls specified %s" % url)
 
     key_data = config_obj.GetRaw(
         "Client.executable_signing_public_key",
@@ -332,10 +333,11 @@ class ClientRepacker(BuilderBase):
       errors.append(
           "Invalid Client.executable_signing_public_key: %s" % key_data)
 
-    certificate = config_obj.GetRaw(
-        "CA.certificate", default=None, context=self.context)
-    if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
-      errors.append("CA certificate missing from config.")
+    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+      certificate = config_obj.GetRaw(
+          "CA.certificate", default=None, context=self.context)
+      if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
+        errors.append("CA certificate missing from config.")
 
     for bad_opt in ["Client.private_key"]:
       if config_obj.Get(bad_opt, context=self.context, default=""):

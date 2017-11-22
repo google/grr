@@ -205,10 +205,10 @@ class ApiNumberRenderer(ApiValueRenderer):
 class ApiStringRenderer(ApiValueRenderer):
   """Renderer for strings."""
 
-  value_class = basestring
+  value_class = unicode
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
+    return self._IncludeTypeInfo(value, value)
 
 
 class ApiEnumNamedValueRenderer(ApiValueRenderer):
@@ -299,6 +299,19 @@ class ApiRDFBoolRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     return self._IncludeTypeInfo(value != 0, value)
+
+
+class ApiBytesRenderer(ApiValueRenderer):
+  """Renderer for RDFBytes."""
+
+  # ApiStringRenderer renders unicode objects. We assume that
+  # non-unicode strings are effectively bytes and render them
+  # as base64-encoded values.
+  value_class = basestring
+
+  def RenderValue(self, value):
+    result = base64.b64encode(value)
+    return self._IncludeTypeInfo(result, value)
 
 
 class ApiRDFBytesRenderer(ApiValueRenderer):

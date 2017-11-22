@@ -2,6 +2,7 @@
 
 goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
 goog.require('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
+goog.require('grrUi.forms.bytesFormDirective.isByteString');
 
 goog.require('grrUi.forms.module');
 goog.require('grrUi.tests.browserTrigger');
@@ -104,6 +105,23 @@ describe('hexEncodedStringToBytes()', function() {
   });
 });
 
+describe('isByteString()', function() {
+  var isByteString = grrUi.forms.bytesFormDirective.isByteString;
+
+  it('returns true if a string had only characters with car code < 256', function() {
+    var s = '';
+    for (var i = 0; i < 256; ++i) {
+      s += String.fromCharCode(i);
+    }
+
+    expect(isByteString(s)).toBe(true);
+  });
+
+  it('returns false if a string has a character with a char code >= 256', function() {
+    expect(isByteString(String.fromCharCode(256))).toBe(false);
+  });
+});
+
 describe('bytes form directive', function() {
   var $compile, $rootScope, value;
 
@@ -185,5 +203,31 @@ describe('bytes form directive', function() {
     element.find('input').val('\\x0d');
     browserTrigger(element.find('input'), 'change');
     expect(value.value).toBe('DQ==');
+  });
+
+  it('shows a validation message on unicode input', function() {
+    var value = {
+      type: 'RDFBytes',
+      value: ''
+    };
+    var element = renderTestTemplate(value);
+    element.find('input').val('昨');
+    browserTrigger(element.find('input'), 'change');
+
+    expect(element.text()).toContain(
+        'Unicode characters are not allowed in a byte string');
+  });
+
+  it('updates value.validationError on unicode input', function() {
+    var value = {
+      type: 'RDFBytes',
+      value: ''
+    };
+    var element = renderTestTemplate(value);
+    element.find('input').val('昨');
+    browserTrigger(element.find('input'), 'change');
+
+    expect(value.validationError).toContain(
+        'Unicode characters are not allowed in a byte string');
   });
 });

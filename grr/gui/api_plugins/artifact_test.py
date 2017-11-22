@@ -27,12 +27,14 @@ class ArtifactRegistryCleanupMixin(object):
 
   def setUp(self):
     super(ArtifactRegistryCleanupMixin, self).setUp()
+
     registry = artifact_registry.REGISTRY
     self._original_registry_sources = copy.deepcopy(registry._sources)
     self._original_registry_artifacts = copy.deepcopy(registry._artifacts)
 
   def tearDown(self):
     super(ArtifactRegistryCleanupMixin, self).tearDown()
+
     registry = artifact_registry.REGISTRY
     registry._artifacts = self._original_registry_artifacts
     registry._sources = self._original_registry_sources

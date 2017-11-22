@@ -52,6 +52,15 @@ config_lib.DEFINE_string(
     help="Set this to a class name that sanity checks your client "
     "config at repacking time.")
 
+config_lib.DEFINE_string(
+    "ClientBuilder.client_path",
+    default="grr.client.client",
+    help="Full module path for GRR client's main file.")
+
+config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
+                       "Whether the client uses Fleetspeak to communicate "
+                       "with the server.")
+
 
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""
@@ -84,7 +93,7 @@ import platform
 import sys
 
 # By default build in one dir mode.
-client_path = r"%(%(grr.client.client|module_path)|fixpathsep)"
+client_path = r"%(%(%(ClientBuilder.client_path)|module_path)|fixpathsep)"
 
 CHIPSEC_IMPORTS = []
 if platform.system\(\).lower\(\) == 'linux':

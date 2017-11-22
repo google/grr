@@ -13,9 +13,6 @@ import sys
 
 from grr import config as grr_config
 
-# pylint: disable=unused-import
-from grr.client import client_plugins
-# pylint: enable=unused-import
 from grr.client import client_startup
 
 from grr.lib import build

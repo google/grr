@@ -4,7 +4,6 @@
 import json
 import logging
 import os
-import re
 import yaml
 
 from grr.lib import objectfilter
@@ -21,51 +20,199 @@ from grr.server import data_store
 from grr.server import sequential_collection
 
 
-class Error(Exception):
-  """Base exception."""
-
-
-class ConditionError(Error):
+class ConditionError(Exception):
   """An invalid artifact condition was specified."""
 
 
-class ArtifactDefinitionError(Error):
-  """Artifact is not well defined."""
+class ArtifactDefinitionError(Exception):
+  """An exception class thrown upon encountering malformed artifact.
+
+  Args:
+    target: A string representing object for which the error was encountered.
+    details: A string with more details about the problem.
+    cause: An optional exception that triggered the exception.
+  """
+
+  def __init__(self, target, details, cause=None):
+    message = "%s: %s" % (target, details)
+    if cause:
+      message += ": %s" % cause
+
+    super(ArtifactDefinitionError, self).__init__(message)
 
 
-class ArtifactNotRegisteredError(Error):
+class ArtifactSyntaxError(ArtifactDefinitionError):
+  """An exception class representing syntax errors in artifact definition.
+
+  Args:
+    artifact: An artifact object for which the error was encountered.
+    details: A string with more details about syntax problems.
+    cause: An optional exception that triggered the syntax error.
+  """
+
+  def __init__(self, artifact, details, cause=None):
+    super(ArtifactSyntaxError, self).__init__(artifact.name, details, cause)
+
+
+class ArtifactDependencyError(ArtifactDefinitionError):
+  """An exception class representing dependency errors in artifact definition.
+
+  Args:
+    artifact: An artifact object for which the error was encountered.
+    details: A string with more details about dependency problems.
+    cause: An optional exception that triggered the dependency error.
+  """
+
+  def __init__(self, artifact, details, cause=None):
+    super(ArtifactDependencyError, self).__init__(artifact.name, details, cause)
+
+
+class ArtifactSourceSyntaxError(ArtifactDefinitionError):
+  """An exception class representing syntax errors in artifact sources.
+
+  Args:
+    source: An artifact source object for which the error was encountered.
+    details: A string with more details about syntax problems.
+  """
+
+  def __init__(self, source, details):
+    super(ArtifactSourceSyntaxError, self).__init__(source.type, details)
+
+
+class ArtifactNotRegisteredError(Exception):
   """Artifact is not present in the registry."""
+
+
+class ArtifactRegistrySources(object):
+  """Represents sources of the artifact registry used for getting artifacts."""
+
+  def __init__(self):
+    self._dirs = set()
+    self._files = set()
+    self._datastores = set()
+
+  def AddDir(self, dirpath):
+    """Adds a directory path as a source.
+
+    Args:
+      dirpath: a string representing a path to the directory.
+
+    Returns:
+      True if the directory is not an already existing source.
+    """
+    if dirpath not in self._dirs:
+      self._dirs.add(dirpath)
+      return True
+    return False
+
+  def AddFile(self, filepath):
+    """Adds a file path as a source.
+
+    Args:
+      filepath: a string representing a path to the file.
+
+    Returns:
+      True if the file is not an already existing source.
+    """
+    if filepath not in self._files:
+      self._files.add(filepath)
+      return True
+    return False
+
+  def AddDatastore(self, urn):
+    """Adds a datastore URN as a source.
+
+    Args:
+      urn: an RDF URN value of the datastore.
+
+    Returns:
+      True if the datastore is not an already existing source.
+    """
+    if urn not in self._datastores:
+      self._datastores.add(urn)
+      return True
+    return False
+
+  def Clear(self):
+    self._dirs.clear()
+    self._files.clear()
+    self._datastores.clear()
+
+  def GetDirs(self):
+    """Returns an iterator over defined source directory paths."""
+    return iter(self._dirs)
+
+  def GetFiles(self):
+    """Returns an iterator over defined source file paths."""
+    return iter(self._files)
+
+  def GetDatastores(self):
+    """Returns an iterator over defined datastore URNs."""
+    return iter(self._datastores)
+
+  def GetAllFiles(self):
+    """Yields all defined source file paths.
+
+    This includes file paths defined directly and those defined implicitly by
+    defining a directory.
+    """
+    for filepath in self._files:
+      yield filepath
+
+    for dirpath in self._dirs:
+      for filepath in ArtifactRegistrySources._GetDirYamlFiles(dirpath):
+        if filepath in self._files:
+          continue
+        yield filepath
+
+  @staticmethod
+  def _GetDirYamlFiles(dirpath):
+    try:
+      for filename in os.listdir(dirpath):
+        if filename.endswith(".json") or filename.endswith(".yaml"):
+          yield os.path.join(dirpath, filename)
+    except (IOError, OSError) as error:
+      logging.warn("problem with accessing artifact directory '%s': %s",
+                   dirpath, error)
 
 
 class ArtifactRegistry(object):
   """A global registry of artifacts."""
 
-  _artifacts = {}
-  _sources = {"dirs": set(), "files": set(), "datastores": set()}
-  _dirty = False
+  def __init__(self):
+    self._artifacts = {}
+    self._sources = ArtifactRegistrySources()
+    self._dirty = False
 
-  def _LoadArtifactsFromDatastore(self,
-                                  source_urns=None,
-                                  overwrite_if_exists=True):
+  def _LoadArtifactsFromDatastore(self):
     """Load artifacts from the data store."""
     loaded_artifacts = []
+
+    # TODO(hanuszczak): Why do we have to remove anything? If some artifact
+    # tries to shadow system artifact shouldn't we just ignore them and perhaps
+    # issue some warning instead? The datastore being loaded should be read-only
+    # during upload.
+
     # A collection of artifacts that shadow system artifacts and need
     # to be deleted from the data store.
     to_delete = []
 
-    for artifact_coll_urn in source_urns or set():
+    for artifact_coll_urn in self._sources.GetDatastores():
       artifact_coll = ArtifactCollection(artifact_coll_urn)
       for artifact_value in artifact_coll:
         try:
           self.RegisterArtifact(
               artifact_value,
               source="datastore:%s" % artifact_coll_urn,
-              overwrite_if_exists=overwrite_if_exists)
+              overwrite_if_exists=True)
           loaded_artifacts.append(artifact_value)
           logging.debug("Loaded artifact %s from %s", artifact_value.name,
                         artifact_coll_urn)
         except ArtifactDefinitionError as e:
-          if e.message.startswith("System artifact"):
+          # TODO(hanuszczak): String matching on exception message is rarely
+          # a good idea. Instead this should be refectored to some exception
+          # class and then handled separately.
+          if "system artifact" in e.message:
             to_delete.append(artifact_value.name)
           else:
             raise
@@ -73,8 +220,12 @@ class ArtifactRegistry(object):
     if to_delete:
       DeleteArtifactsFromDatastore(to_delete, reload_artifacts=False)
       self._dirty = True
-      raise ArtifactDefinitionError(
-          "Artifacts %s were shadowing system artifacts and had to be deleted.")
+
+      # TODO(hanuszczak): This is connected to the previous TODO comment. Why
+      # do we throw exception at this point? Why do we delete something and then
+      # abort the whole upload procedure by throwing an exception?
+      detail = "system artifacts were shadowed and had to be deleted"
+      raise ArtifactDefinitionError(to_delete, detail)
 
     # Once all artifacts are loaded we can validate.
     revalidate = True
@@ -92,10 +243,10 @@ class ArtifactRegistry(object):
 
   def ArtifactsFromYaml(self, yaml_content):
     """Get a list of Artifacts from yaml."""
-    try:
-      raw_list = list(yaml.safe_load_all(yaml_content))
-    except (ValueError, yaml.YAMLError) as e:
-      raise ArtifactDefinitionError("Invalid YAML for artifact: %s" % e)
+    raw_list = list(yaml.safe_load_all(yaml_content))
+
+    # TODO(hanuszczak): I am very sceptical about that "doing the right thing"
+    # below. What are the real use cases?
 
     # Try to do the right thing with json/yaml formatted as a list.
     if (isinstance(raw_list, list) and len(raw_list) == 1 and
@@ -114,8 +265,8 @@ class ArtifactRegistry(object):
         artifact_value = Artifact(**artifact_dict)
         valid_artifacts.append(artifact_value)
       except (TypeError, AttributeError, type_info.TypeValueError) as e:
-        raise ArtifactDefinitionError("Invalid artifact definition for %s: %s" %
-                                      (artifact_dict.get("name"), e))
+        name = artifact_dict.get("name")
+        raise ArtifactDefinitionError(name, "invalid definition", cause=e)
 
     return valid_artifacts
 
@@ -149,28 +300,25 @@ class ArtifactRegistry(object):
       artifact_value.Validate()
 
   def ClearSources(self):
-    self._sources = {"dirs": set(), "files": set(), "datastores": set()}
+    self._sources.Clear()
     self._dirty = True
 
   def AddFileSource(self, filename):
-    if filename not in self._sources["files"]:
-      self._sources["files"].add(filename)
-      self._dirty = True
+    self._dirty |= self._sources.AddFile(filename)
 
   def AddDirSource(self, dirname):
-    self.AddDirSources([dirname])
+    self._dirty |= self._sources.AddDir(dirname)
 
   def AddDirSources(self, dirnames):
-    for d in dirnames:
-      if d not in self._sources["dirs"]:
-        self._sources["dirs"].add(d)
-        self._dirty = True
+    for dirname in dirnames:
+      self.AddDirSource(dirname)
 
-  def AddDatastoreSources(self, datastores):
-    for d in datastores:
-      if d not in self._sources["datastores"]:
-        self._sources["datastores"].add(d)
-        self._dirty = True
+  def AddDatastoreSource(self, urn):
+    self._dirty |= self._sources.AddDatastore(urn)
+
+  def AddDatastoreSources(self, urns):
+    for urn in urns:
+      self.AddDatastoreSource(urn)
 
   def RegisterArtifact(self,
                        artifact_rdfvalue,
@@ -181,16 +329,15 @@ class ArtifactRegistry(object):
     artifact_name = artifact_rdfvalue.name
     if artifact_name in self._artifacts:
       if not overwrite_if_exists:
-        raise ArtifactDefinitionError(
-            "Artifact named %s already exists and "
-            "overwrite_if_exists is set to False." % artifact_name)
+        details = "artifact already exists and `overwrite_if_exists` is unset"
+        raise ArtifactDefinitionError(artifact_name, details)
       elif not overwrite_system_artifacts:
         artifact_obj = self._artifacts[artifact_name]
         if not artifact_obj.loaded_from.startswith("datastore:"):
           # This artifact was not uploaded to the datastore but came from a
           # file, refuse to overwrite.
-          raise ArtifactDefinitionError("System artifact %s cannot be "
-                                        "overwritten." % artifact_name)
+          details = "system artifact cannot be overwritten"
+          raise ArtifactDefinitionError(artifact_name, details)
 
     # Preserve where the artifact was loaded from to help debugging.
     artifact_rdfvalue.loaded_from = source
@@ -211,19 +358,7 @@ class ArtifactRegistry(object):
   def _ReloadArtifacts(self):
     """Load artifacts from all sources."""
     self._artifacts = {}
-    files_to_load = set()
-    for dir_path in self._sources.get("dirs", set()):
-      try:
-        for file_name in os.listdir(dir_path):
-          if (file_name.endswith(".json") or
-              file_name.endswith(".yaml") and not file_name.startswith("test")):
-            files_to_load.add(os.path.join(dir_path, file_name))
-      except (IOError, OSError):
-        logging.warn("Artifact directory not found: %s", dir_path)
-    files_to_load |= self._sources.get("files", set())
-    logging.debug("Loading artifacts from: %s", files_to_load)
-    self._LoadArtifactsFromFiles(files_to_load)
-
+    self._LoadArtifactsFromFiles(self._sources.GetAllFiles())
     self.ReloadDatastoreArtifacts()
 
   def _UnregisterDatastoreArtifacts(self):
@@ -238,7 +373,7 @@ class ArtifactRegistry(object):
   def ReloadDatastoreArtifacts(self):
     # Make sure artifacts deleted by the UI don't reappear.
     self._UnregisterDatastoreArtifacts()
-    self._LoadArtifactsFromDatastore(self._sources["datastores"])
+    self._LoadArtifactsFromDatastore()
 
   def _CheckDirty(self, reload_datastore_artifacts=False):
     if self._dirty:
@@ -410,62 +545,62 @@ class ArtifactSource(structs.RDFProtoStruct):
   OUTPUT_UNDEFINED = "Undefined"
 
   TYPE_MAP = {
-      "GRR_CLIENT_ACTION": {
+      artifact_pb2.ArtifactSource.GRR_CLIENT_ACTION: {
           "required_attributes": ["client_action"],
           "output_type": OUTPUT_UNDEFINED
       },
-      "FILE": {
+      artifact_pb2.ArtifactSource.FILE: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry"
       },
-      "GREP": {
+      artifact_pb2.ArtifactSource.GREP: {
           "required_attributes": ["paths", "content_regex_list"],
           "output_type": "BufferReference"
       },
-      "DIRECTORY": {
+      artifact_pb2.ArtifactSource.DIRECTORY: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry"
       },
-      "LIST_FILES": {
+      artifact_pb2.ArtifactSource.LIST_FILES: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry"
       },
-      "PATH": {
+      artifact_pb2.ArtifactSource.PATH: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry"
       },
-      "REGISTRY_KEY": {
+      artifact_pb2.ArtifactSource.REGISTRY_KEY: {
           "required_attributes": ["keys"],
           "output_type": "StatEntry"
       },
-      "REGISTRY_VALUE": {
+      artifact_pb2.ArtifactSource.REGISTRY_VALUE: {
           "required_attributes": ["key_value_pairs"],
           "output_type": "RDFString"
       },
-      "WMI": {
+      artifact_pb2.ArtifactSource.WMI: {
           "required_attributes": ["query"],
           "output_type": "Dict"
       },
-      "COMMAND": {
+      artifact_pb2.ArtifactSource.COMMAND: {
           "required_attributes": ["cmd", "args"],
           "output_type": "ExecuteResponse"
       },
-      "REKALL_PLUGIN": {
+      artifact_pb2.ArtifactSource.REKALL_PLUGIN: {
           "required_attributes": ["plugin"],
           "output_type": "RekallResponse"
       },
       # ARTIFACT is the legacy name for ARTIFACT_GROUP
       # per: https://github.com/ForensicArtifacts/artifacts/pull/143
       # TODO(user): remove legacy support after migration.
-      "ARTIFACT": {
+      artifact_pb2.ArtifactSource.ARTIFACT: {
           "required_attributes": ["names"],
           "output_type": OUTPUT_UNDEFINED
       },
-      "ARTIFACT_FILES": {
+      artifact_pb2.ArtifactSource.ARTIFACT_FILES: {
           "required_attributes": ["artifact_list"],
           "output_type": "StatEntry"
       },
-      "ARTIFACT_GROUP": {
+      artifact_pb2.ArtifactSource.ARTIFACT_GROUP: {
           "required_attributes": ["names"],
           "output_type": OUTPUT_UNDEFINED
       }
@@ -481,43 +616,61 @@ class ArtifactSource(structs.RDFProtoStruct):
 
   def Validate(self):
     """Check the source is well constructed."""
+    self._ValidateReturnedTypes()
+    self._ValidatePaths()
+    self._ValidateType()
+    self._ValidateRequiredAttributes()
+    self._ValidateCommandArgs()
 
-    if self.type == "COMMAND":
-      # specifying command execution artifacts with multiple arguments as a
-      # single string is a common mistake. For example the definition
-      # cmd: "ls"
-      # args: [-l -a]
-      # will give you args as ["-l -a"] but that will not work (try ls "-l -a").
-      args = self.attributes.GetItem("args")
-      if args and len(args) == 1 and " " in args[0]:
-        raise ArtifactDefinitionError(
-            "Cannot specify a single argument containing a space: %s." % args)
+  def _ValidateCommandArgs(self):
+    if self.type != ArtifactSource.SourceType.COMMAND:
+      return
 
+    # Specifying command execution artifacts with multiple arguments as a single
+    # string is a common mistake. For example, an artifact with `ls` as a
+    # command and `["-l -a"]` as arguments will not work. Instead, arguments
+    # need to be split into multiple elements like `["-l", "-a"]`.
+    args = self.attributes.GetItem("args")
+    if len(args) == 1 and " " in args[0]:
+      detail = "single argument '%s' containing a space" % args[0]
+      raise ArtifactSourceSyntaxError(self, detail)
+
+  def _ValidateReturnedTypes(self):
+    for rdf_type in self.returned_types:
+      # TODO(hanuszczak): Why do we have to do it like this? Is a simple call
+      # with `isinstance` not enough? Why do we have to use that weird metaclass
+      # machinery here?
+      if rdf_type not in rdfvalue.RDFValue.classes:
+        detail = "invalid return type '%s'" % rdf_type
+        raise ArtifactSourceSyntaxError(self, detail)
+
+  def _ValidatePaths(self):
     # Catch common mistake of path vs paths.
-    if self.attributes.GetItem("paths"):
-      if not isinstance(self.attributes.GetItem("paths"), list):
-        raise ArtifactDefinitionError("Arg 'paths' that is not a list.")
+    paths = self.attributes.GetItem("paths")
+    if paths and not isinstance(paths, list):
+      raise ArtifactSourceSyntaxError(self, "`paths` is not a list")
 
-    if self.attributes.GetItem("path"):
-      if not isinstance(self.attributes.GetItem("path"), basestring):
-        raise ArtifactDefinitionError("Arg 'path' is not a string.")
+    # TODO(hanuszczak): It looks like no collector is using `path` attribute.
+    # Is this really necessary?
+    path = self.attributes.GetItem("path")
+    if path and not isinstance(path, basestring):
+      raise ArtifactSourceSyntaxError(self, "`path` is not a string")
 
-    # Check all returned types.
-    if self.returned_types:
-      for rdf_type in self.returned_types:
-        if rdf_type not in rdfvalue.RDFValue.classes:
-          raise ArtifactDefinitionError("Invalid return type %s" % rdf_type)
+  def _ValidateType(self):
+    # TODO(hanuszczak): Since `type` is an enum, is this validation really
+    # necessary?
+    if self.type not in self.TYPE_MAP:
+      raise ArtifactSourceSyntaxError(self, "invalid type '%s'" % self.type)
 
-    src_type = self.TYPE_MAP.get(str(self.type))
-    if src_type is None:
-      raise ArtifactDefinitionError("Invalid type %s." % self.type)
+  def _ValidateRequiredAttributes(self):
+    required = set(self.TYPE_MAP[self.type].get("required_attributes", []))
+    provided = self.attributes.keys()
+    missing = required.difference(provided)
 
-    required_attributes = src_type.get("required_attributes", [])
-    missing_attributes = set(required_attributes).difference(
-        self.attributes.keys())
-    if missing_attributes:
-      raise ArtifactDefinitionError(
-          "Missing required attributes: %s." % missing_attributes)
+    if missing:
+      quoted = ("'%s'" % attribute for attribute in missing)
+      detail = "missing required attributes: %s" % ", ".join(quoted)
+      raise ArtifactSourceSyntaxError(self, detail)
 
 
 class ArtifactName(rdfvalue.RDFString):
@@ -637,36 +790,6 @@ class Artifact(structs.RDFProtoStruct):
         artifact_dict[field] = []
     return artifact_dict
 
-  def ToExtendedDict(self):
-    artifact_dict = self.ToPrimitiveDict()
-    artifact_dict["dependencies"] = list(self.GetArtifactPathDependencies())
-    return artifact_dict
-
-  def ToPrettyJson(self, extended=False):
-    """Print in json format but customized for pretty artifact display."""
-    if extended:
-      artifact_dict = self.ToExtendedDict()
-    else:
-      artifact_dict = self.ToPrimitiveDict()
-
-    artifact_json = json.dumps(
-        artifact_dict, indent=2, sort_keys=True, separators=(",", ": "))
-
-    # Now tidy up the json for better display. Unfortunately json gives us very
-    # little control over output format, so we manually tidy it up given that
-    # we have a defined format.
-
-    def CompressBraces(name, in_str):
-      return re.sub(r"%s\": \[\n\s+(.*)\n\s+" % name, "%s\": [ \\g<1> " % name,
-                    in_str)
-
-    artifact_json = CompressBraces("conditions", artifact_json)
-    artifact_json = CompressBraces("urls", artifact_json)
-    artifact_json = CompressBraces("labels", artifact_json)
-    artifact_json = CompressBraces("supported_os", artifact_json)
-    artifact_json = re.sub(r"{\n\s+", "{ ", artifact_json)
-    return artifact_json
-
   def ToYaml(self):
     artifact_dict = self.ToPrimitiveDict()
 
@@ -761,82 +884,89 @@ class Artifact(structs.RDFProtoStruct):
     return deps
 
   def ValidateSyntax(self):
-    """Validate artifact syntax.
+    """Validates artifact syntax.
 
     This method can be used to validate individual artifacts as they are loaded,
     without needing all artifacts to be loaded first, as for Validate().
 
     Raises:
-      ArtifactDefinitionError: If artifact is invalid.
+      ArtifactSyntaxError: If artifact syntax is invalid.
     """
-    cls_name = self.name
     if not self.doc:
-      raise ArtifactDefinitionError("Artifact %s has missing doc" % cls_name)
+      raise ArtifactSyntaxError(self, "missing doc")
 
     for supp_os in self.supported_os:
-      if supp_os not in self.SUPPORTED_OS_LIST:
-        raise ArtifactDefinitionError(
-            "Artifact %s has invalid supported_os %s" % (cls_name, supp_os))
+      valid_os = self.SUPPORTED_OS_LIST
+      if supp_os not in valid_os:
+        detail = "invalid `supported_os` ('%s' not in %s)" % (supp_os, valid_os)
+        raise ArtifactSyntaxError(self, detail)
 
     for condition in self.conditions:
+      # FIXME(hanuszczak): It does not look like the code below can throw
+      # `ConditionException`. Do we really need it then?
       try:
         of = objectfilter.Parser(condition).Parse()
         of.Compile(objectfilter.BaseFilterImplementation)
       except ConditionError as e:
-        raise ArtifactDefinitionError(
-            "Artifact %s has invalid condition %s. %s" % (cls_name, condition,
-                                                          e))
+        detail = "invalid condition '%s'" % condition
+        raise ArtifactSyntaxError(self, detail, e)
 
     for label in self.labels:
       if label not in self.ARTIFACT_LABELS:
-        raise ArtifactDefinitionError(
-            "Artifact %s has an invalid label %s. Please use one from "
-            "ARTIFACT_LABELS." % (cls_name, label))
+        raise ArtifactSyntaxError(self, "invalid label '%s'" % label)
 
     # Anything listed in provides must be defined in the KnowledgeBase
     valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()
     for kb_var in self.provides:
       if kb_var not in valid_provides:
-        raise ArtifactDefinitionError(
-            "Artifact %s has broken provides: '%s' not in KB fields: %s" %
-            (cls_name, kb_var, valid_provides))
+        detail = "broken `provides` ('%s' not in %s)" % (kb_var, valid_provides)
+        raise ArtifactSyntaxError(self, detail)
 
     # Any %%blah%% path dependencies must be defined in the KnowledgeBase
     for dep in self.GetArtifactPathDependencies():
       if dep not in valid_provides:
-        raise ArtifactDefinitionError(
-            "Artifact %s has an invalid path dependency: '%s', not in KB "
-            "fields: %s" % (cls_name, dep, valid_provides))
+        detail = "broken path dependencies ('%s' not in %s)" % (dep,
+                                                                valid_provides)
+        raise ArtifactSyntaxError(self, detail)
 
     for source in self.sources:
       try:
         source.Validate()
-      except Error as e:
-        raise ArtifactDefinitionError("Artifact %s has bad source. %s" %
-                                      (cls_name, e))
+      except ArtifactSourceSyntaxError as e:
+        raise ArtifactSyntaxError(self, "bad source", e)
+
+  def ValidateDependencies(self):
+    """Validates artifact dependencies.
+
+    This method checks whether all dependencies of the artifact are present
+    and contain no errors.
+
+    This method can be called only after all other artifacts have been loaded.
+
+    Raises:
+      ArtifactDependencyError: If a dependency is missing or contains errors.
+    """
+    for dependency in self.GetArtifactDependencies():
+      try:
+        dependency_obj = REGISTRY.GetArtifact(dependency)
+      except ArtifactNotRegisteredError as e:
+        raise ArtifactDependencyError(self, "missing dependency", cause=e)
+
+      message = dependency_obj.error_message
+      if message:
+        raise ArtifactDependencyError(self, "dependency error", cause=message)
 
   def Validate(self):
-    """Attempt to validate the artifact has been well defined.
+    """Attempts to validate the artifact has been well defined.
 
-    This is used to enforce Artifact rules. Since it checks all dependencies are
-    present, this method can only be called once all artifacts have been loaded
-    into the registry. Use ValidateSyntax to check syntax for each artifact on
-    import.
+    This checks both syntax and dependencies of the artifact. Because of that,
+    this method can be called only after all other artifacts have been loaded.
 
     Raises:
       ArtifactDefinitionError: If artifact is invalid.
     """
     self.ValidateSyntax()
-
-    try:
-      # Check all artifact dependencies exist.
-      for dependency in self.GetArtifactDependencies():
-        dependency_obj = REGISTRY.GetArtifact(dependency)
-        if dependency_obj.error_message:
-          raise ArtifactDefinitionError(
-              "Dependency %s has an error!" % dependency)
-    except ArtifactNotRegisteredError as e:
-      raise ArtifactDefinitionError(e)
+    self.ValidateDependencies()
 
 
 class ArtifactProcessorDescriptor(structs.RDFProtoStruct):

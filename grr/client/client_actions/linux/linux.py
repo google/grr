@@ -4,6 +4,7 @@
 
 import ctypes
 import ctypes.util
+import glob
 import os
 import pwd
 import time
@@ -205,32 +206,33 @@ class EnumerateUsers(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.User, rdf_client.KnowledgeBaseUser]
 
   def ParseWtmp(self):
-    """Parse wtmp and extract the last logon time."""
+    """Parse wtmp and utmp and extract the last logon time."""
     users = {}
 
     wtmp_struct_size = UtmpStruct.GetSize()
-    for filename in sorted(os.listdir("/var/log")):
-      if filename.startswith("wtmp"):
+    filenames = glob.glob("/var/log/wtmp*") + ["/var/run/utmp"]
+
+    for filename in filenames:
+      try:
+        wtmp = open(filename, "rb").read()
+      except IOError:
+        continue
+
+      for offset in xrange(0, len(wtmp), wtmp_struct_size):
         try:
-          wtmp = open(os.path.join("/var/log", filename), "rb").read()
-        except IOError:
+          record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
+        except RuntimeError:
+          break
+
+        # Users only appear for USER_PROCESS events, others are system.
+        if record.ut_type != 7:
           continue
 
-        for offset in xrange(0, len(wtmp), wtmp_struct_size):
-          try:
-            record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
-          except RuntimeError:
-            break
-
-          # Users only appear for USER_PROCESS events, others are system.
-          if record.ut_type != 7:
-            continue
-
-          try:
-            if users[record.ut_user] < record.tv_sec:
-              users[record.ut_user] = record.tv_sec
-          except KeyError:
+        try:
+          if users[record.ut_user] < record.tv_sec:
             users[record.ut_user] = record.tv_sec
+        except KeyError:
+          users[record.ut_user] = record.tv_sec
 
     return users
 

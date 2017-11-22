@@ -84,7 +84,8 @@ describe('flow form directive', function() {
 
     var template = '<grr-flow-form ' +
         'flow-args="args" flow-runner-args="runnerArgs" ' +
-        'with-output-plugins="withOutputPlugins" />';
+        'with-output-plugins="withOutputPlugins" ' +
+        'has-errors="hasErrors" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -169,4 +170,25 @@ describe('flow form directive', function() {
     expect(directive.scope().$eval(directive.attr('value'))).toEqual([]);
   });
 
+  it('updates has-errors binding if flow arguments are invalid', function() {
+    renderTestTemplate();
+
+    expect($rootScope.hasErrors).toBe(false);
+
+    $rootScope.args['validationError'] = 'Oh no!';
+    $rootScope.$apply();
+
+    expect($rootScope.hasErrors).toBe(true);
+  });
+
+  it('updates has-errors binding if runner arguments are invalid', function() {
+    renderTestTemplate();
+
+    expect($rootScope.hasErrors).toBe(false);
+
+    $rootScope.runnerArgs['validationError'] = 'Oh no!';
+    $rootScope.$apply();
+
+    expect($rootScope.hasErrors).toBe(true);
+  });
 });

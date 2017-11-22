@@ -13,6 +13,7 @@ import sys
 
 
 import psutil
+import pytest
 
 from grr.gui import api_auth_manager
 # This import guarantees that all API-related RDF types will get imported
@@ -78,6 +79,8 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RegressionTestMixin)
 
 
+@pytest.mark.small
+@pytest.mark.api_regression
 class ApiRegressionTest(test_lib.GRRBaseTest):
   """Base class for API handlers regression tests.
 
@@ -103,7 +106,6 @@ class ApiRegressionTest(test_lib.GRRBaseTest):
   handler = None
   # The api_regression label can be used to exclude/include API regression
   # tests from/into test runs.
-  labels = ["small", "api_regression"]
 
   # TODO(user): gpylint claims "Use of super on an old style class", but
   # this class is obviously not an old-style class.

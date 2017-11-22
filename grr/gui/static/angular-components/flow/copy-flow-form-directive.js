@@ -27,6 +27,9 @@ grrUi.flow.copyFlowFormDirective.CopyFlowFormController =
   /** @private {Object} */
   this.flow;
 
+  /** @type {boolean} */
+  this.flowFormHasErrors;
+
   this.scope_.$watchGroup(['flowId', 'clientId'],
                           this.onFlowIdClientIdChange_.bind(this));
 };

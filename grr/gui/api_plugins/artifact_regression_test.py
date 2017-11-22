@@ -3,6 +3,7 @@
 
 
 
+import copy
 import os
 
 
@@ -28,12 +29,16 @@ class ApiListArtifactsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListArtifactsHandlerRegressionTest, self).setUp()
-    self.original_registry_sources = artifact_registry.REGISTRY._sources
+
+    registry = artifact_registry.REGISTRY
+    self.original_registry_sources = copy.deepcopy(registry._sources)
 
   def tearDown(self):
     super(ApiListArtifactsHandlerRegressionTest, self).tearDown()
-    artifact_registry.REGISTRY._sources = self.original_registry_sources
-    artifact_registry.REGISTRY._dirty = True
+
+    registry = artifact_registry.REGISTRY
+    registry._sources = self.original_registry_sources
+    registry._dirty = True
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()

@@ -62,7 +62,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
 
     self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent,
-                   "System artifact TestDrivers cannot be overwritten.")
+                   "TestDrivers: system artifact cannot be overwritten")
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
     self.RequestAndGrantClientApproval("C.0000000000000001")

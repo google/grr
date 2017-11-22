@@ -5,6 +5,7 @@
 
 
 import gzip
+import logging
 import os
 import subprocess
 
@@ -163,7 +164,8 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         standard.HashFile,
         standard.ListDirectory,
         standard.StatFile,
-        standard.TransferBuffer,)
+        standard.TransferBuffer,
+    )
 
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""
@@ -249,7 +251,7 @@ class GRRArtifactTest(ArtifactTest):
       filecontent = open(test_artifacts_file, "rb").read()
       artifact.UploadArtifactYamlFile(filecontent)
       loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
-      self.assertEqual(len(loaded_artifacts), 18)
+      self.assertGreaterEqual(len(loaded_artifacts), 20)
       self.assertIn("DepsWindirRegex", [a.name for a in loaded_artifacts])
 
       # Now dump back to YAML.
@@ -441,8 +443,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           ["LinuxPasswdHomedirs"], client_mock=self.client_mock)
 
       self.assertEqual(len(fd), 3)
-      self.assertItemsEqual([x.username
-                             for x in fd], [u"exomemory", u"gevulot", u"gogol"])
+      self.assertItemsEqual([x.username for x in fd],
+                            [u"exomemory", u"gevulot", u"gogol"])
       for user in fd:
         if user.username == u"exomemory":
           self.assertEqual(user.full_name, u"Never Forget (admin)")
@@ -676,9 +678,9 @@ class GrrKbWindowsTest(GrrKbTest):
       no_deps = collect_obj.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, ["DepsControlSet"])
-      self.assertItemsEqual(collect_obj.state.all_deps, [
-          "environ_windir", "users.username", "current_control_set"
-      ])
+      self.assertItemsEqual(
+          collect_obj.state.all_deps,
+          ["environ_windir", "users.username", "current_control_set"])
       self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
                             ["DepsWindir", "DepsWindirRegex"])
     finally:
@@ -715,11 +717,38 @@ class GrrKbWindowsTest(GrrKbTest):
             "users.homedir", "users.desktop", "users.username",
             "environ_windir", "current_control_set"
         ])
-        self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts, [
-            "DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"
-        ])
+        self.assertItemsEqual(
+            kb_init.state.awaiting_deps_artifacts,
+            ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"])
     finally:
       artifact.ArtifactLoader().RunOnce()
+
+  def _RunKBIFlow(self, artifact_list):
+    self.ClearKB()
+    self.LoadTestArtifacts()
+    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": artifact_list}):
+      logging.disable(logging.CRITICAL)
+      try:
+        for s in flow_test_lib.TestFlowHelper(
+            artifact.KnowledgeBaseInitializationFlow.__name__,
+            self.client_mock,
+            client_id=self.client_id,
+            check_flow_errors=False,
+            token=self.token):
+          session_id = s
+      finally:
+        logging.disable(logging.NOTSET)
+    return session_id
+
+  def testKnowledgeBaseNoProvides(self):
+    session_id = self._RunKBIFlow(["NoProvides"])
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertIn("does not have a provide", flow_obj.context.backtrace)
+
+  def testKnowledgeBaseMultipleProvidesNoDict(self):
+    session_id = self._RunKBIFlow(["TooManyProvides"])
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertIn("multiple provides clauses", flow_obj.context.backtrace)
 
 
 class GrrKbLinuxTest(GrrKbTest):
@@ -784,8 +813,8 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp.
-        self.assertItemsEqual([x.username
-                               for x in kb.users], ["user1", "user2", "user3"])
+        self.assertItemsEqual([x.username for x in kb.users],
+                              ["user1", "user2", "user3"])
         user = kb.GetUser(username="user1")
         self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
         self.assertEqual(user.homedir, "/home/user1")

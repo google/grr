@@ -41,6 +41,9 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
   /** @private {?string} */
   this.defaultOutputPluginName;
 
+  /** @type {boolean} */
+  this.configureFlowPageHasErrors;
+
   this.grrApiService_.get(DEFAULT_PLUGIN_URL).then(function(response) {
     if (angular.isDefined(response['data']['value'])) {
       this.defaultOutputPluginName = response['data']['value']['value'];

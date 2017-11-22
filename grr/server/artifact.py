@@ -22,16 +22,6 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import software
 
 
-class AFF4ResultWriter(object):
-  """A wrapper class to allow writing objects to the AFF4 space."""
-
-  def __init__(self, path, aff4_type, aff4_attribute, mode):
-    self.path = path
-    self.aff4_type = aff4_type
-    self.aff4_attribute = aff4_attribute
-    self.mode = mode
-
-
 def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
   """This generates an artifact knowledge base from a GRR client.
 
@@ -159,7 +149,9 @@ class CollectArtifactDependencies(flow.GRRFlow):
           knowledge_base=self.state.knowledge_base,
           store_results_in_aff4=False,
           next_state="ProcessBase",
-          request_data={"artifact_name": artifact_name})
+          request_data={
+              "artifact_name": artifact_name
+          })
 
   def GetFirstFlowsForCollection(self):
     """Initialize dependencies and calculate first round of flows.
@@ -192,8 +184,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
     # We exclude the original artifacts since we're just fulfilling
     # dependencies, the original flow will collect the artifacts once the
     # dependencies are ready.
-    self.state.awaiting_deps_artifacts = list(name_deps - no_deps_names -
-                                              artifact_set)
+    self.state.awaiting_deps_artifacts = list(
+        name_deps - no_deps_names - artifact_set)
     return no_deps_names
 
   def InitializeKnowledgeBase(self):
@@ -251,8 +243,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
         # If we fulfilled a dependency, make sure we have collected all
         # artifacts that provide the dependency before marking it as fulfilled.
         for dep in deps:
-          required_artifacts = (artifact_registry.REGISTRY.GetArtifactNames(
-              os_name=self.state.knowledge_base.os, provides=[dep]))
+          required_artifacts = artifact_registry.REGISTRY.GetArtifactNames(
+              os_name=self.state.knowledge_base.os, provides=[dep])
           if required_artifacts.issubset(self.state.completed_artifacts):
             self.state.fulfilled_deps.append(dep)
           else:
@@ -314,21 +306,23 @@ class CollectArtifactDependencies(flow.GRRFlow):
           # Attempting to fulfil provides with a Dict response means we are
           # supporting multiple provides based on the keys of the dict.
           kb_dict = response.ToDict()
+        elif len(artifact_provides) == 1:
+          # If its not a dict we only support a single value.
+          kb_dict = {artifact_provides[0]: response}
+        elif not artifact_provides:
+          raise ValueError("Artifact %s does not have a provide clause and "
+                           "can't be used to populate a knowledge base value." %
+                           artifact_obj)
         else:
-          if len(artifact_provides) == 1:
-            # If its not a dict we only support a single value.
-            kb_dict = {artifact_provides[0]: response}
-          else:
-            raise RuntimeError("Attempt to set a knowledge base value with "
-                               "multiple provides clauses without using Dict."
-                               ": %s" % artifact_obj)
+          raise ValueError("Attempt to set a knowledge base value with "
+                           "multiple provides clauses without using Dict."
+                           ": %s" % artifact_obj)
 
         for provides, value in kb_dict.iteritems():
           if provides not in artifact_provides:
-            raise RuntimeError("Attempt to provide knowledge base value %s "
-                               "without this being set in the artifact "
-                               "provides setting: %s" % (provides,
-                                                         artifact_obj))
+            raise ValueError("Attempt to provide knowledge base value %s "
+                             "without this being set in the artifact "
+                             "provides setting: %s" % (provides, artifact_obj))
 
           if isinstance(value, rdfvalue.RDFString):
             value = utils.SmartStr(value)
@@ -532,14 +526,14 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
   return result_iterator
 
 
+ARTIFACT_STORE_ROOT_URN = aff4.ROOT_URN.Add("artifact_store")
+
+
 def UploadArtifactYamlFile(file_content,
-                           base_urn=None,
                            overwrite=True,
                            overwrite_system_artifacts=False):
   """Upload a yaml or json file as an artifact to the datastore."""
   loaded_artifacts = []
-  if not base_urn:
-    base_urn = aff4.ROOT_URN.Add("artifact_store")
   registry_obj = artifact_registry.REGISTRY
   # Make sure all artifacts are loaded so we don't accidentally overwrite one.
   registry_obj.GetArtifacts(reload_datastore_artifacts=True)
@@ -552,7 +546,7 @@ def UploadArtifactYamlFile(file_content,
     new_artifact_names.add(artifact_value.name)
 
   # Iterate through each artifact adding it to the collection.
-  artifact_coll = artifact_registry.ArtifactCollection(base_urn)
+  artifact_coll = artifact_registry.ArtifactCollection(ARTIFACT_STORE_ROOT_URN)
   current_artifacts = list(artifact_coll)
 
   # We need to remove artifacts we are overwriting.
@@ -568,20 +562,20 @@ def UploadArtifactYamlFile(file_content,
     for artifact_value in new_artifacts:
       registry_obj.RegisterArtifact(
           artifact_value,
-          source="datastore:%s" % base_urn,
+          source="datastore:%s" % ARTIFACT_STORE_ROOT_URN,
           overwrite_if_exists=overwrite,
           overwrite_system_artifacts=overwrite_system_artifacts)
       artifact_coll.Add(artifact_value, mutation_pool=pool)
       loaded_artifacts.append(artifact_value)
 
-  logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
+      name = artifact_value.name
+      logging.info("Uploaded artifact %s to %s", name, ARTIFACT_STORE_ROOT_URN)
 
-  # Once all artifacts are loaded we can validate, as validation of dependencies
-  # requires the group are all loaded before doing the validation.
+  # Once all artifacts are loaded we can validate dependencies. Note that we do
+  # not have to perform a syntax validation because it is already done after
+  # YAML is parsed.
   for artifact_value in loaded_artifacts:
-    artifact_value.Validate()
-
-  return base_urn
+    artifact_value.ValidateDependencies()
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
