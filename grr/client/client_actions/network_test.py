@@ -14,12 +14,9 @@ class NetstatActionTest(client_test_lib.EmptyActionTest):
   def testNetstat(self):
 
     result = self.RunAction(network.Netstat)
-    # TODO(user|user): Turn this into an e2e test.
-    # self.assertGreater(len(result), 0)
     for r in result:
       self.assertTrue(r.process_name)
       self.assertTrue(r.local_address)
-      self.assertTrue(r.local_address.port)
 
 
 def main(argv):

@@ -206,7 +206,9 @@ def _CheckIfPathIsValidForDeletion(path, prefix=None, directories=None):
   if prefix and os.path.basename(path).startswith(prefix):
     return True
 
+  path = path.lower()
   for directory in directories or []:
+    directory = directory.lower()
     if os.path.commonprefix([directory, path]) == directory:
       return True
   return False
@@ -240,7 +242,7 @@ def DeleteGRRTempFile(path):
       path, prefix=prefix, directories=directories):
     msg = ("Can't delete temp file %s. Filename must start with %s "
            "or lie within any of %s.")
-    raise ErrorNotTempFile(msg % (path, prefix, directories))
+    raise ErrorNotTempFile(msg % (path, prefix, ";".join(directories)))
 
   if os.path.exists(path):
     # Clear our file handle cache so the file can be deleted.

@@ -363,13 +363,18 @@ class WindowsClientRepacker(ClientRepacker):
     errors = super(WindowsClientRepacker, self).ValidateEndConfig(
         config_obj, errors_fatal=errors_fatal)
 
-    for path in config_obj.GetRaw("Client.tempdir_roots"):
+    install_dir = config_obj["Client.install_path"]
+    for path in config_obj["Client.tempdir_roots"]:
       if path.startswith("/"):
         errors.append(
             "Client.tempdir_root %s starts with /, probably has Unix path." %
             path)
+      if not path.startswith(install_dir):
+        errors.append(
+            "Client.tempdir_root %s is not inside the install_dir %s, this is "
+            "a security risk" % ((path, install_dir)))
 
-    if config_obj.GetRaw("Logging.path").startswith("/"):
+    if config_obj.Get("Logging.path").startswith("/"):
       errors.append("Logging.path starts with /, probably has Unix path. %s" %
                     config_obj["Logging.path"])
 
@@ -588,9 +593,8 @@ class LinuxClientRepacker(ClientRepacker):
 
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
-    self.GenerateDirectory(deb_in_dir,
-                           os.path.join(template_path, "dist/debian"),
-                           [("grr-client", package_name)])
+    self.GenerateDirectory(deb_in_dir, os.path.join(
+        template_path, "dist/debian"), [("grr-client", package_name)])
 
     # Generate directories for the /usr/sbin link.
     utils.EnsureDirExists(

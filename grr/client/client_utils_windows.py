@@ -116,11 +116,15 @@ def WinChmod(filename, acl_list, user=None):
 
 
 def WinVerifyFileOwner(filename):
-  f = win32security.GetFileSecurity(filename,
-                                    win32security.OWNER_SECURITY_INFORMATION)
-  username, _, _ = win32security.LookupAccountSid(
-      None, f.GetSecurityDescriptorOwner())
-  return username == win32api.GetUserName()
+  """Verifies that <filename> is owned by the current user."""
+  # On   Windows  server   OSs,  files   created  by   users  in   the
+  # Administrators group  will be  owned by Administrators  instead of
+  # the user  creating the file  so this  check won't work.   Since on
+  # Windows GRR  uses its own  temp directory inside  the installation
+  # dir, whenever someone  can modify that dir it's  already game over
+  # so this check doesn't add much.
+  del filename
+  return True
 
 
 def WinFindProxies():
