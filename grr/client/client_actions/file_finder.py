@@ -183,71 +183,69 @@ class FileFinderOS(actions.ActionPlugin):
           not stat.S_ISREG(stat_object.st_mode)):
         continue
 
-      result = rdf_file_finder.FileFinderResult()
+      matches = []
 
       # `all` lazily evaluates the generator expresion until first failure.
       conditions = self.ParseConditions(args)
-      if not all(cond(fname, stat_object, result) for cond in conditions):
+      if not all(cond(fname, stat_object, matches) for cond in conditions):
         continue
 
-      if args.action.action_type == args.action.Action.STAT:
-
-        result.stat_entry = self.Stat(fname, stat_object,
-                                      args.action.stat.resolve_links)
+      result = self._ProcessFile(fname, stat_object, args)
+      if result:
+        result.matches = matches
         self.SendReply(result)
-        continue
 
-      else:
-        # For directories, only Stat makes sense.
-        if stat.S_ISDIR(stat_object.st_mode):
-          continue
+  def _ProcessFile(self, fname, stat_object, args):
+    if args.action.action_type == args.action.Action.STAT:
+      return self._ExecuteStat(fname, stat_object, args)
 
-        stat_entry = self.Stat(fname, stat_object, True)
+    # For directories, only Stat makes sense.
+    if stat.S_ISDIR(stat_object.st_mode):
+      return None
 
-      # We never want to hash/download the link, always the target.
-      if stat.S_ISLNK(stat_object.st_mode):
-        try:
-          stat_object = os.stat(fname)
-        except OSError:
-          continue
+    # We never want to hash/download the link, always the target.
+    if stat.S_ISLNK(stat_object.st_mode):
+      try:
+        stat_object = os.stat(fname)
+      except OSError:
+        return None
 
-      if args.action.action_type == args.action.Action.DOWNLOAD:
-        max_bytes = None
-        max_size = args.action.download.max_size
-        if stat_entry.st_size > max_size:
-          policy = args.action.download.oversized_file_policy
-          policy_enum = args.action.download.OversizedFilePolicy
-          if policy == policy_enum.DOWNLOAD_TRUNCATED:
-            max_bytes = max_size
-          elif policy == policy_enum.SKIP:
-            continue
-          else:
-            raise ValueError("Unknown oversized file policy %s." % int(policy))
+    if args.action.action_type == args.action.Action.DOWNLOAD:
+      return self._ExecuteDownload(fname, stat_object, args)
 
-        uploaded_file = self.grr_worker.UploadFile(
-            open(fname, "rb"),
-            args.upload_token,
-            max_bytes=max_bytes,
-            network_bytes_limit=self.network_bytes_limit,
-            session_id=self.session_id,
-            progress_callback=self.Progress)
+    if args.action.action_type == args.action.Action.HASH:
+      return self._ExecuteHash(fname, stat_object, args)
 
-        uploaded_file.stat_entry = stat_entry
-        result.uploaded_file = uploaded_file
+    raise ValueError("incorrect action type: %s" % args.action.action_type)
 
-      elif args.action.action_type == args.action.Action.HASH:
-        result.stat_entry = stat_entry
-        result.hash_entry = self.Hash(fname, stat_object,
-                                      args.action.hash.max_size,
-                                      args.action.hash.oversized_file_policy)
-      self.SendReply(result)
+  def _ExecuteStat(self, fname, stat_object, args):
+    stat_entry = self.Stat(fname, stat_object, args.action.stat.resolve_links)
+
+    return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
+
+  def _ExecuteDownload(self, fname, stat_object, args):
+    stat_entry = self.Stat(fname, stat_object, True)
+    uploaded_file = self.Upload(fname, stat_object, args.action.download,
+                                args.upload_token)
+    if uploaded_file:
+      uploaded_file.stat_entry = stat_entry
+
+    return rdf_file_finder.FileFinderResult(
+        stat_entry=stat_entry, uploaded_file=uploaded_file)
+
+  def _ExecuteHash(self, fname, stat_object, args):
+    stat_entry = self.Stat(fname, stat_object, True)
+    hash_entry = self.Hash(fname, stat_object, args.action.hash)
+
+    return rdf_file_finder.FileFinderResult(
+        stat_entry=stat_entry, hash_entry=hash_entry)
 
   def Stat(self, fname, stat_object, resolve_links):
     if resolve_links and stat.S_ISLNK(stat_object.st_mode):
       try:
         stat_object = os.stat(fname)
       except OSError:
-        return
+        return None
 
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -255,26 +253,21 @@ class FileFinderOS(actions.ActionPlugin):
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
     return files.MakeStatResponse(stat_object, pathspec=pathspec)
 
-  def Hash(self,
-           fname,
-           stat_object,
-           policy_max_hash_size,
-           oversized_file_policy,
-           resolve_links=True):
+  def Hash(self, fname, stat_object, opts):
     file_size = stat_object.st_size
-    if file_size <= policy_max_hash_size:
+    if file_size <= opts.max_size:
       max_hash_size = file_size
     else:
-      ff_opts = rdf_file_finder.FileFinderHashActionOptions
-      if oversized_file_policy == ff_opts.OversizedFilePolicy.SKIP:
-        return
-      elif oversized_file_policy == ff_opts.OversizedFilePolicy.HASH_TRUNCATED:
-        max_hash_size = policy_max_hash_size
+      policy = rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy
+      if opts.oversized_file_policy == policy.SKIP:
+        return None
+      elif opts.oversized_file_policy == policy.HASH_TRUNCATED:
+        max_hash_size = opts.max_size
 
     try:
       file_obj = open(fname, "rb")
     except IOError:
-      return
+      return None
 
     with file_obj:
       hashers, bytes_read = standard_actions.HashFile().HashFile(
@@ -283,6 +276,27 @@ class FileFinderOS(actions.ActionPlugin):
         (k, v.digest()) for k, v in hashers.iteritems()))
     result.num_bytes = bytes_read
     return result
+
+  def Upload(self, fname, stat_object, opts, token):
+    max_bytes = None
+    if stat_object.st_size > opts.max_size:
+      policy = opts.oversized_file_policy
+      policy_enum = opts.OversizedFilePolicy
+      if policy == policy_enum.DOWNLOAD_TRUNCATED:
+        max_bytes = opts.max_size
+      elif policy == policy_enum.SKIP:
+        return None
+      else:
+        raise ValueError("Unknown oversized file policy %s." % int(policy))
+
+    uploaded_file = self.grr_worker.UploadFile(
+        open(fname, "rb"),
+        token,
+        max_bytes=max_bytes,
+        network_bytes_limit=self.network_bytes_limit,
+        session_id=self.session_id,
+        progress_callback=self.Progress)
+    return uploaded_file
 
   def CollectGlobs(self, globs):
     expanded_globs = {}
@@ -445,28 +459,36 @@ class FileFinderOS(actions.ActionPlugin):
     return components
 
   @staticmethod
-  def ModificationTimeCondition(condition_obj, path, stat_obj, result):
+  def ModificationTimeCondition(condition_obj, path, stat_obj, matches):
+    del matches  # Unused.
+
     params = condition_obj.modification_time
     min_mtime = params.min_last_modified_time.AsSecondsFromEpoch()
     max_mtime = params.max_last_modified_time.AsSecondsFromEpoch()
     return min_mtime <= stat_obj.st_mtime <= max_mtime
 
   @staticmethod
-  def AccessTimeCondition(condition_obj, path, stat_obj, result):
+  def AccessTimeCondition(condition_obj, path, stat_obj, matches):
+    del matches  # Unused.
+
     params = condition_obj.access_time
     min_atime = params.min_last_access_time.AsSecondsFromEpoch()
     max_atime = params.max_last_access_time.AsSecondsFromEpoch()
     return min_atime <= stat_obj.st_atime <= max_atime
 
   @staticmethod
-  def InodeChangeTimeCondition(condition_obj, path, stat_obj, result):
+  def InodeChangeTimeCondition(condition_obj, path, stat_obj, matches):
+    del matches  # Unused.
+
     params = condition_obj.inode_change_time
     min_ctime = params.min_last_inode_change_time.AsSecondsFromEpoch()
     max_ctime = params.max_last_inode_change_time.AsSecondsFromEpoch()
     return min_ctime <= stat_obj.st_ctime <= max_ctime
 
   @staticmethod
-  def SizeCondition(condition_obj, path, stat_obj, result):
+  def SizeCondition(condition_obj, path, stat_obj, matches):
+    del matches  # Unused.
+
     params = condition_obj.size
     return params.min_file_size <= stat_obj.st_size <= params.max_file_size
 
@@ -504,12 +526,12 @@ class FileFinderOS(actions.ActionPlugin):
       return start + pos, end - start
 
   @staticmethod
-  def ContentsRegexMatchCondition(condition_obj, path, stat_obj, result):
+  def ContentsRegexMatchCondition(condition_obj, path, stat_obj, matches):
     params = condition_obj.contents_regex_match
     regex = params.regex
 
     matching = functools.partial(FileFinderOS._MatchRegex, regex)
-    return FileFinderOS._ScanForMatches(params, path, matching, result)
+    return FileFinderOS._ScanForMatches(params, path, matching, matches)
 
   @staticmethod
   def _MatchLiteral(literal, chunk, pos):
@@ -520,16 +542,16 @@ class FileFinderOS(actions.ActionPlugin):
       return pos, len(literal)
 
   @staticmethod
-  def ContentsLiteralMatchCondition(condition_obj, path, stat_obj, result):
+  def ContentsLiteralMatchCondition(condition_obj, path, stat_obj, matches):
     params = condition_obj.contents_literal_match
 
     literal = utils.SmartStr(params.literal)
 
     matching = functools.partial(FileFinderOS._MatchLiteral, literal)
-    return FileFinderOS._ScanForMatches(params, path, matching, result)
+    return FileFinderOS._ScanForMatches(params, path, matching, matches)
 
   @staticmethod
-  def _ScanForMatches(params, path, matching_func, result):
+  def _ScanForMatches(params, path, matching_func, matches):
     try:
       fd = open(path, mode="rb")
     except IOError:
@@ -558,7 +580,7 @@ class FileFinderOS(actions.ActionPlugin):
             ))
         if params.mode == params.Mode.FIRST_HIT:
           for finding in findings:
-            result.matches.append(finding)
+            matches.append(finding)
           return True
 
         pos, match_length = matching_func(chunk, pos + 1)
@@ -567,7 +589,7 @@ class FileFinderOS(actions.ActionPlugin):
 
     if findings:
       for finding in findings:
-        result.matches.append(finding)
+        matches.append(finding)
       return True
     else:
       return False

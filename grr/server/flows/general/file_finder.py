@@ -393,7 +393,7 @@ class ClientFileFinder(flow.GRRFlow):
     self.state.files_found = len(responses)
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
-        if response.uploaded_file:
+        if response.uploaded_file.file_id:
           self._CreateAFF4ObjectForUploadedFile(response.uploaded_file)
           # TODO(user): Make the export support UploadedFile directly.
           # This fixes the export which expects the stat_entry in

@@ -7,12 +7,16 @@ import hashlib
 import os
 import shutil
 
+import mock
 import psutil
 
+from grr.client import comms
 from grr.client.client_actions import file_finder as client_file_finder
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -395,6 +399,46 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
                      hashlib.sha1(data).hexdigest())
     self.assertEqual(res.hash_entry.sha256.HexDigest(),
                      hashlib.sha256(data).hexdigest())
+
+  def _RunFileFinderDownloadHello(self, upload, opts=None):
+    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
+    action = rdf_file_finder.FileFinderAction(
+        action_type=action_type, download=opts)
+
+    upload.return_value = rdf_client.UploadedFile(
+        bytes_uploaded=42, file_id="foo", hash=rdf_crypto.Hash())
+
+    hello_path = os.path.join(self.base_path, "hello.exe")
+    return self._RunFileFinder([hello_path], action)
+
+  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
+  def testDownloadActionDefault(self, upload):
+    results = self._RunFileFinderDownloadHello(upload)
+    self.assertEquals(len(results), 1)
+    self.assertTrue(upload.called_with(max_bytes=None))
+    self.assertTrue(results[0].HasField("uploaded_file"))
+    self.assertEquals(results[0].uploaded_file, upload.return_value)
+
+  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
+  def testDownloadActionSkip(self, upload):
+    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+        max_size=0, oversized_file_policy="SKIP")
+
+    results = self._RunFileFinderDownloadHello(upload, opts=opts)
+    self.assertEquals(len(results), 1)
+    self.assertFalse(upload.called)
+    self.assertFalse(results[0].HasField("uploaded_file"))
+
+  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
+  def testDownloadActionTruncate(self, upload):
+    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+        max_size=42, oversized_file_policy="DOWNLOAD_TRUNCATED")
+
+    results = self._RunFileFinderDownloadHello(upload, opts=opts)
+    self.assertEquals(len(results), 1)
+    self.assertTrue(upload.called_with(max_bytes=42))
+    self.assertTrue(results[0].HasField("uploaded_file"))
+    self.assertEquals(results[0].uploaded_file, upload.return_value)
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""

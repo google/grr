@@ -298,15 +298,25 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
     results = list(collection)
-    # Only two instead of the usual four results.
-    self.assertEqual(len(results), 2)
+
+    skipped = []
+    uploaded = []
+    for result in results:
+      if result.uploaded_file.file_id:
+        uploaded.append(result)
+      else:
+        skipped.append(result)
+
+    self.assertEqual(len(uploaded), 2)
+    self.assertEqual(len(skipped), 2)
+
     relpaths = [
         os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
-        for p in results
+        for p in uploaded
     ]
     self.assertItemsEqual(relpaths, ["History.plist", "test.plist"])
 
-    for r in results:
+    for r in uploaded:
       aff4_obj = aff4.FACTORY.Open(
           r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       self.assertEqual(

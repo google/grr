@@ -154,7 +154,7 @@ class GRRRekallProfileServer(CachingProfileServer,
     # Start off getting everything.
     profiles_to_get = set(urn_to_profile)
 
-    for metadata in aff4.FACTORY.Stat(urn_to_profile, token=self.token):
+    for metadata in aff4.FACTORY.Stat(urn_to_profile):
       timestamp = metadata["type"][-1]
       profile_urn = metadata["urn"]
       profile_name = urn_to_profile[profile_urn]
