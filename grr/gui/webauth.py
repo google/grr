@@ -89,6 +89,29 @@ class BasicWebAuthManager(BaseWebAuthManager):
     return response
 
 
+class HTTPWebAuthManager(BaseWebAuthManager):
+  """Manager using external, HTTP based authention (e.g. 
+  shibboleth on apache as a reverse proxy in front of GRR)
+  This Manager assumes that access through the proxy is 
+  well controlled.
+  """
+
+  def SecurityCheck(self, func, request, *args, **kwargs):
+    """Wrapping function."""
+   
+    request.user = request.META.get("HTTP_REMOTE_USER")
+    
+    if not request.user :
+      result = http.HttpResponse("Internal Server Error", status=500)
+      logging.info('Service misconfigured, authentication should be handled by a ' \
+         'reverse proxy before reaching GRR')
+      return result
+
+    # Modify this to implement additional checking (e.g. enforce SSL).
+    response = func(request, *args, **kwargs)
+    return response
+
+
 class FirebaseWebAuthManager(BaseWebAuthManager):
   """Manager using Firebase auth service."""
 
