@@ -16,6 +16,63 @@ from grr.lib import flags
 from grr.test_lib import test_lib
 
 
+class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(RemoteUserWebAuthManagerTest, self).setUp()
+
+    self.manager = webauth.RemoteUserWebAuthManager()
+    self.success_response = werkzeug_wrappers.Response("foobar")
+
+  def HandlerStub(self, request, *args, **kwargs):
+    _ = args
+    _ = kwargs
+
+    return self.success_response
+
+  def testRejectsRequestWithoutRemoteUserHeader(self):
+    environ = werkzeug_test.EnvironBuilder(environ_base={
+        "REMOTE_ADDR": "127.0.0.1"
+    }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    response = self.manager.SecurityCheck(self.HandlerStub, request)
+    self.assertEqual(
+        response.get_data(as_text=True), "No username header found.")
+
+  def testRejectsRequestFromUntrustedIp(self):
+    environ = werkzeug_test.EnvironBuilder(environ_base={
+        "REMOTE_ADDR": "127.0.0.2"
+    }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    response = self.manager.SecurityCheck(self.HandlerStub, request)
+    self.assertEqual(
+        response.get_data(as_text=True),
+        "Request sent from an IP not in AdminUI.remote_user_trusted_ips.")
+
+  def testRejectsRequestWithEmptyUsername(self):
+    environ = werkzeug_test.EnvironBuilder(environ_base={
+        "REMOTE_ADDR": "127.0.0.1",
+        "HTTP_X_REMOTE_USER": ""
+    }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    response = self.manager.SecurityCheck(self.HandlerStub, request)
+    self.assertEqual(
+        response.get_data(as_text=True), "Empty username is not allowed.")
+
+  def testProcessesRequestWithUsernameFromTrustedIp(self):
+    environ = werkzeug_test.EnvironBuilder(environ_base={
+        "REMOTE_ADDR": "127.0.0.1",
+        "HTTP_X_REMOTE_USER": "foo"
+    }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    response = self.manager.SecurityCheck(self.HandlerStub, request)
+    self.assertEqual(response, self.success_response)
+
+
 class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
@@ -62,7 +119,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def testReportsErrorWhenBearerPrefixIsMissing(self):
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "blah"}).get_environ()
+        path="/foo", headers={
+            "Authorization": "blah"
+        }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -77,8 +136,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
   def testPassesThroughHomepageOnVerificationFailure(self, mock_method):
     _ = mock_method
 
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}).get_environ()
+    environ = werkzeug_test.EnvironBuilder(headers={
+        "Authorization": "Bearer blah"
+    }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -92,7 +152,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     _ = mock_method
 
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "Bearer blah"}).get_environ()
+        path="/foo", headers={
+            "Authorization": "Bearer blah"
+        }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -102,8 +164,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   @mock.patch.object(client, "verify_id_token")
   def testVerifiesTokenWithProjectIdFromDomain(self, mock_method):
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}).get_environ()
+    environ = werkzeug_test.EnvironBuilder(headers={
+        "Authorization": "Bearer blah"
+    }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)
@@ -114,7 +177,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
   def testReportsErrorIfIssuerIsWrong(self, mock_method):
     _ = mock_method
     environ = werkzeug_test.EnvironBuilder(
-        path="/foo", headers={"Authorization": "Bearer blah"}).get_environ()
+        path="/foo", headers={
+            "Authorization": "Bearer blah"
+        }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
@@ -131,8 +196,9 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
       })
   def testFillsRequestUserFromTokenEmailOnSuccess(self, mock_method):
     _ = mock_method
-    environ = werkzeug_test.EnvironBuilder(
-        headers={"Authorization": "Bearer blah"}).get_environ()
+    environ = werkzeug_test.EnvironBuilder(headers={
+        "Authorization": "Bearer blah"
+    }).get_environ()
     request = wsgiapp.HttpRequest(environ)
 
     self.manager.SecurityCheck(self.HandlerStub, request)

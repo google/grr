@@ -272,20 +272,19 @@ class AdminUIApp(object):
 
   def _RedirectToRemoteHelp(self, path):
     """Redirect to GitHub-hosted documentation."""
-    allowed_chars = set(string.ascii_letters + string.digits + "._")
+    allowed_chars = set(string.ascii_letters + string.digits + "._-/")
     if not set(path) <= allowed_chars:
       raise RuntimeError("Unusual chars in path %r - "
                          "possible exploit attempt." % path)
 
-    target_path = os.path.join(config.CONFIG["AdminUI.github_docs_location"],
-                               path.replace(".html", ".adoc"))
+    target_path = os.path.join(config.CONFIG["AdminUI.docs_location"], path)
 
     # We have to redirect via JavaScript to have access to and to preserve the
     # URL hash. We don't know the hash part of the url on the server.
     return werkzeug_wrappers.Response(
         """
 <script>
-var friendly_hash = window.location.hash.replace('#_', '#').replace(/_/g, '-');
+var friendly_hash = window.location.hash;
 window.location = '%s' + friendly_hash;
 </script>
 """ % target_path,
@@ -327,10 +326,11 @@ window.location = '%s' + friendly_hash;
       return e
 
   def WSGIHandler(self):
-    return werkzeug_wsgi.SharedDataMiddleware(self, {
-        "/static": config.CONFIG["AdminUI.document_root"],
-        "/local/help": config.CONFIG["AdminUI.help_root"]
-    })
+    return werkzeug_wsgi.SharedDataMiddleware(
+        self, {
+            "/static": config.CONFIG["AdminUI.document_root"],
+            "/local/help": config.CONFIG["AdminUI.help_root"]
+        })
 
 
 class GuiPluginsInit(registry.InitHook):

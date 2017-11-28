@@ -94,8 +94,8 @@ message ApiClientActionRequest {
 message ApiSearchClientsArgs {
   optional string query = 1 [(sem_type) = {
       description: "Search query string. See here for syntax: "
-      "https://github.com/google/grr-doc/blob/master/"
-      "user_manual.adoc#searching-for-a-client"
+      "https://grr-doc.readthedocs.io/en/v3.2.0/investigating-with-grr/"
+      "searching-for-client.html"
   }];
   optional int64 offset = 2 [(sem_type) = {
       description: "Found clients starting offset."

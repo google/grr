@@ -125,7 +125,7 @@ SearchBoxController.prototype.checkHunt_ = function(huntId) {
  * @const
  */
 SearchBoxController.prototype.contextHelpUrl =
-    'user_manual.html#searching-for-a-client';
+      'investigating-with-grr/searching-for-client.html';
 
 
 /**

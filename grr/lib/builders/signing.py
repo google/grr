@@ -151,37 +151,41 @@ class RPMCodeSigner(CodeSigner):
       logging.exception("Couldn't import public key %s", public_key_file)
       raise SigningError("Couldn't import public key %s" % public_key_file)
 
-  def AddSignatureToRPM(self, rpm_filename):
+  def AddSignatureToRPMs(self, rpm_filenames):
     """Sign RPM with rpmsign."""
     # The horrible second argument here is necessary to get a V3 signature to
     # support CentOS 5 systems. See:
     # http://ilostmynotes.blogspot.com/2016/03/the-horror-of-signing-rpms-that-support.html
     args = [
         "--define=%%_gpg_name %s" % self.gpg_name,
-        ("--define=__gpg_sign_cmd %%{__gpg} gpg --force-v3-sigs "
-         "--digest-algo=sha1 --batch --no-verbose --no-armor --passphrase-fd 3 "
+        ("--define=__gpg_sign_cmd %%{__gpg} gpg --force-v3-sigs --yes "
+         "--digest-algo=sha1 --no-verbose --no-armor --pinentry-mode loopback "
          "--no-secmem-warning -u '%s' -sbo %%{__signature_filename} "
-         "%%{__plaintext_filename}" % self.gpg_name), "--addsign", rpm_filename
-    ]
+         "%%{__plaintext_filename}" % self.gpg_name), "--addsign"
+    ] + rpm_filenames
 
     try:
       output_log = cStringIO.StringIO()
-      rpmsign = pexpect.spawn("rpmsign", args)
+      rpmsign = pexpect.spawn("rpmsign", args, timeout=1000)
       # Use logfile_read so we don't get the password we're injecting.
       rpmsign.logfile_read = output_log
-      rpmsign.expect("Enter pass phrase:")
+      rpmsign.expect("phrase:")
       rpmsign.sendline(self.password)
       rpmsign.wait()
+    except pexpect.exceptions.EOF:
+      # This could have worked using a cached passphrase, we check for the
+      # actual signature below and raise if the package wasn't signed after all.
+      pass
     except pexpect.ExceptionPexpect:
-      output_log.seek(0)
-      logging.exception(output_log.read())
+      logging.error(output_log.getvalue())
       raise
 
-    try:
-      # Expected output is: filename.rpm: rsa sha1 (md5) pgp md5 OK
-      output = subprocess.check_output(["rpm", "--checksig", rpm_filename])
-      if "pgp" not in output:
-        raise SigningError("PGP missing checksig %s" % rpm_filename)
-    except subprocess.CalledProcessError:
-      logging.exception("Bad signature verification on %s", rpm_filename)
-      raise SigningError("Bad signature verification on %s" % rpm_filename)
+    for rpm_filename in rpm_filenames:
+      try:
+        # Expected output is: filename.rpm: rsa sha1 (md5) pgp md5 OK
+        output = subprocess.check_output(["rpm", "--checksig", rpm_filename])
+        if "pgp" not in output:
+          raise SigningError("PGP missing checksig %s" % rpm_filename)
+      except subprocess.CalledProcessError:
+        logging.exception("Bad signature verification on %s", rpm_filename)
+        raise SigningError("Bad signature verification on %s" % rpm_filename)

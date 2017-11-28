@@ -729,7 +729,7 @@ class CentosClientRepacker(LinuxClientRepacker):
 
   def Sign(self, rpm_filename):
     if self.signer:
-      return self.signer.AddSignatureToRPM(rpm_filename)
+      return self.signer.AddSignatureToRPMs([rpm_filename])
 
   def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .rpm."""

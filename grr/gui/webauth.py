@@ -89,6 +89,41 @@ class BasicWebAuthManager(BaseWebAuthManager):
     return response
 
 
+class RemoteUserWebAuthManager(BaseWebAuthManager):
+  """Manager that reads remote username from HTTP headers.
+
+  NOTE: This manager should only be used when GRR UI runs behind an
+  reverse http proxy (Apache, Nginx, etc). It assumes that
+  authentication is done by the reverse http proxy server and the
+  authenticated username is passed to GRR via a HTTP header.
+  """
+
+  def __init__(self, *args, **kwargs):
+    super(RemoteUserWebAuthManager, self).__init__(*args, **kwargs)
+
+    self.remote_user_header = config.CONFIG["AdminUI.remote_user_header"]
+    self.trusted_ips = config.CONFIG["AdminUI.remote_user_trusted_ips"]
+
+  def AuthError(self, message):
+    return werkzeug_wrappers.Response(message, status=403)
+
+  def SecurityCheck(self, func, request, *args, **kwargs):
+    if request.remote_addr not in self.trusted_ips:
+      return self.AuthError("Request sent from an IP not in "
+                            "AdminUI.remote_user_trusted_ips.")
+
+    try:
+      username = request.headers[self.remote_user_header]
+    except KeyError:
+      return self.AuthError("No username header found.")
+
+    if not username:
+      return self.AuthError("Empty username is not allowed.")
+
+    request.user = username
+    return func(request, *args, **kwargs)
+
+
 class FirebaseWebAuthManager(BaseWebAuthManager):
   """Manager using Firebase auth service."""
 

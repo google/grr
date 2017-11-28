@@ -16,7 +16,8 @@ from grr.proto import sysinfo_pb2
 class RegularExpression(rdfvalue.RDFString):
   """A semantic regular expression."""
 
-  context_help_url = "user_manual.html#_regex_matches"
+  context_help_url = ("investigating-with-grr/flows/"
+                      "literal-and-regex-matching.html#regex-matches")
 
   def ParseFromString(self, value):
     super(RegularExpression, self).ParseFromString(value)
@@ -53,7 +54,8 @@ class RegularExpression(rdfvalue.RDFString):
 class LiteralExpression(rdfvalue.RDFBytes):
   """A RDFBytes literal for use in GrepSpec."""
 
-  context_help_url = "user_manual.html#_literal_matches"
+  context_help_url = ("investigating-with-grr/flows/"
+                      "literal-and-regex-matching.html#literal-matches")
 
 
 class EmailAddress(rdfvalue.RDFString):

@@ -14,7 +14,7 @@
 
   <!-- Configure hunt -->
   <grr-wizard-form-page title="Hunt parameters"
-                        help-link="/help/user_manual.html#hunt-parameters">
+                        help-link="/help/investigating-with-grr/hunts/limits.html">
     <grr-configure-hunt-page hunt-runner-args="createHuntArgs.value.hunt_runner_args">
     </grr-configure-hunt-page>
   </grr-wizard-form-page>
@@ -29,7 +29,8 @@
   </grr-wizard-form-page>
 
   <!-- Configure rules -->
-  <grr-wizard-form-page title="Where to run?">
+  <grr-wizard-form-page title="Where to run?"
+                        help-link="/help/investigating-with-grr/hunts/rules.html">
 
     <grr-configure-rules-page
         client-rule-set="createHuntArgs.value.hunt_runner_args.value.client_rule_set">

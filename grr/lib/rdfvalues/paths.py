@@ -266,7 +266,7 @@ class GlobExpression(rdfvalue.RDFString):
   3) Wild cards like * and ?
   """
 
-  context_help_url = "user_manual.html#_path_globbing"
+  context_help_url = "investigating-with-grr/flows/specifying-file-paths.html"
 
   RECURSION_REGEX = re.compile(r"\*\*(\d*)")
 
@@ -321,8 +321,8 @@ class GlobExpression(rdfvalue.RDFString):
     else:
       return re.escape(part)
 
-  REGEX_SPLIT_PATTERN = re.compile("(" + "|".join(
-      ["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
+  REGEX_SPLIT_PATTERN = re.compile(
+      "(" + "|".join(["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
 
   def AsRegEx(self):
     """Return the current glob as a simple regex.

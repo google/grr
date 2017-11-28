@@ -83,8 +83,9 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.Click("css=#_Filesystem > i.jstree-icon")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=label:contains(Paths) a[href*='help/user_manual']")
+    self.WaitUntil(self.IsElementPresent, "css=label:contains(Paths) "
+                   "a[href*='help/investigating-with-grr/flows/"
+                   "specifying-file-paths.html']")
 
   def testFileFinderArgsHasOnePathAddedByDefault(self):
     self.Open("/#/hunts")

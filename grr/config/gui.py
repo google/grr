@@ -29,6 +29,13 @@ config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.")
 
+config_lib.DEFINE_string("AdminUI.remote_user_header", "X-Remote-User",
+                         "Header containing authenticated user's username. "
+                         "Used by RemoteUserWebAuthManager.")
+config_lib.DEFINE_list("AdminUI.remote_user_trusted_ips", ["127.0.0.1"],
+                       "Only requests coming from these IPs will be processed "
+                       "by RemoteUserWebAuthManager.")
+
 config_lib.DEFINE_string("AdminUI.firebase_api_key", None,
                          "Firebase API key. Used by FirebaseWebAuthManager.")
 config_lib.DEFINE_string("AdminUI.firebase_auth_domain", None,
@@ -81,9 +88,11 @@ config_lib.DEFINE_string("AdminUI.report_url",
 config_lib.DEFINE_string("AdminUI.help_url", "/help/index.html",
                          "URL of the 'Help' link.")
 
-config_lib.DEFINE_string("AdminUI.github_docs_location",
-                         "https://github.com/google/grr-doc/blob/master",
-                         "Base path for GitHub-hosted GRR documentation. ")
+config_lib.DEFINE_string(
+    "AdminUI.docs_location",
+    "https://grr-doc.readthedocs.io/en/v%(Source.version_major)."
+    "%(Source.version_minor).%(Source.version_revision)",
+    "Base path for GRR documentation. ")
 
 config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin", None,
                          "Output plugin that will be added by default in the "
