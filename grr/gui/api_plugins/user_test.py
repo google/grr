@@ -204,8 +204,8 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
       self.handler.Handle(self.args, token=self.token)
 
     self.assertEqual(len(addresses), 1)
-    self.assertEqual(addresses[0], ("approver", self.token.username,
-                                    "test@example.com"))
+    self.assertEqual(addresses[0],
+                     ("approver", self.token.username, "test@example.com"))
 
 
 class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -534,12 +534,12 @@ class ApiListCronJobApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(len(result.items), 1)
 
 
-class ApiGetGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiGetGrrUserHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiGetGrrUserHandler()
+    super(ApiGetOwnGrrUserHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiGetOwnGrrUserHandler()
 
   def testRendersObjectForNonExistingUser(self):
     result = self.handler.Handle(
@@ -568,7 +568,7 @@ class ApiGetGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
         None, token=access_control.ACLToken(username="foo"))
     self.assertFalse(result.interface_traits.create_hunt_action_enabled)
 
-    handler = user_plugin.ApiGetGrrUserHandler(
+    handler = user_plugin.ApiGetOwnGrrUserHandler(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits(
             create_hunt_action_enabled=True))
     result = handler.Handle(None, token=access_control.ACLToken(username="foo"))

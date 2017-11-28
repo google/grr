@@ -22,12 +22,14 @@ import unittest
 
 from grr_api_client import api as grr_api
 from grr_api_client import errors as grr_api_errors
+from grr_api_client import root as grr_api_root
 from grr_api_client import utils as grr_api_utils
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp
 from grr.gui import wsgiapp_testlib
+from grr.gui.root import api_root_router
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -379,8 +381,9 @@ class ApiClientLibHuntTest(ApiE2ETest, standard_test.StandardHuntTestMixin):
     self.hunt_obj.Run()
 
     client_ids = self.SetupClients(2)
-    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(
-        client_id, self.token)) for client_id in client_ids])
+    client_mocks = dict([(client_id,
+                          flow_test_lib.CrashClientMock(client_id, self.token))
+                         for client_id in client_ids])
     self.AssignTasksToClients(client_ids)
     hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
                                                   self.token)
@@ -904,6 +907,10 @@ class ApiClientLibApprovalsTest(ApiE2ETest,
     })
     self.config_overrider.Start()
 
+    # Force creation of new APIAuthorizationManager, so that configuration
+    # changes are picked up.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
+
   def tearDown(self):
     super(ApiClientLibApprovalsTest, self).tearDown()
     self.config_overrider.Stop()
@@ -1151,6 +1158,104 @@ class ApprovalByLabelE2ETest(ApiE2ETest):
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Client(
                           self.client_prod_id).File("fs/os/foo").Get)
+
+
+class RootApiUserManagementTest(ApiE2ETest):
+  """E2E test for root API user management calls."""
+
+  def setUp(self):
+    super(RootApiUserManagementTest, self).setUp()
+
+    self.config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": api_root_router.ApiRootRouter.__name__
+    })
+    self.config_overrider.Start()
+
+    # Force creation of new APIAuthorizationManager, so that configuration
+    # changes are picked up.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
+
+  def tearDown(self):
+    super(RootApiUserManagementTest, self).tearDown()
+    self.config_overrider.Stop()
+
+  def testStandardUserIsCorrectlyAdded(self):
+    user = self.api.root.CreateGrrUser(username="user_foo")
+    self.assertEqual(user.username, "user_foo")
+    self.assertEqual(user.data.username, "user_foo")
+    self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
+
+  def testAdminUserIsCorrectlyAdded(self):
+    user = self.api.root.CreateGrrUser(
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+    self.assertEqual(user.username, "user_foo")
+    self.assertEqual(user.data.username, "user_foo")
+    self.assertEqual(user.data.user_type, user.USER_TYPE_ADMIN)
+
+    user_obj = aff4.FACTORY.Open("aff4:/users/user_foo", token=self.token)
+    self.assertIsNone(user_obj.Get(user_obj.Schema.PASSWORD))
+
+  def testStandardUserWithPasswordIsCorrectlyAdded(self):
+    user = self.api.root.CreateGrrUser(username="user_foo", password="blah")
+    self.assertEqual(user.username, "user_foo")
+    self.assertEqual(user.data.username, "user_foo")
+    self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
+
+    user_obj = aff4.FACTORY.Open("aff4:/users/user_foo", token=self.token)
+    self.assertTrue(
+        user_obj.Get(user_obj.Schema.PASSWORD).CheckPassword("blah"))
+
+  def testUserModificationWorksCorrectly(self):
+    user = self.api.root.CreateGrrUser(username="user_foo")
+    self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
+
+    user = user.Modify(user_type=user.USER_TYPE_ADMIN)
+    self.assertEqual(user.data.user_type, user.USER_TYPE_ADMIN)
+
+    user = user.Modify(user_type=user.USER_TYPE_STANDARD)
+    self.assertEqual(user.data.user_type, user.USER_TYPE_STANDARD)
+
+  def testUserPasswordCanBeModified(self):
+    user = self.api.root.CreateGrrUser(username="user_foo", password="blah")
+
+    user_obj = aff4.FACTORY.Open("aff4:/users/user_foo", token=self.token)
+    self.assertTrue(
+        user_obj.Get(user_obj.Schema.PASSWORD).CheckPassword("blah"))
+
+    user = user.Modify(password="ohno")
+
+    user_obj = aff4.FACTORY.Open("aff4:/users/user_foo", token=self.token)
+    self.assertTrue(
+        user_obj.Get(user_obj.Schema.PASSWORD).CheckPassword("ohno"))
+
+  def testUsersAreCorrectlyListed(self):
+    for i in range(10):
+      self.api.root.CreateGrrUser(username="user_%d" % i)
+
+    users = sorted(self.api.root.ListGrrUsers(), key=lambda u: u.username)
+
+    self.assertEqual(len(users), 10)
+    for i, u in enumerate(users):
+      self.assertEqual(u.username, "user_%d" % i)
+      self.assertEqual(u.username, u.data.username)
+
+  def testUserCanBeFetched(self):
+    self.api.root.CreateGrrUser(
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+
+    user = self.api.root.GrrUser("user_foo").Get()
+    self.assertEqual(user.username, "user_foo")
+    self.assertEqual(user.data.user_type, grr_api_root.GrrUser.USER_TYPE_ADMIN)
+
+  def testUserCanBeDeleted(self):
+    self.api.root.CreateGrrUser(
+        username="user_foo", user_type=grr_api_root.GrrUser.USER_TYPE_ADMIN)
+
+    user = self.api.root.GrrUser("user_foo").Get()
+    user.Delete()
+
+    with self.assertRaises(grr_api_errors.ResourceNotFoundError):
+      self.api.root.GrrUser("user_foo").Get()
 
 
 def main(argv):

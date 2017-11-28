@@ -7,6 +7,5 @@ sources:
   attributes:
     artifact_list: [ListProcessesGrr]
     pathspec_attribute: exe
-  returned_types: [Process]
 labels: [Processes, Software]
 supported_os: [Windows, Linux, Darwin]

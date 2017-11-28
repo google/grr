@@ -607,6 +607,44 @@ class Factory(object):
         pool.MultiSet(new_urn, values, replace=False)
         self._UpdateChildIndex(new_urn, pool)
 
+  def ExistsWithType(self,
+                     urn,
+                     aff4_type=None,
+                     follow_symlinks=True,
+                     age=NEWEST_TIME,
+                     token=None):
+    """Checks if an object with a given URN and type exists in the datastore.
+
+    Args:
+      urn: The urn to check.
+      aff4_type: Expected object type.
+      follow_symlinks: If object opened is a symlink, follow it.
+      age: The age policy used to check this object. Should be either
+         NEWEST_TIME or a time range given as a tuple (start, end) in
+         microseconds since Jan 1st, 1970.
+      token: The Security Token to use for opening this item.
+
+    Raises:
+      ValueError: if aff4_type is not specified.
+
+    Returns:
+      True if there's an object with a matching type at a given URN, False
+      otherwise.
+    """
+    if not aff4_type:
+      raise ValueError("aff4_type can't be None")
+
+    try:
+      self.Open(
+          urn,
+          aff4_type=aff4_type,
+          follow_symlinks=follow_symlinks,
+          age=age,
+          token=token)
+      return True
+    except InstantiationError:
+      return False
+
   def Open(self,
            urn,
            aff4_type=None,
@@ -913,14 +951,6 @@ class Factory(object):
         elif v[0] == "metadata:last":
           res["last"] = rdfvalue.RDFDatetime(v[1])
       yield res
-
-  def Exists(self, urn):
-    """Returns whether the provided urn exists."""
-    try:
-      self.Stat(urn).next()
-      return True
-    except StopIteration:
-      return False
 
   def Create(self,
              urn,

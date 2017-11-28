@@ -37,7 +37,7 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
         getattr(router, name)(None, token=None)
 
   def testGetAnnotatedMethodsReturnsNonEmptyDict(self):
-    methods = api_call_router.ApiCallRouter.GetAnnotatedMethods()
+    methods = api_call_router.ApiCallRouterStub.GetAnnotatedMethods()
     self.assertTrue(methods)
 
   def testGetAnnotatedMethodsReturnsMethodsFromAllClassesInMroChain(self):

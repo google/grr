@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import os
-import tempfile
-
 import mock
 
 import unittest
@@ -57,53 +54,41 @@ class ArtifactRegistrySourcesTest(unittest.TestCase):
     self.assertIn(rdfvalue.RDFURN("aff4:/bars"), datastores)
 
   def testGetAllFiles(self):
-    tmpdir_path = test_lib.TempDirPath()
-    _, foo_path = tempfile.mkstemp(suffix="foo.yaml")
-    _, bar_path = tempfile.mkstemp(suffix="bar.json")
-    _, baz_path = tempfile.mkstemp(suffix="baz.yaml")
-    _, quux_path = tempfile.mkstemp(dir=tmpdir_path, suffix="quux.yaml")
-    _, norf_path = tempfile.mkstemp(dir=tmpdir_path, suffix="norf.json")
-    _, thud_path = tempfile.mkstemp(dir=tmpdir_path, suffix="thud.xml")
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as tmpdir_path:
+      foo_path = test_lib.TempFilePath(suffix="foo.yaml")
+      bar_path = test_lib.TempFilePath(suffix="bar.json")
+      baz_path = test_lib.TempFilePath(suffix="baz.yaml")
+      quux_path = test_lib.TempFilePath(dir=tmpdir_path, suffix="quux.yaml")
+      norf_path = test_lib.TempFilePath(dir=tmpdir_path, suffix="norf.json")
+      thud_path = test_lib.TempFilePath(dir=tmpdir_path, suffix="thud.xml")
 
-    self.sources.AddFile(foo_path)
-    self.sources.AddFile(bar_path)
-    self.sources.AddDir(tmpdir_path)
+      self.sources.AddFile(foo_path)
+      self.sources.AddFile(bar_path)
+      self.sources.AddDir(tmpdir_path)
 
-    files = list(self.sources.GetAllFiles())
-    self.assertIn(foo_path, files)
-    self.assertIn(bar_path, files)
-    self.assertIn(quux_path, files)
-    self.assertIn(norf_path, files)
-    self.assertNotIn(baz_path, files)
-    self.assertNotIn(thud_path, files)
-
-    os.remove(foo_path)
-    os.remove(bar_path)
-    os.remove(baz_path)
-    os.remove(quux_path)
-    os.remove(norf_path)
-    os.remove(thud_path)
-    os.rmdir(tmpdir_path)
+      files = list(self.sources.GetAllFiles())
+      self.assertIn(foo_path, files)
+      self.assertIn(bar_path, files)
+      self.assertIn(quux_path, files)
+      self.assertIn(norf_path, files)
+      self.assertNotIn(baz_path, files)
+      self.assertNotIn(thud_path, files)
 
   @mock.patch("logging.warn")
   def testGetAllFilesErrors(self, warn):
-    foo_dirpath = test_lib.TempDirPath()
-    bar_dirpath = test_lib.TempDirPath()
+    with test_lib.AutoTempDirPath() as foo_dirpath,\
+         test_lib.AutoTempDirPath() as bar_dirpath:
+      self.assertTrue(self.sources.AddDir(foo_dirpath))
+      self.assertTrue(self.sources.AddDir("/baz/quux/norf"))
+      self.assertTrue(self.sources.AddDir(bar_dirpath))
+      self.assertTrue(self.sources.AddDir("/thud"))
+      self.assertTrue(self.sources.AddDir("/foo/bar"))
 
-    self.assertTrue(self.sources.AddDir(foo_dirpath))
-    self.assertTrue(self.sources.AddDir("/baz/quux/norf"))
-    self.assertTrue(self.sources.AddDir(bar_dirpath))
-    self.assertTrue(self.sources.AddDir("/thud"))
-    self.assertTrue(self.sources.AddDir("/foo/bar"))
+      files = list(self.sources.GetAllFiles())
+      self.assertFalse(files)
 
-    files = list(self.sources.GetAllFiles())
-    self.assertFalse(files)
-
-    self.assertTrue(warn.called)
-    self.assertEqual(warn.call_count, 3)
-
-    os.rmdir(foo_dirpath)
-    os.rmdir(bar_dirpath)
+      self.assertTrue(warn.called)
+      self.assertEqual(warn.call_count, 3)
 
 
 class ArtifactTest(unittest.TestCase):

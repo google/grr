@@ -16,12 +16,11 @@ import psutil
 
 from grr.client import actions
 from grr.client import client_utils
-from grr.client.client_actions import standard as standard_actions
+from grr.client import client_utils_common
 from grr.client.vfs_handlers import files
 
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -264,18 +263,12 @@ class FileFinderOS(actions.ActionPlugin):
       elif opts.oversized_file_policy == policy.HASH_TRUNCATED:
         max_hash_size = opts.max_size
 
+    hasher = client_utils_common.MultiHasher(progress=self.Progress)
     try:
-      file_obj = open(fname, "rb")
+      hasher.HashFilePath(fname, max_hash_size)
     except IOError:
       return None
-
-    with file_obj:
-      hashers, bytes_read = standard_actions.HashFile().HashFile(
-          ["md5", "sha1", "sha256"], file_obj, max_hash_size)
-    result = rdf_crypto.Hash(**dict(
-        (k, v.digest()) for k, v in hashers.iteritems()))
-    result.num_bytes = bytes_read
-    return result
+    return hasher.GetHashObject()
 
   def Upload(self, fname, stat_object, opts, token):
     max_bytes = None

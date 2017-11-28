@@ -131,43 +131,22 @@ class HashFile(actions.ActionPlugin):
       "sha256": hashlib.sha256,
   }
 
-  def HashFile(self, hash_types, file_obj, max_length):
-    hashers = {}
-    for hash_type in hash_types:
-      hashers[hash_type] = self._hash_types[hash_type]()
-
-    # Only read as many bytes as we were told.
-    bytes_read = 0
-    while bytes_read < max_length:
-      self.Progress()
-      to_read = min(constants.CLIENT_MAX_BUFFER_SIZE, max_length - bytes_read)
-      data = file_obj.read(to_read)
-      if not data:
-        break
-      for hasher in hashers.values():
-        hasher.update(data)
-
-      bytes_read += len(data)
-
-    return hashers, bytes_read
-
   def Run(self, args):
     hash_types = set()
     for t in args.tuples:
       for hash_name in t.hashers:
         hash_types.add(str(hash_name).lower())
 
-    with vfs.VFSOpen(
-        args.pathspec, progress_callback=self.Progress) as file_obj:
-      hashers, bytes_read = self.HashFile(hash_types, file_obj,
-                                          args.max_filesize)
+    hasher = client_utils_common.MultiHasher(hash_types, progress=self.Progress)
+    with vfs.VFSOpen(args.pathspec, progress_callback=self.Progress) as fd:
+      hasher.HashFile(fd, args.max_filesize)
 
-    self.SendReply(
-        rdf_client.FingerprintResponse(
-            pathspec=file_obj.pathspec,
-            bytes_read=bytes_read,
-            hash=rdf_crypto.Hash(
-                **dict((k, v.digest()) for k, v in hashers.iteritems()))))
+    hash_object = hasher.GetHashObject()
+    response = rdf_client.FingerprintResponse(
+        pathspec=fd.pathspec,
+        bytes_read=hash_object.num_bytes,
+        hash=hash_object)
+    self.SendReply(response)
 
 
 class CopyPathToFile(actions.ActionPlugin):

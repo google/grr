@@ -4,13 +4,16 @@
 
 
 import exceptions
+import hashlib
 import imp
 import os
 import sys
 import tempfile
 import time
+import mock
 import mox
 
+import unittest
 from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
@@ -234,6 +237,77 @@ class OSXVersionTests(test_lib.GRRBaseTest):
   def tearDown(self):
     self.mox.UnsetStubs()
     super(OSXVersionTests, self).tearDown()
+
+
+class MultiHasherTest(unittest.TestCase):
+
+  @staticmethod
+  def _GetHash(hashfunc, data):
+    hasher = hashfunc()
+    hasher.update(data)
+    return hasher.digest()
+
+  def testHashBufferSingleInput(self):
+    hasher = client_utils_common.MultiHasher()
+    hasher.HashBuffer("foo")
+
+    hash_object = hasher.GetHashObject()
+    self.assertEqual(hash_object.num_bytes, len("foo"))
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
+    self.assertEqual(hash_object.sha256, self._GetHash(hashlib.sha256, "foo"))
+
+  def testHashBufferMultiInput(self):
+    hasher = client_utils_common.MultiHasher(["md5", "sha1"])
+    hasher.HashBuffer("foo")
+    hasher.HashBuffer("bar")
+
+    hash_object = hasher.GetHashObject()
+    self.assertEqual(hash_object.num_bytes, len("foobar"))
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
+    self.assertFalse(hash_object.sha256)
+
+  def testHashFileWhole(self):
+    tmp_path = test_lib.TempFilePath()
+    with open(tmp_path, "wb") as tmp_file:
+      tmp_file.write("foobar")
+
+    hasher = client_utils_common.MultiHasher(["md5", "sha1"])
+    hasher.HashFilePath(tmp_path, len("foobar"))
+
+    hash_object = hasher.GetHashObject()
+    self.assertEqual(hash_object.num_bytes, len("foobar"))
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
+    self.assertFalse(hash_object.sha256)
+
+    os.remove(tmp_path)
+
+  def testHashFilePart(self):
+    tmp_path = test_lib.TempFilePath()
+    with open(tmp_path, "wb") as tmp_file:
+      tmp_file.write("foobar")
+
+    hasher = client_utils_common.MultiHasher(["md5", "sha1"])
+    hasher.HashFilePath(tmp_path, len("foo"))
+
+    hash_object = hasher.GetHashObject()
+    self.assertEqual(hash_object.num_bytes, len("foo"))
+    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
+    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
+    self.assertFalse(hash_object.sha256)
+
+    os.remove(tmp_path)
+
+  def testHashBufferProgress(self):
+    progress = mock.Mock()
+
+    hasher = client_utils_common.MultiHasher(progress=progress)
+    hasher.HashBuffer(os.urandom(108))
+
+    self.assertTrue(progress.called)
+    self.assertEqual(hasher.GetHashObject().num_bytes, 108)
 
 
 def main(argv):

@@ -305,12 +305,13 @@ class DeletionPoolTest(aff4_test_lib.AFF4ObjectTest):
     # results because children of aff4:/a/b/c weren't queried and cached.
     result = self.pool.RecursiveMultiListChildren(["aff4:/a"])
 
-    self.assertEqual(result, {
-        "aff4:/a": ["aff4:/a/b"],
-        "aff4:/a/b": ["aff4:/a/b/c"],
-        "aff4:/a/b/c": ["aff4:/a/b/c/d"],
-        "aff4:/a/b/c/d": []
-    })
+    self.assertEqual(
+        result, {
+            "aff4:/a": ["aff4:/a/b"],
+            "aff4:/a/b": ["aff4:/a/b/c"],
+            "aff4:/a/b/c": ["aff4:/a/b/c/d"],
+            "aff4:/a/b/c/d": []
+        })
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
@@ -1332,8 +1333,8 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     all_children = sorted(list(root.ListChildren()))
 
     self.assertListEqual(
-        sorted(all_children), [root_urn.Add("some1"),
-                               root_urn.Add("some2")])
+        sorted(all_children),
+        [root_urn.Add("some1"), root_urn.Add("some2")])
 
   def testMultiListChildren(self):
     client1_urn = rdfvalue.RDFURN("C.%016X" % 0)
@@ -1743,6 +1744,33 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     flow_obj = aff4.FACTORY.Open(flow_id, token=self.token)
     self.assertEqual(flow_obj.args.pathspec.pathtype, pathspec.pathtype)
     self.assertEqual(flow_obj.args.pathspec.CollapsePath(), additional_path)
+
+  def testExistsWithTypeReturnsFalseWhenNoObject(self):
+    self.assertFalse(
+        aff4.FACTORY.ExistsWithType(
+            "aff4:/foo/bar",
+            aff4_type=aff4_standard.VFSDirectory,
+            token=self.token))
+
+  def testExistsWithTypeReturnsFalseWhenObjectHasWrongType(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo/bar", aff4.AFF4MemoryStream, token=self.token):
+      pass
+    self.assertFalse(
+        aff4.FACTORY.ExistsWithType(
+            "aff4:/foo/bar",
+            aff4_type=aff4_standard.VFSDirectory,
+            token=self.token))
+
+  def testExistsWithTypeReturnsTrueWhenObjectHasCorrectType(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo/bar", aff4_standard.VFSDirectory, token=self.token):
+      pass
+    self.assertTrue(
+        aff4.FACTORY.ExistsWithType(
+            "aff4:/foo/bar",
+            aff4_type=aff4_standard.VFSDirectory,
+            token=self.token))
 
   # TODO(user): re-work this test and re-enable.
   def disabled_testAFF4Initialization(self):

@@ -4,6 +4,7 @@
 from grr_api_client import client
 from grr_api_client import context
 from grr_api_client import hunt
+from grr_api_client import root
 from grr_api_client import types
 from grr_api_client.connectors import http_connector
 
@@ -16,6 +17,7 @@ class GrrApi(object):
 
     self._context = context.GrrApiContext(connector=connector)
     self.types = types.Types(context=self._context)
+    self.root = root.RootGrrApi(context=self._context)
 
   def Client(self, client_id):
     return client.ClientRef(client_id=client_id, context=self._context)

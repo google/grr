@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Client utilities common to all platforms."""
 
+import hashlib
 import logging
 import os
 import platform
@@ -11,6 +12,8 @@ import time
 
 from grr import config
 from grr.client.local import binary_whitelist
+from grr.lib import constants
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
 def HandleAlarm(process):
@@ -189,3 +192,77 @@ def IsExecutionWhitelisted(cmd, args):
     return True
 
   return False
+
+
+class MultiHasher(object):
+  """An utility class that is able to applies multiple hash algorithms.
+
+  Objects that need to construct `Hash` object with multiple hash values need
+  to apply multiple hash algorithms to the given data. This class removes some
+  boilerplate associated with it and provides a readable API similar to the one
+  exposed by Python's `hashlib` module.
+
+  Args:
+    algorithms: List of names of the algorithms from the `hashlib` module that
+        need to be applied.
+    progress: An (optional) progress callback called when hashing functions are
+        applied to the data.
+  """
+
+  def __init__(self, algorithms=None, progress=None):
+    if not algorithms:
+      algorithms = ["md5", "sha1", "sha256"]
+
+    self._hashers = {}
+    for algorithm in algorithms:
+      self._hashers[algorithm] = hashlib.new(algorithm)
+    self._bytes_read = 0
+
+    self._progress = progress
+
+  def HashFilePath(self, path, byte_count):
+    """Updates underlying hashers with file on a given path.
+
+    Args:
+      path: A path to the file that is going to be fed to the hashers.
+      byte_count: A maximum numbers of bytes that are going to be processed.
+    """
+    with open(path, "rb") as fd:
+      self.HashFile(fd, byte_count)
+
+  def HashFile(self, fd, byte_count):
+    """Updates underlying hashers with a given file.
+
+    Args:
+      fd: A file object that is going to be fed to the hashers.
+      byte_count: A maximum number of bytes that are going to be processed.
+    """
+    while byte_count > 0:
+      buf_size = min(byte_count, constants.CLIENT_MAX_BUFFER_SIZE)
+      buf = fd.read(buf_size)
+      if not buf:
+        break
+
+      self.HashBuffer(buf)
+      byte_count -= buf_size
+
+  def HashBuffer(self, buf):
+    """Updates underlying hashers with a given buffer.
+
+    Args:
+      buf: A byte buffer (string object) that is going to be fed to the hashers.
+    """
+    for hasher in self._hashers.values():
+      hasher.update(buf)
+      if self._progress:
+        self._progress()
+
+    self._bytes_read += len(buf)
+
+  def GetHashObject(self):
+    """Returns a `Hash` object with appropriate fields filled-in."""
+    hash_object = rdf_crypto.Hash()
+    hash_object.num_bytes = self._bytes_read
+    for algorithm in self._hashers:
+      setattr(hash_object, algorithm, self._hashers[algorithm].digest())
+    return hash_object

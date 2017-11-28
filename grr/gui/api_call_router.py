@@ -191,6 +191,10 @@ class ApiCallRouter(object):
 
     return result
 
+
+class ApiCallRouterStub(ApiCallRouter):
+  """Default router stub with methods definitions only."""
+
   # Artifacts methods.
   # =================
   #
@@ -1256,5 +1260,5 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
 
-class DisabledApiCallRouter(ApiCallRouter):
+class DisabledApiCallRouter(ApiCallRouterStub):
   pass

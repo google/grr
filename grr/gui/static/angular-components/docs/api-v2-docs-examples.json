@@ -920,38 +920,6 @@
       "url": "/api/v2/config/binaries/executable/windows/test.exe"
     }
   ],
-  "ApiGetGrrUserHandler": [
-    {
-      "api_method": "GetGrrUser",
-      "method": "GET",
-      "response": {
-        "interfaceTraits": {
-          "artifactManagerNavItemEnabled": true,
-          "browseVirtualFileSystemNavItemEnabled": true,
-          "createCronJobActionEnabled": true,
-          "createHuntActionEnabled": true,
-          "cronJobsNavItemEnabled": true,
-          "huntManagerNavItemEnabled": true,
-          "manageBinariesNavItemEnabled": true,
-          "manageClientFlowsNavItemEnabled": true,
-          "modifyClientLabelsActionEnabled": true,
-          "searchClientsActionEnabled": true,
-          "serverLoadNavItemEnabled": true,
-          "settingsNavItemEnabled": true,
-          "showStatisticsNavItemEnabled": true,
-          "startClientFlowNavItemEnabled": true,
-          "uploadArtifactActionEnabled": true,
-          "uploadBinaryActionEnabled": true
-        },
-        "settings": {
-          "canaryMode": true
-        },
-        "username": "api_test_user"
-      },
-      "test_class": "ApiGetGrrUserHandlerRegresstionTest_http_v2",
-      "url": "/api/v2/users/me"
-    }
-  ],
   "ApiGetHuntApprovalHandler": [
     {
       "api_method": "GetHuntApproval",
@@ -2103,6 +2071,39 @@
       },
       "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/last-ip"
+    }
+  ],
+  "ApiGetOwnGrrUserHandler": [
+    {
+      "api_method": "GetGrrUser",
+      "method": "GET",
+      "response": {
+        "interfaceTraits": {
+          "artifactManagerNavItemEnabled": true,
+          "browseVirtualFileSystemNavItemEnabled": true,
+          "createCronJobActionEnabled": true,
+          "createHuntActionEnabled": true,
+          "cronJobsNavItemEnabled": true,
+          "huntManagerNavItemEnabled": true,
+          "manageBinariesNavItemEnabled": true,
+          "manageClientFlowsNavItemEnabled": true,
+          "modifyClientLabelsActionEnabled": true,
+          "searchClientsActionEnabled": true,
+          "serverLoadNavItemEnabled": true,
+          "settingsNavItemEnabled": true,
+          "showStatisticsNavItemEnabled": true,
+          "startClientFlowNavItemEnabled": true,
+          "uploadArtifactActionEnabled": true,
+          "uploadBinaryActionEnabled": true
+        },
+        "settings": {
+          "canaryMode": true
+        },
+        "userType": "USER_TYPE_STANDARD",
+        "username": "api_test_user"
+      },
+      "test_class": "ApiGetOwnGrrUserHandlerRegresstionTest_http_v2",
+      "url": "/api/v2/users/me"
     }
   ],
   "ApiGetPendingUserNotificationsCountHandler": [

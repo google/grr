@@ -47,7 +47,7 @@ class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.ApiLabelsRestrictedCallRouterParams
 
 
-class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
+class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   """Router that restricts access only to clients with certain labels."""
 
   params_type = ApiLabelsRestrictedCallRouterParams
@@ -306,7 +306,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
     interface_traits = api_user.ApiGrrUserInterfaceTraits(
         search_clients_action_enabled=True)
-    return api_user.ApiGetGrrUserHandler(interface_traits=interface_traits)
+    return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, token=None):
     # Everybody can update their own user object.

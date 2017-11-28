@@ -622,12 +622,12 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
           replace=ReplaceCronAndApprovalIds)
 
 
-class ApiGetGrrUserHandlerRegresstionTest(
+class ApiGetOwnGrrUserHandlerRegresstionTest(
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetUserSettingsHandler."""
 
   api_method = "GetGrrUser"
-  handler = user_plugin.ApiGetGrrUserHandler
+  handler = user_plugin.ApiGetOwnGrrUserHandler
 
   def Run(self):
     with test_lib.FakeTime(42):

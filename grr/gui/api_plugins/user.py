@@ -243,6 +243,17 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
       aff4_users.GUISettings,
   ]
 
+  def InitFromAff4Object(self, aff4_obj):
+    self.username = aff4_obj.urn.Basename()
+    self.settings = aff4_obj.Get(aff4_obj.Schema.GUI_SETTINGS)
+
+    if "admin" in aff4_obj.GetLabelsNames(owner="GRR"):
+      self.user_type = self.UserType.USER_TYPE_ADMIN
+    else:
+      self.user_type = self.UserType.USER_TYPE_STANDARD
+
+    return self
+
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
   """Initializes Api(Client|Hunt|CronJob)Approval from an AFF4 object."""
@@ -263,8 +274,8 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 
   notified_users = approval_obj.Get(approval_obj.Schema.NOTIFIED_USERS)
   if notified_users:
-    api_approval.notified_users = sorted(u.strip()
-                                         for u in notified_users.split(","))
+    api_approval.notified_users = sorted(
+        u.strip() for u in notified_users.split(","))
 
   email_cc = approval_obj.Get(approval_obj.Schema.EMAIL_CC)
   email_cc_addresses = sorted(s.strip() for s in email_cc.split(","))
@@ -832,13 +843,13 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
                                     self._ApprovalToApiApproval))
 
 
-class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
   result_type = ApiGrrUser
 
   def __init__(self, interface_traits=None):
-    super(ApiGetGrrUserHandler, self).__init__()
+    super(ApiGetOwnGrrUserHandler, self).__init__()
     self.interface_traits = interface_traits
 
   def Handle(self, unused_args, token=None):
@@ -852,7 +863,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
           aff4_users.GRRUser,
           token=token)
 
-      result.settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
+      result.InitFromAff4Object(user_record)
     except IOError:
       result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
@@ -937,7 +948,8 @@ class ApiListPendingUserNotificationsHandler(
 
     result = [
         ApiNotification().InitFromNotification(n, is_pending=True)
-        for n in notifications if n.timestamp > args.timestamp
+        for n in notifications
+        if n.timestamp > args.timestamp
     ]
 
     return ApiListPendingUserNotificationsResult(items=result)

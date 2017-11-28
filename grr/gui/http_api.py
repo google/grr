@@ -174,8 +174,9 @@ class RouterMatcher(object):
                                        (request.path, request.method))
 
     router_method_metadata, route_args_dict = match
-    return (router, router_method_metadata, self._GetArgsFromRequest(
-        request, router_method_metadata, route_args_dict))
+    return (router, router_method_metadata,
+            self._GetArgsFromRequest(request, router_method_metadata,
+                                     route_args_dict))
 
 
 class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
@@ -192,8 +193,8 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
   """
 
   def default(self, obj):
-    if isinstance(obj, (rdfvalue.RDFInteger, rdfvalue.RDFBool,
-                        rdfvalue.RDFString)):
+    if isinstance(obj,
+                  (rdfvalue.RDFInteger, rdfvalue.RDFBool, rdfvalue.RDFString)):
       return obj.SerializeToDataStore()
 
     return json.JSONEncoder.default(self, obj)

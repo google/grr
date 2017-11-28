@@ -19,7 +19,7 @@ from grr.server.aff4_objects import user_managers
 from grr.server.hunts import implementation
 
 
-class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouter):
+class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   """Router that uses approvals-based ACL checks."""
 
   full_access_control_manager = None
@@ -600,7 +600,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouter):
     except access_control.UnauthorizedAccess:
       interface_traits.manage_binaries_nav_item_enabled = False
 
-    return api_user.ApiGetGrrUserHandler(interface_traits=interface_traits)
+    return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, token=None):
     # Everybody can update their own user settings.

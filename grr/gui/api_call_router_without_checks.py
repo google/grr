@@ -18,7 +18,7 @@ from grr.gui.api_plugins import user as api_user
 from grr.gui.api_plugins import vfs as api_vfs
 
 
-class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
+class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   """Router that does no ACL checks whatsoever."""
 
   # Artifacts methods.
@@ -322,7 +322,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
     return api_user.ApiListAndResetUserNotificationsHandler()
 
   def GetGrrUser(self, args, token=None):
-    return api_user.ApiGetGrrUserHandler(
+    return api_user.ApiGetOwnGrrUserHandler(
         interface_traits=api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
   def UpdateGrrUser(self, args, token=None):

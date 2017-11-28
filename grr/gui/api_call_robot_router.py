@@ -140,7 +140,7 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
         token=token)
 
 
-class ApiCallRobotRouter(api_call_router.ApiCallRouter):
+class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   """Restricted router to be used by robots."""
 
   params_type = ApiCallRobotRouterParams

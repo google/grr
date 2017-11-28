@@ -702,9 +702,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           pathspec.pathtype = paths.PathSpec.PathType.TSK
         else:
           pathspec.pathtype = paths.PathSpec.PathType.OS
-        self.download_list.append(pathspec)
 
-      elif isinstance(pathspec, paths.PathSpec):
+      if isinstance(pathspec, paths.PathSpec):
+        if not pathspec.path:
+          self.Log("Skipping empty pathspec.")
+          continue
+
         self.download_list.append(pathspec)
 
       else:

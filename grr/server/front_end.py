@@ -321,8 +321,9 @@ class FrontEndServer(object):
 
     stats.STATS.IncrementCounter("grr_messages_sent", len(result))
     if result:
-      logging.debug("Drained %d messages for %s in %s seconds.",
-                    len(result), client, time.time() - start_time)
+      logging.debug("Drained %d messages for %s in %s seconds.", len(result),
+                    client,
+                    time.time() - start_time)
 
     return result
 
@@ -392,8 +393,9 @@ class FrontEndServer(object):
                       rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED))
               events.Events.PublishEvent("ClientCrash", msg, token=self.token)
 
-    logging.debug("Received %s messages from %s in %s sec",
-                  len(messages), client_id, time.time() - now)
+    logging.debug("Received %s messages from %s in %s sec", len(messages),
+                  client_id,
+                  time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
