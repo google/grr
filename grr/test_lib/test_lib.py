@@ -11,6 +11,7 @@ import logging
 import os
 import pdb
 import platform
+import re
 import shutil
 import socket
 import sys
@@ -22,6 +23,7 @@ import unittest
 
 import mock
 import pkg_resources
+import yaml
 
 import unittest
 
@@ -805,6 +807,25 @@ class AutoTempDirPath(object):
       shutil.rmtree(self.path)
     else:
       os.rmdir(self.path)
+
+
+class PrivateKeyNotFoundException(Exception):
+
+  def __init__(self):
+    super(PrivateKeyNotFoundException,
+          self).__init__("Private key not found in config file.")
+
+
+def GetClientId(writeback_file):
+  """Given the path to a client's writeback file, returns its client id."""
+  with open(writeback_file) as f:
+    parsed_yaml = yaml.safe_load(f.read())
+  serialized_pkey = parsed_yaml.get("Client.private_key", None)
+  if serialized_pkey is None:
+    raise PrivateKeyNotFoundException
+  pkey = rdf_crypto.RSAPrivateKey(serialized_pkey)
+  client_urn = comms.ClientCommunicator(private_key=pkey).common_name
+  return re.compile(r"^aff4:/").sub("", client_urn.SerializeToString())
 
 
 def main(argv=None):
