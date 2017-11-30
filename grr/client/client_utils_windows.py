@@ -115,7 +115,7 @@ def WinChmod(filename, acl_list, user=None):
       filename, win32security.DACL_SECURITY_INFORMATION, security_descriptor)
 
 
-def WinVerifyFileOwner(filename):
+def VerifyFileOwner(filename):
   """Verifies that <filename> is owned by the current user."""
   # On   Windows  server   OSs,  files   created  by   users  in   the
   # Administrators group  will be  owned by Administrators  instead of
@@ -127,7 +127,7 @@ def WinVerifyFileOwner(filename):
   return True
 
 
-def WinFindProxies():
+def FindProxies():
   """Tries to find proxies by interrogating all the user's settings.
 
   This function is a modified urillib.getproxies_registry() from the
@@ -189,7 +189,7 @@ def WinFindProxies():
   return proxies
 
 
-def WinGetRawDevice(path):
+def GetRawDevice(path):
   """Resolves the raw device that contains the path.
 
   Args:
@@ -416,3 +416,17 @@ def KernelVersion():
   return "%d.%d.%d" % (rtl_osversioninfoexw.dwMajorVersion,
                        rtl_osversioninfoexw.dwMinorVersion,
                        rtl_osversioninfoexw.dwBuildNumber)
+
+
+def AddStatEntryExtFlags(stat_entry, stat_object):
+  """Does nothing.
+
+  This is kept for compatibility with other platform-specific version of this
+  function.
+
+  Args:
+    stat_entry: An `StatEntry` object to fill-in.
+    stat_object: An object representing results of the `os.stat` call.
+  """
+  del stat_entry  # Unused on Windows.
+  del stat_object  # Unused on Windows.

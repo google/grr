@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Implements VFSHandlers for files on the client."""
 
+
 import logging
 import os
 import platform
@@ -71,26 +72,25 @@ def MakeStatResponse(st, pathspec):
     # Special case empty stat if we don't have a real value, e.g. we get Access
     # denied when stating a file. We still want to give back a value so we let
     # the defaults from the proto pass through.
-    pass
-  else:
-    # Now fill in the stat value
-    for attr in [
-        "st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid",
-        "st_size", "st_atime", "st_mtime", "st_ctime", "st_blocks",
-        "st_blksize", "st_rdev"
-    ]:
-      try:
-        value = getattr(st, attr)
-        if value is None:
-          continue
-        value = long(value)
-        if value < 0:
-          value &= 0xFFFFFFFF
+    return response
 
-        setattr(response, attr, value)
-      except AttributeError:
-        pass
+  for attr in [
+      "st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid", "st_size",
+      "st_atime", "st_mtime", "st_ctime", "st_blocks", "st_blksize", "st_rdev"
+  ]:
+    try:
+      value = getattr(st, attr)
+      if value is None:
+        continue
+      value = long(value)
+      if value < 0:
+        value &= 0xFFFFFFFF
 
+      setattr(response, attr, value)
+    except AttributeError:
+      pass
+
+  client_utils.AddStatEntryExtFlags(response, st)
   return response
 
 

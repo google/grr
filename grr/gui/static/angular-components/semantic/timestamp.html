@@ -1,0 +1,12 @@
+<span ng-if="::controller.formattedTimestamp" ng-mouseenter="controller.onMouseEnter()">
+  <span class="hidden-md hidden-lg">
+    <span ng-repeat="component in ::controller.formattedTimestampComponents">
+      <nobr>{$ ::component $}</nobr>
+    </span>
+  </span>
+  <span class="visible-md-inline visible-lg-inline">
+    <nobr>
+      {$ ::controller.formattedTimestamp $}
+    </nobr>
+  </span>
+</span>

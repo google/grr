@@ -35,7 +35,7 @@ def GetVolumeNameForVolumeMountPoint(_):
 class ClientUtilsTest(test_lib.GRRBaseTest):
   """Test the client utils."""
 
-  def testLinGetRawDevice(self):
+  def testLinuxGetRawDevice(self):
     """Test the parser for linux mounts."""
     proc_mounts = """rootfs / rootfs rw 0 0
 none /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
@@ -72,7 +72,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
          rdf_paths.PathSpec.PathType.UNSET)
     ]:
-      raw_pathspec, path = client_utils_linux.LinGetRawDevice(filename)
+      raw_pathspec, path = client_utils_linux.GetRawDevice(filename)
 
       self.assertEqual(expected_device, raw_pathspec.path)
       self.assertEqual(device_type, raw_pathspec.pathtype)
@@ -94,7 +94,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
                  "/Windows"), (r"C:\\", "\\\\?\\Volume{11111}", "/")]
 
     for filename, expected_device, expected_path in testdata:
-      raw_pathspec, path = client_utils_windows.WinGetRawDevice(filename)
+      raw_pathspec, path = client_utils_windows.GetRawDevice(filename)
 
       # Pathspec paths are always absolute and therefore must have a leading /.
       self.assertEqual(expected_device, raw_pathspec.path)

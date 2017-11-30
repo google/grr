@@ -27,6 +27,9 @@ grrUi.semantic.timestampDirective.TimestampController = function(
   /** @private {?string} */
   this.formattedTimestamp;
 
+  /** @private {Array<string>} */
+  this.formattedTimestampComponents;
+
   /** @private {?number} */
   this.value;
 
@@ -64,6 +67,7 @@ TimestampController.prototype.onValueChange = function(newValue) {
       this.value = timestamp;
 
       this.formattedTimestamp = this.timeService_.formatAsUTC(timestamp);
+      this.formattedTimestampComponents = this.formattedTimestamp.split(' ');
     }
   }
 };
@@ -93,10 +97,7 @@ grrUi.semantic.timestampDirective.TimestampDirective = function() {
       value: '='
     },
     restrict: 'E',
-    template: '<span class="timestamp" ' +
-        'ng-if="::controller.formattedTimestamp !== undefined" ' +
-        'ng-mouseenter="controller.onMouseEnter()">' +
-        '{$ ::controller.formattedTimestamp $}</span>',
+    templateUrl: '/static/angular-components/semantic/timestamp.html',
     controller: TimestampController,
     controllerAs: 'controller'
   };

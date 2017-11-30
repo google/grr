@@ -270,8 +270,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     """Test the Interrogate flow."""
     self.SetupClients(1, system="Linux", os_version="12.04")
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
               "LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"

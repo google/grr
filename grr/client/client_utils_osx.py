@@ -14,7 +14,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
-def OSXFindProxies():
+def FindProxies():
   """This reads the OSX system configuration and gets the proxies."""
 
   sc = objc.SystemConfiguration()
@@ -169,41 +169,7 @@ def ParseFileSystemsStruct(struct_class, fs_count, data):
   return results
 
 
-def OSXSplitPathspec(pathspec):
-  """Splits a given path into (device, mountpoint, remaining path).
-
-  Examples:
-
-  Let's say "/dev/disk0s1" is mounted on "/", then
-
-  /mnt/data/directory/file.txt is split into
-  (device="/dev/disk0s1", mountpoint="/", path="mnt/data/directory/file.txt")
-
-  and
-
-  /dev/disk0s1/home/test/ is split into ("/dev/disk0s1", "/", "home/test/").
-
-  After the split, mountpoint and path can always be concatenated
-  to obtain a valid os file path.
-
-  Args:
-    pathspec: Path specification to be split.
-
-  Returns:
-    Pathspec split into device, mountpoint, and remaining path.
-
-  Raises:
-    IOError: Path was not found on any mounted device.
-
-  """
-
-  # Splitting the pathspec is exactly the same as on Linux, we just
-  # have use the OSX GetMountpoints function.
-
-  return client_utils_linux.LinSplitPathspec(pathspec, GetMountpoints)
-
-
-def OSXGetRawDevice(path):
+def GetRawDevice(path):
   """Resolve the raw device that contains the path."""
   device_map = GetMountpoints()
 
@@ -234,12 +200,12 @@ def OSXGetRawDevice(path):
 
 def CanonicalPathToLocalPath(path):
   """OSX uses a normal path."""
-  return path
+  return client_utils_linux.CanonicalPathToLocalPath(path)
 
 
 def LocalPathToCanonicalPath(path):
   """OSX uses a normal path."""
-  return path
+  return client_utils_linux.LocalPathToCanonicalPath(path)
 
 
 def InstallDriver(kext_path):
@@ -310,6 +276,21 @@ class OSXVersion(object):
     return self.version
 
 
+VerifyFileOwner = client_utils_linux.VerifyFileOwner  # pylint: disable=invalid-name
+
+NannyController = client_utils_linux.NannyController  # pylint: disable=invalid-name
+
+
 def KeepAlive():
   # Not yet supported for OSX.
   pass
+
+
+def AddStatEntryExtFlags(stat_entry, stat_object):
+  """Fills `st_flags_osx` field of the `StatEntry` object.
+
+  Args:
+    stat_entry: An `StatEntry` object to fill-in.
+    stat_object: An object representing results of the `os.stat` call.
+  """
+  stat_entry.st_flags_osx = stat_object.st_flags

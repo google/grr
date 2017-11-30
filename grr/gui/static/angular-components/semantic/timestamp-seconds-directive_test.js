@@ -8,6 +8,11 @@ describe('timestamp seconds directive', function() {
   var MINUTE = 60;
   var $compile, $rootScope;
 
+  // grr-timestamp-seconds is a wrapper around grr-timestamp.
+  // We declare the dependency on grr-timestamp's template here in
+  // order not to stub out the grr-timestamp directive and simply test
+  // that the produced markup is correct.
+  beforeEach(module('/static/angular-components/semantic/timestamp.html'));
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
 

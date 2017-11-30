@@ -2,6 +2,8 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Linux specific utils."""
 
+import array
+import fcntl
 import logging
 import os
 import threading
@@ -20,7 +22,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 
 # TODO(user): Find a reliable way to do this for Linux.
-def LinFindProxies():
+def FindProxies():
   return []
 
 
@@ -58,7 +60,7 @@ def GetMountpoints(data=None):
   return devices
 
 
-def LinGetRawDevice(path):
+def GetRawDevice(path):
   """Resolve the raw device that contains the path."""
   device_map = GetMountpoints()
 
@@ -112,7 +114,7 @@ def LocalPathToCanonicalPath(path):
   return utils.NormalizePath(path)
 
 
-def LinVerifyFileOwner(filename):
+def VerifyFileOwner(filename):
   stat_info = os.lstat(filename)
   return os.getuid() == stat_info.st_uid
 
@@ -294,3 +296,36 @@ class NannyController(object):
 def KeepAlive():
   # Not yet supported for Linux.
   pass
+
+
+# http://manpages.courier-mta.org/htmlman2/ioctl_list.2.html
+FS_IOC_GETFLAGS = 0x80086601
+
+
+def AddStatEntryExtFlags(stat_entry, stat_object):
+  """Fills `st_flags_linux` field of the `StatEntry` object.
+
+  Args:
+    stat_entry: An `StatEntry` object to fill-in.
+    stat_object: An object representing results of the `os.stat` call.
+  """
+  del stat_object  # Unused on Linux.
+
+  # TODO(hanuszczak): Try to refactor this so that no file opening is required
+  # if we already have a file descriptor available.
+  path = CanonicalPathToLocalPath(stat_entry.pathspec.path)
+
+  try:
+    fd = os.open(path, os.O_RDONLY)
+  except IOError:
+    return
+
+  try:
+    buf = array.array("l", [0])
+    fcntl.ioctl(fd, FS_IOC_GETFLAGS, buf)
+    stat_entry.st_flags_linux = buf[0]
+  except IOError:
+    # The file system does not support extended attributes.
+    pass
+  finally:
+    os.close(fd)

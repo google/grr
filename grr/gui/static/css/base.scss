@@ -152,6 +152,15 @@ label.btn {
   }
 }
 
+.navbar.navbar-static-top {
+  min-width: 1024px;
+}
+
+.navbar.navbar-fixed-bottom {
+  position: absolute !important;
+  min-width: 1024px;
+}
+
 .navbar-brand {
   font-size: 20px;
   padding-left: 120px;
@@ -859,10 +868,6 @@ td.artifact_table {
 
 abbr[title] {
   cursor: pointer;
-}
-
-.timestamp {
-  white-space: nowrap;
 }
 
 .dl-group {

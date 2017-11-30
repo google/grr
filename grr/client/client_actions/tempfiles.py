@@ -74,8 +74,9 @@ def EnsureTempDirIsSane(directory):
 
     # Make directory 700 before we write the file
     if sys.platform == "win32":
-      client_utils.WinChmod(directory,
-                            ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
+      from grr.client import client_utils_windows  # pylint: disable=g-import-not-at-top
+      client_utils_windows.WinChmod(directory,
+                                    ["FILE_GENERIC_READ", "FILE_GENERIC_WRITE"])
     else:
       os.chmod(directory, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
@@ -168,7 +169,8 @@ def CreateGRRTempFile(filename=None, lifetime=0, mode="w+b", suffix=""):
   # Fix perms on the file, since this code is used for writing executable blobs
   # we apply RWX.
   if sys.platform == "win32":
-    client_utils.WinChmod(outfile.name, ["FILE_ALL_ACCESS"])
+    from grr.client import client_utils_windows  # pylint: disable=g-import-not-at-top
+    client_utils_windows.WinChmod(outfile.name, ["FILE_ALL_ACCESS"])
   else:
     os.chmod(outfile.name, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 

@@ -11,5 +11,20 @@
   .alert-danger;
 }
 
+// -> Making Bootstrap not responsive to the viewport size.
+@grid-float-breakpoint: 0;
+@grid-float-breakpoint-max: 0;
+
+@screen-xs: 0; //480px;
+@screen-xs-min: @screen-xs;
+@screen-phone: @screen-xs-min;
+
+@screen-sm: 0; //768px;
+@screen-sm-min: @screen-sm;
+@screen-tablet: @screen-sm-min;
+
+.container { width: @container-desktop !important; }
+// <- Making Bootstrap not responsive to the viewport size.
+
 @import "theme.less";
 

@@ -8,6 +8,9 @@ import collections
 import glob
 import hashlib
 import os
+import platform
+import subprocess
+import unittest
 
 from grr.client import vfs
 from grr.lib import flags
@@ -269,6 +272,29 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     result_paths = [stat.AFF4Path(self.client_id) for stat in stat_entries]
 
     self.assertItemsEqual(expected_files, result_paths)
+
+  FS_NODUMP_FL = 0x00000040
+  FS_UNRM_FL = 0x00000002
+
+  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
+  def testFileFinderStatExtFlags(self):
+    temp_filepath = test_lib.TempFilePath()
+    if subprocess.call(["which", "chattr"]) != 0:
+      raise unittest.SkipTest("`chattr` command is not available")
+    if subprocess.call(["chattr", "+d", temp_filepath]) != 0:
+      raise unittest.SkipTest("extended attributes not supported by filesystem")
+
+    action_type = rdf_file_finder.FileFinderAction.Action.STAT
+    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+
+    results = self.RunFlow(action=action, paths=[temp_filepath])
+    self.assertEqual(len(results), 1)
+
+    stat_entry = results[0][1].stat_entry
+    self.assertTrue(stat_entry.st_flags_linux & self.FS_NODUMP_FL)
+    self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
+
+    os.remove(temp_filepath)
 
   def testFileFinderDownloadActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
@@ -693,8 +719,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.CheckFilesInCollection(["*.log", "auth.log"], session_id=session_id)
 
   def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
                                      vfs_test_lib.FakeTestDataVFSHandler):
         paths = ["/var/log/auth.log", "/etc/ssh/sshd_config"]

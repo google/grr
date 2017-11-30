@@ -5,7 +5,10 @@ import collections
 import glob
 import hashlib
 import os
+import platform
 import shutil
+import subprocess
+import unittest
 
 import mock
 import psutil
@@ -439,6 +442,29 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertTrue(upload.called_with(max_bytes=42))
     self.assertTrue(results[0].HasField("uploaded_file"))
     self.assertEquals(results[0].uploaded_file, upload.return_value)
+
+  EXT2_COMPR_FL = 0x00000004
+  EXT2_IMMUTABLE_FL = 0x00000010
+
+  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
+  def testStatExtFlags(self):
+    temp_filepath = test_lib.TempFilePath()
+    if subprocess.call(["which", "chattr"]) != 0:
+      raise unittest.SkipTest("`chattr` command is not available")
+    if subprocess.call(["chattr", "+c", temp_filepath]) != 0:
+      raise unittest.SkipTest("extended attributes not supported by filesystem")
+
+    action_type = rdf_file_finder.FileFinderAction.Action.STAT
+    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+    results = self._RunFileFinder([temp_filepath], action)
+
+    self.assertEqual(len(results), 1)
+
+    stat_entry = results[0].stat_entry
+    self.assertTrue(stat_entry.st_flags_linux & self.EXT2_COMPR_FL)
+    self.assertFalse(stat_entry.st_flags_linux & self.EXT2_IMMUTABLE_FL)
+
+    os.remove(temp_filepath)
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""

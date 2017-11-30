@@ -9,6 +9,7 @@ describe('timestamp directive', function() {
   var MINUTES = 60 * SECONDS;
   var $compile, $rootScope;
 
+  beforeEach(module('/static/angular-components/semantic/timestamp.html'));
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
@@ -62,13 +63,13 @@ describe('timestamp directive', function() {
   it('includes a human-readable diff when hovered', function() {
     function assertTimestampRendersDiff(timestamp, diff) {
       var element = renderTestTemplate(timestamp);
-      var span = $(element).find('span');
+      var span = $(element).find('> span');
 
       // Simulate a mouseenter event on the span.
       // Doing a mouseenter on the parent directive would not work, as the
       // events bubble outwards towards the parent hierarchy, and the span
       // would not see // this event, so the controller wouldn't capture it.
-      browserTrigger($(element).find('span'), 'mouseenter');
+      browserTrigger($(element).find('> span'), 'mouseenter');
 
       expect(span.attr('title')).toContain(diff);
     }

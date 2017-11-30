@@ -42,6 +42,28 @@ class VFSOverrider(object):
       del vfs.VFS_HANDLERS[self._vfs_type]
 
 
+class FakeTestDataVFSOverrider(VFSOverrider):
+  """A context to temporarily change VFS handler to `FakeTestDataVFSHandler`."""
+
+  def __init__(self):
+    super_class = super(FakeTestDataVFSOverrider, self)
+    super_class.__init__(rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler)
+
+  def __enter__(self):
+    super(FakeTestDataVFSOverrider, self).__enter__()
+
+    def Open(path, *args, **kwagrs):
+      path = FakeTestDataVFSHandler.FakeRootPath(path)
+      return self._os_open(path, *args, **kwagrs)
+
+    self._os_open = os.open
+    os.open = Open
+
+  def __exit__(self, exc_type, exc_value, trace):
+    super(FakeTestDataVFSOverrider, self).__exit__(exc_type, exc_value, trace)
+    os.open = self._os_open
+
+
 class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
   """A base class for VFSHandlerFixtures."""
 
@@ -248,12 +270,16 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
           self.pathspec.last.path, pathspec.CollapsePath().lstrip("/"))
     self.path = self.pathspec.CollapsePath()
 
+  @classmethod
+  def FakeRootPath(cls, path):
+    test_data_dir = config.CONFIG["Test.data_dir"]
+    return os.path.join(test_data_dir, "VFSFixture", path.lstrip("/"))
+
   def _AbsPath(self, filename=None):
     path = self.path
     if filename:
       path = os.path.join(path, filename)
-    return os.path.join(config.CONFIG["Test.data_dir"], "VFSFixture",
-                        path.lstrip("/"))
+    return self.FakeRootPath(path)
 
   def Read(self, length):
     test_data_path = self._AbsPath()

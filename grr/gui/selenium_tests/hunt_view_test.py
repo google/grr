@@ -141,8 +141,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/#/hunts")
 
-    hunt_id = hunt.urn.Path().strip("/")
-    broken_hunt_id = broken_hunt.urn.Path().strip("/")
+    hunt_id = hunt.urn.Basename()
+    broken_hunt_id = broken_hunt.urn.Basename()
 
     # Both hunts are shown even though one throws an error.
     self.WaitUntil(self.IsTextPresent, hunt_id)

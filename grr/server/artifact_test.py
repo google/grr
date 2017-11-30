@@ -428,8 +428,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       self.RunCollectorAndGetCollection(
           ["TestFilesArtifact"], client_mock=self.client_mock)
       urn = self.client_id.Add("fs/os/").Add("var/log/auth.log")
@@ -437,8 +436,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       fd = self.RunCollectorAndGetCollection(
           ["LinuxPasswdHomedirs"], client_mock=self.client_mock)
 
@@ -768,9 +766,7 @@ class GrrKbLinuxTest(GrrKbTest):
         "Artifacts.netgroup_filter_regexes": ["^login$"],
         "Artifacts.netgroup_user_blacklist": ["isaac"]
     }):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeTestDataVFSHandler):
-
+      with vfs_test_lib.FakeTestDataVFSOverrider():
         for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
@@ -791,8 +787,7 @@ class GrrKbLinuxTest(GrrKbTest):
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
     """Check we can retrieve a Linux kb."""
     self.ClearKB()
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
               "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"
@@ -800,7 +795,6 @@ class GrrKbLinuxTest(GrrKbTest):
           "Artifacts.knowledge_base_additions": [],
           "Artifacts.knowledge_base_skip": []
       }):
-
         for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
@@ -836,9 +830,7 @@ class GrrKbLinuxTest(GrrKbTest):
         "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
     }):
 
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeTestDataVFSHandler):
-
+      with vfs_test_lib.FakeTestDataVFSOverrider():
         for _ in flow_test_lib.TestFlowHelper(
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,

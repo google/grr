@@ -776,6 +776,7 @@ message StatFSRequest {
 };
 
 // A stat() record for a given path
+// Next field id: 23.
 message StatEntry {
   // DEPRECATED
   // optional string aff4path = 1;
@@ -808,6 +809,8 @@ message StatEntry {
   optional uint32 st_blocks = 12;
   optional uint32 st_blksize = 13;
   optional uint32 st_rdev = 14;
+  optional uint32 st_flags_osx = 21;
+  optional uint32 st_flags_linux = 22;
   optional string symlink = 15;
 
   // These are used when mapping registry keys to the VFS

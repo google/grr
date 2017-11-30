@@ -283,8 +283,7 @@ HuntsListController.prototype.deleteHunt = function() {
 
 
 /**
- * Transforms table items before they get shown. Sets shortUrn to the last
- * component of hunt's URN and sets isRobot attribute based on hunt's creator.
+ * Fills in huntsByUrn dictionary.
  *
  * @param {!Array<Object>} items Items to be transformed.
  * @return {!Array<Object>} Transformed items.
@@ -293,8 +292,6 @@ HuntsListController.prototype.deleteHunt = function() {
  */
 HuntsListController.prototype.transformItems = function(items) {
   angular.forEach(items, function(item) {
-    item.shortUrn = item.value.urn.value.replace(/^aff4:\//, '');
-
     this.huntsByUrn[item.value.urn.value] = item;
   }.bind(this));
 
