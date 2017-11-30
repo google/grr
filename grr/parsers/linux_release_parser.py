@@ -145,14 +145,15 @@ class LinuxReleaseParser(parsers.FileParser):
                           ReleaseFileParseHandler('RedHat')),
       # Debian-based.
       WeightedReleaseFile(20, '/etc/debian_version',
-                          ReleaseFileParseHandler('Debian')),)
+                          ReleaseFileParseHandler('Debian')),
+  )
 
   def _Combine(self, stats, file_objects):
     result = {}
     for stat, file_object in itertools.izip(stats, file_objects):
       path = stat.pathspec.path
       file_object.seek(0)
-      contents = file_object.read(100000)
+      contents = file_object.read()
       result[path] = contents
     return result
 

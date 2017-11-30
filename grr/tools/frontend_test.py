@@ -110,9 +110,9 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         """
         return self.client_id
 
-      with utils.MultiStubber((standard.UploadFile, "SendReply", MockSendReply),
-                              (rdf_client.ClientURN, "FromPrivateKey",
-                               FromPrivateKey)):
+      with utils.MultiStubber(
+          (standard.UploadFile, "SendReply", MockSendReply),
+          (rdf_client.ClientURN, "FromPrivateKey", FromPrivateKey)):
         action = standard.UploadFile(client.client_worker)
         action.Run(args)
 
@@ -155,8 +155,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       with self.assertRaises(IOError):
         self._UploadFile(args)
 
-      self.assertRegexpMatches("Signature did not match digest",
-                               str(logger.args))
+      self.assertRegexpMatches("Signature did not match digest", str(
+          logger.args))
       logger.args[:] = []
 
       # Ok lets hmac the policy now, but its still too old.
@@ -167,7 +167,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       # Make sure the file is not written yet.
       rootdir = config.CONFIG["FileUploadFileStore.root_dir"]
       target_filename = os.path.join(
-          rootdir, self.client_id.Add(test_file).Path().lstrip(os.path.sep))
+          rootdir,
+          self.client_id.Add(test_file).Path().lstrip(os.path.sep))
 
       self.assertNotEqual(target_filename, test_file)
 
@@ -282,7 +283,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     for r in results:
       aff4_obj = aff4.FACTORY.Open(
           r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
-      data = aff4_obj.Read(1000000)
+      data = aff4_obj.read()
       self.assertLessEqual(len(data), 300)
       self.assertEqual(data,
                        open(r.stat_entry.pathspec.path, "rb").read(len(data)))
@@ -320,7 +321,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       aff4_obj = aff4.FACTORY.Open(
           r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
       self.assertEqual(
-          aff4_obj.Read(100), open(r.stat_entry.pathspec.path, "rb").read(100))
+          aff4_obj.Read(100),
+          open(r.stat_entry.pathspec.path, "rb").read(100))
 
   def testClientFileFinderFilestoreIntegration(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
@@ -388,12 +390,12 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     known_profile = "F8E2A8B5C9B74BF4A6E4A48F180099942"
     unknown_profile = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
-    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                       unknown_profile)
+    req = requests.get(
+        self.base_url + "rekall_profiles/v1.0/nt/GUID/" + unknown_profile)
     self.assertEqual(req.status_code, 404)
 
-    req = requests.get(self.base_url + "rekall_profiles/v1.0/nt/GUID/" +
-                       known_profile)
+    req = requests.get(
+        self.base_url + "rekall_profiles/v1.0/nt/GUID/" + known_profile)
     self.assertEqual(req.status_code, 200)
 
     pb = rdf_rekall_types.RekallProfile.protobuf()

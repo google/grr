@@ -53,7 +53,7 @@ class PCIDevicesInfoParser(parsers.FileParser):
       if bdf_regex.match(bdf):
         # Remove newlines from all files except config. Config contains raw data
         # so we don't want to touch it even if it has a newline character.
-        file_data = file_obj.read(100000)
+        file_data = file_obj.read()
         if filename != "config":
           file_data = file_data.rstrip("\n")
         data[bdf][filename] = file_data
@@ -108,7 +108,7 @@ class PasswdParser(parsers.FileParser):
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the passwd file."""
     _, _ = stat, knowledge_base
-    lines = [l.strip() for l in file_object.read(100000).splitlines()]
+    lines = [l.strip() for l in file_object.read().splitlines()]
     for index, line in enumerate(lines):
       line = self.ParseLine(index, line)
       if line:
@@ -163,7 +163,7 @@ class LinuxWtmpParser(parsers.FileParser):
     """Parse the wtmp file."""
     _, _ = stat, knowledge_base
     users = {}
-    wtmp = file_object.read(10000000)
+    wtmp = file_object.read()
     while wtmp:
       try:
         record = UtmpStruct(wtmp)
@@ -261,7 +261,7 @@ class NetgroupParser(parsers.FileParser):
       rdf_client.User
     """
     _, _ = stat, knowledge_base
-    lines = [l.strip() for l in file_object.read(100000).splitlines()]
+    lines = [l.strip() for l in file_object.read().splitlines()]
     return self.ParseLines(lines)
 
 
@@ -349,7 +349,7 @@ class LinuxBaseShadowParser(parsers.FileParser):
     Raises:
       parser.ParseError if the parser is unable to process the line.
     """
-    lines = [l.strip() for l in file_obj.read(100000).splitlines()]
+    lines = [l.strip() for l in file_obj.read().splitlines()]
     try:
       for index, line in enumerate(lines):
         if line:

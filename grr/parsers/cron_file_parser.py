@@ -20,7 +20,7 @@ class CronTabParser(parsers.FileParser):
     _ = knowledge_base
     entries = []
 
-    crondata = file_object.read(100000)
+    crondata = file_object.read()
     jobs = crontab.CronTab(tab=crondata)
 
     for job in jobs:

@@ -278,7 +278,7 @@ class ArtifactRegistry(object):
       try:
         with open(file_path, mode="rb") as fh:
           logging.debug("Loading artifacts from %s", file_path)
-          for artifact_val in self.ArtifactsFromYaml(fh.read(1000000)):
+          for artifact_val in self.ArtifactsFromYaml(fh.read()):
             self.RegisterArtifact(
                 artifact_val,
                 source="file:%s" % file_path,

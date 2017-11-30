@@ -373,7 +373,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
     for pathspec in pathspecs:
       urn = pathspec.AFF4Path(self.client_id)
       fd = aff4.FACTORY.Open(urn, token=self.token)
-      self.assertEqual("Hello", fd.Read(100000))
+      self.assertEqual("Hello", fd.read())
 
   def testMultiGetFileDeduplication(self):
     client_mock = action_mocks.MultiGetFileClientMock()

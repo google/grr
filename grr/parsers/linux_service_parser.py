@@ -120,7 +120,7 @@ class LinuxLSBInitParser(parsers.FileParser):
   def _ParseInit(self, init_files):
     init_lexer = LSBInitLexer()
     for path, file_obj in init_files:
-      init = init_lexer.ParseEntries(file_obj.read(100000))
+      init = init_lexer.ParseEntries(file_obj.read())
       if init:
         service = rdf_client.LinuxServiceInformation()
         service.name = init.get("provides")
@@ -184,7 +184,7 @@ class LinuxLSBInitParser(parsers.FileParser):
     init_files = []
     for k, v in files.iteritems():
       if k.startswith("/etc/insserv.conf"):
-        insserv_data += "%s\n" % v.read(100000)
+        insserv_data += "%s\n" % v.read()
       else:
         init_files.append((k, v))
     self._ParseInsserv(insserv_data)
@@ -218,7 +218,7 @@ class LinuxXinetdParser(parsers.FileParser):
   def _ProcessEntries(self, fd):
     """Extract entries from the xinetd config files."""
     parser = config_file.KeyValueParser(kv_sep="{", term="}", sep=None)
-    data = fd.read(100000)
+    data = fd.read()
     entries = parser.ParseEntries(data)
     for entry in entries:
       for section, cfg in entry.items():

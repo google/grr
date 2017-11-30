@@ -966,7 +966,7 @@ def main(argv):
     yaml.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
     try:
       artifact.UploadArtifactYamlFile(
-          open(flags.FLAGS.file, "rb").read(1000000),
+          open(flags.FLAGS.file, "rb").read(),
           overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e

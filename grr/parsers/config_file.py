@@ -533,7 +533,7 @@ class SshdConfigParser(SshdParserBase, parsers.FileParser):
     _, _ = stat, knowledge_base
     # Clean out any residual state.
     self.Flush()
-    lines = [l.strip() for l in file_object.read(100000).splitlines()]
+    lines = [l.strip() for l in file_object.read().splitlines()]
     for line in lines:
       # Remove comments (will break if it includes a quoted/escaped #)
       line = line.split("#")[0].strip()
@@ -786,7 +786,7 @@ class CronAtAllowDenyParser(parsers.FileParser):
   supported_artifacts = ["CronAtAllowDenyFiles"]
 
   def Parse(self, stat, file_obj, unused_knowledge_base):
-    lines = set([l.strip() for l in file_obj.read(100000).splitlines()])
+    lines = set([l.strip() for l in file_obj.read().splitlines()])
 
     users = []
     bad_lines = []
@@ -933,7 +933,7 @@ class NtpdParser(parsers.FileParser, FieldParser):
     # ntp.conf has no line continuation. Override the default 'cont' values
     # then parse up the lines.
     self.cont = ""
-    for line in self.ParseEntries(file_object.read(100000)):
+    for line in self.ParseEntries(file_object.read()):
       self.ParseLine(line)
     yield rdf_config_file.NtpConfig(
         config=self.config,

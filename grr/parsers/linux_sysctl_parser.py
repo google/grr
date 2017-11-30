@@ -17,7 +17,7 @@ class ProcSysParser(parsers.FileParser):
     # Remove /proc/sys
     key = stat.pathspec.path.replace("/proc/sys/", "", 1)
     key = key.replace("/", "_")
-    value = file_obj.read(100000).split()
+    value = file_obj.read().split()
     if len(value) == 1:
       value = value[0]
     return key, value

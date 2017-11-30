@@ -141,7 +141,7 @@ class RekallMock(action_mocks.MemoryClientMock):
     ps_list_file = os.path.join(config.CONFIG["Test.data_dir"],
                                 self.result_filename)
     result = rdf_rekall_types.RekallResponse(
-        json_messages=gzip.open(ps_list_file).read(10000000),
+        json_messages=gzip.open(ps_list_file).read(),
         plugin="pslist",
         client_urn=self.client_id)
 
