@@ -8,6 +8,16 @@
 <blockquote>
   {$ controller.approvalObject.reason $}
 </blockquote>
+<!--
+There is a Chrome bug that selects too much text when using triple
+click, see
+https://groups.google.com/a/chromium.org/forum/#!topic/chromium-bugs/P1N9-q5875Y
+
+The only workaround here is to add a <br>, really nothing else we tried
+(p, div) works. We don't want to have any visual difference
+either so it's in a div with 0 height.
+-->
+<div style="height: 0"><br></div>
 
 <button class="btn"
         name="grant-approval"

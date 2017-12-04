@@ -489,7 +489,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(http_api_e2e_test.ApiE2ETest):
 
     self.assertRaisesRegexp(
         grr_api_errors.AccessForbiddenError,
-        r"At least 1 approver\(s\) should have 'admin' label.",
+        "Need at least 1 additional approver with the 'admin' label for access",
         self.api.Hunt(hunt_urn.Basename()).Start)
 
     self.CreateHuntApproval(hunt_urn, self.token, admin=True)

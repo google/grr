@@ -167,6 +167,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.is_robot = context.creator == "GRRWorker"
       self.results_count = context.results_count
       self.clients_with_results_count = context.clients_with_results_count
+      self.clients_queued_count = context.clients_queued_count
       if hunt.runner_args.original_object.object_type != "UNKNOWN":
         ref = ApiFlowLikeObjectReference()
         self.original_object = ref.FromFlowLikeObjectReference(
@@ -886,10 +887,10 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
     description = ("Files downloaded by hunt %s (%s, '%s') created by user %s "
-                   "on %s" %
-                   (hunt_api_object.name, hunt_api_object.urn.Basename(),
-                    hunt_api_object.description, hunt_api_object.creator,
-                    hunt_api_object.created))
+                   "on %s" % (hunt_api_object.name,
+                              hunt_api_object.urn.Basename(),
+                              hunt_api_object.description,
+                              hunt_api_object.creator, hunt_api_object.created))
 
     collection = implementation.GRRHunt.ResultCollectionForHID(hunt_urn)
 
@@ -993,11 +994,12 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
       except aff4.InstantiationError:
         break
 
-    raise HuntFileNotFoundError(
-        "File %s with timestamp %s and client %s "
-        "wasn't found among the results of hunt %s" %
-        (utils.SmartStr(args.vfs_path), utils.SmartStr(args.timestamp),
-         utils.SmartStr(args.client_id), utils.SmartStr(args.hunt_id)))
+    raise HuntFileNotFoundError("File %s with timestamp %s and client %s "
+                                "wasn't found among the results of hunt %s" %
+                                (utils.SmartStr(args.vfs_path),
+                                 utils.SmartStr(args.timestamp),
+                                 utils.SmartStr(args.client_id),
+                                 utils.SmartStr(args.hunt_id)))
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):

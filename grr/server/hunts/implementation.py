@@ -487,6 +487,7 @@ class HuntRunner(object):
     if self.runner_args.client_rate > 0:
       self.hunt_obj.context.next_client_due = (
           next_client_due + 60.0 / self.runner_args.client_rate)
+      self.hunt_obj.context.clients_queued_count += 1
       self.CallState(
           messages=[client_id],
           next_state="RegisterClient",
@@ -1089,6 +1090,8 @@ class GRRHunt(flow.FlowBase):
     return client_id.Add("flows").Add("%s:hunt" % (self.urn.Basename()))
 
   def RegisterClient(self, client_urn):
+    if self.context.clients_queued_count:
+      self.context.clients_queued_count -= 1
     self._AddURNToCollection(client_urn, self.all_clients_collection_urn)
 
   def RegisterCompletedClient(self, client_urn):
@@ -1405,7 +1408,7 @@ class GRRHunt(flow.FlowBase):
     # pre-created cron jobs, hence we check in both places.
     # TODO(user): Remove GenericHuntArgs.output_plugins and
     # VariableGenericHuntArgs.output_plugins.
-    if self.args.HasField("output_plugins"):
+    if self.args and self.args.HasField("output_plugins"):
       plugins_descriptors = self.args.output_plugins
     else:
       plugins_descriptors = self.runner_args.output_plugins
@@ -1473,11 +1476,12 @@ class GRRHunt(flow.FlowBase):
 
     collections_dict = dict(
         (urn, col_type(urn))
-        for urn, col_type in
-        [(self.all_clients_collection_urn, grr_collections.ClientUrnCollection),
-         (self.completed_clients_collection_urn, grr_collections.
-          ClientUrnCollection), (self.clients_errors_collection_urn,
-                                 grr_collections.HuntErrorCollection)])
+        for urn, col_type in [(self.all_clients_collection_urn,
+                               grr_collections.ClientUrnCollection), (
+                                   self.completed_clients_collection_urn,
+                                   grr_collections.ClientUrnCollection), (
+                                       self.clients_errors_collection_urn,
+                                       grr_collections.HuntErrorCollection)])
 
     def CollectionLen(collection_urn):
       if collection_urn in collections_dict:

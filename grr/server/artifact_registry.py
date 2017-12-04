@@ -409,7 +409,7 @@ class ArtifactRegistry(object):
     """
     self._CheckDirty(reload_datastore_artifacts=reload_datastore_artifacts)
     results = set()
-    for artifact in self._artifacts.itervalues():
+    for artifact in self._artifacts.values():
 
       # artifact.supported_os = [] matches all OSes
       if os_name and artifact.supported_os and (

@@ -232,9 +232,12 @@ class ApprovalWithApproversAndReason(Approval):
 
     # Check that there are enough approvers.
     approvers = self.GetNonExpiredApprovers()
-    if len(approvers) < config.CONFIG["ACL.approvers_required"]:
-      msg = ("Requires %s approvers for access." %
-             config.CONFIG["ACL.approvers_required"])
+    approvers_required = config.CONFIG["ACL.approvers_required"]
+    if len(approvers) < approvers_required:
+      missing = approvers_required - len(approvers)
+      msg = ("Need at least %d additional approver%s for access." %
+             (missing, "s" if missing > 1 else ""))
+
       raise access_control.UnauthorizedAccess(
           msg, subject=subject_urn, requested_access=token.requested_access)
 
@@ -256,9 +259,12 @@ class ApprovalWithApproversAndReason(Approval):
           pass
 
       if len(approvers_with_label) < self.min_approvers_with_label:
+        missing = self.min_approvers_with_label - len(approvers_with_label)
         raise access_control.UnauthorizedAccess(
-            "At least %d approver(s) should have '%s' label." %
-            (self.min_approvers_with_label, self.checked_approvers_label),
+            "Need at least %d additional approver%s "
+            "with the '%s' label for access." % (missing, "s"
+                                                 if missing > 1 else "",
+                                                 self.checked_approvers_label),
             subject=subject_urn,
             requested_access=token.requested_access)
 
@@ -706,8 +712,7 @@ class ClientApprovalRequestor(ApprovalRequestor):
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [
-        self.ApprovalSymlinkUrnBuilder("client",
-                                       self.subject_urn.Basename(),
+        self.ApprovalSymlinkUrnBuilder("client", self.subject_urn.Basename(),
                                        self.token.username, approval_id)
     ]
 
@@ -775,8 +780,7 @@ class HuntApprovalRequestor(ApprovalRequestor):
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [
-        self.ApprovalSymlinkUrnBuilder("hunt",
-                                       self.subject_urn.Basename(),
+        self.ApprovalSymlinkUrnBuilder("hunt", self.subject_urn.Basename(),
                                        self.token.username, approval_id)
     ]
 
@@ -841,8 +845,7 @@ class CronJobApprovalRequestor(ApprovalRequestor):
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [
-        self.ApprovalSymlinkUrnBuilder("cron",
-                                       self.subject_urn.Basename(),
+        self.ApprovalSymlinkUrnBuilder("cron", self.subject_urn.Basename(),
                                        self.token.username, approval_id)
     ]
 

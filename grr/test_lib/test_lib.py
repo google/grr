@@ -819,7 +819,7 @@ class PrivateKeyNotFoundException(Exception):
 def GetClientId(writeback_file):
   """Given the path to a client's writeback file, returns its client id."""
   with open(writeback_file) as f:
-    parsed_yaml = yaml.safe_load(f.read())
+    parsed_yaml = yaml.safe_load(f.read()) or {}
   serialized_pkey = parsed_yaml.get("Client.private_key", None)
   if serialized_pkey is None:
     raise PrivateKeyNotFoundException

@@ -568,12 +568,14 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     client_ids = self.SetupClients(10)
 
     with test_lib.FakeTime(start_time):
-      worker_mock, _ = self._RunRateLimitedHunt(client_ids, start_time)
+      worker_mock, hunt_urn = self._RunRateLimitedHunt(client_ids, start_time)
       # One client will be processed every minute.
       for i in range(len(client_ids)):
         with test_lib.FakeTime(start_time + 1 + 60 * i):
           worker_mock.Simulate()
           self.assertEqual(len(DummyHunt.client_ids), i + 1)
+          hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+          self.assertEqual(hunt_obj.context.clients_queued_count, 10 - i - 1)
 
   def testHuntClientRateWithPause(self):
     """Check that clients are scheduled only if the hunt is running."""
@@ -590,6 +592,8 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
           hunt_urn, age=aff4.ALL_TIMES, mode="rw",
           token=self.token) as hunt_obj:
         hunt_obj.Stop()
+        self.assertEqual(len(hunt_obj.GetClients()), 1)
+        self.assertEqual(hunt_obj.context.clients_queued_count, 9)
 
       # No more clients should be processed.
       for i in range(len(client_ids)):

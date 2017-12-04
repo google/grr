@@ -80,7 +80,7 @@ message FlowContext {
 }
 
 // The hunt context.
-// Next field: 16
+// Next field: 17
 message HuntContext {
   optional ClientResources client_resources = 1;
   optional uint64 create_time = 2 [(sem_type) = {
@@ -108,6 +108,7 @@ message HuntContext {
   optional uint64 clients_with_results_count = 13;
   optional uint64 results_count = 14;
   optional uint64 completed_clients_count = 15;
+  optional uint64 clients_queued_count = 16;
 }
 
 // This is the user's access token.

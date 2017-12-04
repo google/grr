@@ -235,7 +235,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(result.reason, "blah")
     self.assertEqual(result.is_valid, False)
     self.assertEqual(result.is_valid_message,
-                     "Requires 2 approvers for access.")
+                     "Need at least 1 additional approver for access.")
 
     self.assertEqual(result.notified_users, ["approver"])
     self.assertEqual(result.email_cc_addresses, ["test@example.com"])

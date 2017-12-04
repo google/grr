@@ -57,7 +57,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -176,7 +176,7 @@
         ],
         "id": "approval:112233",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver1",
           "approver2"
@@ -257,7 +257,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -334,7 +334,7 @@
         ],
         "id": "approval:112233",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver1",
           "approver2"
@@ -774,7 +774,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -846,6 +846,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -1049,7 +1054,7 @@
         ],
         "id": "approval:112233",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver1",
           "approver2"
@@ -1070,6 +1075,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -1185,7 +1191,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -1297,7 +1303,7 @@
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver"
         ],
@@ -2675,7 +2681,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -2745,7 +2751,7 @@
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver"
         ],
@@ -3483,7 +3489,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -3550,6 +3556,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -3751,7 +3762,7 @@
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver"
         ],
@@ -3771,6 +3782,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -3914,6 +3926,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -4135,6 +4152,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -4250,6 +4268,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -4455,7 +4478,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -4522,6 +4545,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -4774,6 +4802,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -4822,7 +4851,7 @@
         "email_cc_addresses": [],
         "id": "approval:333333",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver"
         ],
@@ -4842,6 +4871,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -5001,7 +5031,7 @@
           "is_valid_message": {
             "age": 0,
             "type": "unicode",
-            "value": "Requires 2 approvers for access."
+            "value": "Need at least 1 additional approver for access."
           },
           "notified_users": [
             {
@@ -5068,6 +5098,11 @@
                     }
                   ]
                 }
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -5334,7 +5369,7 @@
         "email_cc_addresses": [],
         "id": "approval:444444",
         "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
+        "is_valid_message": "Need at least 1 additional approver for access.",
         "notified_users": [
           "approver"
         ],
@@ -5354,6 +5389,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -5728,6 +5764,11 @@
               ]
             }
           },
+          "clients_queued_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "clients_with_results_count": {
             "age": 0,
             "type": "long",
@@ -5983,6 +6024,7 @@
             }
           ]
         },
+        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -6099,6 +6141,11 @@
                 }
               ]
             }
+          },
+          "clients_queued_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
           },
           "clients_with_results_count": {
             "age": 0,
@@ -6345,6 +6392,7 @@
             }
           ]
         },
+        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -6459,6 +6507,11 @@
                 }
               ]
             }
+          },
+          "clients_queued_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
           },
           "clients_with_results_count": {
             "age": 0,
@@ -6666,6 +6719,7 @@
             }
           ]
         },
+        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -11127,6 +11181,11 @@
                   ]
                 }
               },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "clients_with_results_count": {
                 "age": 0,
                 "type": "long",
@@ -11347,6 +11406,7 @@
               }
             ]
           },
+          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -12185,7 +12245,7 @@
               "is_valid_message": {
                 "age": 0,
                 "type": "unicode",
-                "value": "Requires 2 approvers for access."
+                "value": "Need at least 1 additional approver for access."
               },
               "notified_users": [
                 {
@@ -12338,7 +12398,7 @@
             "email_cc_addresses": [],
             "id": "approval:111111",
             "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
+            "is_valid_message": "Need at least 1 additional approver for access.",
             "notified_users": [
               "approver"
             ],
@@ -12402,7 +12462,7 @@
               "is_valid_message": {
                 "age": 0,
                 "type": "unicode",
-                "value": "Requires 2 approvers for access."
+                "value": "Need at least 1 additional approver for access."
               },
               "notified_users": [
                 {
@@ -12518,7 +12578,7 @@
             "email_cc_addresses": [],
             "id": "approval:111111",
             "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
+            "is_valid_message": "Need at least 1 additional approver for access.",
             "notified_users": [
               "approver"
             ],
@@ -14578,7 +14638,7 @@
               "is_valid_message": {
                 "age": 0,
                 "type": "unicode",
-                "value": "Requires 2 approvers for access."
+                "value": "Need at least 1 additional approver for access."
               },
               "notified_users": [
                 {
@@ -14615,6 +14675,11 @@
                     "age": 0,
                     "type": "ForemanClientRuleSet",
                     "value": {}
+                  },
+                  "clients_queued_count": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
                   },
                   "clients_with_results_count": {
                     "age": 0,
@@ -14763,7 +14828,7 @@
             "email_cc_addresses": [],
             "id": "approval:112233",
             "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
+            "is_valid_message": "Need at least 1 additional approver for access.",
             "notified_users": [
               "approver"
             ],
@@ -14773,6 +14838,7 @@
               "client_limit": 100,
               "client_rate": 20.5,
               "client_rule_set": {},
+              "clients_queued_count": 0,
               "clients_with_results_count": 0,
               "completed_clients_count": 0,
               "crash_limit": 100,
@@ -16067,6 +16133,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "clients_with_results_count": {
                 "age": 0,
                 "type": "long",
@@ -16153,6 +16224,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "clients_with_results_count": {
                 "age": 0,
                 "type": "long",
@@ -16234,6 +16310,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_queued_count": 0,
             "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 2000000000,
@@ -16252,6 +16329,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_queued_count": 0,
             "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 1000000000,
@@ -16291,6 +16369,11 @@
                 "type": "float",
                 "value": 0.0
               },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
               "clients_with_results_count": {
                 "age": 0,
                 "type": "long",
@@ -16372,6 +16455,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_queued_count": 0,
             "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 2000000000,
@@ -16410,6 +16494,11 @@
                 "age": 0,
                 "type": "float",
                 "value": 0.0
+              },
+              "clients_queued_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
               },
               "clients_with_results_count": {
                 "age": 0,
@@ -16492,6 +16581,7 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
+            "clients_queued_count": 0,
             "clients_with_results_count": 0,
             "crash_limit": 100,
             "created": 1000000000,
@@ -17858,6 +17948,11 @@
               ]
             }
           },
+          "clients_queued_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "clients_with_results_count": {
             "age": 0,
             "type": "long",
@@ -18069,6 +18164,7 @@
             }
           ]
         },
+        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -18176,6 +18272,11 @@
                 }
               ]
             }
+          },
+          "clients_queued_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
           },
           "clients_with_results_count": {
             "age": 0,
@@ -18388,6 +18489,7 @@
             }
           ]
         },
+        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,

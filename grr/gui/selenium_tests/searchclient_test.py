@@ -62,6 +62,10 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Type("client_query", text="host:Host-1", end_with_enter=True)
     self.WaitUntilEqual("GRR | Search for \"host:Host-1\"", self.GetPageTitle)
 
+    # Not entering any search term checks for all clients.
+    self.Open("/#/search")
+    self.WaitUntilEqual("GRR | Client List", self.GetPageTitle)
+
   def testEmptySearchShowsAllClients(self):
     self.Open("/")
     self.Click("client_query_submit")

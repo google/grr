@@ -118,8 +118,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button[name=Proceed]")
 
     # This is insufficient - we need 2 approvers.
-    self.WaitUntilContains("Requires 2 approvers for access.", self.GetText,
-                           "css=grr-request-approval-dialog")
+    self.WaitUntilContains("Need at least 1 additional approver for access.",
+                           self.GetText, "css=grr-request-approval-dialog")
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
@@ -150,8 +150,9 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # This is still insufficient - one of the approvers should have
     # "admin" label.
-    self.WaitUntilContains("At least 1 approver(s) should have 'admin' label.",
-                           self.GetText, "css=grr-request-approval-dialog")
+    self.WaitUntilContains(
+        "Need at least 1 additional approver with the 'admin' label for access",
+        self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
     self.CreateAdminUser("approver")

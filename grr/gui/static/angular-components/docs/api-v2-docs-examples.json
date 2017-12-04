@@ -35,7 +35,7 @@
         ],
         "id": "approval:112233",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver1",
           "approver2"
@@ -92,7 +92,7 @@
         ],
         "id": "approval:112233",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver1",
           "approver2"
@@ -182,7 +182,7 @@
         ],
         "id": "approval:112233",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver1",
           "approver2"
@@ -203,6 +203,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -301,7 +302,7 @@
         ],
         "id": "approval:111111",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver"
         ],
@@ -677,7 +678,7 @@
         ],
         "id": "approval:111111",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver"
         ],
@@ -930,7 +931,7 @@
         ],
         "id": "approval:111111",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver"
         ],
@@ -950,6 +951,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1029,6 +1031,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1101,6 +1104,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1149,7 +1153,7 @@
         },
         "id": "approval:333333",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver"
         ],
@@ -1169,6 +1173,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1257,7 +1262,7 @@
         },
         "id": "approval:444444",
         "isValid": false,
-        "isValidMessage": "Requires 2 approvers for access.",
+        "isValidMessage": "Need at least 1 additional approver for access.",
         "notifiedUsers": [
           "approver"
         ],
@@ -1277,6 +1282,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1614,6 +1620,7 @@
             }
           ]
         },
+        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -1694,6 +1701,7 @@
             }
           ]
         },
+        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -1772,6 +1780,7 @@
             }
           ]
         },
+        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -4604,6 +4613,7 @@
               }
             ]
           },
+          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -4891,7 +4901,7 @@
             ],
             "id": "approval:111111",
             "isValid": false,
-            "isValidMessage": "Requires 2 approvers for access.",
+            "isValidMessage": "Need at least 1 additional approver for access.",
             "notifiedUsers": [
               "approver"
             ],
@@ -4934,7 +4944,7 @@
             ],
             "id": "approval:111111",
             "isValid": false,
-            "isValidMessage": "Requires 2 approvers for access.",
+            "isValidMessage": "Need at least 1 additional approver for access.",
             "notifiedUsers": [
               "approver"
             ],
@@ -5455,7 +5465,7 @@
             ],
             "id": "approval:112233",
             "isValid": false,
-            "isValidMessage": "Requires 2 approvers for access.",
+            "isValidMessage": "Need at least 1 additional approver for access.",
             "notifiedUsers": [
               "approver"
             ],
@@ -5465,6 +5475,7 @@
               "clientLimit": "100",
               "clientRate": 20.5,
               "clientRuleSet": {},
+              "clientsQueuedCount": "0",
               "clientsWithResultsCount": "0",
               "completedClientsCount": "0",
               "crashLimit": "100",
@@ -5831,6 +5842,7 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
+            "clientsQueuedCount": "0",
             "clientsWithResultsCount": "0",
             "crashLimit": "100",
             "created": "2000000000",
@@ -5849,6 +5861,7 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
+            "clientsQueuedCount": "0",
             "clientsWithResultsCount": "0",
             "crashLimit": "100",
             "created": "1000000000",
@@ -5878,6 +5891,7 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
+            "clientsQueuedCount": "0",
             "clientsWithResultsCount": "0",
             "crashLimit": "100",
             "created": "2000000000",
@@ -5907,6 +5921,7 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
+            "clientsQueuedCount": "0",
             "clientsWithResultsCount": "0",
             "crashLimit": "100",
             "created": "1000000000",
@@ -6284,6 +6299,7 @@
             }
           ]
         },
+        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -6355,6 +6371,7 @@
             }
           ]
         },
+        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",

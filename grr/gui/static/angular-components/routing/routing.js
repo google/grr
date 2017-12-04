@@ -57,7 +57,11 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       url: '/search?q',
       template: '<grr-clients-list />',
       title: function(params) {
-        return 'Search for "' + params['q'] + '"';
+        if (params['q']) {
+          return 'Search for "' + params['q'] + '"';
+        } else {
+          return 'Client List';
+        }
       }
     })
     .state('apiDocs', {
