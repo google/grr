@@ -70,7 +70,8 @@ def compile_protos():
   # Only compile protobufs if we're inside GRR source tree.
   if (not os.path.exists(
       os.path.join(THIS_DIRECTORY, "..", "..", "makefile.py")) or
-      not os.path.exists(os.path.join(THIS_DIRECTORY, "..", "..", "..", "grr"))):
+      not os.path.exists(os.path.join(THIS_DIRECTORY, "..", "..", "..",
+                                      "grr"))):
     return
 
   # Clean and recompile the protobufs.
@@ -86,6 +87,7 @@ def compile_protos():
   # Create __init__ files for generated protobuf files.
   create_package_file(protos_out, "grr", "proto")
   create_package_file(protos_out, "grr", "proto", "api")
+  create_package_file(protos_out, "grr", "proto", "api", "root")
   create_package_file(protos_out, "grr", "client", "components",
                       "chipsec_support", "actions")
   create_package_file(protos_out, "grr", "client", "components",
@@ -139,9 +141,7 @@ setup_args = dict(
     },
     packages=find_packages(),
     entry_points={
-        "console_scripts": [
-            "grr_api_shell = grr_api_client.api_shell:main",
-        ]
+        "console_scripts": ["grr_api_shell = grr_api_client.api_shell:main",]
     },
     install_requires=[
         "ipython==5.0.0",
