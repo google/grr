@@ -405,16 +405,16 @@ class GRRFuse(GRRFuseDatastoreOnly):
         # If we didn't get a path either, we can't do anything.
         raise type_info.TypeValueError("Either 'path' or 'last' must"
                                        " be supplied as an argument.")
+
+      fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+      # We really care about the last time the stat was updated, so we use
+      # this instead of the LAST attribute, which is the last time anything
+      # was updated about the object.
+      stat_obj = fd.Get(fd.Schema.STAT)
+      if stat_obj:
+        last = stat_obj.age
       else:
-        fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
-        # We really care about the last time the stat was updated, so we use
-        # this instead of the LAST attribute, which is the last time anything
-        # was updated about the object.
-        stat_obj = fd.Get(fd.Schema.STAT)
-        if stat_obj:
-          last = stat_obj.age
-        else:
-          last = rdfvalue.RDFDatetime(0)
+        last = rdfvalue.RDFDatetime(0)
 
     # If the object doesn't even have a LAST attribute by this point,
     # we say it hasn't been accessed within the cache expiry time.
@@ -423,9 +423,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     last = last.AsDatetime()
 
     # Remember to use UTC time, since that's what the datastore uses.
-    if datetime.datetime.utcnow() - last > self.max_age_before_refresh:
-      return True
-    return False
+    return datetime.datetime.utcnow() - last > self.max_age_before_refresh
 
   def _RunAndWaitForVFSFileUpdate(self, path):
     """Runs a flow on the client, and waits for it to finish."""
@@ -502,42 +500,45 @@ class GRRFuse(GRRFuseDatastoreOnly):
     last = fd.Get(fd.Schema.CONTENT_LAST)
     client_id = rdf_client.GetClientURNFromPath(path)
 
+    if not self.DataRefreshRequired(last=last, path=path):
+      return super(GRRFuse, self).Read(path, length, offset, fh)
+
     if isinstance(fd, standard.AFF4SparseImage):
       # If we have a sparse image, update just a part of it.
       self.UpdateSparseImageIfNeeded(fd, length, offset)
-    else:
+      # Read the file from the datastore as usual.
+      return super(GRRFuse, self).Read(path, length, offset, fh)
 
-      # If it's the first time we've seen this path (or we're asking
-      # explicitly), try and make it an AFF4SparseImage.
-      if last is None or self.force_sparse_image:
-        pathspec = fd.Get(fd.Schema.PATHSPEC)
+    # If it's the first time we've seen this path (or we're asking
+    # explicitly), try and make it an AFF4SparseImage.
+    if last is None or self.force_sparse_image:
+      pathspec = fd.Get(fd.Schema.PATHSPEC)
 
-        # Either makes a new AFF4SparseImage or gets the file fully,
-        # depending on size.
+      # Either makes a new AFF4SparseImage or gets the file fully,
+      # depending on size.
+      flow_utils.StartFlowAndWait(
+          client_id,
+          token=self.token,
+          flow_name=filesystem.MakeNewAFF4SparseImage.__name__,
+          pathspec=pathspec,
+          size_threshold=self.size_threshold)
+
+      # Reopen the fd in case it's changed to be an AFF4SparseImage
+      fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
+      # If we are now a sparse image, just download the part we requested
+      # from the client.
+      if isinstance(fd, standard.AFF4SparseImage):
         flow_utils.StartFlowAndWait(
             client_id,
             token=self.token,
-            flow_name=filesystem.MakeNewAFF4SparseImage.__name__,
-            pathspec=pathspec,
-            size_threshold=self.size_threshold)
-
-        # Reopen the fd in case it's changed to be an AFF4SparseImage
-        fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
-        # If we are now a sparse image, just download the part we requested
-        # from the client.
-        if isinstance(fd, standard.AFF4SparseImage):
-          flow_utils.StartFlowAndWait(
-              client_id,
-              token=self.token,
-              flow_name=filesystem.FetchBufferForSparseImage.__name__,
-              file_urn=self.root.Add(path),
-              length=length,
-              offset=offset)
-      else:
-        # This was a file we'd seen before that wasn't a sparse image, so update
-        # it the usual way.
-        if self.DataRefreshRequired(last=last):
-          self._RunAndWaitForVFSFileUpdate(path)
+            flow_name=filesystem.FetchBufferForSparseImage.__name__,
+            file_urn=self.root.Add(path),
+            length=length,
+            offset=offset)
+    else:
+      # This was a file we'd seen before that wasn't a sparse image, so update
+      # it the usual way.
+      self._RunAndWaitForVFSFileUpdate(path)
 
     # Read the file from the datastore as usual.
     return super(GRRFuse, self).Read(path, length, offset, fh)

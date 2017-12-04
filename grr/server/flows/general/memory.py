@@ -10,8 +10,6 @@ performing basic analysis.
 import json
 import logging
 
-from rekall import constants
-
 from grr import config
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
@@ -167,7 +165,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     # still valid).
     request.profiles.append(
         self.GetProfileByName("inventory",
-                              constants.PROFILE_REPOSITORY_VERSION))
+                              server_stubs.REKALL_PROFILE_REPOSITORY_VERSION))
 
     if self.args.debug_logging:
       request.session[u"logging_level"] = u"DEBUG"

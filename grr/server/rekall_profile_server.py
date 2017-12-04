@@ -7,14 +7,13 @@ import urllib2
 import zlib
 
 
-from rekall import constants
-
 from grr import config
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import server_stubs
 from grr.server import threadpool
 from grr.server.aff4_objects import aff4_grr
 
@@ -30,7 +29,7 @@ class ProfileServer(object):
 
   def GetProfileByName(self,
                        profile_name,
-                       version=constants.PROFILE_REPOSITORY_VERSION):
+                       version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
     """Retrieves a profile by name."""
     pass
 
@@ -38,9 +37,10 @@ class ProfileServer(object):
 class CachingProfileServer(ProfileServer):
   """A ProfileServer that caches profiles in the AFF4 space."""
 
-  def _GetProfileFromCache(self,
-                           profile_name,
-                           version=constants.PROFILE_REPOSITORY_VERSION):
+  def _GetProfileFromCache(
+      self,
+      profile_name,
+      version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
 
     cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
 
@@ -53,8 +53,9 @@ class CachingProfileServer(ProfileServer):
     except IOError:
       pass
 
-  def _StoreProfile(self, profile,
-                    version=constants.PROFILE_REPOSITORY_VERSION):
+  def _StoreProfile(self,
+                    profile,
+                    version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
     cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
         cache_urn.Add(version).Add(profile.name),
@@ -65,7 +66,7 @@ class CachingProfileServer(ProfileServer):
 
   def GetProfileByName(self,
                        profile_name,
-                       version=constants.PROFILE_REPOSITORY_VERSION,
+                       version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION,
                        ignore_cache=False):
     """Retrieves a profile by name."""
     if not ignore_cache:
@@ -86,7 +87,7 @@ class RekallRepositoryProfileServer(ProfileServer):
 
   def GetProfileByName(self,
                        profile_name,
-                       version=constants.PROFILE_REPOSITORY_VERSION):
+                       version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
     try:
       url = "%s/%s/%s.gz" % (config.CONFIG["Rekall.profile_repository"],
                              version, profile_name)
@@ -120,7 +121,8 @@ class GRRRekallProfileServer(CachingProfileServer,
                              RekallRepositoryProfileServer):
   """A caching Rekall profile server."""
 
-  def GetAllProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
+  def GetAllProfiles(self,
+                     version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
     """This function will download all profiles and cache them locally."""
 
     inv_profile = self.GetProfileByName(
@@ -135,7 +137,8 @@ class GRRRekallProfileServer(CachingProfileServer,
       except urllib2.URLError as e:
         logging.info("Exception: %s", e)
 
-  def GetMissingProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
+  def GetMissingProfiles(
+      self, version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION):
     """This will download all profiles that are not already cached."""
     inv_profile = self.GetProfileByName(
         "inventory", ignore_cache=True, version=version)

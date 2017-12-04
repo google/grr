@@ -19,7 +19,6 @@ from grr.server.flows.general import collectors_core_artifacts_test
 from grr.server.flows.general import collectors_interactions_test
 from grr.server.flows.general import collectors_test
 from grr.server.flows.general import discovery_test
-from grr.server.flows.general import endtoend_test
 from grr.server.flows.general import file_finder_test
 from grr.server.flows.general import filesystem_test
 from grr.server.flows.general import filetypes_test

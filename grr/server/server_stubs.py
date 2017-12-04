@@ -435,3 +435,7 @@ class YaraProcessDump(ClientActionStub):
 
   in_rdfvalue = rdf_yara.YaraProcessDumpArgs
   out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
+
+
+# Rekall constants as defined in rekall/constants.py.
+REKALL_PROFILE_REPOSITORY_VERSION = "v1.0"

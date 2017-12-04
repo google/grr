@@ -230,7 +230,8 @@ class GRRFuseTest(GRRFuseTestBase):
         standard.HashBuffer,
         standard.ListDirectory,
         standard.StatFile,
-        standard.TransferBuffer,)
+        standard.TransferBuffer,
+    )
 
     self.client_mock = flow_test_lib.MockClient(
         self.client_id, self.action_mock, token=self.token)
@@ -247,7 +248,7 @@ class GRRFuseTest(GRRFuseTestBase):
   def tearDown(self):
     super(GRRFuseTest, self).tearDown()
     self.update_stubber.Stop()
-    self.update_stubber.Stop()
+    self.start_flow_stubber.Stop()
 
   def _RunAndWaitForVFSFileUpdate(self, path):
     for _ in flow_test_lib.TestFlowHelper(
@@ -307,8 +308,8 @@ class GRRFuseTest(GRRFuseTestBase):
     """Make sure the right chunks get updated when we read a sparse file."""
     with utils.MultiStubber(
         (self.grr_fuse, "force_sparse_image", True),
-        (self.grr_fuse, "max_age_before_refresh", datetime.timedelta(
-            seconds=30)), (self.grr_fuse, "size_threshold", 0)):
+        (self.grr_fuse, "max_age_before_refresh",
+         datetime.timedelta(seconds=30)), (self.grr_fuse, "size_threshold", 0)):
       self._testUpdateSparseImageChunks()
 
   def _testUpdateSparseImageChunks(self):
@@ -332,10 +333,14 @@ class GRRFuseTest(GRRFuseTestBase):
     # Update the directory listing so we can see the file.
     self.ListDirectoryOnClient(self.temp_dir)
 
-    # Read 3 chunks, from #2 to #4.
-    data = self.grr_fuse.Read(client_path, length=read_len, offset=start_point)
-    self.assertEqual(data, contents[start_point:start_point + read_len],
-                     "Fuse contents don't match.")
+    # Make sure refreshing is allowed.
+    with utils.Stubber(
+        self.grr_fuse, "max_age_before_refresh", datetime.timedelta(seconds=0)):
+      # Read 3 chunks, from #2 to #4.
+      data = self.grr_fuse.Read(
+          client_path, length=read_len, offset=start_point)
+      self.assertEqual(data, contents[start_point:start_point + read_len],
+                       "Fuse contents don't match.")
 
     # Make sure it's an AFF4SparseImage
     fd = aff4.FACTORY.Open(client_path, mode="rw", token=self.token)
@@ -346,10 +351,13 @@ class GRRFuseTest(GRRFuseTestBase):
     # 10 chunks but not #2 - #4 that we already got.
     self.assertEqual(missing_chunks, [0, 1, 5, 6, 7, 8, 9])
 
-    # Now we read and make sure the contents are as we expect.
-    fuse_contents = self.grr_fuse.Read(
-        client_path, length=8 * chunksize, offset=0)
-    expected_contents = ("\x00" * start_point + contents)[:8 * chunksize]
+    # Make sure refreshing is allowed.
+    with utils.Stubber(
+        self.grr_fuse, "max_age_before_refresh", datetime.timedelta(seconds=0)):
+      # Now we read and make sure the contents are as we expect.
+      fuse_contents = self.grr_fuse.Read(
+          client_path, length=8 * chunksize, offset=0)
+      expected_contents = ("\x00" * start_point + contents)[:8 * chunksize]
 
     self.assertEqual(fuse_contents, expected_contents,
                      "Fuse contents don't match.")
@@ -361,11 +369,11 @@ class GRRFuseTest(GRRFuseTestBase):
       f.seek(0)
       f.write(expected_contents)
 
-    # Expire the chunks so we update all of them.
-    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
-
-    fuse_contents = self.grr_fuse.Read(
-        client_path, length=len(contents), offset=0)
+    # Enable refresh.
+    with utils.Stubber(
+        self.grr_fuse, "max_age_before_refresh", datetime.timedelta(seconds=0)):
+      fuse_contents = self.grr_fuse.Read(
+          client_path, length=len(contents), offset=0)
 
     self.assertEqual(fuse_contents, expected_contents,
                      "Fuse contents don't match.")

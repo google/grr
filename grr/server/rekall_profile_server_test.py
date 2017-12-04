@@ -5,13 +5,13 @@ import urllib2
 import zlib
 
 
-from rekall import constants
 from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server import aff4
 from grr.server import rekall_profile_server
+from grr.server import server_stubs
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
 
@@ -24,7 +24,7 @@ class FakeHandle(object):
 
   def __init__(self, url):
     # Convert the url back into a profile canonical name.
-    profile = url.split(constants.PROFILE_REPOSITORY_VERSION + "/")[1]
+    profile = url.split(server_stubs.REKALL_PROFILE_REPOSITORY_VERSION + "/")[1]
     profile = profile.split(".")[0]
     self.profile = profile
 
@@ -34,7 +34,7 @@ class FakeHandle(object):
     profile_name = self.profile
     server = rekall_test_lib.TestRekallRepositoryProfileServer()
     profile = server.GetProfileByName(
-        profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
+        profile_name, version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION)
 
     return profile.data
 
@@ -58,7 +58,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(
-          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
+          profile_name, version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION)
       uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
       self.assertTrue("BusQueryDeviceID" in uncompressed)
 
@@ -67,7 +67,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(
-          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
+          profile_name, version=server_stubs.REKALL_PROFILE_REPOSITORY_VERSION)
 
     # This time it should have been cached.
     self.assertEqual(FakeHandle.read_count, 1)
@@ -94,7 +94,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
     cache_urn = rdfvalue.RDFURN(config.CONFIG["Rekall.profile_cache_urn"])
     cached_items = list(
         aff4.FACTORY.Open(
-            cache_urn.Add(constants.PROFILE_REPOSITORY_VERSION),
+            cache_urn.Add(server_stubs.REKALL_PROFILE_REPOSITORY_VERSION),
             token=self.token).ListChildren())
 
     # We cache the .gz only.

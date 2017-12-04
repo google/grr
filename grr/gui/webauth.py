@@ -4,11 +4,10 @@
 import logging
 
 
-from oauth2client import client
-from oauth2client import crypt
-
 from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
+
+from google.oauth2 import id_token
 
 from grr import config
 from grr.lib import registry
@@ -129,8 +128,6 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
 
   BEARER_PREFIX = "Bearer "
   SECURE_TOKEN_PREFIX = "https://securetoken.google.com/"
-  CERT_URI = ("https://www.googleapis.com/robot/v1/metadata/x509/"
-              "securetoken@system.gserviceaccount.com")
 
   def __init__(self, *args, **kwargs):
     super(FirebaseWebAuthManager, self).__init__(*args, **kwargs)
@@ -151,20 +148,21 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
     try:
       auth_header = request.headers.get("Authorization", "")
       if not auth_header.startswith(self.BEARER_PREFIX):
-        raise crypt.AppIdentityError("JWT token is missing.")
+        raise ValueError("JWT token is missing.")
 
       token = auth_header[len(self.BEARER_PREFIX):]
 
       auth_domain = config.CONFIG["AdminUI.firebase_auth_domain"]
       project_id = auth_domain.split(".")[0]
 
-      idinfo = client.verify_id_token(token, project_id, cert_uri=self.CERT_URI)
+      idinfo = id_token.verify_firebase_token(
+          token, request, audience=project_id)
 
       if idinfo["iss"] != self.SECURE_TOKEN_PREFIX + project_id:
-        raise crypt.AppIdentityError("Wrong issuer.")
+        raise ValueError("Wrong issuer.")
 
       request.user = idinfo["email"]
-    except crypt.AppIdentityError as e:
+    except ValueError as e:
       # For a homepage, just do a pass-through, otherwise JS code responsible
       # for the Firebase auth won't ever get executed. This approach is safe,
       # because wsgiapp.HttpRequest object will raise on any attempt to

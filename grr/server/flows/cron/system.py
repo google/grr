@@ -6,23 +6,18 @@ import bisect
 import logging
 import time
 
-from grr import config
-from grr.endtoend_tests import base
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as rdfstats
-from grr.server import access_control
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import export_utils
 from grr.server import flow
-from grr.server import foreman as rdf_foreman
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import cronjobs
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.general import discovery as flows_discovery
-from grr.server.flows.general import endtoend as flows_endtoend
 from grr.server.hunts import implementation as hunts_implementation
 from grr.server.hunts import standard as hunts_standard
 
@@ -75,8 +70,8 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       for label in self.categories[active_time].keys():
         histograms.setdefault(label, self.attribute())
-        graph = rdfstats.Graph(
-            title="%s day actives for %s label" % (active_time, label))
+        graph = rdfstats.Graph(title="%s day actives for %s label" % (
+            active_time, label))
         for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
 
@@ -326,117 +321,3 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
               start=self.start,
               end=self.end)
       self.HeartBeat()
-
-
-class EndToEndTests(cronjobs.SystemCronFlow):
-  """Runs end-to-end tests on designated clients.
-
-  Raise if any there are any test failures on any clients.  We want to be able
-  to alert on these failures.
-  """
-  frequency = rdfvalue.Duration("1d")
-  lifetime = rdfvalue.Duration("2h")
-
-  def GetOutputPlugins(self):
-    """Returns list of OutputPluginDescriptor objects to be used in the hunt."""
-    return []
-
-  @flow.StateHandler()
-  def Start(self):
-    self.state.hunt_id = None
-    self.state.client_ids_failures = set()
-    self.state.client_ids_result_reported = set()
-
-    # TODO(user): Figure out if this can just be a set. Add a tap test to
-    # meaningfully exercise this code.
-    self.state.client_ids = list(base.GetClientTestTargets(token=self.token))
-
-    if not self.state.client_ids:
-      self.Log("No clients to test on, define them in "
-               "Test.end_to_end_client_ids")
-      return
-
-    # SetUID is required to run a hunt on the configured end-to-end client
-    # targets without an approval.
-    token = access_control.ACLToken(
-        username="GRRWorker", reason="Running endtoend tests.").SetUID()
-    runner_args = rdf_flows.FlowRunnerArgs(
-        flow_name=flows_endtoend.EndToEndTestFlow.__name__)
-
-    flow_request = hunts_standard.FlowRequest(
-        client_ids=self.state.client_ids,
-        args=flows_endtoend.EndToEndTestFlowArgs(),
-        runner_args=runner_args)
-
-    bogus_rule = rdf_foreman.ForemanRegexClientRule(
-        attribute_name="System", attribute_regex="Does not match anything")
-
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=bogus_rule)
-    ])
-
-    hunt_args = hunts_standard.VariableGenericHuntArgs(flows=[flow_request])
-
-    hunt_args.output_plugins = self.GetOutputPlugins()
-
-    with hunts_implementation.GRRHunt.StartHunt(
-        hunt_name=hunts_standard.VariableGenericHunt.__name__,
-        args=hunt_args,
-        client_rule_set=client_rule_set,
-        client_rate=0,
-        expiry_time="1d",
-        token=token) as hunt:
-
-      self.state.hunt_id = hunt.session_id
-      hunt.SetDescription("EndToEnd tests run by cron")
-      hunt.Run()
-      hunt.ManuallyScheduleClients(token=token)
-
-    # Set a callback to check the results after 50 minutes.  This should be
-    # plenty of time for the clients to receive the hunt and run the tests, but
-    # not so long that the flow lease will expire.
-
-    wait_duration = rdfvalue.Duration(
-        config.CONFIG.Get("Test.end_to_end_result_check_wait"))
-    completed_time = rdfvalue.RDFDatetime.Now() + wait_duration
-
-    self.CallState(next_state="CheckResults", start_time=completed_time)
-
-  def _CheckForFailures(self, result):
-    self.state.client_ids_result_reported.add(result.source)
-    if not result.payload.success:
-      self.state.client_ids_failures.add(result.source)
-
-  def _CheckForSuccess(self, results):
-    """Check the hunt results to see if it succeeded overall.
-
-    Args:
-      results: results collection open for reading
-    Raises:
-      flow.FlowError: if incomplete results, or test failures.
-    """
-    # Check the actual test results
-    map(self._CheckForFailures, results)
-
-    # Check that all the clients that got the flow reported some results
-    self.state.client_ids_failures.update(
-        set(self.state.client_ids) - self.state.client_ids_result_reported)
-
-    if self.state.client_ids_failures:
-      raise flow.FlowError("Tests failed on clients: %s. Check hunt %s for "
-                           "errors." % (self.state.client_ids_failures,
-                                        self.state.hunt_id))
-
-  @flow.StateHandler()
-  def CheckResults(self):
-    """Check tests passed.
-
-    The EndToEndTestFlow will report all test results, we just need to look for
-    any failures.
-    """
-    with aff4.FACTORY.Open(
-        self.state.hunt_id.Add("Results"), token=self.token) as results:
-      self._CheckForSuccess(results)
-      self.Log("Tests passed on all clients: %s", self.state.client_ids)

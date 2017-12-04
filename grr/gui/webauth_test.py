@@ -4,11 +4,10 @@
 
 import mock
 
-from oauth2client import client
-from oauth2client import crypt
-
 from werkzeug import test as werkzeug_test
 from werkzeug import wrappers as werkzeug_wrappers
+
+from google.oauth2 import id_token
 
 from grr.gui import webauth
 from grr.gui import wsgiapp
@@ -130,9 +129,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         "JWT token validation failed: JWT token is missing.")
 
   @mock.patch.object(
-      client,
-      "verify_id_token",
-      side_effect=crypt.AppIdentityError("foobar error"))
+      id_token, "verify_firebase_token", side_effect=ValueError("foobar error"))
   def testPassesThroughHomepageOnVerificationFailure(self, mock_method):
     _ = mock_method
 
@@ -145,9 +142,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(response, self.success_response)
 
   @mock.patch.object(
-      client,
-      "verify_id_token",
-      side_effect=crypt.AppIdentityError("foobar error"))
+      id_token, "verify_firebase_token", side_effect=ValueError("foobar error"))
   def testReportsErrorOnVerificationFailureOnNonHomepage(self, mock_method):
     _ = mock_method
 
@@ -162,7 +157,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         response.get_data(as_text=True),
         "JWT token validation failed: foobar error")
 
-  @mock.patch.object(client, "verify_id_token")
+  @mock.patch.object(id_token, "verify_firebase_token")
   def testVerifiesTokenWithProjectIdFromDomain(self, mock_method):
     environ = werkzeug_test.EnvironBuilder(headers={
         "Authorization": "Bearer blah"
@@ -171,9 +166,13 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
     self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(mock_method.call_count, 1)
-    self.assertEqual(mock_method.call_args_list[0][0], ("blah", "foo-bar"))
+    self.assertEqual(mock_method.call_args_list[0][0], ("blah", request))
+    self.assertEqual(mock_method.call_args_list[0][1], dict(audience="foo-bar"))
 
-  @mock.patch.object(client, "verify_id_token", return_value={"iss": "blah"})
+  @mock.patch.object(
+      id_token, "verify_firebase_token", return_value={
+          "iss": "blah"
+      })
   def testReportsErrorIfIssuerIsWrong(self, mock_method):
     _ = mock_method
     environ = werkzeug_test.EnvironBuilder(
@@ -188,8 +187,8 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
         "JWT token validation failed: Wrong issuer.")
 
   @mock.patch.object(
-      client,
-      "verify_id_token",
+      id_token,
+      "verify_firebase_token",
       return_value={
           "iss": "https://securetoken.google.com/foo-bar",
           "email": "foo@bar.com"

@@ -2,23 +2,15 @@
 """System cron flows tests."""
 
 
-from grr.endtoend_tests import base
-from grr.endtoend_tests import endtoend_mocks
 from grr.lib import flags
-from grr.lib import utils
 from grr.lib.rdfvalues import client as client_rdf
-from grr.lib.rdfvalues import flows
 from grr.server import aff4
 from grr.server import client_fixture
-from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.cron import system
-from grr.server.flows.general import endtoend as endtoend_flows
-from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
-from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
@@ -133,15 +125,15 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
       pass
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
-    self._CheckOSStats("All", histogram, [
-        0, 0, {
+    self._CheckOSStats(
+        "All", histogram,
+        [0, 0, {
             "Linux": 10,
             "Windows": 10
         }, {
             "Linux": 10,
             "Windows": 10
-        }
-    ])
+        }])
     self._CheckOSStats("Label1", histogram,
                        [0, 0, {
                            "Windows": 10
@@ -163,10 +155,10 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     data = [(x.x_value, x.y_value) for x in histogram]
 
-    self.assertEqual(data, [(86400000000L, 0L), (172800000000L, 0L),
-                            (259200000000L, 0L), (604800000000L,
-                                                  0L), (1209600000000L, count),
-                            (2592000000000L, count), (5184000000000L, count)])
+    self.assertEqual(
+        data, [(86400000000L, 0L), (172800000000L, 0L), (259200000000L, 0L),
+               (604800000000L, 0L), (1209600000000L, count),
+               (2592000000000L, count), (5184000000000L, count)])
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -226,95 +218,6 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.FQDN("%s.example.com" % client_id))
     client.Set(client.Schema.ARCH("AMD64"))
     client.Flush()
-
-  def testEndToEndTests(self):
-
-    self.client_ids = [
-        "aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
-        "aff4:/C.6000000000000002"
-    ]
-    for clientid in self.client_ids:
-      self._SetSummaries(clientid)
-
-    self.client_mock = action_mocks.ListDirectoryClientMock()
-
-    with test_lib.ConfigOverrider({
-        "Test.end_to_end_client_ids": self.client_ids
-    }):
-      with utils.MultiStubber((base.AutomatedTest, "classes", {
-          "MockEndToEndTest": endtoend_mocks.MockEndToEndTest
-      }), (system.EndToEndTests, "lifetime", 0)):
-
-        # The test harness doesn't understand the callstate at a later time that
-        # this flow is doing, so we need to disable check_flow_errors.
-        for _ in flow_test_lib.TestFlowHelper(
-            system.EndToEndTests.__name__,
-            self.client_mock,
-            client_id=self.client_id,
-            check_flow_errors=False,
-            token=self.token):
-          pass
-
-      hunt_test_lib.TestHuntHelperWithMultipleMocks(
-          {}, check_flow_errors=False, token=self.token)
-      hunt_ids = list(
-          aff4.FACTORY.Open("aff4:/hunts", token=self.token).ListChildren())
-      # We have only created one hunt, and we should have started with a clean
-      # aff4 space.
-      self.assertEqual(len(hunt_ids), 1)
-
-      hunt_obj = aff4.FACTORY.Open(
-          hunt_ids[0], token=self.token, age=aff4.ALL_TIMES)
-      self.assertItemsEqual(
-          sorted(hunt_obj.GetClients()), sorted(self.client_ids))
-
-  def _CreateResult(self, success, clientid):
-    success = endtoend_flows.EndToEndTestResult(success=success)
-    return flows.GrrMessage(source=clientid, payload=success)
-
-  def testEndToEndTestsResultChecking(self):
-
-    self.client_ids = [
-        "aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
-        "aff4:/C.6000000000000002"
-    ]
-    for clientid in self.client_ids:
-      self._SetSummaries(clientid)
-
-    self.client_mock = action_mocks.ListDirectoryClientMock()
-
-    endtoend = system.EndToEndTests(None, token=self.token)
-    endtoend.state.hunt_id = "aff4:/temphuntid"
-    endtoend.state.client_ids = set(self.client_ids)
-    endtoend.state.client_ids_failures = set()
-    endtoend.state.client_ids_result_reported = set()
-
-    # No results at all
-    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess, [])
-
-    # Not enough client results
-    endtoend.state.client_ids_failures = set()
-    endtoend.state.client_ids_result_reported = set()
-    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
-                      [self._CreateResult(True, "aff4:/C.6000000000000001")])
-
-    # All clients succeeded
-    endtoend.state.client_ids_failures = set()
-    endtoend.state.client_ids_result_reported = set()
-    endtoend._CheckForSuccess([
-        self._CreateResult(True, "aff4:/C.6000000000000000"),
-        self._CreateResult(True, "aff4:/C.6000000000000001"),
-        self._CreateResult(True, "aff4:/C.6000000000000002")
-    ])
-
-    # All clients complete, but some failures
-    endtoend.state.client_ids_failures = set()
-    endtoend.state.client_ids_result_reported = set()
-    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess, [
-        self._CreateResult(True, "aff4:/C.6000000000000000"),
-        self._CreateResult(False, "aff4:/C.6000000000000001"),
-        self._CreateResult(False, "aff4:/C.6000000000000002")
-    ])
 
 
 def main(argv):
