@@ -67,8 +67,6 @@ override_dh_virtualenv:
 		--extra-pip-arg "--no-index" \
 		--extra-pip-arg "--find-links=${LOCAL_DEB_PYINDEX}" \
 		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${API_SDIST}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${TEST_SDIST}" \
-		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${CLIENT_SDIST}" \
 		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${TEMPLATES_SDIST}" \
 		--extra-pip-arg "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}" \
 		--no-test

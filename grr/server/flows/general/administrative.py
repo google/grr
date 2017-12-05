@@ -430,8 +430,15 @@ class OnlineNotification(flow.GRRFlow):
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
-    return cls.args_type(
-        email="%s@%s" % (username, config.CONFIG.Get("Logging.domain")))
+    args = cls.args_type()
+    try:
+      args.email = "%s@%s" % (username, config.CONFIG.Get("Logging.domain"))
+    except ValueError:
+      # Just set no default if the email is not well-formed. Example: when
+      # username contains '@' character.
+      pass
+
+    return args
 
   @flow.StateHandler()
   def Start(self):
