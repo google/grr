@@ -2,12 +2,11 @@
 """End to end tests for client resource limits."""
 
 
-from grr.client.client_actions import admin
-from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server import flow
+from grr.server import server_stubs
 from grr.server.flows.general import transfer
 
 
@@ -26,7 +25,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
         file_size_override=2 * 1024 * 1024,
         pathtype=rdf_paths.PathSpec.PathType.OS)
     self.CallClient(
-        standard.CopyPathToFile,
+        server_stubs.CopyPathToFile,
         offset=0,
         length=2 * 1024 * 1024,  # 4 default sized blobs
         src_path=urandom,
@@ -55,13 +54,13 @@ class CPULimitTestFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient(admin.BusyHang, integer=5, next_state="State1")
+    self.CallClient(server_stubs.BusyHang, integer=5, next_state="State1")
 
   @flow.StateHandler()
   def State1(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
-    self.CallClient(admin.BusyHang, integer=5, next_state="Done")
+    self.CallClient(server_stubs.BusyHang, integer=5, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):

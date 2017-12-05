@@ -6,7 +6,6 @@ import socket
 import threading
 
 
-from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -15,6 +14,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 from grr.server import aff4
 from grr.server import flow
+from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import fingerprint
 from grr.server.flows.general import transfer
@@ -43,7 +43,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
 
     for _ in range(self.args.file_limit):
       self.CallClient(
-          standard.CopyPathToFile,
+          server_stubs.CopyPathToFile,
           offset=0,
           length=2 * 1024 * 1024,  # 4 default sized blobs
           src_path=urandom,
@@ -61,7 +61,9 @@ class MultiGetFileTestFlow(flow.GRRFlow):
           fingerprint.FingerprintFile.__name__,
           next_state=transfer.MultiGetFile.__name__,
           pathspec=response.dest_path,
-          request_data={"pathspec": response.dest_path})
+          request_data={
+              "pathspec": response.dest_path
+          })
 
   @flow.StateHandler()
   def MultiGetFile(self, responses):
