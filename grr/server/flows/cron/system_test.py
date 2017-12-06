@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """System cron flows tests."""
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import client as client_rdf
 from grr.server import aff4

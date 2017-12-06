@@ -3,7 +3,6 @@
 """Test the cron_view interface."""
 
 
-
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags

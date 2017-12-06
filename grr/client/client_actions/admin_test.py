@@ -2,7 +2,6 @@
 """Tests client actions related to administrating the client."""
 
 
-
 import os
 
 import psutil

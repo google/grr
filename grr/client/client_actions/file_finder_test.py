@@ -41,8 +41,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super(FileFinderTest, self).setUp()
-    self.stat_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.STAT)
+    self.stat_action = rdf_file_finder.FileFinderAction.Stat()
 
   def _GetRelativeResults(self, raw_results, base_path=None):
     base_path = base_path or self.base_path
@@ -404,9 +403,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
                      hashlib.sha256(data).hexdigest())
 
   def _RunFileFinderDownloadHello(self, upload, opts=None):
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    action = rdf_file_finder.FileFinderAction(
-        action_type=action_type, download=opts)
+    action = rdf_file_finder.FileFinderAction.Download()
+    action.download = opts
 
     upload.return_value = rdf_client.UploadedFile(
         bytes_uploaded=42, file_id="foo", hash=rdf_crypto.Hash())
@@ -446,6 +444,14 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   EXT2_COMPR_FL = 0x00000004
   EXT2_IMMUTABLE_FL = 0x00000010
 
+  # TODO(hanuszczak): Maybe it would make sense to refactor this to a helper
+  # constructor of the `rdf_file_finder.FileFinderAction`.
+  @staticmethod
+  def _StatAction(**kwargs):
+    action_type = rdf_file_finder.FileFinderAction.Action.STAT
+    opts = rdf_file_finder.FileFinderStatActionOptions(**kwargs)
+    return rdf_file_finder.FileFinderAction(action_type=action_type, stat=opts)
+
   @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testStatExtFlags(self):
     temp_filepath = test_lib.TempFilePath()
@@ -454,10 +460,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     if subprocess.call(["chattr", "+c", temp_filepath]) != 0:
       raise unittest.SkipTest("extended attributes not supported by filesystem")
 
-    action_type = rdf_file_finder.FileFinderAction.Action.STAT
-    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+    action = self._StatAction()
     results = self._RunFileFinder([temp_filepath], action)
-
     self.assertEqual(len(results), 1)
 
     stat_entry = results[0].stat_entry
@@ -465,6 +469,51 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertFalse(stat_entry.st_flags_linux & self.EXT2_IMMUTABLE_FL)
 
     os.remove(temp_filepath)
+
+  def testStatExtAttrs(self):
+    temp_filepath = test_lib.TempFilePath()
+    self._SetExtAttr(temp_filepath, "user.foo", "bar")
+    self._SetExtAttr(temp_filepath, "user.quux", "norf")
+
+    action = self._StatAction()
+    results = self._RunFileFinder([temp_filepath], action)
+    self.assertEqual(len(results), 1)
+
+    ext_attrs = results[0].stat_entry.ext_attrs
+    self.assertEqual(ext_attrs[0].name, "user.foo")
+    self.assertEqual(ext_attrs[0].value, "bar")
+    self.assertEqual(ext_attrs[1].name, "user.quux")
+    self.assertEqual(ext_attrs[1].value, "norf")
+
+    action = self._StatAction(ext_attrs=False)
+    results = self._RunFileFinder([temp_filepath], action)
+    self.assertEqual(len(results), 1)
+
+    ext_attrs = results[0].stat_entry.ext_attrs
+    self.assertFalse(ext_attrs)
+
+    os.remove(temp_filepath)
+
+  @classmethod
+  def _SetExtAttr(cls, filepath, name, value):
+    if platform.system() == "Linux":
+      cls._SetExtAttrLinux(filepath, name, value)
+    elif platform.system() == "Darwin":
+      cls._SetExtAttrOsx(filepath, name, value)
+    else:
+      raise unittest.SkipTest("unsupported system")
+
+  @classmethod
+  def _SetExtAttrLinux(cls, filepath, name, value):
+    if subprocess.call(["which", "setfattr"]) != 0:
+      raise unittest.SkipTest("`setfattr` command is not available")
+    if subprocess.call(["setfattr", filepath, "-n", name, "-v", value]) != 0:
+      raise unittest.SkipTest("extended attributes not supported by filesystem")
+
+  @classmethod
+  def _SetExtAttrOsx(cls, filepath, name, value):
+    if subprocess.call(["xattr", "-w", name, value, filepath]) != 0:
+      raise unittest.SkipTest("extended attributes not supported")
 
   def testLinkStat(self):
     """Tests resolving symlinks when getting stat entries."""
@@ -482,10 +531,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     target_size = os.stat(lnk).st_size
     for expected_size, resolve_links in [(link_size, False), (target_size,
                                                               True)]:
-      stat_action = rdf_file_finder.FileFinderAction(
-          action_type=rdf_file_finder.FileFinderAction.Action.STAT,
-          stat=rdf_file_finder.FileFinderStatActionOptions(
-              resolve_links=resolve_links))
+      stat_action = rdf_file_finder.FileFinderAction.Stat(
+          resolve_links=resolve_links)
       results = self._RunFileFinder(paths, stat_action)
       self.assertEqual(len(results), 1)
       res = results[0]

@@ -9,7 +9,6 @@ modules that have been customized for your deployment.
 """
 
 
-
 # pylint: disable=unused-import
 
 from grr.gui import api_call_robot_router

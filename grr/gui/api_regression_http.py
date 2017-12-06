@@ -2,7 +2,6 @@
 """Base test classes for API handlers tests."""
 
 
-
 import json
 import logging
 import os

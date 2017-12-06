@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """AFF4 object representing grr users."""
 
-
 import hashlib
 import itertools
 import time

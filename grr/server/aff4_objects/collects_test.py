@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test the various collection objects."""
 
-
 from grr import config
 from grr.lib import flags
 from grr.server import aff4

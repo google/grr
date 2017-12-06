@@ -4,7 +4,6 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 """Test client vfs."""
 
-
 import hashlib
 import os
 

@@ -776,7 +776,7 @@ message StatFSRequest {
 };
 
 // A stat() record for a given path
-// Next field id: 23.
+// Next field id: 24.
 message StatEntry {
   // DEPRECATED
   // optional string aff4path = 1;
@@ -851,6 +851,13 @@ message StatEntry {
       type: "RDFDatetimeSeconds",
       description: "Creation time."
     }];
+
+  message ExtAttr {
+    optional string name = 1;
+    optional string value = 2;
+  }
+
+  repeated ExtAttr ext_attrs = 23;
 };
 
 // This stores collection entries.

@@ -6,7 +6,6 @@ To use this entry point you must run "grr_config_updater initialize" first.
 """
 
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order

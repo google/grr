@@ -74,7 +74,9 @@ done
 mkdir -p "$INSTALL_PREFIX/usr/bin/"
 
 LAUNCHER="$SRC_DIR/scripts/debian_launcher"
-$INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_api_shell"
+LAUNCHER_NO_EXTRA_ARGS="$SRC_DIR/scripts/debian_launcher_no_extra_args"
+
+$INSTALL_CMD $LAUNCHER_NO_EXTRA_ARGS "$INSTALL_PREFIX/usr/bin/grr_api_shell"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_config_updater"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_console"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_server"

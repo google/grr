@@ -6,7 +6,6 @@ of the same name. OSX-only actions are registered with the server via
 libs/server_stubs.py
 """
 
-
 import ctypes
 import logging
 import os

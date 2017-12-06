@@ -2,7 +2,6 @@
 """Tests for grr.parsers.sqlite_file."""
 
 
-
 import os
 import StringIO
 

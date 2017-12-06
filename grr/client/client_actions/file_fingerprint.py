@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Action to fingerprint files on the client."""
 
-
 import hashlib
 
 from grr.lib import fingerprint

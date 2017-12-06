@@ -2,7 +2,6 @@
 """Implementations of various collections."""
 
 
-
 import cStringIO
 
 from grr.lib.rdfvalues import client as rdf_client

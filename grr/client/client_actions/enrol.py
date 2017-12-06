@@ -3,7 +3,6 @@
 """Actions required for CA enrolment."""
 
 
-
 from grr.client import actions
 
 

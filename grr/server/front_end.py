@@ -499,7 +499,7 @@ class FrontEndServer(object):
     logging.debug("Serving Rekall profile %s/%s", version, name)
     try:
       return server.GetProfileByName(name, version)
-    # TODO(user): We raise too many different exceptions in profile server.
+    # TODO(amoser): We raise too many different exceptions in profile server.
     except Exception as e:  # pylint: disable=broad-except
       logging.debug("Unable to serve profile %s/%s: %s", version, name, e)
       return None

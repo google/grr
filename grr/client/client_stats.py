@@ -2,7 +2,6 @@
 """CPU/IO stats collector."""
 
 
-
 import threading
 import time
 

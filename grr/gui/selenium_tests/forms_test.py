@@ -3,7 +3,6 @@
 """Tests for the UI forms."""
 
 
-
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags

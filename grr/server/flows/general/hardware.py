@@ -2,7 +2,6 @@
 """These are low-level related flows."""
 
 
-
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.server import aff4
@@ -165,7 +164,7 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
       self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
       with data_store.DB.GetMutationPool() as mutation_pool:
 
-        # TODO(user): Make this work in the UI!?
+        # TODO(amoser): Make this work in the UI!?
         collection_urn = self.client_id.Add(
             "devices/chipsec/acpi/tables/%s" % table_signature)
         for acpi_table_response in response.acpi_tables:

@@ -4,7 +4,6 @@
 This module loads and registers all the GRR library tests.
 """
 
-
 # These need to register plugins so, pylint: disable=unused-import
 from grr.client import client_build_test
 from grr.client import client_test

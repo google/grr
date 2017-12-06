@@ -3,7 +3,6 @@
 """OSX tests."""
 
 
-
 import os
 
 import mock

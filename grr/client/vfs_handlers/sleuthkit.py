@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implement low level disk access using the sleuthkit."""
 
-
 import stat
 
 import pytsk3

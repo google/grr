@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These are processes memory dump related flows."""
 
-
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2

@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests grr.server.data_stores.cloud_bigtable_data_store."""
 
-
 import random
 import time
 import unittest

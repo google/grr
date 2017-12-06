@@ -2,7 +2,6 @@
 """This modules contains tests for artifact API handler."""
 
 
-
 import copy
 import os
 

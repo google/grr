@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """BigQuery output plugin."""
 
-
 import gzip
 import json
 import logging

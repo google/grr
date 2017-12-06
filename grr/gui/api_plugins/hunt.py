@@ -1114,7 +1114,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
         args.hunt_id.ToURN(), aff4_type=implementation.GRRHunt, token=token)
 
     if isinstance(hunt.context, rdf_hunts.HuntContext):  # New style hunt.
-      # TODO(user): Hunt state will go away soon, we don't render it anymore.
+      # TODO(amoser): Hunt state will go away soon, we don't render it anymore.
       state = api_call_handler_utils.ApiDataObject()
       result = ApiGetHuntContextResult(context=hunt.context, state=state)
       # Assign args last since it needs the other fields set to

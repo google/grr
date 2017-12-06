@@ -3,7 +3,6 @@
 """Tests for grr.lib.objectfilter."""
 
 
-
 import unittest
 from grr.lib import objectfilter
 

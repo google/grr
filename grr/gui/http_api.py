@@ -2,7 +2,6 @@
 """HTTP API logic that ties API call handlers with HTTP routes."""
 
 
-
 import itertools
 import json
 import logging

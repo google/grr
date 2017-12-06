@@ -3,7 +3,6 @@
 """Tests for the Fingerprint flow."""
 
 
-
 import os
 
 from grr.client.client_actions import file_fingerprint

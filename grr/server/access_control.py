@@ -11,7 +11,6 @@ A UserManager class has the following responsibilities :
 """
 
 
-
 import logging
 import time
 

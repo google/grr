@@ -498,7 +498,7 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
     elif isinstance(processor_obj, parsers.FileParser):
       if processor_obj.process_together:
-        # TODO(user): This is very brittle, one day we should come
+        # TODO(amoser): This is very brittle, one day we should come
         # up with a better API here.
         urns = [r.AFF4Path(flow_obj.client_id) for r in responses]
         file_objects = list(aff4.FACTORY.MultiOpen(urns, token=token))

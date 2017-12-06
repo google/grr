@@ -3,7 +3,6 @@
 """Test the fileview interface."""
 
 
-
 import unittest
 from grr.gui import api_call_handler_base
 from grr.gui import gui_test_lib

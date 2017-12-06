@@ -5,7 +5,6 @@ A hunt is a mechanism for automatically scheduling flows on a selective subset
 of clients, managing these flows, collecting and presenting the combined results
 of all these flows.
 """
-
 import logging
 import threading
 import traceback

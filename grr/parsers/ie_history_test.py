@@ -2,7 +2,6 @@
 """Tests for grr.parsers.ie_history."""
 
 
-
 import datetime
 import os
 import StringIO

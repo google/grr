@@ -3,7 +3,6 @@
 
 
 
-
 from grr.gui import api_call_router
 
 from grr.lib import flags

@@ -3,7 +3,6 @@
 """Tests for artifacts."""
 
 
-
 import gzip
 import logging
 import os

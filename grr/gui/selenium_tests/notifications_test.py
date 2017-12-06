@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the fileview interface."""
 
-
 import unittest
 from grr.gui import gui_test_lib
 from grr.gui.api_plugins.client import ApiSearchClientsHandler

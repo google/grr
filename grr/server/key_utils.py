@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This file abstracts the loading of the private key."""
 
-
 from cryptography import x509
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes

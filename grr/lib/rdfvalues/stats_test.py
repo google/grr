@@ -2,7 +2,6 @@
 """Test for RunningStats class."""
 
 
-
 import math
 
 from grr.lib import flags

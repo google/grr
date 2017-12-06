@@ -1509,9 +1509,10 @@ message FileFinderHashActionOptions {
       "max_size."
       label: ADVANCED
     }];
+  optional FileFinderStatActionOptions stat = 3;
 }
 
-// Next field ID: 8
+// Next field ID: 9
 message FileFinderDownloadActionOptions {
   optional uint64 max_size = 5 [(sem_type) = {
       type: "ByteSize",
@@ -1538,6 +1539,7 @@ message FileFinderDownloadActionOptions {
       "stores. This should be true unless the external checks are misbehaving.",
       label: ADVANCED
     }, default=true];
+  optional FileFinderStatActionOptions stat = 8;
 }
 
 message FileFinderStatActionOptions {
@@ -1547,6 +1549,12 @@ message FileFinderStatActionOptions {
       "be returned.",
       label: ADVANCED
     }, default=false];
+  optional bool ext_attrs = 2 [
+    (sem_type) = {
+      description: "If true, the action will also gather extended attributes.",
+    },
+    default = true
+  ];
 }
 
 // Next field ID: 5
@@ -1632,7 +1640,7 @@ message FileFinderArgs {
     }];
 }
 
-// TODO(user): This needs a bit more structure. There should be one
+// TODO(amoser): This needs a bit more structure. There should be one
 // result per action and, if possible, they should be a
 // union_field.
 // Next field ID: 5

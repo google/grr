@@ -80,7 +80,7 @@ def DefineFromProtobuf(cls, protobuf):
   semantic_options = message_options.Extensions[semantic_pb2.semantic]
 
   # Hack to avoid dependency loop.
-  # TODO(user): remove this hack
+  # TODO(amoser): remove this hack
   classes_dict = type_info.TypeInfoObject.classes
 
   # Support message descriptions

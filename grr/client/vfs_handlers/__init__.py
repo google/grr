@@ -2,7 +2,6 @@
 # Copyright 2010 Google Inc. All Rights Reserved.
 """A module to load all vfs handler plugins."""
 
-
 # pylint: disable=unused-import
 import platform
 

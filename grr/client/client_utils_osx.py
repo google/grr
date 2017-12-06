@@ -43,7 +43,7 @@ def FindProxies():
                                 "kSCPropNetProxiesProxyAutoConfigURLString")
       if cfurl:
         unused_url = sc.CFStringToPystring(cfurl)
-        # TODO(user): Auto config is enabled, what is the plan here?
+        # TODO(amoser): Auto config is enabled, what is the plan here?
         # Basically, all we get is the URL of a javascript file. To get the
         # correct proxy for a given URL, browsers call a Javascript function
         # that returns the correct proxy URL. The question is now, do we really
@@ -294,3 +294,12 @@ def AddStatEntryExtFlags(stat_entry, stat_object):
     stat_object: An object representing results of the `os.stat` call.
   """
   stat_entry.st_flags_osx = stat_object.st_flags
+
+
+def AddStatEntryExtAttrs(stat_entry):
+  """Fills `ext_attrs` field of the `StatEntry` object.
+
+  Args:
+    stat_entry: A `StatEntry` object to fill-in.
+  """
+  client_utils_linux.AddStatEntryExtAttrs(stat_entry)

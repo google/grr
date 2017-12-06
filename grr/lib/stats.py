@@ -47,7 +47,6 @@ methods.
 """
 
 
-
 import bisect
 import functools
 import threading

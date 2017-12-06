@@ -3,7 +3,6 @@
 """Test RDFStruct implementations."""
 
 
-
 from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 

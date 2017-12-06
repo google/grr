@@ -405,7 +405,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
       # Verify_sigs is not available so we can't parse signatures. If you want
       # this functionality, please install the verify-sigs package:
       # https://github.com/anthrotype/verify-sigs
-      # TODO(user): Make verify-sigs a pip package and add a dependency.
+      # TODO(amoser): Make verify-sigs a pip package and add a dependency.
       return
 
     try:

@@ -242,10 +242,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
               self.state.knowledge_base,
               ignore_errors=self.args.ignore_interpolation_errors))
 
-    action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
-        download=rdf_file_finder.FileFinderDownloadActionOptions(
-            max_size=max_size))
+    action = rdf_file_finder.FileFinderAction.Download(max_size=max_size)
 
     self.CallFlow(
         file_finder.FileFinder.__name__,
@@ -798,7 +795,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """
     if self.args.split_output_by_artifact and self.runner.IsWritingResults():
       if artifact_name not in output_collection_map:
-        # TODO(user): Make this work in the UI...
+        # TODO(amoser): Make this work in the UI...
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
         collection = self.ResultCollectionForArtifact(self.urn, artifact_name)

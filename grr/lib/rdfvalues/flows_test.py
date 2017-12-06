@@ -2,7 +2,6 @@
 """Test for the flow state class."""
 
 
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import test_base

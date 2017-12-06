@@ -10,7 +10,6 @@ The audit system consists of a group of event listeners which receive these
 events and act upon them.
 """
 
-
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.server import aff4
@@ -27,13 +26,13 @@ class AuditEventCollection(sequential_collection.IndexedSequentialCollection):
 
 
 def AllAuditLogs(token=None):
-  # TODO(user): This is not great, we should store this differently.
+  # TODO(amoser): This is not great, we should store this differently.
   for log in aff4.FACTORY.Open("aff4:/audit/logs", token=token).ListChildren():
     yield AuditEventCollection(log)
 
 
 def AuditLogsForTimespan(start_time, end_time, token=None):
-  # TODO(user): This is not great, we should store this differently.
+  # TODO(amoser): This is not great, we should store this differently.
   for log in aff4.FACTORY.Open(
       "aff4:/audit/logs", token=token).ListChildren(age=(start_time, end_time)):
     yield AuditEventCollection(log)

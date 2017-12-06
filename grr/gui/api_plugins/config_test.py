@@ -2,7 +2,6 @@
 """This modules contains tests for config API handler."""
 
 
-
 from grr import config
 from grr.gui import api_test_lib
 

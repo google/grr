@@ -9,7 +9,6 @@ regions. It is always safe to access all of memory using this handler.
 
 
 
-
 from rekall import session
 import rekall_types as rdf_rekall_types
 from grr.client import vfs

@@ -5,7 +5,6 @@ SQLite database files are created by taking the root of each AFF4 object.
 """
 
 
-
 import itertools
 import logging
 import os

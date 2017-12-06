@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These are process related flows."""
 
-
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -68,8 +67,7 @@ class ListProcesses(flow.GRRFlow):
       self.CallFlow(
           file_finder.FileFinder.__name__,
           paths=paths_to_fetch,
-          action=rdf_file_finder.FileFinderAction(
-              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction.Download(),
           next_state="HandleDownloadedFiles")
 
     else:

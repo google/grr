@@ -2,7 +2,6 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the stats classes."""
 
-
 import time
 
 

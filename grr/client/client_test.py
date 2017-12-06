@@ -2,7 +2,6 @@
 """Tests for the client."""
 
 
-
 # Need to import client to add the flags.
 from grr.client import actions
 

@@ -2,7 +2,6 @@
 """Client utilities."""
 
 
-
 import sys
 
 # pylint: disable=g-import-not-at-top
@@ -23,4 +22,5 @@ NannyController = _client_utils.NannyController
 KeepAlive = _client_utils.KeepAlive
 VerifyFileOwner = _client_utils.VerifyFileOwner
 AddStatEntryExtFlags = _client_utils.AddStatEntryExtFlags
+AddStatEntryExtAttrs = _client_utils.AddStatEntryExtAttrs
 # pylint: enable=g-bad-name

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the main content view."""
 
-
 import unittest
 from grr.gui import gui_test_lib
 

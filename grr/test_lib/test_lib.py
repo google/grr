@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A library for tests."""
 
-
 import codecs
 import cProfile
 import datetime

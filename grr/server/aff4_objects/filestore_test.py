@@ -364,8 +364,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
           token=self.token,
           client_id=client_id,
           paths=[filename],
-          action=rdf_file_finder.FileFinderAction(
-              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)):
+          action=rdf_file_finder.FileFinderAction.Download()):
         pass
       # Running worker to make sure FileStore.AddFileToStore event is processed
       # by the worker.

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A module to load all client plugins."""
 
-
 # pylint: disable=unused-import,g-bad-import-order
 import logging
 

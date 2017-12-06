@@ -3,7 +3,6 @@
 
 
 
-
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks

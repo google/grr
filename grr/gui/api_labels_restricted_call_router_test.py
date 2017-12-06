@@ -3,7 +3,6 @@
 
 
 
-
 from grr.gui import api_labels_restricted_call_router as api_router
 
 from grr.gui.api_plugins import client as api_client

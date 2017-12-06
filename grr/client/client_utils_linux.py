@@ -11,12 +11,14 @@ import time
 
 
 import psutil
+import xattr
 
 from google.protobuf import message
 
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -329,3 +331,18 @@ def AddStatEntryExtFlags(stat_entry, stat_object):
     pass
   finally:
     os.close(fd)
+
+
+def AddStatEntryExtAttrs(stat_entry):
+  """Fills `ext_attrs` field of the `StatEntry` object.
+
+  Args:
+    stat_entry: A `StatEntry` object to fill-in.
+  """
+  path = CanonicalPathToLocalPath(stat_entry.pathspec.path)
+
+  for attr_name in xattr.listxattr(path):
+    attr_value = xattr.getxattr(path, attr_name)
+
+    attr = rdf_client.ExtAttr(name=attr_name, value=attr_value)
+    stat_entry.ext_attrs.append(attr)

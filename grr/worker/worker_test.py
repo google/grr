@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the worker."""
 
-
 import threading
 import time
 

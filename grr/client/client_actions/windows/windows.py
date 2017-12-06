@@ -6,7 +6,6 @@ of the same name. Windows-only actions are registered with the server via
 libs/server_stubs.py
 """
 
-
 import binascii
 import ctypes
 import logging

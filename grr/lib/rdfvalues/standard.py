@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Standard RDFValues."""
 
-
 import re
 import urlparse
 

@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client utility functions."""
 
-
 import exceptions
 import hashlib
 import imp

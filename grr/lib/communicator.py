@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Abstracts encryption and authentication."""
 
-
 import struct
 import time
 import zlib
@@ -342,7 +341,7 @@ class Communicator(object):
     if api_version not in [3]:
       raise RuntimeError(
           "Unsupported api version: %s, expected 3." % api_version)
-    # TODO(user): This is actually not great, we have two
+    # TODO(amoser): This is actually not great, we have two
     # communicator classes already, one for the client, one for the
     # server. This should be different methods, not a single one that
     # gets passed a destination (server side) or not (client side).

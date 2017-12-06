@@ -3,7 +3,6 @@
 """This modules contains tests for VFS API handlers."""
 
 
-
 import StringIO
 import zipfile
 

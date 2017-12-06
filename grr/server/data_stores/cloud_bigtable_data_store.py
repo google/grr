@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Google Cloud Bigtable data store."""
 
-
 import datetime
 import logging
 from multiprocessing.pool import ThreadPool

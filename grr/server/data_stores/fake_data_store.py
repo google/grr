@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an in-memory data store for testing."""
 
-
 import sys
 import threading
 import time

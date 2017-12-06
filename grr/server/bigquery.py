@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Library for interacting with Google BigQuery service."""
 
-
 import json
 import logging
 import time

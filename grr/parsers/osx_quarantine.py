@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Parser for OSX quarantine sqlite files."""
 
-
 __program__ = "osx_quarantine.py"
 
 import datetime

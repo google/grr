@@ -2,7 +2,6 @@
 """Output plugins used by flows and hunts for results exports."""
 
 
-
 import abc
 import logging
 import threading

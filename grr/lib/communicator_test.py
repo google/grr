@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test for client."""
 
-
 import array
 import logging
 import pdb

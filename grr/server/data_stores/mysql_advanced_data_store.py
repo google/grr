@@ -461,7 +461,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def Flush(self):
-    # TODO(user): There is a race condition here. The locking only
+    # TODO(amoser): There is a race condition here. The locking only
     # applies to the data to be written later so what could happen is:
     # - Thread a writes lots of important messages with sync=False, they end up
     #   in the lists.

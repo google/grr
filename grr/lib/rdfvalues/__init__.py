@@ -3,4 +3,3 @@
 
 This module contains the various RDFValue implementations.
 """
-

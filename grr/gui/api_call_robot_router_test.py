@@ -2,7 +2,6 @@
 """Tests for ApiCallRobotRouter."""
 
 
-
 import os
 import StringIO
 import zipfile
@@ -534,9 +533,7 @@ users:
             os.path.join(self.base_path, "numbers.txt"),
             os.path.join(self.base_path, "numbers.txt.ver2")
         ],
-        action=rdf_file_finder.FileFinderAction(
-            action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
-    ).AsPrimitiveProto()
+        action=rdf_file_finder.FileFinderAction.Download()).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)

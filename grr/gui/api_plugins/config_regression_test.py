@@ -2,7 +2,6 @@
 """This modules contains regression tests for config API handler."""
 
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import config as config_plugin
 from grr.gui.api_plugins import config_test as config_plugin_test

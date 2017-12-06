@@ -218,12 +218,12 @@ class FileFinderOS(actions.ActionPlugin):
     raise ValueError("incorrect action type: %s" % args.action.action_type)
 
   def _ExecuteStat(self, fname, stat_object, args):
-    stat_entry = self.Stat(fname, stat_object, args.action.stat.resolve_links)
-
+    stat_entry = self.Stat(fname, stat_object, args.action.stat)
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
   def _ExecuteDownload(self, fname, stat_object, args):
-    stat_entry = self.Stat(fname, stat_object, True)
+    args.action.download.resolve_links = True
+    stat_entry = self.Stat(fname, stat_object, args.action.download.stat)
     uploaded_file = self.Upload(fname, stat_object, args.action.download,
                                 args.upload_token)
     if uploaded_file:
@@ -233,14 +233,14 @@ class FileFinderOS(actions.ActionPlugin):
         stat_entry=stat_entry, uploaded_file=uploaded_file)
 
   def _ExecuteHash(self, fname, stat_object, args):
-    stat_entry = self.Stat(fname, stat_object, True)
+    args.action.hash.stat.resolve_links = True
+    stat_entry = self.Stat(fname, stat_object, args.action.hash.stat)
     hash_entry = self.Hash(fname, stat_object, args.action.hash)
-
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
 
-  def Stat(self, fname, stat_object, resolve_links):
-    if resolve_links and stat.S_ISLNK(stat_object.st_mode):
+  def Stat(self, fname, stat_object, opts):
+    if opts.resolve_links and stat.S_ISLNK(stat_object.st_mode):
       try:
         stat_object = os.stat(fname)
       except OSError:
@@ -250,7 +250,8 @@ class FileFinderOS(actions.ActionPlugin):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=client_utils.LocalPathToCanonicalPath(fname),
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-    return files.MakeStatResponse(stat_object, pathspec=pathspec)
+    return files.MakeStatResponse(
+        stat_object, pathspec=pathspec, ext_attrs=opts.ext_attrs)
 
   def Hash(self, fname, stat_object, opts):
     file_size = stat_object.st_size

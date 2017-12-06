@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """GRR specific AFF4 objects."""
 
-
 import logging
 import re
 import time

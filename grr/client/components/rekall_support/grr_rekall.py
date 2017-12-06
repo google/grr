@@ -5,7 +5,6 @@ This module implements the Rekall enabled client actions.
 """
 
 
-
 import logging
 import pdb
 import sys

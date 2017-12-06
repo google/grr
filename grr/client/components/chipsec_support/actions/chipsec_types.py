@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """RDFValues used to communicate with Chipsec."""
-__author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 import chipsec_pb2
 

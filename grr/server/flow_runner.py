@@ -213,7 +213,7 @@ class FlowRunner(object):
           token=self.token)
       try:
         plugin.InitializeState()
-        # TODO(user): Those do not need to be inside the state, they
+        # TODO(amoser): Those do not need to be inside the state, they
         # could be part of the plugin descriptor.
         plugin.state["logs"] = []
         plugin.state["errors"] = []
@@ -1172,7 +1172,7 @@ class FlowRunner(object):
           source=self.session_id,
           timestamp=rdfvalue.RDFDatetime.Now())
 
-      # TODO(user): This should go into the DB api.
+      # TODO(amoser): This should go into the DB api.
       data_store.DB.Set(
           self.session_id,
           self.flow_obj.Schema.NOTIFICATION,

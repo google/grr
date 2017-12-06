@@ -4,7 +4,6 @@
 """Tests for grr.lib.type_info."""
 
 
-
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib.rdfvalues import paths as rdf_paths

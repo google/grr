@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the artifact rendering interface."""
 
-
 import os
 
 import unittest

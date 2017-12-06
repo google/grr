@@ -2,7 +2,6 @@
 """This file contains utility functions used in ApiCallHandler classes."""
 
 
-
 import cStringIO
 import itertools
 import logging

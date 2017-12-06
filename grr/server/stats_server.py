@@ -2,7 +2,6 @@
 """Stats server implementation."""
 
 
-
 import BaseHTTPServer
 
 import collections

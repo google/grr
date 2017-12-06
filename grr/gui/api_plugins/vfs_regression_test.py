@@ -2,7 +2,6 @@
 """This modules contains regression tests for VFS API handlers."""
 
 
-
 from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import vfs as vfs_plugin

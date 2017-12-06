@@ -2,7 +2,6 @@
 """Tests for grr.parsers.osx_launchd."""
 
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths

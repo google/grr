@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Semantic Protobufs are serialization agnostic, rich data types."""
 
-
 import base64
 import copy
 import struct

@@ -6,7 +6,6 @@ performing basic analysis.
 """
 
 
-
 import json
 import logging
 
@@ -388,8 +387,7 @@ class ListVADBinaries(flow.GRRFlow):
           next_state="HandleDownloadedFiles",
           paths=[rdf_paths.GlobExpression(b.CollapsePath()) for b in binaries],
           pathtype=rdf_paths.PathSpec.PathType.OS,
-          action=rdf_file_finder.FileFinderAction(
-              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD))
+          action=rdf_file_finder.FileFinderAction.Download())
     else:
       for b in binaries:
         self.SendReply(b)

@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for BigQuery output plugin."""
 
-
 import gzip
 import json
 import os

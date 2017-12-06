@@ -2,7 +2,6 @@
 """RDFValue implementations for hunts."""
 
 
-
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client

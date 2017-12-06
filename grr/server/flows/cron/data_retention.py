@@ -2,7 +2,6 @@
 """These cron flows do the datastore cleanup."""
 
 
-
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils

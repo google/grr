@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This file implements a VFS abstraction on the client."""
 
-
 from grr import config
 from grr.client import client_utils
 from grr.lib import registry

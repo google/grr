@@ -2,7 +2,6 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """A module to load all windows client plugins."""
 
-
 # pylint: disable=unused-import,g-import-not-at-top
 
 # These import populate the Action registry

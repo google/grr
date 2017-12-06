@@ -2,7 +2,6 @@
 """Implementation of a router class that should be used by robot users."""
 
 
-
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks

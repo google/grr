@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.bigquery."""
 
-
 import json
 import os
 import tempfile

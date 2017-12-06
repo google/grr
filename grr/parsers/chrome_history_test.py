@@ -3,7 +3,6 @@
 """Tests for grr.parsers.chrome_history."""
 
 
-
 import datetime
 import os
 

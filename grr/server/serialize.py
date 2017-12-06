@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This module serializes AFF4 objects in various ways."""
 
-
 import yaml
 from grr.lib import rdfvalue
 from grr.server import aff4

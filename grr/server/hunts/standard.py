@@ -2,7 +2,6 @@
 """Some multiclient flows aka hunts."""
 
 
-
 import logging
 import operator
 

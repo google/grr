@@ -2,7 +2,6 @@
 """This modules contains tests for hunts API handlers."""
 
 
-
 import os
 import StringIO
 import tarfile

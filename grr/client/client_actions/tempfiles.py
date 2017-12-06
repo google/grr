@@ -5,7 +5,6 @@ Utilities for working with GRR temp files.
 """
 
 
-
 import os
 import shutil
 import stat

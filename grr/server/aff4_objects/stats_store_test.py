@@ -2,7 +2,6 @@
 """Tests for the stats_store classes."""
 
 
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats

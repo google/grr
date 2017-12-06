@@ -2,7 +2,6 @@
 """Implementation of a router class that has approvals-based ACL checks."""
 
 
-
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks

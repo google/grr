@@ -2,7 +2,6 @@
 """Tests for API value renderers."""
 
 
-
 from grr.gui import api_value_renderers
 
 from grr.lib import flags

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These are network related flows."""
 
-
 from grr.server import flow
 from grr.server import server_stubs
 

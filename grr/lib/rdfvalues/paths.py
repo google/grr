@@ -16,7 +16,6 @@ On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
 
-
 import itertools
 import posixpath
 import re

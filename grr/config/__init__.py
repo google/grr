@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This module will load all the configuration parameters."""
 
-
 # pylint: disable=unused-import
 from grr.config import acls
 from grr.config import api

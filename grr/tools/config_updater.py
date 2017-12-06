@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Util for modifying the GRR server configuration."""
 
-
 import argparse
 import getpass
 import os
@@ -359,7 +358,7 @@ def GenerateCSRFKey(config):
   """Update a config with a random csrf key."""
   secret_key = config.Get("AdminUI.csrf_secret_key", None)
   if not secret_key:
-    # TODO(user): Remove support for django_secret_key.
+    # TODO(amoser): Remove support for django_secret_key.
     secret_key = config.Get("AdminUI.django_secret_key", None)
     if secret_key:
       config.Set("AdminUI.csrf_secret_key", secret_key)

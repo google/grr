@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests the query lexer."""
-
 from grr.lib import flags
 from grr.lib import lexer
 from grr.test_lib import test_lib

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Unittest for grr http server."""
 
-
 import hashlib
 import logging
 import os
@@ -220,8 +219,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def testClientFileFinderUpload(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+    action = rdf_file_finder.FileFinderAction.Download()
 
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -252,8 +250,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def testClientFileFinderUploadLimit(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+    action = rdf_file_finder.FileFinderAction.Download()
 
     with self.assertRaises(RuntimeError) as e:
       self._RunClientFileFinder(paths, action, network_bytes_limit=2000)
@@ -261,11 +258,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def testClientFileFinderUploadBound(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    download_action = rdf_file_finder.FileFinderDownloadActionOptions(
+    action = rdf_file_finder.FileFinderAction.Download(
         oversized_file_policy="DOWNLOAD_TRUNCATED", max_size=300)
-    action = rdf_file_finder.FileFinderAction(
-        action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -290,11 +284,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def testClientFileFinderUploadSkip(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    download_action = rdf_file_finder.FileFinderDownloadActionOptions(
+    action = rdf_file_finder.FileFinderAction.Download(
         oversized_file_policy="SKIP", max_size=300)
-    action = rdf_file_finder.FileFinderAction(
-        action_type=action_type, download=download_action)
 
     session_id = self._RunClientFileFinder(paths, action)
     collection = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -326,8 +317,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def testClientFileFinderFilestoreIntegration(self):
     paths = [os.path.join(self.base_path, "**/*.plist")]
-    action_type = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
-    action = rdf_file_finder.FileFinderAction(action_type=action_type)
+    action = rdf_file_finder.FileFinderAction.Download()
 
     client_ids = self.SetupClients(2)
     session_ids = {

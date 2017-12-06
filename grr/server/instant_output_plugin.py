@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """Instant output plugins used by the API for on-the-fly conversion."""
 
-
-
 import itertools
 import re
 
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.server import aff4
 from grr.server import export
 
 
@@ -101,9 +100,44 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
 
   BATCH_SIZE = 5000
 
-  def GetDefaultMetadata(self):
-    """Returns metadata to be used by export converters."""
-    return export.ExportedMetadata(source_urn=self.source_urn)
+  def __init__(self, *args, **kwargs):
+    super(InstantOutputPluginWithExportConversion, self).__init__(
+        *args, **kwargs)
+    self._cached_metadata = {}
+
+  def _GetMetadataForClients(self, client_urns):
+    """Fetches metadata for a given list of clients."""
+
+    result = {}
+    metadata_to_fetch = set()
+
+    for urn in client_urns:
+      try:
+        result[urn] = self._cached_metadata[urn]
+      except KeyError:
+        metadata_to_fetch.add(urn)
+
+    if metadata_to_fetch:
+      client_fds = aff4.FACTORY.MultiOpen(
+          metadata_to_fetch, mode="r", token=self.token)
+
+      fetched_metadata = [
+          export.GetMetadata(client_fd, token=self.token)
+          for client_fd in client_fds
+      ]
+      for metadata in fetched_metadata:
+        metadata.source_urn = self.source_urn
+
+        self._cached_metadata[metadata.client_urn] = metadata
+        result[metadata.client_urn] = metadata
+        metadata_to_fetch.remove(metadata.client_urn)
+
+      for urn in metadata_to_fetch:
+        default_mdata = export.ExportedMetadata(source_urn=self.source_urn)
+        result[urn] = default_mdata
+        self._cached_metadata[urn] = default_mdata
+
+    return [result[urn] for urn in client_urns]
 
   def GetExportOptions(self):
     """Rerturns export options to be used by export converter."""
@@ -195,14 +229,8 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
       ValueError: if any of the GrrMessage objects doesn't have "source" set.
     """
     for batch in utils.Grouper(grr_messages, self.BATCH_SIZE):
-      batch_with_metadata = []
-      for grr_message in batch:
-        if not grr_message.source:
-          raise ValueError("GrrMessage's source can't be empty")
-
-        metadata = self.GetDefaultMetadata()
-        metadata.client_urn = grr_message.source
-        batch_with_metadata.append((metadata, grr_message.payload))
+      metadata_items = self._GetMetadataForClients([gm.source for gm in batch])
+      batch_with_metadata = zip(metadata_items, [gm.payload for gm in batch])
 
       for result in converter.BatchConvert(
           batch_with_metadata, token=self.token):

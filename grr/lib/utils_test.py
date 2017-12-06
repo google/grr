@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
-
 import os
 import StringIO
 import tarfile

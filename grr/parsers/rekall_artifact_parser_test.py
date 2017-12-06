@@ -2,7 +2,6 @@
 """Tests for grr.parsers.rekall_artifact_parser."""
 
 
-
 import gzip
 import os
 from grr import config

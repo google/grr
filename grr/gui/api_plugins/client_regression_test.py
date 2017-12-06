@@ -3,7 +3,6 @@
 
 
 
-
 import psutil
 
 from grr.gui import api_regression_test_lib

@@ -2,7 +2,6 @@
 """Implementation of a router class that does no ACL checks."""
 
 
-
 from grr.gui import api_call_router
 
 from grr.gui.api_plugins import artifact as api_artifact

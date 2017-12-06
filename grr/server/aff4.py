@@ -3,7 +3,6 @@
 
 This contains an AFF4 data model implementation.
 """
-
 import __builtin__
 import abc
 import itertools
@@ -377,7 +376,7 @@ class Factory(object):
           extra_attributes = None
           # This is a performance optimization. On the root there is no point
           # setting the last access time since it gets accessed all the time.
-          # TODO(user): Can we get rid of the index in the root node entirely?
+          # TODO(amoser): Can we get rid of the index in the root node entirely?
           # It's too big to query anyways...
           if dirname != u"/":
             extra_attributes = {

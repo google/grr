@@ -3,7 +3,6 @@
 """Test the hunt_view interface."""
 
 
-
 import os
 import traceback
 

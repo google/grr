@@ -3,7 +3,6 @@
 """Contains tests for api_call_handler_utils."""
 
 
-
 import hashlib
 import os
 import tarfile

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementation of various cryptographic types."""
 
-
 import hashlib
 import logging
 import os
@@ -121,7 +120,7 @@ class RDFX509Cert(rdfvalue.RDFValue):
     Raises:
       VerificationError: The certificate did not verify.
     """
-    # TODO(user): We have to do this manually for now since cryptography does
+    # TODO(amoser): We have to do this manually for now since cryptography does
     # not yet support cert verification. There is PR 2460:
     # https://github.com/pyca/cryptography/pull/2460/files
     # that will add it, once it's in we should switch to using this.
@@ -356,7 +355,7 @@ class RSAPrivateKey(rdfvalue.RDFValue):
 
   def Sign(self, message, use_pss=False):
     """Sign a given message."""
-    # TODO(user): This should use PSS by default at some point.
+    # TODO(amoser): This should use PSS by default at some point.
     if not use_pss:
       padding_algorithm = padding.PKCS1v15()
     else:
@@ -453,7 +452,7 @@ class RSAPrivateKey(rdfvalue.RDFValue):
     return self._value.key_size
 
 
-# TODO(user): Get rid of those.
+# TODO(amoser): Get rid of those.
 # Conserve old names for backwards compatibility.
 class PEMPrivateKey(RSAPrivateKey):
   pass
@@ -583,7 +582,7 @@ class EncryptionKey(rdfvalue.RDFBytes):
     return self._value
 
 
-# TODO(user): Size is now flexible, this class makes no sense anymore.
+# TODO(amoser): Size is now flexible, this class makes no sense anymore.
 class AES128Key(EncryptionKey):
   length = 128
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.server.flows.general.filetypes."""
 
-
 import os
 
 from grr.client.client_actions import plist

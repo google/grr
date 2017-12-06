@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test of "New Hunt" wizard."""
 
-
 import unittest
 from grr.gui import gui_test_lib
 

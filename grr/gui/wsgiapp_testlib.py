@@ -2,7 +2,6 @@
 """Test helper classes to test GRR WSGI app."""
 
 
-
 import logging
 import threading
 

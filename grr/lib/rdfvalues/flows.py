@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """RDFValue implementations related to flow scheduling."""
 
-
 import threading
 import time
 

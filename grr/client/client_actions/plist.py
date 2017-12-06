@@ -3,7 +3,6 @@
 """Client actions related to plist files."""
 
 
-
 import cStringIO
 import types
 

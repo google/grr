@@ -2,7 +2,6 @@
 """This module loads all the selenium tests for the GUI."""
 
 
-
 # pylint: disable=unused-import
 from grr.gui.selenium_tests import acl_manager_test
 from grr.gui.selenium_tests import api_docs_test

@@ -2,7 +2,6 @@
 """Tests the fake data store - in memory implementation."""
 
 
-
 from grr.lib import flags
 from grr.server import data_store_test
 from grr.test_lib import test_lib

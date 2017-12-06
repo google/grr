@@ -2,7 +2,6 @@
 """This module contains tests for reflection API handlers."""
 
 
-
 from grr.gui import api_call_router
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import reflection as reflection_plugin

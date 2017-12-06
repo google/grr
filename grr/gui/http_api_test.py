@@ -3,7 +3,6 @@
 """Tests for HTTP API."""
 
 
-
 import json
 import urllib2
 

@@ -5,7 +5,6 @@
 Implementations should be able to pass these tests to be conformant.
 """
 
-
 import csv
 import functools
 import hashlib

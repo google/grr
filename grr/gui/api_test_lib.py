@@ -2,7 +2,6 @@
 """Base test classes for API handlers tests."""
 
 
-
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).
 # pylint: disable=unused-import

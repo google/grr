@@ -2,7 +2,6 @@
 """This tests the performance of the AFF4 subsystem."""
 
 
-
 import pytest
 
 from grr.lib import flags

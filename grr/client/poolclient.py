@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR client for thread pools."""
 
-
 import base64
 import logging
 import threading

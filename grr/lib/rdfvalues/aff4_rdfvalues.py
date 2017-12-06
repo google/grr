@@ -2,7 +2,6 @@
 """AFF4-related RDFValues implementations."""
 
 
-
 import re
 
 from grr.lib import rdfvalue

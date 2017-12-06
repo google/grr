@@ -53,28 +53,28 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         ]))
 
     parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest,
-                     {"export_stats": {
-                         "StatEntry": {
-                             "ExportedFile": 10
-                         }
-                     }})
+    self.assertEqual(parsed_manifest, {
+        "export_stats": {
+            "StatEntry": {
+                "ExportedFile": 10
+            }
+        }
+    })
 
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
     self.assertEqual(len(parsed_output), 10)
     for i in range(10):
-      # Only the client_urn is filled in by the plugin. Doing lookups for
-      # all the clients metadata is possible but expensive. It doesn't seem to
-      # be worth it.
+      # Make sure metadata is filled in.
       self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
-      self.assertEqual(parsed_output[i]["metadata.hostname"], "")
-      self.assertEqual(parsed_output[i]["metadata.mac_address"], "")
+      self.assertEqual(parsed_output[i]["metadata.hostname"], "Host-0")
+      self.assertEqual(parsed_output[i]["metadata.mac_address"],
+                       "aabbccddee00\nbbccddeeff00")
       self.assertEqual(parsed_output[i]["metadata.source_urn"],
                        self.results_urn)
       self.assertEqual(parsed_output[i]["metadata.hardware_info.bios_version"],
-                       "")
+                       "Bios-Version-0")
 
       self.assertEqual(parsed_output[i]["urn"],
                        self.client_id.Add("/fs/os/foo/bar").Add(str(i)))
@@ -95,8 +95,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testCSVPluginWithValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/foo/bar", pathtype="OS"))
+            rdf_client.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/foo/bar", pathtype="OS"))
         ],
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
@@ -109,28 +109,28 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         ]))
 
     parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
-    self.assertEqual(parsed_manifest, {
-        "export_stats": {
-            "StatEntry": {
-                "ExportedFile": 1
-            },
-            "Process": {
-                "ExportedProcess": 1
+    self.assertEqual(
+        parsed_manifest, {
+            "export_stats": {
+                "StatEntry": {
+                    "ExportedFile": 1
+                },
+                "Process": {
+                    "ExportedProcess": 1
+                }
             }
-        }
-    })
+        })
 
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
     self.assertEqual(len(parsed_output), 1)
 
-    # Only the client_urn is filled in by the plugin. Doing lookups for
-    # all the clients metadata is possible but expensive. It doesn't seem to
-    # be worth it.
+    # Make sure metadata is filled in.
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"], "")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"], "")
+    self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
+    self.assertEqual(parsed_output[0]["metadata.mac_address"],
+                     "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["urn"],
                      self.client_id.Add("/fs/os/foo/bar"))
@@ -141,16 +141,17 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertEqual(len(parsed_output), 1)
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"], "")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"], "")
+    self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
+    self.assertEqual(parsed_output[0]["metadata.mac_address"],
+                     "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["pid"], "42")
 
   def testCSVPluginWritesUnicodeValuesCorrectly(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client.StatEntry: [
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/中国新闻网新闻中", pathtype="OS"))
+            rdf_client.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS"))
         ]
     })
     self.assertEqual(
@@ -174,8 +175,9 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     responses = []
     for i in range(num_rows):
       responses.append(
-          rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-              path="/foo/bar/%d" % i, pathtype="OS")))
+          rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(
+                  path="/foo/bar/%d" % i, pathtype="OS")))
 
     zip_fd, prefix = self.ProcessValuesToZip({rdf_client.StatEntry: responses})
     parsed_output = list(

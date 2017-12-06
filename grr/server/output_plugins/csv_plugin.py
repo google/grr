@@ -2,7 +2,6 @@
 """CSV single-pass output plugin."""
 
 
-
 import cStringIO
 import csv
 import os

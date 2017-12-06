@@ -5,7 +5,6 @@ To reduce the size of this module, additional collector flow tests are split out
 into collectors_*_test.py files.
 """
 
-
 import os
 
 import mock

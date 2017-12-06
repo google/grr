@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """AFF4 stats objects."""
 
-
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import stats
 from grr.server import aff4

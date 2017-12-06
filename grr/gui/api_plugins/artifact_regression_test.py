@@ -2,7 +2,6 @@
 """This modules contains regression tests for artifact API handler."""
 
 
-
 import copy
 import os
 

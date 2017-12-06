@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """RDFValues used to communicate with the Rekall memory analysis framework."""
 
-
 import gzip
 import StringIO
 import zlib

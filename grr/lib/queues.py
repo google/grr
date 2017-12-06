@@ -4,7 +4,6 @@
 This module defines the queues where a worker may look for work.
 """
 
-
 from grr.lib import rdfvalue
 
 # Queues that a standard worker should work from, highest priority first.

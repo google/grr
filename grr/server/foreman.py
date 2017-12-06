@@ -2,7 +2,6 @@
 # Copyright 2011 Google Inc. All Rights Reserved.
 """RDFValue instances related to the foreman implementation."""
 
-
 import itertools
 
 from grr.lib import rdfvalue

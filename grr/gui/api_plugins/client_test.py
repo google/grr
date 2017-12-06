@@ -3,7 +3,6 @@
 
 
 
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 

@@ -2,7 +2,6 @@
 """This module tests the RDFValue implementation for performance."""
 
 
-
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client

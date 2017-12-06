@@ -2,7 +2,6 @@
 """Email live output plugin."""
 
 
-
 import jinja2
 
 from grr import config

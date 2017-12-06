@@ -3,7 +3,6 @@
 """Tests for grr.parsers.firefox3_history."""
 
 
-
 import datetime
 import os
 

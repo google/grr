@@ -3,7 +3,6 @@
 
 
 
-
 import mock
 
 from grr import config

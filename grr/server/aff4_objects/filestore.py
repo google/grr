@@ -140,7 +140,7 @@ class FileStoreHash(rdfvalue.RDFURN):
     super(FileStoreHash, self).__init__(initializer=initializer, age=age)
 
     if initializer is not None:
-      # TODO(user): Parsing URNs to get information about the object
+      # TODO(amoser): Parsing URNs to get information about the object
       # is not the right way to do this. We need to find a better way
       # here and remove all the custom deserialization methods.
       self._ParseUrn()

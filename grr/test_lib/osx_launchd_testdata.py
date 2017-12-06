@@ -7,7 +7,6 @@ can use it to test the parsing code without needing to run on OS X.
 """
 
 
-
 # Disable some lint warnings to avoid tedious fixing of test data
 # pylint: disable=g-line-too-long
 

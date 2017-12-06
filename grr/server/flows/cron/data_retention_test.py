@@ -2,7 +2,6 @@
 """Tests for datastore cleaning cron flows."""
 
 
-
 import re
 
 from grr import config

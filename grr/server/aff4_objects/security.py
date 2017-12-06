@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """AFF4 Objects to enforce ACL policies."""
 
-
 import email
 
 import jinja2

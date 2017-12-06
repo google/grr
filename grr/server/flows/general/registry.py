@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Gather information from the registry on windows."""
 
-
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -85,8 +84,7 @@ class RegistryFinder(flow.GRRFlow):
         paths=self.args.keys_paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=self.ConditionsToFileFinderConditions(self.args.conditions),
-        action=rdf_file_finder.FileFinderAction(
-            action_type=rdf_file_finder.FileFinderAction.Action.STAT),
+        action=rdf_file_finder.FileFinderAction.Stat(),
         next_state="Done")
 
   @flow.StateHandler()

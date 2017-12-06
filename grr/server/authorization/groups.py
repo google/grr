@@ -2,7 +2,6 @@
 """Group authorization checking."""
 
 
-
 import logging
 
 from grr import config

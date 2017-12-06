@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for aff4 objects."""
 
-
 # pylint: disable=unused-import
 # These import populate the test registry
 from grr.server.aff4_objects import aff4_grr_test

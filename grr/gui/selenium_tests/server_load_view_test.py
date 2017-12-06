@@ -2,7 +2,6 @@
 """Test the server load view interface."""
 
 
-
 import unittest
 from grr.gui import gui_test_lib
 

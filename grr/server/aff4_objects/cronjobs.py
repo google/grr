@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Cron management classes."""
 
-
 import logging
 import random
 import threading

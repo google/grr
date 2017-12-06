@@ -3,7 +3,6 @@
 """Tests for the FileFinder flow."""
 
 
-
 import collections
 import glob
 import hashlib
@@ -284,9 +283,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     if subprocess.call(["chattr", "+d", temp_filepath]) != 0:
       raise unittest.SkipTest("extended attributes not supported by filesystem")
 
-    action_type = rdf_file_finder.FileFinderAction.Action.STAT
-    action = rdf_file_finder.FileFinderAction(action_type=action_type)
-
+    action = rdf_file_finder.FileFinderAction.Stat()
     results = self.RunFlow(action=action, paths=[temp_filepath])
     self.assertEqual(len(results), 1)
 
@@ -507,16 +504,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         for f in expected_files
     ]
 
-    hash_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.HASH)
-    hash_action.hash.max_size = max(sizes) + 1
-    hash_action.hash.oversized_file_policy = (
-        rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy.SKIP)
-
-    download_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
-    download_action.download.max_size = max(sizes) + 1
-    download_action.download.oversized_file_policy = "SKIP"
+    hash_action = rdf_file_finder.FileFinderAction.Hash(
+        max_size=max(sizes) + 1, oversized_file_policy="SKIP")
+    download_action = rdf_file_finder.FileFinderAction.Download(
+        max_size=max(sizes) + 1, oversized_file_policy="SKIP")
 
     for action in [hash_action, download_action]:
       self.RunFlowAndCheckResults(
@@ -530,19 +521,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     # Read a bit more than a typical chunk (600 * 1024).
     expected_size = 750 * 1024
 
-    hash_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.HASH)
-    hash_action.hash.max_size = expected_size
-    hash_action.hash.oversized_file_policy = (
-        rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy.
-        HASH_TRUNCATED)
-
-    download_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
-    download_action.download.max_size = expected_size
-    download_action.download.oversized_file_policy = (
-        rdf_file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
-        HASH_TRUNCATED)
+    hash_action = rdf_file_finder.FileFinderAction.Hash(
+        max_size=expected_size, oversized_file_policy="HASH_TRUNCATED")
+    download_action = rdf_file_finder.FileFinderAction.Download(
+        max_size=expected_size, oversized_file_policy="HASH_TRUNCATED")
 
     for action in [hash_action, download_action]:
       results = self.RunFlow(paths=[image_path], action=action)
@@ -564,14 +546,11 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def testDownloadActionSizeLimitWithDownloadTruncatedPolicy(self):
     image_path = os.path.join(self.base_path, "test_img.dd")
-
-    action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
     # Read a bit more than a typical chunk (600 * 1024).
-    expected_size = action.download.max_size = 750 * 1024
-    action.download.oversized_file_policy = (
-        rdf_file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
-        DOWNLOAD_TRUNCATED)
+    expected_size = 750 * 1024
+
+    action = rdf_file_finder.FileFinderAction.Download(
+        max_size=expected_size, oversized_file_policy="DOWNLOAD_TRUNCATED")
 
     results = self.RunFlow(paths=[image_path], action=action)
 

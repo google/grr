@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Invoke the fingerprint client action on a file."""
 
-
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto

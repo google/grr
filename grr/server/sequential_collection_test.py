@@ -154,7 +154,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
       urn = "aff4:/sequential_collection/testIndexCreate"
       collection = self._TestCollection(urn)
-      # TODO(user): Without using a mutation pool, this test is really
+      # TODO(amoser): Without using a mutation pool, this test is really
       # slow on MySQL data store.
       with data_store.DB.GetMutationPool() as pool:
         for i in range(10 * spacing):
@@ -211,7 +211,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
       urn = "aff4:/sequential_collection/testIndexedReads"
       collection = self._TestCollection(urn)
       data_size = 4 * spacing
-      # TODO(user): Without using a mutation pool, this test is really
+      # TODO(amoser): Without using a mutation pool, this test is really
       # slow on MySQL data store.
       with data_store.DB.GetMutationPool() as pool:
         for i in range(data_size):
@@ -258,7 +258,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
                                                         UpdateIndex)):
       urn = "aff4:/sequential_collection/testAutoIndexing"
       collection = self._TestCollection(urn)
-      # TODO(user): Without using a mutation pool, this test is really
+      # TODO(amoser): Without using a mutation pool, this test is really
       # slow on MySQL data store.
       with data_store.DB.GetMutationPool() as pool:
         for i in range(2048):

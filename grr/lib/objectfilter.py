@@ -87,7 +87,6 @@ filter is easy. Three basic filter implementations are given:
 """
 
 
-
 import abc
 import binascii
 import collections

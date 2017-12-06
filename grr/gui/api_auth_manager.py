@@ -2,7 +2,6 @@
 """API Authorization Manager."""
 
 
-
 import logging
 
 

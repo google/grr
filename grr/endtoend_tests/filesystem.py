@@ -27,7 +27,7 @@ class TestListDirectoryOSLinuxDarwin(base.TestVFSPathExists):
   test_output_path = "/fs/os/bin/ls"
 
 
-# TODO(user): Find a way to run this on Darwin with Filevault turned on.
+# TODO(amoser): Find a way to run this on Darwin with Filevault turned on.
 class TestListDirectoryTSKLinux(base.TestVFSPathExists):
   """Tests if ListDirectory works on Linux and Darwin using Sleuthkit."""
   # We look for the bin directory inside /usr. It's very difficult to find a
@@ -59,7 +59,7 @@ class TestRecursiveListDirectoryLinuxDarwin(base.TestVFSPathExists):
   test_output_path = "/fs/os/usr/bin/less"
 
 
-# TODO(user): Find a way to run this on Darwin with Filevault turned on.
+# TODO(amoser): Find a way to run this on Darwin with Filevault turned on.
 class TestFindTSKLinux(base.TestVFSPathExists):
   """Tests if the find flow works on Linux and Darwin using Sleuthkit."""
   platforms = ["Linux"]

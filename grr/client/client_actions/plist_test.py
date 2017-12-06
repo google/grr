@@ -3,7 +3,6 @@
 """Tests for grr.client.client_actions.plist."""
 
 
-
 import os
 
 

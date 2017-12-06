@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests the access control authorization workflow."""
 
-
 import unittest
 from grr.gui import gui_test_lib
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implement access to the windows registry."""
 
-
 import ctypes
 import ctypes.wintypes
 import exceptions

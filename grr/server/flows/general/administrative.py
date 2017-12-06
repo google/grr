@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
 
-
 import logging
 import shlex
 import threading
@@ -289,7 +288,7 @@ class ExecutePythonHack(flow.GRRFlow):
     if not isinstance(fd, collects.GRRSignedBlob):
       raise RuntimeError("Python hack %s not found." % self.args.hack_name)
 
-    # TODO(user): This will break if someone wants to execute lots of Python.
+    # TODO(amoser): This will break if someone wants to execute lots of Python.
     for python_blob in fd:
       self.CallClient(
           server_stubs.ExecutePython,

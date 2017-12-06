@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A generic serializer for python dictionaries."""
 
-
 import collections
 
 from grr.lib import rdfvalue

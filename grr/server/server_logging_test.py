@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for logging classes."""
 
-
 import logging
 
 import time

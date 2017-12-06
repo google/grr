@@ -2,7 +2,6 @@
 """Output plugins implementations."""
 
 
-
 from grr.server import output_plugin
 
 # pylint: disable=unused-import,g-import-not-at-top

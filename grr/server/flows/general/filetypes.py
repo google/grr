@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """File-type specific flows."""
 
-
 from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2

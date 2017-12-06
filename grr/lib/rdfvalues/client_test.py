@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test client RDFValues."""
 
-
 import socket
 
 from grr.lib import flags

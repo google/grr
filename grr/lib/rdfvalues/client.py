@@ -5,7 +5,6 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
-
 import hashlib
 import logging
 import platform
@@ -814,6 +813,12 @@ class Iterator(structs.RDFProtoStruct):
   ]
 
 
+class ExtAttr(structs.RDFProtoStruct):
+  """An RDF value representing an extended attributes of a file."""
+
+  protobuf = jobs_pb2.StatEntry.ExtAttr
+
+
 class StatEntry(structs.RDFProtoStruct):
   """Represent an extended stat response."""
   protobuf = jobs_pb2.StatEntry
@@ -822,6 +827,7 @@ class StatEntry(structs.RDFProtoStruct):
       paths.PathSpec,
       rdfvalue.RDFDatetimeSeconds,
       StatMode,
+      ExtAttr,
   ]
 
   def AFF4Path(self, client_urn):

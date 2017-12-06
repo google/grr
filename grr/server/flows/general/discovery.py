@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 
-
 from grr import config
 from grr.lib import queues
 from grr.lib import rdfvalue

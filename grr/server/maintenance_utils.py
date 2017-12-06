@@ -2,7 +2,6 @@
 """This file contains utility classes related to maintenance used by GRR."""
 
 
-
 import getpass
 import hashlib
 import logging

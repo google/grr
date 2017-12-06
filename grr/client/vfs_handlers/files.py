@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implements VFSHandlers for files on the client."""
 
-
 import logging
 import os
 import platform
@@ -64,7 +63,7 @@ class FileHandleManager(object):
     self.fd.lock.release()
 
 
-def MakeStatResponse(st, pathspec):
+def MakeStatResponse(st, pathspec, ext_attrs=False):
   """Creates a StatEntry."""
   response = client.StatEntry(pathspec=pathspec)
 
@@ -91,6 +90,9 @@ def MakeStatResponse(st, pathspec):
       pass
 
   client_utils.AddStatEntryExtFlags(response, st)
+  if ext_attrs:
+    client_utils.AddStatEntryExtAttrs(response)
+
   return response
 
 

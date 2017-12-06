@@ -2,7 +2,6 @@
 """Renderers that render RDFValues into JSON compatible data structures."""
 
 
-
 import base64
 import inspect
 import logging

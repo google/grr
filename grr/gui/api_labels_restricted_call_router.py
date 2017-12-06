@@ -2,7 +2,6 @@
 """Router giving access only to clients with certain labels."""
 
 
-
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
 

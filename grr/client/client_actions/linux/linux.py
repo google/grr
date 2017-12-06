@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Linux specific actions."""
 
-
 import ctypes
 import ctypes.util
 import glob

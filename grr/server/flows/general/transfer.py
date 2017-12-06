@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
 
-
 import logging
 import zlib
 
@@ -460,7 +459,7 @@ class MultiGetFileMixin(object):
     # First we get all the files which are present in the file store.
     files_in_filestore = {}
 
-    # TODO(user): This object never changes, could this be a class attribute?
+    # TODO(amoser): This object never changes, could this be a class attribute?
     filestore_obj = aff4.FACTORY.Open(
         filestore.FileStore.PATH,
         filestore.FileStore,

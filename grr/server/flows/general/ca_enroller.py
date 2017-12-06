@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A flow to enrol new clients."""
 
-
 import logging
 
 from grr.lib import queues

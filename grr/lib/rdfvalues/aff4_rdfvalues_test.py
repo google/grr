@@ -2,7 +2,6 @@
 """Test AFF4 RDFValues."""
 
 
-
 import re
 
 from grr.lib import flags

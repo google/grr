@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """The auditing system."""
 
-
 import os
 
 from grr.lib import flags

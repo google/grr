@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
-
 import hashlib
 import os
 

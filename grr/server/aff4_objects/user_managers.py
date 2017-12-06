@@ -10,7 +10,6 @@ AccessControlManager Classes:
   FullAccessControlManager: Provides for multiparty authorization.
 """
 
-
 import fnmatch
 import functools
 import logging

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """RDFValues for the remote data_store."""
-
 import json
 
 from grr.lib import rdfvalue

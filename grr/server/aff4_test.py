@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the flow."""
-
 import itertools
 import os
 import threading
@@ -1772,7 +1771,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
             aff4_type=aff4_standard.VFSDirectory,
             token=self.token))
 
-  # TODO(user): re-work this test and re-enable.
+  # TODO(amoser): re-work this test and re-enable.
   def disabled_testAFF4Initialization(self):
     blacklist = set([aff4.AFF4Stream, aff4_grr.VFSGRRClient])
     factory = aff4.FACTORY

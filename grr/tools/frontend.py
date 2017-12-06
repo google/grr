@@ -2,7 +2,6 @@
 """This is the GRR frontend HTTP Server."""
 
 
-
 import BaseHTTPServer
 import cgi
 import cStringIO

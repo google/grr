@@ -11,7 +11,6 @@ an __iter__) method, but are serializable as an RDFProto.
 """
 
 
-
 import collections
 
 from grr.lib import flags

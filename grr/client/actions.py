@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This file contains common grr jobs."""
 
-
 import gc
 import logging
 import pdb

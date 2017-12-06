@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control

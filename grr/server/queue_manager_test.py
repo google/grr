@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests the queue manager."""
 
-
 import time
 import mock
 

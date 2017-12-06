@@ -2,7 +2,6 @@
 """This modules contains regression tests for hunts API handlers."""
 
 
-
 import pdb
 
 

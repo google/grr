@@ -2,7 +2,6 @@
 """Remote datastore-related rdfvalues tests."""
 
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import data_store
 

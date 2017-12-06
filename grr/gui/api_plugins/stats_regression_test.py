@@ -2,7 +2,6 @@
 """This module contains regression tests for stats API handlers."""
 
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import stats as stats_plugin
 from grr.gui.api_plugins.report_plugins import report_plugins_test_mocks

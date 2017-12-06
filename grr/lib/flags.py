@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A module to allow option processing from files or registry."""
 
-
 import argparse
 import copy
 import pdb

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test the file transfer mechanism."""
 
-
 import hashlib
 import os
 import platform

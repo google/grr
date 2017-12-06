@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """RDFValue instances related to the statistics collection."""
 
-
 import math
 import threading
 

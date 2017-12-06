@@ -9,7 +9,6 @@ implementations must be imported _before_ the relevant classes are referenced
 from this module.
 """
 
-
 import abc
 import calendar
 import collections
@@ -1044,7 +1043,7 @@ class SessionID(RDFURN):
 
 class FlowSessionID(SessionID):
 
-  # TODO(user): This is code to fix some legacy issues. Remove this when all
+  # TODO(amoser): This is code to fix some legacy issues. Remove this when all
   # clients are built after Dec 2014.
 
   def ParseFromString(self, initializer):

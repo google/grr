@@ -2,7 +2,6 @@
 """GRR HTTP server implementation."""
 
 
-
 import base64
 import hashlib
 import hmac
@@ -43,7 +42,7 @@ def GenerateCSRFToken(user_id, time):
   time = time or rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
   secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
-  # TODO(user): Django is deprecated. Remove this at some point.
+  # TODO(amoser): Django is deprecated. Remove this at some point.
   if not secret:
     secret = config.CONFIG["AdminUI.django_secret_key"]
   digester = hmac.new(utils.SmartStr(secret), digestmod=hashlib.sha256)

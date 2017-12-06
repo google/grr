@@ -3,7 +3,6 @@
 """These are tests for the file store-related RDFValues implementations."""
 
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import test_base
 from grr.server.aff4_objects import filestore

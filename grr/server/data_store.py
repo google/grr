@@ -34,7 +34,6 @@ bytes. The data store can then treat the type as an opaque type (and will not be
 able to filter it directly).
 """
 
-
 import abc
 import atexit
 import collections

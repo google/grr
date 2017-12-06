@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A manager for storing files locally."""
 
-
 import hashlib
 import os
 import shutil

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test Chipsec client actions."""
 
-__author__ = "Thiebaud Weksteen <tweksteen@gmail.com>"
 
 import collections
 import sys

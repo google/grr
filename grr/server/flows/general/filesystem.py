@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """These are filesystem related flows."""
-
 import fnmatch
 import re
 import stat
@@ -720,7 +719,7 @@ class GlobMixin(object):
             path_options=rdf_paths.PathSpec.Options.REGEX)
       else:
         pathtype = self.state.pathtype
-        # TODO(user): This is a backwards compatibility hack. Remove when
+        # TODO(amoser): This is a backwards compatibility hack. Remove when
         # all clients reach 3.0.0.2.
         if (pathtype == rdf_paths.PathSpec.PathType.TSK and
             re.match("^.:$", path_component)):

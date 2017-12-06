@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the filesystem related flows."""
 
-
 import hashlib
 import os
 import platform
@@ -642,8 +641,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/*"],
-          action=rdf_file_finder.FileFinderAction(
-              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction.Download(),
           token=self.token):
         pass
 
@@ -684,8 +682,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/**5"],
-          action=rdf_file_finder.FileFinderAction(
-              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction.Download(),
           token=self.token):
         pass
 

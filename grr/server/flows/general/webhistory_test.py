@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Test the webhistory flows."""
-
 import os
 
 from grr.client import client_utils_linux

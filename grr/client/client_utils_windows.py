@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Windows specific utils."""
 
-
 import ctypes
 import exceptions
 import logging
@@ -430,3 +429,15 @@ def AddStatEntryExtFlags(stat_entry, stat_object):
   """
   del stat_entry  # Unused on Windows.
   del stat_object  # Unused on Windows.
+
+
+def AddStatEntryExtAttrs(stat_entry):
+  """Does nothing.
+
+  This is kept for compatibility with other platform-specific version of this
+  function.
+
+  Args:
+    stat_entry: An `StatEntry` object to fill-in.
+  """
+  del stat_entry  # Unused on Windows.

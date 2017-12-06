@@ -3,7 +3,6 @@
 """Parser for OSX launchd jobs."""
 
 
-
 import re
 
 from grr.lib import parsers

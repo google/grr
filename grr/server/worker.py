@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Module with GRRWorker implementation."""
 
-
 import logging
 import pdb
 import time

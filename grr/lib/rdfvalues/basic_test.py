@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Basic rdfvalue tests."""
 
-
 import datetime
 from datetime import datetime
 import time

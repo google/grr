@@ -5,7 +5,6 @@ We basically pull a new task from the task master, and run the plugin
 it specifies.
 """
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order

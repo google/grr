@@ -2,7 +2,6 @@
 """This module contains regression tests for reflection API handlers."""
 
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import reflection as reflection_plugin
 

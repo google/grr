@@ -2,7 +2,6 @@
 """Test for the foreman client rule classes."""
 
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import test_base
 from grr.server import aff4

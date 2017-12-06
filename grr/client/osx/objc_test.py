@@ -6,7 +6,6 @@ These tests don't have OS X dependencies and will run on linux.
 """
 
 
-
 import ctypes
 import mox
 

@@ -2,7 +2,6 @@
 """This module contains regression tests for user API handlers."""
 
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import user as user_plugin
 

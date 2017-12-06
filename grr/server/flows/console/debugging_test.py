@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for debugging flows."""
 
-
 import os
 
 from grr.client.client_actions import standard

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These flows are system-specific GRR cron flows."""
 
-
 import bisect
 import logging
 import time

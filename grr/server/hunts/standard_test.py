@@ -2,7 +2,6 @@
 """Tests for the standard hunts."""
 
 
-
 import glob
 import logging
 import math

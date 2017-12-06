@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Execute a Chipsec plugin on the client."""
 
-__author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 import logging
 from logging import handlers

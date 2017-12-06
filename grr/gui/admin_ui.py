@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This is a development server for running the UI."""
 
-
 import logging
 import os
 import socket

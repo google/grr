@@ -407,7 +407,7 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
 
     logging.info("checking %d clients", len(clients))
 
-    # TODO(user): This only works on datastores that use the Bigtable scheme.
+    # TODO(amoser): This only works on datastores that use the Bigtable scheme.
     client_infos = data_store.DB.MultiResolvePrefix(
         clients, "aff4:type", data_store.DB.ALL_TIMESTAMPS)
 

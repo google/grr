@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test for client comms."""
 
-
 import time
 
 import requests

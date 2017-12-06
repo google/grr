@@ -2,7 +2,6 @@
 """Tests for the hunt."""
 
 
-
 import logging
 
 from grr.lib import flags

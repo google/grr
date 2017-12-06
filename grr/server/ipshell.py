@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """A compatibility layer for the IPython shell."""
-
-
 
 
 # pylint: disable=g-import-not-at-top

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Script for importing NSRL files."""
 
-
 import csv
 import os
 

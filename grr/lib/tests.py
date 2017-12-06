@@ -4,7 +4,6 @@
 This module loads and registers all the GRR library tests.
 """
 
-
 # These need to register plugins
 # pylint: disable=unused-import,g-import-not-at-top
 

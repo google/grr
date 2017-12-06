@@ -2,7 +2,6 @@
 """Interface to Objective C libraries on OS X."""
 
 
-
 import ctypes
 import ctypes.util
 import logging

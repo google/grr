@@ -2,7 +2,6 @@
 """GRR authorization manager."""
 
 
-
 import collections
 import logging
 import yaml

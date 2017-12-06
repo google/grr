@@ -2,7 +2,6 @@
 """Tests for grr.parsers.osx_quarantine."""
 
 
-
 import datetime
 import os
 

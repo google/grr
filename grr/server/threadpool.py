@@ -22,7 +22,6 @@ Example usage:
 
 """
 
-
 import itertools
 import logging
 import os
