@@ -2,13 +2,12 @@
 """System cron flows tests."""
 
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as client_rdf
 from grr.server import aff4
-from grr.server import client_fixture
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.cron import system
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -19,25 +18,22 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(SystemCronFlowTest, self).setUp()
 
-    # We are only interested in the client object (path = "/" in client VFS)
-    fixture = fixture_test_lib.FilterFixture(regex="^/$")
+    # This is not optimal, we create clients 0-19 with Linux, then
+    # overwrite clients 0-9 with Windows, leaving 10-19 for Linux.
+    client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+    self.SetupClients(
+        20,
+        system="Linux",
+        uname="Linux-#2 SMP Fri Feb 24 03:31:23 PST 2012-2.6.38.8",
+        ping=client_ping_time)
+    self.SetupClients(
+        10, system="Windows", uname="Windows-6.1.7600-7", ping=client_ping_time)
 
-    # Make 10 windows clients
     for i in range(0, 10):
-      fixture_test_lib.ClientFixture(
-          "C.0%015X" % i, token=self.token, fixture=fixture)
-
       with aff4.FACTORY.Open(
-          "C.0%015X" % i, mode="rw", token=self.token) as client:
+          "C.1%015x" % i, mode="rw", token=self.token) as client:
         client.AddLabels(["Label1", "Label2"], owner="GRR")
         client.AddLabel("UserLabel", owner="jim")
-
-    # Make 10 linux clients 12 hours apart.
-    for i in range(0, 10):
-      fixture_test_lib.ClientFixture(
-          "C.1%015X" % i,
-          token=self.token,
-          fixture=client_fixture.LINUX_FIXTURE)
 
   def _CheckVersionStats(self, label, attribute, counts):
 
@@ -55,12 +51,12 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     # There should be counts[2] instances in 14 day actives.
     self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
-    self.assertEqual(histogram[2][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[2][0].label, "GRR Monitor 0")
     self.assertEqual(histogram[2][0].y_value, counts[2])
 
     # There should be counts[3] instances in 30 day actives.
     self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
-    self.assertEqual(histogram[3][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[3][0].label, "GRR Monitor 0")
     self.assertEqual(histogram[3][0].y_value, counts[3])
 
   def testGRRVersionBreakDown(self):

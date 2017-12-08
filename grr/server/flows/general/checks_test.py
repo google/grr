@@ -11,7 +11,6 @@ from grr.server.checks import checks
 from grr.server.checks import checks_test_lib
 from grr.server.flows.general import checks as flow_checks
 from grr.test_lib import action_mocks
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -31,7 +30,6 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
       self.checks_loaded = self.LoadChecks()
     if not self.checks_loaded:
       raise RuntimeError("No checks to test.")
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.client_mock = action_mocks.FileFinderClientMock()
 
   def SetLinuxKB(self):
@@ -67,7 +65,8 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     session = aff4.FACTORY.Open(session_id, token=self.token)
     results = {
         r.check_id: r
-        for _, r in send_reply.args if isinstance(r, checks.CheckResult)
+        for _, r in send_reply.args
+        if isinstance(r, checks.CheckResult)
     }
     return session, results
 

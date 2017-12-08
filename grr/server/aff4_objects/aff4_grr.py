@@ -3,12 +3,14 @@
 
 import logging
 import re
+import StringIO
 import time
 
 
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -222,19 +224,6 @@ class VFSGRRClient(standard.VFSDirectory):
   def CrashCollection(self):
     return self.CrashCollectionForCID(self.client_id)
 
-  # A collection of Anomalies found on this client.
-  @classmethod
-  def AnomalyCollectionURNForCID(cls, client_id):
-    return client_id.Add("anomalies")
-
-  @classmethod
-  def AnomalyCollectionForCID(cls, client_id):
-    return grr_collections.AnomalyCollection(
-        cls.AnomalyCollectionURNForCID(client_id))
-
-  def AnomalyCollection(self):
-    return self.AnomalyCollectionForCID(self.client_id)
-
   @property
   def age(self):
     """RDFDatetime at which the object was created."""
@@ -350,11 +339,12 @@ class UpdateVFSFile(flow.GRRFlow):
         priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
 
 
-class VFSAnalysisFile(aff4.AFF4Image):
-  """A file object in the VFS space."""
+class VFSFile(aff4.AFF4Image):
+  """A file object that can be updated under lock."""
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
+
     STAT = standard.VFSDirectory.SchemaCls.STAT
 
     CONTENT_LOCK = aff4.Attribute(
@@ -365,18 +355,6 @@ class VFSAnalysisFile(aff4.AFF4Image):
     PATHSPEC = aff4.Attribute(
         "aff4:pathspec", rdf_paths.PathSpec,
         "The pathspec used to retrieve this object from the client.")
-
-
-class VFSFile(VFSAnalysisFile):
-  """A file object that can be updated under lock."""
-
-  class SchemaCls(VFSAnalysisFile.SchemaCls):
-    """The schema for AFF4 files in the GRR VFS."""
-
-    CONTENT_LOCK = aff4.Attribute(
-        "aff4:content_lock", rdfvalue.RDFURN,
-        "This lock contains a URN pointing to the flow that is currently "
-        "updating this flow.")
 
   def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
@@ -406,15 +384,6 @@ class VFSFile(VFSAnalysisFile):
     self.Close()
 
     return flow_urn
-
-
-class MemoryImage(standard.VFSDirectory):
-  """The server representation of the client's memory device."""
-
-  class SchemaCls(VFSFile.SchemaCls):
-    LAYOUT = aff4.Attribute("aff4:memory/geometry",
-                            rdf_rekall_types.MemoryInformation,
-                            "The memory layout of this image.")
 
 
 class VFSMemoryFile(aff4.AFF4MemoryStream):
@@ -648,11 +617,220 @@ class VFSFileSymlink(aff4.AFF4Stream):
     raise IOError("VFSFileSymlink not writeable.")
 
 
-class VFSBlobImage(standard.BlobImage, VFSFile):
-  """BlobImage with VFS attributes for use in client namespace."""
+class MissingBlobsError(aff4.MissingChunksError):
+  pass
 
-  class SchemaCls(standard.BlobImage.SchemaCls, VFSFile.SchemaCls):
-    pass
+
+class VFSBlobImage(VFSFile):
+  """An AFF4 stream which stores chunks by hashes.
+
+  The hash stream is kept within an AFF4 Attribute, instead of another stream
+  making it more efficient for smaller files.
+  """
+
+  # Size of a sha256 hash
+  _HASH_SIZE = 32
+
+  # How many chunks we read ahead
+  _READAHEAD = 5
+
+  @classmethod
+  def _GenerateChunkIds(cls, fds):
+    for fd in fds:
+      fd.index.seek(0)
+      while True:
+        chunk_id = fd.index.read(cls._HASH_SIZE)
+        if not chunk_id:
+          break
+        yield chunk_id.encode("hex"), fd
+
+  MULTI_STREAM_CHUNKS_READ_AHEAD = 1000
+
+  @classmethod
+  def _MultiStream(cls, fds):
+    """Effectively streams data from multiple opened BlobImage objects.
+
+    Args:
+      fds: A list of opened AFF4Stream (or AFF4Stream descendants) objects.
+
+    Yields:
+      Tuples (chunk, fd, exception) where chunk is a binary blob of data and fd
+      is an object from the fds argument.
+
+      If one or more chunks are missing, exception is a MissingBlobsError object
+      and chunk is None. _MultiStream does its best to skip the file entirely if
+      one of its chunks is missing, but in case of very large files it's still
+      possible to yield a truncated file.
+    """
+
+    broken_fds = set()
+    missing_blobs_fd_pairs = []
+    for chunk_fd_pairs in utils.Grouper(
+        cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
+      results_map = data_store.DB.ReadBlobs(
+          dict(chunk_fd_pairs).keys(), token=fds[0].token)
+
+      for chunk_id, fd in chunk_fd_pairs:
+        if chunk_id not in results_map or results_map[chunk_id] is None:
+          missing_blobs_fd_pairs.append((chunk_id, fd))
+          broken_fds.add(fd)
+
+      for chunk, fd in chunk_fd_pairs:
+        if fd in broken_fds:
+          continue
+
+        yield fd, results_map[chunk], None
+
+    if missing_blobs_fd_pairs:
+      missing_blobs_by_fd = {}
+      for chunk_id, fd in missing_blobs_fd_pairs:
+        missing_blobs_by_fd.setdefault(fd, []).append(chunk_id)
+
+      for fd, missing_blobs in missing_blobs_by_fd.iteritems():
+        e = MissingBlobsError(
+            "%d missing blobs (multi-stream)" % len(missing_blobs),
+            missing_chunks=missing_blobs)
+        yield fd, None, e
+
+  def Initialize(self):
+    super(VFSBlobImage, self).Initialize()
+    self.content_dirty = False
+    if self.mode == "w":
+      self.index = StringIO.StringIO("")
+      self.finalized = False
+    else:
+      self.index = StringIO.StringIO(self.Get(self.Schema.HASHES, ""))
+      self.finalized = self.Get(self.Schema.FINALIZED, False)
+
+  def Truncate(self, offset=0):
+    if offset != 0:
+      raise IOError("Non-zero truncation not supported for BlobImage")
+    super(VFSBlobImage, self).Truncate(0)
+    self.index = StringIO.StringIO("")
+    self.finalized = False
+
+  def _GetChunkForWriting(self, chunk):
+    """Chunks must be added using the AddBlob() method."""
+    raise NotImplementedError("Direct writing of BlobImage not allowed.")
+
+  def _GetChunkForReading(self, chunk):
+    """Retrieve the relevant blob from the AFF4 data store or cache."""
+    offset = chunk * self._HASH_SIZE
+    self.index.seek(offset)
+
+    chunk_name = self.index.read(self._HASH_SIZE).encode("hex")
+
+    try:
+      return self.chunk_cache.Get(chunk_name)
+    except KeyError:
+      pass
+
+    # We don't have this chunk already cached. The most common read
+    # access pattern is contiguous reading so since we have to go to
+    # the data store already, we read ahead to reduce round trips.
+    self.index.seek(offset)
+    readahead = []
+
+    for _ in range(self._READAHEAD):
+      name = self.index.read(self._HASH_SIZE).encode("hex")
+      if name and name not in self.chunk_cache:
+        readahead.append(name)
+
+    self._ReadChunks(readahead)
+    try:
+      return self.chunk_cache.Get(chunk_name)
+    except KeyError:
+      raise aff4.ChunkNotFoundError("Cannot open chunk %s" % chunk)
+
+  def _ReadChunks(self, chunks):
+    res = data_store.DB.ReadBlobs(chunks, token=self.token)
+    for blob_hash, content in res.iteritems():
+      fd = StringIO.StringIO(content)
+      fd.dirty = False
+      fd.chunk = blob_hash
+      self.chunk_cache.Put(blob_hash, fd)
+
+  def _WriteChunk(self, chunk):
+    if chunk.dirty:
+      data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
+
+  def Flush(self):
+    if self.content_dirty:
+      self.Set(self.Schema.SIZE(self.size))
+      self.Set(self.Schema.HASHES(self.index.getvalue()))
+      self.Set(self.Schema.FINALIZED(self.finalized))
+    super(VFSBlobImage, self).Flush()
+
+  def AppendContent(self, src_fd):
+    """Create new blob hashes and append to BlobImage.
+
+    We don't support writing at arbitrary file offsets, but this method provides
+    a convenient way to add blobs for a new file, or append content to an
+    existing one.
+
+    Args:
+      src_fd: source file handle open for read
+    Raises:
+      IOError: if blob has already been finalized.
+    """
+    while 1:
+      blob = src_fd.read(self.chunksize)
+      if not blob:
+        break
+
+      blob_hash = data_store.DB.StoreBlob(blob, token=self.token)
+      self.AddBlob(blob_hash.decode("hex"), len(blob))
+
+    self.Flush()
+
+  def AddBlob(self, blob_hash, length):
+    """Add another blob to this image using its hash.
+
+    Once a blob is added that is smaller than the chunksize we finalize the
+    file, since handling adding more blobs makes the code much more complex.
+
+    Args:
+      blob_hash: sha256 binary digest
+      length: int length of blob
+    Raises:
+      IOError: if blob has been finalized.
+    """
+    if self.finalized and length > 0:
+      raise IOError("Can't add blobs to finalized BlobImage")
+
+    self.content_dirty = True
+    self.index.seek(0, 2)
+    self.index.write(blob_hash)
+    self.size += length
+
+    if length < self.chunksize:
+      self.finalized = True
+
+  def GetContentAge(self):
+    content_age = super(VFSBlobImage, self).GetContentAge()
+    if content_age:
+      return content_age
+
+    # CONTENT_LAST attribute should contain the timestamp corresponding to
+    # to the last time the file was downloaded from the client. But
+    # unfortunately it is not always set. Therefore we use presense of HASHES
+    # attribute as an indicator. HASHES is set for all BlobImages and
+    # FileStoreImages.
+    # TODO(user): make CONTENT_LAST reliable and remove HASHES workaround.
+    if self.Get(self.Schema.HASHES):
+      return (self.Get(self.Schema.HASHES).age or
+              self.Get(self.Schema.STAT).age)
+
+    return None
+
+  class SchemaCls(VFSFile.SchemaCls):
+    """The schema for Blob Images."""
+    HASHES = aff4.Attribute("aff4:hashes", standard.HashList,
+                            "List of hashes of each chunk in this file.")
+
+    FINALIZED = aff4.Attribute("aff4:finalized", rdfvalue.RDFBool,
+                               "Once a blobimage is finalized, further writes"
+                               " will raise exceptions.")
 
 
 class AFF4RekallProfile(aff4.AFF4Object):

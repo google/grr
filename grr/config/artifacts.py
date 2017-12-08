@@ -53,23 +53,6 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
                        " set on interrogate. These artifacts are too expensive"
                        " or slow to collect regularly from all machines.")
 
-config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4", [
-    "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
-    "LinuxHardwareInfo", "OSXSPHardwareDataType"
-], "Artifacts to collect during interrogate that don't"
-                       " populate the knowledgebase, but store results "
-                       "elsewhere in aff4.")
-
-config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_additions", [],
-                       "Extra artifacts to add to the "
-                       "interrogate_store_in_aff4 list. This allows per-site "
-                       "tweaks without having to redefine the whole list.")
-
-config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip", [],
-                       "Artifacts to remove from the "
-                       "interrogate_store_in_aff4 list. This allows per-site "
-                       "tweaks without having to redefine the whole list.")
-
 config_lib.DEFINE_list(
     "Artifacts.netgroup_filter_regexes", [],
     help="Only parse groups that match one of these regexes"

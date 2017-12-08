@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
 
-from grr import config
 from grr.lib import queues
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -171,27 +171,20 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get InstallDate")
 
-  def _GetExtraArtifactsForCollection(self):
-    original_set = set(config.CONFIG["Artifacts.interrogate_store_in_aff4"])
-    add_set = set(
-        config.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
-    skip_set = set(config.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
-    return original_set.union(add_set) - skip_set
-
   @flow.StateHandler()
   def ProcessKnowledgeBase(self, responses):
     """Collect and store any extra non-kb artifacts."""
     if not responses.success:
       raise flow.FlowError("Error collecting artifacts: %s" % responses.status)
 
-    # Collect any non-knowledgebase artifacts that will be stored in aff4.
-    artifact_list = self._GetExtraArtifactsForCollection()
-    if artifact_list:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=artifact_list,
-          next_state="ProcessArtifactResponses",
-          store_results_in_aff4=True)
+    artifact_list = [
+        "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
+        "LinuxHardwareInfo", "OSXSPHardwareDataType"
+    ]
+    self.CallFlow(
+        collectors.ArtifactCollectorFlow.__name__,
+        artifact_list=artifact_list,
+        next_state="ProcessArtifactResponses")
 
     # Update the client index
     client = self._OpenClient()
@@ -201,6 +194,19 @@ class Interrogate(flow.GRRFlow):
   def ProcessArtifactResponses(self, responses):
     if not responses.success:
       self.Log("Error collecting artifacts: %s", responses.status)
+    if not list(responses):
+      return
+
+    with self._OpenClient(mode="rw") as client:
+      for response in responses:
+        if isinstance(response, rdf_client.Volume):
+          volumes = client.Get(client.Schema.VOLUMES) or client.Schema.VOLUMES()
+          volumes.Append(response)
+          client.Set(client.Schema.VOLUMES, volumes)
+        elif isinstance(response, rdf_client.HardwareInfo):
+          client.Set(client.Schema.HARDWARE_INFO, response)
+        else:
+          raise ValueError("Unexpected response type: %s", type(response))
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 

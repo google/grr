@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-Restart=on-failure
+Restart=always
 RestartSec=120
 LimitNOFILE=20000
 Environment=LANG=en_US.UTF-8

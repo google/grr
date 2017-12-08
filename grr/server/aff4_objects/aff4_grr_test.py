@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Test the grr aff4 objects."""
 
+import StringIO
 import time
+
+import mock
 
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -11,12 +14,12 @@ from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import aff4_test_lib
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -137,8 +140,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
   def testVFSFileStartsOnlyOneMultiGetFileFlowOnUpdate(self):
     """File updates should only start one MultiGetFile at any point in time."""
     client_id = self.SetupClients(1)[0]
-    fixture_test_lib.ClientFixture(client_id, token=self.token)
-    # We need to choose a file path having a pathsepc.
+    # We need to create a file path having a pathspec.
     path = "fs/os/c/bin/bash"
 
     with aff4.FACTORY.Create(
@@ -146,6 +148,11 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         aff4_type=aff4_grr.VFSFile,
         mode="rw",
         token=self.token) as file_fd:
+      file_fd.Set(
+          file_fd.Schema.STAT,
+          rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="/bin/bash", pathtype="OS")))
+
       # Starts a MultiGetFile flow.
       file_fd.Update()
 
@@ -172,8 +179,6 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
   def testVFSFileStartsNewMultiGetFileWhenLockingFlowHasFinished(self):
     """A new MultiFileGet can be started when the locking flow has finished."""
     client_id = self.SetupClients(1)[0]
-    fixture_test_lib.ClientFixture(client_id, token=self.token)
-    # We need to choose a file path having a pathsepc.
     path = "fs/os/c/bin/bash"
 
     with aff4.FACTORY.Create(
@@ -181,6 +186,10 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         aff4_type=aff4_grr.VFSFile,
         mode="rw",
         token=self.token) as file_fd:
+      file_fd.Set(
+          file_fd.Schema.STAT,
+          rdf_client.StatEntry(
+              pathspec=rdf_paths.PathSpec(path="/bin/bash", pathtype="OS")))
       # Starts a MultiGetFile flow.
       first_update_flow_urn = file_fd.Update()
 
@@ -292,6 +301,208 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertEqual(summary.serial_number, serial_number)
         self.assertEqual(summary.system_manufacturer, system_manufacturer)
         self.assertEqual(summary.system_uuid, system_uuid)
+
+
+class BlobImageTest(aff4_test_lib.AFF4ObjectTest):
+  """Tests for cron functionality."""
+
+  def testAppendContentError(self):
+    src_content = "ABCD" * 10
+    src_fd = StringIO.StringIO(src_content)
+
+    dest_fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("temp"),
+        aff4_grr.VFSBlobImage,
+        token=self.token,
+        mode="rw")
+    dest_fd.SetChunksize(7)
+    dest_fd.AppendContent(src_fd)
+    dest_fd.Seek(0)
+    self.assertEqual(dest_fd.Read(5000), src_content)
+
+    src_fd.seek(0)
+    self.assertRaises(IOError, dest_fd.AppendContent, src_fd)
+
+  def testAppendContent(self):
+    """Test writing content where content length % chunksize == 0."""
+    src_content = "ABCDEFG" * 10  # 10 chunksize blobs
+    src_fd = StringIO.StringIO(src_content)
+
+    dest_fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("temp"),
+        aff4_grr.VFSBlobImage,
+        token=self.token,
+        mode="rw")
+    self.assertEqual(dest_fd.Get(dest_fd.Schema.HASHES), None)
+
+    dest_fd.SetChunksize(7)
+    dest_fd.AppendContent(src_fd)
+
+    self.assertEqual(int(dest_fd.Get(dest_fd.Schema.SIZE)), len(src_content))
+    self.assertTrue(dest_fd.Get(dest_fd.Schema.HASHES))
+
+    dest_fd.Seek(0)
+    self.assertEqual(dest_fd.Read(5000), src_content)
+
+    src_fd.seek(0)
+    dest_fd.AppendContent(src_fd)
+    self.assertEqual(dest_fd.size, 2 * len(src_content))
+    self.assertEqual(
+        int(dest_fd.Get(dest_fd.Schema.SIZE)), 2 * len(src_content))
+    dest_fd.Seek(0)
+    self.assertEqual(dest_fd.Read(5000), src_content + src_content)
+
+  def testMultiStreamStreamsSingleFileWithSingleChunk(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("123456789"))
+
+    fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
+
+    self.assertEqual(len(chunks_fds), 1)
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd)
+
+  def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("123456789"))
+
+    with aff4.FACTORY.Create(
+        "aff4:/bar", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("abcd"))
+
+    fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
+    chunks_fds = list(aff4.AFF4Stream.MultiStream([fd1, fd2]))
+
+    self.assertEqual(len(chunks_fds), 2)
+
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd1)
+
+    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertIs(chunks_fds[1][0], fd2)
+
+  def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+
+    with aff4.FACTORY.Create(
+        "aff4:/bar", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("*" * 10 + "abcd"))
+
+    fd1 = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    fd2 = aff4.FACTORY.Open("aff4:/bar", token=self.token)
+    chunks_fds = list(aff4.AFF4Stream.MultiStream([fd1, fd2]))
+
+    self.assertEqual(len(chunks_fds), 4)
+
+    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertIs(chunks_fds[0][0], fd1)
+
+    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertIs(chunks_fds[1][0], fd1)
+
+    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertIs(chunks_fds[2][0], fd2)
+
+    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertIs(chunks_fds[3][0], fd2)
+
+  def testMultiStreamReturnsExceptionIfChunkIsMissing(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("123456789"))
+
+      fd.index.seek(0)
+      blob_id = fd.index.read(fd._HASH_SIZE).encode("hex")
+
+    data_store.DB.DeleteBlob(blob_id, token=self.token)
+
+    fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    returned_fd, _, e = list(aff4.AFF4Stream.MultiStream([fd]))[0]
+    self.assertNotEqual(e, None)
+    self.assertEqual(returned_fd, fd)
+    self.assertEqual(e.missing_chunks, [blob_id])
+
+  def testMultiStreamIgnoresTheFileIfAnyChunkIsMissingInReadAheadChunks(self):
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+
+      fd.index.seek(0)
+      unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
+      blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
+
+    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
+
+    fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    count = 0
+    for _, _, e in aff4.AFF4Stream.MultiStream([fd]):
+      if not e:
+        count += 1
+
+    self.assertEqual(count, 0)
+
+  @mock.patch.object(aff4_grr.VFSBlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
+  def testMultiStreamTruncatesBigFileIfLastChunkIsMissing(self):
+    # If the file is split between 2 batches of chunks, and the missing
+    # chunk is in the second batch, the first batch will be succesfully
+    # yielded.
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+
+      fd.index.seek(0)
+      unused_blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
+      blob_id_2 = fd.index.read(fd._HASH_SIZE).encode("hex")
+
+    data_store.DB.DeleteBlob(blob_id_2, token=self.token)
+
+    fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    content = []
+    error_detected = False
+    for fd, chunk, e in aff4.AFF4Stream.MultiStream([fd]):
+      if not e:
+        content.append(chunk)
+      else:
+        error_detected = True
+
+    self.assertEqual(content, ["*" * 10])
+    self.assertTrue(error_detected)
+
+  @mock.patch.object(aff4_grr.VFSBlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
+  def testMultiStreamSkipsBigFileIfFirstChunkIsMissing(self):
+    # If the file is split between 2 batches of chunks, and the missing
+    # chunk is in the first batch, the file will be skipped entirely.
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_grr.VFSBlobImage, token=self.token) as fd:
+      fd.SetChunksize(10)
+      fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
+
+      fd.index.seek(0)
+      blob_id_1 = fd.index.read(fd._HASH_SIZE).encode("hex")
+
+    data_store.DB.DeleteBlob(blob_id_1, token=self.token)
+
+    fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
+    count = 0
+    for _, _, e in aff4.AFF4Stream.MultiStream([fd]):
+      if not e:
+        count += 1
+
+    self.assertEqual(count, 0)
 
 
 def main(argv):

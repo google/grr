@@ -358,7 +358,6 @@ class ListVADBinaries(flow.GRRFlow):
         # collectors.ArtifactCollectorFlow.__name__,
         "ArtifactCollectorFlow",
         artifact_list=["FullVADBinaryList"],
-        store_results_in_aff4=False,
         next_state="FetchBinaries")
 
   @flow.StateHandler()

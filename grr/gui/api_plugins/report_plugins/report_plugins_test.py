@@ -16,14 +16,11 @@ from grr.gui.api_plugins.report_plugins import server_report_plugins
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
-from grr.server import client_fixture
 from grr.server import events
 from grr.server.aff4_objects import filestore_test_lib
 from grr.server.flows.cron import filestore_stats
 from grr.server.flows.cron import system as cron_system
 from grr.server.flows.general import audit
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -97,26 +94,8 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
 class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def MockClients(self):
-
-    # We are only interested in the client object (path = "/" in client VFS)
-    fixture = fixture_test_lib.FilterFixture(regex="^/$")
-
-    # Make 10 windows clients
-    for i in range(0, 10):
-      fixture_test_lib.ClientFixture(
-          "C.0%015X" % i, token=self.token, fixture=fixture)
-
-      with aff4.FACTORY.Open(
-          "C.0%015X" % i, mode="rw", token=self.token) as client:
-        client.AddLabels(["Label1", "Label2"], owner="GRR")
-        client.AddLabel("UserLabel", owner="jim")
-
-    # Make 10 linux clients 12 hours apart.
-    for i in range(0, 10):
-      fixture_test_lib.ClientFixture(
-          "C.1%015X" % i,
-          token=self.token,
-          fixture=client_fixture.LINUX_FIXTURE)
+    client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+    self.SetupClients(20, ping=client_ping_time)
 
   def testGRRVersionReportPlugin(self):
     self.MockClients()
@@ -139,7 +118,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
 
     self.assertEqual(len(api_report_data.line_chart.data), 1)
-    self.assertEqual(api_report_data.line_chart.data[0].label, "GRR Monitor 1")
+    self.assertEqual(api_report_data.line_chart.data[0].label, "GRR Monitor 0")
     self.assertEqual(len(api_report_data.line_chart.data[0].points), 1)
     self.assertEqual(api_report_data.line_chart.data[0].points[0].y, 20)
 
@@ -157,12 +136,12 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.LINE_CHART,
-                         line_chart=rdf_report_plugins.ApiLineChartReportData(
-                             data=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.LINE_CHART,
+            line_chart=rdf_report_plugins.ApiLineChartReportData(data=[])))
 
   def testLastActiveReportPlugin(self):
     self.MockClients()
@@ -209,12 +188,12 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.LINE_CHART,
-                         line_chart=rdf_report_plugins.ApiLineChartReportData(
-                             data=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.LINE_CHART,
+            line_chart=rdf_report_plugins.ApiLineChartReportData(data=[])))
 
   def testOSBreakdownReportPlugin(self):
     # Add a client to be reported.
@@ -233,15 +212,15 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                             data=[
-                                 rdf_report_plugins.ApiReportDataPoint1D(
-                                     label="Unknown", x=1)
-                             ]),
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.PIE_CHART))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.
+            ApiPieChartReportData(data=[
+                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
+            ]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
 
   def testOSBreakdownReportPluginWithNoDataToReport(self):
     report = report_plugins.GetReportByName(
@@ -252,12 +231,12 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                             data=[]),
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.PIE_CHART))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
 
   def testOSReleaseBreakdownReportPlugin(self):
     # Add a client to be reported.
@@ -276,15 +255,15 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                             data=[
-                                 rdf_report_plugins.ApiReportDataPoint1D(
-                                     label="Unknown", x=1)
-                             ]),
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.PIE_CHART))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.
+            ApiPieChartReportData(data=[
+                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
+            ]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
 
   def testOSReleaseBreakdownReportPluginWithNoDataToReport(self):
     report = report_plugins.GetReportByName(
@@ -295,12 +274,12 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
             name=report.__class__.__name__, client_label="All"),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                             data=[]),
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.PIE_CHART))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[]),
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART))
 
 
 class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
@@ -534,9 +513,9 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         api_report_data.representation_type,
         rdf_report_plugins.ApiReportData.RepresentationType.AUDIT_CHART)
 
-    self.assertEqual(api_report_data.audit_chart.used_fields, [
-        "action", "description", "flow_name", "timestamp", "urn", "user"
-    ])
+    self.assertEqual(
+        api_report_data.audit_chart.used_fields,
+        ["action", "description", "flow_name", "timestamp", "urn", "user"])
 
     self.assertEqual([(row.action, row.description, row.flow_name,
                        row.timestamp.Format("%Y/%m/%d"), row.urn, row.user)
@@ -855,12 +834,12 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.PIE_CHART,
-                         pie_chart=rdf_report_plugins.ApiPieChartReportData(
-                             data=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.PIE_CHART,
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[])))
 
   def testSystemFlowsReportPlugin(self):
     with test_lib.FakeTime(
@@ -933,12 +912,12 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.STACK_CHART,
-                         stack_chart=rdf_report_plugins.ApiStackChartReportData(
-                             x_ticks=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[])))
 
   def testUserActivityReportPlugin(self):
     with test_lib.FakeTime(
@@ -1041,12 +1020,12 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         stats_api.ApiGetReportArgs(name=report.__class__.__name__),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.STACK_CHART,
-                         stack_chart=rdf_report_plugins.ApiStackChartReportData(
-                             data=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[])))
 
   def testUserFlowsReportPlugin(self):
     with test_lib.FakeTime(
@@ -1119,12 +1098,12 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             duration=month_duration),
         token=self.token)
 
-    self.assertEqual(api_report_data,
-                     rdf_report_plugins.ApiReportData(
-                         representation_type=rdf_report_plugins.ApiReportData.
-                         RepresentationType.STACK_CHART,
-                         stack_chart=rdf_report_plugins.ApiStackChartReportData(
-                             x_ticks=[])))
+    self.assertEqual(
+        api_report_data,
+        rdf_report_plugins.ApiReportData(
+            representation_type=rdf_report_plugins.ApiReportData.
+            RepresentationType.STACK_CHART,
+            stack_chart=rdf_report_plugins.ApiStackChartReportData(x_ticks=[])))
 
 
 def main(argv):

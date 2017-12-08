@@ -115,7 +115,6 @@ class CollectRunKeyBinaries(flow.GRRFlow):
         collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["WindowsRunKeys"],
         use_tsk=True,
-        store_results_in_aff4=False,
         next_state="ParseRunKeys")
 
   @flow.StateHandler()

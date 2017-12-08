@@ -14,26 +14,6 @@ from grr.server.aff4_objects import standard as aff4_standard
 # pylint: disable=g-continuation-in-parens-misaligned,g-line-too-long
 
 
-LINUX_FIXTURE = [
-    (u"/", (aff4_grr.VFSGRRClient, {
-        "metadata:hostname": "Linux%(client_id)s",
-        "metadata:system": "Linux",
-        "metadata:os_release": "2.6.38.8",
-        "metadata:os_version": "#2 SMP Fri Feb 24 03:31:23 PST 2012",
-        "metadata:uname": "Linux-#2 SMP Fri Feb 24 03:31:23 PST 2012-2.6.38.8",
-        "metadata:clock": "%(age)s329740",
-        "metadata:ping": "%(age)s329740",
-        "metadata:install_date": "1303680521557627",
-        "metadata:ClientInfo": """
-client_name: "GRR Monitor"
-client_version: 1
-revision: 0
-build_time: "unknown"
-""",
-    })),
-]
-
-
 # This dict represents a client VFS. It is a list of (path, attributes) tuples,
 # where attributes is a tuple of AFF4 object type and a dict of attributes. All
 # strings can contain interpolation strings, and protobufs are encoded in text
@@ -4223,22 +4203,3 @@ WMI_SAMPLE = [
              u"False", u"ErrorDescription": u"", u"LastErrorCode": u"",
          u"Availability": u"", u"SystemCreationClassName":
              u"Win32_ComputerSystem", u"Size": u"26843545600"})]
-
-USR_ACCOUNT_WMI = {"Status": "Degraded", "Domain": "MYHOST-WIN",
-                   "Description": "A user account", "InstallDate":
-                   "null", "PasswordChangeable": "true", "Disabled":
-                   "true", "Caption": "MYHOST-WIN\\\\Auser", "Lockout":
-                   "false", "AccountType": "512", "SID":
-                   "S-1-5-21-3067777777-777777777-7777777774-500",
-                   "LocalAccount": "true", "FullName": "", "SID Type":
-                   "1", "PasswordRequired": "true", "PasswordExpires":
-                   "false", "Name": "Auser"}
-
-USR_ACCOUNT_WMI_SIDS = ["S-1-5-18", "S-1-5-19", "S-1-5-20",
-                        "S-1-5-21-3067777777-777777777-7777777774-500",
-                        "S-1-5-21-8888888888-888888888-8888888884-500"]
-
-WMI_CMP_SYS_PRD = [rdf_protodict.Dict(
-    {u"IdentifyingNumber": u"2RXYYZ1", u"Name": u"Latitude E7440",
-     u"Vendor": u"Dell Inc.", u"Version": u"01",
-     u"Caption": u"Computer System Product"})]

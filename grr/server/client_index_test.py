@@ -9,7 +9,6 @@ from grr.server import aff4
 from grr.server import client_index
 from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import aff4_test_lib
-from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
@@ -23,12 +22,15 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
         aff4_type=client_index.ClientIndex,
         mode="rw",
         token=self.token)
-    fixture_test_lib.ClientFixture("aff4:/" + CLIENT_ID, token=self.token)
     client = aff4.FACTORY.Create(
         "aff4:/" + CLIENT_ID,
         aff4_type=aff4_grr.VFSGRRClient,
         mode="rw",
         token=self.token)
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(
+        client.Schema.CLIENT_INFO(
+            client_name="grr monitor", labels=["client-label-23"]))
     kb = rdf_client.KnowledgeBase()
     kb.users.Append(
         rdf_client.User(
@@ -153,8 +155,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     # Ignore the keyword if the date is not readable.
     self.assertEqual(
         len(
-            index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
-                                ])), 5)
+            index.LookupClients([".", "start_date:2013-10-20",
+                                 "end_date:XXXX"])), 5)
 
   def testUnversionedKeywords(self):
     index = aff4.FACTORY.Create(

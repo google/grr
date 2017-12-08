@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Client fixture-related test classes."""
 
-import re
-
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -125,18 +123,3 @@ class ClientFixture(object):
         if aff4_type == aff4_grr.VFSGRRClient:
           index = client_index.CreateClientIndex(token=self.token)
           index.AddClient(aff4_object)
-
-
-def FilterFixture(fixture=None, regex="."):
-  """Returns a sub fixture by only returning objects which match the regex."""
-  result = []
-  regex = re.compile(regex)
-
-  if fixture is None:
-    fixture = client_fixture.VFS
-
-  for path, attributes in fixture:
-    if regex.match(path):
-      result.append((path, attributes))
-
-  return result

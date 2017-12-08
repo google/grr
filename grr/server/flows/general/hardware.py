@@ -38,7 +38,6 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["LinuxHardwareInfo"],
-        store_results_in_aff4=True,
         next_state="DumpImage")
 
   @flow.StateHandler()

@@ -215,29 +215,6 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
 
 class GRRArtifactTest(ArtifactTest):
 
-  def testRDFMaps(self):
-    """Validate the RDFMaps."""
-    for rdf_name, dat in artifact.GRRArtifactMappings.rdf_map.items():
-      # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
-      # "Append"
-      _, aff4_type, aff4_attribute, operator = dat
-
-      if operator not in ["Append", "Overwrite"]:
-        raise artifact_registry.ArtifactDefinitionError(
-            "Bad RDFMapping, unknown operator %s in %s" % (operator, rdf_name))
-
-      if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact_registry.ArtifactDefinitionError(
-            "Bad RDFMapping, invalid AFF4 Object %s in %s" % (aff4_type,
-                                                              rdf_name))
-
-      attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
-                     aff4_attribute)()
-      if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact_registry.ArtifactDefinitionError(
-            "Bad RDFMapping, bad attribute %s for %s" % (aff4_attribute,
-                                                         rdf_name))
-
   def testUploadArtifactYamlFileAndDumpToYaml(self):
     artifact_registry.REGISTRY.ClearRegistry()
     artifact_registry.REGISTRY.ClearSources()
@@ -406,24 +383,23 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     client_mock = self.MockClient(
         standard.ExecuteCommand, client_id=self.client_id)
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
-      for _ in flow_test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           client_id=self.client_id,
-          store_results_in_aff4=True,
           use_tsk=False,
           artifact_list=["TestCmdArtifact"],
           token=self.token):
-        pass
-    urn = self.client_id.Add("info/software")
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
-    self.assertEqual(len(packages), 2)
-    self.assertEqual(packages[0].__class__.__name__, "SoftwarePackage")
+        session_id = s
 
-    anomaly_coll = aff4_grr.VFSGRRClient.AnomalyCollectionForCID(self.client_id)
-    self.assertEqual(len(anomaly_coll), 1)
-    self.assertTrue("gremlin" in anomaly_coll[0].symptom)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
+    self.assertEqual(len(results), 3)
+    packages = [p for p in results if isinstance(p, rdf_client.SoftwarePackage)]
+    self.assertEqual(len(packages), 2)
+
+    anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
+    self.assertEqual(len(anomalies), 1)
+    self.assertIn("gremlin", anomalies[0].symptom)
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
@@ -485,13 +461,11 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
-    self.RunCollectorAndGetCollection(
-        ["WMIInstalledSoftware"], store_results_in_aff4=True)
-    urn = self.client_id.Add("info/software")
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
-    self.assertEqual(len(packages), 3)
-    self.assertEqual(packages[0].description, "Google Chrome")
+    col = self.RunCollectorAndGetCollection(["WMIInstalledSoftware"])
+
+    self.assertEqual(len(col), 3)
+    descriptions = [package.description for package in col]
+    self.assertIn("Google Chrome", descriptions)
 
   def testRekallPsListArtifact(self):
     """Check we can run Rekall based artifacts."""

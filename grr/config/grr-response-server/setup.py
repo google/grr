@@ -77,7 +77,6 @@ setup_args = dict(
         "google-api-python-client==1.6.2",
         "google-auth==1.2.1",
         "google-cloud-bigquery==0.22.1",
-        "google-cloud-bigtable==0.22.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.9.5",
         "pexpect==4.0.1",

@@ -7,7 +7,6 @@ from grr.server.aff4_objects import collects
 from grr.server.aff4_objects import cronjobs
 from grr.server.aff4_objects import filestore
 from grr.server.aff4_objects import security
-from grr.server.aff4_objects import software
 from grr.server.aff4_objects import standard
 from grr.server.aff4_objects import stats
 from grr.server.aff4_objects import stats_store

@@ -13,7 +13,7 @@ from grr.client.client_actions import standard
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server import artifact_registry
 from grr.server import artifact_utils
 from grr.server import client_fixture
@@ -105,24 +105,30 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     class WMIActionMock(action_mocks.ActionMock):
 
       def WmiQuery(self, _):
-        return client_fixture.WMI_CMP_SYS_PRD
+        return [
+            rdf_protodict.Dict({
+                u"IdentifyingNumber": u"2RXYYZ1",
+                u"Name": u"Latitude E7440",
+                u"Vendor": u"Dell Inc.",
+                u"Version": u"01",
+                u"Caption": u"Computer System Product"
+            })
+        ]
 
     client_mock = WMIActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMIComputerSystemProduct"],
         token=self.token,
         client_id=self.client_id,
         dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-        IGNORE_DEPS,
-        store_results_in_aff4=True):
-      pass
+        IGNORE_DEPS):
+      session_id = s
 
-    client = aff4.FACTORY.Open(
-        self.client_id,
-        token=self.token,)
-    hardware = client.Get(client.Schema.HARDWARE_INFO)
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
+    self.assertEqual(len(results), 1)
+    hardware = results[0]
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
     self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
@@ -135,22 +141,19 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         return client_fixture.WMI_SAMPLE
 
     client_mock = WMIActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=["WMILogicalDisks"],
         token=self.token,
         client_id=self.client_id,
         dependencies=(
-            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS),
-        store_results_in_aff4=True):
-      pass
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
+      session_id = s
 
-    # Test that we set the client VOLUMES attribute
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    volumes = client.Get(client.Schema.VOLUMES)
-    self.assertEqual(len(volumes), 2)
-    for result in volumes:
+    results = flow.GRRFlow.ResultCollectionForFID(session_id)
+    self.assertEqual(len(results), 2)
+    for result in results:
       self.assertTrue(isinstance(result, rdf_client.Volume))
       self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
       if result.windowsvolume.drive_letter == "C:":

@@ -805,6 +805,12 @@ class StatMode(rdfvalue.RDFInteger):
     return utils.SmartStr(self.__unicode__())
 
 
+class StatExtFlagsLinux(rdfvalue.RDFInteger):
+  """Extended file attributes as reported by `lsattr`."""
+
+  data_store_type = "unsigned_integer_32"
+
+
 class Iterator(structs.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
   protobuf = jobs_pb2.Iterator
@@ -827,6 +833,7 @@ class StatEntry(structs.RDFProtoStruct):
       paths.PathSpec,
       rdfvalue.RDFDatetimeSeconds,
       StatMode,
+      StatExtFlagsLinux,
       ExtAttr,
   ]
 

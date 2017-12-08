@@ -40,7 +40,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     # times, this will result in three timeline items.
     with test_lib.FakeTime(gui_test_lib.TIME_0):
       with aff4.FACTORY.Create(
-          file_path, aff4_grr.VFSAnalysisFile, mode="w", token=token) as fd:
+          file_path, aff4_grr.VFSFile, mode="w", token=token) as fd:
         stats = rdf_client.StatEntry(
             st_atime=gui_test_lib.TIME_0.AsSecondsFromEpoch() + 1000,
             st_mtime=gui_test_lib.TIME_0.AsSecondsFromEpoch(),
@@ -50,7 +50,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
     # Add a version with a stat entry, but without timestamps.
     with test_lib.FakeTime(gui_test_lib.TIME_1):
       with aff4.FACTORY.Create(
-          file_path, aff4_grr.VFSAnalysisFile, mode="w", token=token) as fd:
+          file_path, aff4_grr.VFSFile, mode="w", token=token) as fd:
         stats = rdf_client.StatEntry(st_ino=99)
         fd.Set(fd.Schema.STAT, stats)
 

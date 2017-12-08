@@ -993,6 +993,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       "bytes": wrappers_pb2.BytesValue,
       "string": wrappers_pb2.StringValue,
       "integer": wrappers_pb2.Int64Value,
+      "unsigned_integer_32": wrappers_pb2.UInt32Value,
       "unsigned_integer": wrappers_pb2.UInt64Value,
   }
 
@@ -1337,6 +1338,7 @@ class ProtoRDFValue(ProtoType):
   _PROTO_DATA_STORE_LOOKUP = dict(
       bytes=ProtoBinary,
       unsigned_integer=ProtoUnsignedInteger,
+      unsigned_integer_32=ProtoUnsignedInteger,
       integer=ProtoUnsignedInteger,
       signed_integer=ProtoSignedInteger,
       string=ProtoString)

@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 
-
 import StringIO
 import zipfile
 
@@ -676,8 +675,7 @@ class VfsTimelineTestMixin(object):
     for i in range(0, 5):
       with test_lib.FakeTime(i):
         with aff4.FACTORY.Create(
-            file_urn, aff4_grr.VFSAnalysisFile, mode="w",
-            token=self.token) as fd:
+            file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
           stats = rdf_client.StatEntry(
               st_mtime=rdfvalue.RDFDatetimeSeconds().Now())
           fd.Set(fd.Schema.STAT, stats)

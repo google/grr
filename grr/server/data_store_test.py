@@ -113,11 +113,12 @@ class DataStoreTestMixin(object):
   def testMultiSet(self):
     """Test the MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"
-    data_store.DB.MultiSet(self.test_row, {
-        "aff4:size": [1],
-        "aff4:stored": [unicode_string],
-        "aff4:unknown_attribute": ["hello"]
-    })
+    data_store.DB.MultiSet(
+        self.test_row, {
+            "aff4:size": [1],
+            "aff4:stored": [unicode_string],
+            "aff4:unknown_attribute": ["hello"]
+        })
 
     stored, _ = data_store.DB.Resolve(self.test_row, "aff4:size")
     self.assertEqual(stored, 1)
@@ -191,9 +192,10 @@ class DataStoreTestMixin(object):
   def testMultiSet2(self):
     """Test the MultiSet() methods."""
     # Specify a per element timestamp
-    data_store.DB.MultiSet(
-        self.test_row, {"aff4:size": [(1, 1000)],
-                        "aff4:stored": [("2", 2000)]})
+    data_store.DB.MultiSet(self.test_row, {
+        "aff4:size": [(1, 1000)],
+        "aff4:stored": [("2", 2000)]
+    })
 
     stored, ts = data_store.DB.Resolve(self.test_row, "aff4:size")
     self.assertEqual(stored, 1)
@@ -205,9 +207,10 @@ class DataStoreTestMixin(object):
 
   def testMultiSet3(self):
     """Test the MultiSet() delete methods."""
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [1],
-                            "aff4:stored": ["2"]})
+    data_store.DB.MultiSet(self.test_row, {
+        "aff4:size": [1],
+        "aff4:stored": ["2"]
+    })
 
     data_store.DB.MultiSet(
         self.test_row, {"aff4:stored": ["2"]}, to_delete=["aff4:size"])
@@ -221,9 +224,10 @@ class DataStoreTestMixin(object):
 
   def testMultiSet4(self):
     """Test the MultiSet() delete methods when deleting the same predicate."""
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [1],
-                            "aff4:stored": ["2"]})
+    data_store.DB.MultiSet(self.test_row, {
+        "aff4:size": [1],
+        "aff4:stored": ["2"]
+    })
 
     data_store.DB.MultiSet(
         self.test_row, {"aff4:size": [4]}, to_delete=["aff4:size"])
@@ -254,8 +258,8 @@ class DataStoreTestMixin(object):
 
     values = data_store.DB.ResolvePrefix(
         self.test_row, "aff4:stored", timestamp=data_store.DB.ALL_TIMESTAMPS)
-    self.assertListEqual(values, [("aff4:stored", "3", 4000), ("aff4:stored",
-                                                               "2", 1000)])
+    self.assertListEqual(values, [("aff4:stored", "3", 4000),
+                                  ("aff4:stored", "2", 1000)])
 
     data_store.DB.MultiSet(
         self.test_row, {"aff4:stored": [("4", 3000)]}, replace=True)
@@ -293,18 +297,14 @@ class DataStoreTestMixin(object):
       data_store.DB.Set(row, predicate_2, "hello")
 
     self.assertEqual(
-        10,
-        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/", predicate_1)))
+        10, len(list(data_store.DB.ScanAttribute("aff4:/row/", predicate_1))))
     self.assertEqual(
-        10,
-        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/", predicate_2)))
+        10, len(list(data_store.DB.ScanAttribute("aff4:/row/", predicate_2))))
     data_store.DB.MultiDeleteAttributes(test_rows, [predicate_1, predicate_2])
-    self.assertEqual(
-        0,
-        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/", predicate_1)))
-    self.assertEqual(
-        0,
-        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/", predicate_2)))
+    self.assertFalse(
+        list(data_store.DB.ScanAttribute("aff4:/row/", predicate_1)))
+    self.assertFalse(
+        list(data_store.DB.ScanAttribute("aff4:/row/", predicate_2)))
 
   def CheckLength(self, predicate, l):
     all_attributes = data_store.DB.ResolveMulti(
@@ -432,8 +432,9 @@ class DataStoreTestMixin(object):
     attributes = set()
     for i in range(5, 10):
       attributes.add(("metadata:%s" % i, "data%d" % i))
-      data_store.DB.MultiSet(unicode_string,
-                             {"metadata:%s" % i: ["data%d" % i]})
+      data_store.DB.MultiSet(unicode_string, {
+          "metadata:%s" % i: ["data%d" % i]
+      })
 
     result = dict(
         data_store.DB.MultiResolvePrefix([unicode_string], ["metadata:"]))
@@ -558,13 +559,13 @@ class DataStoreTestMixin(object):
 
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate1_results[result_index], (predicate1, str(i),
-                                                          i * 1000))
+      self.assertEqual(predicate1_results[result_index],
+                       (predicate1, str(i), i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate2_results[result_index], (predicate2, str(i),
-                                                          i * 1000))
+      self.assertEqual(predicate2_results[result_index],
+                       (predicate2, str(i), i * 1000))
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrderPerColumn2(self):
     predicate1 = "metadata:predicate1"
@@ -593,13 +594,13 @@ class DataStoreTestMixin(object):
 
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate1_results[result_index], (predicate1, str(i),
-                                                          i * 1000))
+      self.assertEqual(predicate1_results[result_index],
+                       (predicate1, str(i), i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(predicate2_results[result_index], (predicate2, str(i),
-                                                          i * 1000))
+      self.assertEqual(predicate2_results[result_index],
+                       (predicate2, str(i), i * 1000))
 
   def testScanAttribute(self):
     data_store.DB.Set("aff4:/A", "aff4:foo", "A value")
@@ -628,8 +629,8 @@ class DataStoreTestMixin(object):
 
     values = [(r[1], r[2])
               for r in data_store.DB.ScanAttribute("aff4:/B", "aff4:foo")]
-    self.assertEqual(values, [(2000, "B " + str(i) + " value")
-                              for i in range(1, 10)])
+    self.assertEqual(values,
+                     [(2000, "B " + str(i) + " value") for i in range(1, 10)])
 
     values = [
         r[2]
@@ -657,13 +658,13 @@ class DataStoreTestMixin(object):
 
     values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/", "aff4:foo")]
     self.assertEqual(
-        values, ["A value"] + ["B " + str(i) + " value"
-                               for i in range(1, 10)] + ["C value"])
+        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)] +
+        ["C value"])
 
     values = [r[2] for r in data_store.DB.ScanAttribute("", "aff4:foo")]
     self.assertEqual(
-        values, ["A value"] + ["B " + str(i) + " value"
-                               for i in range(1, 10)] + ["C value"])
+        values, ["A value"] + ["B " + str(i) + " value" for i in range(1, 10)] +
+        ["C value"])
 
     data_store.DB.Set("aff4:/files/hash/generic/sha1/", "aff4:hash", "h1")
     data_store.DB.Set("aff4:/files/hash/generic/sha1/AAAAA", "aff4:hash", "h2")
@@ -759,8 +760,9 @@ class DataStoreTestMixin(object):
     row_name = "aff4:/attribute_test_row"
     attribute_name = "metadata:test_attribute"
     attributes_to_set = {
-        attribute_name: [(i, rdfvalue.RDFDatetime(i))
-                         for i in xrange(1000, 11000, 1000)]
+        attribute_name: [
+            (i, rdfvalue.RDFDatetime(i)) for i in xrange(1000, 11000, 1000)
+        ]
     }
     data_store.DB.MultiSet(row_name, attributes_to_set, replace=False)
 
@@ -1160,7 +1162,7 @@ class DataStoreTestMixin(object):
     identifier = data_store.DB.StoreBlob(data)
 
     # Now create the image containing the blob.
-    with aff4.FACTORY.Create("aff4:/C.1235/image", standard.BlobImage) as fd:
+    with aff4.FACTORY.Create("aff4:/C.1235/image", aff4_grr.VFSBlobImage) as fd:
       fd.SetChunksize(512 * 1024)
       fd.Set(fd.Schema.STAT())
 
@@ -1440,11 +1442,12 @@ class DataStoreTestMixin(object):
     pool = data_store.DB.GetMutationPool()
 
     unicode_string = u"this is a uñîcödé string"
-    pool.MultiSet(self.test_row, {
-        "aff4:size": [1],
-        "aff4:stored": [unicode_string],
-        "aff4:unknown_attribute": ["hello"]
-    })
+    pool.MultiSet(
+        self.test_row, {
+            "aff4:size": [1],
+            "aff4:stored": [unicode_string],
+            "aff4:unknown_attribute": ["hello"]
+        })
 
     # Nothing is written before Flush() is called.
     stored, _ = data_store.DB.Resolve(self.test_row, "aff4:size")
@@ -1620,8 +1623,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def setUp(self):
     super(DataStoreCSVBenchmarks, self).setUp(
-        ["DB Size (KB)", "Queries", "Subjects", "Predicates",
-         "Values"], ["<20", "<10", "<10", "<10", "<10"])
+        ["DB Size (KB)", "Queries", "Subjects", "Predicates", "Values"],
+        ["<20", "<10", "<10", "<10", "<10"])
     self.start_time = time.time()
     self.last_time = self.start_time
 
@@ -1944,8 +1947,8 @@ class DataStoreCSVBenchmarks(benchmark_test_lib.MicroBenchmarks):
     """Fill the database with a certain number of subjects and clients."""
     self.rand = random.Random(0)
     self.test_name = "fill"
-    self.AddResult(self.test_name, 0, self.steps,
-                   data_store.DB.Size(), 0, 0, 0, 0)
+    self.AddResult(self.test_name, 0, self.steps, data_store.DB.Size(), 0, 0, 0,
+                   0)
     subjects = dict.fromkeys(xrange(nsubjects))
     value = os.urandom(100)
     clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
@@ -2102,7 +2105,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
         queue=self.queue,
         pathspec=rdf_paths.PathSpec(
             path="/",
-            pathtype="OS",))
+            pathtype="OS",
+        ))
     self.flow_ids.append(flow_id)
 
     messages = []
@@ -2350,8 +2354,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Set, (subject_template % i,
-                                          "task:threadedflow", value, None))
+      self.tp.AddTask(data_store.DB.Set,
+                      (subject_template % i, "task:threadedflow", value, None))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2361,8 +2365,9 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Set, ("aff4:/somerowthreaded",
-                                          predicate_template % i, value, None))
+      self.tp.AddTask(
+          data_store.DB.Set,
+          ("aff4:/somerowthreaded", predicate_template % i, value, None))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2406,8 +2411,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Resolve, (subject_template % i,
-                                              "task:threadedflow"))
+      self.tp.AddTask(data_store.DB.Resolve,
+                      (subject_template % i, "task:threadedflow"))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2417,8 +2422,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.n):
-      self.tp.AddTask(data_store.DB.Resolve, ("aff4:/somerowthreaded",
-                                              predicate_template % i))
+      self.tp.AddTask(data_store.DB.Resolve,
+                      ("aff4:/somerowthreaded", predicate_template % i))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2428,8 +2433,8 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.small_n):
-      self.tp.AddTask(self.ResolvePrefixAndCheck, ("aff4:/somerowthreaded",
-                                                   "task:someflowthreaded"))
+      self.tp.AddTask(self.ResolvePrefixAndCheck,
+                      ("aff4:/somerowthreaded", "task:someflowthreaded"))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()
@@ -2439,9 +2444,9 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
     start_time = time.time()
     for i in xrange(self.small_n):
-      self.tp.AddTask(self.ResolvePrefixAndCheck,
-                      ("aff4:/threadedlargerow%d" % i, "task:largeflowthreaded",
-                       1))
+      self.tp.AddTask(
+          self.ResolvePrefixAndCheck,
+          ("aff4:/threadedlargerow%d" % i, "task:largeflowthreaded", 1))
     self.tp.Join()
     data_store.DB.Flush()
     end_time = time.time()

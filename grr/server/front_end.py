@@ -327,6 +327,53 @@ class FrontEndServer(object):
 
     return result
 
+  def EnrolFleetspeakClient(self, client_id):
+    """Enrols a Fleetspeak-enabled client for use with GRR."""
+    client_urn = rdf_client.ClientURN(client_id)
+
+    # If already enrolled, return.
+    if aff4.FACTORY.ExistsWithType(
+        client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
+      return
+
+    logging.info("Enrolling a new Fleetspeak client: %r", client_id)
+
+    # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
+    # catch exceptions from it and forward them to Fleetspeak by failing its
+    # gRPC call. Fleetspeak will then retry with a random, perhaps healthier,
+    # instance of the GRR frontend.
+    with aff4.FACTORY.Create(
+        client_urn,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token) as client:
+
+      client.Set(client.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
+
+      index = client_index.CreateClientIndex(token=self.token)
+      index.AddClient(client)
+
+    enrollment_session_id = rdfvalue.SessionID(
+        queue=queues.ENROLLMENT, flow_name="Enrol")
+
+    publish_msg = rdf_flows.GrrMessage(
+        payload=client_urn,
+        session_id=enrollment_session_id,
+        # Fleetspeak ensures authentication.
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+        source=enrollment_session_id,
+        priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+
+    # Publish the client enrollment message.
+    events.Events.PublishEvent(
+        "ClientEnrollment", publish_msg, token=self.token)
+
+  def RecordFleetspeakClientPing(self, client_id):
+    """Records the last client contact in the datastore."""
+    with aff4.FACTORY.Create(
+        client_id, aff4_type=aff4_grr.VFSGRRClient, mode="w",
+        token=self.token) as client:
+      client.Set(client.Schema.PING, rdfvalue.RDFDatetime.Now())
 
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.

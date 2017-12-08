@@ -52,7 +52,9 @@ _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(
     bytes=TYPE_BYTES,
     string=TYPE_STRING,
     integer=TYPE_INT64,
-    unsigned_integer=TYPE_UINT64,)
+    unsigned_integer_32=TYPE_UINT32,
+    unsigned_integer=TYPE_UINT64,
+)
 
 # If True, check that protobuf dependencies are correctly mirrored in
 # RDFProtoStruct.rdf_deps field.

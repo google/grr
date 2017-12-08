@@ -7,11 +7,6 @@
 from grr.server.data_stores import fake_data_store
 
 try:
-  from grr.server.data_stores import cloud_bigtable_data_store
-except ImportError:
-  pass
-
-try:
   from grr.server.data_stores import mysql_advanced_data_store
 except ImportError:
   pass

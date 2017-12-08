@@ -2,7 +2,6 @@
 """Some collections used in multiple places."""
 
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -17,10 +16,6 @@ class LogCollection(sequential_collection.IndexedSequentialCollection):
 
 class CrashCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = rdf_client.ClientCrash
-
-
-class AnomalyCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = anomaly.Anomaly
 
 
 class ClientUrnCollection(sequential_collection.IndexedSequentialCollection):

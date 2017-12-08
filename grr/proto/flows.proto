@@ -730,14 +730,8 @@ message ArtifactCollectorFlowArgs {
       description: "Whether raw filesystem access should be used.",
     }, default=false];
 
-  optional bool store_results_in_aff4 = 3 [(sem_type) = {
-      description: "Should the collected artifacts be written to the GRR "
-      "AFF4 namespace based on the AFF4->RDF map. Collectors like GetFiles "
-      "and GetRegistryKeys already write their results to the client space "
-      "and only a small number of types are included in the map. Users should "
-      "not enable this in the vast majority of cases.",
-    label: ADVANCED,
-    }, default=false];
+  // DEPRECATED
+  // optional bool store_results_in_aff4 = 3;
 
   optional bool split_output_by_artifact = 5 [(sem_type) = {
       description: "If True, use output as a directory and write a separate"

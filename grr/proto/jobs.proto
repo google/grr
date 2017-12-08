@@ -810,7 +810,13 @@ message StatEntry {
   optional uint32 st_blksize = 13;
   optional uint32 st_rdev = 14;
   optional uint32 st_flags_osx = 21;
-  optional uint32 st_flags_linux = 22;
+  optional uint32 st_flags_linux = 22 [
+    (sem_type) = {
+      type: "StatExtFlagsLinux",
+      description: "extended file attributes as reported by `lsattr`",
+    },
+    default = 0
+  ];
   optional string symlink = 15;
 
   // These are used when mapping registry keys to the VFS

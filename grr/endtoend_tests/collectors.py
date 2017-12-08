@@ -13,7 +13,6 @@ class TestCollector(base.AutomatedTest):
   flow = collectors.ArtifactCollectorFlow.__name__
   args = {
       "artifact_list": ["WindowsExplorerNamespaceMyComputer"],
-      "store_results_in_aff4": False
   }
 
   def CheckFlow(self):

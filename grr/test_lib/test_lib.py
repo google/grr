@@ -171,7 +171,8 @@ class GRRBaseTest(unittest.TestCase):
     self.mail_stubber.Stop()
 
     logging.info("Completed test: %s.%s (%.4fs)", self.__class__.__name__,
-                 self._testMethodName, time.time() - self.last_start_time)
+                 self._testMethodName,
+                 time.time() - self.last_start_time)
 
     # This may fail on filesystems which do not support unicode filenames.
     try:
@@ -300,7 +301,9 @@ class GRRBaseTest(unittest.TestCase):
                        index=None,
                        system=None,
                        os_version=None,
-                       arch=None):
+                       arch=None,
+                       uname=None,
+                       ping=None):
     client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
 
     with aff4.FACTORY.Create(
@@ -312,7 +315,7 @@ class GRRBaseTest(unittest.TestCase):
       info = fd.Schema.CLIENT_INFO()
       info.client_name = "GRR Monitor"
       fd.Set(fd.Schema.CLIENT_INFO, info)
-      fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime.Now())
+      fd.Set(fd.Schema.PING, ping or rdfvalue.RDFDatetime.Now())
       fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
       fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
       fd.Set(
@@ -328,6 +331,8 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.OS_VERSION(os_version))
       if arch:
         fd.Set(fd.Schema.ARCH(arch))
+      if uname:
+        fd.Set(fd.Schema.UNAME(uname))
 
       kb = rdf_client.KnowledgeBase()
       artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
@@ -349,7 +354,9 @@ class GRRBaseTest(unittest.TestCase):
                   index=None,
                   system=None,
                   os_version=None,
-                  arch=None):
+                  arch=None,
+                  uname=None,
+                  ping=None):
     """Prepares a test client mock to be used.
 
     Args:
@@ -359,27 +366,53 @@ class GRRBaseTest(unittest.TestCase):
       system: string
       os_version: string
       arch: string
+      uname: string
+      ping: RDFDatetime
 
     Returns:
       rdf_client.ClientURN
     """
     if index is not None:
       # `with:' is expected to be used in the calling function.
-      client_id_urn = self._SetupClientImpl(client_nr, index, system,
-                                            os_version, arch)
+      client_id_urn = self._SetupClientImpl(
+          client_nr,
+          index=index,
+          system=system,
+          os_version=os_version,
+          arch=arch,
+          uname=uname,
+          ping=ping)
     else:
       with client_index.CreateClientIndex(token=self.token) as index:
-        client_id_urn = self._SetupClientImpl(client_nr, index, system,
-                                              os_version, arch)
+        client_id_urn = self._SetupClientImpl(
+            client_nr,
+            index=index,
+            system=system,
+            os_version=os_version,
+            arch=arch,
+            uname=uname,
+            ping=ping)
 
     return client_id_urn
 
-  def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
+  def SetupClients(self,
+                   nr_clients,
+                   system=None,
+                   os_version=None,
+                   arch=None,
+                   uname=None,
+                   ping=None):
     """Prepares nr_clients test client mocks to be used."""
     with client_index.CreateClientIndex(token=self.token) as index:
       client_ids = [
-          self.SetupClient(client_nr, index, system, os_version, arch)
-          for client_nr in xrange(nr_clients)
+          self.SetupClient(
+              client_nr,
+              index=index,
+              system=system,
+              os_version=os_version,
+              arch=arch,
+              uname=uname,
+              ping=ping) for client_nr in xrange(nr_clients)
       ]
 
     return client_ids
@@ -595,7 +628,8 @@ class GRRTestLoader(unittest.TestLoader):
   def loadTestsFromModule(self, _):
     """Just return all the tests as if they were in the same module."""
     test_cases = [
-        self.loadTestsFromTestCase(x) for x in self.base_class.classes.values()
+        self.loadTestsFromTestCase(x)
+        for x in self.base_class.classes.values()
         if issubclass(x, self.base_class)
     ]
 

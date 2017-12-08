@@ -18,8 +18,6 @@ from grr.server import artifact_registry
 from grr.server import artifact_utils
 from grr.server import data_store
 from grr.server import flow
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import software
 
 
 def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
@@ -147,7 +145,6 @@ class CollectArtifactDependencies(flow.GRRFlow):
           "ArtifactCollectorFlow",
           artifact_list=[artifact_name],
           knowledge_base=self.state.knowledge_base,
-          store_results_in_aff4=False,
           next_state="ProcessBase",
           request_data={
               "artifact_name": artifact_name
@@ -212,7 +209,6 @@ class CollectArtifactDependencies(flow.GRRFlow):
             # collectors.ArtifactCollectorFlow.__name__,
             "ArtifactCollectorFlow",
             artifact_list=[artifact_name],
-            store_results_in_aff4=False,
             next_state="ProcessBase",
             request_data={"artifact_name": artifact_name},
             knowledge_base=self.state.knowledge_base)
@@ -603,29 +599,6 @@ class ArtifactFallbackCollector(flow.GRRFlow):
 
   # List of artifact names for which we are registering as the fallback
   artifacts = []
-
-
-class GRRArtifactMappings(object):
-  """SemanticProto to AFF4 storage mappings.
-
-  Class defining mappings between RDFValues collected by Artifacts, and the
-  location they are stored in the AFF4 hierarchy.
-
-  Each entry in the map contains:
-    1. Location stored relative to the client.
-    2. Name of the AFF4 type.
-    3. Name of the attribute to be changed.
-    4. Method for adding the RDFValue to the Attribute (Overwrite, Append)
-  """
-
-  rdf_map = {
-      "SoftwarePackage": ("info/software",
-                          software.InstalledSoftwarePackages.__name__,
-                          "INSTALLED_PACKAGES", "Append"),
-      "Volume": ("", aff4_grr.VFSGRRClient.__name__, "VOLUMES", "Append"),
-      "HardwareInfo": ("", aff4_grr.VFSGRRClient.__name__, "HARDWARE_INFO",
-                       "Overwrite")
-  }
 
 
 class ArtifactLoader(registry.InitHook):
