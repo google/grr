@@ -193,8 +193,6 @@ class HttpConnector(connector.Connector):
         "x-requested-with": "XMLHttpRequest"
     }
     cookies = {"csrftoken": self.csrf_token}
-    logger.debug("%s request: %s (query: %s, body: %s, headers %s)", method,
-                 url, query_params, body, headers)
     return requests.Request(
         method,
         url,
@@ -221,9 +219,6 @@ class HttpConnector(connector.Connector):
 
     content = response.content
     json_str = content[len(self.JSON_PREFIX):]
-
-    logger.debug("%s response (%s, %d):\n%s", request.method, request.url,
-                 response.status_code, content)
 
     if method_descriptor.result_type_descriptor.name:
       default_value = method_descriptor.result_type_descriptor.default

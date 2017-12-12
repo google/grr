@@ -809,7 +809,13 @@ message StatEntry {
   optional uint32 st_blocks = 12;
   optional uint32 st_blksize = 13;
   optional uint32 st_rdev = 14;
-  optional uint32 st_flags_osx = 21;
+  optional uint32 st_flags_osx = 21 [
+    (sem_type) = {
+      type: "StatExtFlagsOsx",
+      description: "extended file attributes for Mac (set by `chflags`)",
+    },
+    default = 0
+  ];
   optional uint32 st_flags_linux = 22 [
     (sem_type) = {
       type: "StatExtFlagsLinux",

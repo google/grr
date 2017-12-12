@@ -805,6 +805,12 @@ class StatMode(rdfvalue.RDFInteger):
     return utils.SmartStr(self.__unicode__())
 
 
+class StatExtFlagsOsx(rdfvalue.RDFInteger):
+  """Extended file attributes for Mac (set by `chflags`)."""
+
+  data_store_type = "unsigned_integer_32"
+
+
 class StatExtFlagsLinux(rdfvalue.RDFInteger):
   """Extended file attributes as reported by `lsattr`."""
 
@@ -833,6 +839,7 @@ class StatEntry(structs.RDFProtoStruct):
       paths.PathSpec,
       rdfvalue.RDFDatetimeSeconds,
       StatMode,
+      StatExtFlagsOsx,
       StatExtFlagsLinux,
       ExtAttr,
   ]

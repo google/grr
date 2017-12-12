@@ -460,7 +460,7 @@ class OnlineNotification(flow.GRRFlow):
           hostname=hostname,
           url="/clients/%s" % self.client_id.Basename(),
           creator=self.token.username,
-          signature=utils.SmartUnicode(config.CONFIG["Email.signature"])),
+          signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
       email_alerts.EMAIL_ALERTER.SendEmail(
           self.args.email,

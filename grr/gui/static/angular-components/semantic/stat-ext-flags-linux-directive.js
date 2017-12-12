@@ -7,8 +7,8 @@ goog.scope(function() {
 
 // https://github.com/torvalds/linux/blob/master/include/linux/fs.h
 // https://github.com/mozilla-b2g/busybox/blob/master/e2fsprogs/old_e2fsprogs/e2p/pf.c
-let ORDER = 'suSDiadAcBZXEjItTehC';
-let FLAGS = {
+const ORDER = 'suSDiadAcBZXEjItTehC';
+const FLAGS = {
   'FS_SECRM_FL': {
     mask: 0x00000001,
     symbol: 's',

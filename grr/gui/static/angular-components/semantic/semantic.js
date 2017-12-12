@@ -40,6 +40,7 @@ goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
 goog.require('grrUi.semantic.statEntryDirective.StatEntryDirective');
 goog.require('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective');
+goog.require('grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective');
 goog.require('grrUi.semantic.statModeDirective.StatModeDirective');
 goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
 goog.require('grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective');
@@ -149,6 +150,10 @@ grrUi.semantic.module.directive(
         .directive_name,
     grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective);
 grrUi.semantic.module.directive(
+    grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective
+        .directive_name,
+    grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective);
+grrUi.semantic.module.directive(
     grrUi.semantic.statModeDirective.StatModeDirective.directive_name,
     grrUi.semantic.statModeDirective.StatModeDirective);
 grrUi.semantic.module.directive(
@@ -257,6 +262,10 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
       grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective
           .semantic_type,
       grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective);
+  registry.registerDirective(
+      grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective
+          .semantic_type,
+      grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective);
   registry.registerDirective(
     grrUi.semantic.statModeDirective.StatModeDirective.semantic_type,
     grrUi.semantic.statModeDirective.StatModeDirective);
