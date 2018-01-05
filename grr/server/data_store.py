@@ -56,11 +56,14 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import access_control
 from grr.server import blob_store
 from grr.server import stats_values
+from grr.server.databases import registry_init
 
 flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
 # A global data store handle
 DB = None
+# The global relational db handle.
+REL_DB = None
 
 # There are stub methods that don't return/yield as indicated by the docstring.
 # pylint: disable=g-doc-return-or-yield
@@ -1637,6 +1640,7 @@ class DataStoreInit(registry.InitHook):
   def Run(self):
     """Initialize the data_store."""
     global DB  # pylint: disable=global-statement
+    global REL_DB  # pylint: disable=global-statement
 
     if flags.FLAGS.list_storage:
       self._ListStorageOptions()
@@ -1663,6 +1667,18 @@ class DataStoreInit(registry.InitHook):
           docstring="Size of data store in bytes",
           units="BYTES")
       DB.InitializeMonitorThread()
+
+    # Initialize a relational DB if configured.
+    rel_db_name = config.CONFIG["Database.implementation"]
+    if not rel_db_name:
+      return
+
+    try:
+      cls = registry_init.REGISTRY[rel_db_name]
+      logging.info("Using database implementation %s", rel_db_name)
+      REL_DB = cls()
+    except KeyError:
+      raise ValueError("Database %s not found." % rel_db_name)
 
   def RunOnce(self):
     """Initialize some Varz."""

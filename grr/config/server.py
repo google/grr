@@ -287,3 +287,13 @@ config_lib.DEFINE_bool("Rekall.enabled", False,
                        "in the maintenance mode and may not work correctly or "
                        "may not be stable enough.")
 
+# Fleetspeak server-side integration flags.
+config_lib.DEFINE_string(
+    "Server.fleetspeak_message_listen_address", "",
+    "The Fleetspeak server message listen address, formatted like "
+    "localhost:6061.")
+
+config_lib.DEFINE_string(
+    "Server.fleetspeak_server", "",
+    "The Fleetspeak server address, formatted like localhost:6062.")
+

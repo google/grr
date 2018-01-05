@@ -35,6 +35,7 @@ from grr.lib import utils
 # Pull in local config validators.
 from grr.lib.local import plugins
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto
 
 # pylint: enable=g-import-not-at-top,unused-import
 
@@ -332,6 +333,11 @@ class ClientRepacker(BuilderBase):
     elif not key_data.startswith("-----BEGIN PUBLIC"):
       errors.append(
           "Invalid Client.executable_signing_public_key: %s" % key_data)
+    rsa_key = crypto.RSAPublicKey()
+    rsa_key.ParseFromString(key_data)
+    logging.info(
+        "Executable signing key successfully parsed from config (%d-bit)",
+        rsa_key.KeyLen())
 
     if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
       certificate = config_obj.GetRaw(

@@ -38,6 +38,12 @@ config_lib.DEFINE_string(
              "%(ClientBuilder.output_extension)"),
     help="The location of the generated installer in the config directory.")
 
+config_lib.DEFINE_bool(
+    "Client.build_service",
+    True,
+    help="Used to disable service installation in the client installer. If "
+    "False, GRR will not run automatically after installation and on boot.")
+
 config_lib.DEFINE_string(
     name="ClientBuilder.output_extension",
     default=None,
@@ -52,14 +58,24 @@ config_lib.DEFINE_string(
     help="Set this to a class name that sanity checks your client "
     "config at repacking time.")
 
+config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
+                       "Whether the client uses Fleetspeak to communicate "
+                       "with the server.")
+
 config_lib.DEFINE_string(
     "ClientBuilder.client_path",
     default="grr.client.client",
     help="Full module path for GRR client's main file.")
 
-config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
-                       "Whether the client uses Fleetspeak to communicate "
-                       "with the server.")
+config_lib.DEFINE_string(
+    "ClientBuilder.fleetspeak_service_dir", "/etc/fleetspeak/services",
+    "Directory where Fleetspeak expects service configs to be. Only applies "
+    "if ClientBuilder.fleetspeak_enabled is true.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.fleetspeak_plist_path", None,
+    "Path where the Fleetspeak client installs its plist file. Only applies "
+    "if ClientBuilder.fleetspeak_enabled is true.")
 
 
 class PathTypeInfo(type_info.String):
@@ -450,7 +466,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "ClientBuilder.install_dir",
-    default=None,
+    default="/usr/lib/%(Client.name)",
     help="Target installation directory for client builds.")
 
 config_lib.DEFINE_string(

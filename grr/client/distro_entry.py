@@ -26,6 +26,12 @@ def Client():
   flags.StartMain(client.main)
 
 
+def FleetspeakClient():
+  from grr.client import grr_fs_client
+  SetConfigOptions()
+  flags.StartMain(grr_fs_client.main)
+
+
 def PoolClient():
   from grr.client import poolclient
   SetConfigOptions()

@@ -88,36 +88,32 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
 
 
-class CollectArtifactDependenciesArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.CollectArtifactDependenciesArgs
-  rdf_deps = [
-      artifact_registry.ArtifactName,
-  ]
+class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
-class CollectArtifactDependencies(flow.GRRFlow):
-  """Collect knowledgebase dependencies for a list of artifacts.
+class KnowledgeBaseInitializationFlow(flow.GRRFlow):
+  """Flow that atttempts to initialize the knowledge base.
 
-  We determine what knowledgebase attributes are required to collect and parse
-  the given list of artifacts. They are then collected and stored in the
+  This flow processes all artifacts specified by the
+  Artifacts.knowledge_base config. We determine what knowledgebase
+  attributes are required, collect them, and return a filled
   knowledgebase.
 
-  We don't try to fulfill dependencies in the tree order, the reasoning is that
-  some artifacts may fail, and some artifacts provide the same dependency.
+  We don't try to fulfill dependencies in the tree order, the
+  reasoning is that some artifacts may fail, and some artifacts
+  provide the same dependency.
 
-  Instead we take an iterative approach and keep requesting artifacts until
-  all dependencies have been met.  If there is more than one artifact that
-  provides a dependency we will collect them all as they likely have
-  different performance characteristics, e.g. accuracy and client impact.
-
-  Note that running a full KnowledgeBaseInitializationFlow is the most complete
-  way to ensure all dependencies have been collected.  We collect explicit
-  dependencies here, but for example if a registry key value retrieved contains
-  an environment variable not already collected it may not get expanded.
+  Instead we take an iterative approach and keep requesting artifacts
+  until all dependencies have been met.  If there is more than one
+  artifact that provides a dependency we will collect them all as they
+  likely have different performance characteristics, e.g. accuracy and
+  client impact.
   """
+
   category = "/Collectors/"
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
-  args_type = CollectArtifactDependenciesArgs
+  args_type = KnowledgeBaseInitializationArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -149,52 +145,6 @@ class CollectArtifactDependencies(flow.GRRFlow):
           request_data={
               "artifact_name": artifact_name
           })
-
-  def GetFirstFlowsForCollection(self):
-    """Initialize dependencies and calculate first round of flows.
-
-    Returns:
-      set of artifact names with no dependencies that should be collected first.
-    """
-    artifact_set = set(self.args.artifact_list)
-
-    deps = artifact_registry.REGISTRY.SearchDependencies(
-        self.state.knowledge_base.os, artifact_set)
-    name_deps, self.state.all_deps = deps
-
-    # Find the any dependencies that don't have dependencies themselves as our
-    # starting point.
-    check_deps = name_deps.union(artifact_set)
-    no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
-        os_name=self.state.knowledge_base.os,
-        name_list=check_deps,
-        exclude_dependents=True)
-
-    # If the only artifacts with no dependencies are the ones we want to collect
-    # that means there is nothing to do.
-    if no_deps_names == artifact_set:
-      return []
-
-    # We're going to collect everything that doesn't have a dependency first.
-    # Anything else we're waiting on a dependency before we can collect.
-
-    # We exclude the original artifacts since we're just fulfilling
-    # dependencies, the original flow will collect the artifacts once the
-    # dependencies are ready.
-    self.state.awaiting_deps_artifacts = list(
-        name_deps - no_deps_names - artifact_set)
-    return no_deps_names
-
-  def InitializeKnowledgeBase(self):
-    """Get the existing KB or create a new one if none exists."""
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.state.knowledge_base = GetArtifactKnowledgeBase(
-        self.client, allow_uninitialized=True)
-
-    if not self.state.knowledge_base.os:
-      # If we don't know what OS this is, there is no way to proceed.
-      raise flow.FlowError("Client OS not set for: %s, cannot initialize"
-                           " KnowledgeBase" % self.client_id)
 
   def _ScheduleCollection(self):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
@@ -261,11 +211,12 @@ class CollectArtifactDependencies(flow.GRRFlow):
             self.state.all_deps.difference(self.state["fulfilled_deps"]))
 
         if self.args.require_complete:
-          raise flow.FlowError("KnowledgeBase initialization failed as the "
-                               "following artifacts had dependencies that could"
-                               " not be fulfilled %s. Missing: %s" %
-                               (self.state.awaiting_deps_artifacts,
-                                missing_deps))
+          raise flow.FlowError(
+              "KnowledgeBase initialization failed as the "
+              "following artifacts had dependencies that could"
+              " not be fulfilled %s. Missing: %s" %
+              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts],
+               missing_deps))
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts "
                    "had dependencies that could not be fulfilled %s. "
@@ -371,22 +322,6 @@ class CollectArtifactDependencies(flow.GRRFlow):
     self.CopyOSReleaseFromKnowledgeBase(client)
     client.Flush()
     self.SendReply(self.state.knowledge_base)
-
-
-class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.KnowledgeBaseInitializationArgs
-
-
-class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
-  """Flow that atttempts to initialize the knowledge base.
-
-  This flow processes all artifacts specified by the Artifacts.knowledge_base
-  config.  It it is a CollectArtifactDependencies flow with slightly different
-  setup.
-  """
-  category = "/Collectors/"
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
-  args_type = KnowledgeBaseInitializationArgs
 
   def GetFirstFlowsForCollection(self):
     """Initialize dependencies and calculate first round of flows.

@@ -11,6 +11,7 @@ from grr.lib import build_test
 from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test
+from grr.lib import fleetspeak_test
 from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
 from grr.lib import objectfilter_test

@@ -1,0 +1,99 @@
+syntax = "proto2";
+
+import "grr/proto/jobs.proto";
+import "grr/proto/knowledge_base.proto";
+import "grr/proto/semantic.proto";
+import "grr/proto/sysinfo.proto";
+
+
+
+message Client {
+  optional uint64 last_boot_time = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time of OS boot.",
+    }];
+  repeated Filesystem filesystems = 2 [(sem_type) = {
+      description: "Mounted Filesystems",
+    }];
+  optional ClientInformation client_info = 3 [(sem_type) = {
+      description: "GRR client information",
+    }];
+  optional string hostname = 4[(sem_type) = {
+      description: "Hostname of the host.",
+    }];
+  optional string fqdn = 5 [(sem_type) = {
+      description: "Fully qualitifed hostname of the host.",
+    }];
+  optional string system = 6 [(sem_type) = {
+      description: "Operating System class.",
+    }];
+  optional string os_release = 7 [(sem_type) = {
+      description: "OS Distribution or release.",
+    }];
+  optional string os_version = 8 [(sem_type) = {
+      type: "VersionString",
+      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+    }];
+  optional string arch = 9 [(sem_type) = {
+      description: "Architecture",
+    }];
+  optional uint64 install_time = 10 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When system was installed.",
+    }]; // Called install_date in some legacy code.
+  optional KnowledgeBase knowledge_base = 11 [(sem_type) = {
+      description: "Artifact Knowledge Base",
+    }];
+  optional Dict grr_configuration = 12 [(sem_type) = {
+      description: "Running configuration for the GRR client.",
+    }];
+  optional Dict library_versions = 13 [(sem_type) = {
+      description: "Running library versions for the client.",
+    }];
+  optional string kernel = 14 [(sem_type) = {
+      description: "Kernel version string.",
+    }];
+  repeated Volume volumes = 15 [(sem_type) = {
+      description: "Client disk volumes.",
+    }];
+  repeated Interface interfaces = 16 [(sem_type) = {
+      description: "Network interfaces.",
+    }];
+  optional HardwareInfo hardware_info = 17 [(sem_type) = {
+      description: "Various hardware information.",
+    }];
+  optional uint64 memory_size = 18 [(sem_type) = {
+      type: "ByteSize",
+      description: "Amount of memory this client's machine has.",
+    }];
+  optional CloudInstance cloud_instance = 19 [(sem_type) = {
+      description: "Information about cloud machines.",
+    }];
+}
+
+
+message ClientMetadata {
+  optional ClientCrash last_crash = 1;
+  optional bytes certificate = 2 [(sem_type) = {
+      type: "RDFX509Cert",
+    }];
+  optional bool fleetspeak_enabled = 3;
+  optional uint64 ping = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last time the server heard from this client.",
+    }];
+  optional uint64 clock = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last clock read on the client. "
+                   "(Can be used to estimate client clock skew).",
+    }];
+  optional NetworkAddress ip = 6;
+  optional uint64 last_foreman_time = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last time the foreman checked us.",
+    }];
+  optional uint64 first_seen = 8 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "First time the client registered with us",
+    }];
+}

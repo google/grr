@@ -1,0 +1,33 @@
+556b2c272000-556b2c27a000 r-xp 00000000 fe:04 2097951                    /bin/cat
+556b2c479000-556b2c47a000 r--p 00007000 fe:04 2097951                    /bin/cat
+556b2c47a000-556b2c47b000 rw-p 00008000 fe:04 2097951                    /bin/cat
+556b2e349000-556b2e36a000 rw-p 00000000 00:00 0                          [heap]
+7fe3d5c93000-7fe3d5e28000 r-xp 00000000 fe:04 918816                     /lib/x86_64-linux-gnu/libc-2.24.so
+7fe3d5e28000-7fe3d6028000 ---p 00195000 fe:04 918816                     /lib/x86_64-linux-gnu/libc-2.24.so
+7fe3d6028000-7fe3d602c000 r--p 00195000 fe:04 918816                     /lib/x86_64-linux-gnu/libc-2.24.so
+7fe3d602c000-7fe3d602e000 rw-p 00199000 fe:04 918816                     /lib/x86_64-linux-gnu/libc-2.24.so
+7fe3d602e000-7fe3d6032000 rw-p 00000000 00:00 0 
+7fe3d6032000-7fe3d6055000 r-xp 00000000 fe:04 918472                     /lib/x86_64-linux-gnu/ld-2.24.so
+7fe3d6085000-7fe3d60a7000 rw-p 00000000 00:00 0 
+7fe3d60a7000-7fe3d60f8000 r--p 00000000 fe:04 1318009                    /usr/lib/locale/aa_DJ.utf8/LC_CTYPE
+7fe3d60f8000-7fe3d6228000 r--p 00000000 fe:04 1318008                    /usr/lib/locale/aa_DJ.utf8/LC_COLLATE
+7fe3d6228000-7fe3d622a000 rw-p 00000000 00:00 0 
+7fe3d6241000-7fe3d6242000 r--p 00000000 fe:04 1322466                    /usr/lib/locale/aa_ET/LC_NUMERIC
+7fe3d6242000-7fe3d6243000 r--p 00000000 fe:04 1348772                    /usr/lib/locale/en_US.utf8/LC_TIME
+7fe3d6243000-7fe3d6244000 r--p 00000000 fe:04 1348401                    /usr/lib/locale/chr_US/LC_MONETARY
+7fe3d6244000-7fe3d6245000 r--p 00000000 fe:04 1348617                    /usr/lib/locale/en_AG/LC_MESSAGES/SYS_LC_MESSAGES
+7fe3d6245000-7fe3d6246000 r--p 00000000 fe:04 1348403                    /usr/lib/locale/chr_US/LC_PAPER
+7fe3d6246000-7fe3d6247000 r--p 00000000 fe:04 1348402                    /usr/lib/locale/chr_US/LC_NAME
+7fe3d6247000-7fe3d6248000 r--p 00000000 fe:04 1348770                    /usr/lib/locale/en_US.utf8/LC_ADDRESS
+7fe3d6248000-7fe3d6249000 r--p 00000000 fe:04 1348404                    /usr/lib/locale/chr_US/LC_TELEPHONE
+7fe3d6249000-7fe3d624a000 r--p 00000000 fe:04 1348399                    /usr/lib/locale/chr_US/LC_MEASUREMENT
+7fe3d624a000-7fe3d6251000 r--s 00000000 fe:04 1720237                    /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+7fe3d6251000-7fe3d6252000 r--p 00000000 fe:04 1348771                    /usr/lib/locale/en_US.utf8/LC_IDENTIFICATION
+7fe3d6252000-7fe3d6255000 rw-p 00000000 00:00 0 
+7fe3d6255000-7fe3d6256000 r--p 00023000 fe:04 918472                     /lib/x86_64-linux-gnu/ld-2.24.so
+7fe3d6256000-7fe3d6257000 rw-p 00024000 fe:04 918472                     /lib/x86_64-linux-gnu/ld-2.24.so
+7fe3d6257000-7fe3d6258000 rw-p 00000000 00:00 0 
+7ffec5ae8000-7ffec5b09000 rw-p 00000000 00:00 0                          [stack]
+7ffec5b9c000-7ffec5b9e000 r--p 00000000 00:00 0                          [vvar]
+7ffec5b9e000-7ffec5ba0000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]

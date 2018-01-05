@@ -13,6 +13,9 @@ config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
 config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobstore",
                          "Blob storage subsystem to use.")
 
+config_lib.DEFINE_string("Database.implementation", "",
+                         "Relational database system to use.")
+
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",

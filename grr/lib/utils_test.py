@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
+import datetime
 import os
+import platform
+import socket
 import StringIO
+import subprocess
 import tarfile
 import threading
+import unittest
 import zipfile
 
 
+import unittest
 from grr.lib import flags
 from grr.lib import utils
 from grr.test_lib import test_lib
@@ -506,6 +512,158 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
       link_path = os.path.join(self.temp_dir, "test2.txt.link")
       self.assertTrue(os.path.islink(link_path))
       self.assertEqual(os.readlink(link_path), "subdir/test2.txt")
+
+
+class StatTest(unittest.TestCase):
+
+  def testGetSize(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      with open(temp_filepath, "wb") as fd:
+        fd.write("foobarbaz")
+
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertEqual(stat.GetSize(), 9)
+
+  @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
+  def testGetTime(self):
+    adate = datetime.datetime(2017, 10, 2, 8, 45)
+    mdate = datetime.datetime(2001, 5, 3, 10, 30)
+
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      self._Touch(temp_filepath, "-a", adate)
+      self._Touch(temp_filepath, "-m", mdate)
+
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertEqual(stat.GetAccessTime(), self._EpochMillis(adate))
+      self.assertEqual(stat.GetModificationTime(), self._EpochMillis(mdate))
+
+  def testDirectory(self):
+    with test_lib.AutoTempDirPath() as temp_dirpath:
+      stat = utils.Stat(temp_dirpath, follow_symlink=False)
+      self.assertTrue(stat.IsDirectory())
+      self.assertFalse(stat.IsRegular())
+      self.assertFalse(stat.IsSocket())
+      self.assertFalse(stat.IsSymlink())
+
+  def testRegular(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertFalse(stat.IsDirectory())
+      self.assertTrue(stat.IsRegular())
+      self.assertFalse(stat.IsSocket())
+      self.assertFalse(stat.IsSymlink())
+
+  @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
+  def testSocket(self):
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      temp_socketpath = os.path.join(temp_dirpath, "foo")
+
+      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      try:
+        sock.bind(temp_socketpath)
+
+        stat = utils.Stat(temp_socketpath, follow_symlink=False)
+        self.assertFalse(stat.IsDirectory())
+        self.assertFalse(stat.IsRegular())
+        self.assertTrue(stat.IsSocket())
+        self.assertFalse(stat.IsSymlink())
+      finally:
+        sock.close()
+
+  @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
+  def testSymlink(self):
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
+         test_lib.AutoTempFilePath() as temp_filepath:
+      with open(temp_filepath, "wb") as fd:
+        fd.write("foobar")
+
+      temp_linkpath = os.path.join(temp_dirpath, "foo")
+      os.symlink(temp_filepath, temp_linkpath)
+
+      stat = utils.Stat(temp_linkpath, follow_symlink=False)
+      self.assertFalse(stat.IsDirectory())
+      self.assertFalse(stat.IsRegular())
+      self.assertFalse(stat.IsSocket())
+      self.assertTrue(stat.IsSymlink())
+
+      stat = utils.Stat(temp_linkpath, follow_symlink=True)
+      self.assertFalse(stat.IsDirectory())
+      self.assertTrue(stat.IsRegular())
+      self.assertFalse(stat.IsSocket())
+      self.assertFalse(stat.IsSymlink())
+      self.assertEqual(stat.GetSize(), 6)
+
+  # http://elixir.free-electrons.com/linux/v4.9/source/include/uapi/linux/fs.h
+  FS_COMPR_FL = 0x00000004
+  FS_IMMUTABLE_FL = 0x00000010
+  FS_NODUMP_FL = 0x00000040
+
+  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
+  def testGetLinuxFlags(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      if subprocess.call(["which", "chattr"]) != 0:
+        raise unittest.SkipTest("`chattr` command is not available")
+      if subprocess.call(["chattr", "+c", "+d", temp_filepath]):
+        reason = "extended attributes not supported by filesystem"
+        raise unittest.SkipTest(reason)
+
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertTrue(stat.IsRegular())
+      self.assertTrue(stat.GetLinuxFlags() & self.FS_COMPR_FL)
+      self.assertTrue(stat.GetLinuxFlags() & self.FS_NODUMP_FL)
+      self.assertFalse(stat.GetLinuxFlags() & self.FS_IMMUTABLE_FL)
+      self.assertEqual(stat.GetOsxFlags(), 0)
+
+  # https://github.com/apple/darwin-xnu/blob/master/bsd/sys/stat.h
+  UF_NODUMP = 0x00000001
+  UF_IMMUTABLE = 0x00000002
+  UF_HIDDEN = 0x00008000
+
+  @unittest.skipIf(platform.system() != "Darwin", "requires macOS")
+  def testGetOsxFlags(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      subprocess.check_call(["chflags", "nodump hidden", temp_filepath])
+
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertTrue(stat.IsRegular())
+      self.assertTrue(stat.GetOsxFlags() & self.UF_NODUMP)
+      self.assertTrue(stat.GetOsxFlags() & self.UF_HIDDEN)
+      self.assertFalse(stat.GetOsxFlags() & self.UF_IMMUTABLE)
+      self.assertEqual(stat.GetLinuxFlags(), 0)
+
+  def testGetFlagsSymlink(self):
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath,\
+         test_lib.AutoTempFilePath() as temp_filepath:
+      temp_linkpath = os.path.join(temp_dirpath, "foo")
+      os.symlink(temp_filepath, temp_linkpath)
+
+      stat = utils.Stat(temp_linkpath, follow_symlink=False)
+      self.assertTrue(stat.IsSymlink())
+      self.assertEqual(stat.GetLinuxFlags(), 0)
+      self.assertEqual(stat.GetOsxFlags(), 0)
+
+  def testGetFlagsSocket(self):
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      temp_socketpath = os.path.join(temp_dirpath, "foo")
+
+      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      try:
+        sock.bind(temp_socketpath)
+
+        stat = utils.Stat(temp_socketpath, follow_symlink=False)
+        self.assertTrue(stat.IsSocket())
+        self.assertEqual(stat.GetLinuxFlags(), 0)
+        self.assertEqual(stat.GetOsxFlags(), 0)
+      finally:
+        sock.close()
+
+  def _Touch(self, path, mode, date):
+    fmt_date = date.strftime("%Y%m%d%H%M")
+    subprocess.check_call(["touch", mode, "-t", fmt_date, path])
+
+  @staticmethod
+  def _EpochMillis(date):
+    return int(date.strftime("%s"))
 
 
 def main(argv):

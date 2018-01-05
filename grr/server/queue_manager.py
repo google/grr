@@ -6,6 +6,7 @@ import logging
 import random
 
 from grr import config
+from grr.lib import fleetspeak_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -402,6 +403,12 @@ class QueueManager(object):
       if not queue:
         continue
 
+      client_id = _GetClientIdFromQueue(queue)
+      if fleetspeak_utils.IsFleetspeakEnabledClient(
+          client_id, token=self.token):
+        for task in queued_tasks:
+          fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, task)
+        continue
       non_fleetspeak_tasks.extend(queued_tasks)
     timestamp = timestamp or self.frozen_timestamp
     mutation_pool.QueueScheduleTasks(non_fleetspeak_tasks, timestamp)

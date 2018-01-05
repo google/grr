@@ -190,30 +190,6 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     self.assertItemsEqual(WMIActionMock.base_objects,
                           [artifact_obj.sources[0].attributes["base_object"]])
 
-  def testRetrieveDependencies(self):
-    """Test getting an artifact without a KB using retrieve_depdendencies."""
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
-        client_mock = action_mocks.ActionMock(standard.StatFile)
-
-        artifact_list = ["WindowsEnvironmentVariableWinDir"]
-        for s in flow_test_lib.TestFlowHelper(
-            collectors.ArtifactCollectorFlow.__name__,
-            client_mock,
-            artifact_list=artifact_list,
-            token=self.token,
-            client_id=self.client_id,
-            dependencies=(
-                artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW)):
-          session_id = s
-
-        output = flow.GRRFlow.ResultCollectionForFID(session_id)
-        self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], r"C:\Windows")
-
 
 def main(argv):
   # Run the full test suite

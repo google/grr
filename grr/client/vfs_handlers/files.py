@@ -63,11 +63,11 @@ class FileHandleManager(object):
     self.fd.lock.release()
 
 
-def MakeStatResponse(st, pathspec, ext_attrs=False):
+def MakeStatResponse(stat, pathspec, ext_attrs=False):
   """Creates a StatEntry."""
   response = client.StatEntry(pathspec=pathspec)
 
-  if st is None:
+  if stat is None:
     # Special case empty stat if we don't have a real value, e.g. we get Access
     # denied when stating a file. We still want to give back a value so we let
     # the defaults from the proto pass through.
@@ -78,7 +78,7 @@ def MakeStatResponse(st, pathspec, ext_attrs=False):
       "st_atime", "st_mtime", "st_ctime", "st_blocks", "st_blksize", "st_rdev"
   ]:
     try:
-      value = getattr(st, attr)
+      value = getattr(stat.GetRaw(), attr)
       if value is None:
         continue
       value = long(value)
@@ -89,7 +89,8 @@ def MakeStatResponse(st, pathspec, ext_attrs=False):
     except AttributeError:
       pass
 
-  client_utils.AddStatEntryExtFlags(response, st)
+  response.st_flags_linux = stat.GetLinuxFlags()
+  response.st_flags_osx = stat.GetOsxFlags()
   if ext_attrs:
     client_utils.AddStatEntryExtAttrs(response)
 
@@ -230,19 +231,15 @@ class File(vfs.VFSHandler):
       raise RuntimeError("Relative paths aren't supported.")
     return len(re.findall(r"%s+[^%s]+" % (os.path.sep, os.path.sep), path))
 
-  def _GetRawStat(self, local_path):
+  def _GetStat(self, local_path):
     try:
-      return os.stat(local_path)
+      return utils.Stat(local_path)
     except IOError as e:
       logging.info("Failed to Stat %s. Err: %s", local_path, e)
       return None
 
   def _GetDevice(self, path):
-    try:
-      return self._GetRawStat(path).st_dev
-    except KeyError as e:  # Failed to stat
-      logging.info("Failed to get device %s. Err: %s", path, e)
-      return None
+    return self._GetStat(path).GetDevice()
 
   def RecursiveListNames(self, depth=0, cross_devs=False):
     path = client_utils.CanonicalPathToLocalPath(self.path)
@@ -305,8 +302,8 @@ class File(vfs.VFSHandler):
     """
     # Note that the encoding of local path is system specific
     local_path = client_utils.CanonicalPathToLocalPath(path or self.path)
-    st = self._GetRawStat(local_path)
-    result = MakeStatResponse(st, self.pathspec)
+    stat = self._GetStat(local_path)
+    result = MakeStatResponse(stat, self.pathspec)
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:

@@ -10,6 +10,7 @@ import zipfile
 from grr import config
 from grr.lib import build
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import utils
 
 
@@ -33,10 +34,11 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.MakeZip(output_file, self.template_file)
 
   def SetBuildVars(self):
+    self.fleetspeak_enabled = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_enabled", context=self.context)
     self.version = config.CONFIG.Get(
         "Source.version_string", context=self.context)
     self.client_name = config.CONFIG.Get("Client.name", context=self.context)
-
     self.pkg_org = config.CONFIG.Get(
         "ClientBuilder.package_maker_organization", context=self.context)
     self.pkg_name = "%s-%s.pkg" % (self.client_name, self.version)
@@ -49,9 +51,20 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.template_binary_dir = os.path.join(
         config.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
+    self.fleetspeak_service_dir = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_service_dir", context=self.context)
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
-    self.target_binary_dir = os.path.join(
-        self.pkg_root, "usr/local/lib/", self.client_name, self.output_basename)
+    if self.fleetspeak_enabled:
+      self.target_binary_dir = os.path.join(self.pkg_root,
+                                            config.CONFIG.Get(
+                                                "ClientBuilder.install_dir",
+                                                context=self.context)[1:])
+    else:
+      self.target_binary_dir = os.path.join(self.pkg_root, "usr/local/lib/",
+                                            self.client_name,
+                                            self.output_basename)
+    self.pkg_fleetspeak_service_dir = os.path.join(
+        self.pkg_root, self.fleetspeak_service_dir[1:])
     self.pkgbuild_out_dir = os.path.join(self.build_root, "pkgbuild-out")
     self.pkgbuild_out_binary = os.path.join(self.pkgbuild_out_dir,
                                             self.pkg_name)
@@ -89,7 +102,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.CleanDirectory(self.script_dir)
 
   def InterpolateFiles(self):
-    if config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+    if self.fleetspeak_enabled:
+      shutil.copy(flags.FLAGS.fleetspeak_service_config,
+                  self.pkg_fleetspeak_service_dir)
       build_files_dir = config_lib.Resource().Filter(
           "install_data/macosx/client/fleetspeak")
     else:
@@ -131,19 +146,30 @@ class DarwinClientBuilder(build.ClientBuilder):
       return
 
     print "Signing binaries with keychain: %s" % keychain_file
-    subprocess.check_call([
-        "codesign", "--verbose", "--deep", "--force", "--sign", cert_name,
-        "--keychain", keychain_file,
-        os.path.join(self.target_binary_dir,
-                     config.CONFIG.Get(
-                         "Client.binary_name", context=self.context))
-    ])
+
+    with utils.TempDirectory() as temp_dir:
+      # codesign needs the directory name to adhere to a particular
+      # naming format.
+      bundle_dir = os.path.join(temp_dir, "%s_%s" % (self.client_name,
+                                                     self.version))
+      shutil.move(self.target_binary_dir, bundle_dir)
+      temp_binary_path = os.path.join(bundle_dir,
+                                      config.CONFIG.Get(
+                                          "Client.binary_name",
+                                          context=self.context))
+      subprocess.check_call([
+          "codesign", "--verbose", "--deep", "--force", "--sign", cert_name,
+          "--keychain", keychain_file, temp_binary_path
+      ])
+      shutil.move(bundle_dir, self.target_binary_dir)
 
   def CreateInstallDirs(self):
     utils.EnsureDirExists(self.build_dir)
     utils.EnsureDirExists(self.script_dir)
     utils.EnsureDirExists(self.pkg_root)
-    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+    if self.fleetspeak_enabled:
+      utils.EnsureDirExists(self.pkg_fleetspeak_service_dir)
+    else:
       utils.EnsureDirExists(
           os.path.join(self.pkg_root, "Library/LaunchDaemons"))
     utils.EnsureDirExists(os.path.join(self.pkg_root, "usr/local/lib/"))

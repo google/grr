@@ -13,3 +13,4 @@ from grr.server.end_to_end_tests.tests import network
 from grr.server.end_to_end_tests.tests import processes
 from grr.server.end_to_end_tests.tests import registry
 from grr.server.end_to_end_tests.tests import transfer
+from grr.server.end_to_end_tests.tests import yara

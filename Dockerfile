@@ -66,7 +66,9 @@ EXPOSE 8000
 # Port for clients to talk to
 EXPOSE 8080
 
-# Server config, logs, sqlite db
-VOLUME ["/etc/grr", "/var/log", "/var/grr-datastore"]
+# Directories used by GRR at runtime, which can be mounted from the host's
+# filesystem. Note that volumes can be mounted even if they do not appear in
+# this list.
+VOLUME ["/usr/share/grr-server/install_data/etc", "/usr/share/grr-server/lib/python2.7/site-packages/grr/var/grr-datastore"]
 
 CMD ["grr"]

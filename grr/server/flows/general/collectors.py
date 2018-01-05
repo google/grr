@@ -84,14 +84,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     if (self.args.dependencies ==
         artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
-      # Don't retrieve a full knowledgebase, just get the dependencies we
-      # need.  CollectArtifactDependencies calls back to this flow to retrieve
-      # the necessary dependencies.  We avoid a loop because
-      # dependencies defaults to USE_CACHED set and a knowledgebase is
-      # provided.
       self.CallFlow(
-          artifact.CollectArtifactDependencies.__name__,
-          artifact_list=self.args.artifact_list,
+          artifact.KnowledgeBaseInitializationFlow.__name__,
           next_state="StartCollection")
       return
 

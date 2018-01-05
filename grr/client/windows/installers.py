@@ -162,4 +162,5 @@ class WindowsInstaller(installer.Installer):
     logging.debug("%s", output)
 
   def Run(self):
-    self.InstallNanny()
+    if config.CONFIG["Client.build_service"]:
+      self.InstallNanny()

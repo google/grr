@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 """The file finder client action."""
 
+import abc
 import collections
 import errno
 import fnmatch
-import functools
 import itertools
 import logging
 import os
 import platform
 import re
-import stat
 
 import psutil
 
 from grr.client import actions
 from grr.client import client_utils
 from grr.client import client_utils_common
+from grr.client import streaming
 from grr.client.vfs_handlers import files
 
 from grr.lib import utils
@@ -64,20 +64,25 @@ class RecursiveComponent(Component):
       new_components = relative_components + [f]
       relative_name = os.path.join(*new_components)
       yield relative_name
-      if len(new_components) < self.depth:
-        try:
-          filename = os.path.join(base_path, relative_name)
-          stat_entry = os.stat(filename)
-          if stat.S_ISDIR(stat_entry.st_mode):
-            if filename in self.mountpoints_blacklist:
-              continue
-            if (self.follow_links or
-                not stat.S_ISLNK(os.lstat(filename).st_mode)):
-              for res in self._Generate(base_path, new_components):
-                yield res
-        except OSError as e:
-          if e.errno not in [errno.ENOENT, errno.ENOTDIR, errno.EINVAL]:
-            logging.info(e)
+
+      if len(new_components) >= self.depth:
+        continue
+
+      filename = os.path.join(base_path, relative_name)
+      try:
+        stat = utils.Stat(filename)
+        if not stat.IsDirectory():
+          continue
+        if filename in self.mountpoints_blacklist:
+          continue
+        if (not self.follow_links and
+            utils.Stat(filename, follow_symlink=False).IsSymlink()):
+          continue
+        for res in self._Generate(base_path, new_components):
+          yield res
+      except OSError as e:
+        if e.errno not in [errno.ENOENT, errno.ENOTDIR, errno.EINVAL]:
+          logging.info(e)
 
   def __str__(self):
     return "%s:%s" % (self.__class__, self.depth)
@@ -171,60 +176,66 @@ class FileFinderOS(actions.ActionPlugin):
 
     for fname in self.CollectGlobs(args.paths):
       self.Progress()
+      self._ProcessFilePath(fname, args)
 
-      try:
-        stat_object = os.lstat(fname)
-      except OSError:
-        continue
+  def _ProcessFilePath(self, path, args):
+    try:
+      stat = utils.Stat(path, follow_symlink=False)
+    except OSError:
+      return
 
-      if (not self.process_non_regular_files and
-          not stat.S_ISDIR(stat_object.st_mode) and
-          not stat.S_ISREG(stat_object.st_mode)):
-        continue
+    if (not (stat.IsRegular() or stat.IsDirectory()) and
+        not self.process_non_regular_files):
+      return
 
-      matches = []
+    for metadata_condition in MetadataCondition.Parse(args.conditions):
+      if not metadata_condition.Check(stat):
+        return
 
-      # `all` lazily evaluates the generator expresion until first failure.
-      conditions = self.ParseConditions(args)
-      if not all(cond(fname, stat_object, matches) for cond in conditions):
-        continue
+    matches = []
+    for content_condition in ContentCondition.Parse(args.conditions):
+      result = list(content_condition.Search(path))
+      if not result:
+        return
 
-      result = self._ProcessFile(fname, stat_object, args)
-      if result:
-        result.matches = matches
-        self.SendReply(result)
+      matches.extend(result)
 
-  def _ProcessFile(self, fname, stat_object, args):
+    result = self._ProcessFile(path, stat, args)
+    if result:
+      result.matches = matches
+      self.SendReply(result)
+
+  def _ProcessFile(self, fname, stat, args):
     if args.action.action_type == args.action.Action.STAT:
-      return self._ExecuteStat(fname, stat_object, args)
+      return self._ExecuteStat(fname, stat, args)
 
     # For directories, only Stat makes sense.
-    if stat.S_ISDIR(stat_object.st_mode):
+    if stat.IsDirectory():
       return None
 
     # We never want to hash/download the link, always the target.
-    if stat.S_ISLNK(stat_object.st_mode):
+    if stat.IsSymlink():
       try:
-        stat_object = os.stat(fname)
+        stat = utils.Stat(fname, follow_symlink=True)
       except OSError:
         return None
 
     if args.action.action_type == args.action.Action.DOWNLOAD:
-      return self._ExecuteDownload(fname, stat_object, args)
+      return self._ExecuteDownload(fname, stat, args)
 
     if args.action.action_type == args.action.Action.HASH:
-      return self._ExecuteHash(fname, stat_object, args)
+      return self._ExecuteHash(fname, stat, args)
 
     raise ValueError("incorrect action type: %s" % args.action.action_type)
 
-  def _ExecuteStat(self, fname, stat_object, args):
-    stat_entry = self.Stat(fname, stat_object, args.action.stat)
+  def _ExecuteStat(self, fname, stat, args):
+    stat_entry = self.Stat(fname, stat, args.action.stat)
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
-  def _ExecuteDownload(self, fname, stat_object, args):
+  def _ExecuteDownload(self, fname, stat, args):
     args.action.download.resolve_links = True
-    stat_entry = self.Stat(fname, stat_object, args.action.download.stat)
-    uploaded_file = self.Upload(fname, stat_object, args.action.download,
+    stat_entry = self.Stat(fname, stat, args.action.download.stat)
+    uploaded_file = self.Upload(fname, stat, args.action.download,
                                 args.upload_token)
     if uploaded_file:
       uploaded_file.stat_entry = stat_entry
@@ -232,17 +243,17 @@ class FileFinderOS(actions.ActionPlugin):
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, uploaded_file=uploaded_file)
 
-  def _ExecuteHash(self, fname, stat_object, args):
+  def _ExecuteHash(self, fname, stat, args):
     args.action.hash.stat.resolve_links = True
-    stat_entry = self.Stat(fname, stat_object, args.action.hash.stat)
-    hash_entry = self.Hash(fname, stat_object, args.action.hash)
+    stat_entry = self.Stat(fname, stat, args.action.hash.stat)
+    hash_entry = self.Hash(fname, stat, args.action.hash)
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
 
-  def Stat(self, fname, stat_object, opts):
-    if opts.resolve_links and stat.S_ISLNK(stat_object.st_mode):
+  def Stat(self, fname, stat, opts):
+    if opts.resolve_links and stat.IsSymlink():
       try:
-        stat_object = os.stat(fname)
+        stat = utils.Stat(fname, follow_symlink=True)
       except OSError:
         return None
 
@@ -251,10 +262,10 @@ class FileFinderOS(actions.ActionPlugin):
         path=client_utils.LocalPathToCanonicalPath(fname),
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
     return files.MakeStatResponse(
-        stat_object, pathspec=pathspec, ext_attrs=opts.ext_attrs)
+        stat, pathspec=pathspec, ext_attrs=opts.ext_attrs)
 
-  def Hash(self, fname, stat_object, opts):
-    file_size = stat_object.st_size
+  def Hash(self, fname, stat, opts):
+    file_size = stat.GetSize()
     if file_size <= opts.max_size:
       max_hash_size = file_size
     else:
@@ -271,9 +282,9 @@ class FileFinderOS(actions.ActionPlugin):
       return None
     return hasher.GetHashObject()
 
-  def Upload(self, fname, stat_object, opts, token):
+  def Upload(self, fname, stat, opts, token):
     max_bytes = None
-    if stat_object.st_size > opts.max_size:
+    if stat.GetSize() > opts.max_size:
       policy = opts.oversized_file_policy
       policy_enum = opts.OversizedFilePolicy
       if policy == policy_enum.DOWNLOAD_TRUNCATED:
@@ -452,172 +463,285 @@ class FileFinderOS(actions.ActionPlugin):
 
     return components
 
-  @staticmethod
-  def ModificationTimeCondition(condition_obj, path, stat_obj, matches):
-    del matches  # Unused.
 
-    params = condition_obj.modification_time
-    min_mtime = params.min_last_modified_time.AsSecondsFromEpoch()
-    max_mtime = params.max_last_modified_time.AsSecondsFromEpoch()
-    return min_mtime <= stat_obj.st_mtime <= max_mtime
+class MetadataCondition(object):
+  """An abstract class representing conditions on the file metadata."""
 
-  @staticmethod
-  def AccessTimeCondition(condition_obj, path, stat_obj, matches):
-    del matches  # Unused.
+  __metaclass__ = abc.ABCMeta
 
-    params = condition_obj.access_time
-    min_atime = params.min_last_access_time.AsSecondsFromEpoch()
-    max_atime = params.max_last_access_time.AsSecondsFromEpoch()
-    return min_atime <= stat_obj.st_atime <= max_atime
+  @abc.abstractmethod
+  def Check(self, stat):
+    """Checks whether condition is met.
 
-  @staticmethod
-  def InodeChangeTimeCondition(condition_obj, path, stat_obj, matches):
-    del matches  # Unused.
+    Args:
+      stat: An `utils.Stat` object.
 
-    params = condition_obj.inode_change_time
-    min_ctime = params.min_last_inode_change_time.AsSecondsFromEpoch()
-    max_ctime = params.max_last_inode_change_time.AsSecondsFromEpoch()
-    return min_ctime <= stat_obj.st_ctime <= max_ctime
+    Returns:
+      True if the condition is met.
+    """
+    pass
 
   @staticmethod
-  def SizeCondition(condition_obj, path, stat_obj, matches):
-    del matches  # Unused.
+  def Parse(conditions):
+    """Parses the file finder condition types into the condition objects.
 
-    params = condition_obj.size
-    return params.min_file_size <= stat_obj.st_size <= params.max_file_size
+    Args:
+      conditions: An iterator over `FileFinderCondition` objects.
+
+    Yields:
+      `MetadataCondition` objects that correspond to the file-finder conditions.
+    """
+    kind = rdf_file_finder.FileFinderCondition.Type
+    classes = {
+        kind.MODIFICATION_TIME: ModificationTimeCondition,
+        kind.ACCESS_TIME: AccessTimeCondition,
+        kind.INODE_CHANGE_TIME: InodeChangeTimeCondition,
+        kind.SIZE: SizeCondition,
+        kind.EXT_FLAGS: ExtFlagsCondition,
+    }
+
+    for condition in conditions:
+      try:
+        yield classes[condition.condition_type](condition)
+      except KeyError:
+        pass
+
+
+class ModificationTimeCondition(MetadataCondition):
+  """A condition checking modification time of a file."""
+
+  def __init__(self, params):
+    super(ModificationTimeCondition, self).__init__()
+    self.params = params.modification_time
+
+  def Check(self, stat):
+    min_mtime = self.params.min_last_modified_time.AsSecondsFromEpoch()
+    max_mtime = self.params.max_last_modified_time.AsSecondsFromEpoch()
+    return min_mtime <= stat.GetModificationTime() <= max_mtime
+
+
+class AccessTimeCondition(MetadataCondition):
+  """A condition checking access time of a file."""
+
+  def __init__(self, params):
+    super(AccessTimeCondition, self).__init__()
+    self.params = params.access_time
+
+  def Check(self, stat):
+    min_atime = self.params.min_last_access_time.AsSecondsFromEpoch()
+    max_atime = self.params.max_last_access_time.AsSecondsFromEpoch()
+    return min_atime <= stat.GetAccessTime() <= max_atime
+
+
+class InodeChangeTimeCondition(MetadataCondition):
+  """A condition checking change time of inode of a file."""
+
+  def __init__(self, params):
+    super(InodeChangeTimeCondition, self).__init__()
+    self.params = params.inode_change_time
+
+  def Check(self, stat):
+    min_ctime = self.params.min_last_inode_change_time.AsSecondsFromEpoch()
+    max_ctime = self.params.max_last_inode_change_time.AsSecondsFromEpoch()
+    return min_ctime <= stat.GetChangeTime() <= max_ctime
+
+
+class SizeCondition(MetadataCondition):
+  """A condition checking size of a file."""
+
+  def __init__(self, params):
+    super(SizeCondition, self).__init__()
+    self.params = params.size
+
+  def Check(self, stat):
+    min_fsize = self.params.min_file_size
+    max_fsize = self.params.max_file_size
+    return min_fsize <= stat.GetSize() <= max_fsize
+
+
+class ExtFlagsCondition(MetadataCondition):
+  """A condition checking extended flags of a file.
+
+  Args:
+    params: A `FileFinderCondition` instance.
+  """
+
+  def __init__(self, params):
+    super(ExtFlagsCondition, self).__init__()
+    self.params = params.ext_flags
+
+  def Check(self, stat):
+    return self.CheckOsx(stat) and self.CheckLinux(stat)
+
+  def CheckLinux(self, stat):
+    flags = stat.GetLinuxFlags()
+    bits_set = self.params.linux_bits_set
+    bits_unset = self.params.linux_bits_unset
+    return (bits_set & flags) == bits_set and (bits_unset & flags) == 0
+
+  def CheckOsx(self, stat):
+    flags = stat.GetOsxFlags()
+    bits_set = self.params.osx_bits_set
+    bits_unset = self.params.osx_bits_unset
+    return (bits_set & flags) == bits_set and (bits_unset & flags) == 0
+
+
+class ContentCondition(object):
+  """An abstract class representing conditions on the file contents."""
+
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractmethod
+  def Search(self, path):
+    """Searches specified file for particular content.
+
+    Args:
+      path: A path to the file that is going to be searched.
+
+    Yields:
+      `BufferReference` objects pointing to file parts with matching content.
+    """
+    pass
+
+  @staticmethod
+  def Parse(conditions):
+    """Parses the file finder condition types into the condition objects.
+
+    Args:
+      conditions: An iterator over `FileFinderCondition` objects.
+
+    Yields:
+      `ContentCondition` objects that correspond to the file-finder conditions.
+    """
+    kind = rdf_file_finder.FileFinderCondition.Type
+    classes = {
+        kind.CONTENTS_LITERAL_MATCH: LiteralMatchCondition,
+        kind.CONTENTS_REGEX_MATCH: RegexMatchCondition,
+    }
+
+    for condition in conditions:
+      try:
+        yield classes[condition.condition_type](condition)
+      except KeyError:
+        pass
 
   OVERLAP_SIZE = 1024 * 1024
   CHUNK_SIZE = 10 * 1024 * 1024
 
-  @staticmethod
-  def _StreamFile(fd, offset, length):
-    """Generates overlapping blocks of data read from a file."""
-    to_read = length
-    fd.seek(offset)
+  def Scan(self, path, matcher):
+    """Scans given file searching for occurrences of given pattern.
 
-    overlap = fd.read(min(FileFinderOS.OVERLAP_SIZE, to_read))
-    to_read -= len(overlap)
+    Args:
+      path: A path to the file that needs to be searched.
+      matcher: A matcher object specifying a pattern to search for.
 
-    yield overlap
+    Yields:
+      `BufferReference` objects pointing to file parts with matching content.
+    """
+    streamer = streaming.FileStreamer(
+        chunk_size=self.CHUNK_SIZE, overlap_size=self.OVERLAP_SIZE)
 
-    while to_read > 0:
-      data = fd.read(min(FileFinderOS.CHUNK_SIZE, to_read))
-      if not data:
-        return
-      to_read -= len(data)
+    offset = self.params.start_offset
+    amount = self.params.length
+    for chunk in streamer.StreamFilePath(path, offset=offset, amount=amount):
+      for span in chunk.Scan(matcher):
+        ctx_begin = max(span.begin - self.params.bytes_before, 0)
+        ctx_end = min(span.end + self.params.bytes_after, len(chunk.data))
+        ctx_data = chunk.data[ctx_begin:ctx_end]
 
-      combined_data = overlap + data
-      yield combined_data
-      overlap = combined_data[-FileFinderOS.OVERLAP_SIZE:]
+        yield rdf_client.BufferReference(
+            offset=chunk.offset + ctx_begin,
+            length=len(ctx_data),
+            data=ctx_data)
 
-  @staticmethod
-  def _MatchRegex(regex, chunk, pos):
-    match = regex.Search(chunk[pos:])
+        if self.params.mode == self.params.Mode.FIRST_HIT:
+          return
+
+
+class LiteralMatchCondition(ContentCondition):
+  """A content condition that lookups a literal pattern."""
+
+  def __init__(self, params):
+    super(LiteralMatchCondition, self).__init__()
+    self.params = params.contents_literal_match
+
+  def Search(self, path):
+    matcher = LiteralMatcher(utils.SmartStr(self.params.literal))
+    for match in self.Scan(path, matcher):
+      yield match
+
+
+class RegexMatchCondition(ContentCondition):
+  """A content condition that lookups regular expressions."""
+
+  def __init__(self, params):
+    super(RegexMatchCondition, self).__init__()
+    self.params = params.contents_regex_match
+
+  def Search(self, path):
+    matcher = RegexMatcher(self.params.regex)
+    for match in self.Scan(path, matcher):
+      yield match
+
+
+class Matcher(object):
+  """An abstract class for objects able to lookup byte strings."""
+
+  __metaclass__ = abc.ABCMeta
+
+  Span = collections.namedtuple("Span", ["begin", "end"])  # pylint: disable=invalid-name
+
+  @abc.abstractmethod
+  def Match(self, data, position):
+    """Matches the given data object starting at specified position.
+
+    Args:
+      data: A byte string to pattern match on.
+      position: First position at which the search is started on.
+
+    Returns:
+      A `Span` object if the matcher finds something in the data.
+    """
+    pass
+
+
+class RegexMatcher(Matcher):
+  """A regex wrapper that conforms to the `Matcher` interface.
+
+  Args:
+    regex: An RDF regular expression that the matcher represents.
+  """
+
+  # TODO(hanuszczak): This class should operate on normal Python regexes, not on
+  # RDF values.
+
+  def __init__(self, regex):
+    super(RegexMatcher, self).__init__()
+    self.regex = regex
+
+  def Match(self, data, position):
+    match = self.regex.Search(data[position:])
     if not match:
-      return None, 0
-    else:
-      start, end = match.span()
-      return start + pos, end - start
+      return None
 
-  @staticmethod
-  def ContentsRegexMatchCondition(condition_obj, path, stat_obj, matches):
-    params = condition_obj.contents_regex_match
-    regex = params.regex
+    begin, end = match.span()
+    return Matcher.Span(begin=position + begin, end=position + end)
 
-    matching = functools.partial(FileFinderOS._MatchRegex, regex)
-    return FileFinderOS._ScanForMatches(params, path, matching, matches)
 
-  @staticmethod
-  def _MatchLiteral(literal, chunk, pos):
-    pos = chunk.find(literal, pos)
-    if pos == -1:
-      return None, 0
-    else:
-      return pos, len(literal)
+class LiteralMatcher(Matcher):
+  """An exact string matcher that conforms to the `Matcher` interface.
 
-  @staticmethod
-  def ContentsLiteralMatchCondition(condition_obj, path, stat_obj, matches):
-    params = condition_obj.contents_literal_match
+  Args:
+    literal: A byte string pattern that the matcher matches.
+  """
 
-    literal = utils.SmartStr(params.literal)
+  def __init__(self, literal):
+    super(LiteralMatcher, self).__init__()
+    self.literal = literal
 
-    matching = functools.partial(FileFinderOS._MatchLiteral, literal)
-    return FileFinderOS._ScanForMatches(params, path, matching, matches)
+  def Match(self, data, position):
+    offset = data.find(self.literal, position)
+    if offset == -1:
+      return None
 
-  @staticmethod
-  def _ScanForMatches(params, path, matching_func, matches):
-    try:
-      fd = open(path, mode="rb")
-    except IOError:
-      return False
-
-    current_offset = params.start_offset
-    findings = []
-    for chunk in FileFinderOS._StreamFile(fd, current_offset, params.length):
-      pos, match_length = matching_func(chunk, 0)
-      while pos is not None:
-        if (len(chunk) > FileFinderOS.OVERLAP_SIZE and
-            pos + match_length < FileFinderOS.OVERLAP_SIZE):
-          # We already processed this hit.
-          pos, match_length = matching_func(chunk, pos + 1)
-          continue
-
-        context_start = max(pos - params.bytes_before, 0)
-        # This might cut off some data if the hit is at the chunk border.
-        context_end = min(pos + match_length + params.bytes_after, len(chunk))
-        data = chunk[context_start:context_end]
-        findings.append(
-            rdf_client.BufferReference(
-                offset=current_offset + context_start,
-                length=len(data),
-                data=data,
-            ))
-        if params.mode == params.Mode.FIRST_HIT:
-          for finding in findings:
-            matches.append(finding)
-          return True
-
-        pos, match_length = matching_func(chunk, pos + 1)
-
-      current_offset += len(chunk) - FileFinderOS.OVERLAP_SIZE
-
-    if findings:
-      for finding in findings:
-        matches.append(finding)
-      return True
-    else:
-      return False
-
-  _CONDITION_DESCRIPTOR = collections.namedtuple("ConditionDescriptor",
-                                                 ["weight", "handler"])
-
-  _CONDITION_TYPE = rdf_file_finder.FileFinderCondition.Type
-
-  _CONDITIONS = {
-      _CONDITION_TYPE.MODIFICATION_TIME:
-          _CONDITION_DESCRIPTOR(weight=0, handler=ModificationTimeCondition),
-      _CONDITION_TYPE.ACCESS_TIME:
-          _CONDITION_DESCRIPTOR(weight=0, handler=AccessTimeCondition),
-      _CONDITION_TYPE.INODE_CHANGE_TIME:
-          _CONDITION_DESCRIPTOR(weight=0, handler=InodeChangeTimeCondition),
-      _CONDITION_TYPE.SIZE:
-          _CONDITION_DESCRIPTOR(weight=0, handler=SizeCondition),
-      _CONDITION_TYPE.CONTENTS_REGEX_MATCH:
-          _CONDITION_DESCRIPTOR(weight=1, handler=ContentsRegexMatchCondition),
-      _CONDITION_TYPE.CONTENTS_LITERAL_MATCH:
-          _CONDITION_DESCRIPTOR(
-              weight=1, handler=ContentsLiteralMatchCondition),
-  }
-
-  @staticmethod
-  def _GetConditionWeight(cond):
-    return FileFinderOS._CONDITIONS[cond.condition_type].weight
-
-  @staticmethod
-  def _GetConditionHandler(cond):
-    handler = FileFinderOS._CONDITIONS[cond.condition_type].handler
-    return functools.partial(handler.__func__, cond)
-
-  def ParseConditions(self, args):
-    conditions = sorted(args.conditions, key=self._GetConditionWeight)
-    return map(self._GetConditionHandler, conditions)
+    return Matcher.Span(begin=offset, end=offset + len(self.literal))

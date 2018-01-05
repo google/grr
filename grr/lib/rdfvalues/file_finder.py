@@ -35,6 +35,11 @@ class FileFinderSizeCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderSizeCondition
 
 
+class FileFinderExtFlagsCondition(rdf_structs.RDFProtoStruct):
+
+  protobuf = flows_pb2.FileFinderExtFlagsCondition
+
+
 class FileFinderContentsRegexMatchCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderContentsRegexMatchCondition
   rdf_deps = [
@@ -58,6 +63,7 @@ class FileFinderCondition(rdf_structs.RDFProtoStruct):
       FileFinderInodeChangeTimeCondition,
       FileFinderModificationTimeCondition,
       FileFinderSizeCondition,
+      FileFinderExtFlagsCondition,
   ]
 
 

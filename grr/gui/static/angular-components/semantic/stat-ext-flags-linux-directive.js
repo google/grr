@@ -5,9 +5,48 @@ goog.provide('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirecti
 
 goog.scope(function() {
 
-// https://github.com/torvalds/linux/blob/master/include/linux/fs.h
-// https://github.com/mozilla-b2g/busybox/blob/master/e2fsprogs/old_e2fsprogs/e2p/pf.c
+/**
+ * @typedef {{mask: number, symbol: string, description: string}}
+ */
+let Flag;
+
+/**
+ * @enum {string}
+ */
+const FlagsStatus = {
+  MALFORMED: 'MALFORMED',
+  SOME: 'SOME',
+  NONE: 'NONE',
+};
+
+/**
+ * An order of flag symbols as displayed by the Linux `lsattr` utility.
+ *
+ * The letters correspond to the symbol value of flags (defined below). Each
+ * letter should be defined only once and should have exactly one matching flag.
+ *
+ * The order of flags is not really defined in any manpage and was extracted by
+ * analysing source code of the `lsattr` utility.
+ *
+ * @type {string}
+ */
 const ORDER = 'suSDiadAcBZXEjItTehC';
+
+/**
+ * Descriptors of the extended flags for Linux file systems.
+ *
+ * Each descriptor contains three fields: mask, symbol and a short description.
+ * Mask is a bitmask extracted directly from the Linux headers. Symbol is a
+ * single letter used to represent this flag as displayed in `lsattr` and
+ * `chattr` utilities. Finally, a description is a human-friendly short
+ * description (extracted from comments in the Linux headers) presented to the
+ * user as a on-hover hint.
+ *
+ * https://github.com/torvalds/linux/blob/master/include/linux/fs.h
+ * https://github.com/mozilla-b2g/busybox/blob/master/e2fsprogs/old_e2fsprogs/e2p/pf.c
+ *
+ * @type {!Object<string, !Flag>}
+ */
 const FLAGS = {
   'FS_SECRM_FL': {
     mask: 0x00000001,
@@ -96,13 +135,18 @@ const FLAGS = {
   },
   'FS_DIRSYNC_FL': {
     mask: 0x00010000,
-    symbol: undefined,
+    symbol: 'D',
     description: 'dirsync behaviour (directories only)',
   },
   'FS_TOPDIR_FL': {
     mask: 0x00020000,
     symbol: 'T',
     description: 'top of directory hierarchies',
+  },
+  'EXT4_HUGE_FILE_FL': {
+    mask: 0x00040000,
+    symbol: 'h',
+    description: 'set to each huge file',
   },
   'FS_EXTENT_FL': {
     mask: 0x00080000,
@@ -121,29 +165,27 @@ const FLAGS = {
   },
 };
 
-// TODO(hanuszczak): Use `description` data to provide hints in the UI.
-
-
-let maskToSymbols = function(mask) {
-  let symbols = new Set();
-  // FIXME(hanuszczak): We should use `for..of` loop here but Closure Compiler
-  // complains here.
-  for (let flag_name in FLAGS) {
-    let flag = FLAGS[flag_name];
-    if (mask & flag.mask) {
-      symbols.add(flag.symbol);
-    }
+/**
+ * @param {string} symbol
+ * @return {!Flag}
+ */
+const getFlagBySymbol = function(symbol) {
+  const flag = Object.values(FLAGS).find((flag) => flag.symbol === symbol);
+  if (flag === undefined) {
+    throw new Error(`unknown symbol: ${symbol}`);
   }
+  return flag;
+};
 
-  let result = '';
-  // FIXME(hanuszczak): We should use `for..of` loop here. The code with a
-  // `for..of` loop compiles fine but fails at runtime (only when used with
-  // precompiled bundle).
-  for (let i = 0; i < ORDER.length; i++) {
-    let symbol = ORDER.charAt(i);
-    result += symbols.has(symbol) ? symbol : '-';
-  }
-  return result;
+/**
+ * @private
+ * @param {number} mask
+ * @return {!Array<?Flag>}
+ */
+const getMaskFlags = function(mask) {
+  return ORDER.split('')
+      .map(getFlagBySymbol)
+      .map((flag) => (flag.mask & mask) !== 0 ? flag : null);
 };
 
 
@@ -162,11 +204,14 @@ grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController =
   this.scope_.value;
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 
-  /** @type {string} */
-  this.repr;
+  /** @type {!FlagsStatus} */
+  this.status = FlagsStatus.NONE;
+
+  /** @type {!Array<?Flag>} */
+  this.flags = [];
 };
 
-let StatExtFlagsLinuxController =
+const StatExtFlagsLinuxController =
     grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController;
 
 /**
@@ -175,16 +220,17 @@ let StatExtFlagsLinuxController =
  */
 StatExtFlagsLinuxController.prototype.onValueChange = function(value) {
   if (angular.isUndefined(value)) {
-    this.repr = 'none';
     return;
   }
 
-  let mask = value.value;
+  const mask = value.value;
   if (!Number.isInteger(mask) || mask < 0) {
-    this.repr = 'malformed';
-  } else {
-    this.repr = maskToSymbols(mask);
+    this.status = FlagsStatus.MALFORMED;
+    return;
   }
+
+  this.status = FlagsStatus.SOME;
+  this.flags = getMaskFlags(mask);
 };
 
 
@@ -200,13 +246,14 @@ grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective = function(
       value: '=',
     },
     restrict: 'E',
-    template: '<span>{$ ::controller.repr $}</span>',
+    templateUrl:
+        '/static/angular-components/semantic/stat-ext-flags-linux.html',
     controller: StatExtFlagsLinuxController,
     controllerAs: 'controller',
   };
 };
 
-let StatExtFlagsLinuxDirective =
+const StatExtFlagsLinuxDirective =
     grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective;
 
 /**

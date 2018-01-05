@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test client utility functions."""
 
-import exceptions
 import hashlib
 import imp
 import os
@@ -102,13 +101,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
   def SetupWinEnvironment(self):
     """Mock windows includes."""
 
-    winreg = imp.new_module("_winreg")
-    winreg.error = exceptions.Exception
-    sys.modules["_winreg"] = winreg
-
-    ntsecuritycon = imp.new_module("ntsecuritycon")
-    sys.modules["ntsecuritycon"] = ntsecuritycon
-
     pywintypes = imp.new_module("pywintypes")
     pywintypes.error = Exception
     sys.modules["pywintypes"] = pywintypes
@@ -118,18 +110,20 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     winfile.GetVolumePathName = GetVolumePathName
     sys.modules["win32file"] = winfile
 
-    win32security = imp.new_module("win32security")
-    sys.modules["win32security"] = win32security
+    sys.modules["_winreg"] = imp.new_module("_winreg")
+    sys.modules["ntsecuritycon"] = imp.new_module("ntsecuritycon")
+    sys.modules["win32security"] = imp.new_module("win32security")
+    sys.modules["win32api"] = imp.new_module("win32api")
+    sys.modules["win32service"] = imp.new_module("win32service")
+    sys.modules["win32process"] = imp.new_module("win32process")
+    sys.modules["win32serviceutil"] = imp.new_module("win32serviceutil")
+    sys.modules["winerror"] = imp.new_module("winerror")
 
-    win32api = imp.new_module("win32api")
-    sys.modules["win32api"] = win32api
-
-    win32service = imp.new_module("win32service")
-    sys.modules["win32service"] = win32service
-    win32serviceutil = imp.new_module("win32serviceutil")
-    sys.modules["win32serviceutil"] = win32serviceutil
-    winerror = imp.new_module("winerror")
-    sys.modules["winerror"] = winerror
+    # Importing process.py pulls in lots of Windows specific stuff.
+    # pylint: disable=g-import-not-at-top
+    from grr.client import windows
+    windows.process = None
+    # pylint: enable=g-import-not-at-top
 
   def testExecutionWhiteList(self):
     """Test if unknown commands are filtered correctly."""
@@ -160,7 +154,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
   def testExecutionTimeLimit(self):
     """Test if the time limit works."""
 
-    (_, _, _, time_used) = client_utils_common.Execute("/bin/sleep", ["10"], 1)
+    _, _, _, time_used = client_utils_common.Execute("/bin/sleep", ["10"], 1)
 
     # This should take just a bit longer than one second.
     self.assertTrue(time_used < 2.0)
@@ -268,36 +262,32 @@ class MultiHasherTest(unittest.TestCase):
     self.assertFalse(hash_object.sha256)
 
   def testHashFileWhole(self):
-    tmp_path = test_lib.TempFilePath()
-    with open(tmp_path, "wb") as tmp_file:
-      tmp_file.write("foobar")
+    with test_lib.AutoTempFilePath() as tmp_path:
+      with open(tmp_path, "wb") as tmp_file:
+        tmp_file.write("foobar")
 
-    hasher = client_utils_common.MultiHasher(["md5", "sha1"])
-    hasher.HashFilePath(tmp_path, len("foobar"))
+      hasher = client_utils_common.MultiHasher(["md5", "sha1"])
+      hasher.HashFilePath(tmp_path, len("foobar"))
 
-    hash_object = hasher.GetHashObject()
-    self.assertEqual(hash_object.num_bytes, len("foobar"))
-    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
-    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
-    self.assertFalse(hash_object.sha256)
-
-    os.remove(tmp_path)
+      hash_object = hasher.GetHashObject()
+      self.assertEqual(hash_object.num_bytes, len("foobar"))
+      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foobar"))
+      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foobar"))
+      self.assertFalse(hash_object.sha256)
 
   def testHashFilePart(self):
-    tmp_path = test_lib.TempFilePath()
-    with open(tmp_path, "wb") as tmp_file:
-      tmp_file.write("foobar")
+    with test_lib.AutoTempFilePath() as tmp_path:
+      with open(tmp_path, "wb") as tmp_file:
+        tmp_file.write("foobar")
 
-    hasher = client_utils_common.MultiHasher(["md5", "sha1"])
-    hasher.HashFilePath(tmp_path, len("foo"))
+      hasher = client_utils_common.MultiHasher(["md5", "sha1"])
+      hasher.HashFilePath(tmp_path, len("foo"))
 
-    hash_object = hasher.GetHashObject()
-    self.assertEqual(hash_object.num_bytes, len("foo"))
-    self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
-    self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
-    self.assertFalse(hash_object.sha256)
-
-    os.remove(tmp_path)
+      hash_object = hasher.GetHashObject()
+      self.assertEqual(hash_object.num_bytes, len("foo"))
+      self.assertEqual(hash_object.md5, self._GetHash(hashlib.md5, "foo"))
+      self.assertEqual(hash_object.sha1, self._GetHash(hashlib.sha1, "foo"))
+      self.assertFalse(hash_object.sha256)
 
   def testHashBufferProgress(self):
     progress = mock.Mock()

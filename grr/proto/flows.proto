@@ -1368,6 +1368,13 @@ message FileFinderSizeCondition {
 
 }
 
+message FileFinderExtFlagsCondition {
+  optional uint32 linux_bits_set = 1 [default = 0];
+  optional uint32 linux_bits_unset = 2 [default = 0];
+  optional uint32 osx_bits_set = 3 [default = 0];
+  optional uint32 osx_bits_unset = 4 [default = 0];
+}
+
 // Next field ID: 9
 message FileFinderContentsRegexMatchCondition {
 
@@ -1459,17 +1466,19 @@ message FileFinderContentsLiteralMatchCondition {
     }, default = 0];
 }
 
-// Next field ID: 8
+// Next field ID: 9
 message FileFinderCondition {
   option (semantic) = {
     union_field: "condition_type"
   };
 
+  // Next field ID: 7
   enum Type {
     MODIFICATION_TIME = 0 [(description) = "Modification time"];
     ACCESS_TIME = 1 [(description) = "Access time"];
     INODE_CHANGE_TIME = 2 [(description) = "Inode change time"];
     SIZE = 3 [(description) = "File size"];
+    EXT_FLAGS = 6 [(description) = "Extended file flags"];
     CONTENTS_REGEX_MATCH = 4 [(description) = "Contents regex match"];
     CONTENTS_LITERAL_MATCH = 5 [(description) = "Contents literal match"];
   }
@@ -1482,6 +1491,7 @@ message FileFinderCondition {
   optional FileFinderAccessTimeCondition access_time = 3;
   optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
   optional FileFinderSizeCondition size = 5;
+  optional FileFinderExtFlagsCondition ext_flags = 8;
   optional FileFinderContentsRegexMatchCondition contents_regex_match = 6;
   optional FileFinderContentsLiteralMatchCondition contents_literal_match = 7;
 }
@@ -1711,14 +1721,6 @@ message MemoryCollectorArgs {
 }
 
 // Next field ID: 2
-message CollectArtifactDependenciesArgs {
-  repeated string artifact_list = 1 [(sem_type) = {
-      description: "A list of Artifact names to collect dependencies for.",
-      type: "ArtifactName",
-    }];
-}
-
-// Next field ID: 2
 message ArtifactFallbackCollectorArgs {
   optional string artifact_name = 1 [(sem_type) = {
       description: "Name of the artifact using this fallback.",
@@ -1851,6 +1853,69 @@ message YaraProcessScanRequest {
       description: "A timeout in seconds that is applied while scanning; "
       "applies to each scan individually.",
     }];
+  optional uint64 chunk_size = 6 [
+    (sem_type) = {
+      description: "The chunk size to use when scanning large memory regions.",
+      label: ADVANCED,
+    },
+    default = 104857600  // 100 MB
+  ];
+  optional uint64 overlap_size = 7 [
+    (sem_type) = {
+      description: "The overlap size to use when scanning large memory "
+                   "regions.",
+      label: ADVANCED,
+    },
+    default = 10485760  // 10 MB
+  ];
+  optional bool skip_special_regions = 8 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning device backed regions and "
+                   "guard pages. Applies to Windows only.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_mapped_files = 9 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning mapped files. Applies to "
+                   "Linux only.",
+      label: ADVANCED,
+    },
+    default = true
+  ];
+  optional bool skip_shared_regions = 10 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning shared regions. Applies to "
+                   "Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_executable_regions = 11 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning executable regions. "
+                   "Applies to Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_readonly_regions = 12 [
+    (sem_type) = {
+      description: "Set this flag to avoid scanning readonly regions. Applies "
+                   "to Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool dump_process_on_match = 13 [
+    (sem_type) = {
+      description: "Set this flag to schedule a process memory dump on every "
+                   "signature match.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
 }
 
 message YaraProcessError {
@@ -1941,6 +2006,53 @@ message YaraProcessDumpArgs {
       type: "ByteSize",
       label: ADVANCED,
     }, default=0];
+  optional uint64 chunk_size = 6 [
+    (sem_type) = {
+      description: "The chunk size to use when reading large memory regions.",
+      label: ADVANCED,
+    },
+    default = 104857600  // 100 MB
+  ];
+  optional bool skip_special_regions = 7 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping device backed regions and "
+                   "guard pages. Applies to Windows only.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_mapped_files = 8 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping mapped files. Applies to "
+                   "Linux only.",
+      label: ADVANCED,
+    },
+    default = true
+  ];
+  optional bool skip_shared_regions = 9 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping shared regions. Applies to "
+                   "Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_executable_regions = 10 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping executable regions. Applies "
+                   "to Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
+  optional bool skip_readonly_regions = 11 [
+    (sem_type) = {
+      description: "Set this flag to avoid dumping readonly regions. Applies "
+                   "to Linux and macOS.",
+      label: ADVANCED,
+    },
+    default = false
+  ];
 }
 
 message YaraProcessDumpInformation {

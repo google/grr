@@ -12,8 +12,11 @@ from grr.client import client_plugins
 
 from grr.client import client_startup
 from grr.client import fleetspeak_client
+from grr.client import installer
 from grr.config import contexts
 from grr.lib import flags
+
+flags.DEFINE_bool("install", False, "Specify this to install the client.")
 
 flags.DEFINE_bool("break_on_start", False,
                   "If True break into a pdb shell immediately on startup. This"
@@ -25,6 +28,9 @@ def main(unused_args):
                            "Context applied when we run the client process.")
 
   client_startup.ClientInit()
+
+  if flags.FLAGS.install:
+    installer.RunInstaller()
 
   prod_client = fleetspeak_client.GRRFleetspeakClient()
 

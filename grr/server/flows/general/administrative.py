@@ -286,7 +286,7 @@ class ExecutePythonHack(flow.GRRFlow):
         python_hack_root_urn.Add(self.args.hack_name), token=self.token)
 
     if not isinstance(fd, collects.GRRSignedBlob):
-      raise RuntimeError("Python hack %s not found." % self.args.hack_name)
+      raise flow.FlowError("Python hack %s not found." % self.args.hack_name)
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
     for python_blob in fd:
@@ -496,12 +496,6 @@ class UpdateClient(flow.GRRFlow):
 
   AUTHORIZED_LABELS = ["admin"]
 
-  system_platform_mapping = {
-      "Darwin": "darwin",
-      "Linux": "linux",
-      "Windows": "windows"
-  }
-
   args_type = UpdateClientArgs
 
   @flow.StateHandler()
@@ -509,51 +503,46 @@ class UpdateClient(flow.GRRFlow):
     """Start."""
     blob_path = self.args.blob_path
     if not blob_path:
-      # No explicit path was given, we guess a reasonable default here.
-      client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      client_platform = client.Get(client.Schema.SYSTEM)
-      if not client_platform:
-        raise RuntimeError("Can't determine client platform, please specify.")
-      blob_urn = "aff4:/config/executables/%s/agentupdates" % (
-          self.system_platform_mapping[client_platform])
-      blob_dir = aff4.FACTORY.Open(blob_urn, token=self.token)
-      updates = sorted(list(blob_dir.ListChildren()))
-      if not updates:
-        raise RuntimeError(
-            "No matching updates found, please specify one manually.")
-      blob_path = updates[-1]
-
-    if not ("windows" in utils.SmartStr(self.args.blob_path) or
-            "darwin" in utils.SmartStr(self.args.blob_path) or
-            "linux" in utils.SmartStr(self.args.blob_path)):
-      raise RuntimeError("Update not supported for this urn, use aff4:/config"
-                         "/executables/<platform>/agentupdates/<version>")
+      raise flow.FlowError("Please specify an installer binary.")
 
     aff4_blobs = aff4.FACTORY.Open(blob_path, token=self.token)
     if not isinstance(aff4_blobs, collects.GRRSignedBlob):
-      raise RuntimeError("%s is not a valid GRRSignedBlob." % blob_path)
+      raise flow.FlowError("%s is not a valid GRRSignedBlob." % blob_path)
 
     offset = 0
     write_path = "%d_%s" % (time.time(), aff4_blobs.urn.Basename())
     for i, blob in enumerate(aff4_blobs):
+      if i < aff4_blobs.chunks - 1:
+        more_data = True
+        next_state = "CheckUpdateAgent"
+      else:
+        more_data = False
+        next_state = "Interrogate"
+
       self.CallClient(
           server_stubs.UpdateAgent,
           executable=blob,
-          more_data=i < aff4_blobs.chunks - 1,
+          more_data=more_data,
           offset=offset,
           write_path=write_path,
-          next_state=discovery.Interrogate.__name__,
+          next_state=next_state,
           use_client_env=False)
 
       offset += len(blob.data)
 
   @flow.StateHandler()
+  def CheckUpdateAgent(self, responses):
+    if not responses.success:
+      raise flow.FlowError(
+          "Error while calling UpdateAgent: %s" % responses.status)
+
+  @flow.StateHandler()
   def Interrogate(self, responses):
     if not responses.success:
-      self.Log("Installer reported an error: %s" % responses.status)
-    else:
-      self.Log("Installer completed.")
-      self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
+      raise flow.FlowError("Installer reported an error: %s" % responses.status)
+
+    self.Log("Installer completed.")
+    self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
 
   @flow.StateHandler()
   def Done(self):
@@ -877,7 +866,7 @@ class LaunchBinary(flow.GRRFlow):
   def Start(self):
     fd = aff4.FACTORY.Open(self.args.binary, token=self.token)
     if not isinstance(fd, collects.GRRSignedBlob):
-      raise RuntimeError("Executable binary %s not found." % self.args.binary)
+      raise flow.FlowError("Executable binary %s not found." % self.args.binary)
 
     offset = 0
     write_path = "%d" % time.time()

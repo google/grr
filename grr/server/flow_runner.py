@@ -517,9 +517,9 @@ class FlowRunner(object):
 
           stats.STATS.IncrementCounter(
               "flow_completions", fields=[self.flow_obj.Name()])
-          logging.debug("Destroying session %s(%s) for client %s",
-                        self.session_id,
-                        self.flow_obj.Name(), self.runner_args.client_id)
+          logging.debug(
+              "Destroying session %s(%s) for client %s", self.session_id,
+              self.flow_obj.Name(), self.runner_args.client_id)
 
           self.flow_obj.Terminate()
 
@@ -655,7 +655,7 @@ class FlowRunner(object):
          protobuf.
 
     Raises:
-       FlowRunnerError: If next_state is not one of the allowed next states.
+       FlowRunnerError: If called on a flow that doesn't run on a single client.
        RuntimeError: The request passed to the client does not have the correct
                      type.
     """

@@ -277,21 +277,20 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testFileFinderStatExtFlags(self):
-    temp_filepath = test_lib.TempFilePath()
-    if subprocess.call(["which", "chattr"]) != 0:
-      raise unittest.SkipTest("`chattr` command is not available")
-    if subprocess.call(["chattr", "+d", temp_filepath]) != 0:
-      raise unittest.SkipTest("extended attributes not supported by filesystem")
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      if subprocess.call(["which", "chattr"]) != 0:
+        raise unittest.SkipTest("`chattr` command is not available")
+      if subprocess.call(["chattr", "+d", temp_filepath]) != 0:
+        reason = "extended attributes not supported by filesystem"
+        raise unittest.SkipTest(reason)
 
-    action = rdf_file_finder.FileFinderAction.Stat()
-    results = self.RunFlow(action=action, paths=[temp_filepath])
-    self.assertEqual(len(results), 1)
+      action = rdf_file_finder.FileFinderAction.Stat()
+      results = self.RunFlow(action=action, paths=[temp_filepath])
+      self.assertEqual(len(results), 1)
 
-    stat_entry = results[0][1].stat_entry
-    self.assertTrue(stat_entry.st_flags_linux & self.FS_NODUMP_FL)
-    self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
-
-    os.remove(temp_filepath)
+      stat_entry = results[0][1].stat_entry
+      self.assertTrue(stat_entry.st_flags_linux & self.FS_NODUMP_FL)
+      self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
 
   def testFileFinderDownloadActionWithoutConditions(self):
     self.RunFlowAndCheckResults(

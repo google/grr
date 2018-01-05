@@ -17,6 +17,7 @@ import win32security
 from google.protobuf import message
 
 from grr import config
+from grr.client.windows import process
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -417,20 +418,6 @@ def KernelVersion():
                        rtl_osversioninfoexw.dwBuildNumber)
 
 
-def AddStatEntryExtFlags(stat_entry, stat_object):
-  """Does nothing.
-
-  This is kept for compatibility with other platform-specific version of this
-  function.
-
-  Args:
-    stat_entry: An `StatEntry` object to fill-in.
-    stat_object: An object representing results of the `os.stat` call.
-  """
-  del stat_entry  # Unused on Windows.
-  del stat_object  # Unused on Windows.
-
-
 def AddStatEntryExtAttrs(stat_entry):
   """Does nothing.
 
@@ -441,3 +428,13 @@ def AddStatEntryExtAttrs(stat_entry):
     stat_entry: An `StatEntry` object to fill-in.
   """
   del stat_entry  # Unused on Windows.
+
+
+def OpenProcessForMemoryAccess(pid=None):
+  return process.Process(pid=pid)
+
+
+def MemoryRegions(proc, options):
+  for start, length in proc.Regions(
+      skip_special_regions=options.skip_special_regions):
+    yield start, length

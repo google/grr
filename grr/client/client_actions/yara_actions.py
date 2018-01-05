@@ -7,10 +7,12 @@ import time
 
 import psutil
 import yara
-import yara_procdump
 
 from grr.client import actions
+from grr.client import client_utils
+from grr.client import streaming
 from grr.client.client_actions import tempfiles
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rdf_yara
@@ -69,41 +71,76 @@ class YaraProcessScan(actions.ActionPlugin):
   in_rdfvalue = rdf_yara.YaraProcessScanRequest
   out_rdfvalues = [rdf_yara.YaraProcessScanResponse]
 
-  def Run(self, args):
-    result = rdf_yara.YaraProcessScanResponse()
+  def _ScanRegion(self, rules, streamer, start, length, deadline):
+    for chunk in streamer.Stream(start, length):
+      if not chunk.data:
+        break
+
+      time_left = deadline - rdfvalue.RDFDatetime.Now()
+
+      for m in rules.match(data=chunk.data, timeout=int(time_left)):
+        # Note that for regexps in general it might be possible to
+        # specify characters at the end of the string that are not
+        # part of the returned match. In that case, this algorithm
+        # might miss results in unlikely scenarios. We doubt that the
+        # Yara library even allows such constructs but it's good to be
+        # aware that this can happen.
+        for offset, _, s in m.strings:
+          if offset + len(s) > chunk.overlap:
+            # We haven't seen this match before.
+            rdf_match = rdf_yara.YaraMatch.FromLibYaraMatch(m)
+            for s in rdf_match.string_matches:
+              s.offset += chunk.offset
+            yield rdf_match
+            break
+
+  def _ScanProcess(self, psutil_process, args):
+    if args.per_process_timeout:
+      deadline = rdfvalue.RDFDatetime.Now() + args.per_process_timeout
+    else:
+      deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1w")
 
     rules = args.yara_signature.GetRules()
 
+    process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
+    with process:
+      streamer = streaming.MemoryStreamer(
+          process, chunk_size=args.chunk_size, overlap_size=args.overlap_size)
+      matches = []
+
+      for start, length in client_utils.MemoryRegions(process, args):
+        for m in self._ScanRegion(rules, streamer, start, length, deadline):
+          matches.append(m)
+    return matches
+
+  def Run(self, args):
+    result = rdf_yara.YaraProcessScanResponse()
     for p in ProcessIterator(args.pids, args.process_regex,
                              args.ignore_grr_process, result.errors):
       self.Progress()
+      rdf_process = rdf_client.Process.FromPsutilProcess(p)
+
       start_time = time.time()
       try:
-        matches = rules.match(pid=p.pid, timeout=args.per_process_timeout)
+        matches = self._ScanProcess(p, args)
         scan_time = time.time() - start_time
         scan_time_us = int(scan_time * 1e6)
       except yara.TimeoutError:
         result.errors.Append(
             rdf_yara.YaraProcessError(
-                process=rdf_client.Process.FromPsutilProcess(p),
+                process=rdf_process,
                 error="Scanning timed out (%s seconds)." %
                 (time.time() - start_time)))
         continue
       except Exception as e:  # pylint: disable=broad-except
         result.errors.Append(
-            rdf_yara.YaraProcessError(
-                process=rdf_client.Process.FromPsutilProcess(p), error=str(e)))
+            rdf_yara.YaraProcessError(process=rdf_process, error=str(e)))
         continue
 
-      rdf_process = rdf_client.Process.FromPsutilProcess(p)
-
       if matches:
-        for match in matches:
-          result.matches.Append(
-              rdf_yara.YaraProcessScanMatch(
-                  process=rdf_process,
-                  match=rdf_yara.YaraMatch.FromLibYaraMatch(match),
-                  scan_time_us=scan_time_us))
+        result.matches.Append(
+            rdf_yara.YaraProcessScanMatch(
+                process=rdf_process, match=matches, scan_time_us=scan_time_us))
       else:
         result.misses.Append(
             rdf_yara.YaraProcessScanMiss(
@@ -117,35 +154,67 @@ class YaraProcessDump(actions.ActionPlugin):
   in_rdfvalue = rdf_yara.YaraProcessDumpArgs
   out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
 
-  def DumpProcess(self, psutil_process, bytes_limit):
+  def _SaveMemDumpToFile(self, fd, streamer, start, length):
+    bytes_written = 0
+
+    for chunk in streamer.Stream(start, length):
+      if not chunk.data:
+        return 0
+
+      fd.write(chunk.data)
+      bytes_written += len(chunk.data)
+
+    return bytes_written
+
+  def _SaveMemDumpToFilePath(self, filename, streamer, start, length):
+    with open(filename, "wb") as fd:
+      bytes_written = self._SaveMemDumpToFile(fd, streamer, start, length)
+
+    # When getting read errors, we just delete the file and move on.
+    if not bytes_written:
+      try:
+        os.remove(filename)
+      except OSError:
+        pass
+
+    return bytes_written
+
+  def DumpProcess(self, psutil_process, args):
     response = rdf_yara.YaraProcessDumpInformation()
     response.process = rdf_client.Process.FromPsutilProcess(psutil_process)
 
-    iterator = yara_procdump.process_memory_iterator(pid=psutil_process.pid)
-    name = psutil_process.name()
+    process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
 
-    with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
-      for block in iterator:
+    bytes_limit = args.size_limit
 
-        filename_template = "%s_%d_%x_%x.tmp"
-        filename = os.path.join(tmp_dir.path, filename_template %
-                                (name, psutil_process.pid, block.base,
-                                 block.base + block.size))
+    with process:
+      streamer = streaming.MemoryStreamer(process, chunk_size=args.chunk_size)
 
-        if bytes_limit and self.bytes_written + block.size > bytes_limit:
-          response.error = ("Memory limit exceeded. Wrote %d bytes, "
-                            "next block is %d bytes, limit is %d." %
-                            (self.bytes_written, block.size, bytes_limit))
-          return response
+      with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
+        for start, length in client_utils.MemoryRegions(process, args):
 
-        with open(filename, "wb") as fd:
-          fd.write(block)
+          if bytes_limit and self.bytes_written + length > bytes_limit:
+            response.error = ("Byte limit exceeded. Wrote %d bytes, "
+                              "next block is %d bytes, limit is %d." %
+                              (self.bytes_written, length, bytes_limit))
+            return response
 
-        self.bytes_written += block.size
+          end = start + length
+          filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(),
+                                          psutil_process.pid, start, end)
+          filepath = os.path.join(tmp_dir.path, filename)
 
-        response.dump_files.Append(
-            rdf_paths.PathSpec(
-                path=filename, pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
+          bytes_written = self._SaveMemDumpToFilePath(filepath, streamer, start,
+                                                      length)
+
+          if not bytes_written:
+            continue
+
+          self.bytes_written += bytes_written
+          response.dump_files.Append(
+              rdf_paths.PathSpec(
+                  path=filepath, pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
+
     return response
 
   def Run(self, args):
@@ -159,7 +228,7 @@ class YaraProcessDump(actions.ActionPlugin):
       start_time = time.time()
 
       try:
-        response = self.DumpProcess(p, args.size_limit)
+        response = self.DumpProcess(p, args)
         response.dump_time_us = int((time.time() - start_time) * 1e6)
         result.dumped_processes.Append(response)
         if response.error:

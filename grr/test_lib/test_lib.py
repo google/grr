@@ -744,7 +744,11 @@ class RemotePDB(pdb.Pdb):
 
 
 def _TempRootPath():
-  root = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
+  try:
+    root = os.environ.get("TEST_TMPDIR") or config.CONFIG["Test.tmpdir"]
+  except RuntimeError:
+    return None
+
   if platform.system() != "Windows":
     return root
   else:
@@ -840,6 +844,50 @@ class AutoTempDirPath(object):
       shutil.rmtree(self.path)
     else:
       os.rmdir(self.path)
+
+
+class AutoTempFilePath(object):
+  """Creates a temporary file based on the environment configuration.
+
+  If no directory is specified the file will be placed in folder as specified by
+  the `TEST_TMPDIR` environment variable if available or fallback to
+  `Test.tmpdir` of the current configuration if not.
+
+  If directory is specified it must be part of the default test temporary
+  directory.
+
+  This object is a context manager and the associated file is automatically
+  removed when it goes out of scope.
+
+  Args:
+    suffix: A suffix to end the file name with.
+    prefix: A prefix to begin the file name with.
+    dir: A directory to place the file in.
+
+  Returns:
+    An absolute path to the created file.
+
+  Raises:
+    ValueError: If the specified directory is not part of the default test
+        temporary directory.
+  """
+
+  def __init__(self, suffix="", prefix="tmp", dir=None):  # pylint: disable=redefined-builtin
+    self.suffix = suffix
+    self.prefix = prefix
+    self.dir = dir
+
+  def __enter__(self):
+    self.path = TempFilePath(
+        suffix=self.suffix, prefix=self.prefix, dir=self.dir)
+    return self.path
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type  # Unused.
+    del exc_value  # Unused.
+    del traceback  # Unused.
+
+    os.remove(self.path)
 
 
 class PrivateKeyNotFoundException(Exception):

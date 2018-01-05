@@ -58,6 +58,11 @@ parser_build = subparsers.add_parser(
 parser_build.add_argument(
     "--output", default=None, help="The path to write the output template.")
 
+parser_build.add_argument(
+    "--fleetspeak_service_config",
+    default="",
+    help="Service config file to use with Fleetspeak.")
+
 # repack arguments
 parser_repack = subparsers.add_parser(
     "repack", help="Build installer from a template.")
@@ -393,6 +398,15 @@ def main(_):
   logger.handlers = [handler]
 
   if args.subparser_name == "build":
+    if grr_config.CONFIG.Get("ClientBuilder.fleetspeak_enabled"):
+      if not args.fleetspeak_service_config:
+        raise RuntimeError("--fleetspeak_service_config must be provided.")
+      if not grr_config.CONFIG.Get("ClientBuilder.install_dir"):
+        raise RuntimeError("ClientBuilder.install_dir must be set.")
+      if not grr_config.CONFIG.Get("ClientBuilder.fleetspeak_plist_path"):
+        raise RuntimeError("ClientBuilder.fleetspeak_plist_path must be set.")
+      grr_config.CONFIG.Set("ClientBuilder.client_path",
+                            "grr.client.grr_fs_client")
     TemplateBuilder().BuildTemplate(context=context, output=args.output)
   elif args.subparser_name == "repack":
     if args.debug_build:

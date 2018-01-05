@@ -16,6 +16,7 @@ import platform
 import re
 import StringIO
 import sys
+import traceback
 
 
 import pkg_resources
@@ -290,6 +291,7 @@ class ModulePath(ConfigFilter):
 
       # This exception will typically be caught by the expansion engine and
       # be silently swallowed.
+      traceback.print_exc()
       logging.error(message)
       raise FilterError(message)
 
@@ -721,8 +723,8 @@ class StringInterpolator(lexer.Lexer):
     if final_value is None:
       final_value = ""
 
-    type_info_obj = (self.config.FindTypeInfo(parameter_name) or
-                     type_info.String())
+    type_info_obj = (
+        self.config.FindTypeInfo(parameter_name) or type_info.String())
 
     # Encode the interpolated string according to its type.
     self.stack[-1] += type_info_obj.ToString(final_value)

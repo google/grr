@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Client utilities."""
 
-
 import sys
 
 # pylint: disable=g-import-not-at-top
@@ -14,13 +13,14 @@ else:
 # pylint: enable=g-import-not-at-top
 
 # pylint: disable=g-bad-name
+AddStatEntryExtAttrs = _client_utils.AddStatEntryExtAttrs
 CanonicalPathToLocalPath = _client_utils.CanonicalPathToLocalPath
-LocalPathToCanonicalPath = _client_utils.LocalPathToCanonicalPath
 FindProxies = _client_utils.FindProxies
 GetRawDevice = _client_utils.GetRawDevice
-NannyController = _client_utils.NannyController
 KeepAlive = _client_utils.KeepAlive
+LocalPathToCanonicalPath = _client_utils.LocalPathToCanonicalPath
+MemoryRegions = _client_utils.MemoryRegions
+NannyController = _client_utils.NannyController
+OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess
 VerifyFileOwner = _client_utils.VerifyFileOwner
-AddStatEntryExtFlags = _client_utils.AddStatEntryExtFlags
-AddStatEntryExtAttrs = _client_utils.AddStatEntryExtAttrs
 # pylint: enable=g-bad-name

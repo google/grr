@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for artifacts."""
 
-
 import gzip
 import logging
 import os
@@ -617,45 +616,6 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertEqual(fd.__class__.__name__, "VFSFile")
     self.assertEqual(
         fd.Get(fd.Schema.STAT).registry_data.GetValue(), "%SystemDrive%\\Users")
-
-  def testGetDependencies(self):
-    """Test that dependencies are calculated correctly."""
-    artifact_registry.REGISTRY.ClearSources()
-    try:
-      test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                         "artifacts", "test_artifacts.json")
-      artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-
-      # No dependencies
-      args = artifact.CollectArtifactDependenciesArgs(
-          artifact_list=["DepsHomedir2"])
-      collect_obj = artifact.CollectArtifactDependencies(None, token=self.token)
-      collect_obj.args = args
-      collect_obj.knowledge_base = None
-      collect_obj.state["all_deps"] = set()
-      collect_obj.state["awaiting_deps_artifacts"] = []
-      collect_obj.state["knowledge_base"] = rdf_client.KnowledgeBase(
-          os="Windows")
-      no_deps = collect_obj.GetFirstFlowsForCollection()
-
-      self.assertItemsEqual(no_deps, [])
-      self.assertItemsEqual(collect_obj.state.all_deps, [])
-      self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts, [])
-
-      # Dependency tree with a single starting point
-      args = artifact.CollectArtifactDependenciesArgs(
-          artifact_list=["DepsHomedir"])
-      collect_obj.args = args
-      no_deps = collect_obj.GetFirstFlowsForCollection()
-
-      self.assertItemsEqual(no_deps, ["DepsControlSet"])
-      self.assertItemsEqual(
-          collect_obj.state.all_deps,
-          ["environ_windir", "users.username", "current_control_set"])
-      self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
-                            ["DepsWindir", "DepsWindirRegex"])
-    finally:
-      artifact.ArtifactLoader().RunOnce()
 
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""

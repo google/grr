@@ -8,10 +8,21 @@ import os
 import platform
 
 
-from grr.client import client_utils_linux
+from grr.client import client_utils_osx_linux
 from grr.client.osx import objc
+from grr.client.osx import process
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
+
+# Shared functions between macOS and Linux.
+# pylint: disable=invalid-name
+AddStatEntryExtAttrs = client_utils_osx_linux.AddStatEntryExtAttrs
+CanonicalPathToLocalPath = client_utils_osx_linux.CanonicalPathToLocalPath
+LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
+NannyController = client_utils_osx_linux.NannyController
+VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
+
+# pylint: enable=invalid-name
 
 
 def FindProxies():
@@ -198,16 +209,6 @@ def GetRawDevice(path):
       mount_point = os.path.dirname(mount_point)
 
 
-def CanonicalPathToLocalPath(path):
-  """OSX uses a normal path."""
-  return client_utils_linux.CanonicalPathToLocalPath(path)
-
-
-def LocalPathToCanonicalPath(path):
-  """OSX uses a normal path."""
-  return client_utils_linux.LocalPathToCanonicalPath(path)
-
-
 def InstallDriver(kext_path):
   """Calls into the IOKit to load a kext by file-system path.
 
@@ -276,30 +277,18 @@ class OSXVersion(object):
     return self.version
 
 
-VerifyFileOwner = client_utils_linux.VerifyFileOwner  # pylint: disable=invalid-name
-
-NannyController = client_utils_linux.NannyController  # pylint: disable=invalid-name
-
-
 def KeepAlive():
   # Not yet supported for OSX.
   pass
 
 
-def AddStatEntryExtFlags(stat_entry, stat_object):
-  """Fills `st_flags_osx` field of the `StatEntry` object.
-
-  Args:
-    stat_entry: An `StatEntry` object to fill-in.
-    stat_object: An object representing results of the `os.stat` call.
-  """
-  stat_entry.st_flags_osx = stat_object.st_flags
+def OpenProcessForMemoryAccess(pid=None):
+  return process.Process(pid=pid)
 
 
-def AddStatEntryExtAttrs(stat_entry):
-  """Fills `ext_attrs` field of the `StatEntry` object.
-
-  Args:
-    stat_entry: A `StatEntry` object to fill-in.
-  """
-  client_utils_linux.AddStatEntryExtAttrs(stat_entry)
+def MemoryRegions(proc, options):
+  for start, length in proc.Regions(
+      skip_executable_regions=options.skip_executable_regions,
+      skip_readonly_regions=options.skip_readonly_regions,
+      skip_shared_regions=options.skip_shared_regions):
+    yield start, length

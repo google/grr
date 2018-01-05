@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Flows that utilize the Yara library."""
 
+import logging
 import re
 
 from grr.lib.rdfvalues import rdf_yara
@@ -26,7 +27,9 @@ class YaraProcessScan(flow.GRRFlow):
   def Start(self):
 
     # Catch signature issues early.
-    self.args.yara_signature.GetRules()
+    rules = self.args.yara_signature.GetRules()
+    if not list(rules):
+      raise flow.FlowError("No rules found in the signature specification.")
 
     # Same for regex errors.
     if self.args.process_regex:
@@ -39,6 +42,34 @@ class YaraProcessScan(flow.GRRFlow):
 
   @flow.StateHandler()
   def ProcessScanResults(self, responses):
+    if not responses.success:
+      raise flow.FlowError(responses.status)
+
+    pids_to_dump = set()
+
+    for response in responses:
+      self.SendReply(response)
+      for match in response.matches:
+        rules = set([m.rule_name for m in match.match])
+        rules_string = ",".join(sorted(rules))
+        logging.debug("YaraScan match in pid %d (%s) for rules %s.",
+                      match.process.pid, match.process.exe, rules_string)
+        if self.args.dump_process_on_match:
+          pids_to_dump.add(match.process.pid)
+
+    if pids_to_dump:
+      self.CallFlow(
+          YaraDumpProcessMemory.__name__,
+          pids=list(pids_to_dump),
+          skip_special_regions=self.args.skip_special_regions,
+          skip_mapped_files=self.args.skip_mapped_files,
+          skip_shared_regions=self.args.skip_shared_regions,
+          skip_executable_regions=self.args.skip_executable_regions,
+          skip_readonly_regions=self.args.skip_readonly_regions,
+          next_state="CheckDumpProcessMemoryResults")
+
+  @flow.StateHandler()
+  def CheckDumpProcessMemoryResults(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
 

@@ -295,14 +295,15 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
   def Stat(self):
     """Get Stat for self.path."""
     test_data_path = self._AbsPath()
-    st = os.stat(test_data_path)
-    return files.MakeStatResponse(st, self.pathspec)
+    stat = utils.Stat(test_data_path)
+    return files.MakeStatResponse(stat, self.pathspec)
 
   def ListFiles(self):
     for f in os.listdir(self._AbsPath()):
       ps = self.pathspec.Copy()
       ps.last.path = os.path.join(ps.last.path, f)
-      yield files.MakeStatResponse(os.stat(self._AbsPath(f)), ps)
+      stat = utils.Stat(self._AbsPath(f))
+      yield files.MakeStatResponse(stat, ps)
 
 
 class RegistryFake(FakeRegistryVFSHandler):

@@ -238,6 +238,7 @@ Test Context:
   AdminUI.port: 8000
   Nanny.unresponsive_kill_period: 3600
   Datastore.implementation: FakeDataStore
+  Database.implementation: InMemoryDB
 
   Logging.verbose: false
 
