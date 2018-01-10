@@ -72,7 +72,7 @@ setup_args = dict(
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
     install_requires=[
-        "mock==1.3.0",
+        "mock==2.0.0",
         "mox==0.5.3",
         "pytest==3.0.5",
         "selenium==2.50.1",
