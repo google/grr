@@ -28,8 +28,7 @@ def find_data_files(source, ignore_dirs=None):
   return result
 
 
-def run_make_files(make_docs=False,
-                   make_ui_files=True,
+def run_make_files(make_ui_files=True,
                    force_compile_protos=False,
                    sync_artifacts=True):
   """Builds necessary assets from sources."""
@@ -43,10 +42,6 @@ def run_make_files(make_docs=False,
   if sync_artifacts:
     # Sync the artifact repo with upstream for distribution.
     subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
-
-  if make_docs:
-    # Download the docs so they are available offline.
-    subprocess.check_call(["python", "makefile.py"], cwd="docs")
 
   if make_ui_files:
     subprocess.check_call(["npm", "install"], cwd="grr/gui/static")
@@ -73,7 +68,6 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      ("no-make-docs", None, "Don't build ascii docs when building the sdist."),
       ("no-make-ui-files", None, "Don't build UI JS/CSS bundles (AdminUI "
        "won't work without them)."),
       ("no-compile-protos", None, "Don't clean protos, use existing _pb2's."),
@@ -83,7 +77,6 @@ class Sdist(sdist):
   ]
 
   def initialize_options(self):
-    self.no_make_docs = None
     self.no_sync_artifacts = None
     self.no_make_ui_files = None
     self.no_compile_protos = None
@@ -91,7 +84,6 @@ class Sdist(sdist):
 
   def run(self):
     run_make_files(
-        make_docs=not self.no_make_docs,
         make_ui_files=not self.no_make_ui_files,
         force_compile_protos=not self.no_compile_protos,
         sync_artifacts=not self.no_sync_artifacts)
@@ -99,12 +91,12 @@ class Sdist(sdist):
 
 
 data_files = (
-    find_data_files("docs") + find_data_files("executables") +
-    find_data_files("install_data") + find_data_files("scripts") +
-    find_data_files("grr/artifacts") + find_data_files("grr/checks") +
-    find_data_files("grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) +
-    find_data_files("grr/gui/local/static",
-                    ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
+    find_data_files("executables") + find_data_files("install_data") +
+    find_data_files("scripts") + find_data_files("grr/artifacts") +
+    find_data_files("grr/checks") + find_data_files(
+        "grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
+            "grr/gui/local/static", ignore_dirs=IGNORE_GUI_DIRS) +
+    ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
   print "*****************************************************"

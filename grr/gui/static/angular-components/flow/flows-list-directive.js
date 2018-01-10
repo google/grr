@@ -18,6 +18,8 @@ var TABLE_ROW_HASH =
 /** @const {number} */
 grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 30 * 1000;
 
+/** @const {number} */
+grrUi.flow.flowsListDirective.PAGE_SIZE = 100;
 
 /**
  * Flattens list of flows returned by the server. Every flow in the list
@@ -160,6 +162,9 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
   /** @type {number} */
   this.autoRefreshInterval =
       grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS;
+
+  /** @type {number} */
+  this.pageSize = grrUi.flow.flowsListDirective.PAGE_SIZE;
 
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.

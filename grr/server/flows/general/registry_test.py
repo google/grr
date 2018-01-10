@@ -54,7 +54,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
     client_mock = action_mocks.ActionMock(
         searching.Find,
-        searching.Grep,)
+        searching.Grep,
+    )
 
     for s in flow_test_lib.TestFlowHelper(
         registry.RegistryFinder.__name__,
@@ -308,15 +309,20 @@ class TestRegistryFlows(RegistryFlowTest):
       client_mock = action_mocks.ActionMock(
           file_fingerprint.FingerprintFile,
           searching.Find,
-          standard.StatFile,)
+          standard.StatFile,
+      )
 
       # Get KB initialized
-      for _ in flow_test_lib.TestFlowHelper(
+      for s in flow_test_lib.TestFlowHelper(
           artifact.KnowledgeBaseInitializationFlow.__name__,
           client_mock,
           client_id=self.client_id,
           token=self.token):
-        pass
+        session_id = s
+
+      col = flow.GRRFlow.ResultCollectionForFID(session_id)
+      client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
+      client.Flush()
 
       with test_lib.Instrument(transfer.MultiGetFile,
                                "Start") as getfile_instrument:

@@ -128,13 +128,18 @@ class InMemoryDB(db.Database):
     keywords = set(keywords)
     keyword_mapping = {utils.SmartStr(kw): kw for kw in keywords}
 
+    if start_time and not isinstance(start_time, rdfvalue.RDFDatetime):
+      raise ValueError(
+          "Time value must be rdfvalue.RDFDatetime, got: %s" % type(start_time))
+
     res = {}
     for k in keyword_mapping:
       res.setdefault(keyword_mapping[k], [])
       for client_id, timestamp in self.keywords.get(k, {}).items():
-        rdf_ts = rdfvalue.RDFDatetime().FromSecondsFromEpoch(timestamp)
-        if start_time and rdf_ts < start_time:
-          continue
+        if start_time is not None:
+          rdf_ts = rdfvalue.RDFDatetime().FromSecondsFromEpoch(timestamp)
+          if rdf_ts < start_time:
+            continue
         res[keyword_mapping[k]].append(client_id)
     return res
 
@@ -151,11 +156,12 @@ class InMemoryDB(db.Database):
       labelset.add(utils.SmartUnicode(l))
 
   def GetClientLabels(self, client_id):
-    res = set()
-    for owner_dict in self.labels.values():
-      for labelset in owner_dict.values():
-        res.update(labelset)
-    return res
+    res = []
+    owner_dict = self.labels.get(client_id, {})
+    for owner, labels in owner_dict.items():
+      for l in labels:
+        res.append(objects.ClientLabel(owner=owner, name=l))
+    return sorted(res, key=lambda label: (label.owner, label.name))
 
   def RemoveClientLabels(self, client_id, owner, labels):
     if isinstance(labels, basestring):

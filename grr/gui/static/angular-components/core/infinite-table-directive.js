@@ -364,7 +364,7 @@ InfiniteTableController.prototype.refreshData_ = function() {
  * @private
  */
 InfiniteTableController.prototype.onAutoRefreshDataFetched_ = function(newItems) {
-  for (var i = 0; i < newItems.items.length; ++i) {
+  for (var i = newItems.items.length - 1; i >= 0; --i) {
     var newItem = newItems.items[i];
     var key = newItem[InfiniteTableController.UNIQUE_KEY_NAME];
     var rowHash = newItem[InfiniteTableController.ROW_HASH_NAME];

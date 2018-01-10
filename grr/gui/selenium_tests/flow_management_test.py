@@ -7,6 +7,7 @@ import os
 import unittest
 from grr.gui import gui_test_lib
 
+from grr.gui.api_plugins import flow as api_flow
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -175,6 +176,58 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Flow ID")
     flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
     self.assertTrue("/" in flow_id)
+
+  def testNestedFlowsAppearCorrectlyAfterAutoRefresh(self):
+    self.Open("/#/clients/C.0000000000000001")
+    # Ensure auto-refresh updates happen every second.
+    self.GetJavaScriptValue(
+        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+
+    flow_1 = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.FlowWithOneLogStatement.__name__,
+        token=self.token)
+
+    # Go to the flows page without refreshing the page, so that
+    # AUTO_REFRESH_INTERVAL_MS setting is not reset and wait
+    # until flow_1 is visible.
+    self.Click("css=a[grrtarget='client.flows']")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % flow_1.Basename())
+
+    # Create a recursive flow_2 that will appear after auto-refresh.
+    flow_2 = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=gui_test_lib.RecursiveTestFlow.__name__,
+        token=self.token)
+
+    # Check that the flow we started in the background appears in the list.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % flow_2.Basename())
+
+    # Check that flow_2 is the row 1 (row 0 is the table header).
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-client-flows-list tr:nth(1):contains('%s')" %
+                   flow_2.Basename())
+
+    # Click on a nested flow.
+    self.Click("css=tr:contains('%s') span.tree_branch" % flow_2.Basename())
+
+    # Check that flow_2 is still row 1 and that nested flows occupy next
+    # rows.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-client-flows-list tr:nth(1):contains('%s')" %
+                   flow_2.Basename())
+
+    flow_data = api_flow.ApiGetFlowHandler().Handle(
+        api_flow.ApiGetFlowArgs(
+            client_id=self.client_id.Basename(), flow_id=flow_2.Basename()),
+        token=self.token)
+
+    for index, nested_flow in enumerate(flow_data.nested_flows):
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-client-flows-list tr:nth(%d):contains('%s')" %
+                     (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
     with implementation.GRRHunt.StartHunt(

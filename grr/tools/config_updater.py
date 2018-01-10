@@ -32,6 +32,7 @@ from grr.server import access_control
 from grr.server import aff4
 from grr.server import artifact
 from grr.server import artifact_registry
+from grr.server import data_migration
 from grr.server import key_utils
 from grr.server import maintenance_utils
 from grr.server import rekall_profile_server
@@ -328,6 +329,11 @@ parser_rotate_key.add_argument(
     default=None,
     help="The key length for the new server key. "
     "Defaults to the Server.rsa_key_length config option.")
+
+parser_migrate_data = subparsers.add_parser(
+    "migrate_data",
+    parents=[],
+    help="Migrates data to the relational database.")
 
 
 def ImportConfig(filename, config):
@@ -1025,6 +1031,8 @@ You are about to rotate the server key. Note that:
 
       maintenance_utils.RotateServerKey(
           cn=flags.FLAGS.common_name, keylength=keylength)
+  elif flags.FLAGS.subparser_name == "migrate_data":
+    data_migration.DataMigrationHelper().Migrate()
 
 
 if __name__ == "__main__":

@@ -83,9 +83,7 @@ CopyFlowFormController.prototype.proceed = function() {
 
   }.bind(this), function failure(response) {
     var e = response['data']['message'] || 'Unknown error';
-    this.scope_['onReject']({'error': e});
-    return e;
-
+    throw e;
   }.bind(this));
 };
 
@@ -100,7 +98,6 @@ grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective = function() {
       flowId: '=',
       clientId: '=',
       onResolve: '&',
-      onReject: '&'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/copy-flow-form.html',

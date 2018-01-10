@@ -239,14 +239,19 @@ class DatabaseTest(unittest.TestCase):
     client_id = "C.0000000000000001"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
-    self.assertEqual(d.GetClientLabels(client_id), set())
+    self.assertEqual(d.GetClientLabels(client_id), [])
 
     d.AddClientLabels(client_id, "owner1", ["label1"])
     d.AddClientLabels(client_id, "owner2", ["label2", "label3"])
 
-    all_labels = set(["label1", "label2", "label3"])
+    all_labels = [
+        objects.ClientLabel(name="label1", owner="owner1"),
+        objects.ClientLabel(name="label2", owner="owner2"),
+        objects.ClientLabel(name="label3", owner="owner2")
+    ]
 
     self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.GetClientLabels("C.0000000000000002"), [])
 
     # Can't hurt to insert this one again.
     d.AddClientLabels(client_id, "owner1", ["label1"])
@@ -260,20 +265,28 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(d.GetClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner2", ["label3"])
-    self.assertEqual(d.GetClientLabels(client_id), set(["label1", "label2"]))
+    self.assertEqual(
+        d.GetClientLabels(client_id), [
+            objects.ClientLabel(name="label1", owner="owner1"),
+            objects.ClientLabel(name="label2", owner="owner2"),
+        ])
 
   def testClientLabelsUnicode(self):
     d = self.CreateDatabase()
     client_id = "C.0000000000000001"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
-    self.assertEqual(d.GetClientLabels(client_id), set())
+    self.assertEqual(d.GetClientLabels(client_id), [])
 
     d.AddClientLabels(client_id, "owner1", [u"⛄࿄1"])
     d.AddClientLabels(client_id, "owner2", [u"⛄࿄2"])
     d.AddClientLabels(client_id, "owner2", [utils.SmartStr(u"⛄࿄3")])
 
-    all_labels = set([u"⛄࿄1", u"⛄࿄2", u"⛄࿄3"])
+    all_labels = [
+        objects.ClientLabel(name=u"⛄࿄1", owner="owner1"),
+        objects.ClientLabel(name=u"⛄࿄2", owner="owner2"),
+        objects.ClientLabel(name=u"⛄࿄3", owner="owner2")
+    ]
 
     self.assertEqual(d.GetClientLabels(client_id), all_labels)
 
@@ -285,7 +298,11 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(d.GetClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner2", [u"⛄࿄3"])
-    self.assertEqual(d.GetClientLabels(client_id), set([u"⛄࿄1", u"⛄࿄2"]))
+    self.assertEqual(
+        d.GetClientLabels(client_id), [
+            objects.ClientLabel(name=u"⛄࿄1", owner="owner1"),
+            objects.ClientLabel(name=u"⛄࿄2", owner="owner2")
+        ])
 
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----

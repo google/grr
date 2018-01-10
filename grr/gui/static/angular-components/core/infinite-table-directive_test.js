@@ -248,6 +248,26 @@ describe('infinite table', function() {
           toBe(1);
     });
 
+    it('adds multiple new elements in the right order', function() {
+      var element = render([], undefined, undefined, true);
+
+      expect($('table tr', element).length).toBe(0);
+
+      // Update the memory items provider elements and push the clock.
+      Array.prototype.push.apply(
+          $rootScope.testItems,
+          transformItems([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}]));
+      $interval.flush(1000);
+      expect($('table tr', element).length).toBe(2);
+
+      // New element should be inserted in the beginning of the table.
+      expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
+        toBe(1);
+      expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
+          toBe(1);
+    });
+
     it('does nothing with the row if row hash has not changed', function() {
       var element = render(
           transformItems([{timestamp: 42, message: 'foo'},

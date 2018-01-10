@@ -18,6 +18,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import client_index
+from grr.server import data_migration
 from grr.server import data_store
 from grr.server import events
 from grr.server import file_store
@@ -352,6 +353,10 @@ class FrontEndServer(object):
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)
+      if data_store.RelationalDBEnabled():
+        index = client_index.ClientIndex()
+        index.AddClient(client_urn.Basename(),
+                        data_migration.ConvertVFSGRRClient(client))
 
     enrollment_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")

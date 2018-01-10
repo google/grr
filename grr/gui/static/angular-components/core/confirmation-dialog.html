@@ -14,14 +14,6 @@
 
   <div class="modal-body">
     <ng-transclude></ng-transclude>
-
-    <div class="alert alert-success padded" role="alert" ng-if="controller.success">
-      {$ controller.success $}
-    </div>
-
-    <div class="alert alert-danger padded" role="alert" ng-if="controller.error">
-      {$ controller.error $}
-    </div>
   </div>
 
   <div class="modal-footer" ng-if="!controller.success && !controller.error">
@@ -42,6 +34,16 @@
   </div>
 
   <div class="modal-footer" ng-if="controller.success || controller.error">
+    <span class="text-success horizontally-padded"ng-if="controller.success">
+      <span class="glyphicon glyphicon-ok"></span>
+      <strong>{$ controller.success $}</strong>
+    </span>
+
+    <span class="text-danger horizontally-padded" ng-if="controller.error">
+      <span class="glyphicon glyphicon-exclamation-sign"></span>
+      <strong>{$ controller.error $}</strong>
+    </span>
+
     <button class="btn btn-default"
             ng-click="controller.close()"
             ng-attr-title="{$ closeName || 'Close' $}"

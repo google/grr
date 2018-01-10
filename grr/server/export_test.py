@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for export converters."""
 
-
 import json
 import os
 import socket
@@ -18,6 +17,7 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rdf_yara
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import events
@@ -193,10 +193,10 @@ class ExportTest(ExportTestBase):
     results = sorted(results, key=str)
 
     self.assertEqual(len(results), 4)
-    self.assertEqual([str(v) for v in results
-                      if isinstance(v, DummyRDFValue)], ["some1A", "some2A"])
-    self.assertEqual([str(v) for v in results
-                      if isinstance(v, DummyRDFValue2)], ["some1B", "some2B"])
+    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
+                     ["some1A", "some2A"])
+    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
+                     ["some1B", "some2B"])
 
   def testConvertsHuntResultCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters(
@@ -821,8 +821,8 @@ class ExportTest(ExportTestBase):
         result for result in results if isinstance(result, export.ExportedFile)
     ]
     self.assertEqual(len(exported_files), 2)
-    self.assertItemsEqual([x.basename
-                           for x in exported_files], ["path", "path2"])
+    self.assertItemsEqual([x.basename for x in exported_files],
+                          ["path", "path2"])
 
     for export_result in exported_files:
       if export_result.basename == "path":
@@ -887,8 +887,9 @@ class ExportTest(ExportTestBase):
     msg.source = self.client_id
     fixture_test_lib.ClientFixture(msg.source, token=self.token)
 
-    metadata = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+    metadata = export.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(2):
@@ -914,10 +915,12 @@ class ExportTest(ExportTestBase):
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = rdf_client.ClientURN("C.0000000000000001")
 
-    metadata1 = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
-    metadata2 = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
+    metadata1 = export.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+    metadata2 = export.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
@@ -945,10 +948,12 @@ class ExportTest(ExportTestBase):
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = rdf_client.ClientURN("C.0000000000000000")
 
-    metadata1 = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
-    metadata2 = export.ExportedMetadata(source_urn=rdfvalue.RDFURN(
-        "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
+    metadata1 = export.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results"))
+    metadata2 = export.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN(
+            "aff4:/hunts/" + str(queues.HUNTS) + ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
@@ -1104,8 +1109,9 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
         registry_data=rdf_protodict.DataBlob(string="C:\\Windows\\Sidebar.exe"))
 
-    self.file_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/tmp/bar.exe", pathtype=rdf_paths.PathSpec.PathType.OS))
+    self.file_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/tmp/bar.exe", pathtype=rdf_paths.PathSpec.PathType.OS))
 
   def testExportsOriginalResultAnywayIfItIsNotStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1122,8 +1128,9 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 
   def testExportsOriginalResultIfOriginalResultIsNotRegistryOrFileStatEntry(
       self):
-    stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="some/path", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
+    stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="some/path", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
     result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
@@ -1218,6 +1225,65 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     ]
     self.assertEquals(len(downloader_exports), 1)
     self.assertEquals(downloader_exports[0].downloaded_file.basename, "foo")
+
+
+class YaraProcessScanResponseConverterTest(ExportTestBase):
+  """Tests for YaraProcessScanResponseConverter."""
+
+  def GenerateSample(self, match):
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6))
+    return rdf_yara.YaraProcessScanMatch(
+        process=process, match=match, scan_time_us=42)
+
+  def testExportsSingleMatchCorrectly(self):
+    sample = self.GenerateSample([rdf_yara.YaraMatch(rule_name="foo")])
+
+    converter = export.YaraProcessScanResponseConverter()
+    converted = list(converter.Convert(self.metadata, sample, token=self.token))
+
+    self.assertEqual(len(converted), 1)
+
+    self.assertEqual(converted[0].process.pid, 2)
+    self.assertEqual(converted[0].process.ppid, 1)
+    self.assertEqual(converted[0].process.cmdline, "cmd.exe")
+    self.assertEqual(converted[0].process.exe, "c:\\windows\\cmd.exe")
+    self.assertEqual(converted[0].process.ctime, long(1333718907.167083 * 1e6))
+
+    self.assertEqual(converted[0].rule_name, "foo")
+    self.assertEqual(converted[0].scan_time_us, 42)
+
+  def testExportsOneEntryForTheSameRuleMatchingSameProcessTwice(self):
+    sample = self.GenerateSample([
+        rdf_yara.YaraMatch(rule_name="foo"),
+        rdf_yara.YaraMatch(rule_name="foo")
+    ])
+
+    converter = export.YaraProcessScanResponseConverter()
+    converted = list(converter.Convert(self.metadata, sample, token=self.token))
+
+    self.assertEqual(len(converted), 1)
+
+    self.assertEqual(converted[0].rule_name, "foo")
+    self.assertEqual(converted[0].scan_time_us, 42)
+
+  def testExportsTwoEntriesForTwoRulesMatchingSameProcess(self):
+    sample = self.GenerateSample([
+        rdf_yara.YaraMatch(rule_name="foo"),
+        rdf_yara.YaraMatch(rule_name="bar")
+    ])
+
+    converter = export.YaraProcessScanResponseConverter()
+    converted = list(converter.Convert(self.metadata, sample, token=self.token))
+
+    self.assertEqual(len(converted), 2)
+
+    self.assertEqual(converted[0].rule_name, "foo")
+    self.assertEqual(converted[1].rule_name, "bar")
 
 
 class DataAgnosticExportConverterTest(ExportTestBase):

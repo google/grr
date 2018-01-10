@@ -48,14 +48,22 @@ class YaraProcessScan(flow.GRRFlow):
     pids_to_dump = set()
 
     for response in responses:
-      self.SendReply(response)
       for match in response.matches:
+        self.SendReply(match)
         rules = set([m.rule_name for m in match.match])
         rules_string = ",".join(sorted(rules))
         logging.debug("YaraScan match in pid %d (%s) for rules %s.",
                       match.process.pid, match.process.exe, rules_string)
         if self.args.dump_process_on_match:
           pids_to_dump.add(match.process.pid)
+
+      if self.args.include_errors_in_results:
+        for error in response.errors:
+          self.SendReply(error)
+
+      if self.args.include_misses_in_results:
+        for miss in response.misses:
+          self.SendReply(miss)
 
     if pids_to_dump:
       self.CallFlow(

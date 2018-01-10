@@ -8,9 +8,16 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr.proto import objects_pb2
+
+
+class ClientLabel(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ClientLabel
+
+
+class StringMapEntry(structs.RDFProtoStruct):
+  protobuf = objects_pb2.StringMapEntry
 
 
 class Client(structs.RDFProtoStruct):
@@ -30,7 +37,7 @@ class Client(structs.RDFProtoStruct):
       rdf_client.ClientInformation,
       rdf_client.VersionString,
       rdf_client.KnowledgeBase,
-      protodict.Dict,
+      StringMapEntry,
       rdf_client.Volume,
       rdf_client.Interface,
       rdf_client.HardwareInfo,
@@ -48,12 +55,12 @@ class Client(structs.RDFProtoStruct):
 
   def GetMacAddresses(self):
     """MAC addresses from all interfaces."""
-    result = []
+    result = set()
     for interface in self.interfaces:
       if (interface.mac_address and
           interface.mac_address != "\x00" * len(interface.mac_address)):
-        result.append(interface.mac_address.human_readable_address)
-        return result
+        result.add(interface.mac_address.human_readable_address)
+    return sorted(result)
 
   def GetIPAddresses(self):
     """IP addresses from all interfaces."""
@@ -64,7 +71,7 @@ class Client(structs.RDFProtoStruct):
       for address in interface.addresses:
         if address.human_readable_address not in filtered_ips:
           result.append(address.human_readable_address)
-    return result
+    return sorted(result)
 
   def GetSummary(self):
     """Gets a client summary object.

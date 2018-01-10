@@ -76,7 +76,13 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
     # searched for keywords.
+
+    # AFF4 index.
     index = client_index.CreateClientIndex(token=self.token)
+    self.assertEqual(len(index.LookupClients(keywords)), expected_count)
+
+    # Relational index.
+    index = client_index.ClientIndex()
     self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
@@ -155,8 +161,13 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     """Check that label indexes are updated."""
     index = client_index.CreateClientIndex(token=self.token)
 
+    # AFF4 index.
     self.assertEqual(
         list(index.LookupClients(["label:Label2"])), [self.client_id])
+
+    # Relational index.
+    self.assertEqual(client_index.ClientIndex().LookupClients(["label:Label2"]),
+                     [self.client_id.Basename()])
 
   def _CheckWindowsDiskInfo(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)

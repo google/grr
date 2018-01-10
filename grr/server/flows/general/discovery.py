@@ -11,6 +11,8 @@ from grr.proto import flows_pb2
 from grr.server import aff4
 from grr.server import artifact
 from grr.server import client_index
+from grr.server import data_migration
+from grr.server import data_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
@@ -171,11 +173,35 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get InstallDate")
 
+  def CopyOSReleaseFromKnowledgeBase(self, kb, client):
+    """Copy os release and version from KB to client object."""
+    if kb.os_release:
+      client.Set(client.Schema.OS_RELEASE(kb.os_release))
+
+      # Override OS version field too.
+      # TODO(user): this actually results in incorrect versions for things
+      #                like Ubuntu (14.4 instead of 14.04). I don't think zero-
+      #                padding is always correct, however.
+      os_version = "%d.%d" % (kb.os_major_version, kb.os_minor_version)
+      client.Set(client.Schema.OS_VERSION(os_version))
+
   @flow.StateHandler()
   def ProcessKnowledgeBase(self, responses):
     """Collect and store any extra non-kb artifacts."""
     if not responses.success:
-      raise flow.FlowError("Error collecting artifacts: %s" % responses.status)
+      raise flow.FlowError(
+          "Error while collecting the knowledge base: %s" % responses.status)
+
+    kb = responses.First()
+    client = self._OpenClient(mode="rw")
+    client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+
+    # Copy usernames.
+    usernames = [user.username for user in kb.users if user.username]
+    client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
+
+    self.CopyOSReleaseFromKnowledgeBase(kb, client)
+    client.Flush()
 
     artifact_list = [
         "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
@@ -187,7 +213,6 @@ class Interrogate(flow.GRRFlow):
         next_state="ProcessArtifactResponses")
 
     # Update the client index
-    client = self._OpenClient()
     client_index.CreateClientIndex(token=self.token).AddClient(client)
 
   @flow.StateHandler()
@@ -331,6 +356,10 @@ class Interrogate(flow.GRRFlow):
 
     # Update the client index
     client_index.CreateClientIndex(token=self.token).AddClient(client)
+    if data_store.RelationalDBEnabled():
+      index = client_index.ClientIndex()
+      index.AddClient(self.client_id.Basename(),
+                      data_migration.ConvertVFSGRRClient(client))
 
 
 class EnrolmentInterrogateEvent(flow.EventListener):

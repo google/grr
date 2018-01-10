@@ -14,9 +14,11 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
 from grr.server import artifact
 from grr.server import artifact_registry
 from grr.server import data_store
+from grr.server import flow
 from grr.server.flows.general import collectors
 from grr.server.flows.general import transfer
 from grr.test_lib import action_mocks
@@ -111,12 +113,17 @@ supported_os: [ "Linux" ]
     client_mock = action_mocks.FileFinderClientMock()
 
     # Get KB initialized
-    for _ in flow_test_lib.TestFlowHelper(
+    for s in flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token):
-      pass
+      session_id = s
+
+    col = flow.GRRFlow.ResultCollectionForFID(session_id)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
 
     artifact_list = ["WindowsPersistenceMechanismFiles"]
     with test_lib.Instrument(transfer.MultiGetFile,
@@ -134,8 +141,8 @@ supported_os: [ "Linux" ]
       # TODO(user): RunKeys for S-1-5-20 are not found because users.sid only
       # expands to users with profiles.
       pathspecs = getfile_instrument.args[0][0].args.pathspecs
-      self.assertItemsEqual([x.path
-                             for x in pathspecs], [u"C:\\Windows\\TEMP\\A.exe"])
+      self.assertItemsEqual([x.path for x in pathspecs],
+                            [u"C:\\Windows\\TEMP\\A.exe"])
 
     artifact_list = ["BadPathspecArtifact"]
     with test_lib.Instrument(transfer.MultiGetFile,

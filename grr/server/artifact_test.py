@@ -513,10 +513,19 @@ class GrrKbTest(ArtifactTest):
     super(GrrKbTest, self).setUp()
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
 
-  def ClearKB(self):
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.KNOWLEDGE_BASE, rdf_client.KnowledgeBase())
-    client.Flush()
+  def _RunKBI(self, **kw):
+    for s in flow_test_lib.TestFlowHelper(
+        artifact.KnowledgeBaseInitializationFlow.__name__,
+        self.client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        **kw):
+      session_id = s
+
+    col = flow.GRRFlow.ResultCollectionForFID(session_id)
+    results = list(col)
+    self.assertEqual(len(results), 1)
+    return results[0]
 
 
 class GrrKbWindowsTest(GrrKbTest):
@@ -543,17 +552,8 @@ class GrrKbWindowsTest(GrrKbTest):
 
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
-    self.ClearKB()
-    for _ in flow_test_lib.TestFlowHelper(
-        artifact.KnowledgeBaseInitializationFlow.__name__,
-        self.client_mock,
-        client_id=self.client_id,
-        token=self.token):
-      pass
+    kb = self._RunKBI()
 
-    # The client should now be populated with the data we care about.
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    kb = artifact.GetArtifactKnowledgeBase(client)
     self.assertEqual(kb.environ_systemroot, "C:\\Windows")
     self.assertEqual(kb.time_zone, "US/Alaska")
     self.assertEqual(kb.code_page, "cp_1252")
@@ -572,22 +572,13 @@ class GrrKbWindowsTest(GrrKbTest):
 
   def testKnowledgeBaseMultiProvides(self):
     """Check we can handle multi-provides."""
-    self.ClearKB()
     # Replace some artifacts with test one that will run the MultiProvideParser.
     self.LoadTestArtifacts()
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": ["DepsProvidesMultiple"]
     }):
-      for _ in flow_test_lib.TestFlowHelper(
-          artifact.KnowledgeBaseInitializationFlow.__name__,
-          self.client_mock,
-          client_id=self.client_id,
-          token=self.token):
-        pass
+      kb = self._RunKBI()
 
-      # The client should now be populated with the data we care about.
-      client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      kb = artifact.GetArtifactKnowledgeBase(client)
       self.assertEqual(kb.environ_temp, "tempvalue")
       self.assertEqual(kb.environ_path, "pathvalue")
 
@@ -655,7 +646,6 @@ class GrrKbWindowsTest(GrrKbTest):
       artifact.ArtifactLoader().RunOnce()
 
   def _RunKBIFlow(self, artifact_list):
-    self.ClearKB()
     self.LoadTestArtifacts()
     with test_lib.ConfigOverrider({"Artifacts.knowledge_base": artifact_list}):
       logging.disable(logging.CRITICAL)
@@ -690,7 +680,6 @@ class GrrKbLinuxTest(GrrKbTest):
 
   def testKnowledgeBaseRetrievalLinux(self):
     """Check we can retrieve a Linux kb."""
-    self.ClearKB()
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "LinuxWtmp", "NetgroupConfiguration", "LinuxPasswdHomedirs",
@@ -700,26 +689,19 @@ class GrrKbLinuxTest(GrrKbTest):
         "Artifacts.netgroup_user_blacklist": ["isaac"]
     }):
       with vfs_test_lib.FakeTestDataVFSOverrider():
-        for _ in flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token):
-          pass
-        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-        kb = artifact.GetArtifactKnowledgeBase(client)
-        self.assertEqual(kb.os_major_version, 14)
-        self.assertEqual(kb.os_minor_version, 4)
-        # user 1,2,3 from wtmp. yagharek from netgroup.
-        self.assertItemsEqual([x.username for x in kb.users],
-                              ["user1", "user2", "user3", "yagharek"])
-        user = kb.GetUser(username="user1")
-        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
-        self.assertEqual(user.homedir, "/home/user1")
+        kb = self._RunKBI()
+
+    self.assertEqual(kb.os_major_version, 14)
+    self.assertEqual(kb.os_minor_version, 4)
+    # user 1,2,3 from wtmp. yagharek from netgroup.
+    self.assertItemsEqual([x.username for x in kb.users],
+                          ["user1", "user2", "user3", "yagharek"])
+    user = kb.GetUser(username="user1")
+    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+    self.assertEqual(user.homedir, "/home/user1")
 
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
     """Check we can retrieve a Linux kb."""
-    self.ClearKB()
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
@@ -728,33 +710,25 @@ class GrrKbLinuxTest(GrrKbTest):
           "Artifacts.knowledge_base_additions": [],
           "Artifacts.knowledge_base_skip": []
       }):
-        for _ in flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token):
-          pass
+        kb = self._RunKBI()
 
-        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-        kb = artifact.GetArtifactKnowledgeBase(client)
-        self.assertEqual(kb.os_major_version, 14)
-        self.assertEqual(kb.os_minor_version, 4)
-        # user 1,2,3 from wtmp.
-        self.assertItemsEqual([x.username for x in kb.users],
-                              ["user1", "user2", "user3"])
-        user = kb.GetUser(username="user1")
-        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
-        self.assertEqual(user.homedir, "/home/user1")
+    self.assertEqual(kb.os_major_version, 14)
+    self.assertEqual(kb.os_minor_version, 4)
+    # user 1,2,3 from wtmp.
+    self.assertItemsEqual([x.username for x in kb.users],
+                          ["user1", "user2", "user3"])
+    user = kb.GetUser(username="user1")
+    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+    self.assertEqual(user.homedir, "/home/user1")
 
-        user = kb.GetUser(username="user2")
-        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552102)
-        self.assertEqual(user.homedir, "/home/user2")
+    user = kb.GetUser(username="user2")
+    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552102)
+    self.assertEqual(user.homedir, "/home/user2")
 
-        self.assertFalse(kb.GetUser(username="buguser3"))
+    self.assertFalse(kb.GetUser(username="buguser3"))
 
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
     """Cause a users.username dependency failure."""
-    self.ClearKB()
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "NetgroupConfiguration", "NssCacheLinuxPasswdHomedirs",
@@ -764,18 +738,11 @@ class GrrKbLinuxTest(GrrKbTest):
     }):
 
       with vfs_test_lib.FakeTestDataVFSOverrider():
-        for _ in flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            self.client_mock,
-            require_complete=False,
-            client_id=self.client_id,
-            token=self.token):
-          pass
-        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-        kb = artifact.GetArtifactKnowledgeBase(client)
-        self.assertEqual(kb.os_major_version, 14)
-        self.assertEqual(kb.os_minor_version, 4)
-        self.assertItemsEqual([x.username for x in kb.users], [])
+        kb = self._RunKBI(require_complete=False)
+
+    self.assertEqual(kb.os_major_version, 14)
+    self.assertEqual(kb.os_minor_version, 4)
+    self.assertItemsEqual([x.username for x in kb.users], [])
 
 
 class GrrKbDarwinTest(GrrKbTest):
@@ -786,26 +753,17 @@ class GrrKbDarwinTest(GrrKbTest):
 
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
-    self.ClearKB()
     with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["MacOSUsers"]}):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.ClientVFSHandlerFixture):
+        kb = self._RunKBI()
 
-        for _ in flow_test_lib.TestFlowHelper(
-            artifact.KnowledgeBaseInitializationFlow.__name__,
-            self.client_mock,
-            client_id=self.client_id,
-            token=self.token):
-          pass
-        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-
-        kb = artifact.GetArtifactKnowledgeBase(client)
-        self.assertEqual(kb.os_major_version, 10)
-        self.assertEqual(kb.os_minor_version, 9)
-        # scalzi from /Users dir listing.
-        self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
-        user = kb.GetUser(username="scalzi")
-        self.assertEqual(user.homedir, "/Users/scalzi")
+    self.assertEqual(kb.os_major_version, 10)
+    self.assertEqual(kb.os_minor_version, 9)
+    # scalzi from /Users dir listing.
+    self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
+    user = kb.GetUser(username="scalzi")
+    self.assertEqual(user.homedir, "/Users/scalzi")
 
 
 def main(argv):

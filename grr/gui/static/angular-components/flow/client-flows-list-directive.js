@@ -145,9 +145,6 @@ ClientFlowsListController.prototype.copyFlow = function() {
     newFlowId = newFlowObj['value']['flow_id']['value'];
     modalInstance.close();
   }.bind(this);
-  modalScope['reject'] = function() {
-    modalInstance.dismiss();
-  }.bind(this);
 
   this.scope_.$on('$destroy', function() {
     modalScope.$destroy();
@@ -155,14 +152,18 @@ ClientFlowsListController.prototype.copyFlow = function() {
 
   var modalInstance = this.uibModal_.open({
     template: '<grr-copy-flow-form on-resolve="resolve(flow)" ' +
-        'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
+        'flow-id="flowId" client-id="clientId" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
   });
   modalInstance.result.then(function resolve() {
-    this.grrRoutingService_.go('client.flows', {flowId: newFlowId});
-    this.triggerUpdate();
+    // newFlowId will remain unset if an error happened on the server and
+    // 'resolve' callback was never called.
+    if (angular.isDefined(newFlowId)) {
+      this.grrRoutingService_.go('client.flows', {flowId: newFlowId});
+      this.triggerUpdate();
+    }
   }.bind(this));
 };
 

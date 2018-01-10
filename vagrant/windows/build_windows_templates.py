@@ -172,8 +172,8 @@ class WindowsTemplateBuilder(object):
     os.chdir(args.grr_src)
     subprocess.check_call([
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
-        "--dist-dir=%s" % args.build_dir, "--no-make-docs",
-        "--no-make-ui-files", "--no-sync-artifacts"
+        "--dist-dir=%s" % args.build_dir, "--no-make-ui-files",
+        "--no-sync-artifacts"
     ])
     return glob.glob(os.path.join(args.build_dir,
                                   "grr-response-core-*.zip")).pop()

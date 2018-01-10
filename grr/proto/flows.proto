@@ -1832,6 +1832,7 @@ message DumpACPITableArgs {
     }, default="1.2.4.1"];
 }
 
+// Next field ID: 16
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
       type: "YaraSignature",
@@ -1844,6 +1845,16 @@ message YaraProcessScanRequest {
       description: "A regex to match against the process name. Only matching "
       "names will be scanned.",
     }];
+  optional bool include_errors_in_results = 14 [(sem_type) = {
+      description: "Include processes that we failed to scan into returned "
+      "results."
+      label: ADVANCED,
+    }, default=false];
+  optional bool include_misses_in_results = 15 [(sem_type) = {
+      description: "Include processes that came back without matches into "
+      "returned results."
+      label: ADVANCED,
+    }, default=false];
   optional bool ignore_grr_process = 4 [ default = true, (sem_type) = {
       description: "By default, the GRR process is not scanned. Clear this "
       "flag to change this behavior.",

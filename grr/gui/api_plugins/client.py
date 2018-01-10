@@ -466,6 +466,12 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           mode="rw",
           token=token)
       for client_obj in client_objs:
+        if data_store.RelationalDBEnabled():
+          cid = client_obj.urn.Basename()
+          data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
+          idx = client_index.ClientIndex()
+          idx.AddClientLabels(cid, args.labels)
+
         client_obj.AddLabels(args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
@@ -521,6 +527,17 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           mode="rw",
           token=token)
       for client_obj in client_objs:
+        if data_store.RelationalDBEnabled():
+          cid = client_obj.urn.Basename()
+          data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
+          labels_to_remove = set(args.labels)
+          existing_labels = data_store.REL_DB.GetClientLabels(cid)
+          for label in existing_labels:
+            labels_to_remove.discard(label.name)
+          if labels_to_remove:
+            idx = client_index.ClientIndex()
+            idx.RemoveClientLabels(cid, labels_to_remove)
+
         index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)
         index.AddClient(client_obj)

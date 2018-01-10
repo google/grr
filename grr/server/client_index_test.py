@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 """Tests for grr.lib.client_index."""
 
+import socket
 
 from grr.lib import flags
+from grr.lib import ipv6_utils
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import objects
 from grr.server import aff4
 from grr.server import client_index
+from grr.server import data_store
 from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
@@ -14,14 +18,10 @@ from grr.test_lib import test_lib
 CLIENT_ID = "C.00aaeccbb45f33a3"
 
 
-class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
+class AFF4ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   def testAnalyzeClient(self):
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
     client = aff4.FACTORY.Create(
         "aff4:/" + CLIENT_ID,
         aff4_type=aff4_grr.VFSGRRClient,
@@ -64,11 +64,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertIn("client-label-23", keywords)
 
   def testAddLookupClients(self):
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index1/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
     client_urns = self.SetupClients(42)
     for urn in client_urns:
       client = aff4.FACTORY.Create(
@@ -125,11 +121,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(index.LookupClients(["."])), 42)
 
   def testAddTimestamp(self):
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index2/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     client_urns = self.SetupClients(5)
     # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
@@ -159,11 +151,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
                                  "end_date:XXXX"])), 5)
 
   def testUnversionedKeywords(self):
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index3/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     client_urns = self.SetupClients(5)
 
@@ -203,11 +191,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     client.AddLabel("testlabel_1")
     client.AddLabel("testlabel_2")
     client.Flush()
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index4/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
     index.AddClient(client)
 
     client_list = [rdf_client.ClientURN(CLIENT_ID)]
@@ -231,11 +215,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertItemsEqual(hosts, result)
 
   def testBulkLabelClients(self):
-    index = aff4.FACTORY.Create(
-        "aff4:/client-index4/",
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     client_urns = self.SetupClients(2)
     for urn in client_urns:
@@ -292,6 +272,168 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self._HostsHaveLabel(hosts, "label-1", index)
     self.assertItemsEqual(
         index.LookupClients(["label-1"]), [m[host] for host in hosts])
+
+
+class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
+
+  def testAnalyzeClient(self):
+    index = client_index.ClientIndex()
+
+    client = objects.Client()
+    client.system = "Windows"
+    client.client_info.client_name = "grr monitor"
+    client.client_info.labels = ["client-label-23"]
+    kb = client.knowledge_base
+    kb.users = [
+        rdf_client.User(
+            username="Bert",
+            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"),
+        rdf_client.User(username="Ernie", full_name="Steve O'Bryan")
+    ]
+    keywords = index.AnalyzeClient(client)
+
+    # Should not contain an empty string.
+    self.assertNotIn("", keywords)
+
+    # OS of the client
+    self.assertIn("windows", keywords)
+
+    # Users of the client.
+    self.assertIn("bert", keywords)
+    self.assertIn("bertrand", keywords)
+    self.assertNotIn(")", keywords)
+    self.assertIn("russell", keywords)
+    self.assertIn("logician", keywords)
+    self.assertIn("ernie", keywords)
+    self.assertIn("eric", keywords)
+    self.assertIn("jacobson", keywords)
+    self.assertIn("steve o'bryan", keywords)
+    self.assertIn("o'bryan", keywords)
+
+    # Client information.
+    self.assertIn("grr monitor", keywords)
+    self.assertIn("client-label-23", keywords)
+
+  def _SetupClients(self, n):
+    res = {}
+    for i in range(1, n + 1):
+      client_id = "C.100000000000000%d" % i
+      client = objects.Client()
+      client.system = "Windows"
+      client.hostname = "host-%d" % i
+      client.fqdn = "host-%d.example.com" % i
+
+      client.interfaces = [
+          rdf_client.Interface(
+              addresses=[
+                  rdf_client.NetworkAddress(
+                      address_type=rdf_client.NetworkAddress.Family.INET,
+                      packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET,
+                                                       "192.168.0.%d" % i)),
+                  rdf_client.NetworkAddress(
+                      address_type=rdf_client.NetworkAddress.Family.INET6,
+                      packed_bytes=ipv6_utils.InetPtoN(socket.AF_INET6,
+                                                       "2001:abcd::%d" % i))
+              ],
+              mac_address=("aabbccddee0%d" % i).decode("hex"))
+      ]
+      res[client_id] = client
+    return res
+
+  def testAddLookupClients(self):
+    index = client_index.ClientIndex()
+
+    clients = self._SetupClients(2)
+    for client_id, client in clients.items():
+      index.AddClient(client_id, client)
+
+    # Check unique identifiers.
+    self.assertEqual(
+        index.LookupClients(["192.168.0.1"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["2001:aBcd::1"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["ip:192.168.0.1"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["ip:2001:abcd::1"]), ["C.1000000000000001"])
+    self.assertEqual(index.LookupClients(["host-2"]), ["C.1000000000000002"])
+    self.assertEqual(
+        index.LookupClients(["C.1000000000000002"]), ["C.1000000000000002"])
+    self.assertEqual(
+        index.LookupClients(["aabbccddee01"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["mac:aabbccddee01"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"])
+    self.assertEqual(
+        index.LookupClients(["mac:aa:bb:cc:dd:ee:01"]), ["C.1000000000000001"])
+
+    # IP prefixes of octets should work:
+    self.assertItemsEqual(index.LookupClients(["192.168.0"]), list(clients))
+
+    # Hostname prefixes of tokens should work.
+    self.assertEqual(
+        index.LookupClients(["host-2.example"]), ["C.1000000000000002"])
+
+    # Intersections should work.
+    self.assertEqual(
+        index.LookupClients(["192.168.0", "Host-2"]), ["C.1000000000000002"])
+
+    # Universal keyword should find everything.
+    self.assertItemsEqual(index.LookupClients(["."]), list(clients))
+
+  def testAddTimestamp(self):
+    index = client_index.ClientIndex()
+
+    clients = self._SetupClients(5)
+
+    # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
+    with test_lib.FakeTime(1413807132):
+      for client_id, client in clients.items():
+        index.AddClient(client_id, client)
+
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2014-10-20"])), 5)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
+
+    # Ignore the keyword if the date is not readable.
+    self.assertEqual(len(index.LookupClients([".", "start_date:XXX"])), 0)
+
+  def testRemoveLabels(self):
+    client_id, _ = self._SetupClients(1).items()[0]
+    data_store.REL_DB.AddClientLabels(client_id, "owner",
+                                      ["testlabel_1", "testlabel_2"])
+
+    index = client_index.ClientIndex()
+    index.AddClientLabels(client_id, ["testlabel_1", "testlabel_2"])
+
+    self.assertEqual(index.LookupClients(["testlabel_1"]), [client_id])
+    self.assertEqual(index.LookupClients(["testlabel_2"]), [client_id])
+
+    # Now delete one label.
+    index.RemoveClientLabels(client_id, ["testlabel_1"])
+
+    self.assertEqual(index.LookupClients(["testlabel_1"]), [])
+    self.assertEqual(index.LookupClients(["testlabel_2"]), [client_id])
+
+    # Remove them all.
+    index.RemoveAllClientLabels(client_id)
+
+    self.assertEqual(index.LookupClients(["testlabel_1"]), [])
+    self.assertEqual(index.LookupClients(["testlabel_2"]), [])
+
+  def _HostsHaveLabel(self, expected_hosts, label, index):
+    client_ids = index.LookupClients(["label:%s" % label])
+    client_data = data_store.REL_DB.ReadClients(client_ids)
+    labelled_hosts = []
+
+    for client_id in client_ids:
+      data = client_data[client_id]
+      if not data:
+        continue
+      labelled_hosts.append(data.hostname)
+    self.assertItemsEqual(expected_hosts, labelled_hosts)
 
 
 def main(argv):

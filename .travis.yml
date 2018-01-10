@@ -246,7 +246,7 @@ matrix:
           sudo docker exec "${DOCKER_CONTAINER}"
           apt-get install -y fakeroot debhelper libffi-dev libssl-dev python-dev
           python-pip wget openjdk-8-jdk zip git devscripts dh-systemd
-          dh-virtualenv libc6-i386 lib32z1 asciidoc
+          dh-virtualenv libc6-i386 lib32z1
         - >-
           sudo docker exec "${DOCKER_CONTAINER}"
           pip install --upgrade pip virtualenv

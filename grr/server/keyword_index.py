@@ -11,6 +11,7 @@ from grr.server import aff4
 from grr.server import data_store
 
 
+# TODO(amoser): This class is deprecated, remove at some point.
 class AFF4KeywordIndex(aff4.AFF4Object):
   """An index linking keywords to names of objects.
   """

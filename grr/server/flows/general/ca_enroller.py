@@ -12,6 +12,8 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.server import aff4
 from grr.server import client_index
+from grr.server import data_migration
+from grr.server import data_store
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 
@@ -71,6 +73,10 @@ class CAEnroler(flow.GRRFlow):
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)
+      if data_store.RelationalDBEnabled:
+        index = client_index.ClientIndex()
+        index.AddClient(self.client_id.Basename(),
+                        data_migration.ConvertVFSGRRClient(client))
 
     # Publish the client enrollment message.
     self.Publish("ClientEnrollment", self.client_id)

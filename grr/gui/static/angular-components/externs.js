@@ -161,7 +161,6 @@ moment.Duration;
  * Suppresses the compiler warning when multiple externs files declare the
  * ui namespace.
  * @suppress {duplicate}
- * @noalias
  */
 var ui = {};
 

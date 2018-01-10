@@ -62,7 +62,7 @@ describe('confirmation dialog directive', function() {
     $rootScope.$apply();
 
     expect($rootScope.proceed).toHaveBeenCalled();
-    expect(element.find('.modal-body .alert-success').text().trim()).toBe(successMessage);
+    expect(element.find('.modal-footer .text-success').text().trim()).toBe(successMessage);
     expect(element.find('button[name="Close"]').length).toBe(1);
   });
 
@@ -78,7 +78,7 @@ describe('confirmation dialog directive', function() {
     $rootScope.$apply();
 
     expect($rootScope.proceed).toHaveBeenCalled();
-    expect(element.find('.modal-body .alert-danger').text().trim()).toBe(errorMessage);
+    expect(element.find('.modal-footer .text-danger').text().trim()).toBe(errorMessage);
   });
 
   it('shows a disabled proceed button when canProceed is false', function() {

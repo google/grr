@@ -18,6 +18,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import client_index
+from grr.server import data_migration
 from grr.server import data_store
 from grr.server.aff4_objects import security
 from grr.server.aff4_objects import users
@@ -37,9 +38,9 @@ def SearchClients(query_str, token=None, limit=1000):
   result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
   results = []
   for result in result_set:
-    results.append((result, str(result.Get(client_schema.HOSTNAME)), str(
-        result.Get(client_schema.OS_VERSION)), str(
-            result.Get(client_schema.PING))))
+    results.append((result, str(result.Get(client_schema.HOSTNAME)),
+                    str(result.Get(client_schema.OS_VERSION)),
+                    str(result.Get(client_schema.PING))))
     if len(results) >= limit:
       break
 
@@ -470,3 +471,7 @@ def ExportClientsByKeywords(keywords, filename, token=None):
           "users": "\n".join(client.Get(s.USERNAMES, [])),
           "last_seen": client.Get(s.PING),
       })
+
+
+# Pull this into the console.
+ConvertVFSGRRClient = data_migration.ConvertVFSGRRClient  # pylint: disable=invalid-name

@@ -183,6 +183,11 @@ class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
   ]
 
 
+class ExportedYaraProcessScanMatch(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedYaraProcessScanMatch
+  rdf_deps = [ExportedProcess, ExportedMetadata]
+
+
 class ExportConverter(object):
   """Base ExportConverter class.
 
@@ -1146,8 +1151,8 @@ class FileStoreHashConverter(ExportConverter):
     """Convert batch of FileStoreHashs."""
 
     urns = [urn for metadata, urn in metadata_value_pairs]
-    urns_dict = dict([(urn, metadata)
-                      for metadata, urn in metadata_value_pairs])
+    urns_dict = dict(
+        [(urn, metadata) for metadata, urn in metadata_value_pairs])
 
     results = []
     for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
@@ -1321,6 +1326,29 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
     for r in self.BatchConvert([(metadata, value)], token=token):
       yield r
+
+
+class YaraProcessScanResponseConverter(ExportConverter):
+  input_rdf_type = "YaraProcessScanMatch"
+
+  def Convert(self, metadata, yara_match, token=None):
+    """Convert a single YaraProcessScanMatch."""
+
+    conv = ProcessToExportedProcessConverter(options=self.options)
+    process = list(
+        conv.Convert(ExportedMetadata(), yara_match.process, token=token))[0]
+
+    seen_rules = set()
+    for m in yara_match.match:
+      if m.rule_name in seen_rules:
+        continue
+
+      seen_rules.add(m.rule_name)
+      yield ExportedYaraProcessScanMatch(
+          metadata=metadata,
+          process=process,
+          rule_name=m.rule_name,
+          scan_time_us=yara_match.scan_time_us)
 
 
 class RekallResponseConverter(ExportConverter):

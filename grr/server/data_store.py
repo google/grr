@@ -65,6 +65,11 @@ DB = None
 # The global relational db handle.
 REL_DB = None
 
+
+def RelationalDBEnabled():
+  return bool(REL_DB)
+
+
 # There are stub methods that don't return/yield as indicated by the docstring.
 # pylint: disable=g-doc-return-or-yield
 

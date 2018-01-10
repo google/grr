@@ -84,9 +84,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     if (self.args.dependencies ==
         artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
-      self.CallFlow(
-          artifact.KnowledgeBaseInitializationFlow.__name__,
-          next_state="StartCollection")
+      # String due to dependency loop with discover.py.
+      self.CallFlow("Interrogate", next_state="StartCollection")
       return
 
     elif (self.args.dependencies == artifact_utils.ArtifactCollectorFlowArgs.
@@ -99,9 +98,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # If no-one has ever initialized the knowledge base, we should do so
         # now.
         if not self._AreArtifactsKnowledgeBaseArtifacts():
-          self.CallFlow(
-              artifact.KnowledgeBaseInitializationFlow.__name__,
-              next_state="StartCollection")
+          # String due to dependency loop with discover.py.
+          self.CallFlow("Interrogate", next_state="StartCollection")
           return
 
     # In all other cases start the collection state.

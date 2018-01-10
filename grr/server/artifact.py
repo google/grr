@@ -285,42 +285,13 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
 
     return provided
 
-  def CopyUserNamesFromKnowledgeBase(self, client):
-    """Copy usernames from knowledgebase to USERNAMES.
-
-    Args:
-      client: client object open for writing
-    """
-    kb = self.state.knowledge_base.users
-    usernames = [user.username for user in kb if user.username]
-    client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
-
-  def CopyOSReleaseFromKnowledgeBase(self, client):
-    """Copy os release and version from KB to client object."""
-    if self.state.knowledge_base.os_release:
-      os_release = self.state.knowledge_base.os_release
-      client.Set(client.Schema.OS_RELEASE(os_release))
-
-      # Override OS version field too.
-      # TODO(user): this actually results in incorrect versions for things
-      #                like Ubuntu (14.4 instead of 14.04). I don't think zero-
-      #                padding is always correct, however.
-      os_version = "%d.%d" % (self.state.knowledge_base.os_major_version,
-                              self.state.knowledge_base.os_minor_version)
-      client.Set(client.Schema.OS_VERSION(os_version))
-
   def NotifyAboutEnd(self):
     client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
     self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
 
   @flow.StateHandler()
   def End(self, unused_responses):
-    """Finish up and write the results."""
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.KNOWLEDGE_BASE, self.state.knowledge_base)
-    self.CopyUserNamesFromKnowledgeBase(client)
-    self.CopyOSReleaseFromKnowledgeBase(client)
-    client.Flush()
+    """Finish up."""
     self.SendReply(self.state.knowledge_base)
 
   def GetFirstFlowsForCollection(self):

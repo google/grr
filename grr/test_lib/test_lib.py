@@ -124,6 +124,7 @@ class GRRBaseTest(unittest.TestCase):
     self.last_start_time = time.time()
 
     data_store.DB.ClearTestDB()
+    data_store.REL_DB.ClearTestDB()
 
     aff4.FACTORY.Flush()
 
@@ -416,16 +417,6 @@ class GRRBaseTest(unittest.TestCase):
       ]
 
     return client_ids
-
-  def DeleteClient(self, client_nr):
-    """Cleans up a test client mock."""
-    client_id = rdf_client.ClientURN("C.1%015x" % client_nr)
-    data_store.DB.DeleteSubject(client_id)
-
-  def DeleteClients(self, nr_clients):
-    """Cleans up test client mocks. Analogous to .SetupClients(nr_clients) ."""
-    for client_nr in xrange(nr_clients):
-      self.DeleteClient(client_nr)
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)

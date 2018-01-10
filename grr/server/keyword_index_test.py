@@ -9,7 +9,7 @@ from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 
 
-class KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
+class AFF4KeywordIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   def testKeywordIndex(self):
     index = aff4.FACTORY.Create(

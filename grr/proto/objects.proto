@@ -6,6 +6,17 @@ import "grr/proto/semantic.proto";
 import "grr/proto/sysinfo.proto";
 
 
+message ClientLabel {
+  optional string name = 1;
+  optional string owner = 2 [(sem_type) = {
+      description: "Username of the user who added the label.",
+    }];
+}
+
+message StringMapEntry {
+  optional string key = 1;
+  optional string value = 2;
+}
 
 message Client {
   optional uint64 last_boot_time = 1 [(sem_type) = {
@@ -44,10 +55,10 @@ message Client {
   optional KnowledgeBase knowledge_base = 11 [(sem_type) = {
       description: "Artifact Knowledge Base",
     }];
-  optional Dict grr_configuration = 12 [(sem_type) = {
+  repeated StringMapEntry grr_configuration = 12 [(sem_type) = {
       description: "Running configuration for the GRR client.",
     }];
-  optional Dict library_versions = 13 [(sem_type) = {
+  repeated StringMapEntry library_versions = 13 [(sem_type) = {
       description: "Running library versions for the client.",
     }];
   optional string kernel = 14 [(sem_type) = {
