@@ -24,6 +24,7 @@ from grr.lib import server_plugins
 from grr import config
 from grr.config import contexts
 from grr.lib import flags
+from grr.lib import fleetspeak_connector
 from grr.lib import type_info
 from grr.lib import utils
 from grr.server import access_control
@@ -93,6 +94,8 @@ def main(argv):
   config.CONFIG.AddContext(contexts.CONSOLE_CONTEXT,
                            "Context applied when running the console binary.")
   server_startup.Init()
+
+  fleetspeak_connector.Init()
 
   # To make the console easier to use, we make a default token which will be
   # used in StartFlow operations.
