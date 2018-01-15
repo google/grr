@@ -18,6 +18,7 @@ from grr.proto.api import client_pb2
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import data_store
+from grr.server import db
 from grr.server import events
 from grr.server import flow
 from grr.server import ip_resolver
@@ -468,9 +469,13 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       for client_obj in client_objs:
         if data_store.RelationalDBEnabled():
           cid = client_obj.urn.Basename()
-          data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
-          idx = client_index.ClientIndex()
-          idx.AddClientLabels(cid, args.labels)
+          try:
+            data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
+            idx = client_index.ClientIndex()
+            idx.AddClientLabels(cid, args.labels)
+          except db.UnknownClientError:
+            # TODO(amoser): Remove after data migration.
+            pass
 
         client_obj.AddLabels(args.labels)
         index.AddClient(client_obj)

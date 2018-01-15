@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.bindKeyDirectiveTest');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');
 

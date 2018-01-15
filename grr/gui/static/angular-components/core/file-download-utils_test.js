@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.fileDownloadUtilsTest');
 goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 goog.require('grrUi.core.fileDownloadUtils.makeValueDownloadable');
 goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');

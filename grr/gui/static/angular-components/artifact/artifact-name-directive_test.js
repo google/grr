@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactNameDirectiveTest');
 goog.require('grrUi.artifact.module');
 goog.require('grrUi.tests.module');
 

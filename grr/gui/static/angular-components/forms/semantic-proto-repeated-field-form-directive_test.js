@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
 goog.require('grrUi.forms.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

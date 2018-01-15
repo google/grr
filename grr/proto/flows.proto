@@ -2090,3 +2090,19 @@ message YaraProcessDumpResponse {
       description: "A list of processes that we failed to dump.",
     }];
 }
+
+message NetstatArgs {
+  optional bool listening_only = 1 [(sem_type) = {
+      description: "If set, only listening connections are returned."
+    },
+    default = false
+    ];
+}
+
+message ListNetworkConnectionsArgs {
+  optional bool listening_only = 1 [(sem_type) = {
+      description: "If set, only listening connections are returned."
+    },
+    default = false
+    ];
+}

@@ -31,6 +31,35 @@ class DatabaseTest(unittest.TestCase):
     d = self.CreateDatabase()
     self.assertIsInstance(d, db.Database)
 
+  def testClientWriteToUnknownClient(self):
+    d = self.CreateDatabase()
+    client_id = "C.fc413187fefa1dcf"
+
+    with self.assertRaises(db.UnknownClientError):
+      d.WriteClient(client_id, objects.Client())
+
+    # fleetspeak_enabled not set means update.
+    with self.assertRaises(db.UnknownClientError):
+      d.WriteClientMetadata(client_id, first_seen=rdfvalue.RDFDatetime.Now())
+
+  def testKeywordWriteToUnknownClient(self):
+    d = self.CreateDatabase()
+    client_id = "C.fc413187fefa1dcf"
+
+    with self.assertRaises(db.UnknownClientError):
+      d.WriteClientKeywords(client_id, ["keyword"])
+
+    d.DeleteClientKeyword(client_id, "test")
+
+  def testLabelWriteToUnknownClient(self):
+    d = self.CreateDatabase()
+    client_id = "C.fc413187fefa1dcf"
+
+    with self.assertRaises(db.UnknownClientError):
+      d.AddClientLabels(client_id, "testowner", ["label"])
+
+    d.RemoveClientLabels(client_id, "testowner", ["label"])
+
   def testClientMetadataInitialWrite(self):
     d = self.CreateDatabase()
 
@@ -41,7 +70,10 @@ class DatabaseTest(unittest.TestCase):
     client_id_2 = "C.00413187fefa1dcf"
     # Typical initial non-FS write
     d.WriteClientMetadata(
-        client_id_2, certificate=CERT, fleetspeak_enabled=False)
+        client_id_2,
+        certificate=CERT,
+        first_seen=rdfvalue.RDFDatetime(100),
+        fleetspeak_enabled=False)
 
     res = d.ReadClientMetadatas([client_id_1, client_id_2])
     self.assertEqual(len(res), 2)
@@ -54,6 +86,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertIsInstance(m2, objects.ClientMetadata)
     self.assertFalse(m2.fleetspeak_enabled)
     self.assertEqual(m2.certificate, CERT)
+    self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100))
 
   def testClientMetadataPing(self):
     d = self.CreateDatabase()

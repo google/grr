@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userLabelDirectiveTest');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.user.module');
 

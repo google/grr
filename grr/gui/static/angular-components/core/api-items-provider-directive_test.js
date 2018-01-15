@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.apiItemsProviderDirectiveTest');
 goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderController');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');

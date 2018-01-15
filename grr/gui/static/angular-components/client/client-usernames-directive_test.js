@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientUsernamesDirectiveTest');
 goog.require('grrUi.client.module');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.tests.module');

@@ -995,7 +995,8 @@ class Uname(structs.RDFProtoStruct):
         machine=uname[4],  # x86, x86_64
         kernel=kernel,
         fqdn=fqdn,
-        pep425tag=pep425tag,)
+        pep425tag=pep425tag,
+    )
 
 
 class StartupInfo(structs.RDFProtoStruct):
@@ -1274,3 +1275,8 @@ class ClientComponent(structs.RDFProtoStruct):
       ClientComponentSummary,
       Uname,
   ]
+
+
+class ListNetworkConnectionsArgs(structs.RDFProtoStruct):
+  """Args for the ListNetworkConnections client action."""
+  protobuf = flows_pb2.ListNetworkConnectionsArgs

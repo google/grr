@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.byteSizeDirectiveTest');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.tests.module');
 

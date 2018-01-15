@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.forceRefreshDirectiveTest');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');
 

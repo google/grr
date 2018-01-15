@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileTreeDirectiveTest');
 goog.require('grrUi.client.virtualFileSystem.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

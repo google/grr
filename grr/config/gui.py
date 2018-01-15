@@ -22,9 +22,6 @@ config_lib.DEFINE_string("AdminUI.template_root",
                          "%(grr/gui/templates|resource)",
                          "The main path to the templates.")
 
-config_lib.DEFINE_string("AdminUI.help_root", "%(docs|resource)",
-                         "The main path to the locally cached documentation.")
-
 config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.")

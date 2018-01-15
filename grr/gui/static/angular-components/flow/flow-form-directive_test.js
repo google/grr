@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowFormDirectiveTest');
 goog.require('grrUi.flow.module');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.tests.stubDirective');

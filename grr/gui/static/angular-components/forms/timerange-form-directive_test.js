@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.timerangeFormDirectiveTest');
 goog.require('grrUi.forms.module');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.tests.stubDirective');

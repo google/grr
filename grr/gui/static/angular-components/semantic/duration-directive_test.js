@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.durationDirectiveTest');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.tests.module');
 

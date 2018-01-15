@@ -408,14 +408,14 @@ class ClientIndex(object):
     # to do this, i.e., once we have a storage library which can list all
     # clients directly.
 
-    keywords = ["."]
+    keywords = set(["."])
 
     def TryAppend(prefix, keyword):
       if keyword:
         keyword_string = self._NormalizeKeyword(utils.SmartStr(keyword))
-        keywords.append(keyword_string)
+        keywords.add(keyword_string)
         if prefix:
-          keywords.append(prefix + ":" + keyword_string)
+          keywords.add(prefix + ":" + keyword_string)
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
       TryAppend(prefix, keyword)
@@ -485,16 +485,16 @@ class ClientIndex(object):
       client: A Client object record.
     """
     keywords = self.AnalyzeClient(client)
-    keywords.append(self._NormalizeKeyword(client_id))
+    keywords.add(self._NormalizeKeyword(client_id))
 
     data_store.REL_DB.WriteClientKeywords(client_id, keywords)
 
   def AddClientLabels(self, client_id, labels):
-    keywords = []
+    keywords = set()
     for label in labels:
       keyword_string = self._NormalizeKeyword(utils.SmartStr(label))
-      keywords.append(keyword_string)
-      keywords.append("label:" + keyword_string)
+      keywords.add(keyword_string)
+      keywords.add("label:" + keyword_string)
 
     data_store.REL_DB.WriteClientKeywords(client_id, keywords)
 

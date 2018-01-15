@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.rekallJsonDirectiveTest');
 goog.require('grrUi.semantic.rekall.module');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.tests.stubDirective');

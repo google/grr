@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.reportListingDirectiveTest');
 goog.require('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
 
 goog.scope(function() {

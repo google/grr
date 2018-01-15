@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.bytesFormDirectiveTest');
 goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
 goog.require('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
 goog.require('grrUi.forms.bytesFormDirective.isByteString');

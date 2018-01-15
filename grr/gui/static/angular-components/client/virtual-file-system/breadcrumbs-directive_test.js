@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirectiveTest');
 goog.require('grrUi.client.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

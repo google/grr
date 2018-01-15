@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.routing.aff4UrnToUrlTest');
 goog.require('grrUi.routing.aff4UrnToUrl');
 
 var aff4UrnToUrl = grrUi.routing.aff4UrnToUrl;

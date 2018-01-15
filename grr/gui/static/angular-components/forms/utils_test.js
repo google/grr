@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.utilsTest');
 goog.require('grrUi.forms.utils.valueHasErrors');
 
 describe('forms utils', function() {

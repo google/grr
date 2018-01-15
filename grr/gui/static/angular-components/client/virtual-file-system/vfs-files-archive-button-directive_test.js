@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirectiveTest');
 goog.require('grrUi.client.virtualFileSystem.module');
 goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.DOWNLOAD_EVERYTHING_REENABLE_DELAY');
 goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');

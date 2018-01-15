@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.outputPlugins.outputPluginNoteBodyDirectiveTest');
 goog.require('grrUi.outputPlugins.module');
 goog.require('grrUi.tests.module');
 

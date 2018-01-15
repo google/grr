@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileContextDirectiveTest');
 goog.require('grrUi.client.virtualFileSystem.fileContextDirective.FileContextController');
 
 

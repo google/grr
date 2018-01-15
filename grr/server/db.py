@@ -10,6 +10,10 @@ WIP, will eventually replace datastore.py.
 import abc
 
 
+class UnknownClientError(Exception):
+  pass
+
+
 class Database(object):
   """The GRR relational database abstraction."""
   __metaclass__ = abc.ABCMeta
@@ -19,6 +23,7 @@ class Database(object):
                           client_id,
                           certificate=None,
                           fleetspeak_enabled=None,
+                          first_seen=None,
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
@@ -36,6 +41,8 @@ class Database(object):
       fleetspeak_enabled: A bool, indicating whether the client is connecting
         through Fleetspeak.  Normally only set during initial client record
         creation.
+      first_seen: An rdfvalue.Datetime, indicating the first time the client
+        contacted the server.
       last_ping: An rdfvalue.Datetime, indicating the last time the client
         contacted the server.
       last_clock: An rdfvalue.Datetime, indicating the last client clock time
@@ -46,6 +53,9 @@ class Database(object):
         client sent a foreman message to the server.
       last_crash: An rdfvalues.client.ClientCrash, documenting the last recorded
         client crash event.
+
+    Raises:
+      UnknownClientError: The client_id is not known yet.
     """
 
   @abc.abstractmethod
@@ -82,6 +92,8 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       client: An rdfvalues.client.Client. Will be saved at the "current"
         timestamp.
+    Raises:
+      UnknownClientError: The client_id is not known yet.
     """
 
   @abc.abstractmethod
@@ -125,6 +137,8 @@ class Database(object):
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       keywords: An iterable container of keyword strings to write.
+    Raises:
+      UnknownClientError: The client_id is not known yet.
     """
 
   @abc.abstractmethod

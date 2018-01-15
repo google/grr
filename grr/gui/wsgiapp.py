@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """GRR HTTP server implementation."""
 
-
 import base64
 import hashlib
 import hmac
@@ -325,11 +324,9 @@ window.location = '%s' + friendly_hash;
       return e
 
   def WSGIHandler(self):
-    return werkzeug_wsgi.SharedDataMiddleware(
-        self, {
-            "/static": config.CONFIG["AdminUI.document_root"],
-            "/local/help": config.CONFIG["AdminUI.help_root"]
-        })
+    return werkzeug_wsgi.SharedDataMiddleware(self, {
+        "/static": config.CONFIG["AdminUI.document_root"]
+    })
 
 
 class GuiPluginsInit(registry.InitHook):

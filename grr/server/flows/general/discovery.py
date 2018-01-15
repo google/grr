@@ -13,6 +13,7 @@ from grr.server import artifact
 from grr.server import client_index
 from grr.server import data_migration
 from grr.server import data_store
+from grr.server import db
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
@@ -357,9 +358,13 @@ class Interrogate(flow.GRRFlow):
     # Update the client index
     client_index.CreateClientIndex(token=self.token).AddClient(client)
     if data_store.RelationalDBEnabled():
-      index = client_index.ClientIndex()
-      index.AddClient(self.client_id.Basename(),
-                      data_migration.ConvertVFSGRRClient(client))
+      try:
+        index = client_index.ClientIndex()
+        index.AddClient(self.client_id.Basename(),
+                        data_migration.ConvertVFSGRRClient(client))
+      except db.UnknownClientError:
+        # TODO(amoser): Remove after data migration.
+        pass
 
 
 class EnrolmentInterrogateEvent(flow.EventListener):

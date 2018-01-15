@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.utilsTest');
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
 goog.require('grrUi.core.utils.getLastPathComponent');
 goog.require('grrUi.core.utils.stringToList');

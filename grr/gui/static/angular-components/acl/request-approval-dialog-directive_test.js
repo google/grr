@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.requestApprovalDialogDirectiveTest');
 goog.require('grrUi.acl.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

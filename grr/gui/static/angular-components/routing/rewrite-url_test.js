@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.routing.rewriteUrlTest');
 goog.require('grrUi.routing.rewriteUrl');
 
 var rewriteUrl = grrUi.routing.rewriteUrl;

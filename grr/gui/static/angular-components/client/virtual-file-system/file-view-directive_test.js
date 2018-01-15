@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileViewDirectiveTest');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
 

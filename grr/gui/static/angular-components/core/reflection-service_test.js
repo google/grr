@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.reflectionServiceTest');
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.reflectionService.ReflectionService');
 goog.require('grrUi.tests.module');
