@@ -28,7 +28,7 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        - grr_run_tests --processes=2
+        - pytest grr/
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
@@ -58,7 +58,7 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        - grr_run_tests --processes=2 --labels=client_action
+        - pytest grr/
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
