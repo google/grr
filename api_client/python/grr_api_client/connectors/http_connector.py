@@ -95,7 +95,8 @@ class HttpConnector(connector.Connector):
     self.handlers_map = routing.Map(routing_rules)
 
     parsed_endpoint_url = urlparse.urlparse(self.api_endpoint)
-    self.urls = self.handlers_map.bind(parsed_endpoint_url.netloc, "/")
+    self.urls = self.handlers_map.bind(
+        parsed_endpoint_url.netloc, url_scheme=parsed_endpoint_url.scheme)
 
   def _InitializeIfNeeded(self):
     if not self.csrf_token:
