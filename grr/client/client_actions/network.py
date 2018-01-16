@@ -9,12 +9,12 @@ from grr.client import actions
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class Netstat(actions.ActionPlugin):
+class ListNetworkConnections(actions.ActionPlugin):
   """Gather open network connection stats."""
-  in_rdfvalue = None
+  in_rdfvalue = rdf_client.ListNetworkConnectionsArgs
   out_rdfvalues = [rdf_client.NetworkConnection]
 
-  def Run(self, unused_args):
+  def Run(self, args):
     for proc in psutil.process_iter():
       try:
         connections = proc.connections()
@@ -22,12 +22,14 @@ class Netstat(actions.ActionPlugin):
         continue
 
       for conn in connections:
+        if args.listening_only and conn.status != "LISTEN":
+          continue
+
         res = rdf_client.NetworkConnection()
         res.pid = proc.pid
         res.process_name = proc.name()
         res.family = conn.family
         res.type = conn.type
-
         try:
           if conn.status:
             res.state = conn.status

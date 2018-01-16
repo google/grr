@@ -26,21 +26,37 @@ class InMemoryDB(db.Database):
   def ClearTestDB(self):
     self._Init()
 
+  def _ValidateClientId(self, client_id):
+    if not isinstance(client_id, basestring):
+      raise ValueError(
+          "Expected client_id as a string, got %s" % type(client_id))
+
   def WriteClientMetadata(self,
                           client_id,
                           certificate=None,
                           fleetspeak_enabled=None,
+                          first_seen=None,
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
                           last_foreman=None,
                           last_crash=None):
+    self._ValidateClientId(client_id)
+
     md = {}
     if certificate is not None:
       md["certificate"] = certificate
 
     if fleetspeak_enabled is not None:
       md["fleetspeak_enabled"] = fleetspeak_enabled
+    else:
+      # This is an update to an existing client. Raise if the client
+      # is not known.
+      if client_id not in self.metadatas:
+        raise db.UnknownClientError()
+
+    if first_seen is not None:
+      md["first_seen"] = first_seen
 
     if last_ping is not None:
       md["ping"] = last_ping
@@ -73,10 +89,12 @@ class InMemoryDB(db.Database):
     """Reads ClientMetadata records for a list of clients."""
     res = {}
     for client_id in client_ids:
+      self._ValidateClientId(client_id)
       md = self.metadatas.get(client_id, {})
       res[client_id] = objects.ClientMetadata(
           certificate=md.get("certificate"),
           fleetspeak_enabled=md.get("fleetspeak_enabled"),
+          first_seen=md.get("first_seen"),
           ping=md.get("ping"),
           clock=md.get("clock"),
           ip=md.get("ip"),
@@ -90,6 +108,11 @@ class InMemoryDB(db.Database):
       raise ValueError("WriteClient requires rdfvalues.objects.Client, got: %s"
                        % type(client))
 
+    self._ValidateClientId(client_id)
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError()
+
     history = self.clients.setdefault(client_id, {})
     history[time.time()] = client
 
@@ -97,6 +120,7 @@ class InMemoryDB(db.Database):
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
+      self._ValidateClientId(client_id)
       history = self.clients.get(client_id, None)
       if not history:
         res[client_id] = None
@@ -108,6 +132,8 @@ class InMemoryDB(db.Database):
 
   def ReadClientHistory(self, client_id):
     """Reads the full history for a particular client."""
+    self._ValidateClientId(client_id)
+
     history = self.clients.get(client_id)
     if not history:
       return []
@@ -119,6 +145,12 @@ class InMemoryDB(db.Database):
     return res
 
   def WriteClientKeywords(self, client_id, keywords):
+
+    self._ValidateClientId(client_id)
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError()
+
     keywords = [utils.SmartStr(k) for k in keywords]
     for k in keywords:
       self.keywords.setdefault(k, {})
@@ -144,18 +176,27 @@ class InMemoryDB(db.Database):
     return res
 
   def DeleteClientKeyword(self, client_id, keyword):
+    self._ValidateClientId(client_id)
+
     if keyword in self.keywords and client_id in self.keywords[keyword]:
       del self.keywords[keyword][client_id]
 
   def AddClientLabels(self, client_id, owner, labels):
+    self._ValidateClientId(client_id)
+
     if isinstance(labels, basestring):
       raise ValueError("Expected iterable, got string.")
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError()
 
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
       labelset.add(utils.SmartUnicode(l))
 
   def GetClientLabels(self, client_id):
+    self._ValidateClientId(client_id)
+
     res = []
     owner_dict = self.labels.get(client_id, {})
     for owner, labels in owner_dict.items():
@@ -164,6 +205,8 @@ class InMemoryDB(db.Database):
     return sorted(res, key=lambda label: (label.owner, label.name))
 
   def RemoveClientLabels(self, client_id, owner, labels):
+    self._ValidateClientId(client_id)
+
     if isinstance(labels, basestring):
       raise ValueError("Expected iterable, got string.")
 

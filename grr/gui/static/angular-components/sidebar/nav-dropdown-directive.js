@@ -25,7 +25,7 @@ var NavDropdownController =
 /**
  * Directive for the navDropdown.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

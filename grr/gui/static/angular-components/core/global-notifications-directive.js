@@ -90,7 +90,7 @@ GlobalNotificationsController.prototype.stopPollingGlobalNotifications_ =
 /**
  * Directive that displays a button whenever a server error occurs
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

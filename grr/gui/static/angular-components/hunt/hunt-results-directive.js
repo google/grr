@@ -124,7 +124,7 @@ HuntResultsController.prototype.transformItems = function(items) {
 /**
  * Directive for displaying results of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

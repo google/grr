@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests client actions related to administrating the client."""
 
-
 import os
 
 import psutil
@@ -71,7 +70,7 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
       return response
 
     with utils.Stubber(requests, "request", FakeUrlOpen):
-      client_context = comms.GRRHTTPClient(worker=MockClientWorker())
+      client_context = comms.GRRHTTPClient(worker_cls=MockClientWorker)
       client_context.MakeRequest("")
 
     # Since the request is successful we only connect to one location.
@@ -89,12 +88,12 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
       request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
 
-      self.RunAction(admin.UpdateConfiguration, request)
+      with self.assertRaises(ValueError):
+        self.RunAction(admin.UpdateConfiguration, request)
 
-      # Location can be set.
-      self.assertEqual(config.CONFIG["Client.server_urls"], location)
-
-      # But the server serial number can not be updated.
+      # Nothing was updated.
+      self.assertEqual(config.CONFIG["Client.server_urls"],
+                       ["http://something.com/"])
       self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
@@ -132,8 +131,9 @@ class MockStatsCollector(object):
 class MockClientWorker(object):
   """Mock client worker for GetClientStatsActionTest."""
 
-  def __init__(self):
+  def __init__(self, client=None):
     self.stats_collector = MockStatsCollector()
+    self.client = client
 
 
 class GetClientStatsActionTest(client_test_lib.EmptyActionTest):

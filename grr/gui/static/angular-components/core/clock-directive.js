@@ -42,7 +42,7 @@ grrUi.core.clockDirective.ClockController.prototype.updateLiveClock_ =
 /**
  * Directive that displays RDFDatetime values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

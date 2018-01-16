@@ -60,7 +60,7 @@ DisableIfNoTraitController.prototype.onUserInfo_ = function(response) {
 /**
  * Directive for download links to aff4 streams.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

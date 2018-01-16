@@ -103,7 +103,7 @@ ApiRouteController.prototype.onValueChange = function() {
 /**
  * Directive for displaying API route.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

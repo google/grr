@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.addClientsLabelsDialogDirectiveTest');
 goog.require('grrUi.client.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

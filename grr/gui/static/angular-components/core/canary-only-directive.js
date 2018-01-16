@@ -74,10 +74,9 @@ grrUi.core.canaryOnlyDirective.CanaryOnlyDirective
 /**
  * Directive that renders its contents only in nonCanary mode.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
- * @return {angular.Directive} Directive definition object.
  */
 grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective = function() {
   return {

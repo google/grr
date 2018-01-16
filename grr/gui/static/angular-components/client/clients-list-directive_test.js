@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientsListDirectiveTest');
 goog.require('grrUi.client.module');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.tests.stubDirective');

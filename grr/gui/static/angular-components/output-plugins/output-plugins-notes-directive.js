@@ -59,7 +59,7 @@ OutputPluginsNotesController.prototype.onOutputPluginsUrlChange_ = function(
 /**
  * Directive for displaying notes for output plugins of a flow or hunt.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -14,8 +14,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server import server_stubs
 
-from grr.server import worker_mocks
 from grr.test_lib import test_lib
+from grr.test_lib import worker_mocks
 
 
 @pytest.mark.small

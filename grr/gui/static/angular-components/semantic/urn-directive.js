@@ -78,7 +78,7 @@ UrnController.prototype.onClick = function() {
 /**
  * Directive that displays RDFURN values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

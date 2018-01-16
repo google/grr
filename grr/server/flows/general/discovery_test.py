@@ -16,6 +16,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server import client_index
+from grr.server import data_store
 from grr.server import flow
 from grr.server.flows.general import discovery
 from grr.test_lib import action_mocks
@@ -279,6 +280,8 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     self.SetupClients(1, system="Linux", os_version="12.04")
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id.Basename(), fleetspeak_enabled=False)
 
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
@@ -320,6 +323,8 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id.Basename(), fleetspeak_enabled=False)
 
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):

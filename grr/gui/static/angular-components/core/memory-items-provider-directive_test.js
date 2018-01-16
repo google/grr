@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.memoryItemsProviderDirectiveTest');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
 
 

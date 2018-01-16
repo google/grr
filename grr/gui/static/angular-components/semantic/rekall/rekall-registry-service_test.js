@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.rekallRegistryServiceTest');
 goog.require('grrUi.semantic.rekall.module');
 goog.require('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
 

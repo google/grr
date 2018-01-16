@@ -81,7 +81,7 @@ JsonController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays Json values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

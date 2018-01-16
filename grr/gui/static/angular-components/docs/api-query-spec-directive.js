@@ -73,7 +73,7 @@ ApiQuerySpecController.prototype.onArgsTypeChange = function(newValue) {
 /**
  * Directive for displaying API query specificiation.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

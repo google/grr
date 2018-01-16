@@ -95,7 +95,8 @@ class HttpConnector(connector.Connector):
     self.handlers_map = routing.Map(routing_rules)
 
     parsed_endpoint_url = urlparse.urlparse(self.api_endpoint)
-    self.urls = self.handlers_map.bind(parsed_endpoint_url.netloc, "/")
+    self.urls = self.handlers_map.bind(
+        parsed_endpoint_url.netloc, url_scheme=parsed_endpoint_url.scheme)
 
   def _InitializeIfNeeded(self):
     if not self.csrf_token:
@@ -214,7 +215,10 @@ class HttpConnector(connector.Connector):
     prepped_request = request.prepare()
 
     session = requests.Session()
-    response = session.send(prepped_request)
+
+    options = session.merge_environment_settings(prepped_request.url, {}, None,
+                                                 None, None)
+    response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
     content = response.content

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.docs.apiHelperCurlServiceTest');
 goog.require('grrUi.docs.module');
 
 

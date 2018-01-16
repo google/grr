@@ -345,6 +345,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     clients = self._SetupClients(2)
     for client_id, client in clients.items():
+      data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
       index.AddClient(client_id, client)
 
     # Check unique identifiers.
@@ -390,6 +391,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
     with test_lib.FakeTime(1413807132):
       for client_id, client in clients.items():
+        data_store.REL_DB.WriteClientMetadata(
+            client_id, fleetspeak_enabled=False)
         index.AddClient(client_id, client)
 
     self.assertEqual(
@@ -402,6 +405,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   def testRemoveLabels(self):
     client_id, _ = self._SetupClients(1).items()[0]
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])
 

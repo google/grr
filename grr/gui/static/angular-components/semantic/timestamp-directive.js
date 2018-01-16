@@ -87,7 +87,7 @@ TimestampController.prototype.onMouseEnter = function() {
 /**
  * Directive that displays RDFDatetime values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

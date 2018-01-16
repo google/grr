@@ -130,7 +130,6 @@ RekallJsonController.prototype.onScopeChange_ = function() {
  * Directive that displays Rekall Json values.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

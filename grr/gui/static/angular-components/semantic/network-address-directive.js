@@ -148,7 +148,7 @@ NetworkAddressController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays NetworkAddress values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

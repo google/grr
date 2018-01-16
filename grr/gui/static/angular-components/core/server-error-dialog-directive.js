@@ -25,7 +25,7 @@ var ServerErrorDialogController =
 /**
  * Directive for showing the error dialog.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

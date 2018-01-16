@@ -114,8 +114,8 @@ class ServerCommunicator(communicator.Communicator):
       client.Set(client.Schema.CLIENT_IP(ip))
 
       # The very first packet we see from the client we do not have its clock
-      remote_time = client.Get(client.Schema.CLOCK) or 0
-      client_time = packed_message_list.timestamp or 0
+      remote_time = client.Get(client.Schema.CLOCK) or rdfvalue.RDFDatetime(0)
+      client_time = packed_message_list.timestamp or rdfvalue.RDFDatetime(0)
 
       # This used to be a strict check here so absolutely no out of
       # order messages would be accepted ever. Turns out that some
@@ -140,14 +140,35 @@ class ServerCommunicator(communicator.Communicator):
       if client_time > long(remote_time):
         client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
         client.Set(client.Schema.PING, rdfvalue.RDFDatetime.Now())
+
+        clock = client_time
+        ping = rdfvalue.RDFDatetime.Now()
+
         for label in client.Get(client.Schema.LABELS, []):
           stats.STATS.IncrementCounter(
               "client_pings_by_label", fields=[label.name])
       else:
+        clock = None
+        ping = None
         logging.warning("Out of order message for %s: %s >= %s", client_id,
                         long(remote_time), int(client_time))
 
       client.Flush()
+      if data_store.RelationalDBEnabled():
+        source_ip = response_comms.orig_request.source_ip
+        if source_ip:
+          last_ip = rdf_client.NetworkAddress(
+              human_readable_address=response_comms.orig_request.source_ip)
+        else:
+          last_ip = None
+
+        if ping or clock or last_ip:
+          data_store.REL_DB.WriteClientMetadata(
+              client_id.Basename(),
+              last_ip=last_ip,
+              last_clock=clock,
+              last_ping=ping,
+              fleetspeak_enabled=False)
 
     except communicator.UnknownClientCert:
       pass
@@ -338,6 +359,10 @@ class FrontEndServer(object):
       return
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
+
+    if data_store.RelationalDBEnabled():
+      data_store.REL_DB.WriteClientMetadata(
+          client_id.Basename(), fleetspeak_enabled=True)
 
     # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
     # catch exceptions from it and forward them to Fleetspeak by failing its

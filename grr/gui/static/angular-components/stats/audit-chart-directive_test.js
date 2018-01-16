@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.auditChartDirectiveTest');
 goog.require('grrUi.stats.module');
 goog.require('grrUi.tests.module');
 goog.require('grrUi.tests.stubDirective');

@@ -28,6 +28,7 @@ from grr.server import maintenance_utils
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import ca_enroller
 from grr.test_lib import test_lib
+from grr.test_lib import worker_mocks
 
 # pylint: mode=test
 
@@ -400,7 +401,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
-        ca_cert=config.CONFIG["CA.certificate"], worker=comms.GRRClientWorker())
+        ca_cert=config.CONFIG["CA.certificate"],
+        worker_cls=worker_mocks.DisabledNannyClientWorker)
 
   def CreateNewClientObject(self):
     self.CreateClientCommunicator()
@@ -838,7 +840,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     raise MakeHTTPException(500, "Not a real connection.")
 
   def testClientConnectionErrors(self):
-    client_obj = comms.GRRHTTPClient()
+    client_obj = comms.GRRHTTPClient(
+        worker_cls=worker_mocks.DisabledNannyThreadedWorker)
     # Make the connection unavailable and skip the retry interval.
     with utils.MultiStubber(
         (requests, "request", self.RaiseError),
@@ -860,7 +863,7 @@ class ThreadedWorkerHTTPClientTests(HTTPClientTests):
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
         ca_cert=config.CONFIG["CA.certificate"],
-        worker=comms.GRRThreadedWorker(start_worker_thread=False))
+        worker_cls=worker_mocks.DisabledNannyThreadedWorker)
 
   def CheckClientQueue(self):
     """Checks that the client context received all server messages."""

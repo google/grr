@@ -186,8 +186,7 @@ UserNotificationItemController.prototype.openReference = function() {
 /**
  * Directive for showing a notification.
  *
- * @return {angular.Directive} Directive definition object.
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

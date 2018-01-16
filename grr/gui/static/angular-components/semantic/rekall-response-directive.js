@@ -10,7 +10,6 @@ goog.scope(function() {
  * Directive that displays RekallResponse values.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

@@ -118,7 +118,7 @@ DownloadCollectionFilesController.prototype.generateFileArchive = function(
 /**
  * Directive for displaying "download files referenced by collection" panel.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

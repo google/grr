@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.firebaseServiceTest');
 goog.require('grrUi.core.module');
 
 

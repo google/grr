@@ -28,8 +28,7 @@ var UserNotificationDialogController = grrUi.user.userNotificationDialogDirectiv
 /**
  * Directive for showing the notification dialog.
  *
- * @return {angular.Directive} Directive definition object.
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

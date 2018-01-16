@@ -54,7 +54,7 @@ FlowLogController.prototype.onFlowIdOrBasePathChange_ = function(newValue) {
 /**
  * Directive for displaying logs of a flow with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

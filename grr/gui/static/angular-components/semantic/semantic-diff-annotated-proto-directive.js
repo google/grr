@@ -14,7 +14,7 @@ var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
  *
  * @param {!angular.Scope} $scope Directive's scope.
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  */
 var SemanticDiffAnnotatedProtoController = function(

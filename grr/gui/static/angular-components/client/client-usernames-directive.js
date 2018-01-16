@@ -50,7 +50,7 @@ ClientUsernamesController.prototype.onValueChange_ = function() {
  * It separates a string of usernames on a client by the space character into a
  * list of objects, and delegates rendering of it to grr-semantic-value.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

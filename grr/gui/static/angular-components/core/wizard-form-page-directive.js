@@ -89,7 +89,7 @@ WizardFormPageController.prototype.onShow = function() {
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

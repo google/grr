@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userNotificationItemDirectiveTest');
 goog.require('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 
 describe('User notification item directive', function() {

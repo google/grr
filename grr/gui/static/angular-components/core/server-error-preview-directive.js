@@ -76,9 +76,10 @@ ServerErrorPreviewController.prototype.onErrorEvent = function(unused_event, err
 
 
 /**
- * Directive that displays a label with the error message whenever a server error occurs
+ * Directive that displays a label with the error message whenever a server
+ * error occurs
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

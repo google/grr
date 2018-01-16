@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.apiServiceTest');
 goog.require('grrUi.core.apiService');
 goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.core.apiService.stripTypeInfo');

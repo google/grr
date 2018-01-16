@@ -920,6 +920,12 @@ message Certificate {
   optional string cn = 3;
 };
 
+message Password {
+  optional bytes salt = 1;
+  optional uint64 iteration_count = 2;
+  optional bytes hashed_pwd = 3;
+}
+
 // Message to carry uname information.
 message Uname {
   optional string system = 1 [(sem_type) = {

@@ -68,8 +68,15 @@ class CAEnroler(flow.GRRFlow):
                              self.cn, self.client_id)
 
       # Set and write the certificate to the client record.
+      now = rdfvalue.RDFDatetime.Now()
       client.Set(client.Schema.CERT, cert)
-      client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime.Now())
+      client.Set(client.Schema.FIRST_SEEN, now)
+      if data_store.RelationalDBEnabled():
+        data_store.REL_DB.WriteClientMetadata(
+            self.client_id.Basename(),
+            certificate=cert,
+            first_seen=now,
+            fleetspeak_enabled=False)
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)

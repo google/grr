@@ -65,10 +65,9 @@ ClientLabelFormController.prototype.$onInit = function() {
 /**
  * Directive that displays a client label selector.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
- * @return {!angular.Directive} Directive definition object.
  */
 grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective = function() {
   return {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntStatsDirectiveTest');
 goog.require('grrUi.hunt.module');
 goog.require('grrUi.tests.module');
 

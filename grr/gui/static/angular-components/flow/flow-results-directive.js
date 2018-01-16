@@ -66,7 +66,7 @@ FlowResultsController.prototype.onFlowIdOrBasePathChange_ = function(
 /**
  * Directive for displaying results of a flow with a given URL.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

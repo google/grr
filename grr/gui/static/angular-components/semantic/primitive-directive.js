@@ -8,7 +8,7 @@ goog.scope(function() {
 /**
  * Directive that displays Primitive values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
@@ -42,6 +42,4 @@ grrUi.semantic.primitiveDirective.PrimitiveDirective.semantic_types =
     ['RDFBool', 'bool',
      'RDFInteger', 'int', 'long', 'float',
      'RDFString', 'basestring'];
-
-
 });  // goog.scope

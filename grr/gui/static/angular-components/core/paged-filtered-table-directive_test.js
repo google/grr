@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.pagedFilteredTableDirectiveTest');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.browserTrigger');

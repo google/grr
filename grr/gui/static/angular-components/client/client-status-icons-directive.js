@@ -105,7 +105,7 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
 /**
  * Directive that displays client status icons for a given client.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

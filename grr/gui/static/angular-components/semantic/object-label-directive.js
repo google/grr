@@ -57,7 +57,7 @@ ObjectLabelController.prototype.onValueChange_ = function(newValue) {
 /**
  * Directive that displays AFF4 object label.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

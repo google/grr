@@ -32,12 +32,10 @@ def main(unused_args):
   if flags.FLAGS.install:
     installer.RunInstaller()
 
-  prod_client = fleetspeak_client.GRRFleetspeakClient()
-
   if flags.FLAGS.break_on_start:
     pdb.set_trace()
   else:
-    prod_client.Run()
+    fleetspeak_client.GRRFleetspeakClient().Run()
 
 
 if __name__ == "__main__":

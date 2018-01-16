@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowDescriptorsTreeDirectiveTest');
 goog.require('grrUi.flow.module');
 goog.require('grrUi.tests.module');
 

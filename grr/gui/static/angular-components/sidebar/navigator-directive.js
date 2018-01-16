@@ -116,7 +116,7 @@ NavigatorController.prototype.checkClientAccess_ = function() {
 /**
  * Directive for the navigator.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

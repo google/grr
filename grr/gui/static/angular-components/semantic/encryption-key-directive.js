@@ -68,7 +68,7 @@ EncryptionKeyController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays EncryptionKey values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

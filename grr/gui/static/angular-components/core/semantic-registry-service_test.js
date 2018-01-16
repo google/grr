@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.semanticRegistryServiceTest');
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
 

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactsListFormDirectiveTest');
 goog.require('grrUi.artifact.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

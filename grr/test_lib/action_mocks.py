@@ -16,8 +16,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.server import client_fixture
 from grr.server import server_stubs
-from grr.server import worker_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import worker_mocks
 
 
 class ActionMock(object):
@@ -46,8 +46,8 @@ class ActionMock(object):
     self.action_counts = dict((cls_name, 0) for cls_name in self.action_classes)
     self.recorded_args = {}
 
-    self.client_worker = (kwargs.get("client_worker", None) or
-                          worker_mocks.FakeClientWorker())
+    self.client_worker = (
+        kwargs.get("client_worker", None) or worker_mocks.FakeClientWorker())
 
   def RecordCall(self, action_name, action_args):
     self.recorded_args.setdefault(action_name, []).append(action_args)
@@ -211,7 +211,8 @@ class InterrogatedClient(ActionMock):
                     address_type=rdf_client.NetworkAddress.Family.INET,
                     human_readable="100.100.100.1",
                     packed_bytes=socket.inet_pton(socket.AF_INET,
-                                                  "100.100.100.1"),)
+                                                  "100.100.100.1"),
+                )
             ])
     ]
 
@@ -226,7 +227,8 @@ class InterrogatedClient(ActionMock):
             client_name=config.CONFIG["Client.name"],
             client_version=int(config.CONFIG["Source.version_numeric"]),
             build_time=config.CONFIG["Client.build_time"],
-            labels=["GRRLabel1", "Label2"],)
+            labels=["GRRLabel1", "Label2"],
+        )
     ]
 
   def GetUserInfo(self, user):

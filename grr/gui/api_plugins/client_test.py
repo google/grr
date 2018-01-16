@@ -64,6 +64,8 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     for client_id in self.client_ids:
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
+      data_store.REL_DB.WriteClientMetadata(
+          client_id.Basename(), fleetspeak_enabled=False)
 
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
@@ -94,6 +96,8 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     for client_id in self.client_ids:
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
+      data_store.REL_DB.WriteClientMetadata(
+          client_id.Basename(), fleetspeak_enabled=False)
 
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
@@ -163,6 +167,8 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
       grr_client.AddLabels(["foo", "bar"])
+      data_store.REL_DB.WriteClientMetadata(
+          self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
                                         self.token.username, ["foo", "bar"])
 
@@ -188,6 +194,8 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     with aff4.FACTORY.Open(
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
       grr_client.AddLabel("foo", owner="GRR")
+      data_store.REL_DB.WriteClientMetadata(
+          self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), "GRR",
                                         ["foo"])
       idx.AddClientLabels(self.client_ids[0].Basename(), ["foo"])
@@ -214,6 +222,8 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.client_ids[0], mode="rw", token=self.token) as grr_client:
       grr_client.AddLabel("foo")
       grr_client.AddLabel("foo", owner="GRR")
+      data_store.REL_DB.WriteClientMetadata(
+          self.client_ids[0].Basename(), fleetspeak_enabled=False)
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
                                         self.token.username, ["foo"])
       data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), "GRR",

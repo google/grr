@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.clientUrnDirectiveTest');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');

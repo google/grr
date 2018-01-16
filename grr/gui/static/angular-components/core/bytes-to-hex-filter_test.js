@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.bytesToHexFilterTest');
 goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');

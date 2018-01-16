@@ -8,8 +8,6 @@ import os
 import subprocess
 
 from grr import config
-from grr.client import client_utils_linux
-from grr.client import client_utils_osx
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
@@ -175,25 +173,6 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
 
     def WmiQuery(self, _):
       return WMI_SAMPLE
-
-  def MockClientMountPointsWithImage(self, image_path, fs_type="ext2"):
-    """Mock the client to run off a test image.
-
-    Args:
-       image_path: The path to the image file.
-       fs_type: The filesystem in the image.
-
-    Returns:
-        A context manager which ensures that client actions are served off the
-        test image.
-    """
-
-    def MockGetMountpoints():
-      return {"/": (image_path, fs_type)}
-
-    return utils.MultiStubber(
-        (client_utils_linux, "GetMountpoints", MockGetMountpoints),
-        (client_utils_osx, "GetMountpoints", MockGetMountpoints))
 
   def RunCollectorAndGetCollection(self, artifact_list, client_mock=None, **kw):
     """Helper to handle running the collector flow."""

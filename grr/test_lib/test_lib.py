@@ -28,7 +28,6 @@ import unittest
 
 from grr import config
 
-from grr.client import client_utils_linux
 from grr.client import comms
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -146,12 +145,6 @@ class GRRBaseTest(unittest.TestCase):
         (email.utils, "make_msgid", lambda: "<message id stub>"))
     self.mail_stubber.Start()
 
-    self.nanny_stubber = utils.Stubber(
-        client_utils_linux.NannyController,
-        "StartNanny",
-        lambda unresponsive_kill_period=None, nanny_logfile=None: True)
-    self.nanny_stubber.Start()
-
     # We don't want to send actual email in our tests
     self.smtp_patcher = mock.patch("smtplib.SMTP")
     self.mock_smtp = self.smtp_patcher.start()
@@ -168,7 +161,6 @@ class GRRBaseTest(unittest.TestCase):
 
     self.config_set_disable.Stop()
     self.smtp_patcher.stop()
-    self.nanny_stubber.Stop()
     self.mail_stubber.Stop()
 
     logging.info("Completed test: %s.%s (%.4fs)", self.__class__.__name__,

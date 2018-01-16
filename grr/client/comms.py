@@ -556,12 +556,7 @@ class GRRClientWorker(object):
 
     self.proc = psutil.Process()
 
-    # Use this to control the nanny transaction log.
-    self.nanny_controller = client_utils.NannyController()
-    self.nanny_controller.StartNanny()
-    if not GRRClientWorker.stats_collector:
-      GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
-      GRRClientWorker.stats_collector.start()
+    self.StartNanny()
 
     self.lock = threading.RLock()
 
@@ -570,6 +565,14 @@ class GRRClientWorker(object):
     # the two threads.
     self.http_manager = HTTPManager(
         heart_beat_cb=self.nanny_controller.Heartbeat)
+
+  def StartNanny(self):
+    # Use this to control the nanny transaction log.
+    self.nanny_controller = client_utils.NannyController()
+    self.nanny_controller.StartNanny()
+    if not GRRClientWorker.stats_collector:
+      GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
+      GRRClientWorker.stats_collector.start()
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
@@ -1225,14 +1228,14 @@ class GRRHTTPClient(object):
 
   http_manager_class = HTTPManager
 
-  def __init__(self, ca_cert=None, worker=None, private_key=None):
+  def __init__(self, ca_cert=None, worker_cls=None, private_key=None):
     """Constructor.
 
     Args:
       ca_cert: String representation of a CA certificate to use for checking
           server certificate.
 
-      worker: The client worker class to use. Defaults to GRRThreadedWorker().
+      worker_cls: The client worker class to use. Defaults to GRRThreadedWorker.
 
       private_key: The private key for this client. Defaults to
           config Client.private_key.
@@ -1264,10 +1267,13 @@ class GRRHTTPClient(object):
     self.last_foreman_check = 0
 
     # The client worker does all the real work here.
-    if worker:
-      self.client_worker = worker
+    if worker_cls:
+      self.client_worker = worker_cls(client=self)
     else:
       self.client_worker = GRRThreadedWorker(client=self)
+
+  def FleetspeakEnabled(self):
+    return False
 
   def VerifyServerPEM(self, http_object):
     """Check the server PEM for validity.
@@ -1455,12 +1461,10 @@ class GRRHTTPClient(object):
     self.client_worker.QueueMessages(response.messages)
 
     cn = self.communicator.common_name
-    logging.info("%s: Sending %s(%s), Received %s messages in %s sec. "
-                 "Sleeping for %s sec.", cn,
-                 len(message_list),
-                 len(payload_data),
-                 len(response.messages), response.duration,
-                 self.timer.sleep_time)
+    logging.info(
+        "%s: Sending %s(%s), Received %s messages in %s sec. "
+        "Sleeping for %s sec.", cn, len(message_list), len(payload_data),
+        len(response.messages), response.duration, self.timer.sleep_time)
 
     return response
 

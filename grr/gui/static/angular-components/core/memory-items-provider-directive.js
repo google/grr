@@ -127,7 +127,7 @@ MemoryItemsProviderController.prototype.fetchFilteredItems = function(
  * conjunction with grr-paged-filtered-table and grr-infinite-table
  * directives.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

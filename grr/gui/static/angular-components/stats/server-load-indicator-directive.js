@@ -54,7 +54,7 @@ var ServerLoadIndicatorController = grrUi.stats.serverLoadIndicatorDirective.
 /**
  * Directive for displaying a health indicator.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactDescriptorServiceTest');
 goog.require('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
 goog.require('grrUi.artifact.module');
 goog.require('grrUi.tests.module');

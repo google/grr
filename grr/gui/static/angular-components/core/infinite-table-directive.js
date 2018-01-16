@@ -483,7 +483,7 @@ InfiniteTableController.prototype.onItemsFetched_ = function(
  * Displays tables that are "infinitely scrollable", i.e. they add elements to
  * the bottom on scrolling until they run out of data.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

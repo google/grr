@@ -173,7 +173,7 @@ ApiDocsController.prototype.onCategoryLinkClick = function(category) {
 /**
  * Directive for displaying API documentation.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

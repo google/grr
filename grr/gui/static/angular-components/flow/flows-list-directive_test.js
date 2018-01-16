@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowsListDirectiveTest');
 goog.require('grrUi.flow.flowsListDirective.flattenFlowsList');
 goog.require('grrUi.flow.flowsListDirective.toggleFlowExpansion');
 goog.require('grrUi.flow.module');

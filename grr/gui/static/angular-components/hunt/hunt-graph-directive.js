@@ -144,7 +144,7 @@ HuntGraphController.prototype.drawGraph_ = function() {
 /**
  * Directive for displaying errors of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
