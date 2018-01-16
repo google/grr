@@ -215,7 +215,10 @@ class HttpConnector(connector.Connector):
     prepped_request = request.prepare()
 
     session = requests.Session()
-    response = session.send(prepped_request)
+
+    options = session.merge_environment_settings(prepped_request.url, {}, None,
+                                                 None, None)
+    response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
     content = response.content
