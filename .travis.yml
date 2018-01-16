@@ -58,7 +58,7 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        - pytest grr/
+        - pytest grr/client/ --ignore grr/client/linux/ --ignore grr/client/client_actions/linux/
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
