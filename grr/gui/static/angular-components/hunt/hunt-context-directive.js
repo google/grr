@@ -56,7 +56,7 @@ HuntContextController.prototype.onHuntUrnChange_ = function(huntUrn) {
 /**
  * Directive for displaying the hunt context of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

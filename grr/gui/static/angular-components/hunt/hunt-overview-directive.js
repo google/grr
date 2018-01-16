@@ -83,7 +83,7 @@ HuntOverviewController.prototype.startPolling_ = function() {
 /**
  * Directive for displaying log records of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -55,7 +55,7 @@ HuntCrashesController.prototype.onHuntUrnChange_ = function() {
 /**
  * Directive for displaying crashes of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

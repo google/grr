@@ -8,7 +8,6 @@ goog.scope(function() {
  * Directive that displays JS objects containing Rekall objects as tables.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

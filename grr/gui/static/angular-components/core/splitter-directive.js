@@ -148,7 +148,7 @@ grrUi.core.splitterDirective.SplitterDirective.directive_name =
 /**
  * Registers splitter pane in the splitter.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

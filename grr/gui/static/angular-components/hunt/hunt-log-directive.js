@@ -99,7 +99,7 @@ HuntLogController.prototype.transformItems = function(items) {
 /**
  * Directive for displaying log records of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

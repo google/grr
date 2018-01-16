@@ -237,7 +237,7 @@ SemanticProtoController.prototype.onValueChange = function(newValue, oldValue) {
 /**
  * Directive that displays semantic proto fetched from the server.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

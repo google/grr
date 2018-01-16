@@ -9,7 +9,7 @@ goog.scope(function() {
 /**
  * Directive that displays dicts.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
@@ -39,6 +39,4 @@ grrUi.semantic.dictDirective.DictDirective.directive_name =
  */
 grrUi.semantic.dictDirective.DictDirective.semantic_types =
     ['dict', 'Dict'];
-
-
 });  // goog.scope

@@ -190,7 +190,7 @@ HuntStatsController.prototype.drawSingleHistogram_ = function(element, histogram
 /**
  * Directive for displaying stats of a hunt with a given URN.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

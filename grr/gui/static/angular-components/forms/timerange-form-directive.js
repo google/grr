@@ -103,10 +103,9 @@ TimerangeFormController.prototype.onSubformsChange_ = function() {
 /**
  * Directive that displays a timerange selector.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
- * @return {!angular.Directive} Directive definition object.
  */
 grrUi.forms.timerangeFormDirective.TimerangeFormDirective = function() {
   return {

@@ -243,7 +243,7 @@ StatModeController.prototype.isSocket_ = function(mode) {
 /**
  * Directive that displays RDFDatetime values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @param {Function} $filter Angular filter provider.
  * @ngInject
  * @export

@@ -200,7 +200,7 @@ ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
 /**
  * Directive setting up data provider for infinite table directive.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -10,7 +10,7 @@ goog.scope(function() {
 /**
  * Directive that displays 'fetch more' link.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
@@ -53,6 +53,4 @@ grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective
  */
 grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective
     .semantic_type = '__FetchMoreLink';
-
-
 });  // goog.scope

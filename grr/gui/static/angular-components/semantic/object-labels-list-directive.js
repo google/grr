@@ -9,7 +9,7 @@ goog.scope(function() {
 /**
  * Directive that displays AFF4 object labels list.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
@@ -44,6 +44,4 @@ grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
 grrUi.semantic.objectLabelsListDirective
     .ObjectLabelsListDirective.semantic_type =
     'AFF4ObjectLabelsList';
-
-
 });  // goog.scope

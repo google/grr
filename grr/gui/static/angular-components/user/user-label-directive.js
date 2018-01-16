@@ -47,7 +47,7 @@ var UserLabelController =
 /**
  * Directive that displays the notification button.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -28,13 +28,13 @@ from grr.server import aff4
 from grr.server import file_store
 from grr.server import flow
 from grr.server import front_end
-from grr.server import worker_mocks
 from grr.server.aff4_objects import filestore
 from grr.server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import worker_mocks
 from grr.tools import frontend
 
 
@@ -89,7 +89,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
           ca_cert=config.CONFIG["CA.certificate"],
-          private_key=config.CONFIG.Get("Client.private_key", default=None))
+          private_key=config.CONFIG.Get("Client.private_key", default=None),
+          worker_cls=worker_mocks.DisabledNannyClientWorker)
 
       client.server_certificate = config.CONFIG["Frontend.certificate"]
 
@@ -198,7 +199,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
           ca_cert=config.CONFIG["CA.certificate"],
-          private_key=config.CONFIG.Get("Client.private_key", default=None))
+          private_key=config.CONFIG.Get("Client.private_key", default=None),
+          worker_cls=worker_mocks.DisabledNannyClientWorker)
       client.client_worker = worker_mocks.FakeThreadedWorker(client=client)
       client.server_certificate = config.CONFIG["Frontend.certificate"]
 

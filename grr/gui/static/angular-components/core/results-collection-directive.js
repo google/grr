@@ -82,7 +82,7 @@ ResultsCollectionController.prototype.transformItems = function(items) {
 /**
  * Directive for displaying results collection via given URLs.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

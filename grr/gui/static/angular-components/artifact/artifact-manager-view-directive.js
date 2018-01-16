@@ -151,7 +151,7 @@ ArtifactManagerViewController.prototype.updateNumSelectedDescriptors =
 /**
  * Directive that displays artifact manager view.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

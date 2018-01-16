@@ -78,7 +78,7 @@ LoadingIndicatorController.prototype.onLoadingFinishedEvent_ = function(event, k
 /**
  * Directive that shows a loading indicator in case loading events occur.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -84,7 +84,7 @@ ClientSummaryController.prototype.onClientChange_ = function() {
 /**
  * Directive for displaying a client summary for the navigation.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

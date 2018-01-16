@@ -8,7 +8,6 @@ goog.scope(function() {
  * Directive that displays rekall metadata messages.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

@@ -96,7 +96,7 @@ DurationController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays Duration values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

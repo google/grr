@@ -68,7 +68,6 @@ RekallValueController.prototype.onValueChange_ = function(value) {
  * Directive that displays Rekall objects recursively in tables.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

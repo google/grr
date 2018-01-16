@@ -436,7 +436,7 @@ PagedFilteredTableController.prototype.onPageChange = function(newPage) {
 /**
  * Directive for displaying paged tables with filtering capability.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

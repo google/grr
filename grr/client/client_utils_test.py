@@ -154,15 +154,13 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
   def testExecutionTimeLimit(self):
     """Test if the time limit works."""
 
-    _, _, _, time_used = client_utils_common.Execute("/bin/sleep", ["10"], 1)
+    _, _, _, time_used = client_utils_common.Execute("/bin/sleep", ["10"], 0.1)
 
-    # This should take just a bit longer than one second.
-    self.assertTrue(time_used < 2.0)
+    # This should take just a bit longer than 0.1 seconds.
+    self.assertLess(time_used, 0.5)
 
   def testLinuxNanny(self):
     """Tests the linux nanny."""
-    # Starting nannies is disabled in tests. For this one we need it.
-    self.nanny_stubber.Stop()
     self.exit_called = False
 
     def MockExit(value):
@@ -173,36 +171,38 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     with utils.Stubber(os, "_exit", MockExit):
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(unresponsive_kill_period=0.5)
+      try:
+        for _ in range(10):
+          # Unfortunately we really need to sleep because we cant mock out
+          # time.time.
+          time.sleep(0.1)
+          nanny_controller.Heartbeat()
 
-      for _ in range(10):
-        # Unfortunately we really need to sleep because we cant mock out
-        # time.time.
-        time.sleep(0.1)
-        nanny_controller.Heartbeat()
+        self.assertEqual(self.exit_called, False)
 
-      self.assertEqual(self.exit_called, False)
-
-      # Main thread sleeps for long enough for the nanny to fire.
-      time.sleep(1)
-      self.assertEqual(self.exit_called, -1)
-
-      nanny_controller.StopNanny()
+        # Main thread sleeps for long enough for the nanny to fire.
+        time.sleep(1)
+        self.assertEqual(self.exit_called, -1)
+      finally:
+        nanny_controller.StopNanny()
 
   def testLinuxNannyLog(self):
     """Tests the linux nanny transaction log."""
     with tempfile.NamedTemporaryFile() as fd:
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(nanny_logfile=fd.name)
-      grr_message = rdf_flows.GrrMessage(session_id="W:test")
+      try:
+        grr_message = rdf_flows.GrrMessage(session_id="W:test")
 
-      nanny_controller.WriteTransactionLog(grr_message)
-      self.assertRDFValuesEqual(grr_message,
-                                nanny_controller.GetTransactionLog())
-      nanny_controller.CleanTransactionLog()
+        nanny_controller.WriteTransactionLog(grr_message)
+        self.assertRDFValuesEqual(grr_message,
+                                  nanny_controller.GetTransactionLog())
+        nanny_controller.CleanTransactionLog()
 
-      self.assertIsNone(nanny_controller.GetTransactionLog())
+        self.assertIsNone(nanny_controller.GetTransactionLog())
 
-      nanny_controller.StopNanny()
+      finally:
+        nanny_controller.StopNanny()
 
 
 class OSXVersionTests(test_lib.GRRBaseTest):

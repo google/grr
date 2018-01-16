@@ -27,7 +27,7 @@ var ArtifactDescriptorController =
  * Directive that displays artifact descriptor (artifact itself, processors and
  * source).
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

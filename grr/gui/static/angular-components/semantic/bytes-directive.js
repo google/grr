@@ -84,7 +84,7 @@ BytesController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays Bytes values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

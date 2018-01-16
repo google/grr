@@ -15,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
+from grr.test_lib import worker_mocks
 
 
 class MockAction(actions.ActionPlugin):
@@ -36,7 +37,7 @@ class RaiseAction(actions.ActionPlugin):
     raise RuntimeError("I dont like.")
 
 
-class TestedContext(comms.GRRClientWorker):
+class TestedContext(worker_mocks.DisabledNannyClientWorker):
   """We test a simpler Context without crypto here."""
 
   def LoadCertificates(self):
@@ -138,10 +139,10 @@ class BasicContextTests(test_lib.GRRBaseTest):
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)
-    self.assertEqual([m.priority
-                      for m in message_list], [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
-    self.assertEqual([m.require_fastpoll
-                      for m in message_list], [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    self.assertEqual([m.priority for m in message_list],
+                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
+    self.assertEqual([m.require_fastpoll for m in message_list],
+                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
 
   def testSizeQueue(self):
 

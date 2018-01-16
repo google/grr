@@ -72,7 +72,7 @@ MacAddressController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays MacAddress values.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

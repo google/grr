@@ -225,7 +225,7 @@ ServerLoadController.prototype.fetchIndicators_ = function() {
 /**
  * Directive for displaying server load dashboard.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

@@ -94,7 +94,7 @@ NavLinkController.prototype.applyActiveState_ = function(activeState) {
 /**
  * Directive for the navLink.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

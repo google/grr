@@ -85,7 +85,7 @@ OnScrollIntoViewController.prototype.onInterval = function() {
 /**
  * Directive that triggers custom user action when element scrolls into view.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */

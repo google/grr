@@ -8,7 +8,6 @@ goog.scope(function() {
  * Directive that displays rekall table and row messages.
  *
  * @return {!angular.Directive} Directive definition object.
- * @constructor
  * @ngInject
  * @export
  */

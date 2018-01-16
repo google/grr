@@ -72,7 +72,7 @@ HashDigestController.prototype.onValueChange = function(newValue) {
 /**
  * Directive that displays a HashDigest value.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
