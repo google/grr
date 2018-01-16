@@ -54,7 +54,11 @@ class GRRFleetspeakClient(object):
     # threading.Thread here.
     self._client_worker = comms.GRRThreadedWorker(
         out_queue=_FleetspeakQueueForwarder(self._sender_queue),
-        start_worker_thread=False)
+        start_worker_thread=False,
+        client=self)
+
+  def FleetspeakEnabled(self):
+    return True
 
   def Run(self):
     """The main run method of the client."""
@@ -71,10 +75,10 @@ class GRRFleetspeakClient(object):
       self._client_worker.SendReply(
           rdf_protodict.DataBlob(),
           session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-          priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
+          require_fastpoll=False)
       time.sleep(period)
 
-  def _SendMessages(self, grr_msgs, priority=fs_common_pb2.Message.MEDIUM):
+  def _SendMessages(self, grr_msgs, background=False):
     """Sends a block of messages through Fleetspeak."""
     message_list = rdf_flows.PackedMessageList()
     communicator.Communicator.EncodeMessageList(
@@ -83,7 +87,7 @@ class GRRFleetspeakClient(object):
     fs_msg = fs_common_pb2.Message(
         message_type="MessageList",
         destination=fs_common_pb2.Address(service_name="GRR"),
-        priority=priority)
+        background=background)
     fs_msg.data.Pack(message_list.AsPrimitiveProto())
 
     try:
@@ -105,9 +109,9 @@ class GRRFleetspeakClient(object):
     while True:
       msg = self._sender_queue.get()
       msgs = []
-      low_msgs = []
-      if msg.priority == rdf_flows.GrrMessage.Priority.LOW_PRIORITY:
-        low_msgs.append(msg)
+      background_msgs = []
+      if not msg.require_fastpoll:
+        background_msgs.append(msg)
       else:
         msgs.append(msg)
 
@@ -117,8 +121,8 @@ class GRRFleetspeakClient(object):
       while count < 100 and size < 1024 * 1024:
         try:
           msg = self._sender_queue.get(timeout=1)
-          if msg.priority == rdf_flows.GrrMessage.Priority.LOW_PRIORITY:
-            low_msgs.append(msg)
+          if not msg.require_fastpoll:
+            background_msgs.append(msg)
           else:
             msgs.append(msg)
           count += 1
@@ -128,8 +132,8 @@ class GRRFleetspeakClient(object):
 
       if msgs:
         self._SendMessages(msgs)
-      if low_msgs:
-        self._SendMessages(low_msgs, priority=fs_common_pb2.Message.LOW)
+      if background_msgs:
+        self._SendMessages(background_msgs, background=True)
 
   def _ReceiverThread(self):
     """Receives messages through Fleetspeak."""

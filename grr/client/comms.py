@@ -1272,6 +1272,9 @@ class GRRHTTPClient(object):
     else:
       self.client_worker = GRRThreadedWorker(client=self)
 
+  def FleetspeakEnabled(self):
+    return False
+
   def VerifyServerPEM(self, http_object):
     """Check the server PEM for validity.
 

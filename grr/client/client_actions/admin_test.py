@@ -88,12 +88,12 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
       request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
 
-      self.RunAction(admin.UpdateConfiguration, request)
+      with self.assertRaises(ValueError):
+        self.RunAction(admin.UpdateConfiguration, request)
 
-      # Location can be set.
-      self.assertEqual(config.CONFIG["Client.server_urls"], location)
-
-      # But the server serial number can not be updated.
+      # Nothing was updated.
+      self.assertEqual(config.CONFIG["Client.server_urls"],
+                       ["http://something.com/"])
       self.assertEqual(config.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):

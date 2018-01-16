@@ -33,7 +33,7 @@ message Client {
       description: "Hostname of the host.",
     }];
   optional string fqdn = 5 [(sem_type) = {
-      description: "Fully qualitifed hostname of the host.",
+      description: "Fully qualified hostname of the host.",
     }];
   optional string system = 6 [(sem_type) = {
       description: "Operating System class.",

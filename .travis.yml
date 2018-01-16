@@ -28,6 +28,8 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
+        # TODO(amoser): Change to
+        # pytest grr/
         - grr_run_tests --processes=2
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
@@ -58,6 +60,8 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
+        # TODO(amoser): Change to
+        # pytest grr/client/ --ignore grr/client/linux/ --ignore grr/client/client_actions/linux/
         - grr_run_tests --processes=2 --labels=client_action
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh

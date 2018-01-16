@@ -864,16 +864,16 @@ class ModificationTimeConditionTest(MetadataConditionTestMixin,
     self.assertTrue(condition.Check(self.Stat()))
 
   def testMaxTime(self):
-    time = rdfvalue.RDFDatetime.FromHumanReadable("2925-12-28 18:45")
+    time = rdfvalue.RDFDatetime.FromHumanReadable("2125-12-28 18:45")
 
     params = rdf_file_finder.FileFinderCondition()
     params.modification_time.max_last_modified_time = time
     condition = client_file_finder.ModificationTimeCondition(params)
 
-    self.Touch("-m", "291811111200")  # 2918-11-11 12:00
+    self.Touch("-m", "211811111200")  # 2118-11-11 12:00
     self.assertTrue(condition.Check(self.Stat()))
 
-    self.Touch("-m", "301210201500")  # 3012-10-20 15:00
+    self.Touch("-m", "222510201500")  # 2225-10-20 15:00
     self.assertFalse(condition.Check(self.Stat()))
 
 
@@ -890,21 +890,21 @@ class AccessTimeConditionTest(MetadataConditionTestMixin, unittest.TestCase):
     self.assertTrue(condition.Check(self.Stat()))
 
   def testRange(self):
-    min_time = rdfvalue.RDFDatetime.FromHumanReadable("2756-01-27")
-    max_time = rdfvalue.RDFDatetime.FromHumanReadable("2791-12-05")
+    min_time = rdfvalue.RDFDatetime.FromHumanReadable("2156-01-27")
+    max_time = rdfvalue.RDFDatetime.FromHumanReadable("2191-12-05")
 
     params = rdf_file_finder.FileFinderCondition()
     params.access_time.min_last_access_time = min_time
     params.access_time.max_last_access_time = max_time
     condition = client_file_finder.AccessTimeCondition(params)
 
-    self.Touch("-a", "275007280000")  # 2750-07-28 0:00
+    self.Touch("-a", "215007280000")  # 2150-07-28 0:00
     self.assertFalse(condition.Check(self.Stat()))
 
-    self.Touch("-a", "279101010000")  # 2791-01-01 0:00
+    self.Touch("-a", "219101010000")  # 2191-01-01 0:00
     self.assertTrue(condition.Check(self.Stat()))
 
-    self.Touch("-a", "281003010000")  # 2810-03-01 0:00
+    self.Touch("-a", "221003010000")  # 2210-03-01 0:00
     self.assertFalse(condition.Check(self.Stat()))
 
 
@@ -1008,7 +1008,11 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
 
     self._Chflags(["nodump", "hidden", "uappend"])
 
-    self.assertTrue(condition.Check(self.Stat()))
+    try:
+      self.assertTrue(condition.Check(self.Stat()))
+    finally:
+      # Make the test file deletable.
+      self._Chflags(["nouappend"])
 
   def testMatchLinuxBitsSet(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -1026,7 +1030,11 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
 
     self._Chflags(["hidden", "uappend"])
 
-    self.assertTrue(condition.Check(self.Stat()))
+    try:
+      self.assertTrue(condition.Check(self.Stat()))
+    finally:
+      # Make the test file deletable.
+      self._Chflags(["nouappend"])
 
   def testMatchLinuxBitsUnset(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -1046,7 +1054,11 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
 
     self._Chflags(["nodump", "uappend"])
 
-    self.assertTrue(condition.Check(self.Stat()))
+    try:
+      self.assertTrue(condition.Check(self.Stat()))
+    finally:
+      # Make the test file deletable.
+      self._Chflags(["nouappend"])
 
   def testMatchLinuxBitsMixed(self):
     params = rdf_file_finder.FileFinderCondition()
@@ -1071,7 +1083,7 @@ class ExtFlagsConditionTest(MetadataConditionTestMixin, unittest.TestCase):
   def _Chflags(self, args):
     if platform.system() != "Darwin":
       raise unittest.SkipTest("requires macOS")
-    subprocess.check_call(["chflags"] + args + [self.temp_filepath])
+    subprocess.check_call(["chflags", ",".join(args), self.temp_filepath])
 
 
 # TODO(hanuszczak): Write tests for the metadata change condition.

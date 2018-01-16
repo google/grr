@@ -99,15 +99,10 @@ HostInfoController.prototype.onClientIdChange_ = function(clientId) {
  * Handles changes to the client version.
  *
  * @param {?number} newValue
- * @param {?number} oldValue
  * @private
  */
-HostInfoController.prototype.onClientVersionChange_ = function(newValue, oldValue) {
-  // The first non-undefined value for clientVersion comes from fetchClientDetails_ after
-  // fetching the details and setting the clientVersion to the age. This will immediately
-  // trigger another call to the server. We can prevent this by requiring the clientVersion
-  // to have been set before.
-  if (oldValue) {
+HostInfoController.prototype.onClientVersionChange_ = function(newValue) {
+  if (this.client['value']['age']['value'] !== newValue) {
     this.fetchClientDetails_();
   }
 };
