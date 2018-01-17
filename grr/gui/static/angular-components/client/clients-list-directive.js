@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.clientsListDirective.ClientsListController');
 goog.provide('grrUi.client.clientsListDirective.ClientsListDirective');
 
 goog.scope(function() {
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.client.clientsListDirective.ClientsListController = function(
+const ClientsListController = function(
     $scope, grrClientDialogService, grrRoutingService) {
 
   /** @private {!angular.Scope} */
@@ -55,8 +54,6 @@ grrUi.client.clientsListDirective.ClientsListController = function(
       this.onQueryChange_.bind(this));
 };
 
-var ClientsListController = grrUi.client.clientsListDirective
-    .ClientsListController;
 
 
 /**

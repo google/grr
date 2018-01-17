@@ -7,7 +7,7 @@ from grr.gui import api_value_renderers
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import tests_pb2
+from grr_response_proto import tests_pb2
 from grr.test_lib import test_lib
 
 

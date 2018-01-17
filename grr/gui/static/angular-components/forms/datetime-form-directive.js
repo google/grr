@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.datetimeFormDirective.DatetimeFormController');
 goog.provide('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
 
 
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.forms.datetimeFormDirective.DatetimeFormController = function(
+const DatetimeFormController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -36,8 +35,6 @@ grrUi.forms.datetimeFormDirective.DatetimeFormController = function(
   this.scope_.$watch('controller.valueString',
                      this.onValueStringChange_.bind(this));
 };
-var DatetimeFormController =
-    grrUi.forms.datetimeFormDirective.DatetimeFormController;
 
 
 /**

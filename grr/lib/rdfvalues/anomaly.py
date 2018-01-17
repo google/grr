@@ -64,7 +64,7 @@ anomaly and knowledge_base using object filter syntax. E.g.
 
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs
-from grr.proto import anomaly_pb2
+from grr_response_proto import anomaly_pb2
 
 
 class Anomaly(structs.RDFProtoStruct):

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.clientLoadViewDirective.ClientLoadViewController');
 goog.provide('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.client.clientLoadViewDirective.ClientLoadViewController = function(
+const ClientLoadViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,8 +37,6 @@ grrUi.client.clientLoadViewDirective.ClientLoadViewController = function(
 
   this.scope_.$watch('controller.duration', this.onDurationChange.bind(this));
 };
-var ClientLoadViewController =
-    grrUi.client.clientLoadViewDirective.ClientLoadViewController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.clientCrashesDirective.ClientCrashesController');
 goog.provide('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.client.clientCrashesDirective.ClientCrashesController = function(
+const ClientCrashesController = function(
     $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -34,8 +33,6 @@ grrUi.client.clientCrashesDirective.ClientCrashesController = function(
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
       this.onClientIdChange_.bind(this));
 };
-var ClientCrashesController =
-    grrUi.client.clientCrashesDirective.ClientCrashesController;
 
 
 /**

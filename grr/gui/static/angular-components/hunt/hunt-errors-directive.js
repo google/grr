@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsController');
 goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
 
 goog.scope(function() {
@@ -17,7 +16,7 @@ grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.hunt.huntErrorsDirective.HuntErrorsController = function($scope) {
+const HuntErrorsController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -34,7 +33,6 @@ grrUi.hunt.huntErrorsDirective.HuntErrorsController = function($scope) {
   this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
 
-var HuntErrorsController = grrUi.hunt.huntErrorsDirective.HuntErrorsController;
 
 
 /**

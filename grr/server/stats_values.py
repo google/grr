@@ -4,7 +4,7 @@
 
 from grr.lib import stats
 from grr.lib.rdfvalues import structs
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 
 
 class StatsStoreFieldValue(structs.RDFProtoStruct):

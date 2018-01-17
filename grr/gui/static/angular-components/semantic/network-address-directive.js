@@ -1,9 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.semantic.networkAddressDirective.NetworkAddressController');
 goog.provide('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
-goog.provide('grrUi.semantic.networkAddressDirective.convertIpv4AddressToString');
-goog.provide('grrUi.semantic.networkAddressDirective.convertIpv6AddressToString');
 
 goog.scope(function() {
 
@@ -15,7 +12,7 @@ goog.scope(function() {
  * @param {string} address Byte-string with IPv4 address.
  * @return {string} Human-readable IPv4 address.
  */
-grrUi.semantic.networkAddressDirective.convertIpv4AddressToString = function(
+const convertIpv4AddressToString = function(
     address) {
   var result = [];
   for (var i = 0; i < address.length; ++i) {
@@ -27,8 +24,6 @@ grrUi.semantic.networkAddressDirective.convertIpv4AddressToString = function(
   }
   return result.join('.');
 };
-var convertIpv4AddressToString =
-    grrUi.semantic.networkAddressDirective.convertIpv4AddressToString;
 
 
 /**
@@ -38,7 +33,7 @@ var convertIpv4AddressToString =
  * @param {string} address Byte-string with IPv6 address.
  * @return {string} Human-readable IPv6 address.
  */
-grrUi.semantic.networkAddressDirective.convertIpv6AddressToString = function(
+const convertIpv6AddressToString = function(
     address) {
   var result = [];
   var colonCounter = 0;
@@ -55,8 +50,6 @@ grrUi.semantic.networkAddressDirective.convertIpv6AddressToString = function(
   }
   return result.join('');
 };
-var convertIpv6AddressToString =
-    grrUi.semantic.networkAddressDirective.convertIpv6AddressToString;
 
 
 /**
@@ -93,7 +86,7 @@ var convertBase64AddressToString =
  * @constructor
  * @ngInject
  */
-grrUi.semantic.networkAddressDirective.NetworkAddressController = function(
+const NetworkAddressController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -104,8 +97,6 @@ grrUi.semantic.networkAddressDirective.NetworkAddressController = function(
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var NetworkAddressController =
-    grrUi.semantic.networkAddressDirective.NetworkAddressController;
 
 
 /**

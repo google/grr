@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntCrashesDirective.HuntCrashesController');
 goog.provide('grrUi.hunt.huntCrashesDirective.HuntCrashesDirective');
 
 goog.scope(function() {
@@ -17,7 +16,7 @@ grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.hunt.huntCrashesDirective.HuntCrashesController = function($scope) {
+const HuntCrashesController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -34,8 +33,6 @@ grrUi.hunt.huntCrashesDirective.HuntCrashesController = function($scope) {
   this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
 
-var HuntCrashesController =
-    grrUi.hunt.huntCrashesDirective.HuntCrashesController;
 
 
 /**

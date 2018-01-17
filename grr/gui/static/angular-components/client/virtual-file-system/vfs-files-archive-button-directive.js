@@ -1,7 +1,6 @@
 'use strict';
 
 goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.DOWNLOAD_EVERYTHING_REENABLE_DELAY');
-goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonController');
 goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective');
 
 goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
@@ -37,8 +36,7 @@ var DOWNLOAD_EVERYTHING_REENABLE_DELAY =
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
-    .VfsFilesArchiveButtonController = function(
+const VfsFilesArchiveButtonController = function(
         $rootScope, $scope, $timeout, grrApiService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -66,9 +64,6 @@ grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
     this.downloadCurrentFolderDisabled = false;
   }.bind(this));
 };
-var VfsFilesArchiveButtonController =
-    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
-    .VfsFilesArchiveButtonController;
 
 
 /**

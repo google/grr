@@ -337,6 +337,35 @@ class DatabaseTest(unittest.TestCase):
             objects.ClientLabel(name=u"⛄࿄2", owner="owner2")
         ])
 
+  def testFilledGRRUserReadWrite(self):
+    d = self.CreateDatabase()
+
+    u_expected = objects.GRRUser(ui_mode="ADVANCED", canary_mode=True)
+    u_expected.password.SetPassword("blah")
+    d.WriteGRRUser(
+        "foo",
+        password=u_expected.password,
+        ui_mode=u_expected.ui_mode,
+        canary_mode=u_expected.canary_mode)
+
+    u = d.ReadGRRUser("foo")
+    self.assertEqual(u_expected, u)
+
+  def testEmptyGRRUserReadWrite(self):
+    d = self.CreateDatabase()
+
+    u_expected = objects.GRRUser()
+    d.WriteGRRUser("foo")
+
+    u = d.ReadGRRUser("foo")
+    self.assertEqual(u_expected, u)
+
+  def testReadingUnknownGRRUserFails(self):
+    d = self.CreateDatabase()
+
+    with self.assertRaises(db.UnknownGRRUserError):
+      d.ReadGRRUser("foo")
+
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM

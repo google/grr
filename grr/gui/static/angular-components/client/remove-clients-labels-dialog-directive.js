@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogController');
 goog.provide('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
 
 goog.scope(function() {
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogController =
+const RemoveClientsLabelsDialogController =
     function($scope, $q, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -35,8 +34,6 @@ grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogControl
   this.scope_.$watch('clients', this.onClientsChange_.bind(this));
 };
 
-var RemoveClientsLabelsDialogController =
-  grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogController;
 
 
 /**

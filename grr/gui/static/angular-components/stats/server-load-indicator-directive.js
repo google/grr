@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorController');
 goog.provide('grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorController =
+const ServerLoadIndicatorController =
     function($scope) {
       /** @private {!angular.Scope} */
       this.scope_ = $scope;
@@ -46,8 +45,6 @@ grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorController =
       }.bind(this));
     };
 
-var ServerLoadIndicatorController = grrUi.stats.serverLoadIndicatorDirective.
-    ServerLoadIndicatorController;
 
 
 

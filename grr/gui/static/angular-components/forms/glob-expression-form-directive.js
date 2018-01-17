@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.globExpressionFormDirective.GlobExpressionFormController');
 goog.provide('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
 
 
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.forms.globExpressionFormDirective.GlobExpressionFormController = function(
+const GlobExpressionFormController = function(
     $element, $interval, grrApiService) {
 
   /** @private {!angular.jQuery} */
@@ -31,8 +30,6 @@ grrUi.forms.globExpressionFormDirective.GlobExpressionFormController = function(
   this.grrApiService_.get('/clients/kb-fields').then(
       this.onGetFields_.bind(this));
 };
-var GlobExpressionFormController =
-    grrUi.forms.globExpressionFormDirective.GlobExpressionFormController;
 
 
 /**

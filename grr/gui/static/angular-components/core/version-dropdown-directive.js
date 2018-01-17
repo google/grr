@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.versionDropdownDirective.VersionDropdownController');
 goog.provide('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 
 
@@ -18,7 +17,7 @@ var REFRESH_VERSIONS_EVENT = "RefreshVersionsEvent";
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.core.versionDropdownDirective.VersionDropdownController = function(
+const VersionDropdownController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -49,8 +48,6 @@ grrUi.core.versionDropdownDirective.VersionDropdownController = function(
   this.scope_.$on(REFRESH_VERSIONS_EVENT, this.fetchVersions_.bind(this));
 };
 
-var VersionDropdownController =
-    grrUi.core.versionDropdownDirective.VersionDropdownController;
 
 
 /**

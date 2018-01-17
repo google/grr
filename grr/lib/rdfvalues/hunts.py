@@ -8,8 +8,8 @@ from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr.server import foreman
 from grr.server import output_plugin
 

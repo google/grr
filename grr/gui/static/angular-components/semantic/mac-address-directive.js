@@ -1,8 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.semantic.macAddressDirective.MacAddressController');
 goog.provide('grrUi.semantic.macAddressDirective.MacAddressDirective');
-goog.provide('grrUi.semantic.macAddressDirective.convertMacAddressToString');
 
 goog.scope(function() {
 
@@ -13,7 +11,7 @@ goog.scope(function() {
  * @param {string} address Byte-string with MAC address.
  * @return {string} Human-readable MAC address.
  */
-grrUi.semantic.macAddressDirective.convertMacAddressToString = function(
+const convertMacAddressToString = function(
     address) {
   var result = [];
   for (var i = 0; i < address.length; ++i) {
@@ -25,8 +23,6 @@ grrUi.semantic.macAddressDirective.convertMacAddressToString = function(
   }
   return result.join(':');
 };
-var convertMacAddressToString =
-    grrUi.semantic.macAddressDirective.convertMacAddressToString;
 
 
 
@@ -37,7 +33,7 @@ var convertMacAddressToString =
  * @constructor
  * @ngInject
  */
-grrUi.semantic.macAddressDirective.MacAddressController = function($scope) {
+const MacAddressController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -47,8 +43,6 @@ grrUi.semantic.macAddressDirective.MacAddressController = function($scope) {
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var MacAddressController =
-    grrUi.semantic.macAddressDirective.MacAddressController;
 
 
 /**

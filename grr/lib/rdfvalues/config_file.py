@@ -2,7 +2,7 @@
 """Implementation of configuration_file types."""
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
-from grr.proto import config_file_pb2
+from grr_response_proto import config_file_pb2
 
 
 class LogTarget(structs.RDFProtoStruct):

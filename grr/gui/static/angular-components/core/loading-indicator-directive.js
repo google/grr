@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.loadingIndicatorDirective.LoadingIndicatorController');
 goog.provide('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
 
 
@@ -20,7 +19,7 @@ var LOADING_FINISHED_EVENT_NAME = 'grrLoadingFinishedEvent';
  *
  * @ngInject
  */
-grrUi.core.loadingIndicatorDirective.LoadingIndicatorController = function(
+const LoadingIndicatorController = function(
   $rootScope, $scope) {
 
   /** @private {!angular.Scope} */
@@ -40,8 +39,6 @@ grrUi.core.loadingIndicatorDirective.LoadingIndicatorController = function(
   this.rootScope_.$on(LOADING_FINISHED_EVENT_NAME,
       this.onLoadingFinishedEvent_.bind(this));
 };
-var LoadingIndicatorController =
-  grrUi.core.loadingIndicatorDirective.LoadingIndicatorController;
 
 
 /**

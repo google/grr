@@ -14,7 +14,7 @@ from grr.lib import fleetspeak_utils
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import flow

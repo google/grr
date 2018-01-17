@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobOverviewDirective.CronJobOverviewController');
 goog.provide('grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective');
 goog.require('grrUi.core.utils.stripAff4Prefix');
 
@@ -18,7 +17,7 @@ var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.cron.cronJobOverviewDirective.CronJobOverviewController =
+const CronJobOverviewController =
     function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,8 +37,6 @@ grrUi.cron.cronJobOverviewDirective.CronJobOverviewController =
   this.scope_.$watch('cronJobUrn', this.onCronJobUrnChange.bind(this));
 };
 
-var CronJobOverviewController =
-    grrUi.cron.cronJobOverviewDirective.CronJobOverviewController;
 
 
 /**

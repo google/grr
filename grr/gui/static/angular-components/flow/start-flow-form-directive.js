@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormController');
 goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -17,7 +16,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.flow.startFlowFormDirective.StartFlowFormController = function(
+const StartFlowFormController = function(
     $scope, grrApiService, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -72,8 +71,6 @@ grrUi.flow.startFlowFormDirective.StartFlowFormController = function(
     }
   }.bind(this));
 };
-var StartFlowFormController =
-    grrUi.flow.startFlowFormDirective.StartFlowFormController;
 
 
 /**

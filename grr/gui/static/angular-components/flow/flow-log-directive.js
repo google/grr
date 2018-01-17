@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowLogDirective.FlowLogController');
 goog.provide('grrUi.flow.flowLogDirective.FlowLogDirective');
 
 goog.scope(function() {
@@ -17,7 +16,7 @@ grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
+const FlowLogController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -32,8 +31,6 @@ grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
                           this.onFlowIdOrBasePathChange_.bind(this));
 };
 
-var FlowLogController =
-    grrUi.flow.flowLogDirective.FlowLogController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.objectLabelDirective.ObjectLabelController');
 goog.provide('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.objectLabelDirective.ObjectLabelController = function($scope) {
+const ObjectLabelController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -26,8 +25,6 @@ grrUi.semantic.objectLabelDirective.ObjectLabelController = function($scope) {
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
 
-var ObjectLabelController =
-    grrUi.semantic.objectLabelDirective.ObjectLabelController;
 
 
 /**

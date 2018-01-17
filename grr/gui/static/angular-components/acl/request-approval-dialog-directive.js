@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogController');
 goog.provide('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 
 goog.require('grrUi.core.utils.stringToList');
@@ -21,7 +20,7 @@ var stringToList = grrUi.core.utils.stringToList;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogController =
+const RequestApprovalDialogController =
     function($scope, $q, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -66,8 +65,6 @@ grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogController =
       this.onLatestApprovalsResponse_.bind(this));
 };
 
-var RequestApprovalDialogController =
-    grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogController;
 
 
 /**

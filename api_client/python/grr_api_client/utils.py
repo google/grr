@@ -10,23 +10,22 @@ from google.protobuf import symbol_database
 
 from grr_api_client import errors
 
-from grr.client.components.rekall_support import rekall_pb2
+from grr_response_proto import checks_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import rekall_pb2
 
-from grr.proto import checks_pb2
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
-
-from grr.proto.api import artifact_pb2
-from grr.proto.api import client_pb2
-from grr.proto.api import config_pb2
-from grr.proto.api import cron_pb2
-from grr.proto.api import flow_pb2
-from grr.proto.api import hunt_pb2
-from grr.proto.api import output_plugin_pb2
-from grr.proto.api import reflection_pb2
-from grr.proto.api import stats_pb2
-from grr.proto.api import user_pb2
-from grr.proto.api import vfs_pb2
+from grr_response_proto.api import artifact_pb2
+from grr_response_proto.api import client_pb2
+from grr_response_proto.api import config_pb2
+from grr_response_proto.api import cron_pb2
+from grr_response_proto.api import flow_pb2
+from grr_response_proto.api import hunt_pb2
+from grr_response_proto.api import output_plugin_pb2
+from grr_response_proto.api import reflection_pb2
+from grr_response_proto.api import stats_pb2
+from grr_response_proto.api import user_pb2
+from grr_response_proto.api import vfs_pb2
 
 
 class ProtobufTypeNotFound(errors.Error):

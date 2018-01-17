@@ -8,8 +8,8 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import analysis_pb2
-from grr.proto import jobs_pb2
+from grr_response_proto import analysis_pb2
+from grr_response_proto import jobs_pb2
 
 
 class StatsHistogramBin(rdf_structs.RDFProtoStruct):

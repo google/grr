@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsController');
 goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 
 goog.require('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
@@ -20,7 +19,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.hunt.huntResultsDirective.HuntResultsController = function(
+const HuntResultsController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -42,8 +41,6 @@ grrUi.hunt.huntResultsDirective.HuntResultsController = function(
 
   $scope.$watch('huntUrn', this.onHuntUrnChange.bind(this));
 };
-var HuntResultsController =
-    grrUi.hunt.huntResultsDirective.HuntResultsController;
 
 
 /**

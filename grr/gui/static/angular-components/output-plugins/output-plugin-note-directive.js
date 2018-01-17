@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController');
 goog.provide('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  *     grrOutputPluginsDirectivesRegistryService
  * @ngInject
  */
-grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController =
+const OutputPluginNoteController =
     function($scope, grrOutputPluginsDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -39,8 +38,6 @@ grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController =
   this.scope_.$watchGroup(['outputPlugin', 'outputPluginsUrl'],
                           this.onOutputPluginChange_.bind(this));
 };
-var OutputPluginNoteController =
-    grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController;
 
 
 /**

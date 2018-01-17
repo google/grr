@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController');
 goog.provide('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective');
 
 goog.scope(function() {
@@ -195,7 +194,7 @@ const getMaskFlags = function(mask) {
  * @ngInject
  * @export
  */
-grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController =
+const StatExtFlagsLinuxController =
     function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -211,8 +210,6 @@ grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController =
   this.flags = [];
 };
 
-const StatExtFlagsLinuxController =
-    grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxController;
 
 /**
  * @param {Object} value

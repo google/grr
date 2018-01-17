@@ -220,7 +220,7 @@ class EnumerateUsers(actions.ActionPlugin):
       for offset in xrange(0, len(wtmp), wtmp_struct_size):
         try:
           record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
-        except RuntimeError:
+        except utils.ParsingError:
           break
 
         # Users only appear for USER_PROCESS events, others are system.
@@ -319,7 +319,7 @@ class EnumerateRunningServices(actions.ActionPlugin):
   out_rdfvalues = [None]
 
   def Run(self, unused_arg):
-    raise RuntimeError("Not implemented")
+    raise NotImplementedError("Not implemented")
 
 
 class Uninstall(actions.ActionPlugin):
@@ -331,7 +331,7 @@ class Uninstall(actions.ActionPlugin):
   out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_arg):
-    raise RuntimeError("Not implemented")
+    raise NotImplementedError("Not implemented")
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

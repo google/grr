@@ -1,0 +1,68 @@
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+
+// type?, labels
+message Anomaly {
+
+  enum AnomalyLevel {
+    UNKNOWN_ANOMALY_LEVEL = 0;
+    VERY_LOW = 1;
+    LOW = 2;
+    MEDIUM = 3;
+    HIGH = 4;
+    VERY_HIGH = 5;
+  };
+
+  enum AnomalyType {
+    UNKNOWN_ANOMALY_TYPE = 0;
+    PARSER_ANOMALY = 1;     // Found during format parsing.
+    ANALYSIS_ANOMALY = 2;   // Found during analysis.
+    MANUAL_ANOMALY = 3;     // Found by humans.
+  };
+
+  optional AnomalyType type = 1 [(sem_type) = {
+      description: "Type of anomaly this represents.",
+    }];
+
+  optional AnomalyLevel severity = 2 [(sem_type) = {
+      description: "Severity of the anomaly if it is a true positive.",
+    }];
+
+  optional AnomalyLevel confidence = 3 [(sem_type) = {
+      description: "Confidence that the anomaly is a true positive.",
+    }];
+
+  optional string symptom = 4 [(sem_type) = {
+      description: "A description of what is anomalous.",
+    }];
+
+  optional string explanation = 5 [(sem_type) = {
+      description: "A description of possible explanations for the anomaly if "
+      "additional information is available.",
+    }];
+
+  optional string generated_by = 6 [(sem_type) = {
+      description: "String describing what generated the anomaly, this is "
+        "normally the name of a parser or artifact.",
+    }];
+
+  optional PathSpec reference_pathspec = 7 [(sem_type) = {
+      description: "A pathspec pointing to the object where the anomaly was "
+        "found."
+    }];
+
+  repeated string anomaly_reference_id = 8 [(sem_type) = {
+      description: "A string used to reference the anomaly in the Anomaly "
+        "database."
+    }];
+
+  repeated string finding = 9 [(sem_type) = {
+      description: "String descriptions of data that triggered the Anomaly."
+    }];
+
+}
+

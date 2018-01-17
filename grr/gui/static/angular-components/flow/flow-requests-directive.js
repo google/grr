@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowRequestsDirective.FlowRequestsController');
 goog.provide('grrUi.flow.flowRequestsDirective.FlowRequestsDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.flow.flowRequestsDirective.FlowRequestsController = function($scope) {
+const FlowRequestsController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -24,8 +23,6 @@ grrUi.flow.flowRequestsDirective.FlowRequestsController = function($scope) {
                           this.onFlowIdOrBasePathChange_.bind(this));
 };
 
-var FlowRequestsController =
-    grrUi.flow.flowRequestsDirective.FlowRequestsController;
 
 
 /**

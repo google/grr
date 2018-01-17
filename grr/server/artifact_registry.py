@@ -14,7 +14,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
-from grr.proto import artifact_pb2
+from grr_response_proto import artifact_pb2
 from grr.server import artifact_utils
 from grr.server import data_store
 from grr.server import sequential_collection

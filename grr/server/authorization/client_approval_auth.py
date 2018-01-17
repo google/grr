@@ -4,7 +4,7 @@
 from grr import config
 from grr.lib import registry
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import acls_pb2
+from grr_response_proto import acls_pb2
 
 from grr.server import access_control
 from grr.server.authorization import auth_manager

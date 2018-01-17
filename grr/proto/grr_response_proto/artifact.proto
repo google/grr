@@ -1,0 +1,141 @@
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+
+
+// Proto representation of an ArtifactSource.
+message ArtifactSource {
+
+  enum SourceType {
+    COLLECTOR_TYPE_UNKNOWN = 0;
+    FILE = 1;
+    REGISTRY_KEY = 2;
+    REGISTRY_VALUE = 3;
+    WMI = 4;
+    // ARTIFACT has been deprecated in favor of ARTIFACT_GROUP.
+    ARTIFACT = 5;
+    PATH = 6;
+    DIRECTORY = 7;
+    ARTIFACT_GROUP = 8;
+
+    // TODO(user): these types will likely be separated out from artifacts in
+    // the future
+    GRR_CLIENT_ACTION = 40;
+    LIST_FILES = 41;
+    ARTIFACT_FILES = 42;
+    GREP = 43;
+
+    COMMAND = 45;
+    REKALL_PLUGIN = 46;
+
+  };
+
+  optional SourceType type = 1 [(sem_type) = {
+      description: "The type of source.",
+    }];
+
+  optional Dict attributes = 2 [(sem_type) = {
+      description: "The attributes that describe the source. e.g. file paths.",
+    }];
+
+  repeated string conditions = 3 [(sem_type) = {
+      description: "Object filter conditions that decide if this source"
+        " applies to a given system.",
+    }];
+
+  repeated string returned_types = 4 [(sem_type) = {
+      description: "A list of types that may be returned by this source. "
+        "Anything returned that is not in this list will be filtered.",
+    }];
+
+  repeated string supported_os = 5 [(sem_type) = {
+      description: "A list of operating systems to which this source should be "
+        "applied.",
+    }];
+
+}
+
+
+// Proto representation of an artifact.
+message Artifact {
+  optional string name = 1 [(sem_type) = {
+      description: "Globally unique name of the artifact.",
+      type: "ArtifactName",
+    }];
+
+  repeated string conditions = 2 [(sem_type) = {
+      description: "A list of conditions that decide if the artifact should "
+        "run.",
+    }];
+
+  optional string doc = 3 [(sem_type) = {
+      description: "Doc string for the artifact.",
+    }];
+
+  repeated string labels = 4 [(sem_type) = {
+      description: "A list of labels the artifact belongs to.",
+    }];
+
+  repeated string supported_os = 5 [(sem_type) = {
+      description: "A list of operating systems the artifact supports.",
+    }];
+
+  repeated string urls = 6 [(sem_type) = {
+    description: "A list of urls that help document the artifact.",
+  }];
+
+  /* Deprecated
+  repeated Collector collectors = 7 [(sem_type) = {
+    description: "A list of artifact collectors.",
+  }]; */
+
+  repeated string provides = 8 [(sem_type) = {
+      description: "A list of knowledgebase values this artifact provides.",
+    }];
+
+  repeated ArtifactSource sources = 9 [(sem_type) = {
+    description: "A list of artifact sources.",
+  }];
+
+  optional string error_message = 10 [(sem_type) = {
+      description: "The error message for artifacts that failed validation."
+    }];
+}
+
+
+message ArtifactProcessorDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Processor's name as registered in GRR."
+    }];
+  optional string description = 2 [(sem_type) = {
+      description: "Description of this processor."
+    }];
+  repeated string output_types = 3 [(sem_type) = {
+      description: "The semantic types that can be produced by the processor."
+    }];
+}
+
+
+message ArtifactDescriptor {
+  optional Artifact artifact = 1 [(sem_type) = {
+      description: "Artifact itself."
+    }];
+  repeated string dependencies = 2 [(sem_type) = {
+      description: "Names of artifacts this artifact depends on."
+    }];
+  repeated string path_dependencies = 3 [(sem_type) = {
+      description: "Names of KB objects this artifact depends on."
+    }];
+  repeated ArtifactProcessorDescriptor processors = 5 [(sem_type) = {
+      description: "Processors that will process this artifact's output."
+    }];
+  optional bool is_custom = 6 [(sem_type) = {
+      description: "If True, this artifact was manually uploaded by the user."
+    }];
+  optional string error_message = 7 [(sem_type) = {
+      description: "The error message for artifacts that failed validation."
+    }];
+}

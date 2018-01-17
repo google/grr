@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.clientSummaryDirective.ClientSummaryController');
 goog.provide('grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @ngInject
  */
-grrUi.sidebar.clientSummaryDirective.ClientSummaryController =
+const ClientSummaryController =
     function($scope, grrApiService, grrTimeService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -37,8 +36,6 @@ grrUi.sidebar.clientSummaryDirective.ClientSummaryController =
   this.scope_.$watch('client', this.onClientChange_.bind(this));
 };
 
-var ClientSummaryController =
-    grrUi.sidebar.clientSummaryDirective.ClientSummaryController;
 
 
 /**

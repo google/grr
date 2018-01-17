@@ -1,9 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor');
-goog.provide('grrUi.docs.apiDocsDirective.ApiDocsController');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
-goog.provide('grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -22,7 +19,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
+const ApiDocsController = function($element, $http,
                                                          grrApiService) {
   /** @private {!angular.jQuery} */
   this.element_ = $element;
@@ -51,7 +48,6 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
       this.onExamplesFetched_.bind(this));
 };
 
-var ApiDocsController = grrUi.docs.apiDocsDirective.ApiDocsController;
 
 
 /**

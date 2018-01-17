@@ -13,7 +13,7 @@ from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 
 # The header struct format.
 HEADER_MAGIC = "GRR\x01"

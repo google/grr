@@ -4,7 +4,7 @@
 from grr_api_client import errors
 from grr_api_client import utils
 
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 
 
 class UnknownFlowName(errors.Error):

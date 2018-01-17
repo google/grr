@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController');
 goog.provide('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective');
 
 
@@ -13,7 +12,7 @@ goog.provide('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective'
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
+const SemanticProtoFormController = function(
     $scope, $attrs, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -33,7 +32,7 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
   /** @type {boolean} */
   this.expanded = false;
 
-  /** @type {Object} */
+  /** @type {Object|undefined} */
   this.editedValue;
 
   if (angular.isDefined($attrs['hiddenFields']) &&
@@ -50,8 +49,6 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
   this.boundNotExplicitlyHiddenFields =
       this.notExplicitlyHiddenFields_.bind(this);
 };
-var SemanticProtoFormController =
-    grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController;
 
 
 /**

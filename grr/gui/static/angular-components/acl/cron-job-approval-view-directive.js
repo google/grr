@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewController');
 goog.provide('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewController = function(
+const CronJobApprovalViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,8 +37,6 @@ grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewController = function(
         this.approvalId = params[2];
       }.bind(this));
 };
-var CronJobApprovalViewController =
-    grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewController;
 
 
 /**

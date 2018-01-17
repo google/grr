@@ -11,7 +11,7 @@ from grr.gui import wsgiapp
 from grr.lib import flags
 from grr.lib import stats
 from grr.lib import utils
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 from grr.server import server_logging
 from grr.test_lib import test_lib
 

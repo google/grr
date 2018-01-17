@@ -2,7 +2,7 @@
 """VFS-related part of GRR API client library."""
 
 from grr_api_client import utils
-from grr.proto.api import vfs_pb2
+from grr_response_proto.api import vfs_pb2
 
 
 class FileOperation(object):

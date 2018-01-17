@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.periodicRefreshDirective.PeriodicRefreshController');
 goog.provide('grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.core.periodicRefreshDirective.PeriodicRefreshController = function(
+const PeriodicRefreshController = function(
     $scope, $interval) {
 
   /** @private {!angular.Scope} */
@@ -36,8 +35,6 @@ grrUi.core.periodicRefreshDirective.PeriodicRefreshController = function(
     }
   }.bind(this));
 };
-var PeriodicRefreshController =
-    grrUi.core.periodicRefreshDirective.PeriodicRefreshController;
 
 
 PeriodicRefreshController.prototype.onIntervalChange_ = function(newValue) {

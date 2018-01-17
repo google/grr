@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for HTTP API."""
 
-
 import json
 import urllib2
 
@@ -15,8 +14,12 @@ from grr.gui import http_api
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import tests_pb2
+from grr_response_proto import tests_pb2
 from grr.server import access_control
+from grr.server import aff4
+from grr.server import data_store
+from grr.server import db
+from grr.server.aff4_objects import users as aff4_users
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
@@ -243,10 +246,11 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         self._CreateRequest("GET", "/test_sample/some/path"))
 
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": ""})
+        self._GetResponseContent(response), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": ""
+        })
     self.assertEqual(response.status_code, 200)
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
@@ -261,9 +265,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
 
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"message": "Access denied by ACL: oh no",
-         "subject": "aff4:/foo/bar"})
+        self._GetResponseContent(response), {
+            "message": "Access denied by ACL: oh no",
+            "subject": "aff4:/foo/bar"
+        })
     self.assertEqual(response.status_code, 403)
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
@@ -291,33 +296,40 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
+            "GET", "/test_sample/some/path", query_parameters={
+                "foo": "bar"
+            }))
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": "bar"})
+        self._GetResponseContent(response), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": "bar"
+        })
 
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
     response = self._RenderResponse(
         self._CreateRequest(
             "GET",
             "/test_sample/some/path",
-            query_parameters={"path": "foobar"}))
+            query_parameters={
+                "path": "foobar"
+            }))
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": ""})
+        self._GetResponseContent(response), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": ""
+        })
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(
         self._CreateRequest("DELETE", "/test_resource/R:123456"))
 
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"method": "DELETE",
-         "resource": "R:123456"})
+        self._GetResponseContent(response), {
+            "method": "DELETE",
+            "resource": "R:123456"
+        })
     self.assertEqual(response.status_code, 200)
 
   def testRendersPatchHandlerCorrectly(self):
@@ -325,9 +337,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         self._CreateRequest("PATCH", "/test_resource/R:123456"))
 
     self.assertEqual(
-        self._GetResponseContent(response),
-        {"method": "PATCH",
-         "resource": "R:123456"})
+        self._GetResponseContent(response), {
+            "method": "PATCH",
+            "resource": "R:123456"
+        })
     self.assertEqual(response.status_code, 200)
 
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):
@@ -400,6 +413,22 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     CheckMethod("/failure/not-implemented", "FailureNotImplemented",
                 "NOT_IMPLEMENTED")
     CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
+
+  def testGrrUserIsCreatedOnMethodCall(self):
+    request = self._CreateRequest("HEAD", "/test_sample/some/path")
+
+    self.assertFalse(
+        aff4.FACTORY.ExistsWithType(
+            "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
+    with self.assertRaises(db.UnknownGRRUserError):
+      data_store.REL_DB.ReadGRRUser(request.user)
+
+    self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
+
+    self.assertTrue(
+        aff4.FACTORY.ExistsWithType(
+            "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
+    data_store.REL_DB.ReadGRRUser(request.user)
 
 
 def main(argv):

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.checkClientAccessDirective.CheckClientAccessController');
 goog.provide('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
 
 goog.scope(function() {
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.client.checkClientAccessDirective.CheckClientAccessController = function(
+const CheckClientAccessController = function(
     $scope, $timeout, grrApiService, grrRoutingService) {
 
   /** @private {!angular.Scope} */
@@ -34,8 +33,6 @@ grrUi.client.checkClientAccessDirective.CheckClientAccessController = function(
   this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
 };
 
-var CheckClientAccessController =
-    grrUi.client.checkClientAccessDirective.CheckClientAccessController;
 
 
 /**

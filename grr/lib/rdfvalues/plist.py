@@ -7,8 +7,8 @@ from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
-from grr.proto import sysinfo_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import sysinfo_pb2
 
 
 class FilterString(rdfvalue.RDFString):

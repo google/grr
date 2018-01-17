@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewController');
 goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewController = function(
+const HuntFromFlowCopyReviewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -27,8 +26,6 @@ grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewController = fun
   this.scope_.$watchGroup(['sourceFlow', 'newHunt'],
                           this.onValuesChanged_.bind(this));
 };
-var HuntFromFlowCopyReviewController =
-    grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewController;
 
 
 HuntFromFlowCopyReviewController.prototype.onValuesChanged_ = function() {

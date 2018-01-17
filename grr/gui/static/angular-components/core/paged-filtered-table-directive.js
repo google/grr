@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController');
 goog.provide('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
 goog.provide('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
 goog.provide('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
@@ -84,7 +83,7 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective
  * @param {!angular.$interval} $interval
  * @ngInject
  */
-grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
+const PagedFilteredTableController = function(
     $scope, $element, $transclude, $compile, $interval) {
   // Injected dependencies.
 
@@ -218,8 +217,6 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
   }
 };
 
-var PagedFilteredTableController =
-    grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController;
 
 
 /** @const */

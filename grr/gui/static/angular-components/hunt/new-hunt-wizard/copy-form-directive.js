@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormController');
 goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormController =
+const CopyFormController =
     function($scope, grrReflectionService, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,8 +37,6 @@ grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormController =
     this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
   }.bind(this));
 };
-var CopyFormController =
-    grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormController;
 
 
 /**

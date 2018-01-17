@@ -1,9 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticValueDirective');
-goog.provide('grrUi.semantic.semanticValueDirective.RegistryOverrideController');
 goog.provide('grrUi.semantic.semanticValueDirective.RegistryOverrideDirective');
-goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueController');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.clearCaches');
 
@@ -44,7 +41,7 @@ grrUi.semantic.semanticValueDirective.clearCaches = function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.semantic.semanticValueDirective.RegistryOverrideController = function(
+const RegistryOverrideController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -59,8 +56,6 @@ grrUi.semantic.semanticValueDirective.RegistryOverrideController = function(
                      this.onMapChange_.bind(this));
 };
 
-var RegistryOverrideController =
-    grrUi.semantic.semanticValueDirective.RegistryOverrideController;
 
 
 /**
@@ -120,7 +115,7 @@ grrUi.semantic.semanticValueDirective.RegistryOverrideDirective.directive_name =
  *     grrSemanticValueDirectivesRegistryService
  * @ngInject
  */
-grrUi.semantic.semanticValueDirective.SemanticValueController = function(
+const SemanticValueController = function(
     $scope, $compile, $element, grrSemanticValueDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -144,8 +139,6 @@ grrUi.semantic.semanticValueDirective.SemanticValueController = function(
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var SemanticValueController =
-    grrUi.semantic.semanticValueDirective.SemanticValueController;
 
 
 /**

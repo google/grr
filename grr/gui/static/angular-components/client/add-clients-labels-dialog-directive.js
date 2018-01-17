@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController');
 goog.provide('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
 
 goog.scope(function() {
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController = function($scope, $q, grrApiService) {
+const AddClientsLabelsDialogController = function($scope, $q, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -29,8 +28,6 @@ grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController = 
   this.labelName;
 };
 
-var AddClientsLabelsDialogController =
-    grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController;
 
 
 /**

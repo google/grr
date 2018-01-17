@@ -1,0 +1,972 @@
+// Protobufs for information about a system
+
+// LINT: LEGACY_NAMES
+
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+message PackageRepository {
+  optional string id = 1 [(sem_type) = {
+      description: "Repository id (as referenced by client)",
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "Repository name (human readable name)",
+    }];
+
+  optional string revision = 3 [(sem_type) = {
+      description: "Repository revision (typically timestamp)",
+    }];
+
+  optional string last_update = 4 [(sem_type) = {
+      description: "Repository last updated date & time",
+    }];
+
+  optional string  num_packages = 5 [(sem_type) = {
+      description: "Number of packages in repository",
+    }];
+
+  optional string size = 6 [(sem_type) = {
+      description: "Repository size (arbitrary SI units)",
+    }];
+
+  optional string baseurl = 7 [(sem_type) = {
+      description: "Repository baseurl",
+    }];
+
+  optional string timeout = 8 [(sem_type) = {
+      description: "Repository metadata expiration timeout",
+    }];
+}
+
+
+// Describes the type of management agent (puppet etc),
+// as well as the most recent run time
+message ManagementAgent {
+  optional string name = 1 [(sem_type) = {
+      description: "Management agent name (puppet etc).",
+    }];
+
+  optional uint64 last_success = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time of most recent successful agent run.",
+    }];
+}
+
+// Describe a PCI Device
+message PCIDevice {
+  // Location of PCI device on the system.
+  optional uint32 domain = 1 [(sem_type) = {
+      description: "PCI domain this device is in.",
+  }];
+  optional uint32 bus = 2 [(sem_type) = {
+      description: "8 bit PCI bus this device is on.",
+  }];
+  optional uint32 device = 3 [(sem_type) = {
+      description: "5 bit device location on the bus.",
+  }];
+  optional uint32 function = 4 [(sem_type) = {
+      description: "3 bit device function that has been mapped.",
+  }];
+
+  // Information from the PCI device itself.
+  optional string class_id = 5 [(sem_type) = {
+      description: "Hex string of 24 bit device class ID (e.g. Display).",
+  }];
+  optional string vendor = 6 [(sem_type) = {
+      description: "Hex string of 16 bit device vendor ID.",
+  }];
+  optional string vendor_device_id = 7 [(sem_type) = {
+      description: "Hex string of 16 bit device ID as set by the vendor.",
+  }];
+  // This is stored as bytes to preserve data as-is.
+  optional bytes config = 8 [(sem_type) = {
+      description: "64 to 256 bytes of PCI configuration space header.",
+  }];
+}
+
+// A Process record describing a system process.
+message Process {
+  option (semantic) = {
+    description: "Process information."
+  };
+
+  optional uint32 pid = 1;
+  optional uint32 ppid = 2;
+  optional string name = 3;
+  optional string exe = 4;
+  repeated string cmdline = 5;
+  optional uint64 ctime = 6;
+  optional uint32 real_uid = 7;
+  optional uint32 effective_uid = 8;
+  optional uint32 saved_uid = 9;
+  optional uint32 real_gid = 10;
+  optional uint32 effective_gid = 11;
+  optional uint32 saved_gid = 12;
+  optional string username = 13;
+  optional string terminal = 14;
+  optional string status = 15;
+  optional int32 nice = 16;
+  optional string cwd = 17;
+  optional uint32 num_threads = 18;
+  optional float user_cpu_time = 19;
+  optional float system_cpu_time = 20;
+  optional float cpu_percent = 21;
+  optional uint64 RSS_size = 22;
+  optional uint64 VMS_size = 23;
+  optional float memory_percent = 24;
+  repeated string open_files = 25;
+  repeated NetworkConnection connections = 26;
+}
+
+message NetworkEndpoint {
+  optional string ip = 1;
+  optional int32 port = 2;
+}
+
+message NetworkConnection {
+  enum Family {
+    INET = 2;
+    INET6 = 10;
+    INET6_WIN = 23;
+    INET6_OSX = 30;
+  };
+  enum Type {
+    UNKNOWN_SOCKET = 0;
+    SOCK_STREAM = 1;
+    SOCK_DGRAM = 2;
+  };
+
+  optional Family family = 1;
+  optional Type type = 2 [default = UNKNOWN_SOCKET];
+  optional NetworkEndpoint local_address = 3;
+  optional NetworkEndpoint remote_address = 4;
+
+  // This enum contains connection states as returned by psutils.
+  enum State {
+    UNKNOWN = 0;
+    CLOSED = 1;
+    LISTEN = 2;
+    SYN_SENT = 3;
+    SYN_RECV = 4;
+    ESTABLISHED = 5;
+    FIN_WAIT1 = 6;
+    FIN_WAIT2 = 7;
+    CLOSE_WAIT = 8;
+    CLOSING = 9;
+    LAST_ACK = 10;
+    TIME_WAIT = 11;
+    DELETE_TCB = 12;
+    // psutils later than v1.0 return "NONE" instead of "UNKNOWN" so we
+    // support both.
+    NONE = 13;
+    CLOSE = 14;
+  };
+  optional State state = 5 [default = UNKNOWN];
+  optional uint32 pid = 6;
+  optional uint64 ctime = 7;
+  optional string process_name = 8;
+}
+
+// Describe filesystems
+message Filesystem {
+  optional string device = 1;
+  optional string mount_point = 2;
+  optional string type = 3;
+  optional string label = 4;
+  optional AttributedDict options = 5;
+}
+
+message RunKey {
+  optional string keyname = 1;
+  optional string filepath = 2;
+  optional uint64 lastwritten = 3 [default = 0];
+}
+
+message WindowsServiceInformation {
+  option (semantic) = {
+    description: "Describe a windows service or driver. Field names follow"
+    " the cybox naming scheme where possible: "
+    "http://cybox.mitre.org/language/version2.0.1/xsddocs/objects/Win_Service_Object.html",
+  };
+
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the service.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description string of the service.",
+    }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+      description: "The binary on the client. This may also contain an AFF4 "
+      "urn to the server copy of the same file.",
+    }];
+
+  optional string state = 4 [(sem_type) = {
+      description: "Current state of the service.",
+    }];
+
+  optional Dict wmi_information = 5 [(sem_type) = {
+      description: "Additional information available through WMI.",
+    }];
+
+  optional string display_name = 6 [(sem_type) = {
+      description: "Displayed name of the service in Windows GUI controls.",
+    }];
+
+  optional string driver_package_id = 7 [(sem_type) = {
+      description: "Driver Package ID of the service.",
+    }];
+
+  enum ErrorControl {
+    CRITICAL = 3;
+    SEVERE = 2;
+    NORMAL = 1;
+    IGNORE = 0;
+  };
+
+  optional ErrorControl error_control = 8 [(sem_type) = {
+      description: "Behaviour of the service on failure to load/initialize",
+    }];
+
+  optional string image_path = 9 [(sem_type) = {
+      description: "ImagePath of the service.",
+    }];
+
+  optional string object_name = 10 [(sem_type) = {
+      description: "ObjectName of the service.",
+    }];
+
+  enum ServiceMode {
+    SERVICE_BOOT_START = 0;
+    SERVICE_SYSTEM_START = 1;
+    SERVICE_AUTO_START = 2;
+    SERVICE_DEMAND_START = 3;
+    SERVICE_DISABLED = 4;
+  };
+
+  optional ServiceMode startup_type = 11 [(sem_type) = {
+      description: "Service start options",
+    }];
+
+  enum ServiceType {
+    SERVICE_KERNEL_DRIVER = 0x1;
+    SERVICE_FILE_SYSTEM_DRIVER = 0x2;
+    SERVICE_ADAPTER_ARGS = 0x4;
+    SERVICE_WIN32_OWN_PROCESS = 0x10;
+    SERVICE_WIN32_SHARE_PROCESS = 0x20;
+  };
+
+  optional ServiceType service_type = 12 [(sem_type) = {
+      description: "Type of the service.",
+    }];
+
+  optional string group_name = 13 [(sem_type) = {
+      description: "Specifies the name of the load ordering group of which "
+      "this service is a member.",
+    }];
+
+  optional string service_dll = 14 [(sem_type) = {
+      description: "Name of the DLL instantiated in the service.",
+    }];
+
+  optional string registry_key = 15 [(sem_type) = {
+      description: "The service registry key."
+    }];
+
+}
+
+message OSXServiceInformation {
+  option (semantic) = {
+    description: "Describe an OS X service (launchagent/daemon).",
+  };
+
+  optional string label = 1 [(sem_type) = {
+      description: "Service label.",
+    }];
+  optional string program = 2 [(sem_type) = {
+      description: "Program path run by the service.",
+    }];
+  repeated string args = 3 [(sem_type) = {
+      description: "Program args.  May also include executable if Program is"
+                   " not set.",
+    }];
+  optional uint64 pid = 4 [(sem_type) = {
+      description: "Current service PID"
+    }];
+
+  optional string sessiontype = 5 [(sem_type) = {
+      description: "SessionType: Aqua|StandardIO|Background|LoginWindow"
+    }];
+
+  optional uint64 lastexitstatus = 6 [(sem_type) = {
+      description: "Last exit return code of service."
+    }];
+
+  optional uint64 timeout = 7 [(sem_type) = {
+      description: "Service timeout."
+    }];
+
+  optional bool ondemand = 8 [(sem_type) = {
+      description: "True if the service should start ondemand."
+    }];
+
+  repeated string machservice = 9 [(sem_type) = {
+      description: "Machservices advertised by this service."
+    }];
+
+  repeated string perjobmachservice = 10 [(sem_type) = {
+      description: "Machservices advertised by this service."
+    }];
+
+  repeated string socket = 11 [(sem_type) = {
+      description: "Sockets used by this service."
+    }];
+
+  optional string plist = 15 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 location for the service plist."
+    }];
+}
+
+message LinuxServiceInformation {
+  option (semantic) = {
+    description: "Describe an Linux service (init/upstart/systemd).",
+  };
+
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the service.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description string of the service.",
+    }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+      description: "The binary on the client. This may also contain an AFF4 "
+      "urn to the server copy of the same file.",
+    }];
+
+  optional SoftwarePackage software = 4 [(sem_type) = {
+      description: "Software package that deployed the service.",
+    }];
+
+  enum StartMode {
+    UNKNOWN = 0;
+    INIT = 1;
+    UPSTART = 2;
+    SYSTEMD = 3;
+    INETD = 4;
+    XINETD = 5;
+  };
+
+  optional StartMode start_mode = 5 [(sem_type) = {
+      description: "Service start options",
+    }];
+
+  repeated uint32 start_on = 6 [(sem_type) = {
+      description: "Specifies the runlevels where this service runs.",
+    }];
+
+  repeated uint32 stop_on = 7 [(sem_type) = {
+      description: "Specifies the runlevels where this service is stopped.",
+    }];
+
+  repeated string start_after = 8 [(sem_type) = {
+      description: "Specifies services required before this service runs.",
+    }];
+
+  repeated string stop_after = 9 [(sem_type) = {
+      description: "Specifies service required before this service is stopped.",
+    }];
+
+  optional AttributedDict config = 10 [(sem_type) = {
+      description: "The configuration of the service.",
+    }];
+
+  optional bool starts = 11 [(sem_type) = {
+      description: "The service is configured to start up through some means.",
+    }];
+}
+
+// Describe an installed software package. Cross platform.
+message SoftwarePackage {
+  optional string name = 1;
+  optional string version = 2;
+  optional string architecture = 3;
+  optional string publisher = 4;
+  enum InstallState {
+    INSTALLED = 0;
+    PENDING = 1;
+    UNINSTALLED = 2;
+    UNKNOWN = 3;
+  };
+  optional InstallState install_state = 5 [default = UNKNOWN];
+  optional string description = 6;
+  optional uint64 installed_on = 7;
+  optional string installed_by = 8;
+
+}
+
+
+// An item from the browser history.
+message BrowserHistoryItem {
+
+  optional string url = 1 [(sem_type) = {
+      description: "The URL visited.",
+    }];
+
+  optional string domain = 2 [(sem_type) = {
+      description: "Domain name accessed.",
+    }];
+
+  optional uint64 access_time = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time the URL was accessed.",
+    }];
+
+  optional string referrer = 4 [(sem_type) = {
+      description: "Referrer used for the access",
+    }];
+
+  optional string title = 5 [(sem_type) = {
+      description: "Title attribute of the page if available.",
+    }];
+
+  optional string program_name = 6 [(sem_type) = {
+      description: "Name of the program that generated the entry, e.g. Chrome.",
+    }];
+
+  optional string source_urn = 7 [(sem_type) = {
+      type: "RDFURN",
+      description: "Location of object that this entry was found in.",
+    }];
+
+  optional string download_path = 8 [(sem_type) = {
+      description: "Path of downloaded file.",
+    }];
+}
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Volume_Object.html
+message Volume {
+
+  optional bool is_mounted = 1 [(sem_type) = {
+      description: "True if the volume is mounted",
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "The name of the volume",
+    }];
+
+  optional string device_path = 3 [(sem_type) = {
+      description: "Full path to the volume, including the device on which "
+      "it resides",
+    }];
+
+  optional string file_system_type = 4 [(sem_type) = {
+      description: "Name of the filesystem used on the volume",
+    }];
+
+  optional uint64 total_allocation_units = 5 [(sem_type) = {
+      description: "Total number of allocation units available on the volume",
+    }];
+
+  optional uint64 sectors_per_allocation_unit = 6 [(sem_type) = {
+      description: "Number of disk sectors for each allocation unit",
+    }];
+
+  optional uint64 bytes_per_sector = 7 [(sem_type) = {
+      description: "Number of disk sectors for each allocation unit",
+    }];
+
+  optional uint64 actual_available_allocation_units = 8 [(sem_type) = {
+      description: "Number of allocation units available on the volume",
+    }];
+
+  optional uint64 creation_time = 9 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Creation timestamp for the volume",
+    }];
+
+  enum VolumeFileSystemFlagEnum {
+    FILE_CASE_SENSITIVE_SEARCH = 1;
+    FILE_CASE_PRESERVED_NAMES = 2;
+    FILE_UNICODE_ON_DISK = 3;
+    FILE_PERSISTENT_ACLS = 4;
+    FILE_FILE_COMPRESSION = 5;
+    FILE_VOLUME_QUOTAS = 6;
+    FILE_SUPPORTS_SPARSE_FILES = 7;
+    FILE_SUPPORTS_REPARSE_POINTS = 8;
+    FILE_SUPPORTS_REMOTE_STORAGE = 9;
+    FILE_VOLUME_IS_COMPRESSED = 10;
+    FILE_SUPPORTS_OBJECT_IDS = 11;
+    FILE_SUPPORTS_ENCRYPTION = 12;
+    FILE_NAMED_STREAMS = 13;
+    FILE_READ_ONLY_VOLUME = 14;
+    FILE_SEQUENTIAL_WRITE_ONCE = 15;
+    FILE_SUPPORTS_TRANSACTIONS = 16;
+    FILE_SUPPORTS_HARD_LINKS = 17;
+    FILE_SUPPORTS_EXTENDED_ATTRIBUTES = 18;
+    FILE_SUPPORTS_OPEN_BY_FILE_ID = 19;
+    FILE_SUPPORTS_USN_JOURNAL = 20;
+    FILE_SUPPORTS_INTEGRITY_STREAMS = 21;
+  };
+
+  repeated VolumeFileSystemFlagEnum file_system_flag_list = 10 [(sem_type) = {
+      description: "Flags set for the volume",
+    }];
+
+  optional string serial_number = 11 [(sem_type) = {
+      description: "Serial number of the volume",
+    }];
+
+  optional WindowsVolume windowsvolume = 12 [(sem_type) = {
+      description: "Windows specific volume attributes",
+    }];
+
+  optional UnixVolume unixvolume = 13 [(sem_type) = {
+      description: "Unix specific volume attributes",
+    }];
+
+}
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Volume_Object.html
+message WindowsVolume {
+
+  // WindowsVolume
+  enum WindowsVolumeAttributeEnum {
+    READONLY = 0;
+    HIDDEN = 1;
+    NODEFAULTDRIVELETTER = 2;
+    SHADOWCOPY = 3;
+  };
+
+  repeated WindowsVolumeAttributeEnum attributes_list = 1 [(sem_type) = {
+      description: "Attributes of the volume",
+    }];
+
+  optional string drive_letter = 2 [(sem_type) = {
+      description: "Windows drive letter",
+    }];
+
+  enum WindowsDriveTypeEnum {
+    DRIVE_UNKNOWN = 0;
+    DRIVE_NO_ROOT_DIR = 1;
+    DRIVE_REMOVABLE = 2;
+    DRIVE_FIXED = 3;
+    DRIVE_REMOTE = 4;
+    DRIVE_CDROM = 5;
+    DRIVE_RAMDISK = 6;
+  };
+
+  optional WindowsDriveTypeEnum drive_type = 3 [(sem_type) = {
+      description: "Windows drive letter",
+    }];
+
+}
+
+// Based on cybox definition:
+// http://cybox.mitre.org/language/version2.1/xsddocs/objects/Unix_Volume_Object.html
+message UnixVolume {
+
+  optional string mount_point = 1 [(sem_type) = {
+      description: "Mount point",
+    }];
+
+  optional string options = 2 [(sem_type) = {
+      description: "Options used when mounting the volume",
+    }];
+
+}
+
+message DiskUsage {
+  optional string path = 1 [(sem_type) = {
+      description: "Path this information is for.",
+    }];
+
+  optional uint64 total = 2 [(sem_type) = {
+      description: "Total number of bytes available.",
+    }];
+
+  optional uint64 used = 3 [(sem_type) = {
+      description: "Number of bytes used.",
+    }];
+
+  optional uint64 free = 4 [(sem_type) = {
+      description: "Number of free bytes.",
+    }];
+}
+
+// Submitted request for addition to CyBox schema:
+// https://github.com/CybOXProject/schemas/issues/329
+message DNSClientConfiguration {
+  option (semantic) = {
+    description: "DNS client configuration information."
+  };
+
+  repeated string dns_server = 1 [(sem_type) = {
+      description: "List of DNS servers appended in search order.",
+    }];
+
+  repeated string dns_suffix = 2 [(sem_type) = {
+      description: "List of DNS suffixes appended in search order.",
+    }];
+
+}
+
+// Various System Hardware
+message HardwareInfo {
+
+  optional string serial_number = 1 [(sem_type) = {
+      description: "Identifying/Serial Number."
+    }];
+
+  optional string system_manufacturer = 2 [(sem_type) = {
+      description: "System Manufacturer."
+    }];
+
+  optional string system_product_name = 3 [(sem_type) = {
+      description: "System Product Name."
+    }];
+
+  optional string system_uuid = 4 [(sem_type) = {
+      description: "System UUID."
+    }];
+
+  optional string system_sku_number = 5 [(sem_type) = {
+      description: "System SKU Number."
+    }];
+
+  optional string system_family = 6 [(sem_type) = {
+      description: "System Family."
+    }];
+
+  // BIOS related information
+  optional string bios_vendor = 7 [(sem_type) = {
+      description: "BIOS Vendor."
+    }];
+
+  optional string bios_version = 8 [(sem_type) = {
+      description: "BIOS Version."
+    }];
+
+  optional string bios_release_date = 9 [(sem_type) = {
+      description: "BIOS Release Date."
+    }];
+
+  optional string bios_rom_size = 10 [(sem_type) = {
+      description: "BIOS ROM Size."
+    }];
+
+  optional string bios_revision = 11 [(sem_type) = {
+      description: "BIOS Revision."
+    }];
+
+  optional string system_assettag = 12 [(sem_type) = {
+      description: "System Asset tag."
+    }];
+
+}
+
+// OSX Plist dictionary of strings entry
+
+message PlistStringDictEntry {
+  optional string name = 1;
+  optional string value = 2;
+}
+
+// OSX plist dictionary of booleans entry
+
+message PlistBoolDictEntry {
+  optional string name = 1;
+  optional bool value = 2;
+}
+
+// OSX Launchd plist StartCalendarInteveral entry
+
+message LaunchdStartCalendarIntervalEntry {
+  optional int32 Minute = 1;
+  optional int32 Hour = 2;
+  optional int32 Day = 3;
+  optional int32 Weekday = 4;
+  optional int32 Month = 5;
+}
+
+// OSX Launchd plist Keep Alive
+
+message LaunchdKeepAlive {
+  optional bool SuccessfulExit = 1;
+  optional bool NetworkState = 2;
+  repeated PlistBoolDictEntry PathState = 3;
+  repeated PlistBoolDictEntry OtherJobEnabled = 4;
+}
+
+// OSX Launchd plist
+message LaunchdPlist {
+  optional string aff4path = 1[(sem_type) = {
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
+  optional string Label = 2;
+  optional bool Disabled = 3;
+  optional string UserName = 4;
+  optional string GroupName = 5;
+  optional string Program = 6;
+  repeated string ProgramArguments = 7;
+  optional string RootDirectory = 8;
+  optional string WorkingDirectory = 9;
+  optional bool OnDemand = 10;
+  optional bool RunAtLoad = 11;
+  repeated LaunchdStartCalendarIntervalEntry StartCalendarInterval = 12;
+  repeated PlistStringDictEntry EnvironmentVariables = 13;
+  optional bool KeepAlive = 14;
+  optional LaunchdKeepAlive KeepAliveDict = 15;
+  optional string StandardInPath = 16;
+  optional string StandardOutPath = 17;
+  optional string StandardErrorPath = 18;
+  repeated string LimitLoadToHosts = 19;
+  repeated string LimitLoadFromHosts = 20;
+  repeated string LimitLoadToSessionType = 21;
+  optional bool EnableGlobbing = 22;
+  optional bool EnableTransactions = 23;
+  optional int32 Umask = 24;
+  optional int32 TimeOut = 25;
+  optional int32 ExitTimeOut = 26;
+  optional int32 ThrottleInterval = 27;
+  optional bool InitGroups = 28;
+  repeated string WatchPaths = 29;
+  repeated string QueueDirectories = 30;
+  optional bool StartOnMount = 31;
+  optional int32 StartInterval = 32;
+  optional bool Debug = 33;
+  optional bool WaitForDebugger = 34;
+  optional int32 Nice = 35;
+  optional string ProcessType = 36;
+  optional bool AbandonProcessGroup = 37;
+  optional bool LowPriorityIO = 38;
+  optional bool LaunchOnlyOnce = 39;
+  optional bool inetdCompatabilityWait = 40;
+  optional bool SoftResourceLimits = 41;
+  optional bool HardResourceLimits = 42;
+  optional bool Sockets = 43;
+}
+
+// CronTab Entry
+message CronTabEntry{
+  optional string minute = 1;
+  optional string hour = 2;
+  optional string dayofmonth = 3;
+  optional string month = 4;
+  optional string dayofweek = 5;
+  optional string command = 6;
+  optional string comment = 7;
+}
+
+// CronTab File
+message CronTabFile {
+  optional string aff4path = 1[(sem_type) = {
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
+  repeated CronTabEntry jobs = 2;
+}
+
+// based on http://tools.ietf.org/html/rfc3986#page-16 but much simplified
+// URI should generally be stored as strings for efficiency. Only use this
+// proto if there is a specific need to parse the individual components.
+message URI {
+  optional string transport = 1 [(sem_type) = {
+    description: "Transport such http, ftp, mailto, file etc.",
+  }];
+  optional string host = 2 [(sem_type) = {
+    description: "Host/Port portion of the URI. e.g. google.com:80.",
+  }];
+  optional string path = 3 [(sem_type) = {
+    description: "Path portion of the URI.",
+  }];
+  optional string query = 4 [(sem_type) = {
+    description: "Query portion of the URI.",
+  }];
+  optional string fragment = 5 [(sem_type) = {
+    description: "Fragment portion of the URI.",
+  }];
+}
+
+// Windows WMI ActiveScriptEventConsumer
+// https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
+// The following protobuf breaks the style-guide to maintain the same names
+// as the documented classes.
+message WMIActiveScriptEventConsumer {
+  optional string CreatorSID = 1 [(sem_type) = {
+    description: "SID of the event creator",
+  }];
+  optional uint64 KillTimeout = 2 [(sem_type) = {
+    description: "Seconds the script is allowed to run. "
+    "Default is 0, no limit.",
+  }];
+  optional string MachineName = 3 [(sem_type) = {
+    description: "Name of the computer to which WMI sends events.",
+  }];
+  optional uint64 MaximumQueueSize = 4 [(sem_type) = {
+    description: "Maximum queue size in bytes for the consumer.",
+  }];
+  optional string Name = 5 [(sem_type) = {
+    description: "Unique identifier for the event consumer.",
+  }];
+  optional string ScriptFilename = 6 [(sem_type) = {
+    description: "Name of the file from which the script text is read.",
+  }];
+  optional string ScriptingEngine = 7 [(sem_type) = {
+    description: "Name of the scripting engine to use, for example, 'VBScript'."
+    " This property cannot be NULL.",
+  }];
+  optional string ScriptText = 8 [(sem_type) = {
+    description: "Text of the script that is expressed in a language known to "
+    "the scripting engine. This property must be NULL if the ScriptFileName "
+    "property is not NULL."
+  }];
+}
+
+// Windows WMI CommandLineEventConsumer
+// https://msdn.microsoft.com/en-us/library/aa389231(v=vs.85).aspx
+// The following protobuf breaks the style-guide to maintain the same names
+// as the documented classes.
+message WMICommandLineEventConsumer {
+  optional string CreatorSID = 1 [(sem_type) = {
+    description: "SID of the event creator",
+  }];
+  optional string CommandLineTemplate = 2 [(sem_type) = {
+    description: "Standard string template that specifies the process to be "
+    "started. This property can be NULL, and the ExecutablePath property is "
+    "used as the command line.",
+  }];
+  optional bool CreateNewConsole = 3 [(sem_type) = {
+    description: "Not used. If a value is assigned to this property, a tracing "
+    "message is generated.",
+  }];
+  optional bool CreateNewProcessGroup = 4 [(sem_type) = {
+    description: "If True, the new process is the root process of a new "
+    "process group. The process group includes all processes that are "
+    "descendants of this root process. The process identifier of the new "
+    "process group is the same as this process identifier.",
+  }];
+  optional bool CreateSeparateWowVdm = 5 [(sem_type) = {
+    description: "If True, the new process runs in a private Virtual DOS "
+    "Machine (VDM). This is only valid when starting an application running on "
+    "a 16-bit Windows operating system. If set to False, all applications "
+    "running on a 16-bit Windows operating system run as threads in a single, "
+    "shared VDM.",
+  }];
+  optional bool CreateSharedWowVdm = 6 [(sem_type) = {
+    description: "If True, the CreateProcess method runs the new process in "
+    "the shared Virtual DOS Machine (VDM). This property can override the "
+    "DefaultSeparateVDM switch in the Windows section of Win.ini if set to "
+    "True.",
+  }];
+  optional string DesktopName = 7 [(sem_type) = {
+    description: "Not used. If a value is assigned to this property a tracing "
+    "message is generated.",
+  }];
+  optional string ExecutablePath = 8 [(sem_type) = {
+    description: "Module to execute. The string can specify the full path and "
+    "file name of the module to execute, or it can specify a partial name. If "
+    "a partial name is specified, the current drive and current directory are "
+    "assumed. The ExecutablePath property can be NULL. In that case, the "
+    "module name must be the first white space-delimited token in the "
+    "CommandLineTemplate property value. If using a long file name that "
+    "contains a space, use quoted strings to indicate where the file name ends "
+    "and the arguments begin—to clarify the file name."
+  }];
+  optional uint32 FillAttribute = 9 [(sem_type) = {
+    description: "Specifies the initial text and background colors if a new "
+    "console window is created in a console application"
+  }];
+  optional uint32 FillAttributes = 10 [(sem_type) = {
+    description: "Initial text and background colors, if a new console window "
+    "is created in a console application. This property is ignored in a GUI "
+    "application."
+  }];
+  optional bool ForceOffFeedback = 11 [(sem_type) = {
+    description: "If True, the feedback cursor is forced off while the process "
+    "is starting. The normal cursor is displayed."
+  }];
+  optional bool ForceOnFeedback = 12 [(sem_type) = {
+    description: "If True, the cursor is in feedback mode for two seconds "
+    "after CreateProcess is called. During those two seconds, if the process "
+    "makes the first GUI call, the system gives five more seconds to the "
+    "process. During those five seconds, if the process shows a window, the "
+    "system gives another five seconds to the process to finish drawing the "
+    "window."
+  }];
+  optional uint32 KillTimeout = 13 [(sem_type) = {
+    description: "Number, in seconds, that the WMI service waits before "
+    "killing a process - 0 (zero) indicates a process is not to be killed. "
+    "Killing a process prevents a process from running indefinitely."
+  }];
+  optional string Name = 14 [(sem_type) = {
+    description: "Unique name of a consumer."
+  }];
+  optional int32 Priority = 15 [(sem_type) = {
+    description: "Scheduling priority level of the process threads. The "
+    "following table lists the priority levels available."
+  }];
+  optional bool RunInteractively = 16 [(sem_type) = {
+    description: "If True, the process is launched in the interactive "
+    "WinStation. If False, the process is launched in the default service "
+    "WinStation. This property overrides the DesktopName property. This "
+    "property is only used locally, and only if the interactive user is the "
+    "same user who set up the consumer. Starting with Windows Vista, the "
+    "process running the CommandLineEventConsumer instance is started under "
+    "the LocalSystem account and is in session 0. Services which run in "
+    "session 0 cannot interact with user sessions."
+  }];
+  optional uint32 ShowWindowCommand = 17 [(sem_type) = {
+    description: "Window show state."
+  }];
+  optional bool UseDefaultErrorMode = 18 [(sem_type) = {
+    description: "If True, the default error mode is used."
+  }];
+  optional string WindowTitle = 19 [(sem_type) = {
+    description: "Title that appears on the title bar of the process. This "
+    "property is ignored for GUI applications."
+  }];
+  optional string WorkingDirectory = 20 [(sem_type) = {
+    description: "Working directory for this process."
+  }];
+  optional uint32 XCoordinate = 21 [(sem_type) = {
+    description: "X-offset, in pixels, from the left edge of the screen to the "
+    "left edge of the window, if a new window is created."
+  }];
+  optional uint32 XNumCharacters = 22 [(sem_type) = {
+    description: "Screen buffer width, in character columns, if a new console "
+    "window is created. This property is ignored in a GUI process."
+  }];
+  optional uint32 XSize = 23 [(sem_type) = {
+    description: "Width, in pixels, of a new window, if a new window is "
+    "created."
+  }];
+  optional uint32 YCoordinate = 24 [(sem_type) = {
+    description: "Y-offset, in pixels, from the top edge of the screen to the "
+    "top edge of the window, if a new window is created."
+  }];
+  optional uint32 YNumCharacters = 25 [(sem_type) = {
+    description: "Screen buffer height, in character rows, if a new console "
+    "window is created. This property is ignored in a GUI process."
+  }];
+  optional uint32 YSize = 26 [(sem_type) = {
+    description: "Height, in pixels, of the new window, if a new window is "
+    "created."
+  }];
+  optional uint64 MaximumQueueSize = 27 [(sem_type) = {
+    description: "Maximum queue for a specific consumer, in bytes."
+  }];
+  optional uint64 MachineName = 28 [(sem_type) = {
+    description: "Maximum queue for a specific consumer, in bytes."
+  }];
+}

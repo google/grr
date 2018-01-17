@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewController');
 goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewController = function(
+const FileStatsViewController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -35,8 +34,6 @@ grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewController = 
       this.onContextChange_.bind(this));
 };
 
-var FileStatsViewController =
-    grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewController;
 
 
 /**

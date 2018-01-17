@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsController');
 goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -17,7 +16,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.hunt.huntStatsDirective.HuntStatsController = function(
+const HuntStatsController = function(
     $scope, $element, grrApiService) {
 
   /** @private {!angular.Scope} */
@@ -47,8 +46,6 @@ grrUi.hunt.huntStatsDirective.HuntStatsController = function(
   $scope.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
 
-var HuntStatsController =
-    grrUi.hunt.huntStatsDirective.HuntStatsController;
 
 
 /**

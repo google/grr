@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonController');
 goog.provide('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
 
 goog.require('grrUi.semantic.rekall.utils.cropRekallJson');
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.rekall.rekallJsonDirective.RekallJsonController =
+const RekallJsonController =
     function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -42,8 +41,6 @@ grrUi.semantic.rekall.rekallJsonDirective.RekallJsonController =
   this.scope_.$watchGroup(['jsonContextMessages', 'compressedJsonMessages'],
                           this.onScopeChange_.bind(this));
 };
-var RekallJsonController =
-    grrUi.semantic.rekall.rekallJsonDirective.RekallJsonController;
 
 
 /**

@@ -2,7 +2,7 @@
 from google.protobuf import text_format
 import unittest
 from grr.lib.rdfvalues import objects
-from grr.proto import objects_pb2
+from grr_response_proto import objects_pb2
 
 
 def MakeClient():

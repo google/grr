@@ -4,9 +4,9 @@
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
-from grr.proto.api import client_pb2
-from grr.proto.api import flow_pb2
-from grr.proto.api import user_pb2
+from grr_response_proto.api import client_pb2
+from grr_response_proto.api import flow_pb2
+from grr_response_proto.api import user_pb2
 
 
 class ClientApprovalBase(object):

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableController');
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 
 goog.require('grrUi.client.virtualFileSystem.events');
@@ -37,7 +36,7 @@ var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function(
+const FileTableController = function(
     $rootScope, $scope, $interval, grrApiService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -90,8 +89,6 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   this.scope_.$watch('controller.fileContext.selectedFilePath', this.onFilePathChange_.bind(this));
 };
 
-var FileTableController =
-    grrUi.client.virtualFileSystem.fileTableDirective.FileTableController;
 
 
 FileTableController.prototype.setViewMode = function(mode) {

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownController');
 goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownController = function(
+const EncodingsDropdownController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -28,8 +27,6 @@ grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownContr
   }.bind(this));
 };
 
-var EncodingsDropdownController =
-    grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownController;
 
 
 /**

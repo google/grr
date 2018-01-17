@@ -168,6 +168,15 @@ class WindowsTemplateBuilder(object):
     subprocess.check_call(
         [self.git, "clone", "https://github.com/google/grr.git"])
 
+  def MakeProtoSdist(self):
+    os.chdir(os.path.join(args.grr_src, "grr/proto"))
+    subprocess.check_call([
+        self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % args.build_dir
+    ])
+    return glob.glob(os.path.join(args.build_dir,
+                                  "grr-response-proto-*.zip")).pop()
+
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
     subprocess.check_call([
@@ -191,6 +200,14 @@ class WindowsTemplateBuilder(object):
     """Use gsutil to copy sdists from cloud storage."""
     subprocess.check_call([
         args.gsutil, "cp",
+        "gs://%s/grr-response-proto-*.zip" % args.cloud_storage_sdist_bucket,
+        args.build_dir
+    ])
+    proto = glob.glob(os.path.join(args.build_dir,
+                                   "grr-response-proto-*.zip")).pop()
+
+    subprocess.check_call([
+        args.gsutil, "cp",
         "gs://%s/grr-response-core-*.zip" % args.cloud_storage_sdist_bucket,
         args.build_dir
     ])
@@ -204,7 +221,7 @@ class WindowsTemplateBuilder(object):
     ])
     client = glob.glob(
         os.path.join(args.build_dir, "grr-response-client-*.zip")).pop()
-    return core, client
+    return proto, core, client
 
   def InstallGRR(self, path):
     """Installs GRR."""
@@ -331,13 +348,15 @@ class WindowsTemplateBuilder(object):
     self.SetupVars()
     self.Clean()
     if args.cloud_storage_sdist_bucket:
-      core_sdist, client_sdist = self.CopySdistsFromCloudStorage()
+      proto_sdist, core_sdist, client_sdist = self.CopySdistsFromCloudStorage()
     else:
       if not os.path.exists(args.grr_src):
         self.GitCheckoutGRR()
+      proto_sdist = self.MakeProtoSdist()
       core_sdist = self.MakeCoreSdist()
       client_sdist = self.MakeClientSdist()
 
+    self.InstallGRR(proto_sdist)
     self.InstallGRR(core_sdist)
     self.InstallGRR(client_sdist)
     self.BuildTemplates()

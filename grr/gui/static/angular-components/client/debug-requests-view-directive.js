@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.debugRequestsViewDirective.DebugRequestsViewController');
 goog.provide('grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.client.debugRequestsViewDirective.DebugRequestsViewController = function(
+const DebugRequestsViewController = function(
     $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -34,8 +33,6 @@ grrUi.client.debugRequestsViewDirective.DebugRequestsViewController = function(
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
       this.onClientIdChange_.bind(this));
 };
-var DebugRequestsViewController =
-    grrUi.client.debugRequestsViewDirective.DebugRequestsViewController;
 
 
 /**

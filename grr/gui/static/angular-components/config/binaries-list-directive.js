@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.config.binariesListDirective.BinariesListController');
 goog.provide('grrUi.config.binariesListDirective.BinariesListDirective');
 goog.provide('grrUi.config.binariesListDirective.sortBinaries');
 
@@ -36,7 +35,7 @@ var sortBinaries = grrUi.config.binariesListDirective.sortBinaries;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.config.binariesListDirective.BinariesListController = function(
+const BinariesListController = function(
     $scope, grrApiService) {
 
   /** @private {!angular.Scope} */
@@ -50,8 +49,6 @@ grrUi.config.binariesListDirective.BinariesListController = function(
 
   this.scope_.$watchGroup(['binaries', 'binaryType'], this.onBinariesChange_.bind(this));
 };
-var BinariesListController =
-    grrUi.config.binariesListDirective.BinariesListController;
 
 
 BinariesListController.prototype.onBinariesChange_ = function() {

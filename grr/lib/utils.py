@@ -31,6 +31,10 @@ class Error(Exception):
   pass
 
 
+class ParsingError(Error):
+  pass
+
+
 def Proxy(f):
   """A helper to create a proxy method in a class."""
 
@@ -533,7 +537,7 @@ class Struct(object):
       parsed_data = struct.unpack(format_str, data[:self.size])
 
     except struct.error:
-      raise RuntimeError("Unable to parse")
+      raise ParsingError("Unable to parse")
 
     for i in range(len(self._fields)):
       setattr(self, self._fields[i][1], parsed_data[i])

@@ -10,7 +10,15 @@ WIP, will eventually replace datastore.py.
 import abc
 
 
-class UnknownClientError(Exception):
+class Error(Exception):
+  pass
+
+
+class UnknownClientError(Error):
+  pass
+
+
+class UnknownGRRUserError(Error):
   pass
 
 
@@ -192,4 +200,32 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       owner: Username string that owns the labels that should be removed.
       labels: The labels to remove as a list of strings.
+    """
+
+  @abc.abstractmethod
+  def WriteGRRUser(self,
+                   username,
+                   password=None,
+                   ui_mode=None,
+                   canary_mode=None):
+    """Writes user object for a user with a given name.
+
+    Args:
+      username: Name of a user to insert/update.
+      password: If set, should be a string with a new encrypted user password.
+      ui_mode: If set, should be a GUISettings.UIMode enum.
+      canary_mode: If not None, should be a boolean indicating user's preferred
+          canary mode setting.
+    """
+
+  @abc.abstractmethod
+  def ReadGRRUser(self, username):
+    """Reads a user object corresponding to a given name.
+
+    Args:
+      username: Name of a user.
+    Returns:
+      A rdfvalues.objects.GRRUser object.
+    Raises:
+      UnknownGRRUserError: if there's no user corresponding to the given name.
     """

@@ -1,7 +1,6 @@
 'use strict';
 
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
-goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormController');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -24,7 +23,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @ngInject
  */
-grrUi.hunt.newHuntWizard.formDirective.FormController =
+const FormController =
     function($scope, grrReflectionService, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -58,8 +57,6 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
                        this.onCreateHuntArgsChange_.bind(this));
   }.bind(this));
 };
-var FormController =
-    grrUi.hunt.newHuntWizard.formDirective.FormController;
 
 /**
  * Called when 'genericHuntArgs' binding changes.

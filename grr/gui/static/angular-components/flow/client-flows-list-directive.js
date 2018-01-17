@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.clientFlowsListDirective.ClientFlowsListController');
 goog.provide('grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective');
 
 goog.scope(function() {
@@ -18,7 +17,7 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.flow.clientFlowsListDirective.ClientFlowsListController = function(
+const ClientFlowsListController = function(
     $scope, $timeout, $uibModal, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -48,8 +47,6 @@ grrUi.flow.clientFlowsListDirective.ClientFlowsListController = function(
 
   this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
 };
-var ClientFlowsListController =
-    grrUi.flow.clientFlowsListDirective.ClientFlowsListController;
 
 
 /**

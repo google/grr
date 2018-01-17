@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr_response_proto/semantic.proto";
+
+
+
+message ApiDataObject {
+  repeated ApiDataObjectKeyValuePair items = 1 [(sem_type) = {
+      description: "The items of the data object."
+    }];
+}
+
+message ApiDataObjectKeyValuePair {
+  optional string key = 1 [(sem_type) = {
+      description: "The key."
+    }];
+  optional google.protobuf.Any value = 2 [(sem_type) = {
+      description: "Flow arguments.",
+      dynamic_type: "GetArgsClass"
+    }];
+  optional bool invalid = 3 [(sem_type) = {
+      description: "Whether the value could be successfully serialized "
+      "to the protobuf serialization format."
+    }];
+  optional string type = 4 [(sem_type) = {
+      description: "The type of the value."
+    }];
+}

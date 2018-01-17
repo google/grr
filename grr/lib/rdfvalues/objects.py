@@ -9,7 +9,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs
-from grr.proto import objects_pb2
+from grr_response_proto import objects_pb2
 
 
 class ClientLabel(structs.RDFProtoStruct):
@@ -121,4 +121,11 @@ class ClientMetadata(structs.RDFProtoStruct):
       rdf_client.NetworkAddress,
       rdf_crypto.RDFX509Cert,
       rdfvalue.RDFDatetime,
+  ]
+
+
+class GRRUser(structs.RDFProtoStruct):
+  protobuf = objects_pb2.GRRUser
+  rdf_deps = [
+      rdf_crypto.Password,
   ]

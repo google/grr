@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationButtonDirective.UserNotificationButtonController');
 goog.provide('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 
 
@@ -23,7 +22,7 @@ var FETCH_INTERVAL = 10 * SECOND;
  * @constructor
  * @ngInject
  */
-grrUi.user.userNotificationButtonDirective.UserNotificationButtonController =
+const UserNotificationButtonController =
   function($scope, $interval, $uibModal, grrApiService) {
 
   /** @private {!angular.Scope} */
@@ -48,8 +47,6 @@ grrUi.user.userNotificationButtonDirective.UserNotificationButtonController =
   this.interval_(this.fetchNotificationCount_.bind(this), FETCH_INTERVAL);
 };
 
-var UserNotificationButtonController =
-  grrUi.user.userNotificationButtonDirective.UserNotificationButtonController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListController');
 goog.provide('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListController = function(
+const CronJobFlowsListController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -32,8 +31,6 @@ grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListController = function(
 
   this.scope_.$watch('cronJobUrn', this.onCronJobUrnChange_.bind(this));
 };
-var CronJobFlowsListController =
-    grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListController;
 
 
 /**

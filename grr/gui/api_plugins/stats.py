@@ -8,7 +8,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import stats_pb2
+from grr_response_proto.api import stats_pb2
 from grr.server import aff4
 from grr.server import timeseries
 from grr.server.aff4_objects import stats_store as stats_store_lib

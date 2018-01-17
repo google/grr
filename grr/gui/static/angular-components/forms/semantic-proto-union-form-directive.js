@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoUnionFormDirective.SemanticProtoUnionFormController');
 goog.provide('grrUi.forms.semanticProtoUnionFormDirective.SemanticProtoUnionFormDirective');
 
 /**
@@ -10,24 +9,20 @@ goog.provide('grrUi.forms.semanticProtoUnionFormDirective.SemanticProtoUnionForm
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.forms.semanticProtoUnionFormDirective
-    .SemanticProtoUnionFormController = function($scope) {
+const SemanticProtoUnionFormController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {Object} */
+  /** @type {Object|undefined} */
   this.unionField;
 
-  /** @type {?string} */
+  /** @type {string|undefined} */
   this.unionFieldValue;
 
   $scope.$watch('descriptor', this.onDescriptorChange_.bind(this));
   $scope.$watch('value.value[controller.unionField.name].value',
                 this.onUnionFieldValueChange_.bind(this));
 };
-var SemanticProtoUnionFormController =
-    grrUi.forms.semanticProtoUnionFormDirective
-    .SemanticProtoUnionFormController;
 
 
 /**

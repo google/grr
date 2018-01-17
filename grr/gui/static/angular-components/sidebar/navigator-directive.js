@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.navigatorDirective.NavigatorController');
 goog.provide('grrUi.sidebar.navigatorDirective.NavigatorDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -20,7 +19,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.sidebar.navigatorDirective.NavigatorController = function(
+const NavigatorController = function(
     $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -53,8 +52,6 @@ grrUi.sidebar.navigatorDirective.NavigatorController = function(
       this.onClientSelectionChange_.bind(this), true);
 };
 
-var NavigatorController =
-    grrUi.sidebar.navigatorDirective.NavigatorController;
 
 
 /**

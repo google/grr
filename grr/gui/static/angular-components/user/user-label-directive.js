@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userLabelDirective.UserLabelController');
 goog.provide('grrUi.user.userLabelDirective.UserLabelDirective');
 
 
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.user.userLabelDirective.UserLabelController =
+const UserLabelController =
   function($scope, grrApiService) {
 
     /** @private {!angular.Scope} */
@@ -40,8 +39,6 @@ grrUi.user.userLabelDirective.UserLabelController =
     }.bind(this));
   };
 
-var UserLabelController =
-  grrUi.user.userLabelDirective.UserLabelController;
 
 
 /**

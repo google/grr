@@ -1,0 +1,173 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr_response_proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+message ApiRDFAllowedEnumValueDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Enum value name."
+    }];
+  optional int64 value = 2 [(sem_type) = {
+      description: "Enum value value."
+    }];
+  optional string doc = 3 [(sem_type) = {
+      description: "Documentation string."
+    }];
+  repeated string labels = 4 [(sem_type) = {
+      description: "List of labels applied to this value."
+    }];
+}
+
+message ApiRDFValueFieldDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Field name."
+    }];
+  optional string type = 2 [(sem_type) = {
+      description: "Field type (an RDFValue type name)."
+    }];
+  optional uint32 index = 3 [(sem_type) = {
+      description: "Field index."
+    }];
+  optional bool repeated = 4 [(sem_type) = {
+      description: "If the field is repeated or not."
+    }];
+  optional bool dynamic = 5 [(sem_type) = {
+      description: "If the field has a dynamically changing type or not."
+    }];
+
+  optional string doc = 6 [(sem_type) = {
+      description: "Documentation string."
+    }];
+  optional string friendly_name = 7 [(sem_type) = {
+      description: "Friendly name of the field to be shown in the UI."
+    }];
+  optional string context_help_url = 8 [(sem_type) = {
+      description: "Context help URL to be shown in the UI."
+    }];
+
+  optional google.protobuf.Any default = 9 [(sem_type) = {
+      dynamic_type: "GetDefaultValueClass",
+      description: "Recommended default value."
+    }];
+  repeated string labels = 10 [(sem_type) = {
+      description: "List of labels applied to this field."
+    }];
+
+  repeated ApiRDFAllowedEnumValueDescriptor allowed_values = 11 [(sem_type) = {
+      description: "Allowed enum values. Applicable only to enum fields. If "
+      "this list is not empty, then this descriptor describes an enum field."
+    }];
+}
+
+message ApiRDFValueDescriptor {
+  enum Kind {
+    PRIMITIVE = 0;
+    STRUCT = 1;
+  }
+
+  optional string name = 1 [(sem_type) = {
+      description: "Type name."
+    }];
+  optional string doc = 2 [(sem_type) = {
+      description: "Human-readable description of this type."
+    }];
+  optional Kind kind = 3 [(sem_type) = {
+      description: "Indicates whether the value is a primitive value, or a "
+      "structure."
+    }];
+  optional google.protobuf.Any default = 4 [(sem_type) = {
+      dynamic_type: "GetDefaultValueClass",
+      description: "Recommended default value."
+    }];
+  repeated string parents = 5 [(sem_type) = {
+      description: "Inheritance chain of this type."
+    }];
+  repeated ApiRDFValueFieldDescriptor fields = 6 [(sem_type) = {
+      description: "Descriptors of all the fields of this type. Only "
+      "applicable to types with kind=STRUCT."
+    }];
+  optional string union_field_name = 7 [(sem_type) = {
+      description: "If this structure is a union, union_field identifies the "
+      "field that determines which part of the union is used."
+    }];
+}
+
+message ApiMethod {
+  optional string name = 1;
+  optional string category = 2;
+  optional string doc = 3;
+
+  optional string http_route = 4;
+  repeated string http_methods = 5;
+
+  optional ApiRDFValueDescriptor args_type_descriptor = 6;
+
+  enum ResultKind {
+    NONE = 0;
+    VALUE = 1;
+    BINARY_STREAM = 2;
+  }
+  optional ResultKind result_kind = 7;
+  optional ApiRDFValueDescriptor result_type_descriptor = 8;
+}
+
+// Next id: 6
+message ApiOutputPluginDescriptor {
+  enum PluginType {
+    LEGACY = 0;
+    INSTANT = 1;
+    LIVE = 2;
+  }
+
+  optional PluginType plugin_type = 4;
+
+  optional string name = 1 [(sem_type) = {
+      description: "Output plugin's name."
+    }];
+  optional string friendly_name = 5 [(sem_type) = {
+      description: "Human readable output plugin's description."
+    }];
+  optional string description = 2 [(sem_type) = {
+      description: "Human readable output plugin's description."
+    }];
+  optional string args_type = 3 [(sem_type) = {
+      description: "RDF type of the arguments that output plugin takes."
+    }];
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiGetRDFValueDescriptorArgs {
+  optional string type = 1 [(sem_type) = {
+      description: "RDFValue type name."
+    }];
+}
+
+message ApiListRDFValueDescriptorsResult {
+  repeated ApiRDFValueDescriptor items = 1;
+};
+
+message ApiAff4AttributeDescriptor {
+  optional string name = 1;
+}
+
+message ApiListAff4AttributeDescriptorsResult {
+  repeated ApiAff4AttributeDescriptor items = 1;
+}
+
+
+message ApiListOutputPluginDescriptorsResult {
+  repeated ApiOutputPluginDescriptor items = 1;
+}
+
+message ApiListApiMethodsResult {
+  repeated ApiMethod items = 1;
+}

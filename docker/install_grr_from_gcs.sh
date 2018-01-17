@@ -50,6 +50,7 @@ tar xzf grr-server_*.tar.gz
 
 $GRR_VENV/bin/pip install --no-index --no-cache-dir \
     --find-links=grr/local_pypi \
+    grr/local_pypi/grr-response-proto-*.zip \
     grr/local_pypi/grr-response-core-*.zip \
     grr/local_pypi/grr-response-client-*.zip \
     grr/local_pypi/grr-api-client-*.zip \

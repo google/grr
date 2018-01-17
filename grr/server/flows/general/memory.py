@@ -5,12 +5,10 @@ These flows allow for distributing memory access modules to clients and
 performing basic analysis.
 """
 
-
 import json
 import logging
 
 from grr import config
-from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
@@ -19,7 +17,8 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import rekall_pb2
 from grr.server import aff4
 from grr.server import flow
 from grr.server import rekall_profile_server

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.urnDirective.UrnController');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
 goog.require('grrUi.routing.aff4UrnToUrl');
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.urnDirective.UrnController = function(
+const UrnController = function(
     $scope, grrRoutingService) {
 
   /** @private {!angular.Scope} */
@@ -38,7 +37,6 @@ grrUi.semantic.urnDirective.UrnController = function(
 
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
-var UrnController = grrUi.semantic.urnDirective.UrnController;
 
 
 /**

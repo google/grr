@@ -3,7 +3,7 @@
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 
 
 class NSRLInformation(rdf_structs.RDFProtoStruct):

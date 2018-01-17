@@ -19,7 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 
 
 class Error(Exception):

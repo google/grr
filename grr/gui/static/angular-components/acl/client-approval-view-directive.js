@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewController');
 goog.provide('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.acl.clientApprovalViewDirective.ClientApprovalViewController = function(
+const ClientApprovalViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,8 +37,6 @@ grrUi.acl.clientApprovalViewDirective.ClientApprovalViewController = function(
         this.approvalId = params[2];
       }.bind(this));
 };
-var ClientApprovalViewController =
-    grrUi.acl.clientApprovalViewDirective.ClientApprovalViewController;
 
 
 /**

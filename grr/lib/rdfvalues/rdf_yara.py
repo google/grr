@@ -7,7 +7,7 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 
 
 class YaraSignature(rdfvalue.RDFString):

@@ -150,8 +150,8 @@ class DpkgCmdParser(parsers.CommandParser):
           status, name, version, desc = cols
           arch = None
         else:
-          raise RuntimeError("Bad number of columns in dpkg --list output: %s" %
-                             len(column_lengths))
+          raise ValueError("Bad number of columns in dpkg --list output: %s" %
+                           len(column_lengths))
 
         # Status is potentially 3 columns, but always at least two, desired and
         # actual state. We only care about actual state.

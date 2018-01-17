@@ -56,7 +56,7 @@ import time
 from grr.lib import utils
 from grr.lib.rdfvalues import structs
 
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 
 
 # Stats decorators

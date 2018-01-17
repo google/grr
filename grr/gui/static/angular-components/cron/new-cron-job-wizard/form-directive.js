@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.newCronJobWizard.formDirective.FormController');
 goog.provide('grrUi.cron.newCronJobWizard.formDirective.FormDirective');
 goog.require('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 
@@ -18,7 +17,7 @@ var DEFAULT_PLUGIN_URL =
  * @constructor
  * @ngInject
  */
-grrUi.cron.newCronJobWizard.formDirective.FormController =
+const FormController =
     function($scope, grrReflectionService, grrApiService) {
 
   /** @private {!angular.Scope} */
@@ -74,8 +73,6 @@ grrUi.cron.newCronJobWizard.formDirective.FormController =
   this.scope_.$watch('cronJob.value.description.value',
                      this.onCronJobDescriptionChange_.bind(this));
 };
-var FormController =
-    grrUi.cron.newCronJobWizard.formDirective.FormController;
 
 
 /**

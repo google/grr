@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.globalNotificationsDirective.GlobalNotificationsController');
 goog.provide('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
 
 
@@ -19,7 +18,7 @@ var FETCH_INTERVAL = 60 * SECOND;
  * @constructor
  * @ngInject
  */
-grrUi.core.globalNotificationsDirective.GlobalNotificationsController =
+const GlobalNotificationsController =
     function($scope, $interval, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -45,8 +44,6 @@ grrUi.core.globalNotificationsDirective.GlobalNotificationsController =
   this.scope_.$on('$destroy', this.stopPollingGlobalNotifications_.bind(this));
 };
 
-var GlobalNotificationsController =
-  grrUi.core.globalNotificationsDirective.GlobalNotificationsController;
 
 /**
  * Polls global notifications from the server.

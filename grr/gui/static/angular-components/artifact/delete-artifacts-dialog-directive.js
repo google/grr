@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController');
 goog.provide('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
 
 
@@ -17,7 +16,7 @@ goog.scope(function() {
  * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} grrArtifactDescriptorsService
  * @ngInject
  */
-grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController = function(
+const DeleteArtifactsDialogController = function(
     $scope, $q, grrApiService, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -32,8 +31,6 @@ grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController = 
   this.q_ = $q;
 };
 
-var DeleteArtifactsDialogController =
-  grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController;
 
 
 /**

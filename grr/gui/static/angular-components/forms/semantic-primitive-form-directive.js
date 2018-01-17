@@ -1,7 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticPrimitiveFormDirective');
-goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormController');
 goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
 
 
@@ -13,7 +11,7 @@ goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDi
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormController =
+const SemanticPrimitiveFormController =
     function($scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -21,24 +19,25 @@ grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormController =
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @export {?string} */
+  /** @export {string|undefined} */
   this.valueType;
 
   this.scope_.$watch('value.type', this.onValueTypeChange_.bind(this));
 };
-var SemanticPrimitiveFormController =
-    grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormController;
 
 
 /**
  * Handles changes of the value type.
  *
- * @param {?string} newValue
+ * @param {string|undefined} newValue
  * @private
  */
 SemanticPrimitiveFormController.prototype.onValueTypeChange_ = function(
     newValue) {
-  if (angular.isUndefined(newValue)) {
+  // We use direct equality instead of `angular.isUndefined` because otherwise
+  // Closure Compiler is not able to infer that `newValue` passed to a method
+  // below is not `undefined`.
+  if (newValue === undefined) {
     this.valueType = undefined;
     return;
   }

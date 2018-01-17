@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonController');
 goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective');
 
 
@@ -15,7 +14,7 @@ goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.user.userSettingsButtonDirective.UserSettingsButtonController = function(
+const UserSettingsButtonController = function(
     $scope, $uibModal, $timeout, $window, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -38,14 +37,12 @@ grrUi.user.userSettingsButtonDirective.UserSettingsButtonController = function(
   /** @type {?boolean} */
   this.done;
 
-  /** @type {?string} */
+  /** @type {string|undefined} */
   this.error;
 
-  /** @type {Object} */
+  /** @type {Object|undefined} */
   this.userSettings;
 };
-var UserSettingsButtonController =
-    grrUi.user.userSettingsButtonDirective.UserSettingsButtonController;
 
 
 /**

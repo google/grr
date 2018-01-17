@@ -46,7 +46,7 @@ class IterateAllClientUrns(object):
       token: Auth token.
 
     Raises:
-      RuntimeError: If function not specified.
+      ValueError: If function not specified.
     """
     self.thread_pool = threadpool.ThreadPool.Factory(self.THREAD_POOL_NAME,
                                                      max_threads)
@@ -368,8 +368,8 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
 
       return filepath
     else:
-      raise RuntimeError("Opened urn is neither a downloaded file nor a "
-                         "directory: %s" % aff4_urn)
+      raise ValueError("Opened urn is neither a downloaded file nor a "
+                       "directory: %s" % aff4_urn)
 
   except IOError as e:
     logging.exception("Failed to read %s due to %s", aff4_urn, e)

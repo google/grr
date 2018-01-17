@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController');
 goog.provide('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
 
 
@@ -18,7 +17,7 @@ goog.scope(function() {
  *     grrArtifactDescriptorsService
  * @ngInject
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController =
+const UploadArtifactDialogController =
     function($scope, $q, grrApiService, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -39,8 +38,6 @@ grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController =
   this.inProgress = false;
 };
 
-var UploadArtifactDialogController =
-    grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemController');
 goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
 goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');
@@ -146,7 +145,7 @@ var getFileIdFromFullPath_ = function(vfsPath) {
  * @constructor
  * @ngInject
  */
-grrUi.user.userNotificationItemDirective.UserNotificationItemController =
+const UserNotificationItemController =
   function($scope, $window) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -157,7 +156,6 @@ grrUi.user.userNotificationItemDirective.UserNotificationItemController =
   this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
 };
 
-var UserNotificationItemController = grrUi.user.userNotificationItemDirective.UserNotificationItemController;
 
 
 /**

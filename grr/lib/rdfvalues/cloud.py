@@ -3,8 +3,8 @@
 
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 
 AMAZON_URL_BASE = "http://169.254.169.254/latest/meta-data/"
 AMAZON_BIOS_REGEX = ".*amazon"

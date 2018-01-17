@@ -1,0 +1,251 @@
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/knowledge_base.proto";
+import "grr_response_proto/semantic.proto";
+import "grr_response_proto/sysinfo.proto";
+
+
+//
+// Entities.
+//
+
+message ApiStatsStoreMetricDataPoint {
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the data point."
+    }];
+  optional double value = 2 [(sem_type) = {
+      description: "Value corresponding to the timestamp."
+    }];
+}
+
+message ApiStatsStoreMetric {
+  optional string metric_name = 1;
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  repeated ApiStatsStoreMetricDataPoint data_points = 4;
+}
+
+
+message ApiReportDescriptor {
+  enum ReportType {
+    CLIENT = 0 [(description) = "Client"];
+    FILE_STORE = 1 [(description) = "File store"];
+    SERVER = 2 [(description) = "Server"];
+  }
+
+  optional ReportType type = 1 [(sem_type) = {
+      description: "Top-level identifier in the report hierarchy."
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "Second-level identifier in the report hierarchy. "
+        "Also the name of the corresponding class in report_plugins.py. "
+        "Eg 'ClientsActivityReportPlugin'."
+    }];
+
+  optional string title = 3 [(sem_type) = {
+      description: "UI-friendly displayed title."
+    }];
+
+  optional string summary = 4 [(sem_type) = {
+      description: "UI-friendly displayed summary of what the report reports."
+    }];
+
+  optional bool requires_time_range = 5 [(sem_type) = {
+      description: "Indicates whether the report needs a time range."
+    }];
+}
+
+message ApiReport {
+  optional ApiReportDescriptor desc = 1;
+  optional ApiReportData data = 2;
+}
+
+message ApiReportData {
+  option (semantic) = {
+    union_field: "representation_type"
+  };
+
+  enum RepresentationType {
+    STACK_CHART = 0 [(description) = "Stack chart"];
+    PIE_CHART = 1 [(description) = "Pie chart"];
+    LINE_CHART = 2 [(description) = "Line chart"];
+    AUDIT_CHART = 3 [(description) = "Audit chart"];
+  }
+
+  optional RepresentationType representation_type = 1;
+
+  optional ApiStackChartReportData stack_chart = 2;
+  optional ApiPieChartReportData pie_chart = 3;
+  optional ApiLineChartReportData line_chart = 4;
+  optional ApiAuditChartReportData audit_chart = 5;
+}
+
+message ApiStackChartReportData {
+  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+
+  repeated ApiReportTickSpecifier x_ticks = 2 [(sem_type) = {
+      description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
+    }];
+
+  repeated ApiReportTickSpecifier y_ticks = 3 [(sem_type) = {
+      description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
+    }];
+
+  optional float bar_width = 4 [(sem_type) = {
+      description: "Width of the bars displayed on the chart."
+    }];
+}
+
+message ApiPieChartReportData {
+  repeated ApiReportDataPoint1D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+}
+
+message ApiLineChartReportData {
+  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+}
+
+message ApiAuditChartReportData {
+  repeated string used_fields = 1 [(sem_type) = {
+      description: "Names of the AuditEvent fields used by the report."
+    }];
+
+  repeated AuditEvent rows = 2 [(sem_type) = {
+      description: "Data to be shown in the chart."
+    }];
+}
+
+message ApiReportDataPoint1D {
+  optional float x = 1;
+
+  optional string label = 2 [(sem_type) = {
+      description: "The series is labeled with this string."
+    }];
+}
+
+message ApiReportDataSeries2D {
+  optional string label = 1 [(sem_type) = {
+      description: "The series is labeled with this string."
+    }];
+
+  repeated ApiReportDataPoint2D points = 2;
+}
+
+message ApiReportDataPoint2D {
+  optional float x = 1;
+  optional float y = 2;
+}
+
+message ApiReportTickSpecifier {
+  optional float x = 1;
+  optional string label = 2;
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiListStatsStoreMetricsMetadataArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+    ADMIN_UI = 2;
+  }
+  optional Component component = 1;
+}
+
+message ApiListStatsStoreMetricsMetadataResult {
+  repeated MetricMetadata items = 1;
+}
+
+
+// Next field number: 8
+message ApiGetStatsStoreMetricArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+    ADMIN_UI = 2;
+  }
+  optional Component component = 1;
+  optional string metric_name = 2;
+
+  optional uint64 start = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch metrics data starting from this timestamp. If "
+      "not set, will default to 1 hour ago."
+    }];
+  optional uint64 end = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch metrics data from the interval ending with "
+      "this timestamp. If not set, will default to the current time."
+    }];
+
+  optional uint64 rate = 7 [(sem_type) = {
+      type: "Duration",
+      description: "If set, metric's rate over given window will be returned "
+      "instead of plain values."
+    }];
+
+  enum DistributionHandlingMode {
+    DH_SUM = 0 [(description) = "Sum of all values recorded in a distribution "
+             "will be fetched."];
+    DH_COUNT = 1 [(description) = "Number of all values recorded in a distribution "
+               "will be fetched."];
+  };
+  optional DistributionHandlingMode distribution_handling_mode = 5 [(sem_type) = {
+      description: "Determines which values to fetch when dealing with distributions."
+    }];
+
+  enum AggregationMode {
+    AGG_SUM = 0 [(description) = "Values will be summed."];
+    AGG_MEAN = 1 [(description) = "Mean value will be calculated."];
+    AGG_NONE = 2 [(description) = "No aggregation will be performed."];
+  };
+  optional AggregationMode aggregation_mode = 6 [(sem_type) = {
+      description: "Aggregation method. As metrics are usually collected across "
+        "multiple processes, most of the time they have to be aggregated."
+    }];
+}
+
+
+message ApiGetReportArgs {
+  optional string name = 1 [(sem_type) = {
+      description: "Identifier in the report hierarchy. Also the name of the "
+        "corresponding class in report_plugins.py. "
+        "Eg 'ClientsActivityReportPlugin'."
+    }];
+
+  optional uint64 start_time = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Earliest timestamp of data points to consider. "
+        "Ignored by reports with requires_time_range set to false."
+    }];
+
+  optional uint64 duration = 3 [(sem_type) = {
+      type: "Duration",
+      description: "Length of the time range to consider. "
+        "Ignored by reports with requires_time_range set to false."
+    }];
+
+  optional string client_label = 4 [(sem_type) = {
+      description: "Client label used by label-specific reports. Optional."
+    }];
+}
+
+message ApiListReportsResult {
+  repeated ApiReport reports = 1 [(sem_type) = {
+      description: "The report list."
+    }];
+}

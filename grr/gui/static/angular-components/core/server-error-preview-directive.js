@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewController');
 goog.provide('grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective');
 goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
 
@@ -25,7 +24,7 @@ var ERROR_PREVIEW_INTERVAL = 5000; //ms
  * @constructor
  * @ngInject
  */
-grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewController = function($rootScope, $scope, $timeout) {
+const ServerErrorPreviewController = function($rootScope, $scope, $timeout) {
 
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -45,8 +44,6 @@ grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewController = function($
   this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
 };
 
-var ServerErrorPreviewController =
-  grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewController;
 
 
 /**

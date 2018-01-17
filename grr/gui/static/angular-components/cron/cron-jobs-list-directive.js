@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListController');
 goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 
 goog.require('grrUi.core.utils.stripAff4Prefix');
@@ -21,7 +20,7 @@ goog.scope(function() {
  * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
  * @ngInject
  */
-grrUi.cron.cronJobsListDirective.CronJobsListController = function(
+const CronJobsListController = function(
     $scope, $uibModal, $q, grrTimeService, grrApiService, grrDialogService,
     grrAclDialogService) {
   /** @private {!angular.Scope} */
@@ -77,8 +76,6 @@ grrUi.cron.cronJobsListDirective.CronJobsListController = function(
     }
   }.bind(this));
 };
-var CronJobsListController =
-    grrUi.cron.cronJobsListDirective.CronJobsListController;
 
 
 /**

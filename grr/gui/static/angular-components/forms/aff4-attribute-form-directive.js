@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormController');
 goog.provide('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective');
 
 
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormController = function(
+const Aff4AttributeFormController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -28,8 +27,6 @@ grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormController = function(
   /** @type {!Array<string>} */
   this.allowedOptions = [];
 };
-var Aff4AttributeFormController =
-    grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormController;
 
 
 /**

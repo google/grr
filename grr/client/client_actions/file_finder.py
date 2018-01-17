@@ -233,8 +233,11 @@ class FileFinderOS(actions.ActionPlugin):
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
   def _ExecuteDownload(self, fname, stat, args):
-    args.action.download.resolve_links = True
-    stat_entry = self.Stat(fname, stat, args.action.download.stat)
+    stat_opts = rdf_file_finder.FileFinderStatActionOptions(
+        resolve_links=True,
+        collect_ext_attrs=args.action.download.collect_ext_attrs)
+
+    stat_entry = self.Stat(fname, stat, stat_opts)
     uploaded_file = self.Upload(fname, stat, args.action.download,
                                 args.upload_token)
     if uploaded_file:
@@ -244,8 +247,11 @@ class FileFinderOS(actions.ActionPlugin):
         stat_entry=stat_entry, uploaded_file=uploaded_file)
 
   def _ExecuteHash(self, fname, stat, args):
-    args.action.hash.stat.resolve_links = True
-    stat_entry = self.Stat(fname, stat, args.action.hash.stat)
+    stat_opts = rdf_file_finder.FileFinderStatActionOptions(
+        resolve_links=True,
+        collect_ext_attrs=args.action.hash.collect_ext_attrs)
+
+    stat_entry = self.Stat(fname, stat, stat_opts)
     hash_entry = self.Hash(fname, stat, args.action.hash)
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
@@ -262,7 +268,7 @@ class FileFinderOS(actions.ActionPlugin):
         path=client_utils.LocalPathToCanonicalPath(fname),
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
     return files.MakeStatResponse(
-        stat, pathspec=pathspec, ext_attrs=opts.ext_attrs)
+        stat, pathspec=pathspec, ext_attrs=opts.collect_ext_attrs)
 
   def Hash(self, fname, stat, opts):
     file_size = stat.GetSize()

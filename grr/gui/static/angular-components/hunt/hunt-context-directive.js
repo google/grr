@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntContextDirective.HuntContextController');
 goog.provide('grrUi.hunt.huntContextDirective.HuntContextDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.hunt.huntContextDirective.HuntContextController = function(
+const HuntContextController = function(
     $scope, grrApiService) {
 
   /** @private {!grrUi.core.apiService.ApiService} */
@@ -28,8 +27,6 @@ grrUi.hunt.huntContextDirective.HuntContextController = function(
   $scope.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
 
-var HuntContextController =
-    grrUi.hunt.huntContextDirective.HuntContextController;
 
 
 /**

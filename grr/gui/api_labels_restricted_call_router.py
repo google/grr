@@ -11,7 +11,7 @@ from grr.gui.api_plugins import user as api_user
 from grr.lib import utils
 
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import api_call_router_pb2
+from grr_response_proto import api_call_router_pb2
 
 from grr.server import access_control
 from grr.server import aff4

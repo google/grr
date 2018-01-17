@@ -1,8 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntInspectorDirective');
 goog.provide('grrUi.hunt.huntInspectorDirective.HuntInspectorDirective');
-goog.provide('grrUi.hunt.huntInspectorDirective.huntInspectorController');
 
 goog.scope(function() {
 
@@ -14,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.hunt.huntInspectorDirective.huntInspectorController = function($scope) {
+const HuntInspectorController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -31,8 +29,6 @@ grrUi.hunt.huntInspectorDirective.huntInspectorController = function($scope) {
   this.scope_.$watch('controller.activeTab', this.onTabChange_.bind(this));
 };
 
-var HuntInspectorController =
-    grrUi.hunt.huntInspectorDirective.huntInspectorController;
 
 
 /**

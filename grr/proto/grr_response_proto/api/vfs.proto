@@ -1,0 +1,428 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+// Next id: 12
+message ApiFile {
+  optional string name = 1 [(sem_type) = {
+      description: "File name."
+    }];
+  optional string path = 2 [(sem_type) = {
+      description: "File path starting from the VFS root."
+    }];
+  optional string type = 3 [(sem_type) = {
+      description: "File type."
+    }];
+  optional StatEntry stat = 11 [(sem_type) = {
+      description: "File creation time."
+    }];
+  optional uint64 age = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File age (when file object was updated in GRR)."
+    }];
+  optional bool is_directory = 6 [(sem_type) = {
+      description: "True if the file is a directory."
+    }];
+  optional Hash hash = 7 [(sem_type) = {
+      description: "Hash values of the file."
+    }];
+  optional uint64 last_collected = 8 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last time file was collected from the client."
+    }];
+  optional uint64 last_collected_size = 10 [(sem_type) = {
+      description: "Size of the file last time it was collected."
+    }];
+  // Details of an ApiFile.
+  optional ApiAff4ObjectRepresentation details = 9 [(sem_type) = {
+      description: "The file details."
+    }];
+}
+
+message ApiAff4ObjectRepresentation {
+  repeated ApiAff4ObjectType types = 1 [(sem_type) = {
+      description: "The list of types."
+    }];
+}
+
+message ApiAff4ObjectType {
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the category."
+    }];
+  repeated ApiAff4ObjectAttribute attributes = 2 [(sem_type) = {
+      description: "The list of attributes."
+    }];
+}
+
+message ApiAff4ObjectAttribute {
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the attribute."
+    }];
+  repeated ApiAff4ObjectAttributeValue values = 2 [(sem_type) = {
+      description: "The values of the attribute."
+    }];
+}
+
+message ApiAff4ObjectAttributeValue {
+  optional string type = 1 [(sem_type) = {
+      description: "The type of the attribute."
+    }];
+  optional uint64 age = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age of the attribute."
+    }];
+  optional google.protobuf.Any value = 3 [(sem_type) = {
+      description: "The value of the attributes."
+      dynamic_type: "GetValueClass"
+    }];
+}
+
+message ApiVfsTimelineItem {
+  enum FileActionType {
+    MODIFICATION = 0;
+    ACCESS = 1;
+    METADATA_CHANGED = 2;
+  }
+
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The event timestamp."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional FileActionType action = 3 [(sem_type) = {
+      description: "File action type."
+    }];
+}
+
+//
+// Method arguments and results.
+//
+
+message ApiGetFileDetailsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
+}
+
+message ApiGetFileDetailsResult {
+  optional ApiFile file = 1 [(sem_type) = {
+      description: "The file containing including all details."
+    }];
+}
+
+message ApiListFilesArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of items to fetch."
+    }];
+  optional string filter = 5 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
+  optional bool directories_only = 6 [(sem_type) = {
+      description: "If true, only directories are returned."
+    }];
+  optional uint64 timestamp = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
+}
+
+message ApiListFilesResult {
+  repeated ApiFile items = 1 [(sem_type) = {
+      description: "The list of files."
+    }];
+}
+
+message ApiGetVfsFilesArchiveArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
+}
+
+message ApiGetFileTextArgs {
+  enum Encoding {
+    BASE64_CODEC=0;
+    BIG5=1;
+    BIG5HKSCS=2;
+    CP037=3;
+    CP1006=4;
+    CP1026=5;
+    CP1140=6;
+    CP1250=7;
+    CP1251=8;
+    CP1252=9;
+    CP1253=10;
+    CP1254=11;
+    CP1255=12;
+    CP1256=13;
+    CP1257=14;
+    CP1258=15;
+    CP424=16;
+    CP437=17;
+    CP500=18;
+    CP737=19;
+    CP775=20;
+    CP850=21;
+    CP852=22;
+    CP855=23;
+    CP856=24;
+    CP857=25;
+    CP860=26;
+    CP861=27;
+    CP862=28;
+    CP863=29;
+    CP864=30;
+    CP865=31;
+    CP866=32;
+    CP869=33;
+    CP874=34;
+    CP875=35;
+    CP932=36;
+    CP949=37;
+    CP950=38;
+    IDNA=39;
+    ROT_13=40;
+    UTF_16=41;
+    UTF_16_BE=42;
+    UTF_16_LE=43;
+    UTF_32=44;
+    UTF_32_BE=45;
+    UTF_32_LE=46;
+    UTF_7=47;
+    UTF_8=48;
+    UTF_8_SIG=49;
+    UU_CODEC=50;
+    ZLIB_CODEC=51;
+  };
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "The offset from the start."
+    }];
+  optional int64 length = 4 [(sem_type) = {
+      description: "The number of bytes returned."
+    }];
+  optional Encoding encoding = 5 [(sem_type) = {
+      description: "The encoding of the file."
+    }];
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
+}
+
+message ApiGetFileTextResult {
+  optional string content = 1 [(sem_type) = {
+      description: "The content of the file."
+    }];
+  optional int64 total_size = 2 [(sem_type) = {
+      description: "The total size of the file in byte."
+    }];
+}
+
+
+message ApiGetFileBlobArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "The offset from the start."
+    }];
+  optional int64 length = 4 [(sem_type) = {
+      description: "The number of bytes returned."
+    }];
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The age specifying which version to retrieve."
+    }];
+}
+
+message ApiGetFileVersionTimesArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiGetFileVersionTimesResult {
+  repeated uint64 times = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The list of version times."
+    }];
+}
+
+message ApiGetFileDownloadCommandArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiGetFileDownloadCommandResult {
+  optional string command = 1 [(sem_type) = {
+      description: "The command to download this file."
+    }];
+}
+
+message ApiCreateVfsRefreshOperationArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "AFF4 path of a VFS folder to be refreshed."
+    }];
+  optional uint64 max_depth = 3 [(sem_type) = {
+      description: "Maximum recursion depth.",
+    }];
+  optional bool notify_user = 4  [(sem_type) = {
+      description: "Whether the operation should notify the user or not.",
+    }];
+}
+
+message ApiGetVfsTimelineArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiGetVfsTimelineResult {
+  repeated ApiVfsTimelineItem items = 1 [(sem_type) = {
+      description: "The event items."
+    }];
+}
+
+message ApiGetVfsTimelineAsCsvArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiCreateVfsRefreshOperationResult {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the refresh operation."
+    }];
+}
+
+message ApiGetVfsRefreshOperationStateArgs {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the refresh operation."
+    }];
+}
+
+message ApiGetVfsRefreshOperationStateResult {
+  enum State {
+    RUNNING = 0;
+    FINISHED = 1;
+  }
+
+  optional State state = 1 [(sem_type) = {
+      description: "The state of the refresh operation."
+    }];
+}
+
+message ApiUpdateVfsFileContentArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "AFF4 path of a VFS file to be refreshed."
+    }];
+}
+
+message ApiUpdateVfsFileContentResult {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the update operation."
+    }];
+}
+
+message ApiGetVfsFileContentUpdateStateArgs {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the update operation."
+    }];
+}
+
+message ApiGetVfsFileContentUpdateStateResult {
+  enum State {
+    RUNNING = 0;
+    FINISHED = 1;
+  }
+
+  optional State state = 1 [(sem_type) = {
+      description: "The state of the update operation."
+    }];
+}
+
+message ApiListKnownEncodingsResult {
+  repeated string encodings = 1 [(sem_type) = {
+      description: "The list of file encodings."
+    }];
+}

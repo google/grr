@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.clientContextDirective.ClientContextController');
 goog.provide('grrUi.client.clientContextDirective.ClientContextDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.client.clientContextDirective.ClientContextController = function(
+const ClientContextController = function(
     $scope) {
 
   /** @type {?string} */
@@ -22,8 +21,6 @@ grrUi.client.clientContextDirective.ClientContextController = function(
   $scope.$watch('clientId', this.onClientIdChange_.bind(this));
 };
 
-var ClientContextController =
-    grrUi.client.clientContextDirective.ClientContextController;
 
 
 /**

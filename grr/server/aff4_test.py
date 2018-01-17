@@ -955,7 +955,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
   def testDeleteRaisesWhenTryingToDeleteRoot(self):
     self.assertRaises(
-        RuntimeError, aff4.FACTORY.Delete, "aff4:/", token=self.token)
+        ValueError, aff4.FACTORY.Delete, "aff4:/", token=self.token)
 
   def testRecursiveDelete(self):
     """Checks that recusrive deletion of objects works."""
@@ -995,7 +995,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
 
   def testMultiDeleteRaisesWhenTryingToDeleteRoot(self):
     self.assertRaises(
-        RuntimeError,
+        ValueError,
         aff4.FACTORY.MultiDelete, ["aff4:/a", "aff4:/"],
         token=self.token)
 

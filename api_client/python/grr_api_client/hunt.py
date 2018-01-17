@@ -3,8 +3,8 @@
 
 from grr_api_client import client
 from grr_api_client import utils
-from grr.proto.api import hunt_pb2
-from grr.proto.api import user_pb2
+from grr_response_proto.api import hunt_pb2
+from grr_response_proto.api import user_pb2
 
 
 class HuntApprovalBase(object):

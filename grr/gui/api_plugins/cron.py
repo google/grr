@@ -11,7 +11,7 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import cron_pb2
+from grr_response_proto.api import cron_pb2
 from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs

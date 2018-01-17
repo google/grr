@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntsViewDirective.HuntsViewController');
 goog.provide('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.hunt.huntsViewDirective.HuntsViewController = function(
+const HuntsViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -34,8 +33,6 @@ grrUi.hunt.huntsViewDirective.HuntsViewController = function(
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, ['huntId', 'tab'],
       this.onParamsChange_.bind(this));
 };
-var HuntsViewController =
-    grrUi.hunt.huntsViewDirective.HuntsViewController;
 
 
 /**

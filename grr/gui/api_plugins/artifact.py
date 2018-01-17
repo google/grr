@@ -5,7 +5,7 @@ from grr.gui import api_call_handler_base
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import artifact_pb2
+from grr_response_proto.api import artifact_pb2
 from grr.server import artifact
 
 from grr.server import artifact_registry

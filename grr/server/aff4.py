@@ -303,7 +303,7 @@ class Factory(object):
 
       return (int(start), int(end))
 
-    raise RuntimeError("Unknown age specification: %s" % age)
+    raise ValueError("Unknown age specification: %s" % age)
 
   def GetAttributes(self, urns, age=NEWEST_TIME):
     """Retrieves all the attributes for all the urns."""
@@ -764,7 +764,7 @@ class Factory(object):
       token = data_store.default_token
 
     if mode not in ["w", "r", "rw"]:
-      raise RuntimeError("Invalid mode %s" % mode)
+      raise ValueError("Invalid mode %s" % mode)
 
     symlinks = {}
 
@@ -937,10 +937,10 @@ class Factory(object):
       A dict of metadata.
 
     Raises:
-      RuntimeError: A string was passed instead of an iterable.
+      ValueError: A string was passed instead of an iterable.
     """
     if isinstance(urns, basestring):
-      raise RuntimeError("Expected an iterable, not string.")
+      raise ValueError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolvePrefix(
         urns, ["aff4:type", "metadata:last"]):
       res = dict(urn=rdfvalue.RDFURN(subject))
@@ -1043,7 +1043,7 @@ class Factory(object):
       urns: Urns of objects to remove.
       token: The Security Token to use for opening this item.
     Raises:
-      RuntimeError: If one of the urns is too short. This is a safety check to
+      ValueError: If one of the urns is too short. This is a safety check to
       ensure the root is not removed.
     """
     urns = [rdfvalue.RDFURN(urn) for urn in urns]
@@ -1053,7 +1053,7 @@ class Factory(object):
 
     for urn in urns:
       if urn.Path() == "/":
-        raise RuntimeError("Can't delete root URN. Please enter a valid URN")
+        raise ValueError("Can't delete root URN. Please enter a valid URN")
 
     deletion_pool = DeletionPool(token=token)
     deletion_pool.MultiMarkForDeletion(urns)
@@ -1099,7 +1099,7 @@ class Factory(object):
       urn: The object to remove.
       token: The Security Token to use for opening this item.
     Raises:
-      RuntimeError: If the urn is too short. This is a safety check to ensure
+      ValueError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
     """
     self.MultiDelete([urn], token=token)
@@ -1284,7 +1284,7 @@ class Attribute(object):
               predicate, old_attribute.attribute_type.__class__.__name__,
               attribute_type.__class__.__name__)
           logging.error(msg)
-          raise RuntimeError(msg)
+          raise ValueError(msg)
       except KeyError:
         pass
 
@@ -1727,7 +1727,7 @@ class AFF4Object(object):
         self.synced_attributes = clone.synced_attributes.copy()
 
       else:
-        raise RuntimeError("Cannot clone from %s." % clone)
+        raise ValueError("Cannot clone from %s." % clone)
     else:
       self.new_attributes = {}
       self.synced_attributes = {}
@@ -1891,7 +1891,7 @@ class AFF4Object(object):
       return
 
     if self.urn is None:
-      raise RuntimeError("Storing of anonymous AFF4 objects not supported.")
+      raise ValueError("Storing of anonymous AFF4 objects not supported.")
 
     to_set = {}
     for attribute_name, value_array in self.new_attributes.iteritems():
@@ -2111,9 +2111,9 @@ class AFF4Object(object):
   def GetValuesForAttribute(self, attribute, only_one=False):
     """Returns a list of values from this attribute."""
     if not only_one and self.age_policy == NEWEST_TIME:
-      raise RuntimeError("Attempting to read all attribute versions for an "
-                         "object opened for NEWEST_TIME. This is probably "
-                         "not what you want.")
+      raise ValueError("Attempting to read all attribute versions for an "
+                       "object opened for NEWEST_TIME. This is probably "
+                       "not what you want.")
 
     if attribute is None:
       return []
@@ -2147,7 +2147,7 @@ class AFF4Object(object):
        object.
 
     Raises:
-       RuntimeError: When the object to upgrade is locked.
+       ValueError: When the object to upgrade is locked.
        AttributeError: When the new object can not accept some of the old
        attributes.
        InstantiationError: When we cannot instantiate the object type class.
@@ -2245,8 +2245,8 @@ class AFF4Object(object):
   def AddLabels(self, labels_names, owner=None):
     """Add labels to the AFF4Object."""
     if owner is None and not self.token:
-      raise RuntimeError("Can't set label: No owner specified and "
-                         "no access token available.")
+      raise ValueError("Can't set label: No owner specified and "
+                       "no access token available.")
     if isinstance(labels_names, basestring):
       raise ValueError("Label list can't be string.")
 
@@ -2266,8 +2266,8 @@ class AFF4Object(object):
   def RemoveLabels(self, labels_names, owner=None):
     """Remove specified labels from the AFF4Object."""
     if owner is None and not self.token:
-      raise RuntimeError("Can't remove label: No owner specified and "
-                         "no access token available.")
+      raise ValueError("Can't remove label: No owner specified and "
+                       "no access token available.")
     if isinstance(labels_names, basestring):
       raise ValueError("Label list can't be string.")
 
@@ -2481,7 +2481,7 @@ class AFF4Symlink(AFF4Object):
       result.symlink_urn = clone.urn
       return result
     else:
-      raise RuntimeError("Unable to open symlink.")
+      raise ValueError("Unable to open symlink, clone is None.")
 
 
 class AFF4Stream(AFF4Object):

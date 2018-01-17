@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronViewDirective.CronViewController');
 goog.provide('grrUi.cron.cronViewDirective.CronViewDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.cron.cronViewDirective.CronViewController = function(
+const CronViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -30,8 +29,6 @@ grrUi.cron.cronViewDirective.CronViewController = function(
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'cronJobId',
       this.onParamsChange_.bind(this));
 };
-var CronViewController =
-    grrUi.cron.cronViewDirective.CronViewController;
 
 
 /**

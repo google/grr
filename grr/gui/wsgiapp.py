@@ -15,7 +15,6 @@ import psutil
 
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
-from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
 
@@ -27,10 +26,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.server import access_control
-from grr.server import aff4
 from grr.server import server_logging
-
-from grr.server.aff4_objects import users as aff4_users
 
 CSRF_DELIMITER = ":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
@@ -294,21 +290,8 @@ window.location = '%s' + friendly_hash;
     if not help_path:
       raise werkzeug_exceptions.Forbidden("Error: Invalid help path.")
 
-    try:
-      user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(request.user),
-          aff4_users.GRRUser,
-          token=self._BuildToken(request, 60))
-
-      settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
-    except IOError:
-      settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
-
-    if settings.docs_location == settings.DocsLocation.REMOTE:
-      # Proxy remote documentation.
-      return self._RedirectToRemoteHelp(help_path)
-    else:
-      return werkzeug_utils.redirect("/local/help/%s" % help_path)
+    # Proxy remote documentation.
+    return self._RedirectToRemoteHelp(help_path)
 
   @werkzeug_wsgi.responder
   def __call__(self, environ, start_response):

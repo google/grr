@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.dataObjectDirective.DataObjectController');
 goog.provide('grrUi.semantic.dataObjectDirective.DataObjectDirective');
 
 goog.scope(function() {

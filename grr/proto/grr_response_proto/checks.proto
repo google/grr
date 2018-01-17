@@ -1,0 +1,183 @@
+syntax = "proto2";
+
+import "grr_response_proto/anomaly.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/knowledge_base.proto";
+import "grr_response_proto/semantic.proto";
+
+
+// SECTION: Defining checks.
+// -------------------------
+// Checks define a broad issue (e.g. system files with lax permissions).
+// Methods define distinct cases where the issues is true (e.g. files with o+w,
+//   files with g+w for many groups in xattrs).
+// Probes define distinct ways of either detecting an issue, or detecting
+//   aspects of an issue that need to be considered in combination.
+// Filters define how host data should be processed to determine if an issue
+//   exists.
+enum Match {
+  // Quantifies how many results indicate a problem.
+  NONE = 0;  // No tested items match.
+  ONE = 1;   // Only one tested item matches.
+  ANY = 2;   // One or more tested items match.
+  ALL = 3;   // All tested items match.
+  SOME = 4;  // More than one tested item matches.
+}
+
+message Check {
+  optional string check_id = 1 [(sem_type) = {
+    description: "A distinguishing identifier for an advisory."
+  }];
+  repeated Method method = 2 [(sem_type) = {
+    description: "A way to analyse the host."
+  }];
+  repeated Match match = 3 [(sem_type) = {
+    description: "The condition is detected if the specified number of host "
+                 "results exist after processing. Set to ANY, by default."
+  }];
+  optional Target target = 4 [(sem_type) = {
+    description: "Limit this check to specific targets."
+  }];
+  optional Hint hint = 5 [(sem_type) = {
+    description: "Textual descriptions of a problem, fix and/or findings."
+  }];
+}
+
+message Method {
+  repeated Probe probe = 1 [(sem_type) = {
+    description: "A way to process some host data."
+  }];
+  repeated Match match = 2 [(sem_type) = {
+    description: "The condition is detected if the specified number of host "
+                 "results exist after processing. Set to ANY, by default."
+  }];
+  repeated Dict resource = 3 [(sem_type) = {
+    description: "Extra data (e.g. hint text, comparison data)."
+  }];
+  optional Target target = 4 [(sem_type) = {
+    description: "Limit this method to specific targets."
+  }];
+  optional Hint hint = 5 [(sem_type) = {
+    description: "Textual descriptions of a problem, fix and/or findings."
+  }];
+}
+
+message Probe {
+  enum Mode {
+    SERIAL = 0;
+    PARALLEL = 1;
+  }
+  enum ResultContext {
+    UNKNOWN_RESULT_CONTEXT = 0;
+    PARSER = 1;
+    ANOMALY = 2;
+    RAW = 3;
+  }
+  optional string artifact = 1 [(sem_type) = {
+    description: "The artifact that provides the host data."
+  }];
+  repeated string parser = 2 [(sem_type) = {
+    description: "Which parsers should process host data."
+  }];
+  optional Mode mode = 3 [default = SERIAL, (sem_type) = {
+    description: "How to apply filters. Serial runs data through each filter"
+                 "sequentially. Parallel applies each filter individually."
+  }];
+  repeated Filter baseline = 4 [(sem_type) = {
+    description: "One or more filters used to extract baseline data (e.g. "
+                 "all the apt repos on a system). If defined, baseline data "
+                 "is used to evaluate filter results, rather than host data."
+  }];
+  repeated Filter filters = 5 [(sem_type) = {
+    description: "One or more filters applied to the host data."
+  }];
+  repeated Match match = 6 [(sem_type) = {
+    description: "The condition is detected if the specified number of host "
+                 "results exist after processing. Set to ANY, by default."
+  }];
+  optional Target target = 7 [(sem_type) = {
+    description: "Limit this Probe to specific targets."
+  }];
+  optional Hint hint = 8 [(sem_type) = {
+    description: "Textual descriptions of a problem, fix and/or findings."
+  }];
+  optional ResultContext result_context = 9 [default = PARSER, (sem_type) = {
+    description: "Which stage of results in the artifact collection to use for "
+                 "the checks. Defaults to the registered artifact parsers."
+  }];
+}
+
+message Filter {
+  optional string type = 1 [(sem_type) = {
+    description: "The type of filter to hand data to."
+  }];
+  optional string expression = 2 [(sem_type) = {
+    description: "A rule definition or match term used to pass runtime "
+                 "parameters to a filter."
+  }];
+  optional Hint hint = 5 [(sem_type) = {
+    description: "Textual descriptions of a problem, fix and/or findings."
+  }];
+}
+
+// SECTION: Reporting issues.
+// --------------------------
+// The result of a single check. A check without anomalies was run, but did not
+// detect a problem.
+message CheckResult {
+  optional string check_id = 1 [(sem_type) = {
+    description: "The check id, identifies what check is being reported."
+  }];
+  repeated Anomaly anomaly = 2 [(sem_type) = {
+    description: "Specific findings indicating an issue exists."
+  }];
+}
+
+// The results of all checks performed on a host from a flow. This provides a
+// manifest of completed checks, which can be used to:
+// - open new issues, if the check results include anomalies.
+// - update existing issues, if the check results vary from previous state.
+// - close existing issues, if the check indicates issues weren't found.
+message CheckResults {
+  optional KnowledgeBase kb = 1 [(sem_type) = {
+    description: "Details about the host."
+  }];
+  repeated CheckResult result = 2 [(sem_type) = {
+    description: "The check results for a host"
+  }];
+}
+
+// Information about what checks are looking for, what actions can be taken to
+// address an issue, and template text to present finding data in a usable,
+// condensed form when reporting problems.
+message Hint {
+  optional string problem = 1 [(sem_type) = {
+    description: "A description of the issue."
+  }];
+  optional string fix = 2 [(sem_type) = {
+    description: "A description of how to fix the issue."
+  }];
+  optional string format = 3 [(sem_type) = {
+    description: "A template expression to format finding for an issue."
+  }];
+  optional string summary = 4 [(sem_type) = {
+    description: "A short name or term used to describe the type of data."
+  }];
+  optional uint64 max_results = 5 [(sem_type) = {
+    description: "Maximum number of findings to include in results."
+  }];
+}
+
+// SECTION: Selecting targets.
+// ---------------------------
+message Target {
+  repeated string cpe = 1 [(sem_type) = {
+    description: "Restrict this check to hosts with any of these CPE ids."
+  }];
+  repeated string os = 2 [(sem_type) = {
+    description: "Restrict this check to hosts with any of these OS types."
+  }];
+  repeated string label = 3 [(sem_type) = {
+    description: "Restrict this check to hosts with any of these labels."
+  }];
+}

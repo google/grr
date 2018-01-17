@@ -12,7 +12,7 @@ import re
 from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 
 
 class Error(Exception):

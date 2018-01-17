@@ -8,8 +8,10 @@ function build_sdists() {
     rm -rf sdists
   fi
 
-  python setup.py --quiet sdist \
-      --formats=zip --dist-dir="${PWD}/sdists" --no-sync-artifacts
+  python proto/setup.py --quiet sdist \
+      --formats=zip --dist-dir="${PWD}/sdists"
+  python setup.py --quiet sdist --formats=zip \
+      --dist-dir="${PWD}/sdists" --no-sync-artifacts
   python grr/config/grr-response-client/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python api_client/python/setup.py --quiet sdist \
@@ -28,6 +30,7 @@ function download_packages() {
     rm -rf local_pypi
   fi
 
+  pip download --dest=local_pypi sdists/grr-response-proto-*.zip
   pip download --dest=local_pypi sdists/grr-response-core-*.zip
   pip download --find-links=sdists --dest=local_pypi sdists/grr-response-client-*.zip
   pip download --find-links=sdists --dest=local_pypi sdists/grr-api-client-*.zip

@@ -4,7 +4,7 @@
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto import tests_pb2
+from grr_response_proto import tests_pb2
 
 from grr.server import export
 

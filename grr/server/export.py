@@ -19,7 +19,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import export_pb2
+from grr_response_proto import export_pb2
 from grr.server import aff4
 from grr.server.aff4_objects import filestore
 from grr.server.flows.general import collectors as flow_collectors
@@ -39,6 +39,10 @@ class Error(Exception):
 
 class NoConverterFound(Error):
   """Raised when no converter is found for particular value."""
+
+
+class ExportError(Error):
+  """Unspecified error while exporting."""
 
 
 class ExportOptions(rdf_structs.RDFProtoStruct):
@@ -1230,12 +1234,12 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
             metadata or ExportedMetadata(), original_result, token=token))
 
     if not exported_results:
-      raise RuntimeError("Got 0 exported result when a single one "
-                         "was expected.")
+      raise ExportError("Got 0 exported result when a single one "
+                        "was expected.")
 
     if len(exported_results) > 1:
-      raise RuntimeError("Got > 1 exported results when a single "
-                         "one was expected, seems like a logical bug.")
+      raise ExportError("Got > 1 exported results when a single "
+                        "one was expected, seems like a logical bug.")
 
     return exported_results[0]
 
@@ -1504,8 +1508,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
         utils.SmartStr(class_name), (rdf_structs.RDFProtoStruct,), {})
 
     if not tables:
-      raise RuntimeError("Can't generate output class without Rekall table "
-                         "definition.")
+      raise ExportError("Can't generate output class without Rekall table "
+                        "definition.")
 
     field_number = 1
     output_class.AddDescriptor(
@@ -1537,7 +1541,7 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
           column_name = column_header["name"]
 
         if not column_name:
-          raise RuntimeError("Can't determine column name in table header.")
+          raise ExportError("Can't determine column name in table header.")
 
         if column_name in used_names:
           continue

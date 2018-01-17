@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxController');
 goog.provide('grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective');
 
 goog.scope(function() {
@@ -104,7 +103,7 @@ const FlagsStatus = {
  * @ngInject
  * @export
  */
-grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxController = function(
+const StatExtFlagsOsxController = function(
     $scope) {
   /**
    * @private {!angular.Scope}
@@ -123,8 +122,6 @@ grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxController = function(
   this.flags = [];
 };
 
-const StatExtFlagsOsxController =
-    grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxController;
 
 // TODO(hanuszczak): Can we be more strict about the type of `value`?
 /**

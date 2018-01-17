@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntsListDirective.HuntsListController');
 goog.provide('grrUi.hunt.huntsListDirective.HuntsListDirective');
 
 goog.require('grrUi.core.utils.stripAff4Prefix');
@@ -21,7 +20,7 @@ goog.scope(function() {
  * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
  * @ngInject
  */
-grrUi.hunt.huntsListDirective.HuntsListController = function(
+const HuntsListController = function(
     $scope, $q, $uibModal, grrDialogService, grrApiService,
     grrAclDialogService) {
   // Injected dependencies.
@@ -68,7 +67,6 @@ grrUi.hunt.huntsListDirective.HuntsListController = function(
   this.triggerUpdate;
 };
 
-var HuntsListController = grrUi.hunt.huntsListDirective.HuntsListController;
 
 
 /**

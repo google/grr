@@ -18,7 +18,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import vfs_pb2
+from grr_response_proto.api import vfs_pb2
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import flow

@@ -16,7 +16,7 @@ from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
 
-from grr.proto.api import reflection_pb2
+from grr_response_proto.api import reflection_pb2
 
 logger = logging.getLogger(__name__)
 

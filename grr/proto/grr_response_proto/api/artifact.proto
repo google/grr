@@ -1,0 +1,39 @@
+syntax = "proto2";
+
+import "grr_response_proto/artifact.proto";
+import "grr_response_proto/semantic.proto";
+
+
+//
+// Method arguments and results.
+//
+
+message ApiListArtifactsArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Max number of items to fetch."
+    }];
+}
+
+message ApiListArtifactsResult {
+  repeated ArtifactDescriptor items = 1 [(sem_type) = {
+      description: "The flow results."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+};
+
+message ApiUploadArtifactArgs {
+  optional bytes artifact = 1 [(sem_type) = {
+      description: "Artifact YAML definition."
+    }];
+}
+
+message ApiDeleteArtifactsArgs {
+  repeated string names = 1 [(sem_type) = {
+      description: "Names of the artifacts to be deleted."
+    }];
+}

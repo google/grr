@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This module contains tests for user API handlers."""
 
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import user as user_plugin
 
@@ -10,6 +9,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import email_alerts
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs
 from grr.server.aff4_objects import security as aff4_security
@@ -553,14 +553,14 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
                   aff4_users.GUISettings(
-                      mode="ADVANCED", canary_mode=True,
-                      docs_location="REMOTE"))
+                      mode="ADVANCED",
+                      canary_mode=True,
+                  ))
 
     result = self.handler.Handle(
         None, token=access_control.ACLToken(username="foo"))
     self.assertEqual(result.settings.mode, "ADVANCED")
     self.assertEqual(result.settings.canary_mode, True)
-    self.assertEqual(result.settings.docs_location, "REMOTE")
 
   def testRendersTraitsPassedInConstructor(self):
     result = self.handler.Handle(
@@ -597,8 +597,7 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
-    settings = aff4_users.GUISettings(
-        mode="ADVANCED", canary_mode=True, docs_location="REMOTE")
+    settings = aff4_users.GUISettings(mode="ADVANCED", canary_mode=True)
     user = user_plugin.ApiGrrUser(settings=settings)
 
     self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
@@ -606,6 +605,11 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check that settings for user "foo" were applied.
     fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
     self.assertEqual(fd.Get(fd.Schema.GUI_SETTINGS), settings)
+
+    # Check that settings were applied in relational db.
+    u = data_store.REL_DB.ReadGRRUser("foo")
+    self.assertEqual(settings.mode, u.ui_mode)
+    self.assertEqual(settings.canary_mode, u.canary_mode)
 
 
 class ApiDeletePendingUserNotificationHandlerTest(

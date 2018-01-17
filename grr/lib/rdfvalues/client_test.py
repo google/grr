@@ -8,7 +8,7 @@ from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base
-from grr.proto import knowledge_base_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr.test_lib import test_lib
 
 

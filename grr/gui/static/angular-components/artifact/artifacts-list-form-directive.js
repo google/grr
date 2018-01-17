@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController');
 goog.provide('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective');
 
 
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} grrArtifactDescriptorsService
  * @ngInject
  */
-grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
+const ArtifactsListFormController =
     function($scope, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -58,8 +57,6 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
   this.scope_.$watchCollection('value',
                                this.onDescriptorsOrValueChange_.bind(this));
 };
-var ArtifactsListFormController = grrUi.artifact.artifactsListFormDirective
-    .ArtifactsListFormController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesController');
 goog.provide('grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesDirective');
 
 
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesController =
+const OutputPluginsNotesController =
     function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -31,9 +30,6 @@ grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesController =
   this.scope_.$watch('outputPluginsUrl',
                      this.onOutputPluginsUrlChange_.bind(this));
 };
-var OutputPluginsNotesController =
-    grrUi.outputPlugins.outputPluginsNotesDirective
-    .OutputPluginsNotesController;
 
 
 /**

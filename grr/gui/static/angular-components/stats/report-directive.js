@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportDirective.ReportController');
 goog.provide('grrUi.stats.reportDirective.ReportDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');
@@ -36,7 +35,7 @@ var DEFAULT_CLIENT_LABEL = '';
  * @constructor
  * @ngInject
  */
-grrUi.stats.reportDirective.ReportController = function(
+const ReportController = function(
     $scope, grrApiService, grrReflectionService, grrTimeService,
     grrReportDescsService) {
   /** @private {!angular.Scope} */
@@ -105,8 +104,6 @@ grrUi.stats.reportDirective.ReportController = function(
   this.scope_.$watchGroup(['startTime', 'duration', 'clientLabel'],
                           this.onParamsChange_.bind(this));
 };
-var ReportController =
-    grrUi.stats.reportDirective.ReportController;
 
 
 /**

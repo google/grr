@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.durationDirective.DurationController');
 goog.provide('grrUi.semantic.durationDirective.DurationDirective');
 goog.provide('grrUi.semantic.durationDirective.stringifySeconds');
 
@@ -61,7 +60,7 @@ grrUi.semantic.durationDirective.stringifySeconds = function(value) {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.durationDirective.DurationController = function($scope) {
+const DurationController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -71,8 +70,6 @@ grrUi.semantic.durationDirective.DurationController = function($scope) {
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var DurationController =
-    grrUi.semantic.durationDirective.DurationController;
 
 
 /**

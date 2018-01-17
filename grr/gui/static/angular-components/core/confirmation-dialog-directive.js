@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.confirmationDialogDirective.ConfirmationDialogController');
 goog.provide('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!angular.$timeout} $timeout
  * @ngInject
  */
-grrUi.core.confirmationDialogDirective.ConfirmationDialogController =
+const ConfirmationDialogController =
   function($scope, $timeout) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
@@ -29,8 +28,6 @@ grrUi.core.confirmationDialogDirective.ConfirmationDialogController =
     this.success;
   };
 
-var ConfirmationDialogController =
-    grrUi.core.confirmationDialogDirective.ConfirmationDialogController;
 
 
 /**

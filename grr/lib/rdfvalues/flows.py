@@ -10,9 +10,9 @@ from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
-from grr.proto import output_plugin_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import output_plugin_pb2
 
 
 class GrrMessage(rdf_structs.RDFProtoStruct):

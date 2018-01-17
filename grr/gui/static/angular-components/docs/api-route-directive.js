@@ -1,8 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiRouteDirective.ApiRouteController');
 goog.provide('grrUi.docs.apiRouteDirective.ApiRouteDirective');
-goog.provide('grrUi.docs.apiRouteDirective.RouteComponent');
 
 goog.scope(function() {
 
@@ -12,7 +10,7 @@ goog.scope(function() {
  *             value:string
  *           }}
  */
-grrUi.docs.apiRouteDirective.RouteComponent;
+let RouteComponent;
 
 
 
@@ -23,11 +21,11 @@ grrUi.docs.apiRouteDirective.RouteComponent;
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.docs.apiRouteDirective.ApiRouteController = function($scope) {
+const ApiRouteController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @export {Array.<grrUi.docs.apiRouteDirective.RouteComponent>} */
+  /** @export {Array.<RouteComponent>} */
   this.routeComponents;
 
   /** @export {Object.<string, Object>} */
@@ -39,8 +37,6 @@ grrUi.docs.apiRouteDirective.ApiRouteController = function($scope) {
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var ApiRouteController =
-    grrUi.docs.apiRouteDirective.ApiRouteController;
 
 
 /**

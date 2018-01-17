@@ -43,8 +43,8 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.proto import jobs_pb2
-from grr.proto.api import vfs_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import vfs_pb2
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import flow

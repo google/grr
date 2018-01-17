@@ -167,7 +167,7 @@ class LinuxWtmpParser(parsers.FileParser):
     while wtmp:
       try:
         record = UtmpStruct(wtmp)
-      except RuntimeError:
+      except utils.ParsingError:
         break
 
       wtmp = wtmp[record.size:]

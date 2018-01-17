@@ -1,0 +1,214 @@
+// Configuration files.
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+
+// Logging configuration.
+message LogTarget {
+  optional string facility = 1 [(sem_type) = {
+      description: "What log types this target applies to."
+    }];
+
+  optional string priority = 2 [(sem_type) = {
+      description: "What log priorities this target applies to."
+    }];
+
+  enum LogTransport {
+    UNKNOWN_LOG_TRANSPORT = 0;
+    NONE = 1;
+    FILE = 2;
+    UDP = 3;
+    TCP = 4;
+    PIPE = 5;
+    SCRIPT = 6;
+    MODULE = 7;
+    WALL = 8;
+  };
+
+  optional LogTransport transport = 3 [(sem_type) = {
+      description: "How logs are sent to a destination."
+    }];
+
+  optional string destination = 4 [(sem_type) = {
+      description: "Where logs are sent to."
+    }];
+}
+
+
+message LogConfig {
+  repeated LogTarget targets = 1 [(sem_type) = {
+        description: "Logging targets."
+    }];
+}
+
+
+// NFS configuration files.
+message NfsClient {
+  optional string host = 1;
+  repeated string options = 2;
+}
+
+message NfsExport {
+  optional string share = 1;
+  repeated string defaults = 2;
+  repeated NfsClient clients = 3;
+}
+
+
+// An sshd match block configuration. This is a subcomponent of an sshd config.
+message SshdMatchBlock {
+  optional string criterion = 1 [(sem_type) = {
+      description: "Criteria that trigger a match block."
+    }];
+  optional AttributedDict config = 2 [(sem_type) = {
+      description: "The configuration of the match block."
+    }];
+}
+
+
+// A sshd configuration containing the sshd settings, and any number of match
+// groups.
+message SshdConfig {
+  optional AttributedDict config = 1 [(sem_type) = {
+      description: "The main sshd configuration."
+    }];
+  repeated SshdMatchBlock matches = 2 [(sem_type) = {
+      description: "Match block sections."
+    }];
+}
+
+
+// A ntp configuration containing the all the ntp settings.
+message NtpConfig {
+  optional AttributedDict config = 1 [(sem_type) = {
+      description: "The main ntp configuration."
+    }];
+  repeated AttributedDict server = 2 [(sem_type) = {
+      description: "server keyword configurations."
+    }];
+  repeated AttributedDict restrict = 3 [(sem_type) = {
+      description: "restrict keyword configurations."
+    }];
+  repeated AttributedDict fudge = 4 [(sem_type) = {
+      description: "fudge keyword configurations."
+    }];
+  repeated AttributedDict trap = 5 [(sem_type) = {
+      description: "trap keyword configurations."
+    }];
+  repeated AttributedDict peer = 6 [(sem_type) = {
+      description: "peer keyword configurations."
+    }];
+  repeated AttributedDict broadcast = 7 [(sem_type) = {
+      description: "broadcast keyword configurations."
+    }];
+  repeated AttributedDict manycastclient = 8 [(sem_type) = {
+      description: "manycastclient keyword configurations."
+    }];
+}
+
+
+// A PAM configuration entry.
+message PamConfigEntry {
+  optional string service = 1 [(sem_type) = {
+      description: "The service name the entry belongs to."
+    }];
+  optional string type = 2 [(sem_type) = {
+      description: "The type for this entry."
+    }];
+  optional string control = 3 [(sem_type) = {
+      description: "The behavior of PAM for this entry."
+    }];
+  optional string module_path = 4 [(sem_type) = {
+      description: "The filepath to the PAM module."
+    }];
+  optional string module_args = 5 [(sem_type) = {
+      description: "The arguments to the PAM module."
+    }];
+}
+
+
+// A PAM configuration, containing all definitions of the services.
+// and any references to external configs outside of the artifact.
+message PamConfig {
+  repeated PamConfigEntry entries = 1 [(sem_type) = {
+      description: "A list of the enumerated PAM configuration entries."
+    }];
+  repeated string external_config = 2 [(sem_type) = {
+      description: "Details of references to external config files."
+    }];
+}
+
+// Sudoers aliases.
+message SudoersAlias {
+  enum Type {
+    USER = 0;
+    RUNAS = 1;
+    HOST = 2;
+    CMD = 3;
+  }
+
+  optional Type type = 1 [(sem_type) = {
+      description: "Alias type."
+  }];
+  optional string name = 2 [(sem_type) = {
+      description: "Alias name."
+  }];
+
+  repeated string users = 3 [(sem_type) = {
+      description: "User list, if type is USER."
+  }];
+  repeated string runas = 4 [(sem_type) = {
+      description: "Runas list, if type is RUNAS."
+  }];
+  repeated string hosts = 5 [(sem_type) = {
+      description: "Host list, if type is HOST."
+  }];
+  repeated string cmds = 6 [(sem_type) = {
+      description: "Command list, if type is CMD."
+  }];
+}
+
+// Default setting in sudoers.
+message SudoersDefault {
+  optional string scope = 1 [(sem_type) = {
+      description: "Scope for this default (eg, >root)."
+  }];
+  optional string name = 2 [(sem_type) = {
+      description: "Name for the default, including negations (!)."
+  }];
+  optional string value = 3 [(sem_type) = {
+      description: "Value for the default, if one exists."
+  }];
+}
+
+// Sudoers file entry.
+message SudoersEntry {
+  repeated string users = 1 [(sem_type) = {
+      description: "Users this rule applies to."
+  }];
+  repeated string hosts = 2 [(sem_type) = {
+      description: "Hosts this rule applies to (optional)."
+  }];
+  repeated string cmdspec = 3 [(sem_type) = {
+      description: "All content after the '=' in the sudoers rule."
+  }];
+}
+
+// Sudoers configuration.
+message SudoersConfig {
+  repeated SudoersDefault defaults = 1 [(sem_type) = {
+      description: "Default settings (binary options or key/value pairs)."
+  }];
+  repeated SudoersAlias aliases = 2 [(sem_type) = {
+      description: "Aliases within a sudoers file."
+  }];
+  repeated SudoersEntry entries = 3 [(sem_type) = {
+      description: "Entries within a sudoers file."
+  }];
+  repeated string includes = 4 [(sem_type) = {
+      description: "Includes within a sudoers file."
+  }];
+}

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntClientsDirective.HuntClientsController');
 goog.provide('grrUi.hunt.huntClientsDirective.HuntClientsDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.hunt.huntClientsDirective.HuntClientsController = function($scope) {
+const HuntClientsController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -27,8 +26,6 @@ grrUi.hunt.huntClientsDirective.HuntClientsController = function($scope) {
                           this.onHuntUrnOrClientTypeChange_.bind(this));
 };
 
-var HuntClientsController =
-    grrUi.hunt.huntClientsDirective.HuntClientsController;
 
 
 /**

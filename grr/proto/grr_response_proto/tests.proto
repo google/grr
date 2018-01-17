@@ -1,0 +1,136 @@
+
+// Protobufs used in tests.
+
+syntax = "proto2";
+
+import "grr_response_proto/export.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+message PriorityFlowArgs {
+  optional string msg = 1;
+}
+
+message ClientActionRunnerArgs {
+  optional string action = 1 [(sem_type) = {
+      description: "Action to run.",
+    }];
+}
+
+message BadArgsFlow1Args {
+  optional PathSpec arg1 = 1;
+}
+
+message SendingFlowArgs {
+  optional uint64 message_count = 1;
+}
+
+message DummyCronHuntOutputPluginArgs {
+  optional string output_path = 1;
+  optional string collection_name = 2;
+}
+
+message RecursiveTestFlowArgs {
+  optional uint64 depth = 1;
+}
+
+message MultiGetFileTestFlowArgs {
+  optional uint64 file_limit = 1 [(sem_type) = {
+      description: "The number of files to retrieve.",
+    }, default=3];
+}
+
+// Used for DataAgnosticConverter tests.
+message DataAgnosticConverterTestValue {
+  optional string string_value = 1;
+  optional uint64 int_value = 2;
+  optional bool bool_value = 3;
+
+  repeated string repeated_string_value = 4;
+  optional ExportedMetadata message_value = 5;
+
+  enum EnumOption {
+    OPTION_1 = 0;
+    OPTION_2 = 1;
+  }
+  optional EnumOption enum_value = 6 [default = OPTION_1];
+  optional EnumOption another_enum_value = 7 [default = OPTION_2];
+
+  optional string urn_value = 8 [(sem_type) = {
+      type: "RDFURN",
+    }];
+  optional uint64 datetime_value = 9 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+}
+
+// Used for DataAgnosticConverter tests.
+message DataAgnosticConverterTestValueWithMetadata {
+  optional uint64 metadata = 1;
+  optional string value = 2;
+}
+
+// For forms_test.py to test that default protobuf values are rendered
+// correctly.
+message DefaultArgsTestFlowArgs {
+  enum EnumOption {
+    OPTION_1 = 0;
+    OPTION_2 = 1;
+  }
+  optional string string_value = 1;
+  optional uint64 int_value = 2;
+  optional bool bool_value = 3;
+  optional EnumOption enum_value = 4;
+
+  optional string string_value_with_default = 5 [default = "default string"];
+  optional uint64 int_value_with_default = 6 [default = 42];
+  optional bool bool_value_with_default = 7 [default = true];
+  optional EnumOption enum_value_with_default = 8 [default = OPTION_2];
+}
+
+// For gui/http_api_test.py.
+message SampleGetHandlerArgs {
+  optional string path = 1;
+  optional string foo = 2;
+}
+
+message SampleGetHandlerResult {
+  optional string method = 1;
+  optional string path = 2;
+  optional string foo = 3;
+}
+
+message ApiRDFProtoStructRendererSample {
+  optional uint64 index = 1 [(sem_type) = {
+      description: "Sample index."
+    }];
+  repeated string values = 2 [(sem_type) = {
+      description: "Sample values."
+    }];
+}
+
+message SampleDeleteHandlerArgs {
+  optional string resource_id = 1;
+}
+
+message SampleDeleteHandlerResult {
+  optional string method = 1;
+  optional string resource = 2;
+}
+
+message SamplePatchHandlerArgs {
+  optional string resource_id = 1;
+}
+
+message SamplePatchHandlerResult {
+  optional string method = 1;
+  optional string resource = 2;
+}
+
+// For api_auth_manager_test.py
+
+message DummyAuthManagerTestConfigurableApiRouterParams {
+  optional string foo = 1;
+  optional uint64 bar = 2;
+}

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesController');
 goog.provide('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.provide('grrUi.core.downloadCollectionFilesDirective.valuePointsToFile');
 
@@ -39,7 +38,7 @@ grrUi.core.downloadCollectionFilesDirective.valuePointsToFile = function(
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesController =
+const DownloadCollectionFilesController =
     function($scope, $window, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -88,9 +87,6 @@ grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesController =
     }.bind(this));
   }.bind(this));
 };
-var DownloadCollectionFilesController =
-    grrUi.core.downloadCollectionFilesDirective
-    .DownloadCollectionFilesController;
 
 
 /**

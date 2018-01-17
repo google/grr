@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for GRR FileFinder flow."""
 
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 from grr.server.end_to_end_tests import test_base
 
 

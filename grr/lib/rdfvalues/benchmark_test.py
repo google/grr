@@ -6,8 +6,8 @@ from grr.lib import flags
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
-from grr.proto import knowledge_base_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
 from grr.test_lib import benchmark_test_lib
 from grr.test_lib import test_lib
 

@@ -8,7 +8,7 @@
 from grr.gui import api_call_router
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import tests_pb2
+from grr_response_proto import tests_pb2
 from grr.test_lib import test_lib
 
 

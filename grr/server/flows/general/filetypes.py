@@ -3,7 +3,7 @@
 
 from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 from grr.server import flow
 from grr.server import server_stubs
 

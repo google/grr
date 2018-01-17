@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.timerangeFormDirective.TimerangeFormController');
 goog.provide('grrUi.forms.timerangeFormDirective.TimerangeFormDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.forms.timerangeFormDirective.TimerangeFormController =
+const TimerangeFormController =
     function($scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -64,8 +63,6 @@ grrUi.forms.timerangeFormDirective.TimerangeFormController =
   }.bind(this));
 
 };
-var TimerangeFormController =
-    grrUi.forms.timerangeFormDirective.TimerangeFormController;
 
 
 /**

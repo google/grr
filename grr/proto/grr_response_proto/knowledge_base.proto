@@ -1,0 +1,313 @@
+// These are protobufs used in the artifact knowledgebase
+//
+// Uses:
+// - Variables that can be interpolated into artifact paths must be defined
+//   in this file.
+// - These fields can also be used to filter artifact execution, e.g. Artifact
+//   X only runs on os:Windows.
+// - In processing, the processor for a specific registry key needs to know the
+//   timezone the system is in.
+//
+// Adding additional fields should be carefully considered as systems
+// implementing artifacts bear the burden of implementing support for all of
+// them.
+//
+// Fields are defined as semantic protobufs including type, detailed
+// descriptions of what valid values are should be specified.
+//
+// Naming conventions:
+// - All fields should be lower case
+// - Should lower_case_with_underscore except where the field name has specific
+//   meaning e.g. systemroot in windows is not split because that is the name
+//   used in the environment variable it relates to.
+//
+// Data formats:
+// - Generally data should be stored in the format that it came back from the
+//   system and not normalized. E.g. windows paths are in C:\Windows\foo format
+//
+//
+
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+
+
+
+message PwEntry {
+  enum PwStore {
+    UNKNOWN = 0;
+    PASSWD = 1;
+    SHADOW = 2;
+    GROUP = 3;
+    GSHADOW = 4;
+  }
+
+  optional PwStore store = 1 [(sem_type) = {
+      description: "Where the user password is stored.",
+    }, default = UNKNOWN];
+
+  // The hash functions used for password hashes. See man crypt(3)
+  enum PwHash {
+    DES = 0;
+    MD5 = 1;
+    BLOWFISH = 2;
+    NTHASH = 3;
+    UNUSED = 4;
+    SHA256 = 5;
+    SHA512 = 6;
+    UNSET = 13;
+    DISABLED = 14;
+    EMPTY = 15;
+  }
+
+  optional PwHash hash_type = 2 [(sem_type) = {
+      description: "How the password is hashed.",
+    }];
+
+  optional uint32 age = 3 [(sem_type) = {
+      description: "The password age in days.",
+    }];
+
+  optional uint32 max_age = 4 [(sem_type) = {
+      description: "The maximum password age in days.",
+    }];
+}
+
+
+message Group {
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the group. ",
+    }];
+
+  repeated string members = 2 [(sem_type) = {
+      description: "The members of the group, as usernames. ",
+    }];
+
+  // Posix specific values.
+  optional uint32 gid = 3 [(sem_type) = {
+      description: "The gid of the the group, e.g.: 1001.",
+    }];
+
+  optional PwEntry pw_entry = 4 [(sem_type) = {
+      description: "The password state of the group, e.g.: shadow+sha512.",
+    }];
+
+}
+
+
+message User {
+  optional string username = 1 [(sem_type) = {
+      description: "The name of the user.",
+    }];
+
+  optional string temp = 2 [(sem_type) = {
+      description: "Temporary directory for the user.",
+    }];
+
+  optional string desktop = 4 [(sem_type) = {
+      description: "The desktop directory of the user. E.g. "
+        "c:\\Documents and Settings\\foo\\Desktop",
+    }];
+
+  optional uint64 last_logon = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The last logon time for this user."
+    }];
+
+  optional string full_name = 6 [(sem_type) = {
+      description: "Full name of the user."
+    }];
+
+  // Windows specific values.
+  optional string userdomain = 10 [(sem_type) = {
+      description: "The domain name of the user. E.g. MICROSOFT.",
+    }];
+
+  optional string sid = 12 [(sem_type) = {
+      description: "The SID of the user as reported by the system. E.g. "
+      "S-1-5-80-859482183-879914841-863379149-1145462774-2388618682",
+    }];
+
+  optional string userprofile = 13 [(sem_type) = {
+      description: "The profile directory of the user. E.g."
+        "c:\\Documents and Settings\\foo.",
+    }];
+
+  optional string appdata = 14 [(sem_type) = {
+      description: "The %APPDATA% directory of the user as reported by the "
+        "system. E.g. c:\\Documents and Settings\\foo\\AppData\\Roaming",
+    }];
+
+  optional string localappdata = 15 [(sem_type) = {
+      description: "The %LOCALAPPDATA% directory of the user as reported by the"
+        " system. E.g. c:\\Documents and Settings\\foo\\AppData\\Local",
+    }];
+
+  optional string internet_cache = 16 [(sem_type) = {
+      description: "The cache directory of the user. E.g. "
+        "c:\\Documents and Settings\\foo\\AppData\\Local"
+        "\\Temporary Internet Files.",
+    }];
+
+  optional string cookies = 17 [(sem_type) = {
+      description: "The cookies directory of the user. E.g. "
+        "c:\\Documents and Settings\\foo\\Cookies",
+    }];
+
+  optional string recent = 18 [(sem_type) = {
+      description: "The recent directory of the user. E.g. "
+        "c:\\Documents and Settings\\foo\\Recent.",
+    }];
+
+  optional string personal = 19 [(sem_type) = {
+      description: "The Personal directory of the user. E.g. "
+        "c:\\Documents and Settings\\foo\\Documents.",
+    }];
+
+  // ID 20 previously used by local_settings.
+
+  optional string startup = 21 [(sem_type) = {
+    description: "The Startup directory of the user. E.g. "
+      "c:\\Documents and Settings\\foo\\Startup.",
+    }];
+
+  optional string localappdata_low = 22 [(sem_type) = {
+      description: "The LocalLow application data directory for data that"
+        " doesn't roam with the user.  E.g."
+        " %USERPROFILE%\\AppData\\LocalLow.  Vista and above.",
+    }];
+
+
+  // Posix specific values.
+  optional string homedir = 30 [(sem_type) = {
+      description: "The homedir of the user as reported by the system. E.g. "
+      "/home/foo",
+    }];
+
+  optional uint32 uid = 31 [(sem_type) = {
+      description: "The uid of the of the user. E.g. 0.",
+    }];
+
+  optional uint32 gid = 32 [(sem_type) = {
+      description: "The gid of the the user. E.g. 5001.",
+    }];
+
+  optional string shell = 33 [(sem_type) = {
+      description: "The shell of the the user. E.g. /bin/sh.",
+    }];
+
+  optional PwEntry pw_entry = 34 [(sem_type) = {
+      description: "The password state of the user, e.g.: shadow+sha512.",
+    }];
+
+  repeated uint32 gids = 35 [(sem_type) = {
+      description: "Additional group ids the user is a member of.",
+    }];
+};
+
+
+// Next ID: 34
+message KnowledgeBase {
+  repeated User users = 32;
+
+  optional string hostname = 2 [(sem_type) = {
+      description: "The fully qualified domain name reported by the OS. E.g. "
+        "host1.ad.foo.com",
+    }];
+
+  optional string time_zone = 3 [(sem_type) = {
+      description: "The timezone in Olson format E.g. Pacific/Galapagos. "
+        "http://en.wikipedia.org/wiki/Tz_database.",
+    }];
+
+  optional string os = 4 [(sem_type) = {
+      description: "The operating system. Case is important, must be one of "
+        "Windows Linux Darwin FreeBSD OpenBSD NetBSD",
+    }];
+
+  optional uint32 os_major_version = 5 [(sem_type) = {
+      description: "The major version of the OS, e.g. 7",
+    }];
+
+  optional uint32 os_minor_version = 6 [(sem_type) = {
+      description: "The minor version of the OS, e.g. 7",
+    }];
+
+  optional string environ_path = 7 [(sem_type) = {
+      description: "The system configured path variable.",
+    }];
+
+  optional string environ_temp = 8 [(sem_type) = {
+      description: "The system temporary directory.",
+    }];
+
+  //
+  // Linux specific distribution information.
+  // See: lsb_release(1) man page, or the LSB Specification under the 'Command
+  // Behaviour' section.
+  //
+  optional string os_release = 9 [(sem_type) = {
+      description: "Linux distribution name.",
+    }];
+
+  //
+  // Windows specific system level parameters.
+  //
+  optional string environ_systemroot = 20 [(sem_type) = {
+      description: "The value of the %SystemRoot% parameter, E.g. c:\\Windows",
+    }];
+
+  optional string environ_windir = 21 [(sem_type) = {
+      description: "The value of the %WINDIR% parameter. As returned by "
+        "the system, e.g. C:",
+    }];
+
+  optional string environ_programfiles = 22 [(sem_type) = {
+      description: "The value of the %PROGRAMFILES% parameter as returned by "
+        "the system, e.g. C:\\Program Files",
+    }];
+
+  optional string environ_programfilesx86 = 23 [(sem_type) = {
+      description: "The value of the %PROGRAMFILES(X86)% parameter as returned"
+        " by the system, e.g. C:\\Program Files (x86)",
+    }];
+
+  optional string environ_systemdrive = 24 [(sem_type) = {
+      description: "The value of the %SystemDrive% parameter. As returned by "
+        "the system, e.g. C:",
+    }];
+
+  optional string environ_profilesdirectory = 33 [(sem_type) = {
+      description: "Folder that typically contains users' profile directories; "
+        "e.g '%SystemDrive%\\Users'",
+    }];
+
+  optional string environ_allusersprofile = 26 [(sem_type) = {
+      description: "The value of the %AllUsersProfile% parameter. As returned "
+        "by the system, e.g. c:\\Documents and Settings\\All Users",
+    }];
+
+  optional string environ_allusersappdata = 27 [(sem_type) = {
+      description: "The value of the %AllUsersAppData% parameter. As returned "
+        "by the system, e.g. c:\\Documents and Settings\\All Users\\Application"
+        " Data.",
+    }];
+
+  optional string current_control_set = 28 [(sem_type) = {
+      description: "The current value of the system CurrentControlSet "
+        "e.g. HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001",
+    }];
+
+  optional string code_page = 30 [(sem_type) = {
+      description: "The current code page of the system. Comes from "
+        "HKLM\\CurrentControlSet\\Control\\Nls\\CodePage e.g. cp1252.",
+    }];
+
+  optional string domain = 31 [(sem_type) = {
+      description: "The domain the machine is connected to. E.g. MICROSOFT.",
+    }];
+
+  // This field is deprecated due to a type switch from jobs.User to
+  // knowledge_base.User.
+  repeated bytes DEPRECATED_users = 1;
+}

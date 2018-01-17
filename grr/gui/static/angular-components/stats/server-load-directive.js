@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.stats.serverLoadDirective.ServerLoadController');
 goog.provide('grrUi.stats.serverLoadDirective.ServerLoadDirective');
 goog.provide('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
 
@@ -154,7 +153,7 @@ ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
  *     grrServerLoadIndicatorService
  * @ngInject
  */
-grrUi.stats.serverLoadDirective.ServerLoadController = function(
+const ServerLoadController = function(
     $scope, grrServerLoadIndicatorService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -177,8 +176,6 @@ grrUi.stats.serverLoadDirective.ServerLoadController = function(
   this.scope_.$watch('controller.duration', this.onDurationChange.bind(this));
 };
 
-var ServerLoadController =
-    grrUi.stats.serverLoadDirective.ServerLoadController;
 
 
 /**

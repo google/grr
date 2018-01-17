@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormController');
 goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormDirective');
 
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
@@ -22,8 +21,7 @@ var camelCaseToDashDelimited = grrUi.core.utils.camelCaseToDashDelimited;
  *     grrSemanticRepeatedFormDirectivesRegistryService
  * @ngInject
  */
-grrUi.forms.semanticProtoRepeatedFieldFormDirective
-    .SemanticProtoRepeatedFieldFormController = function(
+const SemanticProtoRepeatedFieldFormController = function(
         $scope, $element, $compile,
         grrSemanticRepeatedFormDirectivesRegistryService) {
   /** @private {!angular.Scope} */
@@ -49,9 +47,6 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
                           this.onFieldDescriptorChange_.bind(this));
 };
 
-var SemanticProtoRepeatedFieldFormController =
-    grrUi.forms.semanticProtoRepeatedFieldFormDirective
-    .SemanticProtoRepeatedFieldFormController;
 
 
 /**

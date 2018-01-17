@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.config.configViewDirective.ConfigViewController');
 goog.provide('grrUi.config.configViewDirective.ConfigViewDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!angular.$http} $http Angular HTTP service.
  * @ngInject
  */
-grrUi.config.configViewDirective.ConfigViewController = function($scope, $http) {
+const ConfigViewController = function($scope, $http) {
   $http.get('/api/config').then(function(config) {
     this.items = {};
 
@@ -29,7 +28,6 @@ grrUi.config.configViewDirective.ConfigViewController = function($scope, $http) 
     }.bind(this));
   }.bind(this));
 };
-var ConfigViewController = grrUi.config.configViewDirective.ConfigViewController;
 
 
 /**

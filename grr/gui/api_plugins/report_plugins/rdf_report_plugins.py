@@ -2,7 +2,7 @@
 """UI reports related rdfvalues."""
 
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import stats_pb2
+from grr_response_proto.api import stats_pb2
 from grr.server import events
 
 

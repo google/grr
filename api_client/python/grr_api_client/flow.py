@@ -3,7 +3,7 @@
 
 from grr_api_client import errors
 from grr_api_client import utils
-from grr.proto.api import flow_pb2
+from grr_response_proto.api import flow_pb2
 
 
 class FlowResult(object):

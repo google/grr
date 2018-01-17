@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallValueDirective.RekallValueController');
 goog.provide('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
 
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
@@ -18,7 +17,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.rekall.rekallValueDirective.RekallValueController = function(
+const RekallValueController = function(
     $scope, $element, $compile, grrRekallDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -35,8 +34,6 @@ grrUi.semantic.rekall.rekallValueDirective.RekallValueController = function(
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
 
-var RekallValueController =
-    grrUi.semantic.rekall.rekallValueDirective.RekallValueController;
 
 
 RekallValueController.prototype.onValueChange_ = function(value) {

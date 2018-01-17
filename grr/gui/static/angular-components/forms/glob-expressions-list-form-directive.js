@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormController');
 goog.provide('grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective');
 
 
@@ -13,15 +12,13 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormController =  function($scope) {
+const GlobExpressionsListFormController =  function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   this.scope_.$watchGroup(['descriptor', 'value', 'field'],
                           this.onArgumentsChange_.bind(this));
 };
-var GlobExpressionsListFormController = grrUi.forms.globExpressionsListFormDirective
-    .GlobExpressionsListFormController;
 
 
 /**

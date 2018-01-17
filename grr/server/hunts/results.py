@@ -5,7 +5,7 @@
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import data_store

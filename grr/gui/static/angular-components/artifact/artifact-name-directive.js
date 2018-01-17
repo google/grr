@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactNameDirective.ArtifactNameController');
 goog.provide('grrUi.artifact.artifactNameDirective.ArtifactNameDirective');
 
 goog.scope(function() {
@@ -31,7 +30,7 @@ grrUi.artifact.artifactNameDirective.clearCache = function() {
  * @constructor
  * @ngInject
  */
-grrUi.artifact.artifactNameDirective.ArtifactNameController = function(
+const ArtifactNameController = function(
     $scope, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -45,8 +44,6 @@ grrUi.artifact.artifactNameDirective.ArtifactNameController = function(
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
 
-var ArtifactNameController =
-    grrUi.artifact.artifactNameDirective.ArtifactNameController;
 
 
 

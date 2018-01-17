@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntOverviewDirective.HuntOverviewController');
 goog.provide('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
 
 goog.scope(function() {
@@ -19,7 +18,7 @@ grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.hunt.huntOverviewDirective.HuntOverviewController = function(
+const HuntOverviewController = function(
     $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -49,8 +48,6 @@ grrUi.hunt.huntOverviewDirective.HuntOverviewController = function(
   this.scope_.$watch('huntUrn', this.startPolling_.bind(this));
 };
 
-var HuntOverviewController =
-    grrUi.hunt.huntOverviewDirective.HuntOverviewController;
 
 
 /**

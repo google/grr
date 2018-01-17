@@ -1,0 +1,61 @@
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+import "grr_response_proto/jobs.proto";
+
+
+message DumpFlashImageRequest {
+  optional uint32 log_level = 1 [(sem_type) = {
+      description: "Set the log level. If set, the log returned "
+      "will include additional information reported by Chipsec."
+    }];
+  optional uint32 chunk_size = 2 [(sem_type) = {
+      description: "A heartbeat will be emitted every chunk_size."
+      "This could be reduced in case the process times out.",
+      label: ADVANCED,
+    }, default=0x10000];
+  optional bool  notify_syslog = 3 [(sem_type) = {
+      description: "If true, a message will be written by the client to the "
+      "syslog before running the action. This can be used for debugging in "
+      "case the client crashes during the image dumping process.",
+    }];
+}
+
+message DumpFlashImageResponse {
+  optional PathSpec path = 1 [(sem_type) = {
+      description: "Temporary path to the flash image.",
+    }];
+  repeated string logs = 2 [(sem_type) = {
+      description: "Extra debug information.",
+    }];
+}
+
+message ACPITableData {
+  optional uint64 table_address = 1 [(sem_type) = {
+      description: "Physical address of the ACPI table."
+    }];
+  optional bytes table_blob = 2 [(sem_type) = {
+      description: "Dumped ACPI table in raw byte format as provided "
+                   "by the BIOS, including the header.",
+      type: "RDFBytes"
+    }];
+}
+
+message DumpACPITableRequest {
+  optional bool logging = 1 [(sem_type) = {
+      description: "If logging is set to True, the client sends "
+                   "log, including Chipsec's log."
+    }];
+  optional string table_signature = 2 [(sem_type) = {
+      description: "Signature of the ACPI table(s) to be dumped."
+    }];
+}
+
+message DumpACPITableResponse {
+  repeated ACPITableData acpi_tables = 1 [(sem_type) = {
+      description: "Data containing dumped ACPI tables and their physical addresses."
+    }];
+  repeated string logs = 2 [(sem_type) = {
+      description: "Extra debug information.",
+    }];
+}

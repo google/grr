@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitController');
 goog.provide('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitController = function(
+const DisableIfNoTraitController = function(
     $attrs, grrApiService) {
   /** @private {!angular.Attributes} */
   this.attrs_ = $attrs;
@@ -29,8 +28,6 @@ grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitController = function(
   this.attrs_.$observe('grrDisableIfNoTrait',
                        this.onTraitNameChange_.bind(this));
 };
-var DisableIfNoTraitController =
-    grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitController;
 
 
 DisableIfNoTraitController.prototype.onTraitNameChange_ = function(newValue) {

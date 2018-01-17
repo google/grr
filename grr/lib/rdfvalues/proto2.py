@@ -13,7 +13,7 @@ import logging
 
 from grr.lib import rdfvalue
 from grr.lib import type_info
-from grr.proto import semantic_pb2
+from grr_response_proto import semantic_pb2
 
 # Field types present in the proto2 field descriptors.
 TYPE_DOUBLE = 1

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.dictDirective.DictController');
 goog.provide('grrUi.semantic.dictDirective.DictDirective');
 
 goog.scope(function() {

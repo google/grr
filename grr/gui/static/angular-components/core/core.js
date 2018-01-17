@@ -9,6 +9,7 @@ goog.require('grrUi.core.basenameFilter.BasenameFilter');
 goog.require('grrUi.core.bindKeyDirective.BindKeyDirective');
 goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
 goog.require('grrUi.core.canaryOnlyDirective.CanaryOnlyDirective');
+goog.require('grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective');
 goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 goog.require('grrUi.core.dialogService.DialogService');

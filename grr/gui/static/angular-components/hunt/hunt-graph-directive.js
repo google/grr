@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntGraphDirective.HuntGraphController');
 goog.provide('grrUi.hunt.huntGraphDirective.HuntGraphDirective');
 
 goog.scope(function() {
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.hunt.huntGraphDirective.HuntGraphController = function($scope, $element, grrApiService) {
+const HuntGraphController = function($scope, $element, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
@@ -46,7 +45,6 @@ grrUi.hunt.huntGraphDirective.HuntGraphController = function($scope, $element, g
     this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
 
-var HuntGraphController = grrUi.hunt.huntGraphDirective.HuntGraphController;
 
 
 /**

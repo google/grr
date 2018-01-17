@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.clientStatusIconsDirective.ClientStatusIconsController');
 goog.provide('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.client.clientStatusIconsDirective.ClientStatusIconsController = function(
+const ClientStatusIconsController = function(
     $scope, grrTimeService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -37,8 +36,6 @@ grrUi.client.clientStatusIconsDirective.ClientStatusIconsController = function(
 
   this.scope_.$watch('::client', this.onClientChange_.bind(this));
 };
-var ClientStatusIconsController =
-    grrUi.client.clientStatusIconsDirective.ClientStatusIconsController;
 
 
 /**

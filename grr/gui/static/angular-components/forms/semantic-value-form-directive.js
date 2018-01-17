@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticValueFormDirective');
 goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormController');
 goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective');
 

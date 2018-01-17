@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowsListDirective.FlowsListController');
 goog.provide('grrUi.flow.flowsListDirective.FlowsListDirective');
 goog.provide('grrUi.flow.flowsListDirective.flattenFlowsList');
 goog.provide('grrUi.flow.flowsListDirective.toggleFlowExpansion');
@@ -142,7 +141,7 @@ var toggleFlowExpansion = grrUi.flow.flowsListDirective.toggleFlowExpansion;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.flow.flowsListDirective.FlowsListController = function(
+const FlowsListController = function(
     $scope, $element, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -187,7 +186,6 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
   // this directive can use it.
   this.scope_['triggerUpdate'] = this.triggerUpdate.bind(this);
 };
-var FlowsListController = grrUi.flow.flowsListDirective.FlowsListController;
 
 
 /**

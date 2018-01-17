@@ -7,7 +7,7 @@ from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 
 
 class FileFinderModificationTimeCondition(rdf_structs.RDFProtoStruct):
@@ -75,7 +75,6 @@ class FileFinderHashActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderHashActionOptions
   rdf_deps = [
       rdfvalue.ByteSize,
-      FileFinderStatActionOptions,
   ]
 
 
@@ -83,7 +82,6 @@ class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderDownloadActionOptions
   rdf_deps = [
       rdfvalue.ByteSize,
-      FileFinderStatActionOptions,
   ]
 
 

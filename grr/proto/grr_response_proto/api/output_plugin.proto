@@ -1,0 +1,32 @@
+syntax = "proto2";
+
+import "google/protobuf/any.proto";
+
+import "grr_response_proto/output_plugin.proto";
+import "grr_response_proto/semantic.proto";
+
+
+//
+// Entities.
+//
+
+message ApiOutputPlugin {
+  optional string id = 1 [(sem_type) = {
+      description: "String identifying the output plugin."
+    }];
+  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
+      description: "Descriptor of the output plugin."
+    }];
+  optional google.protobuf.Any state = 3 [(sem_type) = {
+      description: "State of the plugin.",
+      dynamic_type: "GetStateClass"
+    }];
+  optional OutputPluginVerificationResult last_verification_result = 4 [(sem_type) = {
+      description: "Results of the last verification check done on the output "
+      "of this plugin. Verification checks check that expected output exists "
+      "and that it's complete. Not all output plugins support verification. "
+      "For example CSV and Email plugins output can't be verified. On the "
+      "other hand, BigQuery output can be verified, as BigQuery service can "
+      "be queried for the results that were supposed to be uploaded."
+    }];
+}

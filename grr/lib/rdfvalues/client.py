@@ -27,10 +27,10 @@ from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs
 
-from grr.proto import flows_pb2
-from grr.proto import jobs_pb2
-from grr.proto import knowledge_base_pb2
-from grr.proto import sysinfo_pb2
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import knowledge_base_pb2
+from grr_response_proto import sysinfo_pb2
 
 # ntop does not exist on Windows.
 # pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa

@@ -9,7 +9,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import data_migration
@@ -33,40 +33,40 @@ class CAEnroler(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Sign the CSR from the client."""
+
+    if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
+      raise ValueError("Must be called with CSR")
+
+    csr = rdf_crypto.CertificateSigningRequest(self.args.csr.pem)
+    # Verify the CSR. This is not strictly necessary but doesn't harm either.
+    try:
+      csr.Verify(csr.GetPublicKey())
+    except rdf_crypto.VerificationError:
+      raise flow.FlowError("CSR for client %s did not verify: %s" %
+                           (self.client_id, csr.AsPEM()))
+
+    # Verify that the CN is of the correct form. The common name should refer
+    # to a client URN.
+    self.cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
+    if self.cn != csr.GetCN():
+      raise ValueError("CSR CN %s does not match public key %s." % (csr.GetCN(),
+                                                                    self.cn))
+
+    logging.info("Will sign CSR for: %s", self.cn)
+
+    cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
+
+    # This check is important to ensure that the client id reported in the
+    # source of the enrollment request is the same as the one in the
+    # certificate. We use the ClientURN to ensure this is also of the correct
+    # form for a client name.
+    if self.cn != self.client_id:
+      raise flow.FlowError("Certificate name %s mismatch for client %s",
+                           self.cn, self.client_id)
+
     with aff4.FACTORY.Create(
         self.client_id, aff4_grr.VFSGRRClient, mode="rw",
         token=self.token) as client:
-
-      if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
-        raise IOError("Must be called with CSR")
-
-      csr = rdf_crypto.CertificateSigningRequest(self.args.csr.pem)
-      # Verify the CSR. This is not strictly necessary but doesn't harm either.
-      try:
-        csr.Verify(csr.GetPublicKey())
-      except rdf_crypto.VerificationError:
-        raise flow.FlowError("CSR for client %s did not verify: %s" %
-                             (self.client_id, csr.AsPEM()))
-
-      # Verify that the CN is of the correct form. The common name should refer
-      # to a client URN.
-      self.cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
-      if self.cn != csr.GetCN():
-        raise IOError("CSR CN %s does not match public key %s." % (csr.GetCN(),
-                                                                   self.cn))
-
-      logging.info("Will sign CSR for: %s", self.cn)
-
-      cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
-
-      # This check is important to ensure that the client id reported in the
-      # source of the enrollment request is the same as the one in the
-      # certificate. We use the ClientURN to ensure this is also of the correct
-      # form for a client name.
-      if self.cn != self.client_id:
-        raise flow.FlowError("Certificate name %s mismatch for client %s",
-                             self.cn, self.client_id)
-
       # Set and write the certificate to the client record.
       now = rdfvalue.RDFDatetime.Now()
       client.Set(client.Schema.CERT, cert)

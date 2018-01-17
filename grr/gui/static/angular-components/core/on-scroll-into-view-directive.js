@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewController');
 goog.provide('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
 
 
@@ -20,7 +19,7 @@ goog.scope(function() {
  *
  * @ngInject
  */
-grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewController = function(
+const OnScrollIntoViewController = function(
     $scope, $element, $attrs, $interval, $window) {
 
   /** @private {!angular.Scope} */
@@ -43,8 +42,6 @@ grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewController = function(
     $interval.cancel(stop);
   });
 };
-var OnScrollIntoViewController =
-    grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewController;
 
 /**
  * Handles $interval events. Evaluates grr-on-scroll-into-view attribute

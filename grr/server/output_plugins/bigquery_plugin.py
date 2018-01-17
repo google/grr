@@ -12,7 +12,7 @@ from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import output_plugin_pb2
+from grr_response_proto import output_plugin_pb2
 from grr.server import bigquery
 from grr.server import export
 from grr.server import output_plugin

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.hostInfoDirective.HostInfoController');
 goog.provide('grrUi.client.hostInfoDirective.HostInfoDirective');
 
 goog.scope(function() {
@@ -21,7 +20,7 @@ var OPERATION_POLL_INTERVAL_MS = 1000;
  * @param {!grrUi.core.dialogService.DialogService} grrDialogService
  * @ngInject
  */
-grrUi.client.hostInfoDirective.HostInfoController = function(
+const HostInfoController = function(
     $scope, $interval, grrApiService, grrRoutingService, grrAclDialogService,
     grrDialogService) {
 
@@ -77,8 +76,6 @@ grrUi.client.hostInfoDirective.HostInfoController = function(
       this.stopMonitorInterrogateOperation_.bind(this));
 };
 
-var HostInfoController =
-    grrUi.client.hostInfoDirective.HostInfoController;
 
 
 /**

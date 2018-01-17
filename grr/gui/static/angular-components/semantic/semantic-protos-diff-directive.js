@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffController');
 goog.provide('grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective');
 goog.provide('grrUi.semantic.semanticProtosDiffDirective.diffAnnotate');
 
@@ -182,7 +181,7 @@ var diffAnnotate = grrUi.semantic.semanticProtosDiffDirective.diffAnnotate;
  * @constructor
  * @ngInject
  */
-grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffController = function(
+const SemanticProtosDiffController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -208,8 +207,6 @@ grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffController = functi
                           this.onValuesChange_.bind(this));
 };
 
-var SemanticProtosDiffController =
-    grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorDialogDirective.ServerErrorDialogController');
 goog.provide('grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective');
 
 goog.scope(function() {
@@ -13,13 +12,11 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.core.serverErrorDialogDirective.ServerErrorDialogController = function($scope) {
+const ServerErrorDialogController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 };
 
-var ServerErrorDialogController =
-  grrUi.core.serverErrorDialogDirective.ServerErrorDialogController;
 
 
 /**

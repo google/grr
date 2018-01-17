@@ -1,0 +1,672 @@
+// Protobufs used to export data from AFF4 to the outside world.
+
+syntax = "proto2";
+
+import "grr_response_proto/anomaly.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/sysinfo.proto";
+import "grr_response_proto/semantic.proto";
+
+
+message ExportOptions {
+  optional bool export_files_contents = 1 [ default = false, (sem_type) = {
+      description: "If this is true, open files and export their full or "
+      "partial contents. Note: this may require additional datastore "
+      "roundtrips and slow down the export process, also exporting file "
+      "contents may significantly increase size of the exported data."
+    }];
+  optional bool follow_urns = 2 [ default = false, (sem_type) = {
+      description: "If this is true, follow urns and try to export not only "
+      "the urns themselves, but also the data they are pointing to. Note: "
+      "this may require additional datastore roundtrips and slow down the "
+      "export process."
+    }];
+  optional bool export_files_hashes = 3 [ default = true, (sem_type) = {
+      description: "If this is true, export hashes when dealing with "
+      "file-related values. The files won't be hashed during the "
+      "export, hashes will only be exported if they were collected before "
+      "the export. This option affects exporting VFSFile and StatEntry "
+      "RDFValues. This is true by default even though it requires extra "
+      " datastore roundtrips because it's very useful and users expect the "
+      "hashes to be there."
+    }];
+  repeated string annotations = 4 [(sem_type) = {
+      description: "Annotations to add to exported data. This field can be "
+                   "used to differentiate sets of exported data inside a "
+                   "particular exported type. e.g. data collected by users "
+                   "vs. data collected by cronjob."
+    }];
+
+}
+
+message ExportedMetadata {
+  // Next field ID: 20
+
+  optional string client_urn = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client ID of a client that contains this entry."
+    }];
+  optional string hostname = 2 [(sem_type) = {
+      description: "Client hostname."
+    }];
+  optional string os = 3 [(sem_type) = {
+      description: "Client Operating System class (Windows|Darwin|Linux)."
+    }];
+  optional uint64 client_age = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Age of the client."
+    }];
+  optional string uname = 5 [(sem_type) = {
+      description: "Uname string."
+    }];
+  optional string os_release = 6 [(sem_type) = {
+      description: "The OS release identifier e.g. 7, OSX, debian."
+    }];
+  optional string os_version = 7 [(sem_type) = {
+      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04."
+    }];
+  optional string usernames = 8 [(sem_type) = {
+      description: "Username."
+    }];
+  optional string mac_address = 9 [(sem_type) = {
+      description: "MAC address."
+    }];
+  optional uint64 timestamp = 10 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When data was exported."
+    }];
+
+  optional uint64 original_timestamp = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When original data was generated."
+    }];
+
+  // BEGIN DEPRECATED
+  optional string deprecated_session_id = 11 [(sem_type) = {
+      type: "SessionID",
+      description: "Deprecated session id of a hunt that collected the data."
+    }, deprecated=true];
+  // END_DEPRECATED
+
+  optional string labels = 12 [(sem_type) = {
+      description: "CSV list of client labels."
+    }];
+
+  optional string system_labels = 18 [(sem_type) = {
+      description: "Labels hardcoded into GRR clients configs."
+    }];
+
+  optional string user_labels = 19 [(sem_type) = {
+      description: "Labels assigned by GRR uses via the UI/API."
+    }];
+
+  optional string source_urn = 13 [(sem_type) = {
+      type: "RDFURN",
+      description: "URN of a source of exported data."
+    }];
+
+  optional string annotations = 14 [(sem_type) = {
+      description: "CSV list of annotations for this data. This field can be "
+                   "used to differentiate sets of exported data inside a "
+                   "particular exported type. e.g. data collected by users "
+                   "vs. data collected by cronjob."
+    }];
+
+  optional HardwareInfo hardware_info = 16 [(sem_type) = {
+      description: "Hardware information of the client."
+    }];
+
+  optional string kernel_version = 17 [(sem_type) = {
+      description: "Client kernel version."
+    }];
+
+}
+
+message ExportedClient {
+  optional ExportedMetadata metadata = 1;
+}
+
+message ExportedNetworkInterface {
+  optional ExportedMetadata metadata = 1;
+
+  optional string mac_address = 2;
+  optional string ifname = 3;
+  optional string ip4_addresses = 4;
+  optional string ip6_addresses = 5;
+}
+
+message ExportedDNSClientConfiguration {
+  optional ExportedMetadata metadata = 1;
+
+  optional string dns_servers = 2;
+  optional string dns_suffixes = 3;
+}
+
+message ExportedFile {
+  optional ExportedMetadata metadata = 1;
+
+  optional string urn = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "The location of this file in the AFF4 space."
+    }];
+
+  optional string basename = 3 [(sem_type) = {
+      description: "Basename of the file."
+    }];
+
+  optional uint64 st_mode = 4 [(sem_type) = {
+      type: "StatMode",
+      description: "A unix file permission mode."
+    }];
+
+  optional uint32 st_ino = 5;
+  optional uint32 st_dev = 6;
+  optional uint32 st_nlink = 7;
+  optional uint32 st_uid = 8;
+  optional uint32 st_gid = 9;
+  optional uint64 st_size = 10;
+  optional uint64 st_atime = 11 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last access time."
+    }];
+
+  optional uint64 st_mtime = 12 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last modified time."
+    }];
+
+  optional uint64 st_ctime = 13 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last inode change time."
+    }];
+
+  optional uint32 st_blocks = 14;
+  optional uint32 st_blksize = 15;
+  optional uint32 st_rdev = 16;
+  optional string symlink = 17;
+
+  optional bytes content = 18 [(sem_type) = {
+      description: "Actual content of the file if available."
+    }];
+  optional string content_sha256 = 19 [(sem_type) = {
+      description: "SHA256 of content"
+    }];
+
+  // client reported values for the hashes
+  optional string hash_md5 = 20;
+  optional string hash_sha1 = 21;
+  optional string hash_sha256 = 22;
+
+  // pecoff hashes
+  optional string pecoff_hash_md5 = 23;
+  optional string pecoff_hash_sha1 = 24;
+
+  // certificates data
+  optional string cert_hasher_name = 25;
+  optional string cert_program_name = 26;
+  optional string cert_program_url = 27;
+  optional string cert_signing_id = 28;
+  optional string cert_chain_head_issuer = 29;
+  optional string cert_countersignature_chain_head_issuer = 30;
+  optional string cert_certificates = 31;
+}
+
+message ExportedRegistryKey {
+  optional ExportedMetadata metadata = 1;
+
+  optional string urn = 2 [(sem_type) = {
+      type: "RDFURN",
+      description: "URN of the registry key."
+    }];
+  optional uint64 last_modified = 3 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last modified timestamp."
+    }];
+  optional StatEntry.RegistryType type = 4;
+  optional bytes data = 5;
+}
+
+message ExportedProcess {
+  optional ExportedMetadata metadata = 1;
+
+  optional uint32 pid = 2;
+  optional uint32 ppid = 3;
+  optional string name = 4;
+  optional string exe = 5;
+  optional string cmdline = 6;
+  optional uint64 ctime = 7;
+  optional uint32 real_uid = 8;
+  optional uint32 effective_uid = 9;
+  optional uint32 saved_uid = 10;
+  optional uint32 real_gid = 11;
+  optional uint32 effective_gid = 12;
+  optional uint32 saved_gid = 13;
+  optional string username = 14;
+  optional string terminal = 15;
+  optional string status = 16;
+  optional int32 nice = 17;
+  optional string cwd = 18;
+  optional uint32 num_threads = 19;
+  optional float user_cpu_time = 20;
+  optional float system_cpu_time = 21;
+  optional float cpu_percent = 22;
+  optional uint64 rss_size = 23;
+  optional uint64 vms_size = 24;
+  optional float memory_percent = 25;
+}
+
+message ExportedNetworkConnection {
+  optional ExportedMetadata metadata = 1;
+
+  optional NetworkConnection.Family family = 2;
+  optional NetworkConnection.Type type = 3 [default = UNKNOWN_SOCKET];
+  optional NetworkEndpoint local_address = 4;
+  optional NetworkEndpoint remote_address = 5;
+  optional NetworkConnection.State state = 6 [default = UNKNOWN];
+  optional uint32 pid = 7;
+  optional uint64 ctime = 8;
+}
+
+message ExportedAnomaly {
+  optional Anomaly.AnomalyType type = 1 [(sem_type) = {
+      description: "Type of anomaly this represents.",
+    }];
+
+  optional Anomaly.AnomalyLevel severity = 2 [(sem_type) = {
+      description: "Severity of the anomaly if it is a true positive.",
+    }];
+
+  optional Anomaly.AnomalyLevel confidence = 3 [(sem_type) = {
+      description: "Confidence that the anomaly is a true positive.",
+    }];
+
+  optional string symptom = 4 [(sem_type) = {
+      description: "A description of what is anomalous.",
+    }];
+
+  optional string explanation = 5 [(sem_type) = {
+      description: "A description of possible explanations for the anomaly if "
+      "additional information is available.",
+    }];
+
+  optional string generated_by = 6 [(sem_type) = {
+      description: "String describing what generated the anomaly, this is "
+        "normally the name of a parser or artifact.",
+    }];
+
+  // Not exporting PathSpec due to its recursive nature.
+
+  optional string anomaly_reference_id = 8 [(sem_type) = {
+      description: "A string used to reference the anomaly in the Anomaly "
+        "database."
+    }];
+
+  optional string finding = 9 [(sem_type) = {
+      description: "String descriptions of data that triggered the Anomaly."
+    }];
+}
+
+message ExportedCheckResult {
+  optional ExportedMetadata metadata = 1;
+
+  optional string check_id = 2 [(sem_type) = {
+    description: "The check id, identifies what check is being reported."
+  }];
+  optional ExportedAnomaly anomaly = 3 [(sem_type) = {
+    description: "Specific finding indicating an issue exists."
+  }];
+}
+
+message ExportedOpenFile {
+  optional ExportedMetadata metadata = 1;
+
+  optional uint32 pid = 2;
+  optional string path = 3;
+}
+
+message ExportedFileStoreHash {
+  optional ExportedMetadata metadata = 1;
+
+  optional string hash = 2;
+  optional string hash_type = 3;
+  optional string fingerprint_type = 4;
+  optional string target_urn = 5 [(sem_type) = {
+      type: "RDFURN",
+    }];
+}
+
+message ExportedMatch {
+  optional ExportedMetadata metadata = 1;
+  optional uint64 offset = 2;
+  optional uint64 length = 3;
+  optional bytes data = 4;
+  optional string urn = 5 [(sem_type) = {
+      type: "RDFURN",
+      description: "The location of this file in the AFF4 space."
+    }];
+}
+
+message ExportedBytes {
+  optional ExportedMetadata metadata = 1;
+
+  optional bytes data = 2;
+  optional uint64 length = 3;
+}
+
+message ExportedString {
+  optional ExportedMetadata metadata = 1;
+
+  optional string data = 2;
+}
+
+message ExportedDictItem {
+  optional ExportedMetadata metadata = 1;
+
+  optional string key = 2;
+  optional string value = 3;
+}
+
+// Next field id: 6
+message ExportedArtifactFilesDownloaderResult {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRegistryKey original_registry_key = 2;
+  optional ExportedFile original_file = 5;
+
+  optional string found_path = 3;
+  optional ExportedFile downloaded_file = 4;
+}
+
+
+// Non-Rekall-based protobuf for YaraProcessScan flow results export.
+message ExportedYaraProcessScanMatch {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedProcess process = 2 [(sem_type) = {
+      description: "Matching process details."
+    }];
+
+  optional string rule_name = 3 [(sem_type) = {
+      description: "The name of the rule that triggered.",
+    }];
+
+  optional uint64 scan_time_us = 4 [(sem_type) = {
+      description: "Time in microseconds taken to perform the scan.",
+    }];
+}
+
+
+// Rekall-specific protobufs for reliable exporting of data from plugins.
+
+message ExportedYaraSignatureMatch {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRekallProcess process = 2;
+
+  optional string rule = 3;
+
+  optional string hex_dump = 4;
+}
+
+// Contains the minimum information necessary from a Windows process so
+// correlation with logs can be done easily.
+// Related plugins: pslist
+message ExportedRekallProcess {
+  optional ExportedMetadata metadata = 1;
+
+  optional uint64 pid = 2 [(sem_type) = {
+      description: "Unique process ID of this process."
+    }];
+
+  optional string name = 3 [(sem_type) = {
+      description: "The process name."
+    }];
+
+  optional string fullpath = 4 [(sem_type) = {
+      description: "The full path of the executable that was loaded when the "
+                   "process was started."
+    }];
+
+  optional uint64 creation_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the process was created. In microseconds from UNIX "
+                   "epoch. UTC."
+    }];
+
+  optional uint64 exit_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the process exitted. In microseconds from UNIX "
+                   "epoch. UTC."
+    }];
+
+  optional uint64 parent_pid = 7 [(sem_type) = {
+      description: "Unique process ID of the parent process."
+    }];
+
+  optional string commandline = 8 [(sem_type) = {
+      description: "The commandline used to launch this process."
+    }];
+
+  optional string trusted_fullpath = 9 [(sem_type) = {
+      description: "The full path of the executable that was loaded when the "
+                   "process was started. Obtained via a trusted method that's "
+                   "not easily tampered with. If no such method exists, do not "
+                   "fill in this field."
+    }];
+
+};
+
+// Represents a module (usually a dll or executable) loaded into a process'
+// address space in Windows.
+// Related plugins: ldrmodules
+message ExportedRekallWindowsLoadedModule {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRekallProcess process = 2;
+
+  optional string fullpath = 3 [(sem_type) = {
+      description: "The full path of the file backing this module."
+    }];
+
+  optional uint64 address = 4 [(sem_type) = {
+      description: "Base address where the module is loaded."
+    }];
+
+  optional uint64 size = 5 [(sem_type) = {
+      description: "Size of the module."
+    }];
+
+  optional bool is_in_load_list = 6 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InLoadOrderLinksInLoadOrderModuleList of the Process "
+                   "Environment."
+    }];
+
+  optional string in_load_fullpath = 7 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+
+  optional bool is_in_init_list = 8 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InInitializationOrderModuleList of the Process Environment "
+                   "Block."
+    }];
+
+  optional string in_init_fullpath = 9 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+
+  optional bool is_in_mem_list = 10 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InMemoryOrderModuleList of the Process Environment Block."
+    }];
+
+  optional string in_mem_fullpath = 11 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+};
+
+
+// Represents a handle held by a process.
+// Related plugins: handles
+message ExportedWindowsHandle {
+  optional ExportedMetadata metadata = 1;
+  optional ExportedRekallProcess process = 2;
+
+  optional uint64 address = 3 [(sem_type) = {
+      description: "The address of the OBJECT_HEADER of the handle."
+    }];
+
+  //
+  optional string type = 4 [(sem_type) = {
+      description: "The type of handle (Process, Thread, Key, Event, "
+                   "Mutant...)."
+    }];
+
+  //
+  optional string name = 5 [(sem_type) = {
+      description: "The name of the handle."
+    }];
+};
+
+
+// Represents an entry in the syscall table
+// Related plugins: check_syscall
+message ExportedLinuxSyscallTableEntry {
+  optional ExportedMetadata metadata = 1;
+
+  optional string table = 2 [(sem_type) = {
+      description: "The name of the syscall table."
+    }];
+
+  optional uint64 index = 3 [(sem_type) = {
+      description: "The index within the table. It's equivalent to the syscall "
+                   "number"
+    }];
+
+  optional uint64 handler_address = 4 [(sem_type) = {
+      description: "The address of the syscall handler."
+    }];
+
+  optional string symbol = 5 [(sem_type) = {
+      description: "The resolved symbol name for the handler "
+                   "(i.e: linux!sys_read)."
+    }];
+};
+
+
+// Represents a Linux task.
+// Related plugins: pslist
+message ExportedRekallLinuxTask {
+  optional ExportedMetadata metadata = 1;
+
+  optional uint64 address = 2 [(sem_type) = {
+      description: "The kernel address of this task_struct."
+    }];
+
+  optional uint64 pid = 3 [(sem_type) = {
+      description: "Unique process ID of this process."
+    }];
+
+  optional string name = 4 [(sem_type) = {
+      description: "The process name."
+    }];
+
+  optional uint64 creation_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the process was created. In microseconds from UNIX "
+                   "epoch. UTC."
+    }];
+
+  optional uint64 parent_pid = 6 [(sem_type) = {
+      description: "Unique process ID of the parent process."
+    }];
+
+  optional string commandline = 7 [(sem_type) = {
+      description: "The commandline used to launch this process."
+    }];
+
+  optional uint64 uid = 8 [(sem_type) = {
+      description: "The current UID."
+    }];
+
+  optional uint64 gid = 9 [(sem_type) = {
+      description: "The current GID."
+    }];
+
+  optional uint64 euid = 10 [(sem_type) = {
+      description: "The current effective UID."
+    }];
+
+  optional uint64 egid = 11 [(sem_type) = {
+      description: "The current effective GID."
+    }];
+};
+
+
+// Represents a task_ops entry.
+// Related plugins: check_task_fops,
+message ExportedRekallLinuxTaskOp {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRekallLinuxTask task = 2 [(sem_type) = {
+      description: "The task this operation applies to."
+    }];
+
+  optional string operation = 3  [(sem_type) = {
+      description: "The name of the operation."
+    }];
+
+  optional uint64 handler_address = 4 [(sem_type) = {
+      description: "The address of the handler."
+    }];
+
+  optional string module = 5 [(sem_type) = {
+      description: "The name of the kernel module that holds the callback."
+    }];
+
+  optional string symbol = 6 [(sem_type) = {
+      description: "The name of the symbol at handler_address."
+    }];
+};
+
+
+// Represents a proc_fops entry.
+// Related plugins: check_proc_fops
+message ExportedRekallLinuxProcOp {
+  optional ExportedMetadata metadata = 1;
+
+  optional string fullpath = 2 [(sem_type) = {
+      description: "The fullpath to the proc entry this operation belongs to."
+    }];
+
+  optional string operation = 3  [(sem_type) = {
+      description: "The name of the operation."
+    }];
+
+  optional uint64 handler_address = 4 [(sem_type) = {
+      description: "The address of the handler."
+    }];
+
+  optional string module = 5 [(sem_type) = {
+      description: "The name of the kernel module that holds the callback."
+    }];
+
+  optional string symbol = 6 [(sem_type) = {
+      description: "The name of the symbol at handler_address."
+    }];
+};
+
+
+// Represents a kernel object.
+// Related plugins: object_tree
+message ExportedRekallKernelObject {
+  optional ExportedMetadata metadata = 1;
+
+  optional string type = 2 [(sem_type) = {
+      description: "Kernel object type."
+    }];
+  optional string name = 3 [(sem_type) = {
+      description: "Kernel object name."
+    }];
+}

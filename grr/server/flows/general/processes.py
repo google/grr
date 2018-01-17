@@ -4,7 +4,7 @@
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.flows.general import file_finder

@@ -2,7 +2,7 @@
 """WMI RDF values."""
 
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import sysinfo_pb2
+from grr_response_proto import sysinfo_pb2
 
 
 class WMIActiveScriptEventConsumer(rdf_structs.RDFProtoStruct):

@@ -1,7 +1,6 @@
 'use strict';
 
 goog.provide('grrUi.client.virtualFileSystem.events');
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.FileViewController');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
@@ -90,7 +89,7 @@ grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId =
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
+const FileViewController = function(
     $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -124,8 +123,6 @@ grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
                           this.onFileContextRoutingParamsChange_.bind(this));
 };
 
-var FileViewController =
-    grrUi.client.virtualFileSystem.fileViewDirective.FileViewController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowApiHelperDirective.FlowApiHelperController');
 goog.provide('grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.flow.flowApiHelperDirective.FlowApiHelperController = function(
+const FlowApiHelperController = function(
     $scope, grrApiService, grrApiHelperService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -34,8 +33,6 @@ grrUi.flow.flowApiHelperDirective.FlowApiHelperController = function(
   this.scope_.$watchGroup(['flowId', 'apiBasePath'],
                           this.onFlowIdOrBasePathChange_.bind(this));
 };
-var FlowApiHelperController =
-    grrUi.flow.flowApiHelperDirective.FlowApiHelperController;
 
 
 /**

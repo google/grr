@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userDashboardDirective.UserDashboardController');
 goog.provide('grrUi.user.userDashboardDirective.UserDashboardDirective');
 
 
@@ -13,7 +12,7 @@ goog.provide('grrUi.user.userDashboardDirective.UserDashboardDirective');
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.user.userDashboardDirective.UserDashboardController = function(
+const UserDashboardController = function(
     $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -36,8 +35,6 @@ grrUi.user.userDashboardDirective.UserDashboardController = function(
                             created_by: 'me'
                           }).then(this.onHunts_.bind(this));
 };
-var UserDashboardController =
-    grrUi.user.userDashboardDirective.UserDashboardController;
 
 
 /**

@@ -22,6 +22,7 @@ class InMemoryDB(db.Database):
     self.clients = {}
     self.keywords = {}
     self.labels = {}
+    self.users = {}
 
   def ClearTestDB(self):
     self._Init()
@@ -30,6 +31,16 @@ class InMemoryDB(db.Database):
     if not isinstance(client_id, basestring):
       raise ValueError(
           "Expected client_id as a string, got %s" % type(client_id))
+
+    if not client_id:
+      raise ValueError("Expected client_id to be non-empty.")
+
+  def _ValidateUsername(self, username):
+    if not isinstance(username, basestring):
+      raise ValueError("Expected username as a string, got %s" % type(username))
+
+    if not username:
+      raise ValueError("Expected username to be non-empty.")
 
   def WriteClientMetadata(self,
                           client_id,
@@ -213,3 +224,28 @@ class InMemoryDB(db.Database):
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
       labelset.discard(utils.SmartUnicode(l))
+
+  def WriteGRRUser(self,
+                   username,
+                   password=None,
+                   ui_mode=None,
+                   canary_mode=None):
+    self._ValidateUsername(username)
+
+    u = self.users.setdefault(username, {})
+    if password is not None:
+      u["password"] = password
+    if ui_mode is not None:
+      u["ui_mode"] = ui_mode
+    if canary_mode is not None:
+      u["canary_mode"] = canary_mode
+
+  def ReadGRRUser(self, username):
+    try:
+      u = self.users[username]
+      return objects.GRRUser(
+          password=u.get("password"),
+          ui_mode=u.get("ui_mode"),
+          canary_mode=u.get("canary_mode"))
+    except KeyError:
+      raise db.UnknownGRRUserError("Can't find user with name: %s" % username)

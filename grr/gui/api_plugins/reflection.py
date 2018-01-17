@@ -7,7 +7,7 @@ from grr.gui import api_value_renderers
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
 
-from grr.proto.api import reflection_pb2
+from grr_response_proto.api import reflection_pb2
 
 from grr.server import aff4
 

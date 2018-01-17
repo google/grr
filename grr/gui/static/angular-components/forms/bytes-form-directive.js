@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.bytesFormDirective.BytesFormController');
 goog.provide('grrUi.forms.bytesFormDirective.BytesFormDirective');
 goog.provide('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
 goog.provide('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
@@ -99,7 +98,7 @@ var isByteString = grrUi.forms.bytesFormDirective.isByteString;
  * @param {!angular.$window} $window
  * @ngInject
  */
-grrUi.forms.bytesFormDirective.BytesFormController = function(
+const BytesFormController = function(
     $scope, $window) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -115,8 +114,6 @@ grrUi.forms.bytesFormDirective.BytesFormController = function(
   this.scope_.$watch('controller.valueString',
                      this.onValueStringChange_.bind(this));
 };
-var BytesFormController =
-    grrUi.forms.bytesFormDirective.BytesFormController;
 
 
 /**

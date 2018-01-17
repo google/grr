@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.stats.auditChartDirective.AuditChartController');
 goog.provide('grrUi.stats.auditChartDirective.AuditChartDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');
@@ -18,7 +17,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @ngInject
  */
-grrUi.stats.auditChartDirective.AuditChartController = function(
+const AuditChartController = function(
     $scope, $element) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -45,7 +44,6 @@ grrUi.stats.auditChartDirective.AuditChartController = function(
     }
   }.bind(this));
 };
-var AuditChartController = grrUi.stats.auditChartDirective.AuditChartController;
 
 
 /**

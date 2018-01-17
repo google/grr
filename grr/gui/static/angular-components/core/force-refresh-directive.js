@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.forceRefreshDirective.ForceRefreshController');
 goog.provide('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.core.forceRefreshDirective.ForceRefreshController = function(
+const ForceRefreshController = function(
     $scope, $element, $transclude) {
 
   /** @private {!angular.Scope} */
@@ -33,8 +32,6 @@ grrUi.core.forceRefreshDirective.ForceRefreshController = function(
                      this.updateDom_.bind(this),
                      true);
 };
-var ForceRefreshController =
-    grrUi.core.forceRefreshDirective.ForceRefreshController;
 
 
 ForceRefreshController.prototype.updateDom_ = function() {

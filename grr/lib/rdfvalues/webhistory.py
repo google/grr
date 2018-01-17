@@ -3,7 +3,7 @@
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs
-from grr.proto import sysinfo_pb2
+from grr_response_proto import sysinfo_pb2
 
 
 class BrowserHistoryItem(structs.RDFProtoStruct):

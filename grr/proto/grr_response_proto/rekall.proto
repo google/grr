@@ -1,0 +1,137 @@
+// Copyright 2011 Google Inc. All Rights Reserved
+// LINT: LEGACY_NAMES
+
+// These are the messages used in GRR
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+import "grr_response_proto/jobs.proto";
+
+
+// Next field ID: 4
+message MemoryInformation {
+  option (semantic) = {
+    description: "Describe the memory geometry."
+  };
+
+  optional PathSpec device = 1;
+  repeated BufferReference runs = 2;
+  optional uint64 cr3 = 3;
+}
+
+// Next field ID: 4
+message PluginRequest {
+  optional string plugin = 2 [(sem_type) = {
+      description: "The plugin name to run.",
+    }];
+
+  optional Dict args = 3 [(sem_type) = {
+      description: "The args to the plugin.",
+    }];
+}
+
+// Issue a request for Rekall memory analysis.
+// Next field ID: 10
+message RekallRequest {
+  optional Iterator iterator = 1 [(sem_type) = {
+      label: HIDDEN
+    }];
+
+  repeated PluginRequest plugins = 2 [(sem_type) = {
+      description: "We can execute multiple plugins in the same session. "
+      "This can take advantage of caching in the session to be more efficient."
+    }];
+
+  optional PathSpec device = 4 [(sem_type) = {
+      description: "The raw device to use.",
+    }];
+
+  optional Dict session = 6 [(sem_type) = {
+      description: "These parameters are used to initialize the session.",
+    }];
+
+  repeated RekallProfile profiles = 9 [(sem_type) = {
+      description: "Profiles sent by the server to store on the client.",
+      label: HIDDEN
+    }];
+}
+
+// Next field: 9
+message RekallResponse {
+  // Deprecated. Anything written in this field will be compressed and placed
+  // into the compressed_json_messages field upon serialization.
+  optional string json_messages = 1;
+  optional bytes compressed_json_messages = 7 [(sem_type) = {
+      type: "ZippedJSONBytes"
+    }];
+
+  optional string json_context_messages = 5;
+
+  optional string plugin = 2;
+
+  optional string client_urn = 3 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client this response comes from."
+    }];
+
+  optional string missing_profile = 4 [(sem_type) = {
+      description: "Missing profiles that should be retrieved from "
+      "the server."
+    }];
+
+  optional string repository_version = 6 [(sem_type) = {
+      description: "The version of the repository we want to use."
+    }, default="v1.0"];
+
+  repeated string downloaded_files = 8 [(sem_type) = {
+      description: "A list of downloaded files.",
+      type: "RDFURN",
+    }];
+}
+
+// Next field ID: 5
+message RekallProfile {
+  optional string name = 1 [(sem_type) = {
+      description: "The name of this profile."
+    }];
+
+  optional bytes data = 2 [(sem_type) = {
+      description: "A Rekall profile as a data blob."
+    }];
+
+  optional string version = 3 [(sem_type) = {
+      description: "The version of this profile."
+    }];
+
+  enum Compression {
+    NONE = 0;
+    GZIP = 1;
+  }
+
+  optional Compression compression = 4 [(sem_type) = {
+      description: "Type of compression carried in the data field."
+    }, default=GZIP];
+}
+
+// The Rekall AnalyzeClientMemory flow.
+// Next field ID: 7
+message AnalyzeClientMemoryArgs {
+  optional RekallRequest request = 2 [(sem_type) = {
+      description: "A request for the client's Rekall subsystem.",
+    }];
+
+  optional bool debug_logging = 4 [(sem_type) = {
+      description: "Use DEBUG level logging.",
+      friendly_name: "DEBUG logging."
+    }, default=false];
+
+  optional uint64 max_file_size_download = 5 [(sem_type) = {
+      description: "Obtain at most max_file_size_download bytes of each file "
+      "outputted by Rekall."
+    }, default=35433480192];  // 33 Gb
+
+  optional string component_version = 6 [(sem_type) = {
+      description: "The version of component to use.",
+      label: ADVANCED,
+    }, default="1.6.0"];
+}

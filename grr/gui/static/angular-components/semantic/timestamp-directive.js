@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.timestampDirective.TimestampController');
 goog.provide('grrUi.semantic.timestampDirective.TimestampDirective');
 
 goog.scope(function() {
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.timestampDirective.TimestampController = function(
+const TimestampController = function(
     $scope, $element, grrTimeService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -42,8 +41,6 @@ grrUi.semantic.timestampDirective.TimestampController = function(
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var TimestampController =
-    grrUi.semantic.timestampDirective.TimestampController;
 
 
 /**

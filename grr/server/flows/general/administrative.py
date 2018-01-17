@@ -20,7 +20,7 @@ from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import email_alerts

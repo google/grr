@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorButtonDirective.ServerErrorButtonController');
 goog.provide('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
 
 
@@ -18,7 +17,7 @@ var ERROR_EVENT_NAME = 'ServerError';
  * @constructor
  * @ngInject
  */
-grrUi.core.serverErrorButtonDirective.ServerErrorButtonController = function($rootScope, $scope, $uibModal) {
+const ServerErrorButtonController = function($rootScope, $scope, $uibModal) {
 
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -39,8 +38,6 @@ grrUi.core.serverErrorButtonDirective.ServerErrorButtonController = function($ro
   this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
 };
 
-var ServerErrorButtonController =
-  grrUi.core.serverErrorButtonDirective.ServerErrorButtonController;
 
 
 /**

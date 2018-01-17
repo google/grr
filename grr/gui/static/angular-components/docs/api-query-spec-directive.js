@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController');
 goog.provide('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective');
 
 goog.scope(function() {
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController = function(
+const ApiQuerySpecController = function(
     $scope, grrReflectionService) {
 
   /** @private {!angular.Scope} */
@@ -41,8 +40,6 @@ grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController = function(
   this.scope_.$watch('argsType', this.onArgsTypeChange.bind(this));
 };
 
-var ApiQuerySpecController =
-    grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController;
 
 
 /**

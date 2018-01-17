@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsController');
 goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsController = function(
+const BreadcrumbsController = function(
     $rootScope, $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -32,8 +31,6 @@ grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsController = func
                           this.onDirectiveArgsChange_.bind(this));
 };
 
-var BreadcrumbsController =
-    grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsController;
 
 /**
  * Handles changes to the directive arguments.

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiDescriptionDirective.ApiDescriptionController');
 goog.provide('grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.docs.apiDescriptionDirective.ApiDescriptionController = function(
+const ApiDescriptionController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -24,8 +23,6 @@ grrUi.docs.apiDescriptionDirective.ApiDescriptionController = function(
 
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
-var ApiDescriptionController =
-    grrUi.docs.apiDescriptionDirective.ApiDescriptionController;
 
 
 /**

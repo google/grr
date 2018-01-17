@@ -22,7 +22,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import hunt_pb2
+from grr_response_proto.api import hunt_pb2
 from grr.server import aff4
 from grr.server import events
 from grr.server import flow

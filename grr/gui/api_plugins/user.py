@@ -16,9 +16,10 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import user_pb2
+from grr_response_proto.api import user_pb2
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 
 from grr.server.aff4_objects import aff4_grr
@@ -888,6 +889,12 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
         mode="w",
         token=token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
+
+    if data_store.RelationalDBEnabled():
+      data_store.REL_DB.WriteGRRUser(
+          token.username,
+          ui_mode=args.settings.mode,
+          canary_mode=args.settings.canary_mode)
 
 
 class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):

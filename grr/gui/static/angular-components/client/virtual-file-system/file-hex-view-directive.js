@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController');
 goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController = function(
+const FileHexViewController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -55,8 +54,6 @@ grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController = func
   this.scope_.$watch('controller.page', this.onPageChange_.bind(this));
 };
 
-var FileHexViewController =
-    grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController;
 
 
 /**

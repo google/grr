@@ -1,0 +1,112 @@
+
+
+// These are protobufs used in various analysis jobs.
+
+syntax = "proto2";
+import "grr_response_proto/flows.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+
+// Represent a timestamp specification.
+message TimestampSpec {
+  enum Type {
+    SPECIFIC_TIME = 0;
+    RANGED_TIME = 1;
+    ALL_TIMESTAMPS = 2;
+    NEWEST_TIMESTAMP = 3;
+  }
+
+  optional Type type = 1 [default = NEWEST_TIMESTAMP];
+
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Start of the timestamp range if type is RANGED_TIME."
+    }];
+
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "End of the timestamp range if type is RANGED_TIME."
+    }];
+}
+
+
+message DataStoreValue {
+  optional string attribute = 1;
+  optional DataBlob value = 2;
+
+  optional TimestampSpec timestamp = 5;
+
+ // Options specific to the Value.
+  enum Option {
+    DEFAULT = 0;
+
+    // The value should replace other values in the data store (Used for Set
+    // operations).
+    REPLACE = 1;
+  };
+  optional Option option = 4;
+}
+
+message DataStoreRequest {
+  repeated string subject = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 object we interact with."
+    }];
+
+  repeated DataStoreValue values = 2;
+  optional TimestampSpec timestamp = 5;
+  optional ACLToken token = 6;
+
+  optional bool sync = 7;
+
+  optional uint32 limit = 8;
+};
+
+message ResultSet {
+  optional string subject = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The AFF4 object we interact with."
+    }];
+  repeated DataStoreValue values = 2;
+  optional bytes serialized_result = 3 [(sem_type) = {
+      description: "Raw field which holds the data serialized in json format."
+      "This data will be available using the payload attribute."
+    }];
+}
+
+message DataStoreResponse {
+  // Although we can relay exceptions they mess up the logs so we
+  // explicitly return them here.
+  enum Status {
+    OK = 0;
+    AUTHORIZATION_DENIED = 1;
+    DATA_STORE_ERROR = 2;
+    FLOW_ERROR = 3;
+    TIMEOUT_ERROR = 4;
+  };
+
+  repeated ResultSet results = 1;
+
+  //
+  optional uint32 count = 2 [(sem_type) = {
+      description: "Total number of results on the server "
+        "(Can be more than len(results))."
+    }];
+
+  optional Status status = 3 [default = OK];
+
+  optional string status_desc = 4 [(sem_type) = {
+      description: "Additional human readable message for the failure."
+    }];
+
+  optional string failed_subject = 5 [(sem_type) = {
+      description: "In case of failure, the subject that caused the "
+      "request to fail."
+    }];
+
+  optional DataStoreRequest request = 6 [(sem_type) = {
+      description: "The request which elicited this response.",
+    }];
+};

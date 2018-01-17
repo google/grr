@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowInspectorDirective.FlowInspectorController');
 goog.provide('grrUi.flow.flowInspectorDirective.FlowInspectorDirective');
 
 goog.scope(function() {
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.flow.flowInspectorDirective.FlowInspectorController = function($scope) {
+const FlowInspectorController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -27,8 +26,6 @@ grrUi.flow.flowInspectorDirective.FlowInspectorController = function($scope) {
   this.scope_.$watch('controller.activeTab', this.onTabChange_.bind(this));
 };
 
-var FlowInspectorController =
-    grrUi.flow.flowInspectorDirective.FlowInspectorController;
 
 
 /**

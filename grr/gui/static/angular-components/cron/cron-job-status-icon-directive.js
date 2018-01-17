@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconController');
 goog.provide('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective');
 
 

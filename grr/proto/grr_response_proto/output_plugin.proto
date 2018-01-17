@@ -1,0 +1,101 @@
+
+
+// The following messages are used to start flows in GRR.
+
+syntax = "proto2";
+
+import "grr_response_proto/export.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+message OutputPluginDescriptor {
+  optional string plugin_name = 1 [(sem_type) = {
+      description: "The name of the output plugin."
+    }];
+
+  optional bytes plugin_args = 2 [(sem_type) = {
+      dynamic_type: "GetPluginArgsClass",
+      description: "The parameters for this plugin. Must be an instance "
+      "of the named plugin's args_type."
+    }];
+}
+
+message OutputPluginState {
+  optional OutputPluginDescriptor plugin_descriptor = 1;
+  optional AttributedDict plugin_state = 2;
+}
+
+// Next id: 7
+message OutputPluginBatchProcessingStatus {
+  enum Status {
+    SUCCESS = 0; // Batch was succesfully processed.
+    ERROR = 1;  // Batch wasn't processed due to an error.
+  }
+
+  optional Status status = 1 [(sem_type) = {
+      description: "Was this batch successfully processed or not?"
+    }, default = SUCCESS];
+
+  optional OutputPluginDescriptor plugin_descriptor = 6 [(sem_type) = {
+      description: "Descriptor of the output plugin responsible for this result."
+    }];
+
+  optional string summary = 3 [(sem_type) = {
+      description: "Summary message."
+    }];
+
+  optional uint64 batch_index = 4 [(sem_type) = {
+      description: "Number of the batch being processed."
+    }];
+
+  optional uint64 batch_size = 5 [(sem_type) = {
+      description: "Size of the batch beting processed."
+    }];
+}
+
+message OutputPluginVerificationResult {
+  optional string plugin_id = 1 [(sem_type) = {
+      description: "String identifying the output plugin being checked."
+    }];
+  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
+      description: "Descriptor of the plugin that's being checked."
+    }];
+
+  enum Status {
+    N_A = 0;
+    SUCCESS = 1;
+    WARNING = 2;
+    FAILURE = 3;
+  };
+  optional Status status = 3;
+  optional string status_message = 4;
+
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the check."
+    }];
+}
+
+message OutputPluginVerificationResultsList {
+  repeated OutputPluginVerificationResult results = 1;
+}
+
+message EmailOutputPluginArgs {
+  optional string email_address = 1 [(sem_type) = {
+      type: "DomainEmailAddress",
+      description: "The email address that messages will be sent to.",
+    }];
+  optional uint64 emails_limit = 2 [default=100];
+}
+
+message BigQueryOutputPluginArgs {
+  optional ExportOptions export_options = 2 [(sem_type) = {
+      description: "Export options.",
+      label: ADVANCED
+    }];
+  optional bool convert_values = 3 [(sem_type) = {
+      description: "If true, convert values for export-friendly format.",
+      label: HIDDEN
+    }, default=true];
+}

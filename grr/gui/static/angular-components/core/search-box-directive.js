@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.core.searchBoxDirective.SearchBoxController');
 goog.provide('grrUi.core.searchBoxDirective.SearchBoxDirective');
 
 
@@ -19,7 +18,7 @@ var SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.core.searchBoxDirective.SearchBoxController = function(
+const SearchBoxController = function(
     $scope, $element, $interval, grrApiService, grrRoutingService) {
 
   /** @private {!angular.Scope} */
@@ -46,8 +45,6 @@ grrUi.core.searchBoxDirective.SearchBoxController = function(
   this.grrApiService_.get('/clients/labels').then(this.onGetLabels_.bind(this));
 };
 
-var SearchBoxController =
-    grrUi.core.searchBoxDirective.SearchBoxController;
 
 
 /**

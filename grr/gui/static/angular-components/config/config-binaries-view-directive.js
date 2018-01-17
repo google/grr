@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.config.configBinariesViewDirective.ConfigBinariesViewController');
 goog.provide('grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.config.configBinariesViewDirective.ConfigBinariesViewController = function(
+const ConfigBinariesViewController = function(
     $scope, grrApiService) {
 
   /** @private {!angular.Scope} */
@@ -30,8 +29,6 @@ grrUi.config.configBinariesViewDirective.ConfigBinariesViewController = function
     this.binaries = response['data']['items'];
   }.bind(this));
 };
-var ConfigBinariesViewController =
-    grrUi.config.configBinariesViewDirective.ConfigBinariesViewController;
 
 
 /**

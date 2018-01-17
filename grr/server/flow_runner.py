@@ -163,8 +163,8 @@ class FlowRunner(object):
     if self.parent_runner is not None and not logs_collection_urn:
       # We are a child runner, we should have been passed a
       # logs_collection_urn
-      raise RuntimeError("Flow: %s has a parent %s but no logs_collection_urn"
-                         " set." % (self.flow_obj.urn, self.parent_runner))
+      raise ValueError("Flow: %s has a parent %s but no logs_collection_urn"
+                       " set." % (self.flow_obj.urn, self.parent_runner))
 
     # If we weren't passed a collection urn, create one in our namespace.
     return logs_collection_urn or self.flow_obj.logs_collection_urn
@@ -187,7 +187,7 @@ class FlowRunner(object):
     Returns:
       The LogCollection.
     Raises:
-      RuntimeError: on parent missing logs_collection.
+      ValueError: on parent missing logs_collection.
     """
     return grr_collections.LogCollection(
         self._GetLogCollectionURN(logs_collection_urn))
@@ -656,7 +656,7 @@ class FlowRunner(object):
 
     Raises:
        FlowRunnerError: If called on a flow that doesn't run on a single client.
-       RuntimeError: The request passed to the client does not have the correct
+       ValueError: The request passed to the client does not have the correct
                      type.
     """
     if client_id is None:
@@ -672,7 +672,7 @@ class FlowRunner(object):
 
     if action_cls.in_rdfvalue is None:
       if request:
-        raise RuntimeError(
+        raise ValueError(
             "Client action %s does not expect args." % action_cls.__name__)
     else:
       if request is None:
@@ -681,8 +681,8 @@ class FlowRunner(object):
       else:
         # Verify that the request type matches the client action requirements.
         if not isinstance(request, action_cls.in_rdfvalue):
-          raise RuntimeError("Client action expected %s but got %s" %
-                             (action_cls.in_rdfvalue, type(request)))
+          raise ValueError("Client action expected %s but got %s" %
+                           (action_cls.in_rdfvalue, type(request)))
 
     outbound_id = self.GetNextOutboundId()
 
@@ -835,10 +835,10 @@ class FlowRunner(object):
       response: An RDFValue() instance to be sent to the parent.
 
     Raises:
-      RuntimeError: If responses is not of the correct type.
+      ValueError: If responses is not of the correct type.
     """
     if not isinstance(response, rdfvalue.RDFValue):
-      raise RuntimeError("SendReply can only send a Semantic Value")
+      raise ValueError("SendReply can only send a Semantic Value")
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
@@ -1095,7 +1095,7 @@ class FlowRunner(object):
       format_str: Format string
       *args: arguments to the format string
     Raises:
-      RuntimeError: on parent missing logs_collection
+      ValueError: on parent missing logs_collection
     """
     format_str = utils.SmartUnicode(format_str)
 

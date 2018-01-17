@@ -563,7 +563,7 @@ class DataStore(object):
     try:
       cls = blob_store.Blobstore.GetPlugin(blobstore_name)
     except KeyError:
-      raise RuntimeError("No blob store %s found." % blobstore_name)
+      raise ValueError("No blob store %s found." % blobstore_name)
 
     self.blobstore = cls()
 
@@ -881,9 +881,8 @@ class DataStore(object):
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
       if not after_urn.startswith(subject_prefix):
-        raise RuntimeError(
-            "after_urn \"%s\" does not begin with prefix \"%s\"" %
-            (after_urn, subject_prefix))
+        raise ValueError("after_urn \"%s\" does not begin with prefix \"%s\"" %
+                         (after_urn, subject_prefix))
     return after_urn
 
   @abc.abstractmethod
@@ -1584,7 +1583,7 @@ class DBSubjectLock(object):
       lease_time: The minimum length of time the lock will remain valid in
         seconds. Note this will be converted to usec for storage.
     Raises:
-      RuntimeError: No lease time was provided.
+      ValueError: No lease time was provided.
     """
     self.subject = utils.SmartStr(subject)
     self.store = data_store
@@ -1592,7 +1591,7 @@ class DBSubjectLock(object):
     self.expires = None
     self.locked = False
     if lease_time is None:
-      raise RuntimeError("Trying to lock without a lease time.")
+      raise ValueError("Trying to lock without a lease time.")
     self._Acquire(lease_time)
     self.lease_time = lease_time
 
@@ -1659,7 +1658,7 @@ class DataStoreInit(registry.InitHook):
       print msg
       print "Available options:"
       self._ListStorageOptions()
-      raise RuntimeError(msg)
+      raise ValueError(msg)
 
     DB = cls()  # pylint: disable=g-bad-name
     DB.Initialize()

@@ -13,7 +13,7 @@ from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
 from grr.parsers import firefox3_history
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import flow
 from grr.server import flow_utils

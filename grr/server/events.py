@@ -12,7 +12,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
+from grr_response_proto import jobs_pb2
 from grr.server import queue_manager
 
 
@@ -67,18 +67,18 @@ def EventHandler(source_restriction=False,
       """A decorator that assists in enforcing EventListener restrictions."""
       if (auth_required and
           msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
-        raise RuntimeError("Message from %s not authenticated." % msg.source)
+        raise ValueError("Message from %s not authenticated." % msg.source)
 
       if (not allow_client_access and msg.source and
           rdf_client.ClientURN.Validate(msg.source)):
-        raise RuntimeError("Event does not support clients.")
+        raise ValueError("Event does not support clients.")
 
       if source_restriction:
         source_check_method = getattr(self, "CheckSource")
         if not source_check_method:
-          raise RuntimeError("CheckSource method not found.")
+          raise ValueError("CheckSource method not found.")
         if not source_check_method(msg.source):
-          raise RuntimeError("Message source invalid.")
+          raise ValueError("Message source invalid.")
 
       stats.STATS.IncrementCounter("grr_worker_states_run")
       rdf_msg = rdf_flows.GrrMessage(msg)

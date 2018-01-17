@@ -1,0 +1,40 @@
+syntax = "proto2";
+
+import "grr_response_proto/api/user.proto";
+import "grr_response_proto/semantic.proto";
+
+
+// Method arguments and results.
+
+message ApiCreateGrrUserArgs {
+  optional string username = 1;
+  optional ApiGrrUser.UserType user_type = 2;
+  optional string password = 3;
+}
+
+message ApiDeleteGrrUserArgs {
+  optional string username = 1;
+};
+
+message ApiModifyGrrUserArgs {
+  optional string username = 1;
+  optional ApiGrrUser.UserType user_type = 2;
+  optional string password = 3;
+};
+
+message ApiGetGrrUserArgs {
+  optional string username = 1;
+}
+
+message ApiListGrrUsersArgs {
+  optional int64 offset = 1 [(sem_type) = {description: "Starting offset."}];
+  optional int64 count = 2
+      [(sem_type) = {description: "Max number of items to fetch."}];
+}
+
+message ApiListGrrUsersResult {
+  repeated ApiGrrUser items = 1
+      [(sem_type) = {description: "List of GRR users."}];
+  optional int64 total_count = 2
+      [(sem_type) = {description: "Total number of users."}];
+}

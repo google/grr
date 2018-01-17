@@ -14,8 +14,8 @@ from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import anomaly_pb2
-from grr.proto import checks_pb2
+from grr_response_proto import anomaly_pb2
+from grr_response_proto import checks_pb2
 from grr.server.checks import filters
 from grr.server.checks import hints
 from grr.server.checks import triggers

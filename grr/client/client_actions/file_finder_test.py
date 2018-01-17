@@ -488,7 +488,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertEqual(ext_attrs[1].name, "user.quux")
       self.assertEqual(ext_attrs[1].value, "norf")
 
-      action = self._StatAction(ext_attrs=False)
+      action = self._StatAction(collect_ext_attrs=False)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertEqual(len(results), 1)
 

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsController');
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
 
 goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
@@ -33,8 +32,7 @@ var MAX_DISPLAYED_NOTIFICATIONS = 2;
  * @constructor
  * @ngInject
  */
-grrUi.user.userDesktopNotificationsDirective.
-    UserDesktopNotificationsController =
+const UserDesktopNotificationsController =
     function($scope, $interval, $window, grrApiService, grrTimeService) {
 
   if (!Notification) {
@@ -66,8 +64,6 @@ grrUi.user.userDesktopNotificationsDirective.
   this.interval_(this.fetchPendingNotifications_.bind(this), FETCH_INTERVAL);
 };
 
-var UserDesktopNotificationsController = grrUi.user.
-    userDesktopNotificationsDirective.UserDesktopNotificationsController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.clientLabelFormDirective.ClientLabelFormController');
 goog.provide('grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');
@@ -18,7 +17,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @ngInject
  */
-grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
+const ClientLabelFormController =
     function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -53,8 +52,6 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormController =
     }.bind(this));
   }.bind(this));
 };
-var ClientLabelFormController =
-    grrUi.forms.clientLabelFormDirective.ClientLabelFormController;
 
 
 ClientLabelFormController.prototype.$onInit = function() {

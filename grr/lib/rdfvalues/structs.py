@@ -23,7 +23,7 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import proto2
-from grr.proto import semantic_pb2
+from grr_response_proto import semantic_pb2
 # pylint: disable=super-init-not-called
 # pylint: enable=g-import-not-at-top
 

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective.ConfigureOutputPluginsPageController');
 goog.provide('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective.ConfigureOutputPluginsPageDirective');
 
 goog.scope(function() {
@@ -13,8 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-    .ConfigureOutputPluginsPageController = function(
+const ConfigureOutputPluginsPageController = function(
         $scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -31,9 +29,6 @@ grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
   this.grrReflectionService_.getRDFValueDescriptor(
       'GenericHuntArgs', true).then(this.onDescriptors_.bind(this));
 };
-var ConfigureOutputPluginsPageController =
-    grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-    .ConfigureOutputPluginsPageController;
 
 
 /**

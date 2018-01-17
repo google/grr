@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.forms.dictFormDirective.DictFormController');
 goog.provide('grrUi.forms.dictFormDirective.DictFormDirective');
 
 
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.forms.dictFormDirective.DictFormController = function(
+const DictFormController = function(
     $scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -43,7 +42,6 @@ grrUi.forms.dictFormDirective.DictFormController = function(
       }.bind(this));
 
 };
-var DictFormController = grrUi.forms.dictFormDirective.DictFormController;
 
 
 /**

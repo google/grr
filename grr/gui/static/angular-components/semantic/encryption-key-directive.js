@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.encryptionKeyDirective.EncryptionKeyController');
 goog.provide('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
 goog.provide('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
 
@@ -35,7 +34,7 @@ grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey = function(
  * @constructor
  * @ngInject
  */
-grrUi.semantic.encryptionKeyDirective.EncryptionKeyController = function(
+const EncryptionKeyController = function(
     $scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -46,8 +45,6 @@ grrUi.semantic.encryptionKeyDirective.EncryptionKeyController = function(
   this.scope_.$watch('::value.value', this.onValueChange.bind(this));
 };
 
-var EncryptionKeyController =
-    grrUi.semantic.encryptionKeyDirective.EncryptionKeyController;
 
 
 /**

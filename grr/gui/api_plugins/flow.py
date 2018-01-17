@@ -16,7 +16,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto.api import flow_pb2
+from grr_response_proto.api import flow_pb2
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import flow

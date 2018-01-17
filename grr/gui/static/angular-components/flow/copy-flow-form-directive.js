@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.flow.copyFlowFormDirective.CopyFlowFormController');
 goog.provide('grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
@@ -16,7 +15,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @ngInject
  */
-grrUi.flow.copyFlowFormDirective.CopyFlowFormController =
+const CopyFlowFormController =
     function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -34,8 +33,6 @@ grrUi.flow.copyFlowFormDirective.CopyFlowFormController =
                           this.onFlowIdClientIdChange_.bind(this));
 };
 
-var CopyFlowFormController =
-    grrUi.flow.copyFlowFormDirective.CopyFlowFormController;
 
 
 /**

@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController');
 goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
 
 
@@ -15,7 +14,7 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController = function(
+const FileTextViewController = function(
     $scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -50,8 +49,6 @@ grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController = fu
   this.scope_.$watch('controller.page', this.onPageChange_.bind(this));
 };
 
-var FileTextViewController =
-    grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController;
 
 
 /**

@@ -1,0 +1,32 @@
+
+
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+
+
+
+message ClientApprovalAuthorization {
+  optional string label = 1 [(sem_type) = {
+      description: "Client label this approval ACL applies to."
+    }];
+  optional bool requester_must_be_authorized = 2 [(sem_type) = {
+      description: "If true, approval requester must also be listed in the ACL."
+                   " This allows you to specify machines that can only be "
+                   "accessed by the listed users."
+    }, default = false];
+
+  optional uint64 num_approvers_required = 3 [(sem_type) = {
+      description: "Number of people from this ACL that need to approve "
+                   "before access is granted."
+    }, default = 1];
+
+  repeated string users = 4 [(sem_type) = {
+      description: "List of users that can approve clients with this label."
+    }];
+
+  repeated string groups = 5 [(sem_type) = {
+      description: "List of groups that can approve clients with this label."
+    }];
+}
+

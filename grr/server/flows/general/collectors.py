@@ -16,7 +16,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import registry_init
 # pylint: enable=unused-import
 from grr.parsers import windows_persistence
-from grr.proto import flows_pb2
+from grr_response_proto import flows_pb2
 # For various parsers use by artifacts. pylint: disable=unused-import
 from grr.server import aff4
 # pylint: enable=unused-import

@@ -12,7 +12,7 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import output_plugin_pb2
+from grr_response_proto import output_plugin_pb2
 from grr.server import aff4
 
 

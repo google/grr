@@ -14,7 +14,7 @@ from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import tests_pb2
+from grr_response_proto import tests_pb2
 from grr.server import aff4
 from grr.server import events
 from grr.server import flow

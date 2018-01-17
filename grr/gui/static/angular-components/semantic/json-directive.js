@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.semantic.jsonDirective.JsonController');
 goog.provide('grrUi.semantic.jsonDirective.JsonDirective');
 
 goog.scope(function() {
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.semantic.jsonDirective.JsonController = function(
+const JsonController = function(
     $scope, $window) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -28,8 +27,6 @@ grrUi.semantic.jsonDirective.JsonController = function(
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
-var JsonController =
-    grrUi.semantic.jsonDirective.JsonController;
 
 
 /**

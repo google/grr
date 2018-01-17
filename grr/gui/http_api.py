@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
 
-
 import itertools
 import json
 import logging
@@ -27,6 +26,7 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.server import access_control
+from grr.server import data_store
 from grr.server.aff4_objects import users as aff4_users
 
 
@@ -420,6 +420,24 @@ class HttpRequestHandler(object):
     # clash with datastore ACL checks.
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
+
+    # We send a blind-write request to ensure that the user object is created
+    # for a user specified by the username.
+    user_urn = rdfvalue.RDFURN("aff4:/users/").Add(request.user)
+    # We can't use conventional AFF4 interface, since aff4.FACTORY.Create will
+    # create a new version of the object for every call.
+    with data_store.DB.GetMutationPool() as pool:
+      pool.MultiSet(
+          user_urn, {
+              aff4_users.GRRUser.SchemaCls.TYPE: [aff4_users.GRRUser.__name__],
+              aff4_users.GRRUser.SchemaCls.LAST: [
+                  rdfvalue.RDFDatetime.Now().SerializeToDataStore()
+              ]
+          },
+          replace=True)
+
+    if data_store.RelationalDBEnabled():
+      data_store.REL_DB.WriteGRRUser(request.user)
 
     handler = None
     try:

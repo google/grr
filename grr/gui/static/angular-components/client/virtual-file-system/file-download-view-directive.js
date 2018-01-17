@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewController');
 goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
 goog.require('grrUi.client.virtualFileSystem.events');
 goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
@@ -26,7 +25,7 @@ var OPERATION_POLL_INTERVAL_MS = 1000;
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewController = function(
+const FileDownloadViewController = function(
     $rootScope, $scope, $interval, grrApiService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
@@ -67,8 +66,6 @@ grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewControl
       this.stopMonitorUpdateOperation_.bind(this));
 };
 
-var FileDownloadViewController =
-    grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewController;
 
 
 /**

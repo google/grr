@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.navLinkDirective.NavLinkController');
 goog.provide('grrUi.sidebar.navLinkDirective.NavLinkDirective');
 
 
@@ -16,7 +15,7 @@ goog.scope(function() {
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
-grrUi.sidebar.navLinkDirective.NavLinkController = function(
+const NavLinkController = function(
     $scope, $element, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -43,8 +42,6 @@ grrUi.sidebar.navLinkDirective.NavLinkController = function(
       this.applyActiveState_.bind(this));
 };
 
-var NavLinkController =
-    grrUi.sidebar.navLinkDirective.NavLinkController;
 
 
 
