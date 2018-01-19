@@ -102,7 +102,7 @@ describe('clients list', function() {
             },
             os_info: {
               value: {
-                node: {
+                fqdn: {
                   value: 'localhost.com',
                   type: 'RDFString',
                 },

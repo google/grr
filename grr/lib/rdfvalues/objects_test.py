@@ -10,9 +10,6 @@ def MakeClient():
 
   base_pb = objects_pb2.Client()
   text_format.Merge("""
-    hostname: "test123"
-    fqdn: "test123.examples.com"
-    system: "Linux"
     os_release: "Ubuntu"
     os_version: "14.4"
     interfaces: {
@@ -45,6 +42,8 @@ def MakeClient():
         username: "fred"
         full_name: "Ok Guy Fred"
       }
+      fqdn: "test123.examples.com"
+      os: "Linux"
     }
     cloud_instance: {
       cloud_type: GOOGLE
@@ -62,10 +61,9 @@ class ObjectTest(unittest.TestCase):
 
   def testClientBasics(self):
     client = MakeClient()
-    self.assertTrue(client.timestamp is None)
+    self.assertIsNone(client.timestamp)
 
-    self.assertEqual(client.hostname, 'test123')
-    self.assertEqual(client.fqdn, 'test123.examples.com')
+    self.assertEqual(client.knowledge_base.fqdn, 'test123.examples.com')
     self.assertEqual(client.Uname(), 'Linux-Ubuntu-14.4')
 
   def testClientAddresses(self):
@@ -77,7 +75,7 @@ class ObjectTest(unittest.TestCase):
   def testClientSummary(self):
     client = MakeClient()
     summary = client.GetSummary()
-    self.assertEqual(summary.system_info.node, 'test123')
+    self.assertEqual(summary.system_info.fqdn, 'test123.examples.com')
     self.assertEqual(summary.cloud_instance_id,
                      'us-central1-a/myproject/1771384456894610289')
     self.assertEqual(

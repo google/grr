@@ -42,6 +42,9 @@ class DiscoveryTestEventListener(flow.EventListener):
 class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
+  def _OpenClient(self):
+    return data_store.REL_DB.ReadClient(self.client_id.Basename())
+
   def _CheckUsers(self, all_users):
     """Check all user stores."""
     summary = self.fd.GetSummary()
@@ -55,13 +58,29 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     ]
     self.assertItemsEqual(kbusers, all_users)
 
-  def _CheckAFF4Object(self, hostname, system, install_date):
-    self.assertEqual(self.fd.Get(self.fd.Schema.HOSTNAME), hostname)
+  def _CheckBasicInfo(self, fqdn, system, install_date):
+    # AFF4 client.
+    self.assertEqual(self.fd.Get(self.fd.Schema.FQDN), fqdn)
     self.assertEqual(self.fd.Get(self.fd.Schema.SYSTEM), system)
     self.assertEqual(self.fd.Get(self.fd.Schema.INSTALL_DATE), install_date)
 
+    # objects.Client.
+    client = self._OpenClient()
+    self.assertEqual(client.knowledge_base.fqdn, fqdn)
+    self.assertEqual(client.knowledge_base.os, system)
+    self.assertEqual(client.install_time, install_date)
+
   def _CheckClientInfo(self):
+    # AFF4 client.
     info = self.fd.Get(self.fd.Schema.CLIENT_INFO)
+    self.assertEqual(info.client_name, config.CONFIG["Client.name"])
+    self.assertEqual(info.client_version,
+                     int(config.CONFIG["Source.version_numeric"]))
+    self.assertEqual(info.build_time, config.CONFIG["Client.build_time"])
+
+    # objects.Client.
+    client = self._OpenClient()
+    info = client.client_info
     self.assertEqual(info.client_name, config.CONFIG["Client.name"])
     self.assertEqual(info.client_version,
                      int(config.CONFIG["Source.version_numeric"]))
@@ -69,10 +88,20 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def _CheckGRRConfig(self):
     """Check old and new client config."""
+    # AFF4 client.
     config_info = self.fd.Get(self.fd.Schema.GRR_CONFIGURATION)
     self.assertEqual(config_info["Client.server_urls"],
                      ["http://localhost:8001/"])
     self.assertEqual(config_info["Client.poll_min"], 1.0)
+
+    # objects.Client.
+    client = self._OpenClient()
+    config_dict = {item.key: item.value for item in client.grr_configuration}
+
+    # Config is stored in a string map so everything gets converted.
+    self.assertEqual(config_dict["Client.server_urls"],
+                     str(["http://localhost:8001/"]))
+    self.assertEqual(config_dict["Client.poll_min"], str(1.0))
 
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
@@ -96,28 +125,36 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
+    # TODO(amoser): Add a check here once relational notifications are a thing.
+
   def _CheckClientSummary(self,
                           osname,
                           version,
                           kernel="3.13.0-39-generic",
                           release="5"):
-    summary = self.fd.GetSummary()
-    self.assertEqual(summary.client_info.client_name,
-                     config.CONFIG["Client.name"])
-    self.assertEqual(summary.client_info.client_version,
-                     int(config.CONFIG["Source.version_numeric"]))
-    self.assertEqual(summary.client_info.build_time,
-                     config.CONFIG["Client.build_time"])
+    summaries = []
+    # AFF4 client.
+    summaries.append(self.fd.GetSummary())
+    # objects.Client.
+    client = self._OpenClient()
+    summaries.append(client.GetSummary())
+    for summary in summaries:
+      self.assertEqual(summary.client_info.client_name,
+                       config.CONFIG["Client.name"])
+      self.assertEqual(summary.client_info.client_version,
+                       int(config.CONFIG["Source.version_numeric"]))
+      self.assertEqual(summary.client_info.build_time,
+                       config.CONFIG["Client.build_time"])
 
-    self.assertEqual(summary.system_info.system, osname)
-    self.assertEqual(summary.system_info.node, "test_node")
-    self.assertEqual(summary.system_info.release, release)
-    self.assertEqual(summary.system_info.version, version)
-    self.assertEqual(summary.system_info.machine, "i386")
-    self.assertEqual(summary.system_info.kernel, kernel)
+      self.assertEqual(summary.system_info.system, osname)
+      self.assertEqual(summary.system_info.fqdn, "test_node.test")
+      self.assertEqual(summary.system_info.release, release)
+      self.assertEqual(summary.system_info.version, version)
+      self.assertEqual(summary.system_info.machine, "i386")
+      self.assertEqual(summary.system_info.kernel, kernel)
 
-    self.assertEqual(len(summary.interfaces), 1)
-    self.assertEqual(summary.interfaces[0].mac_address, "123456")
+      self.assertEqual(len(summary.interfaces), 1)
+      self.assertEqual(summary.interfaces[0].mac_address, "123456")
 
     # Check that the client summary was published to the event listener.
     self.assertEqual(DiscoveryTestEventListener.event.client_id, self.client_id)
@@ -301,7 +338,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
           pass
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-        self._CheckAFF4Object("test_node", "Linux", 100 * 1000000)
+        self._CheckBasicInfo("test_node.test", "Linux", 100 * 1000000)
         self._CheckClientInfo()
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()
@@ -344,7 +381,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
           pass
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-        self._CheckAFF4Object("test_node", "Windows", 100 * 1000000)
+        self._CheckBasicInfo("test_node.test", "Windows", 100 * 1000000)
         self._CheckClientInfo()
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()

@@ -890,7 +890,7 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
         token=token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
 
-    if data_store.RelationalDBEnabled():
+    if data_store.RelationalDBWriteEnabled():
       data_store.REL_DB.WriteGRRUser(
           token.username,
           ui_mode=args.settings.mode,

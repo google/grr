@@ -210,7 +210,7 @@ message User {
 message KnowledgeBase {
   repeated User users = 32;
 
-  optional string hostname = 2 [(sem_type) = {
+  optional string fqdn = 2 [(sem_type) = {
       description: "The fully qualified domain name reported by the OS. E.g. "
         "host1.ad.foo.com",
     }];

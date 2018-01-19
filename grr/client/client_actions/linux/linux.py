@@ -11,6 +11,7 @@ import time
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client.client_actions import standard
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -167,11 +168,11 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalues = [rdf_protodict.DataBlob]
+  out_rdfvalues = [rdf_protodict.DataBlob, rdfvalue.RDFDatetime]
 
   def Run(self, unused_args):
-    self.SendReply(
-        rdf_protodict.DataBlob(integer=int(os.stat("/lost+found").st_ctime)))
+    ctime = os.stat("/lost+found").st_ctime
+    self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(ctime))
 
 
 class UtmpStruct(utils.Struct):

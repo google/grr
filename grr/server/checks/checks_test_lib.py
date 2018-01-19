@@ -74,16 +74,12 @@ class HostCheckTest(test_lib.GRRBaseTest):
     return path
 
   @staticmethod
-  def SetKnowledgeBase(hostname="test.example.com",
-                       host_os="Linux",
+  def SetKnowledgeBase(fqdn="test.example.com", host_os="Linux",
                        host_data=None):
     """Generates a KnowledgeBase entry in the host_data used by checks."""
     if not host_data:
       host_data = {}
-    kb = rdf_client.KnowledgeBase()
-    kb.hostname = hostname
-    kb.os = host_os
-    host_data["KnowledgeBase"] = kb
+    host_data["KnowledgeBase"] = rdf_client.KnowledgeBase(fqdn=fqdn, os=host_os)
     return host_data
 
   def SetArtifactData(self, anomaly=None, parsed=None, raw=None, results=None):

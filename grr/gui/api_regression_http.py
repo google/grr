@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
-
+# pylint:mode=test
 
 import json
 import logging
@@ -21,6 +21,7 @@ from grr.gui import http_api
 from grr.gui import wsgiapp_testlib
 from grr.lib import flags
 from grr.lib import utils
+from grr.test_lib import test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
@@ -32,6 +33,7 @@ class HttpApiRegressionTestMixinBase(object):
   """Load only API E2E test cases."""
 
   api_version = None
+  read_from_relational_db = False
   _get_connector_lock = threading.RLock()
 
   @staticmethod
@@ -55,9 +57,22 @@ class HttpApiRegressionTestMixinBase(object):
       return http_connector.HttpConnector(
           api_endpoint=_HTTP_ENDPOINTS[api_version])
 
-  def setUp(self):  # pylint: disable=invalid-name
+  def setUp(self):
     super(HttpApiRegressionTestMixinBase, self).setUp()
     self.connector = self.GetConnector(self.__class__.api_version)
+
+    if self.__class__.read_from_relational_db:
+      self.db_config_overrider = test_lib.ConfigOverrider({
+          "Database.useForReads": True
+      })
+      self.db_config_overrider.Start()
+    else:
+      self.db_config_overrider = None
+
+  def tearDown(self):
+    super(HttpApiRegressionTestMixinBase, self).tearDown()
+    if self.db_config_overrider:
+      self.db_config_overrider.Stop()
 
   def _ParseJSON(self, json_str):
     """Parses response JSON."""
@@ -146,7 +161,7 @@ class HttpApiRegressionTestMixinBase(object):
 
 
 class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
-  """Load only API E2E test cases."""
+  """Test class for HTTP v1 protocol."""
 
   connection_type = "http_v1"
   skip_legacy_dynamic_proto_tests = False
@@ -159,9 +174,24 @@ class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
 
 
 class HttpApiV2RegressionTestMixin(HttpApiRegressionTestMixinBase):
-  """Load only API E2E test cases."""
+  """Test class for HTTP v2 protocol."""
 
   connection_type = "http_v2"
+  skip_legacy_dynamic_proto_tests = True
+  api_version = 2
+
+  @property
+  def output_file_name(self):
+    return os.path.join(DOCUMENT_ROOT,
+                        "angular-components/docs/api-v2-docs-examples.json")
+
+
+class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
+  """Test class for HTTP v2 protocol with Database.useForReads=True."""
+
+  read_from_relational_db = True
+  connection_type = "http_v2_rel_db"
+  use_golden_files_of = "http_v2"
   skip_legacy_dynamic_proto_tests = True
   api_version = 2
 

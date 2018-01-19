@@ -1516,7 +1516,7 @@ message FileFinderHashActionOptions {
   ];
 }
 
-// Next field ID: 10
+// Next field ID: 11
 message FileFinderDownloadActionOptions {
   optional uint64 max_size = 5 [(sem_type) = {
       type: "ByteSize",
@@ -1552,6 +1552,15 @@ message FileFinderDownloadActionOptions {
     },
     default = true
   ];
+  optional UploadToken upload_token = 10 [(sem_type) = {
+    description: "An upload token to use with the direct upload "
+                 "functionality. This token contains the HMAC authenticated "
+                 "policy that determines for how long the client is allowed "
+                 "to upload files to the server. This is comparable to the "
+                 "policy document used by GCS: https://cloud.google.com/"
+                 "storage/docs/xml-api/post-object#policydocument",
+    label: HIDDEN,
+  }];
 }
 
 message FileFinderStatActionOptions {
@@ -1643,14 +1652,8 @@ message FileFinderArgs {
       label: ADVANCED,
     }, default = LOCAL];
 
-  optional UploadToken upload_token = 10  [(sem_type) = {
-      description: "An upload token to use with the direct upload "
-      "functionality. This token contains the hmac authenticated policy that "
-      "determines for how long the client is allowed to upload files to the "
-      "server. This is comparable to the policy document used by GCS: "
-      "https://cloud.google.com/storage/docs/xml-api/post-object#policydocument ",
-      label: HIDDEN,
-    }];
+  // Upload token has been moved to `FileFinderDownloadActionOptions`.
+  optional UploadToken DEPRECATED_upload_token = 10;
 }
 
 // TODO(amoser): This needs a bit more structure. There should be one

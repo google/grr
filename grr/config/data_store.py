@@ -16,6 +16,10 @@ config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobstore",
 config_lib.DEFINE_string("Database.implementation", "",
                          "Relational database system to use.")
 
+config_lib.DEFINE_bool(
+    "Database.useForReads", False,
+    "Use relational database for reading as well as for writing.")
+
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",

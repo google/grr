@@ -46,7 +46,7 @@ class DataMigrationHelper(object):
   """Helper class to migrate data."""
 
   def __init__(self):
-    if not data_store.RelationalDBEnabled():
+    if not data_store.RelationalDBWriteEnabled():
       raise ValueError("No relational database available.")
 
   def Migrate(self):

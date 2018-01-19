@@ -327,6 +327,12 @@ class KnowledgeBase(structs.RDFProtoStruct):
     # knowledge_base.User.
     fields.remove("DEPRECATED_users")
 
+    # We used to have a "hostname" field that contained an fqdn and is
+    # therefore now renamed to "fqdn".
+    # TODO(amoser): Remove once the artifact has removed the provides
+    # section upstream.
+    fields.add("hostname")
+
     fields.remove("users")
     for field in self.users.type_descriptor.type.type_infos.descriptor_names:
       fields.add("users.%s" % field)
@@ -989,7 +995,6 @@ class Uname(structs.RDFProtoStruct):
     return cls(
         system=system,
         architecture=architecture,
-        node=uname[1],
         release=release,
         version=version,
         machine=uname[4],  # x86, x86_64

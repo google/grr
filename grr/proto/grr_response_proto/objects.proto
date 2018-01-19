@@ -19,6 +19,7 @@ message StringMapEntry {
   optional string value = 2;
 }
 
+// TODO(amoser): Renumber after startupinfo is a separate PB.
 message Client {
   optional uint64 last_boot_time = 1 [(sem_type) = {
       type: "RDFDatetime",
@@ -29,15 +30,6 @@ message Client {
     }];
   optional ClientInformation client_info = 3 [(sem_type) = {
       description: "GRR client information",
-    }];
-  optional string hostname = 4[(sem_type) = {
-      description: "Hostname of the host.",
-    }];
-  optional string fqdn = 5 [(sem_type) = {
-      description: "Fully qualified hostname of the host.",
-    }];
-  optional string system = 6 [(sem_type) = {
-      description: "Operating System class.",
     }];
   optional string os_release = 7 [(sem_type) = {
       description: "OS Distribution or release.",

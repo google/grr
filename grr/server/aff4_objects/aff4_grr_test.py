@@ -282,7 +282,6 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
           mode="rw",
           token=self.token) as fd:
         summary = fd.GetSummary()
-        self.assertEqual(summary.system_info.node, hostname)
         self.assertEqual(summary.system_info.system, system)
         self.assertEqual(summary.system_info.release, os_release)
         self.assertEqual(summary.system_info.kernel, kernel)

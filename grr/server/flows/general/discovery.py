@@ -3,15 +3,17 @@
 
 from grr.lib import queues
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
+from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import artifact
 from grr.server import client_index
-from grr.server import data_migration
 from grr.server import data_store
 from grr.server import db
 from grr.server import flow
@@ -54,6 +56,10 @@ class Interrogate(flow.GRRFlow):
     # Create the objects we need to exist.
     self.Load()
 
+    self.state.client = objects.Client()
+    self.state.fqdn = None
+    self.state.os = None
+
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
     pathspec = rdf_paths.PathSpec(
         path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -88,30 +94,42 @@ class Interrogate(flow.GRRFlow):
     if not metadata_responses:
       return
 
+    # AFF4 client.
     with self._CreateClient() as client:
       client.Set(
           client.Schema.CLOUD_INSTANCE(
               cloud.ConvertCloudMetadataResponsesToCloudInstance(
                   metadata_responses)))
 
+    # objects.Client.
+    client = self.state.client
+    client.cloud_instance = cloud.ConvertCloudMetadataResponsesToCloudInstance(
+        metadata_responses)
+
   @flow.StateHandler()
   def StoreMemorySize(self, responses):
     if not responses.success:
       return
 
+    # AFF4 client.
     with self._CreateClient() as client:
       client.Set(client.Schema.MEMORY_SIZE(responses.First()))
+
+    # objects.Client.
+    self.state.client.memory_size = responses.First()
 
   @flow.StateHandler()
   def Platform(self, responses):
     """Stores information about the platform."""
     if responses.success:
       response = responses.First()
+      # AFF4 client.
 
       # These need to be in separate attributes because they get searched on in
       # the GUI
       with self._OpenClient(mode="rw") as client:
-        client.Set(client.Schema.HOSTNAME(response.node))
+        # For backwards compatibility.
+        client.Set(client.Schema.HOSTNAME(response.fqdn))
         client.Set(client.Schema.SYSTEM(response.system))
         client.Set(client.Schema.OS_RELEASE(response.release))
         client.Set(client.Schema.OS_VERSION(response.version))
@@ -131,6 +149,25 @@ class Interrogate(flow.GRRFlow):
         # Update the client index
         client_index.CreateClientIndex(token=self.token).AddClient(client)
 
+      # objects.Client.
+      client = self.state.client
+      client.os_release = response.release
+      client.os_version = response.version
+      client.kernel = response.kernel
+      client.arch = response.machine
+      # Store these for later, there might be more accurate data
+      # coming in from the artifact collector.
+      self.state.fqdn = response.fqdn
+      self.state.os = response.system
+
+      if data_store.RelationalDBWriteEnabled():
+        try:
+          # Update the client index
+          client_index.ClientIndex().AddClient(self.client_id.Basename(),
+                                               client)
+        except db.UnknownClientError:
+          pass
+
       if response.system == "Windows":
         with aff4.FACTORY.Create(
             self.client_id.Add("registry"),
@@ -149,8 +186,15 @@ class Interrogate(flow.GRRFlow):
 
       known_system_type = True
     else:
-      client = self._OpenClient()
-      known_system_type = client.Get(client.Schema.SYSTEM)
+      # We failed to get the Platform info, maybe there is a stored
+      # system we can use to get at least some data.
+      if data_store.RelationalDBReadEnabled():
+        client = data_store.REL_DB.ReadClient(self.client_id.Basename())
+        known_system_type = client and client.knowledge_base.os
+      else:
+        client = self._OpenClient()
+        known_system_type = client.Get(client.Schema.SYSTEM)
+
       self.Log("Could not retrieve Platform info.")
 
     if known_system_type:
@@ -166,13 +210,29 @@ class Interrogate(flow.GRRFlow):
 
   @flow.StateHandler()
   def InstallDate(self, responses):
-    if responses.success:
-      response = responses.First()
-      with self._CreateClient() as client:
-        install_date = client.Schema.INSTALL_DATE(response.integer * 1000000)
-        client.Set(install_date)
-    else:
+    if not responses.success:
       self.Log("Could not get InstallDate")
+      return
+
+    response = responses.First()
+
+    if isinstance(response, rdfvalue.RDFDatetime):
+      # New clients send the correct values already.
+      install_date = response
+    elif isinstance(response, rdf_protodict.DataBlob):
+      # For backwards compatibility.
+      install_date = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+          response.integer)
+    else:
+      self.Log("Unknown response type for InstallDate: %s" % type(response))
+      return
+
+    # AFF4 client.
+    with self._CreateClient() as client:
+      client.Set(client.Schema.INSTALL_DATE(install_date))
+
+    # objects.Client.
+    self.state.client.install_time = install_date
 
   def CopyOSReleaseFromKnowledgeBase(self, kb, client):
     """Copy os release and version from KB to client object."""
@@ -194,6 +254,7 @@ class Interrogate(flow.GRRFlow):
           "Error while collecting the knowledge base: %s" % responses.status)
 
     kb = responses.First()
+    # AFF4 client.
     client = self._OpenClient(mode="rw")
     client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
@@ -204,6 +265,16 @@ class Interrogate(flow.GRRFlow):
     self.CopyOSReleaseFromKnowledgeBase(kb, client)
     client.Flush()
 
+    # objects.Client.
+
+    # Information already present in the knowledge base takes precedence.
+    if not kb.os:
+      kb.os = self.state.system
+
+    if not kb.fqdn:
+      kb.fqdn = self.state.fqdn
+    self.state.client.knowledge_base = kb
+
     artifact_list = [
         "WMILogicalDisks", "RootDiskVolumeUsage", "WMIComputerSystemProduct",
         "LinuxHardwareInfo", "OSXSPHardwareDataType"
@@ -213,8 +284,16 @@ class Interrogate(flow.GRRFlow):
         artifact_list=artifact_list,
         next_state="ProcessArtifactResponses")
 
-    # Update the client index
+    # Update the client index for the AFF4 client.
     client_index.CreateClientIndex(token=self.token).AddClient(client)
+
+    if data_store.RelationalDBWriteEnabled():
+      try:
+        # Update the client index for the objects.Client.
+        client_index.ClientIndex().AddClient(self.client_id.Basename(),
+                                             self.state.client)
+      except db.UnknownClientError:
+        pass
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
@@ -226,11 +305,19 @@ class Interrogate(flow.GRRFlow):
     with self._OpenClient(mode="rw") as client:
       for response in responses:
         if isinstance(response, rdf_client.Volume):
+          # AFF4 client.
           volumes = client.Get(client.Schema.VOLUMES) or client.Schema.VOLUMES()
           volumes.Append(response)
           client.Set(client.Schema.VOLUMES, volumes)
+
+          # objects.Client.
+          self.state.client.volumes.append(response)
         elif isinstance(response, rdf_client.HardwareInfo):
+          # AFF4 client.
           client.Set(client.Schema.HARDWARE_INFO, response)
+
+          # objects.Client.
+          self.state.client.hardware_info = response
         else:
           raise ValueError("Unexpected response type: %s", type(response))
 
@@ -243,6 +330,7 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not enumerate interfaces: %s" % responses.status)
       return
 
+    # AFF4 client.
     with self._CreateClient() as client:
       interface_list = client.Schema.INTERFACES()
       mac_addresses = []
@@ -263,85 +351,112 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
       client.Set(client.Schema.INTERFACES(interface_list))
 
+    # objects.Client.
+    self.state.client.interfaces = list(responses)
+
   @flow.StateHandler()
   def EnumerateFilesystems(self, responses):
     """Store all the local filesystems in the client."""
-    if responses.success and len(responses):
-      filesystems = aff4_grr.VFSGRRClient.SchemaCls.FILESYSTEM()
-      for response in responses:
-        filesystems.Append(response)
-
-        if response.type == "partition":
-          (device, offset) = response.device.rsplit(":", 1)
-
-          offset = int(offset)
-
-          pathspec = rdf_paths.PathSpec(
-              path=device,
-              pathtype=rdf_paths.PathSpec.PathType.OS,
-              offset=offset)
-
-          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
-
-          urn = pathspec.AFF4Path(self.client_id)
-          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-          fd.Set(fd.Schema.PATHSPEC(pathspec))
-          fd.Close()
-          continue
-
-        if response.device:
-          pathspec = rdf_paths.PathSpec(
-              path=response.device, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
-
-          urn = pathspec.AFF4Path(self.client_id)
-          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-          fd.Set(fd.Schema.PATHSPEC(pathspec))
-          fd.Close()
-
-        if response.mount_point:
-          # Create the OS device
-          pathspec = rdf_paths.PathSpec(
-              path=response.mount_point,
-              pathtype=rdf_paths.PathSpec.PathType.OS)
-
-          urn = pathspec.AFF4Path(self.client_id)
-          with aff4.FACTORY.Create(
-              urn, standard.VFSDirectory, token=self.token) as fd:
-            fd.Set(fd.Schema.PATHSPEC(pathspec))
-
-      with self._CreateClient() as client:
-        client.Set(client.Schema.FILESYSTEM, filesystems)
-    else:
+    if not responses.success or not responses:
       self.Log("Could not enumerate file systems.")
+      return
+
+    # objects.Client.
+    self.state.client.filesystems = responses
+
+    # AFF4 client.
+    filesystems = aff4_grr.VFSGRRClient.SchemaCls.FILESYSTEM()
+    for response in responses:
+      filesystems.Append(response)
+
+    with self._CreateClient() as client:
+      client.Set(client.Schema.FILESYSTEM, filesystems)
+
+    # Create default pathspecs for all devices.
+    for response in responses:
+      if response.type == "partition":
+        (device, offset) = response.device.rsplit(":", 1)
+
+        offset = int(offset)
+
+        pathspec = rdf_paths.PathSpec(
+            path=device, pathtype=rdf_paths.PathSpec.PathType.OS, offset=offset)
+
+        pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
+
+        urn = pathspec.AFF4Path(self.client_id)
+        fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
+        fd.Set(fd.Schema.PATHSPEC(pathspec))
+        fd.Close()
+        continue
+
+      if response.device:
+        pathspec = rdf_paths.PathSpec(
+            path=response.device, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+        pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
+
+        urn = pathspec.AFF4Path(self.client_id)
+        fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
+        fd.Set(fd.Schema.PATHSPEC(pathspec))
+        fd.Close()
+
+      if response.mount_point:
+        # Create the OS device
+        pathspec = rdf_paths.PathSpec(
+            path=response.mount_point, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+        urn = pathspec.AFF4Path(self.client_id)
+        with aff4.FACTORY.Create(
+            urn, standard.VFSDirectory, token=self.token) as fd:
+          fd.Set(fd.Schema.PATHSPEC(pathspec))
 
   @flow.StateHandler()
   def ClientInfo(self, responses):
     """Obtain some information about the GRR client running."""
-    if responses.success:
-      response = responses.First()
-      with self._OpenClient(mode="rw") as client:
-        client.Set(client.Schema.CLIENT_INFO(response))
-        client.AddLabels(response.labels, owner="GRR")
-    else:
+    if not responses.success:
       self.Log("Could not get ClientInfo.")
+      return
+    response = responses.First()
+
+    # AFF4 client.
+    with self._OpenClient(mode="rw") as client:
+      client.Set(client.Schema.CLIENT_INFO(response))
+      client.AddLabels(response.labels, owner="GRR")
+
+    # objects.Client.
+    self.state.client.client_info = response
 
   @flow.StateHandler()
   def ClientConfiguration(self, responses):
     """Process client config."""
-    if responses.success:
-      response = responses.First()
-      with self._CreateClient() as client:
-        client.Set(client.Schema.GRR_CONFIGURATION(response))
+    if not responses.success:
+      return
+
+    response = responses.First()
+
+    # AFF4 client.
+    with self._CreateClient() as client:
+      client.Set(client.Schema.GRR_CONFIGURATION(response))
+
+    # objects.Client.
+    for k, v in response.items():
+      self.state.client.grr_configuration.Append(key=k, value=utils.SmartStr(v))
 
   @flow.StateHandler()
   def ClientLibraries(self, responses):
     """Process client library information."""
-    if responses.success:
-      response = responses.First()
-      with self._CreateClient() as client:
-        client.Set(client.Schema.LIBRARY_VERSIONS(response))
+    if not responses.success:
+      return
+
+    response = responses.First()
+    # AFF4 client.
+    with self._CreateClient() as client:
+      client.Set(client.Schema.LIBRARY_VERSIONS(response))
+
+    # objects.Client.
+    for k, v in response.items():
+      self.state.client.library_versions.Append(key=k, value=utils.SmartStr(v))
 
   def NotifyAboutEnd(self):
     self.Notify("Discovery", self.client_id, "Client Discovery Complete")
@@ -350,18 +465,30 @@ class Interrogate(flow.GRRFlow):
   def End(self):
     """Finalize client registration."""
     # Update summary and publish to the Discovery queue.
-    client = self._OpenClient()
-    summary = client.GetSummary()
+
+    if data_store.RelationalDBWriteEnabled():
+      try:
+        data_store.REL_DB.WriteClient(self.client_id.Basename(),
+                                      self.state.client)
+      except db.UnknownClientError:
+        pass
+
+    if data_store.RelationalDBReadEnabled():
+      summary = self.state.client.GetSummary()
+      summary.client_id = self.client_id
+    else:
+      client = self._OpenClient()
+      summary = client.GetSummary()
+
     self.Publish("Discovery", summary)
     self.SendReply(summary)
 
     # Update the client index
     client_index.CreateClientIndex(token=self.token).AddClient(client)
-    if data_store.RelationalDBEnabled():
+    if data_store.RelationalDBWriteEnabled():
       try:
         index = client_index.ClientIndex()
-        index.AddClient(self.client_id.Basename(),
-                        data_migration.ConvertVFSGRRClient(client))
+        index.AddClient(self.client_id.Basename(), self.state.client)
       except db.UnknownClientError:
         # TODO(amoser): Remove after data migration.
         pass

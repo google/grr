@@ -439,11 +439,11 @@ class ClientIndex(object):
         # with them.
         TryAppend("mac", ":".join([mac[i:i + 2] for i in range(0, 12, 2)]))
 
-    TryAppend("host", client.hostname)
-    TryAppendPrefixes("host", client.hostname, "-")
-    TryAppend("host", client.fqdn)
-    TryAppendPrefixes("host", client.fqdn, ".")
-    TryAppend("", client.system)
+    TryAppend("host", client.knowledge_base.fqdn)
+    host = client.knowledge_base.fqdn.split(".", 1)[0]
+    TryAppendPrefixes("host", host, "-")
+    TryAppendPrefixes("host", client.knowledge_base.fqdn, ".")
+    TryAppend("", client.knowledge_base.os)
     TryAppend("", client.Uname())
     TryAppend("", client.os_release)
     TryAppend("", client.os_version)

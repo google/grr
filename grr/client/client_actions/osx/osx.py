@@ -23,6 +23,7 @@ from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 
 from grr.client.osx.objc import ServiceManagement
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import osx_launchd
@@ -202,12 +203,12 @@ class GetInstallDate(actions.ActionPlugin):
   def Run(self, unused_args):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
       try:
-        stat = os.stat(f)
-        self.SendReply(rdf_protodict.DataBlob(integer=int(stat.st_ctime)))
+        ctime = os.stat(f).st_ctime
+        self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(ctime))
         return
       except OSError:
         pass
-    self.SendReply(rdf_protodict.DataBlob(integer=0))
+    self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

@@ -97,7 +97,7 @@ class ArtifactTest(unittest.TestCase):
     artifact = ar.Artifact(
         name="Foo",
         doc="This is Foo.",
-        provides=["hostname", "domain"],
+        provides=["fqdn", "domain"],
         supported_os=["Windows"],
         urls=["https://example.com"])
     artifact.ValidateSyntax()
@@ -161,7 +161,7 @@ class ArtifactTest(unittest.TestCase):
     artifact = ar.Artifact(
         name="Thud",
         doc="This is Thud.",
-        provides=["hostname", "garbage"],
+        provides=["fqdn", "garbage"],
         labels=["Network"])
 
     with self.assertRaisesRegexp(ar.ArtifactSyntaxError, "'garbage'"):

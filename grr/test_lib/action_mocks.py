@@ -10,6 +10,7 @@ from grr.client.client_actions import file_finder
 from grr.client.client_actions import file_fingerprint
 from grr.client.client_actions import searching
 from grr.client.client_actions import standard
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -190,7 +191,7 @@ class InterrogatedClient(ActionMock):
     return [
         rdf_client.Uname(
             system=self.system,
-            node="test_node",
+            fqdn="test_node.test",
             release="5",
             version=self.version,
             kernel=self.kernel,
@@ -199,7 +200,7 @@ class InterrogatedClient(ActionMock):
 
   def GetInstallDate(self, _):
     self.response_count += 1
-    return [rdf_protodict.DataBlob(integer=100)]
+    return [rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)]
 
   def EnumerateInterfaces(self, _):
     self.response_count += 1

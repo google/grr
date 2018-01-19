@@ -368,7 +368,7 @@ class ClientFileFinder(flow.GRRFlow):
       upload_token = rdf_client.UploadToken()
       upload_token.SetPolicy(policy)
       upload_token.GenerateHMAC()
-      self.args.upload_token = upload_token
+      action.download.upload_token = upload_token
 
     self.CallClient(
         server_stubs.FileFinderOS, request=self.args, next_state="StoreResults")

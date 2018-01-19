@@ -71,7 +71,7 @@ class CAEnroler(flow.GRRFlow):
       now = rdfvalue.RDFDatetime.Now()
       client.Set(client.Schema.CERT, cert)
       client.Set(client.Schema.FIRST_SEEN, now)
-      if data_store.RelationalDBEnabled():
+      if data_store.RelationalDBWriteEnabled():
         data_store.REL_DB.WriteClientMetadata(
             self.client_id.Basename(),
             certificate=cert,
@@ -80,7 +80,7 @@ class CAEnroler(flow.GRRFlow):
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)
-      if data_store.RelationalDBEnabled:
+      if data_store.RelationalDBWriteEnabled:
         index = client_index.ClientIndex()
         index.AddClient(self.client_id.Basename(),
                         data_migration.ConvertVFSGRRClient(client))

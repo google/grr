@@ -6,7 +6,6 @@ to work together.
 """
 
 import logging
-import os
 import pdb
 import Queue
 import struct
@@ -35,6 +34,10 @@ START_STRING = "Starting client."
 # pyformat: enable
 
 
+class FatalError(Exception):
+  pass
+
+
 class GRRFleetspeakClient(object):
   """A Fleetspeak enabled client implementation."""
 
@@ -49,41 +52,67 @@ class GRRFleetspeakClient(object):
     self._sender_queue = Queue.Queue(
         maxsize=GRRFleetspeakClient._SENDER_QUEUE_MAXSIZE)
 
+    self._threads = {}
+
     # The client worker does all the real work here.
     # In particular, we delegate sending messages to Fleetspeak to a separate
     # threading.Thread here.
-    self._client_worker = comms.GRRThreadedWorker(
+    self._threads["Worker"] = comms.GRRThreadedWorker(
         out_queue=_FleetspeakQueueForwarder(self._sender_queue),
         start_worker_thread=False,
         client=self)
+    self._threads["Foreman"] = self._CreateThread(self._ForemanOp)
+    self._threads["Sender"] = self._CreateThread(self._SendOp)
+    self._threads["Receiver"] = self._CreateThread(self._ReceiveOp)
+
+  def _CreateThread(self, loop_op):
+    thread = threading.Thread(target=self._RunInLoop, args=(loop_op,))
+    thread.daemon = True
+    return thread
+
+  def _RunInLoop(self, loop_op):
+    while True:
+      try:
+        loop_op()
+      except Exception as e:
+        logging.critical("Fatal error occurred:", exc_info=True)
+        if flags.FLAGS.debug:
+          pdb.post_mortem()
+        # This will terminate execution in the current thread.
+        raise e
 
   def FleetspeakEnabled(self):
     return True
 
   def Run(self):
     """The main run method of the client."""
-    self._client_worker.start()
-    threading.Thread(target=self._ForemanCheckerThread).start()
-    threading.Thread(target=self._SenderThread).start()
+    for thread in self._threads.values():
+      thread.start()
     logging.info(START_STRING)
-    self._ReceiverThread()
 
-  def _ForemanCheckerThread(self):
+    while True:
+      dead_threads = [
+          tn for (tn, t) in self._threads.iteritems() if not t.isAlive()
+      ]
+      if dead_threads:
+        raise FatalError(
+            "These threads are dead: %r. Shutting down..." % dead_threads)
+      time.sleep(10)
+
+  def _ForemanOp(self):
     """Sends Foreman checks periodically."""
     period = config.CONFIG["Client.foreman_check_frequency"]
-    while True:
-      self._client_worker.SendReply(
-          rdf_protodict.DataBlob(),
-          session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-          require_fastpoll=False)
-      time.sleep(period)
+    self._threads["Worker"].SendReply(
+        rdf_protodict.DataBlob(),
+        session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
+        require_fastpoll=False)
+    time.sleep(period)
 
   def _SendMessages(self, grr_msgs, background=False):
     """Sends a block of messages through Fleetspeak."""
     message_list = rdf_flows.PackedMessageList()
     communicator.Communicator.EncodeMessageList(
         rdf_flows.MessageList(job=grr_msgs), message_list)
-
     fs_msg = fs_common_pb2.Message(
         message_type="MessageList",
         destination=fs_common_pb2.Address(service_name="GRR"),
@@ -93,75 +122,48 @@ class GRRFleetspeakClient(object):
     try:
       sent_bytes = self._fs.Send(fs_msg)
     except (IOError, struct.error) as e:
-      logging.fatal(
-          "Broken local Fleetspeak connection (write end): %r",
-          e,
-          exc_info=True)
-      # The fatal call above doesn't terminate the program. The reasons for
-      # this might include Python threads persistency, or Python logging
-      # mechanisms' inconsistency.
-      os._exit(1)  # pylint: disable=protected-access
+      logging.critical("Broken local Fleetspeak connection (write end).")
+      raise e
 
     stats.STATS.IncrementCounter("grr_client_sent_bytes", sent_bytes)
 
-  def _SenderThread(self):
+  def _SendOp(self):
     """Sends messages through Fleetspeak."""
-    while True:
-      msg = self._sender_queue.get()
-      msgs = []
-      background_msgs = []
-      if not msg.require_fastpoll:
-        background_msgs.append(msg)
-      else:
-        msgs.append(msg)
+    msg = self._sender_queue.get()
+    msgs = []
+    background_msgs = []
+    if not msg.require_fastpoll:
+      background_msgs.append(msg)
+    else:
+      msgs.append(msg)
 
-      count = 1
-      size = len(msg.SerializeToString())
+    count = 1
+    size = len(msg.SerializeToString())
 
-      while count < 100 and size < 1024 * 1024:
-        try:
-          msg = self._sender_queue.get(timeout=1)
-          if not msg.require_fastpoll:
-            background_msgs.append(msg)
-          else:
-            msgs.append(msg)
-          count += 1
-          size += len(msg.SerializeToString())
-        except Queue.Empty:
-          break
-
-      if msgs:
-        self._SendMessages(msgs)
-      if background_msgs:
-        self._SendMessages(background_msgs, background=True)
-
-  def _ReceiverThread(self):
-    """Receives messages through Fleetspeak."""
-    while True:
+    while count < 100 and size < 1024 * 1024:
       try:
-        self._ReceiveOnce()
-      except Exception as e:  # pylint: disable=broad-except
-        # Catch everything, because this is one of the main threads and we need
-        # to be as persistent as possible.
-        logging.warn(
-            "Exception caught in the receiver thread's main loop: %r",
-            e,
-            exc_info=True)
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
+        msg = self._sender_queue.get(timeout=1)
+        if not msg.require_fastpoll:
+          background_msgs.append(msg)
+        else:
+          msgs.append(msg)
+        count += 1
+        size += len(msg.SerializeToString())
+      except Queue.Empty:
+        break
 
-  def _ReceiveOnce(self):
+    if msgs:
+      self._SendMessages(msgs)
+    if background_msgs:
+      self._SendMessages(background_msgs, background=True)
+
+  def _ReceiveOp(self):
     """Receives a single message through Fleetspeak."""
     try:
       fs_msg, received_bytes = self._fs.Recv()
     except (IOError, struct.error) as e:
-      logging.fatal(
-          "Broken local Fleetspeak connection (read end): %r", e, exc_info=True)
-
-      # The fatal call above doesn't terminate the program. The reasons for this
-      # might include Python threads persistency, or Python logging mechanisms'
-      # inconsistency.
-      os._exit(2)  # pylint: disable=protected-access
+      logging.critical("Broken local Fleetspeak connection (read end).")
+      raise e
 
     received_type = fs_msg.data.TypeName()
     if not received_type.endswith("grr.GrrMessage"):
@@ -175,7 +177,7 @@ class GRRFleetspeakClient(object):
     # Authentication is ensured by Fleetspeak.
     grr_msg.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
 
-    self._client_worker.QueueMessages([grr_msg])
+    self._threads["Worker"].QueueMessages([grr_msg])
 
 
 class _FleetspeakQueueForwarder(object):

@@ -41,7 +41,8 @@ class LoadComponent(ClientActionStub):
 class GetInstallDate(ClientActionStub):
   """Estimate the install date of this system."""
 
-  out_rdfvalues = [rdf_protodict.DataBlob]
+  # DataBlob is deprecated but might still be sent by old clients.
+  out_rdfvalues = [rdf_protodict.DataBlob, rdfvalue.RDFDatetime]
 
 
 class EnumerateInterfaces(ClientActionStub):

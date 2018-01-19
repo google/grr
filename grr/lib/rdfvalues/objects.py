@@ -51,7 +51,8 @@ class Client(structs.RDFProtoStruct):
 
   def Uname(self):
     """OS summary string."""
-    return "%s-%s-%s" % (self.system, self.os_release, self.os_version)
+    return "%s-%s-%s" % (self.knowledge_base.os, self.os_release,
+                         self.os_version)
 
   def GetMacAddresses(self):
     """MAC addresses from all interfaces."""
@@ -82,19 +83,24 @@ class Client(structs.RDFProtoStruct):
       ValueError: on bad cloud type
     """
     summary = rdf_client.ClientSummary()
-    summary.system_info.node = self.hostname
-    summary.system_info.system = self.system
     summary.system_info.release = self.os_release
     summary.system_info.version = str(self.os_version or "")
     summary.system_info.kernel = self.kernel
-    summary.system_info.fqdn = self.fqdn
     summary.system_info.machine = self.arch
     summary.system_info.install_date = self.install_time
     kb = self.knowledge_base
     if kb:
+      summary.system_info.fqdn = kb.fqdn
+      summary.system_info.system = kb.os
       summary.users = kb.users
       summary.interfaces = self.interfaces
       summary.client_info = self.client_info
+      if kb.os_release:
+        summary.system_info.release = kb.os_release
+        if kb.os_major_version:
+          summary.system_info.version = "%d.%d" % (kb.os_major_version,
+                                                   kb.os_minor_version)
+
     hwi = self.hardware_info
     if hwi:
       summary.serial_number = hwi.serial_number

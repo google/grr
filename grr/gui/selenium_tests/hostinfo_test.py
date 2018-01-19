@@ -119,13 +119,13 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
     self.Click("css=label:contains('Full details')")
 
-    self.MoveMouseTo("css=tr:contains('Os info') tr:contains('Node') "
+    self.MoveMouseTo("css=tr:contains('Os info') tr:contains('Fqdn') "
                      "td.proto_key")
-    self.Click("css=tr:contains('Os info') tr:contains('Node') "
+    self.Click("css=tr:contains('Os info') tr:contains('Fqdn') "
                ".proto_history button")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=h4:contains('os_info.node history')")
+                   "css=h4:contains('os_info.fqdn history')")
     # Check that hostnames are listed in the right order.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('Hostname T2') ~ "
                    "tr:contains('Hostname T1') ~ "

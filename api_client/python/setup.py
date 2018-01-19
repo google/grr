@@ -59,7 +59,7 @@ setup_args = dict(
         "console_scripts": ["grr_api_shell = grr_api_client.api_shell:main",]
     },
     install_requires=[
-        "grr_response_proto" % VERSION.get("Version", "packagedepends"),
+        "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipython==5.0.0",
         "protobuf==3.3.0",
         "requests==2.9.1",

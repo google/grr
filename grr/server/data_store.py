@@ -66,8 +66,12 @@ DB = None
 REL_DB = None
 
 
-def RelationalDBEnabled():
+def RelationalDBWriteEnabled():
   return bool(REL_DB)
+
+
+def RelationalDBReadEnabled():
+  return config.CONFIG["Database.useForReads"]
 
 
 # There are stub methods that don't return/yield as indicated by the docstring.

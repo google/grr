@@ -199,13 +199,12 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    "tr:contains('GetFile'):nth(0).row-selected")
 
   def testCopyingFlowWithRawBytesWithNonAsciiCharsInArgumentsWorks(self):
-    args = rdf_file_finder.FileFinderArgs(
-        paths=["a/b/*"],
-        upload_token=rdf_client.UploadToken(
-            # Encrypted policy is defined simply as "bytes" in its proto
-            # definition. We make sure to assign ascii-incompatible value
-            # to it here.
-            encrypted_policy="\xde\xad\xbe\xef"))
+    # Encrypted policy is defined simply as "bytes" in its proto definition. We
+    # make sure to assign ascii-incompatible value to it here.
+    token = rdf_client.UploadToken(encrypted_policy="\xde\xad\xbe\xef")
+    action = rdf_file_finder.FileFinderAction.Download(upload_token=token)
+    args = rdf_file_finder.FileFinderArgs(action=action, paths=["a/b/*"])
+
     flow.GRRFlow.StartFlow(
         flow_name=flows_file_finder.FileFinder.__name__,
         args=args,

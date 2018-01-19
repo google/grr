@@ -238,8 +238,7 @@ class FileFinderOS(actions.ActionPlugin):
         collect_ext_attrs=args.action.download.collect_ext_attrs)
 
     stat_entry = self.Stat(fname, stat, stat_opts)
-    uploaded_file = self.Upload(fname, stat, args.action.download,
-                                args.upload_token)
+    uploaded_file = self.Upload(fname, stat, args.action.download)
     if uploaded_file:
       uploaded_file.stat_entry = stat_entry
 
@@ -288,7 +287,7 @@ class FileFinderOS(actions.ActionPlugin):
       return None
     return hasher.GetHashObject()
 
-  def Upload(self, fname, stat, opts, token):
+  def Upload(self, fname, stat, opts):
     max_bytes = None
     if stat.GetSize() > opts.max_size:
       policy = opts.oversized_file_policy
@@ -302,7 +301,7 @@ class FileFinderOS(actions.ActionPlugin):
 
     uploaded_file = self.grr_worker.UploadFile(
         open(fname, "rb"),
-        token,
+        opts.upload_token,
         max_bytes=max_bytes,
         network_bytes_limit=self.network_bytes_limit,
         session_id=self.session_id,

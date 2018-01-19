@@ -280,7 +280,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     index = client_index.ClientIndex()
 
     client = objects.Client()
-    client.system = "Windows"
+    client.knowledge_base.os = "Windows"
     client.client_info.client_name = "grr monitor"
     client.client_info.labels = ["client-label-23"]
     kb = client.knowledge_base
@@ -319,9 +319,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     for i in range(1, n + 1):
       client_id = "C.100000000000000%d" % i
       client = objects.Client()
-      client.system = "Windows"
-      client.hostname = "host-%d" % i
-      client.fqdn = "host-%d.example.com" % i
+      client.knowledge_base.os = "Windows"
+      client.knowledge_base.fqdn = "host-%d.example.com" % i
 
       client.interfaces = [
           rdf_client.Interface(

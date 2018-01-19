@@ -87,7 +87,6 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     self.hardware_info = client_obj.Get(client_obj.Schema.HARDWARE_INFO)
     self.os_info = rdf_client.Uname(
         system=client_obj.Get(client_obj.Schema.SYSTEM),
-        node=client_obj.Get(client_obj.Schema.HOSTNAME),
         release=client_obj.Get(client_obj.Schema.OS_RELEASE),
         # TODO(user): Check if ProtoString.Validate should be fixed
         # to do an isinstance() check on a value. Is simple type
@@ -96,7 +95,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
             client_obj.Get(client_obj.Schema.OS_VERSION, "")),
         kernel=client_obj.Get(client_obj.Schema.KERNEL),
         machine=client_obj.Get(client_obj.Schema.ARCH),
-        fqdn=client_obj.Get(client_obj.Schema.FQDN),
+        fqdn=(client_obj.Get(client_obj.Schema.FQDN) or
+              client_obj.Get(client_obj.Schema.HOSTNAME)),
         install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE))
     self.knowledge_base = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
     self.memory_size = client_obj.Get(client_obj.Schema.MEMORY_SIZE)
@@ -467,7 +467,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           mode="rw",
           token=token)
       for client_obj in client_objs:
-        if data_store.RelationalDBEnabled():
+        if data_store.RelationalDBWriteEnabled():
           cid = client_obj.urn.Basename()
           try:
             data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
@@ -532,7 +532,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           mode="rw",
           token=token)
       for client_obj in client_objs:
-        if data_store.RelationalDBEnabled():
+        if data_store.RelationalDBWriteEnabled():
           cid = client_obj.urn.Basename()
           data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
           labels_to_remove = set(args.labels)

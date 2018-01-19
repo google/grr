@@ -196,7 +196,9 @@ class UnameTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def GenerateSample(self, number=0):
     # Make the hostname slighly different for comparison tests.
     result = self.rdfvalue_class.FromCurrentSystem()
-    result.node += str(number)
+    parts = result.fqdn.split(".")
+    parts[0] += str(number)
+    result.fqdn = ".".join(parts)
     return result
 
   def testSignature(self):

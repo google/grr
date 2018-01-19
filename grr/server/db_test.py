@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 import abc
 
-import unittest
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -11,11 +10,14 @@ from grr.lib.rdfvalues import objects
 from grr.server import db
 
 
-class DatabaseTest(unittest.TestCase):
+class DatabaseTestMixin(object):
   """An abstract class for testing db.Database implementations.
 
   Implementations should override CreateDatabase in order to produce
   a test suite for a particular implementation of db.Database.
+
+  This class does not inherit from `TestCase` to prevent the test runner from
+  executing its method. Instead it should be mixed into the actual test classes.
   """
   __metaclass__ = abc.ABCMeta
 
@@ -24,15 +26,24 @@ class DatabaseTest(unittest.TestCase):
     """Create a test database.
 
     Returns:
-      A db.Database, suitable for testing.
+      A pair (db, cleanup), where db is an instance of db.Database to be tested
+      and cleanup is a function which destroys db, releasing any resources held
+      by it.
     """
 
+  def setUp(self):
+    self.db, self.cleanup = self.CreateDatabase()
+
+  def tearDown(self):
+    if self.cleanup:
+      self.cleanup()
+
   def testDatabaseType(self):
-    d = self.CreateDatabase()
+    d = self.db
     self.assertIsInstance(d, db.Database)
 
   def testClientWriteToUnknownClient(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
@@ -43,7 +54,7 @@ class DatabaseTest(unittest.TestCase):
       d.WriteClientMetadata(client_id, first_seen=rdfvalue.RDFDatetime.Now())
 
   def testKeywordWriteToUnknownClient(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
@@ -52,7 +63,7 @@ class DatabaseTest(unittest.TestCase):
     d.DeleteClientKeyword(client_id, "test")
 
   def testLabelWriteToUnknownClient(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
@@ -61,7 +72,7 @@ class DatabaseTest(unittest.TestCase):
     d.RemoveClientLabels(client_id, "testowner", ["label"])
 
   def testClientMetadataInitialWrite(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     client_id_1 = "C.fc413187fefa1dcf"
     # Typical initial FS enabled write
@@ -89,7 +100,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100))
 
   def testClientMetadataPing(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     client_id_1 = "C.fc413187fefa1dcf"
     # Typical initial FS enabled write
@@ -115,7 +126,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000))
 
   def testClientMetadataCrash(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     client_id_1 = "C.fc413187fefa1dcf"
     # Typical initial FS enabled write
@@ -132,28 +143,30 @@ class DatabaseTest(unittest.TestCase):
         m1.last_crash, rdf_client.ClientCrash(crash_message="Et tu, Brute?"))
 
   def testClientMetadataValidatesIP(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.fc413187fefa1dcf"
     with self.assertRaises(ValueError):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
 
   def testClientMetadataValidatesCrash(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.fc413187fefa1dcf"
     with self.assertRaises(ValueError):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_crash="Et tu, Brute?")
 
   def testClientHistory(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     client_id = "C.fc413187fefa1dcf"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
-    client = objects.Client(hostname="test1234.examples.com", kernel="12.3")
+    client = objects.Client(kernel="12.3")
+    client.knowledge_base.fqdn = "test1234.examples.com"
     d.WriteClient(client_id, client)
-    client = objects.Client(hostname="test1234.examples.com", kernel="12.4")
+    client = objects.Client(kernel="12.4")
+    client.knowledge_base.fqdn = "test1234.examples.com"
     d.WriteClient(client_id, client)
 
     hist = d.ReadClientHistory(client_id)
@@ -165,7 +178,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(hist[1].kernel, "12.3")
 
   def testClientSummary(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     client_id_1 = "C.0000000000000001"
     client_id_2 = "C.0000000000000002"
@@ -176,14 +189,20 @@ class DatabaseTest(unittest.TestCase):
 
     d.WriteClient(client_id_1,
                   objects.Client(
-                      hostname="test1234.examples.com", kernel="12.3"))
+                      knowledge_base=rdf_client.KnowledgeBase(
+                          fqdn="test1234.examples.com"),
+                      kernel="12.3"))
     d.WriteClient(client_id_1,
                   objects.Client(
-                      hostname="test1234.examples.com", kernel="12.4"))
+                      knowledge_base=rdf_client.KnowledgeBase(
+                          fqdn="test1234.examples.com"),
+                      kernel="12.4"))
 
     d.WriteClient(client_id_2,
                   objects.Client(
-                      hostname="test1235.examples.com", kernel="12.4"))
+                      knowledge_base=rdf_client.KnowledgeBase(
+                          fqdn="test1235.examples.com"),
+                      kernel="12.4"))
 
     hist = d.ReadClientHistory(client_id_1)
     self.assertEqual(len(hist), 2)
@@ -195,13 +214,15 @@ class DatabaseTest(unittest.TestCase):
     self.assertIsInstance(res[client_id_2], objects.Client)
     self.assertIsNotNone(res[client_id_1].timestamp)
     self.assertIsNotNone(res[client_id_2].timestamp)
-    self.assertEqual(res[client_id_1].hostname, "test1234.examples.com")
+    self.assertEqual(res[client_id_1].knowledge_base.fqdn,
+                     "test1234.examples.com")
     self.assertEqual(res[client_id_1].kernel, "12.4")
-    self.assertEqual(res[client_id_2].hostname, "test1235.examples.com")
+    self.assertEqual(res[client_id_2].knowledge_base.fqdn,
+                     "test1235.examples.com")
     self.assertFalse(res[client_id_3])
 
   def testClientValidates(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     # Write some metadata so the client write would otherwise succeed.
     client_id = "C.fc413187fefa1dcf"
@@ -210,7 +231,7 @@ class DatabaseTest(unittest.TestCase):
       d.WriteClient(client_id, "test1235.examples.com")
 
   def testClientKeywords(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id_1 = "C.0000000000000001"
     client_id_2 = "C.0000000000000002"
     client_id_3 = "C.0000000000000003"
@@ -239,7 +260,7 @@ class DatabaseTest(unittest.TestCase):
                        (client_id, kw, res[kw]))
 
   def testClientKeywordsTimeRanges(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.0000000000000001"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
@@ -253,7 +274,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(res["hostname2"], [client_id])
 
   def testDeleteClientKeyword(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.0000000000000001"
     temporary_kw = "investigation42"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
@@ -268,7 +289,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(d.ListClientsForKeywords(["joe"])["joe"], [client_id])
 
   def testClientLabels(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.0000000000000001"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
@@ -305,7 +326,7 @@ class DatabaseTest(unittest.TestCase):
         ])
 
   def testClientLabelsUnicode(self):
-    d = self.CreateDatabase()
+    d = self.db
     client_id = "C.0000000000000001"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
@@ -338,7 +359,7 @@ class DatabaseTest(unittest.TestCase):
         ])
 
   def testFilledGRRUserReadWrite(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     u_expected = objects.GRRUser(ui_mode="ADVANCED", canary_mode=True)
     u_expected.password.SetPassword("blah")
@@ -352,7 +373,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(u_expected, u)
 
   def testEmptyGRRUserReadWrite(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     u_expected = objects.GRRUser()
     d.WriteGRRUser("foo")
@@ -361,7 +382,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEqual(u_expected, u)
 
   def testReadingUnknownGRRUserFails(self):
-    d = self.CreateDatabase()
+    d = self.db
 
     with self.assertRaises(db.UnknownGRRUserError):
       d.ReadGRRUser("foo")

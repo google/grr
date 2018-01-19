@@ -62,7 +62,7 @@ class HintsTests(test_lib.GRRBaseTest):
     # Create a complex RDF value
     rdf = rdf_client.ClientSummary()
     rdf.system_info.system = "Linux"
-    rdf.system_info.node = "coreai.skynet.com"
+    rdf.system_info.fqdn = "coreai.skynet.com"
     # Users (repeated)
     rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)

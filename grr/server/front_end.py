@@ -154,7 +154,7 @@ class ServerCommunicator(communicator.Communicator):
                         long(remote_time), int(client_time))
 
       client.Flush()
-      if data_store.RelationalDBEnabled():
+      if data_store.RelationalDBWriteEnabled():
         source_ip = response_comms.orig_request.source_ip
         if source_ip:
           last_ip = rdf_client.NetworkAddress(
@@ -360,7 +360,7 @@ class FrontEndServer(object):
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
-    if data_store.RelationalDBEnabled():
+    if data_store.RelationalDBWriteEnabled():
       data_store.REL_DB.WriteClientMetadata(
           client_id.Basename(), fleetspeak_enabled=True)
 
@@ -378,7 +378,7 @@ class FrontEndServer(object):
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)
-      if data_store.RelationalDBEnabled():
+      if data_store.RelationalDBWriteEnabled():
         index = client_index.ClientIndex()
         index.AddClient(client_urn.Basename(),
                         data_migration.ConvertVFSGRRClient(client))

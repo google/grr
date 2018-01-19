@@ -268,7 +268,6 @@ class VFSGRRClient(standard.VFSDirectory):
     """
     self.max_age = 0
     summary = rdf_client.ClientSummary(client_id=self.urn)
-    summary.system_info.node = self.Get(self.Schema.HOSTNAME)
     summary.system_info.system = self.Get(self.Schema.SYSTEM)
     summary.system_info.release = self.Get(self.Schema.OS_RELEASE)
     summary.system_info.version = str(self.Get(self.Schema.OS_VERSION, ""))
