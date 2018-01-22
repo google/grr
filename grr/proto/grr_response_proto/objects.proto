@@ -19,59 +19,55 @@ message StringMapEntry {
   optional string value = 2;
 }
 
-// TODO(amoser): Renumber after startupinfo is a separate PB.
+// Next field: 16
 message Client {
-  optional uint64 last_boot_time = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time of OS boot.",
-    }];
-  repeated Filesystem filesystems = 2 [(sem_type) = {
+  repeated Filesystem filesystems = 1 [(sem_type) = {
       description: "Mounted Filesystems",
     }];
-  optional ClientInformation client_info = 3 [(sem_type) = {
-      description: "GRR client information",
-    }];
-  optional string os_release = 7 [(sem_type) = {
+  optional string os_release = 2 [(sem_type) = {
       description: "OS Distribution or release.",
     }];
-  optional string os_version = 8 [(sem_type) = {
+  optional string os_version = 3 [(sem_type) = {
       type: "VersionString",
       description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
     }];
-  optional string arch = 9 [(sem_type) = {
+  optional string arch = 4 [(sem_type) = {
       description: "Architecture",
     }];
-  optional uint64 install_time = 10 [(sem_type) = {
+  optional uint64 install_time = 5 [(sem_type) = {
       type: "RDFDatetime",
       description: "When system was installed.",
     }]; // Called install_date in some legacy code.
-  optional KnowledgeBase knowledge_base = 11 [(sem_type) = {
+  optional KnowledgeBase knowledge_base = 6 [(sem_type) = {
       description: "Artifact Knowledge Base",
     }];
-  repeated StringMapEntry grr_configuration = 12 [(sem_type) = {
+  repeated StringMapEntry grr_configuration = 7 [(sem_type) = {
       description: "Running configuration for the GRR client.",
     }];
-  repeated StringMapEntry library_versions = 13 [(sem_type) = {
+  repeated StringMapEntry library_versions = 8 [(sem_type) = {
       description: "Running library versions for the client.",
     }];
-  optional string kernel = 14 [(sem_type) = {
+  optional string kernel = 9 [(sem_type) = {
       description: "Kernel version string.",
     }];
-  repeated Volume volumes = 15 [(sem_type) = {
+  repeated Volume volumes = 10 [(sem_type) = {
       description: "Client disk volumes.",
     }];
-  repeated Interface interfaces = 16 [(sem_type) = {
+  repeated Interface interfaces = 11 [(sem_type) = {
       description: "Network interfaces.",
     }];
-  optional HardwareInfo hardware_info = 17 [(sem_type) = {
+  optional HardwareInfo hardware_info = 12 [(sem_type) = {
       description: "Various hardware information.",
     }];
-  optional uint64 memory_size = 18 [(sem_type) = {
+  optional uint64 memory_size = 13 [(sem_type) = {
       type: "ByteSize",
       description: "Amount of memory this client's machine has.",
     }];
-  optional CloudInstance cloud_instance = 19 [(sem_type) = {
+  optional CloudInstance cloud_instance = 14 [(sem_type) = {
       description: "Information about cloud machines.",
+    }];
+  optional StartupInfo startup_info = 15 [(sem_type) = {
+      description: "Information about the GRR client.",
     }];
 }
 

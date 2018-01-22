@@ -3,6 +3,7 @@
 
 import array
 import base64
+import collections
 import copy
 import cStringIO
 import errno
@@ -1627,3 +1628,44 @@ class Stat(object):
       return 0
 
     return self._stat.st_flags
+
+
+class StatCache(object):
+  """An utility class for avoiding unnecessary syscalls to `[l]stat`.
+
+  This class is useful in situations where manual bookkeeping of stat results
+  in order to prevent extra system calls becomes tedious and complicates control
+  flow. This class makes sure that no unnecessary system calls are made and is
+  smart enough to cache symlink results when a file is not a symlink.
+  """
+
+  _Key = collections.namedtuple("_Key", ("path", "follow_symlink"))  # pylint: disable=invalid-name
+
+  def __init__(self):
+    self._cache = {}
+
+  def Get(self, path, follow_symlink=True):
+    """Stats given file or returns a cached result if available.
+
+    Args:
+      path: A path to the file to perform `stat` on.
+      follow_symlink: True if `stat` of a symlink should be returned instead of
+          a file that it points to. For non-symlinks this setting has no effect.
+
+    Returns:
+      `Stat` object corresponding to the given path.
+    """
+    key = self._Key(path=path, follow_symlink=follow_symlink)
+    try:
+      return self._cache[key]
+    except KeyError:
+      value = Stat(path, follow_symlink=follow_symlink)
+      self._cache[key] = value
+
+      # If we are not following symlinks and the file is a not symlink then
+      # the stat result for this file stays the same even if we want to follow
+      # symlinks.
+      if not follow_symlink and not value.IsSymlink():
+        self._cache[self._Key(path=path, follow_symlink=True)] = value
+
+      return value

@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
-
 from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 
@@ -57,7 +56,8 @@ class TestStruct(structs.RDFProtoStruct):
           name="float",
           field_number=8,
           description="A float number",
-          default=1.1),)
+          default=1.1),
+  )
 
 
 # In order to define a recursive structure we must add it manually after the
@@ -111,7 +111,8 @@ class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
           # The callback here returns the type specified by the type member.
           dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
           field_number=2,
-          description="A dynamic value based on another field."),)
+          description="A dynamic value based on another field."),
+  )
 
 
 class LateBindingTest(structs.RDFProtoStruct):
@@ -131,7 +132,8 @@ class LateBindingTest(structs.RDFProtoStruct):
               name="repeated",
               field_number=7,
               rdf_type="UndefinedRDFValue2",
-              description="An undefined RDFValue field.")),)
+              description="An undefined RDFValue field.")),
+  )
 
 
 class UnionTest(structs.RDFProtoStruct):
@@ -159,7 +161,8 @@ class UnionTest(structs.RDFProtoStruct):
           name="third",
           field_number=4,
           default=5,
-          description="An integer value"),)
+          description="An integer value"),
+  )
 
 
 class RDFStructsTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -274,7 +277,8 @@ class RDFStructsTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         "DynamicAnyValueTypeTestReversed",
         (structs.RDFProtoStruct,),
         # TODO(user): We shouldn't need to specify Any here. Investigate.
-        dict(protobuf=proto_class, rdf_deps=["Any"]),)
+        dict(protobuf=proto_class, rdf_deps=["Any"]),
+    )
     new_dynamic_instance = new_dynamic_class(type="foo")
     self.assertEqual(new_dynamic_instance.type, "foo")
 

@@ -230,7 +230,9 @@ class AdminUIApp(object):
         "firebase_auth_domain":
             config.CONFIG["AdminUI.firebase_auth_domain"],
         "firebase_auth_provider":
-            config.CONFIG["AdminUI.firebase_auth_provider"]
+            config.CONFIG["AdminUI.firebase_auth_provider"],
+        "grr_version":
+            config.CONFIG["Source.version_string"]
     }
     template = env.get_template("base.html")
     response = werkzeug_wrappers.Response(

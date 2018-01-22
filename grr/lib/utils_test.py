@@ -4,6 +4,7 @@
 import datetime
 import os
 import platform
+import shutil
 import socket
 import StringIO
 import subprocess
@@ -12,6 +13,7 @@ import threading
 import unittest
 import zipfile
 
+import mock
 
 import unittest
 from grr.lib import flags
@@ -664,6 +666,92 @@ class StatTest(unittest.TestCase):
   @staticmethod
   def _EpochMillis(date):
     return int(date.strftime("%s"))
+
+
+class StatCacheTest(unittest.TestCase):
+
+  def setUp(self):
+    self.temp_dir = test_lib.TempDirPath()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
+
+  def Path(self, *args):
+    return os.path.join(self.temp_dir, *args)
+
+  def testBasicUsage(self):
+    with open(self.Path("foo"), "w") as fd:
+      fd.write("123")
+    with open(self.Path("bar"), "w") as fd:
+      fd.write("123456")
+    with open(self.Path("baz"), "w") as fd:
+      fd.write("123456789")
+
+    stat_cache = utils.StatCache()
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      foo_stat = stat_cache.Get(self.Path("foo"))
+      self.assertEqual(foo_stat.GetSize(), 3)
+      self.assertTrue(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      bar_stat = stat_cache.Get(self.Path("bar"))
+      self.assertEqual(bar_stat.GetSize(), 6)
+      self.assertTrue(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      other_foo_stat = stat_cache.Get(self.Path("foo"))
+      self.assertEqual(other_foo_stat.GetSize(), 3)
+      self.assertFalse(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      other_bar_stat = stat_cache.Get(self.Path("bar"))
+      self.assertEqual(other_bar_stat.GetSize(), 6)
+      self.assertFalse(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      baz_stat = stat_cache.Get(self.Path("baz"))
+      self.assertEqual(baz_stat.GetSize(), 9)
+      self.assertTrue(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      other_baz_stat = stat_cache.Get(self.Path("baz"))
+      self.assertEqual(other_baz_stat.GetSize(), 9)
+      self.assertFalse(stat_mock.called)
+
+  def testFollowSymlink(self):
+    with open(self.Path("foo"), "w") as fd:
+      fd.write("123456")
+    os.symlink(self.Path("foo"), self.Path("bar"))
+
+    stat_cache = utils.StatCache()
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      bar_stat = stat_cache.Get(self.Path("bar"), follow_symlink=False)
+      self.assertTrue(bar_stat.IsSymlink())
+      self.assertTrue(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      foo_stat = stat_cache.Get(self.Path("bar"), follow_symlink=True)
+      self.assertFalse(foo_stat.IsSymlink())
+      self.assertEqual(foo_stat.GetSize(), 6)
+      self.assertTrue(stat_mock.called)
+
+  def testSmartSymlinkCache(self):
+    with open(self.Path("foo"), "w") as fd:
+      fd.write("12345")
+
+    stat_cache = utils.StatCache()
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      foo_stat = stat_cache.Get(self.Path("foo"), follow_symlink=False)
+      self.assertEqual(foo_stat.GetSize(), 5)
+      self.assertTrue(stat_mock.called)
+
+    with mock.patch.object(utils, "Stat", wraps=utils.Stat) as stat_mock:
+      other_foo_stat = stat_cache.Get(self.Path("foo"), follow_symlink=True)
+      self.assertEqual(other_foo_stat.GetSize(), 5)
+      self.assertFalse(stat_mock.called)
 
 
 def main(argv):

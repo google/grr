@@ -425,7 +425,7 @@ class Interrogate(flow.GRRFlow):
       client.AddLabels(response.labels, owner="GRR")
 
     # objects.Client.
-    self.state.client.client_info = response
+    self.state.client.startup_info.client_info = response
 
   @flow.StateHandler()
   def ClientConfiguration(self, responses):

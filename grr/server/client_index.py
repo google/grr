@@ -467,7 +467,7 @@ class ClientIndex(object):
     for mac in client.GetMacAddresses():
       TryAppendMac(mac)
 
-    client_info = client.client_info
+    client_info = client.startup_info.client_info
     if client_info:
       TryAppend("client", client_info.client_name)
       TryAppend("client", client_info.client_version)

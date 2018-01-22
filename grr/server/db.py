@@ -100,6 +100,7 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       client: An rdfvalues.client.Client. Will be saved at the "current"
         timestamp.
+
     Raises:
       UnknownClientError: The client_id is not known yet.
     """

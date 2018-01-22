@@ -23,6 +23,7 @@ class InMemoryDB(db.Database):
     self.keywords = {}
     self.labels = {}
     self.users = {}
+    self.startup_history = {}
 
   def ClearTestDB(self):
     self._Init()
@@ -124,8 +125,15 @@ class InMemoryDB(db.Database):
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
+    startup_info = client.startup_info
+    client.startup_info = None
+
+    ts = time.time()
     history = self.clients.setdefault(client_id, {})
-    history[time.time()] = client
+    history[ts] = client.SerializeToString()
+
+    history = self.startup_history.setdefault(client_id, {})
+    history[ts] = startup_info.SerializeToString()
 
   def ReadClients(self, client_ids):
     """Reads the latest client snapshots for a list of clients."""
@@ -137,8 +145,13 @@ class InMemoryDB(db.Database):
         res[client_id] = None
       else:
         last_timestamp = max(history)
-        res[client_id] = history[last_timestamp]
-        res[client_id].timestamp = last_timestamp
+        client_obj = objects.Client.FromSerializedString(
+            history[last_timestamp])
+        client_obj.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+            last_timestamp)
+        client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
+            self.startup_history[client_id][last_timestamp])
+        res[client_id] = client_obj
     return res
 
   def ReadClientHistory(self, client_id):
@@ -150,9 +163,11 @@ class InMemoryDB(db.Database):
       return []
     res = []
     for ts in sorted(history, reverse=True):
-      client_data = history[ts]
-      client_data.timestamp = ts
-      res.append(client_data)
+      client_obj = objects.Client.FromSerializedString(history[ts])
+      client_obj.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
+          self.startup_history[client_id][ts])
+      res.append(client_obj)
     return res
 
   def WriteClientKeywords(self, client_id, keywords):
@@ -249,3 +264,42 @@ class InMemoryDB(db.Database):
           canary_mode=u.get("canary_mode"))
     except KeyError:
       raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
+
+  def WriteClientStartupInfo(self, client_id, startup_info):
+
+    if not isinstance(startup_info, rdf_client.StartupInfo):
+      raise ValueError(
+          "WriteClientStartupInfo requires rdf_client.StartupInfo, got: %s" %
+          type(startup_info))
+
+    self._ValidateClientId(client_id)
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError()
+
+    history = self.startup_history.setdefault(client_id, {})
+    history[time.time()] = startup_info.SerializeToString()
+
+  def ReadClientStartupInfo(self, client_id):
+    self._ValidateClientId(client_id)
+    history = self.startup_history.get(client_id, None)
+    if not history:
+      return None
+
+    ts = max(history)
+    res = rdf_client.StartupInfo.FromSerializedString(history[ts])
+    res.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+    return res
+
+  def ReadClientStartupInfoHistory(self, client_id):
+    self._ValidateClientId(client_id)
+
+    history = self.startup_history.get(client_id)
+    if not history:
+      return []
+    res = []
+    for ts in sorted(history, reverse=True):
+      client_data = rdf_client.StartupInfo.FromSerializedString(history[ts])
+      client_data.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      res.append(client_data)
+    return res

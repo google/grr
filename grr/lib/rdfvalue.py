@@ -443,8 +443,7 @@ class RDFDatetime(RDFInteger):
 
   @classmethod
   def Now(cls):
-    res = cls(int(time.time() * cls.converter))
-    return res
+    return cls(int(time.time() * cls.converter))
 
   def Format(self, fmt):
     """Return the value as a string formatted as per strftime semantics."""
@@ -468,7 +467,9 @@ class RDFDatetime(RDFInteger):
     return self._value
 
   def FromSecondsFromEpoch(self, value):
-    self._value = value * self.converter
+    # Convert to int in case we get fractional seconds with higher
+    # resolution than what this class supports.
+    self._value = int(value * self.converter)
 
     return self
 

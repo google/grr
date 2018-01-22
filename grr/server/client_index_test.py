@@ -281,8 +281,8 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
     client = objects.Client()
     client.knowledge_base.os = "Windows"
-    client.client_info.client_name = "grr monitor"
-    client.client_info.labels = ["client-label-23"]
+    client.startup_info.client_info.client_name = "grr monitor"
+    client.startup_info.client_info.labels = ["client-label-23"]
     kb = client.knowledge_base
     kb.users = [
         rdf_client.User(

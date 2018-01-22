@@ -1701,8 +1701,8 @@ class RDFStruct(rdfvalue.RDFValue):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format,
-            type_descriptor) in sorted(self.GetRawData().items()):
+    for k, (python_format, wire_format, type_descriptor) in sorted(
+        self.GetRawData().items()):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)
@@ -2104,15 +2104,30 @@ class RDFProtoStruct(RDFStruct):
       if not dependency_added:
         break
 
+    # This is not particularly effective, but this code is executed once per
+    # generated protobuf type. I.e. it runs very rarely.
+    def BuildDeps(f):
+      deps = []
+      for d in f.dependencies:
+        deps.append(d.name)
+        deps.extend(BuildDeps(d))
+
+      return deps
+
+    deps_matrix = {}
+    for f in files.values():
+      deps_matrix[f.name] = BuildDeps(f)
+
     # Sort files by their dependencies (this is similar to sorting imports:
     # things with no dependencies go first, then go things that depend on
     # previous ones).
     def CmpFiles(f1, f2):
-      for dep in f1.dependencies:
-        if dep.name == f2.name:
-          return 1
-
-      return -1
+      if f1.name in deps_matrix[f2.name]:
+        return -1
+      elif f2.name in deps_matrix[f1.name]:
+        return 1
+      else:
+        return 0
 
     sorted_deps = sorted(files.values(), cmp=CmpFiles)
 
@@ -2205,16 +2220,16 @@ class RDFProtoStruct(RDFStruct):
     union_field = getattr(self, self.union_field)
     cast_field_name = str(union_field).lower()
 
-    set_fields = set(type_descriptor.name
-                     for type_descriptor, _ in self.ListSetFields())
+    set_fields = set(
+        type_descriptor.name for type_descriptor, _ in self.ListSetFields())
 
     union_cases = [
         case.lower()
         for case in self.type_infos[self.union_field].enum_container.enum_dict
     ]
 
-    mismatched_union_cases = (set_fields.intersection(union_cases).difference(
-        [cast_field_name]))
+    mismatched_union_cases = (
+        set_fields.intersection(union_cases).difference([cast_field_name]))
 
     if mismatched_union_cases:
       raise ValueError("Inconsistent union proto data. Expected only %r "

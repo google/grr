@@ -38,6 +38,9 @@ class DatabaseTestMixin(object):
     if self.cleanup:
       self.cleanup()
 
+  def _InitializeClient(self, client_id):
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+
   def testDatabaseType(self):
     d = self.db
     self.assertIsInstance(d, db.Database)
@@ -103,8 +106,7 @@ class DatabaseTestMixin(object):
     d = self.db
 
     client_id_1 = "C.fc413187fefa1dcf"
-    # Typical initial FS enabled write
-    d.WriteClientMetadata(client_id_1, fleetspeak_enabled=True)
+    self._InitializeClient(client_id_1)
 
     # Typical update on client ping.
     d.WriteClientMetadata(
@@ -129,8 +131,7 @@ class DatabaseTestMixin(object):
     d = self.db
 
     client_id_1 = "C.fc413187fefa1dcf"
-    # Typical initial FS enabled write
-    d.WriteClientMetadata(client_id_1, fleetspeak_enabled=True)
+    self._InitializeClient(client_id_1)
 
     # Typical update on client crash.
     d.WriteClientMetadata(
@@ -160,13 +161,12 @@ class DatabaseTestMixin(object):
     d = self.db
 
     client_id = "C.fc413187fefa1dcf"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    self._InitializeClient(client_id)
 
     client = objects.Client(kernel="12.3")
     client.knowledge_base.fqdn = "test1234.examples.com"
     d.WriteClient(client_id, client)
-    client = objects.Client(kernel="12.4")
-    client.knowledge_base.fqdn = "test1234.examples.com"
+    client.kernel = "12.4"
     d.WriteClient(client_id, client)
 
     hist = d.ReadClientHistory(client_id)
@@ -174,8 +174,42 @@ class DatabaseTestMixin(object):
     self.assertIsInstance(hist[0], objects.Client)
     self.assertIsInstance(hist[1], objects.Client)
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
+    self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
+
+  def testClientStartupInfo(self):
+    """StartupInfo is written to a separate table, make sure the merge works."""
+    d = self.db
+
+    client_id = "C.fc413187fefa1dcf"
+    self._InitializeClient(client_id)
+
+    client = objects.Client(kernel="12.3")
+    client.startup_info = rdf_client.StartupInfo(boot_time=123)
+    client.knowledge_base.fqdn = "test1234.examples.com"
+    d.WriteClient(client_id, client)
+
+    client = d.ReadClient(client_id)
+    self.assertEqual(client.startup_info.boot_time, 123)
+
+    client.kernel = "12.4"
+    client.startup_info = rdf_client.StartupInfo(boot_time=124)
+    d.WriteClient(client_id, client)
+
+    client.kernel = "12.5"
+    client.startup_info = rdf_client.StartupInfo(boot_time=125)
+    d.WriteClient(client_id, client)
+
+    hist = d.ReadClientHistory(client_id)
+    self.assertEqual(len(hist), 3)
+    startup_infos = [cl.startup_info for cl in hist]
+    self.assertEqual([si.boot_time for si in startup_infos], [125, 124, 123])
+
+    # StartupInfos written using WriteClient show up in the StartupInfoHistory.
+    history = d.ReadClientStartupInfoHistory(client_id)
+    self.assertEqual(len(history), 3)
+    self.assertEqual(startup_infos, history)
 
   def testClientSummary(self):
     d = self.db
@@ -183,9 +217,9 @@ class DatabaseTestMixin(object):
     client_id_1 = "C.0000000000000001"
     client_id_2 = "C.0000000000000002"
     client_id_3 = "C.0000000000000003"
-    d.WriteClientMetadata(client_id_1, fleetspeak_enabled=True)
-    d.WriteClientMetadata(client_id_2, fleetspeak_enabled=True)
-    d.WriteClientMetadata(client_id_3, fleetspeak_enabled=True)
+    self._InitializeClient(client_id_1)
+    self._InitializeClient(client_id_2)
+    self._InitializeClient(client_id_3)
 
     d.WriteClient(client_id_1,
                   objects.Client(
@@ -212,7 +246,7 @@ class DatabaseTestMixin(object):
     self.assertEqual(len(res), 3)
     self.assertIsInstance(res[client_id_1], objects.Client)
     self.assertIsInstance(res[client_id_2], objects.Client)
-    self.assertIsNotNone(res[client_id_1].timestamp)
+    self.assertIsInstance(res[client_id_1].timestamp, rdfvalue.RDFDatetime)
     self.assertIsNotNone(res[client_id_2].timestamp)
     self.assertEqual(res[client_id_1].knowledge_base.fqdn,
                      "test1234.examples.com")
@@ -262,7 +296,7 @@ class DatabaseTestMixin(object):
   def testClientKeywordsTimeRanges(self):
     d = self.db
     client_id = "C.0000000000000001"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    self._InitializeClient(client_id)
 
     d.WriteClientKeywords(client_id, ["hostname1"])
     change_time = rdfvalue.RDFDatetime.Now()
@@ -277,7 +311,7 @@ class DatabaseTestMixin(object):
     d = self.db
     client_id = "C.0000000000000001"
     temporary_kw = "investigation42"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    self._InitializeClient(client_id)
     d.WriteClientKeywords(client_id, [
         "joe", "machine.test.example.com", "machine.test.example",
         "machine.test", temporary_kw
@@ -291,7 +325,7 @@ class DatabaseTestMixin(object):
   def testClientLabels(self):
     d = self.db
     client_id = "C.0000000000000001"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    self._InitializeClient(client_id)
 
     self.assertEqual(d.GetClientLabels(client_id), [])
 
@@ -328,7 +362,7 @@ class DatabaseTestMixin(object):
   def testClientLabelsUnicode(self):
     d = self.db
     client_id = "C.0000000000000001"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    self._InitializeClient(client_id)
 
     self.assertEqual(d.GetClientLabels(client_id), [])
 
@@ -386,6 +420,38 @@ class DatabaseTestMixin(object):
 
     with self.assertRaises(db.UnknownGRRUserError):
       d.ReadGRRUser("foo")
+
+  def testStartupHistory(self):
+    d = self.db
+
+    client_id = "C.0000000050000001"
+    si = rdf_client.StartupInfo(boot_time=1)
+
+    with self.assertRaises(db.UnknownClientError):
+      d.WriteClientStartupInfo(client_id, si)
+
+    self._InitializeClient(client_id)
+
+    d.WriteClientStartupInfo(client_id, si)
+    si.boot_time = 2
+    d.WriteClientStartupInfo(client_id, si)
+    si.boot_time = 3
+    d.WriteClientStartupInfo(client_id, si)
+
+    last_is = d.ReadClientStartupInfo(client_id)
+    self.assertIsInstance(last_is, rdf_client.StartupInfo)
+    self.assertEqual(last_is.boot_time, 3)
+    self.assertIsInstance(last_is.timestamp, rdfvalue.RDFDatetime)
+
+    hist = d.ReadClientStartupInfoHistory(client_id)
+    self.assertEqual(len(hist), 3)
+    self.assertEqual([si.boot_time for si in hist], [3, 2, 1])
+    self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
+    self.assertGreater(hist[0].timestamp, hist[1].timestamp)
+    self.assertGreater(hist[1].timestamp, hist[2].timestamp)
+
+    self.assertIsNone(d.ReadClientStartupInfo("C.0000000000000000"))
+    self.assertEqual(d.ReadClientStartupInfoHistory("C.0000000000000000"), [])
 
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----

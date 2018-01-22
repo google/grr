@@ -80,7 +80,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
     # objects.Client.
     client = self._OpenClient()
-    info = client.client_info
+    info = client.startup_info.client_info
     self.assertEqual(info.client_name, config.CONFIG["Client.name"])
     self.assertEqual(info.client_version,
                      int(config.CONFIG["Source.version_numeric"]))

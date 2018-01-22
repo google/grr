@@ -4,6 +4,7 @@
 See grr/server/db.py for interface.
 
 """
+import logging
 import MySQLdb
 
 from grr.server.databases import mysql_ddl
@@ -36,9 +37,14 @@ class MysqlDB(object):
     self._InitializeSchema()
 
   def _InitializeSchema(self):
+    """Initialize the database's schema."""
     connection = self.pool.get()
     cursor = connection.cursor()
     for command in mysql_ddl.SCHEMA_SETUP:
-      cursor.execute(command)
+      try:
+        cursor.execute(command)
+      except Exception:
+        logging.error("Failed to execute DDL: %s", command)
+        raise
     cursor.close()
     connection.close()

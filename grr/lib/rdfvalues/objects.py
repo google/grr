@@ -32,17 +32,17 @@ class Client(structs.RDFProtoStruct):
   protobuf = objects_pb2.Client
 
   rdf_deps = [
-      rdf_client.Filesystem,
-      rdfvalue.RDFDatetime,
-      rdf_client.ClientInformation,
-      rdf_client.VersionString,
-      rdf_client.KnowledgeBase,
       StringMapEntry,
-      rdf_client.Volume,
-      rdf_client.Interface,
-      rdf_client.HardwareInfo,
-      rdfvalue.ByteSize,
       cloud.CloudInstance,
+      rdf_client.Filesystem,
+      rdf_client.HardwareInfo,
+      rdf_client.Interface,
+      rdf_client.KnowledgeBase,
+      rdf_client.StartupInfo,
+      rdf_client.VersionString,
+      rdf_client.Volume,
+      rdfvalue.ByteSize,
+      rdfvalue.RDFDatetime,
   ]
 
   def __init__(self, *args, **kwargs):
@@ -94,7 +94,7 @@ class Client(structs.RDFProtoStruct):
       summary.system_info.system = kb.os
       summary.users = kb.users
       summary.interfaces = self.interfaces
-      summary.client_info = self.client_info
+      summary.client_info = self.startup_info.client_info
       if kb.os_release:
         summary.system_info.release = kb.os_release
         if kb.os_major_version:
