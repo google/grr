@@ -18,7 +18,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -230,6 +229,47 @@ class ApiHuntClient(rdf_structs.RDFProtoStruct):
       api_client.ApiClientId,
       api_flow.ApiFlowId,
   ]
+
+
+class ApiHuntLog(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiHuntLog
+  rdf_deps = [
+      api_client.ApiClientId,
+      api_flow.ApiFlowId,
+      rdfvalue.RDFDatetime,
+  ]
+
+  def InitFromFlowLog(self, fl):
+    if fl.HasField("client_id"):
+      self.client_id = fl.client_id.Basename()
+      if fl.HasField("urn"):
+        self.flow_id = fl.urn.RelativeName(fl.client_id)
+
+    self.timestamp = fl.age
+    self.log_message = fl.log_message
+    self.flow_name = fl.flow_name
+
+    return self
+
+
+class ApiHuntError(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiHuntError
+  rdf_deps = [
+      api_client.ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
+
+  def InitFromHuntError(self, he):
+    if he.HasField("client_id"):
+      self.client_id = he.client_id.Basename()
+
+    if he.HasField("backtrace"):
+      self.backtrace = he.backtrace
+
+    self.log_message = he.log_message
+    self.timestamp = he.age
+
+    return self
 
 
 class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):
@@ -644,9 +684,7 @@ class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListHuntLogsResult(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiListHuntLogsResult
-  rdf_deps = [
-      rdf_flows.FlowLog,
-  ]
+  rdf_deps = [ApiHuntLog]
 
 
 class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
@@ -663,7 +701,9 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
     result = api_call_handler_utils.FilterCollection(
         logs_collection, args.offset, args.count, args.filter)
 
-    return ApiListHuntLogsResult(items=result, total_count=len(logs_collection))
+    return ApiListHuntLogsResult(
+        items=[ApiHuntLog().InitFromFlowLog(x) for x in result],
+        total_count=len(logs_collection))
 
 
 class ApiListHuntErrorsArgs(rdf_structs.RDFProtoStruct):
@@ -676,7 +716,7 @@ class ApiListHuntErrorsArgs(rdf_structs.RDFProtoStruct):
 class ApiListHuntErrorsResult(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiListHuntErrorsResult
   rdf_deps = [
-      rdf_hunts.HuntError,
+      ApiHuntError,
   ]
 
 
@@ -695,7 +735,8 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
         errors_collection, args.offset, args.count, args.filter)
 
     return ApiListHuntErrorsResult(
-        items=result, total_count=len(errors_collection))
+        items=[ApiHuntError().InitFromHuntError(x) for x in result],
+        total_count=len(errors_collection))
 
 
 class ApiGetHuntClientCompletionStatsArgs(rdf_structs.RDFProtoStruct):

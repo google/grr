@@ -10,7 +10,7 @@
   <tbody>
     <tr grr-paged-filtered-table grr-api-items-provider url="::controller.errorsUrl"
         auto-refresh-interval="::controller.autoRefreshInterval">
-      <td ng-class="::{proto_key: $index % 2 == 0}"><grr-timestamp value="::item.age" /></td>
+      <td ng-class="::{proto_key: $index % 2 == 0}"><grr-timestamp value="::item.value.timestamp" /></td>
       <td ng-class="::{proto_key: $index % 2 == 0}"><grr-client-urn value="::item.value.client_id" /></td>
       <td ng-class="::{proto_key: $index % 2 == 0}">{$ ::item.value.backtrace.value $}</td>
       <td ng-class="::{proto_key: $index % 2 == 0}">{$ ::item.value.log_message.value $}</td>

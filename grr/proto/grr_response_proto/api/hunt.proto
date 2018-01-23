@@ -157,6 +157,38 @@ message ApiHuntResult {
     }];
 }
 
+message ApiHuntLog {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string log_message = 2;
+  optional string flow_name = 3 [(sem_type) = {
+      description: "Human readable name for the session ID."
+    }];
+  optional string flow_id = 4 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when this log message was written."
+    }];
+}
+
+message ApiHuntError {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+  optional string log_message = 2;
+  optional string backtrace = 3;
+  optional uint64 timestamp = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when error message was written."
+    }];
+}
+
 //
 // Method arguments and results.
 //
@@ -244,8 +276,10 @@ message ApiListHuntLogsArgs {
     }];
 };
 
+// Next field ID: 4
 message ApiListHuntLogsResult {
-  repeated FlowLog items = 1 [(sem_type) = {
+  reserved 1;
+  repeated ApiHuntLog items = 3 [(sem_type) = {
       description: "The hunt errors"
     }];
   optional int64 total_count = 2 [(sem_type) = {
@@ -270,8 +304,10 @@ message ApiListHuntErrorsArgs {
     }];
 };
 
+// Next field ID: 4
 message ApiListHuntErrorsResult {
-  repeated HuntError items = 1 [(sem_type) = {
+  reserved 1;
+  repeated ApiHuntError items = 3 [(sem_type) = {
       description: "The hunt errors"
     }];
   optional int64 total_count = 2 [(sem_type) = {

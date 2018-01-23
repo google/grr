@@ -143,6 +143,21 @@ message ApiFlowResult {
     }];
 }
 
+message ApiFlowLog {
+  optional string log_message = 1;
+  optional string flow_name = 2 [(sem_type) = {
+      description: "Human readable name for the session ID."
+    }];
+  optional string flow_id = 3 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional uint64 timestamp = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when this log message was written."
+    }];
+}
+
 //
 // Method arguments and results.
 //
@@ -252,8 +267,10 @@ message ApiListFlowLogsArgs {
     }];
 }
 
+// Next field ID: 4
 message ApiListFlowLogsResult {
-  repeated FlowLog items = 1 [(sem_type) = {
+  reserved 1;
+  repeated ApiFlowLog items = 3 [(sem_type) = {
       description: "The hunt errors"
     }];
    optional int64 total_count = 2 [(sem_type) = {

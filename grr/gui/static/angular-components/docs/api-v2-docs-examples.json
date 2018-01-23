@@ -5238,16 +5238,16 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "flowId": "W:ABCDEF",
             "flowName": "ListProcesses",
             "logMessage": "Sample message: foo.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            "timestamp": "52000000"
           },
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "flowId": "W:ABCDEF",
             "flowName": "ListProcesses",
             "logMessage": "Sample message: bar.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"
@@ -5261,10 +5261,10 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "flowId": "W:ABCDEF",
             "flowName": "ListProcesses",
             "logMessage": "Sample message: foo.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            "timestamp": "52000000"
           }
         ],
         "totalCount": "2"
@@ -5278,10 +5278,10 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "flowId": "W:ABCDEF",
             "flowName": "ListProcesses",
             "logMessage": "Sample message: bar.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"
@@ -5641,13 +5641,15 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.0000111122223333",
-            "logMessage": "Error foo."
+            "clientId": "C.0000111122223333",
+            "logMessage": "Error foo.",
+            "timestamp": "52000000"
           },
           {
             "backtrace": "<some backtrace>",
-            "clientId": "aff4:/C.1111222233334444",
-            "logMessage": "Error bar."
+            "clientId": "C.1111222233334444",
+            "logMessage": "Error bar.",
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"
@@ -5661,8 +5663,9 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.0000111122223333",
-            "logMessage": "Error foo."
+            "clientId": "C.0000111122223333",
+            "logMessage": "Error foo.",
+            "timestamp": "52000000"
           }
         ],
         "totalCount": "2"
@@ -5677,8 +5680,9 @@
         "items": [
           {
             "backtrace": "<some backtrace>",
-            "clientId": "aff4:/C.1111222233334444",
-            "logMessage": "Error bar."
+            "clientId": "C.1111222233334444",
+            "logMessage": "Error bar.",
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"
@@ -5696,12 +5700,12 @@
           {
             "flowName": "GenericHunt",
             "logMessage": "Sample message: foo.",
-            "urn": "aff4:/hunts/H:123456"
+            "timestamp": "52000000"
           },
           {
             "flowName": "GenericHunt",
             "logMessage": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"
@@ -5717,7 +5721,7 @@
           {
             "flowName": "GenericHunt",
             "logMessage": "Sample message: foo.",
-            "urn": "aff4:/hunts/H:123456"
+            "timestamp": "52000000"
           }
         ],
         "totalCount": "2"
@@ -5733,7 +5737,7 @@
           {
             "flowName": "GenericHunt",
             "logMessage": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
+            "timestamp": "55000000"
           }
         ],
         "totalCount": "2"

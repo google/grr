@@ -272,6 +272,19 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
     return self
 
 
+class ApiFlowLog(rdf_structs.RDFProtoStruct):
+  protobuf = flow_pb2.ApiFlowLog
+  rdf_deps = [ApiFlowId, rdfvalue.RDFDatetime]
+
+  def InitFromFlowLog(self, fl):
+    self.log_message = fl.log_message
+    self.flow_id = fl.urn.RelativeName(fl.client_id.Add("flows"))
+    self.flow_name = fl.flow_name
+    self.timestamp = fl.age
+
+    return self
+
+
 class ApiGetFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowArgs
   rdf_deps = [
@@ -396,9 +409,7 @@ class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
 
 class ApiListFlowLogsResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowLogsResult
-  rdf_deps = [
-      rdf_flows.FlowLog,
-  ]
+  rdf_deps = [ApiFlowLog]
 
 
 class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
@@ -414,7 +425,9 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
     result = api_call_handler_utils.FilterCollection(
         logs_collection, args.offset, args.count, args.filter)
 
-    return ApiListFlowLogsResult(items=result, total_count=len(logs_collection))
+    return ApiListFlowLogsResult(
+        items=[ApiFlowLog().InitFromFlowLog(x) for x in result],
+        total_count=len(logs_collection))
 
 
 class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
@@ -486,9 +499,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     """
     super(api_call_handler_base.ApiCallHandler, self).__init__()
 
-    if len(
-        [x for x in (path_globs_blacklist, path_globs_whitelist)
-         if x is None]) == 1:
+    if len([
+        x for x in (path_globs_blacklist, path_globs_whitelist) if x is None
+    ]) == 1:
       raise ValueError("path_globs_blacklist/path_globs_whitelist have to "
                        "set/unset together.")
 

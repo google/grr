@@ -21,6 +21,7 @@ from grr.gui import http_api
 from grr.gui import wsgiapp_testlib
 from grr.lib import flags
 from grr.lib import utils
+from grr.server import data_store
 from grr.test_lib import test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
@@ -167,6 +168,9 @@ class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
   skip_legacy_dynamic_proto_tests = False
   api_version = 1
 
+  def testRelationalDBReadsDisabled(self):
+    self.assertFalse(data_store.RelationalDBReadEnabled())
+
   @property
   def output_file_name(self):
     return os.path.join(DOCUMENT_ROOT,
@@ -179,6 +183,9 @@ class HttpApiV2RegressionTestMixin(HttpApiRegressionTestMixinBase):
   connection_type = "http_v2"
   skip_legacy_dynamic_proto_tests = True
   api_version = 2
+
+  def testRelationalDBReadsDisabled(self):
+    self.assertFalse(data_store.RelationalDBReadEnabled())
 
   @property
   def output_file_name(self):
@@ -194,6 +201,9 @@ class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
   use_golden_files_of = "http_v2"
   skip_legacy_dynamic_proto_tests = True
   api_version = 2
+
+  def testRelationalDBReadsEnabled(self):
+    self.assertTrue(data_store.RelationalDBReadEnabled())
 
   @property
   def output_file_name(self):

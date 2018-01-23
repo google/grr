@@ -266,18 +266,23 @@ class ApiRegressionGoldenOutputGenerator(object):
           continue
 
         test_class.setUpClass()
-        loaded = self.loader.loadTestsFromTestCase(test_class)
-        for t in loaded:
+        try:
+          test_instance = test_class()
+          test_instance.setUp()
           try:
-            t.setUp()
-            t.Run()
-
-            sample_data.setdefault(handler.__name__, []).extend(t.checks)
+            test_instance.Run()
+            sample_data.setdefault(handler.__name__, []).extend(
+                test_instance.checks)
           finally:
             try:
               t.tearDown()
             except Exception as e:  # pylint: disable=broad-except
               logging.exception(e)
+        finally:
+          try:
+            test_class.tearDownClass()
+          except Exception as e:  # pylint: disable=broad-except
+            logging.exception(e)
 
     json_sample_data = json.dumps(
         sample_data, indent=2, sort_keys=True, separators=(",", ": "))

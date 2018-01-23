@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for API value renderers."""
 
-
 from grr.gui import api_value_renderers
 
 from grr.lib import flags
@@ -23,18 +22,17 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
 
     renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=0)
     data = renderer.RenderValue(sample)
-    self.assertEqual(data, {
-        "age": 0,
-        "type": "ApiRDFProtoStructRendererSample",
-        "value": {
-            "index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-            },
-            "values": "<lists are omitted>"
-        }
-    })
+    self.assertEqual(
+        data, {
+            "type": "ApiRDFProtoStructRendererSample",
+            "value": {
+                "index": {
+                    "type": "long",
+                    "value": 0
+                },
+                "values": "<lists are omitted>"
+            }
+        })
 
   def testRendersProtoStructWithoutListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(index=0, values=["foo", "bar"])
@@ -42,26 +40,23 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=-1)
     data = renderer.RenderValue(sample)
 
-    self.assertEqual(data, {
-        "age": 0,
-        "type": "ApiRDFProtoStructRendererSample",
-        "value": {
-            "index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-            },
-            "values": [{
-                "age": 0,
-                "type": "unicode",
-                "value": "foo"
-            }, {
-                "age": 0,
-                "type": "unicode",
-                "value": "bar"
-            }]
-        }
-    })
+    self.assertEqual(
+        data, {
+            "type": "ApiRDFProtoStructRendererSample",
+            "value": {
+                "index": {
+                    "type": "long",
+                    "value": 0
+                },
+                "values": [{
+                    "type": "unicode",
+                    "value": "foo"
+                }, {
+                    "type": "unicode",
+                    "value": "bar"
+                }]
+            }
+        })
 
   def testRendersProtoStructWithListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(index=0, values=["foo", "bar"])
@@ -69,26 +64,23 @@ class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
     renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=1)
     data = renderer.RenderValue(sample)
 
-    self.assertEqual(data, {
-        "age": 0,
-        "type": "ApiRDFProtoStructRendererSample",
-        "value": {
-            "index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-            },
-            "values": [{
-                "age": 0,
-                "type": "unicode",
-                "value": u"foo"
-            }, {
-                "url": "to/be/implemented",
-                "age": 0,
-                "type": "FetchMoreLink"
-            }]
-        }
-    })
+    self.assertEqual(
+        data, {
+            "type": "ApiRDFProtoStructRendererSample",
+            "value": {
+                "index": {
+                    "type": "long",
+                    "value": 0
+                },
+                "values": [{
+                    "type": "unicode",
+                    "value": u"foo"
+                }, {
+                    "url": "to/be/implemented",
+                    "type": "FetchMoreLink"
+                }]
+            }
+        })
 
 
 class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
@@ -104,34 +96,27 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     data = renderer.RenderValue(sample)
 
     model_data = {
-        "age": 0,
         "type": "GrrMessage",
         "value": {
             "task_id": {
-                "age": 0,
                 "type": "long",
                 "value": 42
             },
             "payload_type": {
-                "age": 0,
                 "type": "unicode",
                 "value": "ApiRDFProtoStructRendererSample"
             },
             "payload": {
-                "age": 0,
                 "type": "ApiRDFProtoStructRendererSample",
                 "value": {
                     "index": {
-                        "age": 0,
                         "type": "long",
                         "value": 43
                     },
                     "values": [{
-                        "age": 0,
                         "type": "unicode",
                         "value": "foo"
                     }, {
-                        "age": 0,
                         "type": "unicode",
                         "value": "bar"
                     }]
