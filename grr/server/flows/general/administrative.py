@@ -23,6 +23,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import db
 from grr.server import email_alerts
 from grr.server import events
 from grr.server import flow
@@ -778,31 +779,45 @@ class ClientStartupHandler(flow.EventListener):
       return
 
     client_id = message.source
+    new_si = message.payload
+    drift = rdfvalue.Duration("5m")
 
-    client = aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-    old_info = client.Get(client.Schema.CLIENT_INFO)
-    old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
-    startup_info = rdf_client.StartupInfo(message.payload)
-    info = startup_info.client_info
+    if data_store.RelationalDBReadEnabled():
+      current_si = data_store.REL_DB.ReadClientStartupInfo(client_id.Basename())
 
-    # Only write to the datastore if we have new information.
-    new_data = (info.client_name, info.client_version, info.revision,
-                info.build_time, info.client_description)
-    old_data = (old_info.client_name, old_info.client_version,
-                old_info.revision, old_info.build_time,
-                old_info.client_description)
+      # We write the updated record if the client_info has any changes
+      # or the boot time is more than 5 minutes different.
+      if (not current_si or current_si.client_info != new_si.client_info or
+          abs(current_si.boot_time - new_si.boot_time) > drift):
+        data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
 
-    if new_data != old_data:
-      client.Set(client.Schema.CLIENT_INFO(info))
+    else:
+      changes = False
+      with aff4.FACTORY.Create(
+          client_id, aff4_grr.VFSGRRClient, mode="rw",
+          token=self.token) as client:
+        old_info = client.Get(client.Schema.CLIENT_INFO)
+        old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
 
-    client.AddLabels(info.labels, owner="GRR")
+        info = new_si.client_info
 
-    # Allow for some drift in the boot times (5 minutes).
-    if abs(int(old_boot) - int(startup_info.boot_time)) > 300 * 1e6:
-      client.Set(client.Schema.LAST_BOOT_TIME(startup_info.boot_time))
+        # Only write to the datastore if we have new information.
+        if info != old_info:
+          client.Set(client.Schema.CLIENT_INFO(info))
+          changes = True
 
-    client.Close()
+        client.AddLabels(info.labels, owner="GRR")
+
+        # Allow for some drift in the boot times (5 minutes).
+        if not old_boot or abs(old_boot - new_si.boot_time) > drift:
+          client.Set(client.Schema.LAST_BOOT_TIME(new_si.boot_time))
+          changes = True
+
+      if data_store.RelationalDBWriteEnabled() and changes:
+        try:
+          data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
+        except db.UnknownClientError:
+          pass
 
     events.Events.PublishEventInline("ClientStartup", message, token=self.token)
 

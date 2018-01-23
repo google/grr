@@ -600,13 +600,20 @@ message ClientStats {
   optional uint64 bytes_received = 5;
   optional uint64 bytes_sent = 6;
   repeated IOSample io_samples = 7;
-  optional uint64 create_time = 8;
-  optional uint64 boot_time = 9;
+  optional uint64 create_time = 8 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 boot_time = 9 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
 }
 
 message StartupInfo {
   optional ClientInformation client_info = 1;
-  optional uint64 boot_time = 2;
+  optional uint64 boot_time = 2 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Time when the machine last rebooted."
+  }];
 }
 
 message ExecuteRequest {

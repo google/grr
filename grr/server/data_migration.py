@@ -9,7 +9,7 @@ from grr.server import data_store
 def ConvertVFSGRRClient(client):
   """Converts a VFSGRRClient object to and rdfvalues.objects.Client objects."""
 
-  result = rdf_objects.Client()
+  result = rdf_objects.Client(client_id=client.urn.Basename())
 
   s = client.Schema
   result.last_boot_time = client.Get(s.LAST_BOOT_TIME)

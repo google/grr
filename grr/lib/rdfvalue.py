@@ -729,7 +729,7 @@ class ByteSize(RDFInteger):
       ("mi", 1024**2),
       ("gi", 1024**3),))
 
-  REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
+  REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$", re.I)
 
   def __init__(self, initializer=None, age=None):
     super(ByteSize, self).__init__(None, age)
@@ -750,16 +750,16 @@ class ByteSize(RDFInteger):
   def __str__(self):
     size_token = ""
     if self._value > 1024**3:
-      size_token = "Gb"
+      size_token = "GiB"
       value = float(self._value) / 1024**3
     elif self._value > 1024**2:
-      size_token = "Mb"
+      size_token = "MiB"
       value = float(self._value) / 1024**2
     elif self._value > 1024:
-      size_token = "Kb"
+      size_token = "KiB"
       value = float(self._value) / 1024
     else:
-      return utils.SmartStr(self._value) + "b"
+      return utils.SmartStr(self._value) + "B"
 
     return "%.1f%s" % (value, size_token)
 

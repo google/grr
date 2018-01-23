@@ -776,8 +776,8 @@
       "method": "GET",
       "response": {
         "times": [
-          "172800000000",
-          "86400000000"
+          "172800000042",
+          "86400000042"
         ]
       },
       "test_class": "ApiGetFileVersionTimesHandlerRegressionTest_http_v2",
@@ -823,7 +823,8 @@
               "key": "client",
               "type": "Client",
               "value": {
-                "@type": "type.googleapis.com/Client"
+                "@type": "type.googleapis.com/Client",
+                "clientId": "C.1000000000000000"
               }
             },
             {
@@ -880,7 +881,8 @@
               "key": "client",
               "type": "Client",
               "value": {
-                "@type": "type.googleapis.com/Client"
+                "@type": "type.googleapis.com/Client",
+                "clientId": "C.1000000000000000"
               }
             },
             {

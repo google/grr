@@ -541,7 +541,7 @@ bool StopService(SC_HANDLE service_handle, int time_out) {
       return true;
     }
 
-    if ( GetTickCount() - start_time > 60000 ) {
+    if ( GetTickCount() - start_time > time_out ) {
       logger.Log("Service stop timed out.\n");
       return false;
     }

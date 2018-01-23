@@ -140,6 +140,42 @@ class Database(object):
     """
 
   @abc.abstractmethod
+  def WriteClientStartupInfo(self, client_id, startup_info):
+    """Writes a new client startup record.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      startup_info: An rdfvalues.client.StartupInfo object. Will be saved at
+          the "current" timestamp.
+
+    Raises:
+      UnknownClientError: The client_id is not known yet.
+    """
+
+  @abc.abstractmethod
+  def ReadClientStartupInfo(self, client_id):
+    """Reads the latest client startup record for a single client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+
+    Returns:
+      An rdfvalues.client.StartupInfo object.
+    """
+
+  @abc.abstractmethod
+  def ReadClientStartupInfoHistory(self, client_id):
+    """Reads the full startup history for a particular client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+
+    Returns:
+      A list of rdfvalues.client.StartupInfo objects sorted by timestamp,
+      newest entry first.
+    """
+
+  @abc.abstractmethod
   def WriteClientKeywords(self, client_id, keywords):
     """Associates the provided keywords with the client.
 

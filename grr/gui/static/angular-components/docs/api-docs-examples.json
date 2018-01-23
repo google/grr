@@ -2902,20 +2902,20 @@
           {
             "age": 0,
             "type": "RDFDatetime",
-            "value": 172800000000
+            "value": 172800000042
           },
           {
             "age": 0,
             "type": "RDFDatetime",
-            "value": 86400000000
+            "value": 86400000042
           }
         ]
       },
       "test_class": "ApiGetFileVersionTimesHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "times": [
-          172800000000,
-          86400000000
+          172800000042,
+          86400000042
         ]
       },
       "url": "/api/clients/C.1000000000000000/vfs-version-times/fs/os/c/Downloads/a.txt"
@@ -3069,7 +3069,13 @@
                     "value": {
                       "age": 0,
                       "type": "Client",
-                      "value": {}
+                      "value": {
+                        "client_id": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "C.1000000000000000"
+                        }
+                      }
                     }
                   }
                 },
@@ -3145,7 +3151,9 @@
         "state": "RUNNING",
         "state_data": {
           "items": [
-            {},
+            {
+              "client_id": "C.1000000000000000"
+            },
             {
               "invalid": true,
               "key": "fqdn"
@@ -3312,7 +3320,13 @@
                     "value": {
                       "age": 0,
                       "type": "Client",
-                      "value": {}
+                      "value": {
+                        "client_id": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "C.1000000000000000"
+                        }
+                      }
                     }
                   }
                 },
@@ -3389,7 +3403,9 @@
         "state": "ERROR",
         "state_data": {
           "items": [
-            {},
+            {
+              "client_id": "C.1000000000000000"
+            },
             {
               "invalid": true,
               "key": "fqdn"
@@ -12677,7 +12693,7 @@
         "items": [
           {
             "age": 0,
-            "type": "AFF4ObjectLabel",
+            "type": "ClientLabel",
             "value": {
               "name": {
                 "age": 0,
@@ -12688,7 +12704,7 @@
           },
           {
             "age": 0,
-            "type": "AFF4ObjectLabel",
+            "type": "ClientLabel",
             "value": {
               "name": {
                 "age": 0,

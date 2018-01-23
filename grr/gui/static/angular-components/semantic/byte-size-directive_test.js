@@ -50,34 +50,34 @@ describe('grrByteSize directive', function() {
       value: 42,
     };
     var element = renderTestTemplate(value);
-    expect(element.text().trim()).toBe('42b');
+    expect(element.text().trim()).toBe('42B');
   });
 
-  it('shows value in kilobytes if it is less than 1024**2', function() {
+  it('shows value in kibibytes if it is less than 1024**2', function() {
     var value = {
       type: 'ByteSize',
       value: 1124
     };
     var element = renderTestTemplate(value);
-    expect(element.text().trim()).toBe('1.1Kb');
+    expect(element.text().trim()).toBe('1.1KiB');
   });
 
-  it('shows value in megabytes if it is less than 1024**3', function() {
+  it('shows value in mebibytes if it is less than 1024**3', function() {
     var value = {
       type: 'ByteSize',
       value: 44040192
     };
     var element = renderTestTemplate(value);
-    expect(element.text().trim()).toBe('42Mb');
+    expect(element.text().trim()).toBe('42MiB');
   });
 
-  it('shows value in gigabytes if it is more than 1024**3', function() {
+  it('shows value in gibibytes if it is more than 1024**3', function() {
     var value = {
       type: 'ByteSize',
       value: 1610612736
     };
     var element = renderTestTemplate(value);
-    expect(element.text().trim()).toBe('1.5Gb');
+    expect(element.text().trim()).toBe('1.5GiB');
   });
 
   it('shows value in bytes in the tooltip', function() {

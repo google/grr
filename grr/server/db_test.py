@@ -50,7 +50,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
-      d.WriteClient(client_id, objects.Client())
+      d.WriteClient(client_id, objects.Client(client_id=client_id))
 
     # fleetspeak_enabled not set means update.
     with self.assertRaises(db.UnknownClientError):
@@ -86,7 +86,7 @@ class DatabaseTestMixin(object):
     d.WriteClientMetadata(
         client_id_2,
         certificate=CERT,
-        first_seen=rdfvalue.RDFDatetime(100),
+        first_seen=rdfvalue.RDFDatetime(100000000),
         fleetspeak_enabled=False)
 
     res = d.ReadClientMetadatas([client_id_1, client_id_2])
@@ -100,7 +100,25 @@ class DatabaseTestMixin(object):
     self.assertIsInstance(m2, objects.ClientMetadata)
     self.assertFalse(m2.fleetspeak_enabled)
     self.assertEqual(m2.certificate, CERT)
-    self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100))
+    self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100000000))
+
+  def testClientMetadataSubsecond(self):
+    client_id = "C.fc413187fefa1dcf"
+    self.db.WriteClientMetadata(
+        client_id,
+        certificate=CERT,
+        first_seen=rdfvalue.RDFDatetime(100000001),
+        last_clock=rdfvalue.RDFDatetime(100000011),
+        last_foreman=rdfvalue.RDFDatetime(100000021),
+        last_ping=rdfvalue.RDFDatetime(100000031),
+        fleetspeak_enabled=False)
+    res = self.db.ReadClientMetadatas([client_id])
+    self.assertEqual(len(res), 1)
+    m1 = res[client_id]
+    self.assertEqual(m1.first_seen, rdfvalue.RDFDatetime(100000001))
+    self.assertEqual(m1.clock, rdfvalue.RDFDatetime(100000011))
+    self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(100000021))
+    self.assertEqual(m1.ping, rdfvalue.RDFDatetime(100000031))
 
   def testClientMetadataPing(self):
     d = self.db
@@ -111,21 +129,21 @@ class DatabaseTestMixin(object):
     # Typical update on client ping.
     d.WriteClientMetadata(
         client_id_1,
-        last_ping=rdfvalue.RDFDatetime(200000),
-        last_clock=rdfvalue.RDFDatetime(210000),
+        last_ping=rdfvalue.RDFDatetime(200000000000),
+        last_clock=rdfvalue.RDFDatetime(210000000000),
         last_ip=rdf_client.NetworkAddress(human_readable_address="8.8.8.8"),
-        last_foreman=rdfvalue.RDFDatetime(220000))
+        last_foreman=rdfvalue.RDFDatetime(220000000000))
 
     res = d.ReadClientMetadatas([client_id_1])
     self.assertEqual(len(res), 1)
     m1 = res[client_id_1]
     self.assertIsInstance(m1, objects.ClientMetadata)
     self.assertTrue(m1.fleetspeak_enabled)
-    self.assertEqual(m1.ping, rdfvalue.RDFDatetime(200000))
-    self.assertEqual(m1.clock, rdfvalue.RDFDatetime(210000))
+    self.assertEqual(m1.ping, rdfvalue.RDFDatetime(200000000000))
+    self.assertEqual(m1.clock, rdfvalue.RDFDatetime(210000000000))
     self.assertEqual(
         m1.ip, rdf_client.NetworkAddress(human_readable_address="8.8.8.8"))
-    self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000))
+    self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000000000))
 
   def testClientMetadataCrash(self):
     d = self.db
@@ -163,7 +181,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
     self._InitializeClient(client_id)
 
-    client = objects.Client(kernel="12.3")
+    client = objects.Client(client_id=client_id, kernel="12.3")
     client.knowledge_base.fqdn = "test1234.examples.com"
     d.WriteClient(client_id, client)
     client.kernel = "12.4"
@@ -185,7 +203,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
     self._InitializeClient(client_id)
 
-    client = objects.Client(kernel="12.3")
+    client = objects.Client(client_id=client_id, kernel="12.3")
     client.startup_info = rdf_client.StartupInfo(boot_time=123)
     client.knowledge_base.fqdn = "test1234.examples.com"
     d.WriteClient(client_id, client)
@@ -223,17 +241,20 @@ class DatabaseTestMixin(object):
 
     d.WriteClient(client_id_1,
                   objects.Client(
+                      client_id=client_id_1,
                       knowledge_base=rdf_client.KnowledgeBase(
                           fqdn="test1234.examples.com"),
                       kernel="12.3"))
     d.WriteClient(client_id_1,
                   objects.Client(
+                      client_id=client_id_1,
                       knowledge_base=rdf_client.KnowledgeBase(
                           fqdn="test1234.examples.com"),
                       kernel="12.4"))
 
     d.WriteClient(client_id_2,
                   objects.Client(
+                      client_id=client_id_2,
                       knowledge_base=rdf_client.KnowledgeBase(
                           fqdn="test1235.examples.com"),
                       kernel="12.4"))

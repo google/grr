@@ -27,13 +27,13 @@ const stringifyByteSize = function(value) {
   }
 
   if (value > GB_UNIT) {
-    return [value / GB_UNIT, 'Gb'];
+    return [value / GB_UNIT, 'GiB'];
   } else if (value > MB_UNIT) {
-    return [value / MB_UNIT, 'Mb'];
+    return [value / MB_UNIT, 'MiB'];
   } else if (value > KB_UNIT) {
-    return [value / KB_UNIT, 'Kb'];
+    return [value / KB_UNIT, 'KiB'];
   } else {
-    return [value, 'b'];
+    return [value, 'B'];
   }
 };
 

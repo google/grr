@@ -25,6 +25,10 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
+class _SkipFileException(Exception):
+  pass
+
+
 class Component(object):
   """A component of a path."""
 
@@ -160,6 +164,8 @@ class FileFinderOS(actions.ActionPlugin):
     self.follow_links = args.follow_links
     self.process_non_regular_files = args.process_non_regular_files
 
+    self.stat_cache = utils.StatCache()
+
     # Generate a list of mount points where we stop recursive searches.
     if args.xdev == args.XDev.NEVER:
       # Never cross device boundaries, stop at all mount points.
@@ -176,92 +182,93 @@ class FileFinderOS(actions.ActionPlugin):
 
     for fname in self.CollectGlobs(args.paths):
       self.Progress()
-      self._ProcessFilePath(fname, args)
+      try:
+        matches = self._Validate(args, fname)
+        result = self._ProcessFile(args, fname)
+        result.matches = matches
+        self.SendReply(result)
+      except _SkipFileException:
+        pass
 
-  def _ProcessFilePath(self, path, args):
+  def _GetStat(self, filepath, follow_symlink=True):
     try:
-      stat = utils.Stat(path, follow_symlink=False)
+      return self.stat_cache.Get(filepath, follow_symlink=follow_symlink)
     except OSError:
-      return
+      raise _SkipFileException()
 
-    if (not (stat.IsRegular() or stat.IsDirectory()) and
-        not self.process_non_regular_files):
-      return
+  def _Validate(self, args, filepath):
+    matches = []
+    self._ValidateRegularity(args, filepath)
+    self._ValidateMetadata(args, filepath)
+    self._ValidateContent(args, filepath, matches)
+    return matches
+
+  def _ValidateRegularity(self, args, filepath):
+    stat = self._GetStat(filepath, follow_symlink=False)
+
+    is_regular = stat.IsRegular() or stat.IsDirectory()
+    if not is_regular and not args.process_non_regular_files:
+      raise _SkipFileException()
+
+  def _ValidateMetadata(self, args, filepath):
+    stat = self._GetStat(filepath, follow_symlink=False)
 
     for metadata_condition in MetadataCondition.Parse(args.conditions):
       if not metadata_condition.Check(stat):
-        return
+        raise _SkipFileException()
 
-    matches = []
+  def _ValidateContent(self, args, filepath, matches):
     for content_condition in ContentCondition.Parse(args.conditions):
-      result = list(content_condition.Search(path))
+      result = list(content_condition.Search(filepath))
       if not result:
-        return
-
+        raise _SkipFileException()
       matches.extend(result)
 
-    result = self._ProcessFile(path, stat, args)
-    if result:
-      result.matches = matches
-      self.SendReply(result)
-
-  def _ProcessFile(self, fname, stat, args):
+  def _ProcessFile(self, args, fname):
     if args.action.action_type == args.action.Action.STAT:
-      return self._ExecuteStat(fname, stat, args)
+      return self._ExecuteStat(fname, args)
 
     # For directories, only Stat makes sense.
-    if stat.IsDirectory():
-      return None
-
-    # We never want to hash/download the link, always the target.
-    if stat.IsSymlink():
-      try:
-        stat = utils.Stat(fname, follow_symlink=True)
-      except OSError:
-        return None
+    if self._GetStat(fname, follow_symlink=True).IsDirectory():
+      raise _SkipFileException()
 
     if args.action.action_type == args.action.Action.DOWNLOAD:
-      return self._ExecuteDownload(fname, stat, args)
+      return self._ExecuteDownload(fname, args)
 
     if args.action.action_type == args.action.Action.HASH:
-      return self._ExecuteHash(fname, stat, args)
+      return self._ExecuteHash(fname, args)
 
     raise ValueError("incorrect action type: %s" % args.action.action_type)
 
-  def _ExecuteStat(self, fname, stat, args):
-    stat_entry = self.Stat(fname, stat, args.action.stat)
+  def _ExecuteStat(self, fname, args):
+    stat_entry = self.Stat(fname, args.action.stat)
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
-  def _ExecuteDownload(self, fname, stat, args):
+  def _ExecuteDownload(self, fname, args):
     stat_opts = rdf_file_finder.FileFinderStatActionOptions(
         resolve_links=True,
         collect_ext_attrs=args.action.download.collect_ext_attrs)
 
-    stat_entry = self.Stat(fname, stat, stat_opts)
-    uploaded_file = self.Upload(fname, stat, args.action.download)
+    stat_entry = self.Stat(fname, stat_opts)
+    uploaded_file = self.Upload(fname, args.action.download)
     if uploaded_file:
       uploaded_file.stat_entry = stat_entry
 
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, uploaded_file=uploaded_file)
 
-  def _ExecuteHash(self, fname, stat, args):
+  def _ExecuteHash(self, fname, args):
     stat_opts = rdf_file_finder.FileFinderStatActionOptions(
         resolve_links=True,
         collect_ext_attrs=args.action.hash.collect_ext_attrs)
 
-    stat_entry = self.Stat(fname, stat, stat_opts)
-    hash_entry = self.Hash(fname, stat, args.action.hash)
+    stat_entry = self.Stat(fname, stat_opts)
+    hash_entry = self.Hash(fname, args.action.hash)
     return rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
 
-  def Stat(self, fname, stat, opts):
-    if opts.resolve_links and stat.IsSymlink():
-      try:
-        stat = utils.Stat(fname, follow_symlink=True)
-      except OSError:
-        return None
-
+  def Stat(self, fname, opts):
+    stat = self._GetStat(fname, follow_symlink=opts.resolve_links)
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=client_utils.LocalPathToCanonicalPath(fname),
@@ -269,8 +276,8 @@ class FileFinderOS(actions.ActionPlugin):
     return files.MakeStatResponse(
         stat, pathspec=pathspec, ext_attrs=opts.collect_ext_attrs)
 
-  def Hash(self, fname, stat, opts):
-    file_size = stat.GetSize()
+  def Hash(self, fname, opts):
+    file_size = self._GetStat(fname, follow_symlink=True).GetSize()
     if file_size <= opts.max_size:
       max_hash_size = file_size
     else:
@@ -287,9 +294,10 @@ class FileFinderOS(actions.ActionPlugin):
       return None
     return hasher.GetHashObject()
 
-  def Upload(self, fname, stat, opts):
+  def Upload(self, fname, opts):
+    file_size = self._GetStat(fname, follow_symlink=True).GetSize()
     max_bytes = None
-    if stat.GetSize() > opts.max_size:
+    if file_size > opts.max_size:
       policy = opts.oversized_file_policy
       policy_enum = opts.OversizedFilePolicy
       if policy == policy_enum.DOWNLOAD_TRUNCATED:

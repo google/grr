@@ -84,6 +84,8 @@ class GRRBaseTest(unittest.TestCase):
   # The type of this test.
   type = "normal"
 
+  use_relational_reads = False
+
   def __init__(self, methodName=None):  # pylint: disable=g-bad-name
     """Hack around unittest's stupid constructor.
 
@@ -156,12 +158,19 @@ class GRRBaseTest(unittest.TestCase):
     self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
     self.config_set_disable.Start()
 
+    if self.use_relational_reads:
+      self.relational_read_stubber = utils.Stubber(
+          data_store, "RelationalDBReadEnabled", lambda: True)
+      self.relational_read_stubber.Start()
+
   def tearDown(self):
     super(GRRBaseTest, self).tearDown()
 
     self.config_set_disable.Stop()
     self.smtp_patcher.stop()
     self.mail_stubber.Stop()
+    if self.use_relational_reads:
+      self.relational_read_stubber.Stop()
 
     logging.info("Completed test: %s.%s (%.4fs)", self.__class__.__name__,
                  self._testMethodName,
@@ -487,7 +496,7 @@ class FakeTime(object):
 
   def __init__(self, fake_time, increment=0):
     if isinstance(fake_time, rdfvalue.RDFDatetime):
-      self.time = fake_time.AsSecondsFromEpoch()
+      self.time = fake_time / 1e6
     else:
       self.time = fake_time
     self.increment = increment

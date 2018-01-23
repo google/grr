@@ -89,20 +89,20 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.DateString(gui_test_lib.TIME_2), self.GetText,
         "css=.version-dropdown > option[selected]")
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
-    self.WaitUntil(self.IsTextPresent, "12Gb")
+    self.WaitUntil(self.IsTextPresent, "12GiB")
 
     self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
                gui_test_lib.DateString(gui_test_lib.TIME_1))
     self.WaitUntil(self.IsTextPresent, "Hostname T1")
     self.WaitUntil(self.IsTextPresent, "6.1.8000")
-    self.WaitUntil(self.IsTextPresent, "8Gb")
+    self.WaitUntil(self.IsTextPresent, "8GiB")
     self.WaitUntil(self.IsTextPresent, "Newer Version available")
 
     # Also the details show the selected version.
     self.Click("css=label:contains('Full details')")
     self.WaitUntil(self.IsTextPresent, "Hostname T1")
     self.WaitUntil(self.IsTextPresent, "6.1.8000")
-    self.WaitUntil(self.IsTextPresent, "8Gb")
+    self.WaitUntil(self.IsTextPresent, "8GiB")
 
     # Check that changing the version does not change the view, i.e. that
     # we are still in the full details view.
@@ -110,7 +110,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                gui_test_lib.DateString(gui_test_lib.TIME_0))
     self.WaitUntil(self.IsTextPresent, "Hostname T0")
     self.WaitUntil(self.IsTextPresent, "6.1.7000")
-    self.WaitUntil(self.IsTextPresent, "4Gb")
+    self.WaitUntil(self.IsTextPresent, "4GiB")
 
   def testClickingOnHistoryButtonOpensAttributeHistoryDialog(self):
     self.Open("/#/clients/" + self.client_id)

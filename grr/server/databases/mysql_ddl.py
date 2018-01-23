@@ -5,15 +5,15 @@ SCHEMA_SETUP = [
     """
 CREATE TABLE IF NOT EXISTS clients(
     client_id BIGINT UNSIGNED PRIMARY KEY,
-    last_timestamp DATETIME,
+    last_timestamp DATETIME(6),
     fleetspeak_enabled BOOL NOT NULL,
     certificate BLOB,
-    last_ping DATETIME,
-    last_clock DATETIME,
+    last_ping DATETIME(6),
+    last_clock DATETIME(6),
     last_ip VARCHAR(64),
-    last_foreman DATETIME,
+    last_foreman DATETIME(6),
     last_crash MEDIUMBLOB,
-    first_seen DATETIME
+    first_seen DATETIME(6)
 )""", """
 CREATE TABLE IF NOT EXISTS client_labels(
     client_id BIGINT UNSIGNED,

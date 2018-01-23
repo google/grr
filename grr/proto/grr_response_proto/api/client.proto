@@ -3,6 +3,7 @@ syntax = "proto2";
 import "grr_response_proto/api/stats.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
+import "grr_response_proto/objects.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 
@@ -53,7 +54,7 @@ message ApiClient {
       description: "Last crash time."
     }];
 
-  repeated AFF4ObjectLabel labels = 11;
+  repeated ClientLabel labels = 11;
   repeated Interface interfaces = 12;
   repeated User users = 13;
   repeated Volume volumes = 14;
@@ -263,7 +264,7 @@ message ApiRemoveClientsLabelsArgs {
 }
 
 message ApiListClientsLabelsResult {
-  repeated AFF4ObjectLabel items = 1;
+  repeated ClientLabel items = 1;
 }
 
 message ApiListKbFieldsResult {

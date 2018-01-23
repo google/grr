@@ -279,7 +279,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
   def testAnalyzeClient(self):
     index = client_index.ClientIndex()
 
-    client = objects.Client()
+    client = objects.Client(client_id="C.0000000000000000")
     client.knowledge_base.os = "Windows"
     client.startup_info.client_info.client_name = "grr monitor"
     client.startup_info.client_info.labels = ["client-label-23"]
@@ -318,7 +318,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     res = {}
     for i in range(1, n + 1):
       client_id = "C.100000000000000%d" % i
-      client = objects.Client()
+      client = objects.Client(client_id=client_id)
       client.knowledge_base.os = "Windows"
       client.knowledge_base.fqdn = "host-%d.example.com" % i
 

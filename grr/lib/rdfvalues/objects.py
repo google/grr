@@ -4,6 +4,8 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
+import re
+
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
@@ -39,15 +41,32 @@ class Client(structs.RDFProtoStruct):
       rdf_client.Interface,
       rdf_client.KnowledgeBase,
       rdf_client.StartupInfo,
-      rdf_client.VersionString,
       rdf_client.Volume,
       rdfvalue.ByteSize,
       rdfvalue.RDFDatetime,
   ]
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, skip_verification=False, *args, **kwargs):
     super(Client, self).__init__(*args, **kwargs)
+    if not skip_verification:
+      self.ValidateClientId()
     self.timestamp = None
+
+  def ValidateClientId(self):
+    if not self.client_id:
+      raise ValueError(
+          "Trying to instantiate a Client object without client id.")
+    if not re.match(r"C\.[0-9a-f]{16}", self.client_id):
+      raise ValueError("Client id invalid: %s" % self.client_id)
+
+  @classmethod
+  def FromSerializedString(cls, value, age=None):
+    res = cls(skip_verification=True)
+    res.ParseFromString(value)
+    if age:
+      res.age = age
+    res.ValidateClientId()
+    return res
 
   def Uname(self):
     """OS summary string."""

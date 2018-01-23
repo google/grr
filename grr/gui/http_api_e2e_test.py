@@ -43,7 +43,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import vfs_pb2
 from grr.server import access_control
 from grr.server import aff4
@@ -694,10 +694,8 @@ class ApiClientLibLabelsTest(ApiE2ETest):
 
     self.assertEqual(
         sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            jobs_pb2.AFF4ObjectLabel(
-                name="bar", owner=self.token.username, timestamp=42000000),
-            jobs_pb2.AFF4ObjectLabel(
-                name="foo", owner=self.token.username, timestamp=42000000)
+            objects_pb2.ClientLabel(name="bar", owner=self.token.username),
+            objects_pb2.ClientLabel(name="foo", owner=self.token.username)
         ])
 
   def testRemoveLabels(self):
@@ -712,18 +710,14 @@ class ApiClientLibLabelsTest(ApiE2ETest):
     client_ref = self.api.Client(client_id=self.client_urn.Basename())
     self.assertEqual(
         sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            jobs_pb2.AFF4ObjectLabel(
-                name="bar", owner=self.token.username, timestamp=42000000),
-            jobs_pb2.AFF4ObjectLabel(
-                name="foo", owner=self.token.username, timestamp=42000000)
+            objects_pb2.ClientLabel(name="bar", owner=self.token.username),
+            objects_pb2.ClientLabel(name="foo", owner=self.token.username)
         ])
 
     client_ref.RemoveLabel("foo")
     self.assertEqual(
-        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            jobs_pb2.AFF4ObjectLabel(
-                name="bar", owner=self.token.username, timestamp=42000000)
-        ])
+        sorted(client_ref.Get().data.labels, key=lambda l: l.name),
+        [objects_pb2.ClientLabel(name="bar", owner=self.token.username)])
 
 
 class CSRFProtectionTest(ApiE2ETest):

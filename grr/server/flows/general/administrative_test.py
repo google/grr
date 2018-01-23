@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for administrative flows."""
 
-
 import os
 import subprocess
 import sys
@@ -23,6 +22,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import email_alerts
 from grr.server import events
 from grr.server import flow
@@ -222,9 +222,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           client, [self.client_id], token=self.token, check_flow_errors=False)
 
     self.assertEqual(len(self.email_messages), 2)
-    self.assertListEqual([
-        self.email_messages[0]["address"], self.email_messages[1]["address"]
-    ], ["crashes@example.com", config.CONFIG["Monitoring.alert_email"]])
+    self.assertListEqual(
+        [self.email_messages[0]["address"], self.email_messages[1]["address"]],
+        ["crashes@example.com", config.CONFIG["Monitoring.alert_email"]])
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"
@@ -274,10 +274,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           "aff4:/flows/" + queues.FLOWS.Basename() + ":NannyMessage")
       self.assertEqual(crash.crash_message, nanny_message)
 
-  def testStartupHandler(self):
-    # Clean the client records.
-    aff4.FACTORY.Delete(self.client_id, token=self.token)
-
+  def _RunSendStartupInfo(self):
     client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
     for _ in flow_test_lib.TestFlowHelper(
         ClientActionRunner.__name__,
@@ -286,6 +283,57 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         action="SendStartupInfo",
         token=self.token):
       pass
+
+  def testStartupHandlerRelational(self):
+
+    with utils.Stubber(data_store, "RelationalDBReadEnabled", lambda: True):
+      rel_client_id = self.client_id.Basename()
+      data_store.REL_DB.WriteClientMetadata(
+          rel_client_id, fleetspeak_enabled=True)
+
+      self._RunSendStartupInfo()
+
+      si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+      self.assertIsNotNone(si)
+      self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
+      self.assertEqual(si.client_info.client_description,
+                       config.CONFIG["Client.description"])
+
+      # Run it again - this should not update any record.
+      self._RunSendStartupInfo()
+
+      new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+      self.assertEqual(new_si, si)
+
+      # Simulate a reboot.
+      current_boot_time = psutil.boot_time()
+      with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
+
+        # Run it again - this should now update the boot time.
+        self._RunSendStartupInfo()
+
+        new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+        self.assertIsNotNone(new_si)
+        self.assertNotEqual(new_si.boot_time, si.boot_time)
+
+        # Now set a new client build time.
+        with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+
+          # Run it again - this should now update the client info.
+          self._RunSendStartupInfo()
+
+          new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+          self.assertIsNotNone(new_si)
+          self.assertNotEqual(new_si.client_info, si.client_info)
+
+  def testStartupHandler(self):
+    rel_client_id = self.client_id.Basename()
+    data_store.REL_DB.WriteClientMetadata(
+        rel_client_id, fleetspeak_enabled=True)
+
+    self._RunSendStartupInfo()
+
+    # AFF4 client.
 
     # Check the client's boot time and info.
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -299,56 +347,65 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Check that the boot time is accurate.
     self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
 
-    # Run it again - this should not update any record.
-    for _ in flow_test_lib.TestFlowHelper(
-        ClientActionRunner.__name__,
-        client_mock,
-        client_id=self.client_id,
-        action="SendStartupInfo",
-        token=self.token):
-      pass
+    # objects.Client.
 
+    si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+    self.assertIsNotNone(si)
+    self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
+    self.assertEqual(si.client_info.client_description,
+                     config.CONFIG["Client.description"])
+
+    # Run it again - this should not update any record.
+    self._RunSendStartupInfo()
+
+    # AFF4 client.
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
     self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
 
-    # Simulate a reboot in 10 minutes.
+    # objects.Client.
+
+    new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+    self.assertEqual(new_si, si)
+
+    # Simulate a reboot.
     current_boot_time = psutil.boot_time()
-    psutil.boot_time = lambda: current_boot_time + 600
+    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
 
-    # Run it again - this should now update the boot time.
-    for _ in flow_test_lib.TestFlowHelper(
-        ClientActionRunner.__name__,
-        client_mock,
-        client_id=self.client_id,
-        action="SendStartupInfo",
-        token=self.token):
-      pass
+      # Run it again - this should now update the boot time.
+      self._RunSendStartupInfo()
 
-    # Ensure only this attribute is updated.
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.assertNotEqual(
-        int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+      # AFF4 client.
 
-    self.assertEqual(
-        int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
-
-    # Now set a new client build time.
-    with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
-
-      # Run it again - this should now update the client info.
-      for _ in flow_test_lib.TestFlowHelper(
-          ClientActionRunner.__name__,
-          client_mock,
-          client_id=self.client_id,
-          action="SendStartupInfo",
-          token=self.token):
-        pass
-
-      # Ensure the client info attribute is updated.
+      # Ensure only this attribute is updated.
       fd = aff4.FACTORY.Open(self.client_id, token=self.token)
       self.assertNotEqual(
+          int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+      self.assertEqual(
           int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
+
+      # objects.Client.
+      new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+      self.assertIsNotNone(new_si)
+      self.assertNotEqual(new_si.boot_time, si.boot_time)
+
+      # Now set a new client build time.
+      with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
+
+        # Run it again - this should now update the client info.
+        self._RunSendStartupInfo()
+
+        # AFF4 client.
+
+        # Ensure the client info attribute is updated.
+        fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+        self.assertNotEqual(
+            int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
+
+        # objects.Client.
+        new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
+        self.assertIsNotNone(new_si)
+        self.assertNotEqual(new_si.client_info, si.client_info)
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)

@@ -84,7 +84,7 @@ grrUi.semantic.objectLabelDirective.ObjectLabelDirective.directive_name =
  * @export
  */
 grrUi.semantic.objectLabelDirective.ObjectLabelDirective.semantic_type =
-    'AFF4ObjectLabel';
+    'ClientLabel';
 
 
 });  // goog.scope

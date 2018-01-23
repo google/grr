@@ -181,8 +181,15 @@ class ByteSizeTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     return rdfvalue.ByteSize("%sKib" % number)
 
   def testParsing(self):
-    for string, expected in [("100gb", 100 * 1000**3), ("10kib", 10 * 1024),
-                             ("2.5kb", 2500)]:
+    cases = [
+        ("100gb", 100 * 1000**3),
+        ("10kib", 10 * 1024),
+        ("2.5kb", 2500),
+        ("3.25MiB", 3.25 * 1024**2),
+        ("12B", 12),
+    ]
+
+    for string, expected in cases:
       self.assertEqual(expected, rdfvalue.ByteSize(string))
 
 

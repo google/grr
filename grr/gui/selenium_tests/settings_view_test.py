@@ -57,7 +57,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
                    "div.panel:contains('Python Hacks') tr:contains('test')")
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Python Hacks') tr:contains('17b')")
+                   "div.panel:contains('Python Hacks') tr:contains('17B')")
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
                    "div.panel:contains('Python Hacks') "
                    "tr:contains('1970-01-01 00:00:43 UTC')")
@@ -65,7 +65,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
                    "div.panel:contains('Executables') tr:contains('test.exe')")
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Executables') tr:contains('18b')")
+                   "div.panel:contains('Executables') tr:contains('18B')")
     self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
                    "div.panel:contains('Executables') "
                    "tr:contains('1970-01-01 00:00:42 UTC')")

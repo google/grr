@@ -9,10 +9,10 @@ from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import stats as api_stats
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows
+from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
 from grr.server import aff4
@@ -64,7 +64,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
   protobuf = client_pb2.ApiClient
   rdf_deps = [
-      aff4_rdfvalues.AFF4ObjectLabel,
+      objects.ClientLabel,
       ApiClientId,
       rdfvalue.ByteSize,
       rdf_client.ClientInformation,
@@ -109,7 +109,10 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     if last_crash is not None:
       self.last_crash_at = last_crash.timestamp
 
-    self.labels = client_obj.GetLabels()
+    self.labels = [
+        objects.ClientLabel(name=l.name, owner=l.owner)
+        for l in client_obj.GetLabels()
+    ]
     self.interfaces = client_obj.Get(client_obj.Schema.INTERFACES)
     kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
     self.users = kb and kb.users or []
@@ -565,7 +568,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiListClientsLabelsResult
   rdf_deps = [
-      aff4_rdfvalues.AFF4ObjectLabel,
+      objects.ClientLabel,
   ]
 
 
@@ -582,7 +585,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         token=token)
     label_objects = []
     for label in labels_index.ListLabels():
-      label_objects.append(aff4_rdfvalues.AFF4ObjectLabel(name=label))
+      label_objects.append(objects.ClientLabel(name=label))
 
     return ApiListClientsLabelsResult(items=label_objects)
 

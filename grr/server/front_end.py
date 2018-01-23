@@ -176,6 +176,120 @@ class ServerCommunicator(communicator.Communicator):
     return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
 
+class RelationalServerCommunicator(communicator.Communicator):
+  """A communicator which stores certificates using the relational db."""
+
+  def __init__(self, certificate, private_key):
+    super(RelationalServerCommunicator, self).__init__(
+        certificate=certificate, private_key=private_key)
+    self.pub_key_cache = utils.FastStore(max_size=50000)
+    self.common_name = self.certificate.GetCN()
+
+  def _GetRemotePublicKey(self, common_name):
+    remote_client_id = common_name.Basename()
+    try:
+      # See if we have this client already cached.
+      remote_key = self.pub_key_cache.Get(remote_client_id)
+      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["hits"])
+      return remote_key
+    except KeyError:
+      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["misses"])
+
+    md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
+    if not md:
+      stats.STATS.IncrementCounter("grr_unique_clients")
+      raise communicator.UnknownClientCert("Cert not found")
+
+    cert = md.certificate
+    if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
+      logging.error("Stored cert mismatch for %s", common_name)
+      raise communicator.UnknownClientCert("Stored cert mismatch")
+
+    pub_key = cert.GetPublicKey()
+    self.pub_key_cache.Put(common_name, pub_key)
+    return pub_key
+
+  def VerifyMessageSignature(self, response_comms, packed_message_list, cipher,
+                             cipher_verified, api_version, remote_public_key):
+    """Verifies the message list signature.
+
+    In the server we check that the timestamp is later than the ping timestamp
+    stored with the client. This ensures that client responses can not be
+    replayed.
+
+    Args:
+      response_comms: The raw response_comms rdfvalue.
+      packed_message_list: The PackedMessageList rdfvalue from the server.
+      cipher: The cipher object that should be used to verify the message.
+      cipher_verified: If True, the cipher's signature is not verified again.
+      api_version: The api version we should use.
+      remote_public_key: The public key of the source.
+    Returns:
+      An rdf_flows.GrrMessage.AuthorizationState.
+    """
+    if (not cipher_verified and
+        not cipher.VerifyCipherSignature(remote_public_key)):
+      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
+      return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
+
+    try:
+      client_id = cipher.cipher_metadata.source.Basename()
+      metadata = data_store.REL_DB.ReadClientMetadata(client_id)
+      client_time = packed_message_list.timestamp or rdfvalue.RDFDatetime(0)
+
+      # This used to be a strict check here so absolutely no out of
+      # order messages would be accepted ever. Turns out that some
+      # proxies can send your request with some delay even if the
+      # client has already timed out (and sent another request in
+      # the meantime, making the first one out of order). In that
+      # case we would just kill the whole flow as a
+      # precaution. Given the behavior of those proxies, this seems
+      # now excessive and we have changed the replay protection to
+      # only trigger on messages that are more than one hour old.
+      if metadata and metadata.clock:
+        stored_client_time = metadata.clock
+
+        if client_time < stored_client_time - rdfvalue.Duration("1h"):
+          logging.warning("Message desynchronized for %s: %s >= %s", client_id,
+                          long(stored_client_time), long(client_time))
+          # This is likely an old message
+          return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
+
+        stats.STATS.IncrementCounter("grr_authenticated_messages")
+
+        # Update the client and server timestamps only if the client
+        # time moves forward.
+        if client_time <= stored_client_time:
+          logging.warning("Out of order message for %s: %s >= %s", client_id,
+                          long(stored_client_time), long(client_time))
+          return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+
+      stats.STATS.IncrementCounter("grr_authenticated_messages")
+
+      for label in data_store.REL_DB.GetClientLabels(client_id):
+        stats.STATS.IncrementCounter(
+            "client_pings_by_label", fields=[label.name])
+
+      source_ip = response_comms.orig_request.source_ip
+      if source_ip:
+        last_ip = rdf_client.NetworkAddress(
+            human_readable_address=response_comms.orig_request.source_ip)
+      else:
+        last_ip = None
+
+      data_store.REL_DB.WriteClientMetadata(
+          client_id,
+          last_ip=last_ip,
+          last_clock=client_time,
+          last_ping=rdfvalue.RDFDatetime.Now(),
+          fleetspeak_enabled=False)
+
+    except communicator.UnknownClientCert:
+      pass
+
+    return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+
+
 class FrontEndServer(object):
   """This is the front end server.
 
@@ -196,18 +310,19 @@ class FrontEndServer(object):
                max_queue_size=50,
                message_expiry_time=120,
                max_retransmission_time=10,
-               store=None,
                threadpool_prefix="grr_threadpool"):
     # Identify ourselves as the server.
     self.token = access_control.ACLToken(
         username="GRRFrontEnd", reason="Implied.")
     self.token.supervisor = True
 
-    # This object manages our crypto.
-    self._communicator = ServerCommunicator(
-        certificate=certificate, private_key=private_key, token=self.token)
+    if data_store.RelationalDBReadEnabled():
+      self._communicator = RelationalServerCommunicator(
+          certificate=certificate, private_key=private_key)
+    else:
+      self._communicator = ServerCommunicator(
+          certificate=certificate, private_key=private_key, token=self.token)
 
-    self.data_store = store or data_store.DB
     self.receive_thread_pool = {}
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
@@ -417,8 +532,7 @@ class FrontEndServer(object):
       messages: A list of GrrMessage RDFValues.
     """
     now = time.time()
-    with queue_manager.QueueManager(
-        token=self.token, store=self.data_store) as manager:
+    with queue_manager.QueueManager(token=self.token) as manager:
       for session_id, msgs in utils.GroupBy(
           messages, operator.attrgetter("session_id")).iteritems():
 

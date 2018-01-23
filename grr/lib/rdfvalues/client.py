@@ -557,6 +557,7 @@ class ClientStats(structs.RDFProtoStruct):
   rdf_deps = [
       CpuSample,
       IOSample,
+      rdfvalue.RDFDatetime,
   ]
 
   def DownsampleList(self, samples, interval):
@@ -1008,6 +1009,7 @@ class StartupInfo(structs.RDFProtoStruct):
   protobuf = jobs_pb2.StartupInfo
   rdf_deps = [
       ClientInformation,
+      rdfvalue.RDFDatetime,
   ]
 
 

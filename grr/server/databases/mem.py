@@ -135,6 +135,8 @@ class InMemoryDB(db.Database):
     history = self.startup_history.setdefault(client_id, {})
     history[ts] = startup_info.SerializeToString()
 
+    client.startup_info = startup_info
+
   def ReadClients(self, client_ids):
     """Reads the latest client snapshots for a list of clients."""
     res = {}

@@ -56,7 +56,7 @@ class Interrogate(flow.GRRFlow):
     # Create the objects we need to exist.
     self.Load()
 
-    self.state.client = objects.Client()
+    self.state.client = objects.Client(client_id=self.client_id.Basename())
     self.state.fqdn = None
     self.state.os = None
 
