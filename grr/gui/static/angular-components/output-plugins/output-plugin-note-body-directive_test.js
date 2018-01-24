@@ -1,18 +1,21 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginNoteBodyDirectiveTest');
-goog.require('grrUi.outputPlugins.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.outputPlugins.outputPluginNoteBodyDirectiveTest');
+
+const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-describe('output plugin note directive', function() {
-  var $compile, $rootScope;
-  var grrOutputPluginsDirectivesRegistryService;
+describe('output plugin note directive', () => {
+  let $compile;
+  let $rootScope;
 
-  beforeEach(module(grrUi.outputPlugins.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  let grrOutputPluginsDirectivesRegistryService;
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(outputPluginsModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
 
@@ -20,61 +23,63 @@ describe('output plugin note directive', function() {
         'grrOutputPluginsDirectivesRegistryService');
   }));
 
-  var defaultOutputPlugin = {
+  const defaultOutputPlugin = {
     value: {
       plugin_descriptor: {
         value: {
           plugin_name: {
-            value: 'Foo'
-          }
-        }
-      }
-    }
+            value: 'Foo',
+          },
+        },
+      },
+    },
   };
 
-  var renderTestTemplate = function(outputPlugin) {
+  const renderTestTemplate = (outputPlugin) => {
     $rootScope.outputPlugin = outputPlugin || angular.copy(defaultOutputPlugin);
 
-    var template = '<grr-output-plugin-note-body ' +
+    const template = '<grr-output-plugin-note-body ' +
         'output-plugin="outputPlugin" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing if no corresponding directive found', function() {
-    var element = renderTestTemplate();
+  it('shows nothing if no corresponding directive found', () => {
+    const element = renderTestTemplate();
     expect(element.text().trim()).toBe('');
   });
 
-  it('renders registered type with a corresponding directive', function() {
+  it('renders registered type with a corresponding directive', () => {
     // This directive does not exist and Angular won't process it,
     // but it still will be inserted into DOM and we can check
     // that it's inserted correctly.
-    var directiveMock = {
-      directive_name: 'theTestDirective'
+    const directiveMock = {
+      directive_name: 'theTestDirective',
     };
 
     grrOutputPluginsDirectivesRegistryService.registerDirective(
         'Foo', directiveMock);
 
-    var element = renderTestTemplate();
+    const element = renderTestTemplate();
     expect($('the-test-directive', element).length).toBe(1);
   });
 
-  it('passes outputPlugin to the corresponding directive', function() {
-    var directiveMock = {
-      directive_name: 'theTestDirective'
+  it('passes outputPlugin to the corresponding directive', () => {
+    const directiveMock = {
+      directive_name: 'theTestDirective',
     };
 
     grrOutputPluginsDirectivesRegistryService.registerDirective(
         'Foo', directiveMock);
 
-    var element = renderTestTemplate();
-    var directive = element.find('the-test-directive');
+    const element = renderTestTemplate();
+    const directive = element.find('the-test-directive');
     expect(directive.scope().$eval(directive.attr('output-plugin'))).toEqual(
         defaultOutputPlugin);
   });
-
 });
+
+
+exports = {};

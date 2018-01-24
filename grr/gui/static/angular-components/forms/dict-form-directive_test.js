@@ -1,273 +1,280 @@
 'use strict';
 
-goog.provide('grrUi.forms.dictFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.dictFormDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('dict form directive', function() {
-  var $compile, $rootScope, $q, grrReflectionService, value;
+
+describe('dict form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrReflectionService;
+  let value;
+
 
   beforeEach(module('/static/angular-components/forms/dict-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
   grrUi.tests.stubDirective('grrFormValue');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     grrReflectionService = $injector.get('grrReflectionService');
 
-    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+    grrReflectionService.getRDFValueDescriptor = ((valueType) => {
       if (valueType != 'RDFString') {
         throw new Error('This stub accepts only RDFString value type.');
       }
 
-      var deferred = $q.defer();
+      const deferred = $q.defer();
       deferred.resolve({
         name: 'RDFString',
         default: {
           type: 'RDFString',
-          value: ''
-        }
+          value: '',
+        },
       });
       return deferred.promise;
-    };
+    });
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-form-dict value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-form-dict value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  var setFormValue = function(element, value) {
-    var valueElement = element.find('grr-form-value');
+  const setFormValue = (element, value) => {
+    const valueElement = element.find('grr-form-value');
     valueElement.scope().$eval(valueElement.attr('value') + '.value = "' +
         value + '"');
     $rootScope.$apply();
   };
 
-  it('add empty key and value when "+" button is clicked', function() {
-    var model = {
+  it('add empty key and value when "+" button is clicked', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: ''}}
+      value: {'': {type: 'RDFString', value: ''}},
     });
   });
 
-  it('updates the model when key is changed', function() {
-    var model = {
+  it('updates the model when key is changed', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
 
     element.find('input.key').val('foo');
-    browserTrigger(element.find('input.key'), 'change');
+    browserTriggerEvent(element.find('input.key'), 'change');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'foo': {type: 'RDFString', value: ''}}
+      value: {'foo': {type: 'RDFString', value: ''}},
     });
   });
 
-  it('updates the model when value is changed', function() {
-    var model = {
+  it('updates the model when value is changed', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
     setFormValue(element, 'foo');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: 'foo'}}
+      value: {'': {type: 'RDFString', value: 'foo'}},
     });
   });
 
-  it('prefills the UI with values from model', function() {
-    var model = {
+  it('prefills the UI with values from model', () => {
+    const model = {
       type: 'Dict',
-      value: {'foo': {type: 'RDFString', value: 'bar'}}
+      value: {'foo': {type: 'RDFString', value: 'bar'}},
     };
 
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
     expect(element.find('input.key').val()).toBe('foo');
 
-    var valueElement = element.find('grr-form-value');
+    const valueElement = element.find('grr-form-value');
     expect(valueElement.scope().$eval(valueElement.attr('value'))).toEqual(
         {type: 'RDFString', value: 'bar'});
   });
 
-  it('treats digits-only string as integers', function() {
-    var model = {
+  it('treats digits-only string as integers', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
     setFormValue(element, '42');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFInteger', value: 42}}
+      value: {'': {type: 'RDFInteger', value: 42}},
     });
   });
 
-  it('dynamically changes value type from str to int and back', function() {
-    var model = {
+  it('dynamically changes value type from str to int and back', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: ''}}
+      value: {'': {type: 'RDFString', value: ''}},
     });
 
     setFormValue(element, '1');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFInteger', value: 1}}
+      value: {'': {type: 'RDFInteger', value: 1}},
     });
 
     setFormValue(element, '1a');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: '1a'}}
+      value: {'': {type: 'RDFString', value: '1a'}},
     });
   });
 
-  it('treats 0x.* strings as hex integers', function() {
-    var model = {
+  it('treats 0x.* strings as hex integers', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
     setFormValue(element, '0x2f');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFInteger', value: 47}}
+      value: {'': {type: 'RDFInteger', value: 47}},
     });
   });
 
-  it('dynamically changes value type from hex int to str and back', function() {
-    var model = {
+  it('dynamically changes value type from hex int to str and back', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: ''}}
+      value: {'': {type: 'RDFString', value: ''}},
     });
 
     setFormValue(element, '0x');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: '0x'}}
+      value: {'': {type: 'RDFString', value: '0x'}},
     });
 
     setFormValue(element, '0x2f');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFInteger', value: 47}}
+      value: {'': {type: 'RDFInteger', value: 47}},
     });
 
     setFormValue(element, '0x2fz');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: '0x2fz'}}
+      value: {'': {type: 'RDFString', value: '0x2fz'}},
     });
   });
 
-  it('treats "true" string as a boolean', function() {
-    var model = {
+  it('treats "true" string as a boolean', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
     setFormValue(element, 'true');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: true}}
+      value: {'': {type: 'RDFBool', value: true}},
     });
   });
 
-  it('treats "false" string as a boolean', function() {
-    var model = {
+  it('treats "false" string as a boolean', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
     setFormValue(element, 'false');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: false}}
+      value: {'': {type: 'RDFBool', value: false}},
     });
   });
 
-  it('dynamically changes valye type from text to bool and back', function() {
-    var model = {
+  it('dynamically changes valye type from text to bool and back', () => {
+    const model = {
       type: 'Dict',
-      value: {}
+      value: {},
     };
-    var element = renderTestTemplate(model);
+    const element = renderTestTemplate(model);
 
-    browserTrigger(element.find('button[name=Add]'), 'click');
+    browserTriggerEvent(element.find('button[name=Add]'), 'click');
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: ''}}
+      value: {'': {type: 'RDFString', value: ''}},
     });
 
     setFormValue(element, 'true');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: true}}
+      value: {'': {type: 'RDFBool', value: true}},
     });
 
     setFormValue(element, 'truea');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFString', value: 'truea'}}
+      value: {'': {type: 'RDFString', value: 'truea'}},
     });
-
   });
 });
+
+
+exports = {};

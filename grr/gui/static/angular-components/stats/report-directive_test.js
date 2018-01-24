@@ -1,43 +1,50 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportDirectiveTest');
-goog.require('grrUi.core.apiService.stripTypeInfo');
-goog.require('grrUi.stats.module');
-goog.require('grrUi.tests.module');
-goog.require('grrUi.tests.stubDirective');
+goog.module('grrUi.stats.reportDirectiveTest');
 
-describe('report directive', function() {
-  var $q, $compile, $rootScope, grrApiService, grrTimeService;
+const statsModule = goog.require('grrUi.stats.statsModule');
+const stripTypeInfo = goog.require('grrUi.core.apiService.stripTypeInfo');
+const stubDirective = goog.require('grrUi.tests.stubDirective');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('report directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+  let grrTimeService;
+
 
   beforeEach(module(
       '/static/angular-components/stats/report.html'));
-  beforeEach(module(grrUi.stats.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(statsModule.name));
+  beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrFormClientLabel');
-  grrUi.tests.stubDirective('grrFormTimerange');
-  grrUi.tests.stubDirective('grrChart');
+  stubDirective('grrFormClientLabel');
+  stubDirective('grrFormTimerange');
+  stubDirective('grrChart');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     grrApiService = $injector.get('grrApiService');
     grrTimeService = $injector.get('grrTimeService');
 
-    var clock = grrTimeService.getCurrentTimeMs();
-    grrTimeService.getCurrentTimeMs = function() {
+    let clock = grrTimeService.getCurrentTimeMs();
+    grrTimeService.getCurrentTimeMs = (() => {
       clock += 42;
       return clock;
-    };
+    });
   }));
 
-  var renderTestTemplate = function(name) {
+  const renderTestTemplate = (name) => {
     $rootScope.name = name;
 
-    var template = '<grr-report name="name">' +
-                   '</grr-report>';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-report name="name">' +
+        '</grr-report>';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
@@ -51,83 +58,82 @@ describe('report directive', function() {
   // The mocked `stats/reports/*' call handler will expect deferredWork[path]
   // to be initialized with an angular promise and will pretend to do false
   // work until the corresponding promise is resolved.
-  var mockGrrApiService = function() {
-    var deferredWork = {};
+  const mockGrrApiService = () => {
+    const deferredWork = {};
 
-    spyOn(grrApiService, 'get').and.callFake(function(path) {
-      var deferred = $q.defer();
-      var promise = deferred.promise;
+    spyOn(grrApiService, 'get').and.callFake((path) => {
+      const deferred = $q.defer();
+      const promise = deferred.promise;
 
       if (path === 'stats/reports') {
-        var response = {
-          'reports': [{
-            'type': 'ApiReport',
-            'value': {
-              'desc': {
-                'type': 'ApiReportDescriptor',
-                'value': {
-                  'name': {
-                    'type': 'unicode',
-                    'value': 'FooReportPlugin'
+        const response = {
+          'reports': [
+            {
+              'type': 'ApiReport',
+              'value': {
+                'desc': {
+                  'type': 'ApiReportDescriptor',
+                  'value': {
+                    'name': {
+                      'type': 'unicode',
+                      'value': 'FooReportPlugin',
+                    },
+                    'summary': {
+                      'type': 'unicode',
+                      'value': 'Foo\'s summary.',
+                    },
+                    'type': {
+                      'type': 'EnumNamedValue',
+                      'value': 'FOO_TYPE',
+                    },
+                    'requires_time_range': {
+                      'type': 'RDFBool',
+                      'value': false,
+                    },
+                    'title': {'type': 'unicode', 'value': 'Foo Report'},
                   },
-                  'summary': {
-                    'type': 'unicode',
-                    'value': 'Foo\'s summary.'
+                },
+              },
+            },
+            {
+              'type': 'ApiReport',
+              'value': {
+                'desc': {
+                  'type': 'ApiReportDescriptor',
+                  'value': {
+                    'name': {
+                      'type': 'unicode',
+                      'value': 'BarReportPlugin',
+                    },
+                    'summary': {
+                      'type': 'unicode',
+                      'value': 'Bar\'s summary.',
+                    },
+                    'type': {
+                      'type': 'EnumNamedValue',
+                      'value': 'BAR_TYPE',
+                    },
+                    'requires_time_range': {
+                      'type': 'RDFBool',
+                      'value': false,
+                    },
+                    'title': {'type': 'unicode', 'value': 'Bar Report'},
                   },
-                  'type': {
-                    'type': 'EnumNamedValue',
-                    'value': 'FOO_TYPE'
-                  },
-                  'requires_time_range': {
-                    'type': 'RDFBool',
-                    'value': false
-                  },
-                  'title': {
-                    'type': 'unicode',
-                    'value': 'Foo Report'}
-                }
-              }
+                },
+              },
             }
-          }, {
-            'type': 'ApiReport',
-            'value': {
-              'desc': {
-                'type': 'ApiReportDescriptor',
-                'value': {
-                  'name': {
-                    'type': 'unicode',
-                    'value': 'BarReportPlugin'
-                  },
-                  'summary': {
-                    'type': 'unicode',
-                    'value': 'Bar\'s summary.'
-                  },
-                  'type': {
-                    'type': 'EnumNamedValue',
-                    'value': 'BAR_TYPE'
-                  },
-                  'requires_time_range': {
-                    'type': 'RDFBool',
-                    'value': false
-                  },
-                  'title': {
-                    'type': 'unicode',
-                    'value': 'Bar Report'}
-                }
-              }
-            }
-          }]
+          ],
         };
 
         deferred.resolve({ data: response });
       }
       else {
-        var response = {
+        const response = {
           data: {
             data: {
               value: {
                 representation_type: {
-                  value: 'STACK_CHART'
+                  value: 'STACK_CHART',
                 },
                 stack_chart: {
                   value: {
@@ -135,19 +141,19 @@ describe('report directive', function() {
                       {
                         value: {
                           label: path,
-                          points: []
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
+                          points: [],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
         };
 
         // Do some fake work and respond.
-        deferredWork[path].promise.then(function() {
+        deferredWork[path].promise.then(() => {
           deferred.resolve({ data: response });
         });
       }
@@ -158,12 +164,12 @@ describe('report directive', function() {
     return deferredWork;
   };
 
-  it('drops responses to old requests', function() {
-    var deferredWork = mockGrrApiService();
+  it('drops responses to old requests', () => {
+    const deferredWork = mockGrrApiService();
     deferredWork['stats/reports/FooReportPlugin'] = $q.defer();
     deferredWork['stats/reports/BarReportPlugin'] = $q.defer();
 
-    var element = renderTestTemplate('FooReportPlugin');
+    const element = renderTestTemplate('FooReportPlugin');
 
     // Change the report description while the other one's still loading.
     $rootScope.name = 'BarReportPlugin';
@@ -184,12 +190,12 @@ describe('report directive', function() {
     $rootScope.$apply();
 
     // The chart should now be loaded.
-    var chart = element.find('grr-chart');
+    const chart = element.find('grr-chart');
     expect(chart.length).toBe(1);
 
-    var attribute = chart.attr('typed-data');
-    var typedData = chart.scope().$eval(attribute);
-    var data = grrUi.core.apiService.stripTypeInfo(typedData['data']);
+    const attribute = chart.attr('typed-data');
+    const typedData = chart.scope().$eval(attribute);
+    const data = stripTypeInfo(typedData['data']);
 
     expect(data['stack_chart']['data'][0]['label']).toBe(
         'stats/reports/BarReportPlugin');
@@ -197,3 +203,6 @@ describe('report directive', function() {
     expect(JSON.stringify(typedData)).not.toContain('FooReportPlugin');
   });
 });
+
+
+exports = {};

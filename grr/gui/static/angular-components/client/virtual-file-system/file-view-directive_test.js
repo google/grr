@@ -1,15 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirectiveTest');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
+goog.module('grrUi.client.virtualFileSystem.fileViewDirectiveTest');
 
-describe('file view directive', function() {
+const fileViewDirectiveGetFileId = goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
+const fileViewDirectiveGetFilePathFromId = goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
 
-  describe('getFileId()', function() {
-    var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
 
-    it('returns the file id for any given path', function() {
+describe('file view directive', () => {
+  describe('getFileId()', () => {
+    const getFileId = fileViewDirectiveGetFileId;
+
+    it('returns the file id for any given path', () => {
       expect(getFileId('some/regular/path')).toEqual('_some-regular-path');
       expect(getFileId('some/$peci&l/path')).toEqual('_some-_24peci_26l-path');
       expect(getFileId('s0me/numb3r5/p4th')).toEqual('_s0me-numb3r5-p4th');
@@ -17,16 +18,19 @@ describe('file view directive', function() {
       expect(getFileId('')).toEqual('_');
     });
 
-    it('replaces characters with char code > 255 with more than a two-digit hex number', function() {
-      expect(getFileId('some/sp€cial/path')).toEqual('_some-sp_20ACcial-path');
-      expect(getFileId('fs/os/c/中国新闻网新闻中')).toEqual('_fs-os-c-_4E2D_56FD_65B0_95FB_7F51_65B0_95FB_4E2D');
-    });
+    it('replaces characters with char code > 255 with more than a two-digit hex number',
+       () => {
+         expect(getFileId('some/sp€cial/path'))
+             .toEqual('_some-sp_20ACcial-path');
+         expect(getFileId('fs/os/c/中国新闻网新闻中'))
+             .toEqual('_fs-os-c-_4E2D_56FD_65B0_95FB_7F51_65B0_95FB_4E2D');
+       });
   });
 
-  describe('getFilePathFromId()', function() {
-    var getFilePathFromId = grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId;
+  describe('getFilePathFromId()', () => {
+    const getFilePathFromId = fileViewDirectiveGetFilePathFromId;
 
-    it('returns the path for any given id', function() {
+    it('returns the path for any given id', () => {
       expect(getFilePathFromId('_some-regular-path')).toEqual('some/regular/path');
       expect(getFilePathFromId('_some-_24peci_26l-path')).toEqual('some/$peci&l/path');
       expect(getFilePathFromId('_s0me-numb3r5-p4th')).toEqual('s0me/numb3r5/p4th');
@@ -37,11 +41,13 @@ describe('file view directive', function() {
     // The problem with _-based encoding is that it's ambiguous. It can't distinguish
     // a digit following an encoded character from a character encoded with more digits.
     // We limit number of digits we recognize to 2 to minimize potential conflicts.
-    it('does not decode chars encoded with more than two hex-digits', function() {
+    it('does not decode chars encoded with more than two hex-digits', () => {
       expect(getFilePathFromId('_some-sp_20ACcial-path')).not.toEqual('some/sp€cial/path');
       expect(getFilePathFromId('_fs-os-c-_4E2D_56FD_65B0_95FB_7F51_65B0_95FB_4E2D'))
           .not.toEqual('fs/os/c/中国新闻网新闻中');
     });
   });
-
 });
+
+
+exports = {};

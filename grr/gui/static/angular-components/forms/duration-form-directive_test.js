@@ -1,191 +1,196 @@
 'use strict';
 
-goog.provide('grrUi.forms.durationFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.durationFormDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('duration form directive', function() {
-  var $compile, $rootScope, value;
+
+describe('duration form directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/forms/duration-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-form-duration value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-form-duration value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing if duration value is null', function() {
-    var element = renderTestTemplate({
+  it('shows nothing if duration value is null', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: null
+      value: null,
     });
     expect(element.find('input').val()).toBe('');
   });
 
-  it('shows 0 if duration value is 0', function() {
-    var element = renderTestTemplate({
+  it('shows 0 if duration value is 0', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 0
+      value: 0,
     });
     expect(element.find('input').val()).toBe('0');
   });
 
-  it('shows correct duration for large numbers', function() {
-    var element = renderTestTemplate({
+  it('shows correct duration for large numbers', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 1040688000000
+      value: 1040688000000,
     });
     expect(element.find('input').val()).toBe('12045000d');
   });
 
-  it('shows duration in seconds if it\'s not divisible by 60', function() {
-    var element = renderTestTemplate({
+  it('shows duration in seconds if it\'s not divisible by 60', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 122
+      value: 122,
     });
     expect(element.find('input').val()).toBe('122s');
   });
 
-  it('shows duration in minutes if possible', function() {
-    var element = renderTestTemplate({
+  it('shows duration in minutes if possible', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 120
+      value: 120,
     });
     expect(element.find('input').val()).toBe('2m');
   });
 
-  it('shows duration in hours if possible', function() {
-    var element = renderTestTemplate({
+  it('shows duration in hours if possible', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 7200
+      value: 7200,
     });
     expect(element.find('input').val()).toBe('2h');
   });
 
-  it('shows duration in days if possible', function() {
-    var element = renderTestTemplate({
+  it('shows duration in days if possible', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 172800
+      value: 172800,
     });
     expect(element.find('input').val()).toBe('2d');
   });
 
-  it('shows duration in weeks if possible', function() {
-    var element = renderTestTemplate({
+  it('shows duration in weeks if possible', () => {
+    const element = renderTestTemplate({
       type: 'Duration',
-      value: 1209600
+      value: 1209600,
     });
     expect(element.find('input').val()).toBe('2w');
   });
 
-  it('sets value to null on incorrect input', function() {
-    var value = {
+  it('sets value to null on incorrect input', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('a');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(null);
   });
 
-  it('shows warning on incorrect input', function() {
-    var value = {
+  it('shows warning on incorrect input', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('a');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(element.text()).toContain('Expected format is');
   });
 
-  it('correctly updates the value when input is in weeks', function() {
-    var value = {
+  it('correctly updates the value when input is in weeks', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2w');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(1209600);
   });
 
-  it('correctly updates the value when input is in days', function() {
-    var value = {
+  it('correctly updates the value when input is in days', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2d');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(172800);
   });
 
-  it('correctly updates the value when input is in hours', function() {
-    var value = {
+  it('correctly updates the value when input is in hours', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2h');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(7200);
   });
 
-  it('correctly updates the value when input is in minutes', function() {
-    var value = {
+  it('correctly updates the value when input is in minutes', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2m');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(120);
   });
 
-  it('correctly updates the value when input is in seconds', function() {
-    var value = {
+  it('correctly updates the value when input is in seconds', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2s');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(2);
   });
 
-  it('treats values without unit as seconds', function() {
-    var value = {
+  it('treats values without unit as seconds', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('2');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.value).toBe(2);
   });
 });
+
+
+exports = {};

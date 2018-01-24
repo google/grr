@@ -1,26 +1,32 @@
 'use strict';
 
-goog.provide('grrUi.flow.startFlowFormDirectiveTest');
-goog.require('grrUi.flow.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.flow.startFlowFormDirectiveTest');
 
-describe('start flow form directive', function() {
-  var $compile, $rootScope, $q, grrApiService, grrReflectionService;
-  var flowRunnerArgsDefault;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const flowModule = goog.require('grrUi.flow.flowModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('start flow form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+  let grrReflectionService;
+
+  let flowRunnerArgsDefault;
 
   beforeEach(module('/static/angular-components/flow/start-flow-form.html'));
-  beforeEach(module(grrUi.flow.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(flowModule.name));
+  beforeEach(module(testsModule.name));
 
   // Stub out grr-semantic-value and grr-flow-form directives, as all
   // rendering is going to be delegated to them.
-  angular.forEach(
-      ['grrFlowForm', 'grrSemanticValue'],
-      function(directiveName) {
-        grrUi.tests.stubDirective(directiveName);
-      });
+  angular.forEach(['grrFlowForm', 'grrSemanticValue'], (directiveName) => {
+    grrUi.tests.stubDirective(directiveName);
+  });
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
@@ -32,18 +38,18 @@ describe('start flow form directive', function() {
       value: {
         flow_name: {
           type: 'RDFString',
-          value: 'FooFlow'
+          value: 'FooFlow',
         },
         output_plugins: [
           {
-            foo: 'bar'
-          }
+            foo: 'bar',
+          },
         ],
-        foo: 'bar'
-      }
+        foo: 'bar',
+      },
     };
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     deferred.resolve({
       default: flowRunnerArgsDefault,
     });
@@ -51,35 +57,35 @@ describe('start flow form directive', function() {
         deferred.promise);
   }));
 
-  var renderTestTemplate = function() {
+  const renderTestTemplate = () => {
     $rootScope.clientId = 'C.0000111122223333';
     $rootScope.descriptor = {
       type: 'ApiFlowDescriptor',
       value: {
         name: {
           type: 'RDFString',
-          value: 'FooFlow'
+          value: 'FooFlow',
         },
         default_args: {
           type: 'FooFlowArgs',
           value: {
-            foo: 'bar'
-          }
-        }
-      }
+            foo: 'bar',
+          },
+        },
+      },
     };
 
-    var template = '<grr-start-flow-form ' +
+    const template = '<grr-start-flow-form ' +
         'client-id="clientId" descriptor="descriptor" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows flow arguments form', function() {
-    var element = renderTestTemplate();
-    var directive = element.find('grr-flow-form');
+  it('shows flow arguments form', () => {
+    const element = renderTestTemplate();
+    const directive = element.find('grr-flow-form');
 
     expect(directive.scope().$eval(directive.attr('flow-args'))).toEqual(
         $rootScope.descriptor['value']['default_args']);
@@ -87,33 +93,33 @@ describe('start flow form directive', function() {
         flowRunnerArgsDefault);
   });
 
-  it('sends request when Launch button is clicked', function() {
-    var element = renderTestTemplate();
+  it('sends request when Launch button is clicked', () => {
+    const element = renderTestTemplate();
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-    browserTrigger(element.find('button.Launch'), 'click');
+    browserTriggerEvent(element.find('button.Launch'), 'click');
 
-    expect(grrApiService.post).toHaveBeenCalledWith(
-        '/clients/C.0000111122223333/flows', {
+    expect(grrApiService.post)
+        .toHaveBeenCalledWith('/clients/C.0000111122223333/flows', {
           flow: {
             runner_args: {
               flow_name: 'FooFlow',
               output_plugins: [{foo: 'bar'}],
-              foo: 'bar'
+              foo: 'bar',
             },
             args: {
-              foo: 'bar'
-            }
-          }
+              foo: 'bar',
+            },
+          },
         });
   });
 
-  it('respects changes in form data when sending request', function() {
-    var element = renderTestTemplate();
+  it('respects changes in form data when sending request', () => {
+    const element = renderTestTemplate();
 
-    var directive = element.find('grr-flow-form:nth(0)');
+    const directive = element.find('grr-flow-form:nth(0)');
     // Change flow args.
     directive.scope().$eval(directive.attr('flow-args'))['value']['changed'] = true;
     // Change flow runner args.
@@ -125,75 +131,77 @@ describe('start flow form directive', function() {
     $rootScope.$apply();
 
     // Now click the Launch button.
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
-    browserTrigger(element.find('button.Launch'), 'click');
+    browserTriggerEvent(element.find('button.Launch'), 'click');
 
-    expect(grrApiService.post).toHaveBeenCalledWith(
-        '/clients/C.0000111122223333/flows', {
+    expect(grrApiService.post)
+        .toHaveBeenCalledWith('/clients/C.0000111122223333/flows', {
           flow: {
             runner_args: {
               flow_name: 'FooFlow',
               output_plugins: [{foo: 'bar'}, 42],
               changed: true,
-              foo: 'bar'
+              foo: 'bar',
             },
             args: {
               foo: 'bar',
-              changed: true
-            }
-          }
+              changed: true,
+            },
+          },
         });
   });
 
-  it('shows progress message when request is processed', function() {
-    var element = renderTestTemplate();
+  it('shows progress message when request is processed', () => {
+    const element = renderTestTemplate();
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-    browserTrigger(element.find('button.Launch'), 'click');
+    browserTriggerEvent(element.find('button.Launch'), 'click');
 
     expect(element.text()).toContain('Launching flow FooFlow...');
   });
 
-  it('shows flow summary when launch succeeds', function() {
-    var element = renderTestTemplate();
+  it('shows flow summary when launch succeeds', () => {
+    const element = renderTestTemplate();
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-    browserTrigger(element.find('button.Launch'), 'click');
+    browserTriggerEvent(element.find('button.Launch'), 'click');
 
-    var flow = {
+    const flow = {
       args: {'foo1': 'bar1'},
-      runner_args: {'foo2': 'bar2'}
+      runner_args: {'foo2': 'bar2'},
     };
     deferred.resolve({
-      data: flow
+      data: flow,
     });
     $rootScope.$apply();
 
-    var directive = element.find('grr-semantic-value:nth(0)');
+    const directive = element.find('grr-semantic-value:nth(0)');
     expect(directive.scope().$eval(directive.attr('value'))).toEqual(flow);
   });
 
-  it('shows failure message when launch fails', function() {
-    var element = renderTestTemplate();
+  it('shows failure message when launch fails', () => {
+    const element = renderTestTemplate();
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-    browserTrigger(element.find('button.Launch'), 'click');
+    browserTriggerEvent(element.find('button.Launch'), 'click');
 
     deferred.reject({
       data: {
-        message: 'Something is wrong'
-      }
+        message: 'Something is wrong',
+      },
     });
     $rootScope.$apply();
 
     expect(element.text()).toContain('Something is wrong');
   });
-
 });
+
+
+exports = {};

@@ -1,41 +1,46 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirectiveTest');
-goog.require('grrUi.client.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const clientModule = goog.require('grrUi.client.clientModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('breadcrums directive', function () {
-  var $compile, $rootScope, $scope;
+
+describe('breadcrums directive', () => {
+  let $compile;
+  let $rootScope;
+  let $scope;
+
 
   beforeEach(module('/static/angular-components/client/virtual-file-system/breadcrumbs.html'));
-  beforeEach(module(grrUi.client.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(clientModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function ($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $scope = $rootScope.$new();
   }));
 
-  var render = function (path, stripEndingSlash) {
-    $scope.obj = { // We need to pass an object to see changes.
+  const render = (path, stripEndingSlash) => {
+    $scope.obj = {
+      // We need to pass an object to see changes.
       path: path,
-      stripEndingSlash: stripEndingSlash
+      stripEndingSlash: stripEndingSlash,
     };
 
-    var template = '<grr-breadcrumbs strip-ending-slash="obj.stripEndingSlash" ' +
+    const template =
+        '<grr-breadcrumbs strip-ending-slash="obj.stripEndingSlash" ' +
         'path="obj.path" />';
-    var element = $compile(template)($scope);
+    const element = $compile(template)($scope);
     $scope.$apply();
 
     return element;
   };
 
-  it('should show the path components as links', function () {
-    var element = render('path/to/some/resource');
+  it('should show the path components as links', () => {
+    const element = render('path/to/some/resource');
 
     // Last component is dropped as it points to a file. Therefore there
     // should be 2 links: "path" and "to". And "some" should be a
@@ -44,8 +49,8 @@ describe('breadcrums directive', function () {
     expect(element.find('li.active').text().trim()).toBe('some');
   });
 
-  it('strips ending slash if strip-ending-slash is true', function() {
-    var element = render('path/to/some/resource/', true);
+  it('strips ending slash if strip-ending-slash is true', () => {
+    const element = render('path/to/some/resource/', true);
 
     // Ending slash is stripped, so behaviour should be similar to the
     // one with render('path/to/some/resource').
@@ -53,20 +58,20 @@ describe('breadcrums directive', function () {
     expect(element.find('li.active').text().trim()).toBe('some');
   });
 
-  it('should change the path when a link is clicked', function () {
-    var element = render('path/to/some/resource');
-    var links = element.find('a');
+  it('should change the path when a link is clicked', () => {
+    const element = render('path/to/some/resource');
+    const links = element.find('a');
 
     expect(links.length).toBe(2);
-    browserTrigger(links[1], 'click');
+    browserTriggerEvent(links[1], 'click');
     $scope.$apply();
 
     expect(element.find('li.active').text().trim()).toBe('to');
     expect($scope.obj.path).toBe('path/to/');
   });
 
-  it('should change the links when the scope changes', function () {
-    var element = render('path/to/some/resource');
+  it('should change the links when the scope changes', () => {
+    const element = render('path/to/some/resource');
 
     expect(element.find('a').length).toBe(2);
     expect(element.find('li.active').text().trim()).toBe('some');
@@ -76,5 +81,7 @@ describe('breadcrums directive', function () {
     expect(element.find('a').length).toBe(3);
     expect(element.find('li.active').text().trim()).toBe('another');
   });
-
 });
+
+
+exports = {};

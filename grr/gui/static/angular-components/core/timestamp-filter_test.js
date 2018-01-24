@@ -1,37 +1,42 @@
 'use strict';
 
-goog.provide('grrUi.core.timestampFilterTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.core.timestampFilter.TimestampFilter');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.timestampFilterTest');
 
-describe('grrTimestamp filter', function() {
-  var MICRO_IN_MILLI = 1000, MILLI_IN_UNIT = 1000;
-  var SECONDS = MICRO_IN_MILLI * MILLI_IN_UNIT;
-  var MINUTES = 60 * SECONDS;
-  var grrTimestampFilter;
+const TimestampFilter = goog.require('grrUi.core.timestampFilter.TimestampFilter');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
-    grrTimestampFilter = $injector.instantiate(
-        grrUi.core.timestampFilter.TimestampFilter);
+describe('grrTimestamp filter', () => {
+  const MICRO_IN_MILLI = 1000;
+  const MILLI_IN_UNIT = 1000;
+
+  const SECONDS = MICRO_IN_MILLI * MILLI_IN_UNIT;
+  const MINUTES = 60 * SECONDS;
+  let grrTimestampFilter;
+
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
+    grrTimestampFilter = $injector.instantiate(TimestampFilter);
   }));
 
-  it('returns reference date on 0', function() {
-    var result = grrTimestampFilter(0);
+  it('returns reference date on 0', () => {
+    const result = grrTimestampFilter(0);
     expect(result).toBe('1970-01-01 00:00:00 UTC');
   });
 
-  it('returns correct value for seconds', function() {
-    var result = grrTimestampFilter(42 * SECONDS);
+  it('returns correct value for seconds', () => {
+    const result = grrTimestampFilter(42 * SECONDS);
     expect(result).toBe('1970-01-01 00:00:42 UTC');
   });
 
-  it('returns correct value for minutes', function() {
-    var result = grrTimestampFilter(10 * MINUTES + 42 * SECONDS);
+  it('returns correct value for minutes', () => {
+    const result = grrTimestampFilter(10 * MINUTES + 42 * SECONDS);
     expect(result).toBe('1970-01-01 00:10:42 UTC');
   });
-
 });
+
+
+exports = {};

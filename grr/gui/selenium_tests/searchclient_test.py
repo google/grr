@@ -51,8 +51,8 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
   def _WaitForSearchResults(self, target_count):
     self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
-    self.assertEqual(target_count,
-                     self.GetCssCount("css=grr-clients-list tbody > tr"))
+    self.WaitUntilEqual(target_count, self.GetCssCount,
+                        "css=grr-clients-list tbody > tr")
 
   def testPageTitleChangesAccordingToQuery(self):
     self.Open("/#/search?q=foo")

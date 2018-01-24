@@ -1,23 +1,24 @@
 'use strict';
 
-goog.provide('grrUi.core.apiServiceTest');
-goog.require('grrUi.core.apiService');
-goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.core.apiService.stripTypeInfo');
-goog.require('grrUi.core.module');
+goog.module('grrUi.core.apiServiceTest');
+
+const apiService = goog.require('grrUi.core.apiService');
+const apiServiceEncodeUrlPath = goog.require('grrUi.core.apiService.encodeUrlPath');
+const apiServiceStripTypeInfo = goog.require('grrUi.core.apiService.stripTypeInfo');
+const coreModule = goog.require('grrUi.core.coreModule');
 
 
-// TODO(user): Used to test grr.publish calls. Remove as soon as
-// this dependency is gone.
-var grr = grr || {};
+describe('API service', () => {
+  let $httpBackend;
+  let $interval;
+  let $q;
+  let $rootScope;
+  let grrApiService;
 
 
-describe('API service', function() {
-  var $rootScope, $q, $httpBackend, $interval, grrApiService;
+  beforeEach(module(coreModule.name));
 
-  beforeEach(module(grrUi.core.module.name));
-
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     $httpBackend = $injector.get('$httpBackend');
@@ -27,50 +28,50 @@ describe('API service', function() {
     grrApiService.markAuthDone();
   }));
 
-  afterEach(function() {
+  afterEach(() => {
     $httpBackend.verifyNoOutstandingExpectation();
     $httpBackend.verifyNoOutstandingRequest();
   });
 
-  describe('encodeUrlPath() function', function() {
-    var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
+  describe('encodeUrlPath() function', () => {
+    const encodeUrlPath = apiServiceEncodeUrlPath;
 
-    it('does not touch slashes and normal characters', function() {
+    it('does not touch slashes and normal characters', () => {
       expect(encodeUrlPath('////')).toBe('////');
       expect(encodeUrlPath('/a/b/c/d/')).toBe('/a/b/c/d/');
     });
 
-    it('encodes "?", "&" and "+" characters', function() {
+    it('encodes "?", "&" and "+" characters', () => {
       expect(encodeUrlPath('/foo?bar=a+b')).toBe('/foo%3Fbar%3Da%2Bb');
     });
   });
 
-  describe('stripTypeInfo() function', function() {
-    var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+  describe('stripTypeInfo() function', () => {
+    const stripTypeInfo = apiServiceStripTypeInfo;
 
-    it('converts richly typed primitive into a primitive value', function() {
-      var richData = {
+    it('converts richly typed primitive into a primitive value', () => {
+      const richData = {
         'age': 0,
         'mro': [
           'RDFString',
-          'object'
+          'object',
         ],
         'type': 'unicode',
-        'value': 'label2'
+        'value': 'label2',
       };
 
       expect(stripTypeInfo(richData)).toEqual('label2');
     });
 
-    it('converts typed structure into a primitive dictionary', function() {
-      var richData = {
+    it('converts typed structure into a primitive dictionary', () => {
+      const richData = {
         'age': 0,
         'mro': [
           'AFF4ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
-          'object'
+          'object',
         ],
         'type': 'AFF4ObjectLabel',
         'value': {
@@ -79,37 +80,37 @@ describe('API service', function() {
             'mro': [
               'unicode',
               'basestring',
-              'object'
+              'object',
             ],
             'type': 'unicode',
-            'value': 'label2'
-          }
-        }
+            'value': 'label2',
+          },
+        },
       };
 
       expect(stripTypeInfo(richData)).toEqual({'name': 'label2'});
     });
 
-    it('converts richly typed list into list of primitives', function() {
-      var richData = [
+    it('converts richly typed list into list of primitives', () => {
+      const richData = [
         {
           'age': 0,
           'mro': [
             'RDFString',
-            'object'
+            'object',
           ],
           'type': 'unicode',
-        'value': 'label2'
+          'value': 'label2',
         },
         {
           'age': 0,
           'mro': [
             'RDFString',
-            'object'
+            'object',
           ],
           'type': 'unicode',
-        'value': 'label3'
-        }
+          'value': 'label3',
+        },
       ];
 
 
@@ -117,15 +118,15 @@ describe('API service', function() {
         ['label2', 'label3']);
     });
 
-    it('converts list structure field into list of primitives', function() {
-      var richData = {
+    it('converts list structure field into list of primitives', () => {
+      const richData = {
         'age': 0,
         'mro': [
           'AFF4ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
-          'object'
+          'object',
         ],
         'type': 'AFF4ObjectLabel',
         'value': {
@@ -135,59 +136,59 @@ describe('API service', function() {
               'mro': [
                 'unicode',
                 'basestring',
-                'object'
+                'object',
               ],
               'type': 'unicode',
-              'value': 'label2'
+              'value': 'label2',
             },
             {
               'age': 0,
               'mro': [
                 'unicode',
                 'basestring',
-                'object'
+                'object',
               ],
               'type': 'unicode',
-              'value': 'label3'
-            }
-          ]
-        }
+              'value': 'label3',
+            },
+          ],
+        },
       };
 
       expect(stripTypeInfo(richData)).toEqual({
-        'name': ['label2', 'label3']
+        'name': ['label2', 'label3'],
       });
     });
   });
 
-  describe('head() method', function() {
-    it('adds "/api/" to a given url', function() {
+  describe('head() method', () => {
+    it('adds "/api/" to a given url', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
       grrApiService.head('some/path');
       $httpBackend.flush();
     });
 
-    it('adds "/api/" to a given url starting with "/"', function() {
+    it('adds "/api/" to a given url starting with "/"', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
       grrApiService.head('/some/path');
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
+    it('passes user-provided headers in the request', () => {
       $httpBackend.whenHEAD('/api/some/path?key1=value1&key2=value2').
           respond(200);
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
+    it('passes user-provided headers in the request', () => {
       $httpBackend.whenHEAD('/api/some/path?' +
           'key1=value1&key2=value2').respond(200);
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.whenHEAD(
           '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
       grrApiService.head('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
@@ -195,34 +196,34 @@ describe('API service', function() {
     });
   });
 
-  describe('get() method', function() {
-    it('adds "/api/" to a given url', function() {
+  describe('get() method', () => {
+    it('adds "/api/" to a given url', () => {
       $httpBackend.whenGET('/api/some/path').respond(200);
       grrApiService.get('some/path');
       $httpBackend.flush();
     });
 
-    it('adds "/api/" to a given url starting with "/"', function() {
+    it('adds "/api/" to a given url starting with "/"', () => {
       $httpBackend.whenGET('/api/some/path').respond(200);
       grrApiService.get('/some/path');
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
+    it('passes user-provided headers in the request', () => {
       $httpBackend.whenGET('/api/some/path?key1=value1&key2=value2').
           respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
+    it('passes user-provided headers in the request', () => {
       $httpBackend.whenGET('/api/some/path?' +
           'key1=value1&key2=value2').respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.whenGET(
           '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
       grrApiService.get('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
@@ -230,10 +231,10 @@ describe('API service', function() {
     });
   });
 
-  describe('poll() method', function() {
-    it('triggers url once if condition is immediately satisfied', function() {
+  describe('poll() method', () => {
+    it('triggers url once if condition is immediately satisfied', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
 
       grrApiService.poll('some/path', 1000);
@@ -243,21 +244,25 @@ describe('API service', function() {
       // No requests should be outstanding by this point.
     });
 
-    it('does not call callbacks when cancelled via cancelPoll()', function() {
+    it('does not call callbacks when cancelled via cancelPoll()', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
-      var successHandlerCalled = false;
-      var failureHandlerCalled = false;
-      var finallyHandlerCalled = false;
-      var pollPromise = grrApiService.poll('some/path', 1000);
+      let successHandlerCalled = false;
+      let failureHandlerCalled = false;
+      let finallyHandlerCalled = false;
+      const pollPromise = grrApiService.poll('some/path', 1000);
 
-      pollPromise.then(function() {
-        successHandlerCalled = true;
-      }, function() {
-        failureHandlerCalled = true;
-      }).finally(function() {
-        finallyHandlerCalled = true;
-      });
+      pollPromise
+          .then(
+              () => {
+                successHandlerCalled = true;
+              },
+              () => {
+                failureHandlerCalled = true;
+              })
+          .finally(() => {
+            finallyHandlerCalled = true;
+          });
       grrApiService.cancelPoll(pollPromise);
 
       $httpBackend.flush();
@@ -266,17 +271,17 @@ describe('API service', function() {
       expect(finallyHandlerCalled).toBe(false);
     });
 
-    it('succeeds and returns response if first try succeeds', function() {
+    it('succeeds and returns response if first try succeeds', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
 
-      var successHandlerCalled = false;
-      grrApiService.poll('some/path', 1000).then(function(response) {
+      let successHandlerCalled = false;
+      grrApiService.poll('some/path', 1000).then((response) => {
         expect(response['data']).toEqual({
           'foo': 'bar',
-          'state': 'FINISHED'
+          'state': 'FINISHED',
         });
         successHandlerCalled = true;
       });
@@ -285,7 +290,7 @@ describe('API service', function() {
       expect(successHandlerCalled).toBe(true);
     });
 
-    it('triggers url multiple times if condition is not satisfied', function() {
+    it('triggers url multiple times if condition is not satisfied', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
       grrApiService.poll('some/path', 1000);
@@ -297,14 +302,14 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('succeeds and returns response if second try succeeds', function() {
+    it('succeeds and returns response if second try succeeds', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
-      var successHandlerCalled = false;
-      grrApiService.poll('some/path', 1000).then(function(response) {
+      let successHandlerCalled = false;
+      grrApiService.poll('some/path', 1000).then((response) => {
         expect(response['data']).toEqual({
           'foo': 'bar',
-          'state': 'FINISHED'
+          'state': 'FINISHED',
         });
         successHandlerCalled = true;
       });
@@ -313,7 +318,7 @@ describe('API service', function() {
 
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
       $interval.flush(2000);
       $httpBackend.flush();
@@ -321,12 +326,11 @@ describe('API service', function() {
       expect(successHandlerCalled).toBe(true);
     });
 
-    it('fails if first try fails', function() {
+    it('fails if first try fails', () => {
       $httpBackend.expectGET('/api/some/path').respond(500);
 
-      var failureHandleCalled = false;
-      grrApiService.poll('some/path', 1000).then(function success() {
-      }, function failure() {
+      let failureHandleCalled = false;
+      grrApiService.poll('some/path', 1000).then(() => {}, () => {
         failureHandleCalled = true;
       });
 
@@ -334,12 +338,11 @@ describe('API service', function() {
       expect(failureHandleCalled).toBe(true);
     });
 
-    it('fails if first try is correct, but second one fails', function() {
+    it('fails if first try is correct, but second one fails', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
-      var failureHandleCalled = false;
-      grrApiService.poll('some/path', 1000).then(function success() {
-      }, function failure() {
+      let failureHandleCalled = false;
+      grrApiService.poll('some/path', 1000).then(() => {}, () => {
         failureHandleCalled = true;
       });
 
@@ -352,24 +355,22 @@ describe('API service', function() {
       expect(failureHandleCalled).toBe(true);
     });
 
-    it('returns response payload on failure', function() {
+    it('returns response payload on failure', () => {
       $httpBackend.expectGET('/api/some/path').respond(500, {'foo': 'bar'});
 
-      grrApiService.poll('some/path', 1000).then(function success() {
-      }, function failure(response) {
+      grrApiService.poll('some/path', 1000).then(() => {}, (response) => {
         expect(response['data']).toEqual({'foo': 'bar'});
       });
 
       $httpBackend.flush();
     });
 
-    it('notifies on every intermediate poll result', function() {
+    it('notifies on every intermediate poll result', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {});
 
-      var notificationCount = 0;
-      grrApiService.poll('some/path', 1000).then(
-          undefined, undefined,
-          function(data) {
+      let notificationCount = 0;
+      grrApiService.poll('some/path', 1000)
+          .then(undefined, undefined, (data) => {
             notificationCount += 1;
           });
       expect(notificationCount).toBe(0);
@@ -386,11 +387,10 @@ describe('API service', function() {
       expect(notificationCount).toBe(2);
     });
 
-    it('does not allow API requests to overlap', function() {
-      var notificationCount = 0;
-      grrApiService.poll('some/path', 1000).then(
-          undefined, undefined,
-          function(data) {
+    it('does not allow API requests to overlap', () => {
+      let notificationCount = 0;
+      grrApiService.poll('some/path', 1000)
+          .then(undefined, undefined, (data) => {
             notificationCount += 1;
           });
       expect(notificationCount).toBe(0);
@@ -399,53 +399,60 @@ describe('API service', function() {
       expect(notificationCount).toBe(0);
     });
 
-    it('does not resolve the promise after cancelPoll() call', function() {
+    it('does not resolve the promise after cancelPoll() call', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
 
-      var successHandlerCalled = false;
-      var promise = grrApiService.poll('some/path', 1000).then(
-          function(response) {
-            successHandlerCalled = true;
-          });
+      let successHandlerCalled = false;
+      const promise = grrApiService.poll('some/path', 1000).then((response) => {
+        successHandlerCalled = true;
+      });
 
       grrApiService.cancelPoll(promise);
       $httpBackend.flush();
       expect(successHandlerCalled).toBe(false);
     });
 
-    it('works correctly on a chained promise', function() {
+    it('works correctly on a chained promise', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
 
-      var successHandlerCalled = false;
-      var finallyHandlerCalled = false;
+      let successHandlerCalled = false;
+      let finallyHandlerCalled = false;
       grrApiService.poll('some/path', 1000)
-          .then(function() { successHandlerCalled = true; }).
-          catch(function() {}).
-          finally(function() { finallyHandlerCalled = true; });
+          .then(() => {
+            successHandlerCalled = true;
+          })
+          .catch(() => {})
+          .finally(() => {
+            finallyHandlerCalled = true;
+          });
 
       $httpBackend.flush();
       expect(finallyHandlerCalled).toBe(true);
       expect(successHandlerCalled).toBe(true);
     });
 
-    it('allows cancelPoll to be called on a chained promise', function() {
+    it('allows cancelPoll to be called on a chained promise', () => {
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
-        'state': 'FINISHED'
+        'state': 'FINISHED',
       });
 
-      var successHandlerCalled = false;
-      var finallyHandlerCalled = false;
-      var promise = grrApiService.poll('some/path', 1000)
-          .then(function() { successHandlerCalled = true; }).
-          catch(function() {}).
-          finally(function() { finallyHandlerCalled = true; });
+      let successHandlerCalled = false;
+      let finallyHandlerCalled = false;
+      const promise = grrApiService.poll('some/path', 1000)
+                          .then(() => {
+                            successHandlerCalled = true;
+                          })
+                          .catch(() => {})
+                          .finally(() => {
+                            finallyHandlerCalled = true;
+                          });
 
       grrApiService.cancelPoll(promise);
       $httpBackend.flush();
@@ -454,29 +461,29 @@ describe('API service', function() {
     });
   });
 
-  describe('cancelPoll() method', function() {
-    it('raises if the promise does not have "cancel" attribute', function() {
-      var deferred = $q.defer();
-      expect(function() {
+  describe('cancelPoll() method', () => {
+    it('raises if the promise does not have "cancel" attribute', () => {
+      const deferred = $q.defer();
+      expect(() => {
         grrApiService.cancelPoll(deferred.promise);
       }).toThrow(new Error('Invalid promise to cancel: not cancelable.'));
     });
   });
 
-  describe('delete() method', function() {
-    it('adds "/api/" to a given url', function() {
+  describe('delete() method', () => {
+    it('adds "/api/" to a given url', () => {
       $httpBackend.expectDELETE('/api/some/path').respond(200);
       grrApiService.delete('some/path');
       $httpBackend.flush();
     });
 
-    it('adds "/api/" to a given url starting with "/"', function() {
+    it('adds "/api/" to a given url starting with "/"', () => {
       $httpBackend.expectDELETE('/api/some/path').respond(200);
       grrApiService.delete('/some/path');
       $httpBackend.flush();
     });
 
-    it('passes user-provided data in the request', function() {
+    it('passes user-provided data in the request', () => {
       $httpBackend.expect(
           'DELETE', '/api/some/path', {key1: 'value1', key2: 'value2'})
               .respond(200);
@@ -485,36 +492,37 @@ describe('API service', function() {
     });
 
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.expectDELETE(
           '/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.delete('some/path?foo&bar');
       $httpBackend.flush();
     });
 
-    it('doesn\'t send request body if no payload provided', function() {
-      $httpBackend.expect('DELETE', '/api/some/path', function(data) {
-        return angular.isUndefined(data);
-      }).respond(200);
+    it('doesn\'t send request body if no payload provided', () => {
+      $httpBackend
+          .expect(
+              'DELETE', '/api/some/path', (data) => angular.isUndefined(data))
+          .respond(200);
       grrApiService.delete('some/path');
       $httpBackend.flush();
     });
   });
 
-  describe('patch() method', function() {
-    it('adds "/api/" to a given url', function() {
+  describe('patch() method', () => {
+    it('adds "/api/" to a given url', () => {
       $httpBackend.expectPATCH('/api/some/path').respond(200);
       grrApiService.patch('some/path');
       $httpBackend.flush();
     });
 
-    it('adds "/api/" to a given url starting with "/"', function() {
+    it('adds "/api/" to a given url starting with "/"', () => {
       $httpBackend.expectPATCH('/api/some/path').respond(200);
       grrApiService.patch('/some/path');
       $httpBackend.flush();
     });
 
-    it('passes user-provided data in the request', function() {
+    it('passes user-provided data in the request', () => {
       $httpBackend.expect(
           'PATCH', '/api/some/path', {key1: 'value1', key2: 'value2'})
               .respond(200);
@@ -523,7 +531,7 @@ describe('API service', function() {
     });
 
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.expectPATCH(
           '/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.patch('some/path?foo&bar');
@@ -531,28 +539,28 @@ describe('API service', function() {
     });
   });
 
-  describe('post() method', function() {
-    it('adds "/api/" to a given url', function() {
+  describe('post() method', () => {
+    it('adds "/api/" to a given url', () => {
       $httpBackend.whenPOST('/api/some/path').respond(200);
       grrApiService.post('some/path');
       $httpBackend.flush();
     });
 
-    it('adds "/api/" to a given url starting with "/"', function() {
+    it('adds "/api/" to a given url starting with "/"', () => {
       $httpBackend.whenPOST('/api/some/path').respond(200);
       grrApiService.post('/some/path', {});
       $httpBackend.flush();
     });
 
-    it('strips type info from params if opt_stripTypeInfo is true', function() {
-      var richData = {
+    it('strips type info from params if opt_stripTypeInfo is true', () => {
+      const richData = {
         'age': 0,
         'mro': [
           'AFF4ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
-          'object'
+          'object',
         ],
         'type': 'AFF4ObjectLabel',
         'value': {
@@ -561,12 +569,12 @@ describe('API service', function() {
             'mro': [
               'unicode',
               'basestring',
-              'object'
+              'object',
             ],
             'type': 'unicode',
-            'value': 'label2'
-          }
-        }
+            'value': 'label2',
+          },
+        },
       };
 
       $httpBackend.whenPOST('/api/some/path', {name: 'label2'}).respond(200);
@@ -574,7 +582,7 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
+    it('passes user-provided headers in the request', () => {
       $httpBackend.expectPOST(
           '/api/some/path', {key1: 'value1', key2: 'value2'}).respond(200);
 
@@ -582,28 +590,28 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.whenPOST(
           '/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.post('some/path?foo&bar', {});
       $httpBackend.flush();
     });
 
-    it('url-escapes the path when files are uploaded', function() {
+    it('url-escapes the path when files are uploaded', () => {
       $httpBackend.whenPOST('/api/some/path%3Ffoo%26bar').respond(200);
       grrApiService.post('some/path?foo&bar', {}, false, {'file1': 'blah'});
       $httpBackend.flush();
     });
   });
 
-  describe('downloadFile() method', function() {
-    afterEach(function() {
+  describe('downloadFile() method', () => {
+    afterEach(() => {
       // We have to clean document's body to remove an iframe generated
       // by the downloadFile call.
       $(document.body).html('');
     });
 
-    it('sends HEAD request first to check if URL is accessible', function() {
+    it('sends HEAD request first to check if URL is accessible', () => {
       $httpBackend.expectHEAD('/api/some/path').respond(200);
 
       grrApiService.downloadFile('some/path');
@@ -611,7 +619,7 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('sends query parameters in the HEAD request', function() {
+    it('sends query parameters in the HEAD request', () => {
       $httpBackend.expectHEAD('/api/some/path?abra=cadabra&foo=bar').respond(
           200);
 
@@ -621,7 +629,7 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('url-escapes the path', function() {
+    it('url-escapes the path', () => {
       $httpBackend.expectHEAD(
           '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
       grrApiService.downloadFile('some/path?foo&bar',
@@ -629,13 +637,14 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('rejects promise if HEAD request fails', function() {
+    it('rejects promise if HEAD request fails', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(500);
 
-      var promiseRejected = false;
-      var promise = grrApiService.downloadFile('some/path');
-      promise.then(function success() {},
-                   function failure() { promiseRejected = true; });
+      let promiseRejected = false;
+      const promise = grrApiService.downloadFile('some/path');
+      promise.then(() => {}, () => {
+        promiseRejected = true;
+      });
 
       $httpBackend.flush();
 
@@ -643,23 +652,24 @@ describe('API service', function() {
     });
 
     it('broadcasts subject/reason from UnauthorizedAccess HEAD response',
-       function() {
-      $httpBackend.whenHEAD('/api/some/path').respond(403, {}, {
-        'x-grr-unauthorized-access-subject': 'some subject',
-        'x-grr-unauthorized-access-reason': 'some reason'});
+       () => {
+         $httpBackend.whenHEAD('/api/some/path').respond(403, {}, {
+           'x-grr-unauthorized-access-subject': 'some subject',
+           'x-grr-unauthorized-access-reason': 'some reason'
+         });
 
-      spyOn($rootScope, '$broadcast');
-      grrApiService.downloadFile('some/path');
-      $httpBackend.flush();
+         spyOn($rootScope, '$broadcast');
+         grrApiService.downloadFile('some/path');
+         $httpBackend.flush();
 
-      expect($rootScope.$broadcast).toHaveBeenCalledWith(
-          grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT,
-          {
-            subject: 'some subject', reason: 'some reason'
-          });
-    });
+         expect($rootScope.$broadcast)
+             .toHaveBeenCalledWith(apiService.UNAUTHORIZED_API_RESPONSE_EVENT, {
+               subject: 'some subject',
+               reason: 'some reason',
+             });
+       });
 
-    it('creates an iframe request if HEAD succeeds', function() {
+    it('creates an iframe request if HEAD succeeds', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
 
       grrApiService.downloadFile('some/path');
@@ -668,7 +678,7 @@ describe('API service', function() {
       expect($('iframe').attr('src')).toBe('/api/some/path');
     });
 
-    it('propagates query option to iframe "src" attribute', function() {
+    it('propagates query option to iframe "src" attribute', () => {
       $httpBackend.whenHEAD('/api/some/path?abra=cadabra&foo=bar').respond(200);
 
       grrApiService.downloadFile('some/path',
@@ -679,89 +689,91 @@ describe('API service', function() {
     });
 
     it('fails if same-origin-policy error is thrown when accessing iframe',
-        function() {
-      $httpBackend.whenHEAD('/api/some/path').respond(200);
+       () => {
+         $httpBackend.whenHEAD('/api/some/path').respond(200);
 
-      var promiseRejected = false;
-      var promise = grrApiService.downloadFile('some/path');
-      promise.then(function success() {},
-                   function failure() { promiseRejected = true; });
-      $httpBackend.flush();
+         let promiseRejected = false;
+         const promise = grrApiService.downloadFile('some/path');
+         promise.then(() => {}, () => {
+           promiseRejected = true;
+         });
+         $httpBackend.flush();
 
-      // If iframe request fails, iframe will sho a standard error page
-      // which will have a different origin and raise on access.
-      Object.defineProperty($('iframe')[0].contentWindow.document,
-                            'readyState',
-                            {
-                              __proto__: null,
-                              get: function() {
-                                throw new Error('Same origin policy error');
-                              }
-                            });
-      $interval.flush(1000);
+         // If iframe request fails, iframe will sho a standard error page
+         // which will have a different origin and raise on access.
+         Object.defineProperty(
+             $('iframe')[0].contentWindow.document, 'readyState', {
+               __proto__: null,
+               get: function() {
+                 throw new Error('Same origin policy error');
+               },
+             });
+         $interval.flush(1000);
 
-      expect(promiseRejected).toBe(true);
-    });
+         expect(promiseRejected).toBe(true);
+       });
 
-    it('cancels the interval timer if iframe request fails', function() {
+    it('cancels the interval timer if iframe request fails', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
 
       spyOn($interval, 'cancel').and.returnValue();
       grrApiService.downloadFile('some/path');
       $httpBackend.flush();
 
-      Object.defineProperty($('iframe')[0].contentWindow.document,
-                            'readyState',
-                            {
-                              __proto__: null,
-                              get: function() {
-                                throw new Error('Same origin policy error');
-                              }
-                            });
+      Object.defineProperty(
+          $('iframe')[0].contentWindow.document, 'readyState', {
+            __proto__: null,
+            get: function() {
+              throw new Error('Same origin policy error');
+            },
+          });
       $interval.flush(1000);
 
       expect($interval.cancel).toHaveBeenCalled();
     });
 
-    it('succeeds if iframe request succeeds', function() {
+    it('succeeds if iframe request succeeds', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
 
-      var promiseSucceeded = false;
-      var promise = grrApiService.downloadFile('some/path');
-      promise.then(function success() { promiseSucceeded = true; });
+      let promiseSucceeded = false;
+      const promise = grrApiService.downloadFile('some/path');
+      promise.then(() => {
+        promiseSucceeded = true;
+      });
       $httpBackend.flush();
 
-      Object.defineProperty($('iframe')[0].contentWindow.document,
-                            'readyState',
-                            {
-                              __proto__: null,
-                              get: function() {
-                                return 'complete';
-                              }
-                            });
+      Object.defineProperty(
+          $('iframe')[0].contentWindow.document, 'readyState', {
+            __proto__: null,
+            get: function() {
+              return 'complete';
+            },
+          });
       $interval.flush(1000);
 
       expect(promiseSucceeded).toBe(true);
     });
 
-    it('cancels the interval timer if iframe request succeeds', function() {
+    it('cancels the interval timer if iframe request succeeds', () => {
       $httpBackend.whenHEAD('/api/some/path').respond(200);
 
       spyOn($interval, 'cancel').and.returnValue();
       grrApiService.downloadFile('some/path');
       $httpBackend.flush();
 
-      Object.defineProperty($('iframe')[0].contentWindow.document,
-                            'readyState',
-                            {
-                              __proto__: null,
-                              get: function() {
-                                return 'complete';
-                              }
-                            });
+      Object.defineProperty(
+          $('iframe')[0].contentWindow.document, 'readyState', {
+            __proto__: null,
+            get: function() {
+              return 'complete';
+            },
+          });
       $interval.flush(1000);
 
       expect($interval.cancel).toHaveBeenCalled();
     });
   });
 });
+
+
+exports = {};

@@ -1,79 +1,86 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactsListFormDirectiveTest');
-goog.require('grrUi.artifact.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.artifact.artifactsListFormDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const artifactModule = goog.require('grrUi.artifact.artifactModule');
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('artifacts list form directive', function() {
-  var $q, $compile, $rootScope, grrArtifactDescriptorsService;
-  var descriptorLinux, descriptorDarwinWindows;
+
+describe('artifacts list form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrArtifactDescriptorsService;
+
+  let descriptorDarwinWindows;
+  let descriptorLinux;
+
 
   beforeEach(module('/static/angular-components/artifact/artifacts-list-form.html'));
-  beforeEach(module(grrUi.artifact.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(artifactModule.name));
+  beforeEach(module(testsModule.name));
 
   grrUi.tests.stubDirective('grrSemanticValue');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     grrArtifactDescriptorsService = $injector.get('grrArtifactDescriptorsService');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
     $rootScope.descriptor = {
       default: {
         type: 'ArtifactName',
-        value: ''
-      }
+        value: '',
+      },
     };
 
-    var template = '<grr-artifacts-list-form descriptor="descriptor" ' +
+    const template = '<grr-artifacts-list-form descriptor="descriptor" ' +
         'value="value" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows "Loading artifacts..." while artifacts are being loaded', function() {
-    var deferred = $q.defer();
+  it('shows "Loading artifacts..." while artifacts are being loaded', () => {
+    const deferred = $q.defer();
     spyOn(grrArtifactDescriptorsService, 'listDescriptors').and
         .returnValue(deferred.promise);
 
-    var element = renderTestTemplate([]);
+    const element = renderTestTemplate([]);
     expect(element.text()).toContain('Loading artifacts...');
   });
 
-  describe('when descriptors listing fails', function() {
-    beforeEach(function() {
-      spyOn(grrArtifactDescriptorsService, 'listDescriptors').and.callFake(function() {
-        var deferred = $q.defer();
-        deferred.reject('Oh no!');
-        return deferred.promise;
-      });
+  describe('when descriptors listing fails', () => {
+    beforeEach(() => {
+      spyOn(grrArtifactDescriptorsService, 'listDescriptors')
+          .and.callFake(() => {
+            const deferred = $q.defer();
+            deferred.reject('Oh no!');
+            return deferred.promise;
+          });
     });
 
-    it('hides "Loading artifacts..." message', function() {
-      var element = renderTestTemplate([]);
+    it('hides "Loading artifacts..." message', () => {
+      const element = renderTestTemplate([]);
 
       expect(element.text()).not.toContain('Loading artifacts...');
     });
 
-    it('shows a failure message on artifacts fetch failure', function() {
-      var element = renderTestTemplate([]);
+    it('shows a failure message on artifacts fetch failure', () => {
+      const element = renderTestTemplate([]);
 
       expect(element.text()).toContain('Oh no!');
     });
   });
 
-  describe('when descriptors listing succeeds', function() {
-    beforeEach(function() {
+  describe('when descriptors listing succeeds', () => {
+    beforeEach(() => {
       descriptorLinux = {
         type: 'ArtifactDescriptor',
         value: {
@@ -82,11 +89,11 @@ describe('artifacts list form directive', function() {
             value: {
               name: {type: 'ArtifactName', value: 'FooLinux'},
               supported_os: [
-                {type: 'RDFString', value: 'Linux'}
-              ]
-            }
-          }
-        }
+                {type: 'RDFString', value: 'Linux'},
+              ],
+            },
+          },
+        },
       };
 
       descriptorDarwinWindows = {
@@ -98,61 +105,62 @@ describe('artifacts list form directive', function() {
               name: {type: 'ArtifactName', value: 'BarDarwinWindows'},
               supported_os: [
                 {type: 'RDFString', value: 'Darwin'},
-                {type: 'RDFString', value: 'Windows'}
-              ]
-            }
-          }
-        }
+                {type: 'RDFString', value: 'Windows'},
+              ],
+            },
+          },
+        },
       };
 
-      spyOn(grrArtifactDescriptorsService, 'listDescriptors').and.callFake(function() {
-        var deferred = $q.defer();
-        deferred.resolve({
-          'FooLinux': descriptorLinux,
-          'BarDarwinWindows': descriptorDarwinWindows
-        });
-        return deferred.promise;
-      });
+      spyOn(grrArtifactDescriptorsService, 'listDescriptors')
+          .and.callFake(() => {
+            const deferred = $q.defer();
+            deferred.resolve({
+              'FooLinux': descriptorLinux,
+              'BarDarwinWindows': descriptorDarwinWindows,
+            });
+            return deferred.promise;
+          });
     });
 
-    it('hides "Loading artifacts..." message', function() {
-      var element = renderTestTemplate([]);
+    it('hides "Loading artifacts..." message', () => {
+      const element = renderTestTemplate([]);
 
       expect(element.text()).not.toContain('Loading artifacts...');
     });
 
-    it('shows all artifacts for selection by default', function() {
-      var element = renderTestTemplate([]);
+    it('shows all artifacts for selection by default', () => {
+      const element = renderTestTemplate([]);
 
       expect(element.text()).toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
     });
 
-    it('prefills selection list from model', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'}]);
+    it('prefills selection list from model', () => {
+      const element =
+          renderTestTemplate([{type: 'ArtifactName', value: 'FooLinux'}]);
 
       expect(element.find('table[name=SelectedArtifacts] ' +
           'tr:contains("FooLinux")').length).toBe(1);
     });
 
-    it('filters artifacts by platform', function() {
-      var element = renderTestTemplate([]);
+    it('filters artifacts by platform', () => {
+      const element = renderTestTemplate([]);
 
-      browserTrigger(element.find('a:contains("Darwin")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Darwin")'), 'click');
       expect(element.text()).not.toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
 
-      browserTrigger(element.find('a:contains("Windows")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Windows")'), 'click');
       expect(element.text()).not.toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
 
-      browserTrigger(element.find('a:contains("Linux")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Linux")'), 'click');
       expect(element.text()).toContain('FooLinux');
       expect(element.text()).not.toContain('BarDarwinWindows');
     });
 
-    it('checks sources platform when filtering by platform', function() {
+    it('checks sources platform when filtering by platform', () => {
       descriptorLinux = {
         type: 'ArtifactDescriptor',
         value: {
@@ -165,14 +173,14 @@ describe('artifacts list form directive', function() {
                   type: 'ArtifactSource',
                   value: {
                     supported_os: [
-                      {type: 'RDFString', value: 'Linux'}
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        }
+                      {type: 'RDFString', value: 'Linux'},
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
       };
 
       descriptorDarwinWindows = {
@@ -188,62 +196,62 @@ describe('artifacts list form directive', function() {
                   value: {
                     supported_os: [
                       {type: 'RDFString', value: 'Darwin'},
-                      {type: 'RDFString', value: 'Windows'}
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        }
+                      {type: 'RDFString', value: 'Windows'},
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
       };
 
-      var element = renderTestTemplate([]);
-      browserTrigger(element.find('a:contains("Darwin")'), 'click');
+      const element = renderTestTemplate([]);
+      browserTriggerEvent(element.find('a:contains("Darwin")'), 'click');
       expect(element.text()).not.toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
 
-      browserTrigger(element.find('a:contains("Windows")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Windows")'), 'click');
       expect(element.text()).not.toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
 
-      browserTrigger(element.find('a:contains("Linux")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Linux")'), 'click');
       expect(element.text()).toContain('FooLinux');
       expect(element.text()).not.toContain('BarDarwinWindows');
     });
 
-    it('filters artifacts by name', function() {
-      var element = renderTestTemplate([]);
+    it('filters artifacts by name', () => {
+      const element = renderTestTemplate([]);
 
       element.find('input[name=Search]').val('bar');
-      browserTrigger(element.find('input[name=Search]'), 'change');
+      browserTriggerEvent(element.find('input[name=Search]'), 'change');
       $rootScope.$apply();
 
       expect(element.text()).not.toContain('FooLinux');
       expect(element.text()).toContain('BarDarwinWindows');
     });
 
-    it('shows artifact descriptor info for selected artifact', function() {
-      var element = renderTestTemplate([]);
+    it('shows artifact descriptor info for selected artifact', () => {
+      const element = renderTestTemplate([]);
 
-      var infoDirective;
-      browserTrigger(element.find('td:contains("FooLinux")'), 'click');
+      let infoDirective;
+      browserTriggerEvent(element.find('td:contains("FooLinux")'), 'click');
       infoDirective = element.find('grr-semantic-value');
       expect(infoDirective.scope().$eval(infoDirective.attr('value'))).toEqual(
           descriptorLinux);
 
-      browserTrigger(element.find('td:contains("BarDarwinWindows")'), 'click');
+      browserTriggerEvent(element.find('td:contains("BarDarwinWindows")'), 'click');
       infoDirective = element.find('grr-semantic-value');
       expect(infoDirective.scope().$eval(infoDirective.attr('value'))).toEqual(
           descriptorDarwinWindows);
     });
 
-    it('picks the artifact when Add is pressed', function() {
-      var element = renderTestTemplate([]);
+    it('picks the artifact when Add is pressed', () => {
+      const element = renderTestTemplate([]);
 
-      browserTrigger(element.find('table[name=Artifacts] ' +
+      browserTriggerEvent(element.find('table[name=Artifacts] ' +
           'td:contains("FooLinux")'), 'click');
-      browserTrigger(element.find('button:contains("Add")'), 'click');
+      browserTriggerEvent(element.find('button:contains("Add")'), 'click');
 
       expect(element.find('table[name=Artifacts] ' +
           'td:contains("FooLinux")').length).toBe(0);
@@ -251,10 +259,10 @@ describe('artifacts list form directive', function() {
           'td:contains("FooLinux")').length).toBe(1);
     });
 
-    it('picks the artifact on double click', function() {
-      var element = renderTestTemplate([]);
+    it('picks the artifact on double click', () => {
+      const element = renderTestTemplate([]);
 
-      browserTrigger(element.find('table[name=Artifacts] ' +
+      browserTriggerEvent(element.find('table[name=Artifacts] ' +
           'td:contains("FooLinux")'), 'dblclick');
 
       expect(element.find('table[name=Artifacts] ' +
@@ -263,23 +271,23 @@ describe('artifacts list form directive', function() {
           'td:contains("FooLinux")').length).toBe(1);
     });
 
-    it('updates the model when artifact is picked', function() {
-      var element = renderTestTemplate([]);
+    it('updates the model when artifact is picked', () => {
+      const element = renderTestTemplate([]);
 
-      browserTrigger(element.find('table[name=Artifacts] ' +
+      browserTriggerEvent(element.find('table[name=Artifacts] ' +
           'td:contains("FooLinux")'), 'dblclick');
 
       expect(angular.equals($rootScope.value,
                             [{type: 'ArtifactName', value: 'FooLinux'}]));
     });
 
-    it('unpicks the artifact when Remove is pressed', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'}]);
+    it('unpicks the artifact when Remove is pressed', () => {
+      const element =
+          renderTestTemplate([{type: 'ArtifactName', value: 'FooLinux'}]);
 
-      browserTrigger(element.find('table[name=SelectedArtifacts] ' +
+      browserTriggerEvent(element.find('table[name=SelectedArtifacts] ' +
           'td:contains("FooLinux")'), 'click');
-      browserTrigger(element.find('button:contains("Remove")'), 'click');
+      browserTriggerEvent(element.find('button:contains("Remove")'), 'click');
 
       expect(element.find('table[name=Artifacts] ' +
           'td:contains("FooLinux")').length).toBe(1);
@@ -287,11 +295,11 @@ describe('artifacts list form directive', function() {
           'td:contains("FooLinux")').length).toBe(0);
     });
 
-    it('unpicks the artifact on double click', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'}]);
+    it('unpicks the artifact on double click', () => {
+      const element =
+          renderTestTemplate([{type: 'ArtifactName', value: 'FooLinux'}]);
 
-      browserTrigger(element.find('table[name=SelectedArtifacts] ' +
+      browserTriggerEvent(element.find('table[name=SelectedArtifacts] ' +
           'td:contains("FooLinux")'), 'dblclick');
 
       expect(element.find('table[name=Artifacts] ' +
@@ -300,22 +308,23 @@ describe('artifacts list form directive', function() {
           'td:contains("FooLinux")').length).toBe(0);
     });
 
-    it('updates the model when artifact is unpicked', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'}]);
+    it('updates the model when artifact is unpicked', () => {
+      const element =
+          renderTestTemplate([{type: 'ArtifactName', value: 'FooLinux'}]);
 
-      browserTrigger(element.find('table[name=SelectedArtifacts] ' +
+      browserTriggerEvent(element.find('table[name=SelectedArtifacts] ' +
           'td:contains("FooLinux")'), 'dblclick');
 
       expect(angular.equals($rootScope.value, []));
     });
 
-    it('clears list of picked artifacts when Clear is pressed', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'},
-           {type: 'ArtifactName', value: 'BarDarwinWindows'}]);
+    it('clears list of picked artifacts when Clear is pressed', () => {
+      const element = renderTestTemplate([
+        {type: 'ArtifactName', value: 'FooLinux'},
+        {type: 'ArtifactName', value: 'BarDarwinWindows'}
+      ]);
 
-      browserTrigger(element.find('button:contains("Clear")'), 'click');
+      browserTriggerEvent(element.find('button:contains("Clear")'), 'click');
 
       expect(element.find('table[name=SelectedArtifacts] ' +
           'td:contains("FooLinux")').length).toBe(0);
@@ -323,16 +332,18 @@ describe('artifacts list form directive', function() {
           'td:contains("BarDarwinWindows")').length).toBe(0);
     });
 
-    it('updates the model when selection list is cleared', function() {
-      var element = renderTestTemplate(
-          [{type: 'ArtifactName', value: 'FooLinux'},
-           {type: 'ArtifactName', value: 'BarDarwinWindows'}]);
+    it('updates the model when selection list is cleared', () => {
+      const element = renderTestTemplate([
+        {type: 'ArtifactName', value: 'FooLinux'},
+        {type: 'ArtifactName', value: 'BarDarwinWindows'}
+      ]);
 
-      browserTrigger(element.find('button:contains("Clear")'), 'click');
+      browserTriggerEvent(element.find('button:contains("Clear")'), 'click');
 
       expect(angular.equals($rootScope.value, []));
     });
-
   });
-
 });
+
+
+exports = {};

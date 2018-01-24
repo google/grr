@@ -1,75 +1,79 @@
 'use strict';
 
-goog.provide('grrUi.semantic.hashListDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
-goog.require('grrUi.tests.stubDirective');
+goog.module('grrUi.semantic.hashListDirectiveTest');
 
-describe('hash list directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const stubDirective = goog.require('grrUi.tests.stubDirective');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  grrUi.tests.stubDirective('grrSemanticValue');
+describe('hash list directive', () => {
+  let $compile;
+  let $rootScope;
 
-  beforeEach(inject(function($injector) {
+
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+
+  stubDirective('grrSemanticValue');
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-hash-list value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-hash-list value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing when value is empty', function() {
-    var value = {
+  it('shows nothing when value is empty', () => {
+    const value = {
       type: 'HashList',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.find('grr-hash-digest').length).toBe(0);
   });
 
-  it('delegates single item to grr-semantic-value', function() {
-    var base64EncodedHashList = {
+  it('delegates single item to grr-semantic-value', () => {
+    const base64EncodedHashList = {
       type: 'HashList',
-      value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
+      value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=',
     };
-    var element = renderTestTemplate(base64EncodedHashList);
-    var directive = element.find('grr-semantic-value');
-    expect(angular.equals(directive.scope().$eval(directive.attr('value'))),
-           [{
+    const element = renderTestTemplate(base64EncodedHashList);
+    const directive = element.find('grr-semantic-value');
+    expect(angular.equals(directive.scope().$eval(directive.attr('value'))), [{
              type: 'HashDigest',
-             value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
+             value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=',
            }]);
   });
 
-  it('delegates two items to grr-hash-digest', function() {
-    var base64EncodedHashList = {
+  it('delegates two items to grr-hash-digest', () => {
+    const base64EncodedHashList = {
       type: 'HashList',
       value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE' +
           'yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg==',
     };
-    var element = renderTestTemplate(base64EncodedHashList);
-    var directive = element.find('grr-semantic-value');
-    expect(angular.equals(directive.scope().$eval(directive.attr('value'))),
-           [
-             {
-               type: 'HashDigest',
-               value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
-             },
-             {
-               type: 'HashDigest',
-               value: 'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI='
-             }
-           ]);
+    const element = renderTestTemplate(base64EncodedHashList);
+    const directive = element.find('grr-semantic-value');
+    expect(angular.equals(directive.scope().$eval(directive.attr('value'))), [
+      {
+        type: 'HashDigest',
+        value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=',
+      },
+      {
+        type: 'HashDigest',
+        value: 'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI=',
+      },
+    ]);
   });
-
 });
+
+
+exports = {};

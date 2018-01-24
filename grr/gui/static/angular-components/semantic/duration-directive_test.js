@@ -1,100 +1,106 @@
 'use strict';
 
-goog.provide('grrUi.semantic.durationDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.durationDirectiveTest');
 
-describe('duration directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('duration directive', () => {
+  let $compile;
+  let $rootScope;
+
+
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-duration value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-duration value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows "-" when value is empty', function() {
-    var value = {
+  it('shows "-" when value is empty', () => {
+    const value = {
       type: 'Duration',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('shows 0 if duration value is 0', function() {
-    var value = {
+  it('shows 0 if duration value is 0', () => {
+    const value = {
       type: 'Duration',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('0');
   });
 
-  it('shows duration in seconds if it\'s not divisible by 60', function() {
-    var value = {
+  it('shows duration in seconds if it\'s not divisible by 60', () => {
+    const value = {
       type: 'Duration',
-      value: 122
+      value: 122,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('122s');
   });
 
-  it('shows duration in minutes if possible', function() {
-    var value = {
+  it('shows duration in minutes if possible', () => {
+    const value = {
       type: 'Duration',
-      value: 120
+      value: 120,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('2m');
   });
 
-  it('shows duration in hours if possible', function() {
-    var value = {
+  it('shows duration in hours if possible', () => {
+    const value = {
       type: 'Duration',
-      value: 7200
+      value: 7200,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('2h');
   });
 
-  it('shows duration in days if possible', function() {
-    var value = {
+  it('shows duration in days if possible', () => {
+    const value = {
       type: 'Duration',
-      value: 172800
+      value: 172800,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('2d');
   });
 
-  it('shows duration in weeks if possible', function() {
-    var value = {
+  it('shows duration in weeks if possible', () => {
+    const value = {
       type: 'Duration',
-      value: 1209600
+      value: 1209600,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('2w');
   });
 
-  it('shows duration in days if not divisible by 7', function() {
-    var value = {
+  it('shows duration in days if not divisible by 7', () => {
+    const value = {
       type: 'Duration',
-      value: 1036800
+      value: 1036800,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('12d');
   });
-
 });
+
+
+exports = {};

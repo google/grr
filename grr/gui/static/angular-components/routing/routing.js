@@ -1,4 +1,4 @@
-goog.provide('grrUi.routing.module');
+goog.provide('grrUi.routing.routingModule');
 goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.routing.rewriteUrl');
 goog.require('grrUi.routing.routingService.RoutingService');
@@ -7,13 +7,13 @@ goog.require('grrUi.routing.routingService.RoutingService');
 /**
  * Angular module for core GRR UI components.
  */
-grrUi.routing.module = angular.module('grrUi.routing', ['ui.router']);
+grrUi.routing.routingModule = angular.module('grrUi.routing', ['ui.router']);
 
-grrUi.routing.module.service(
+grrUi.routing.routingModule.service(
     grrUi.routing.routingService.RoutingService.service_name,
     grrUi.routing.routingService.RoutingService);
 
-grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMatcherFactoryProvider) {
+grrUi.routing.routingModule.config(function ($stateProvider, $urlRouterProvider, $urlMatcherFactoryProvider) {
 
   $urlMatcherFactoryProvider.type('pathWithUnescapedSlashes', {
     encode: function(item) {

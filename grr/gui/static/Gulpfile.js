@@ -120,8 +120,8 @@ gulp.task('compile-grr-angular-template-cache', function() {
       .pipe(gulpAngularTemplateCache({
         module: 'grrUi.templates',
         standalone: true,
-        templateHeader: 'goog.provide(\'grrUi.templates.module\');' +
-            'grrUi.templates.module = angular.module(\'grrUi.templates\', []);' +
+        templateHeader: 'goog.provide(\'grrUi.templates.templatesModule\');' +
+            'grrUi.templates.templatesModule = angular.module(\'grrUi.templates\', []);' +
             'angular.module(\'grrUi.templates\').run(["$templateCache", function($templateCache) {'
       }))
       .pipe(gulp.dest(config.tempDir));
@@ -151,7 +151,7 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
           angular_pass: true,
           compilation_level: 'WHITESPACE_ONLY',
           dependency_mode: 'STRICT',
-          entry_point: 'grrUi.appController.module',
+          entry_point: 'grrUi.appController.appControllerModule',
           jscomp_off: [
             'checkTypes',
             'checkVars',

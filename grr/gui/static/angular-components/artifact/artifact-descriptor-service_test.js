@@ -1,30 +1,34 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactDescriptorServiceTest');
-goog.require('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
-goog.require('grrUi.artifact.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.artifact.artifactDescriptorServiceTest');
+
+const ArtifactDescriptorsService = goog.require('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
+const artifactModule = goog.require('grrUi.artifact.artifactModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-describe('grrArtifactDescriptorsService service', function() {
-  var $rootScope, $q, grrApiServiceMock, grrArtifactDescriptorsService;
+describe('grrArtifactDescriptorsService service', () => {
+  let $q;
+  let $rootScope;
+  let grrApiServiceMock;
+  let grrArtifactDescriptorsService;
 
-  beforeEach(module(grrUi.artifact.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(artifactModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
 
     grrApiServiceMock = {get: function() {}};
-    grrArtifactDescriptorsService = $injector.instantiate(
-        grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService,
-        {
-          'grrApiService': grrApiServiceMock
+    grrArtifactDescriptorsService =
+        $injector.instantiate(ArtifactDescriptorsService, {
+          'grrApiService': grrApiServiceMock,
         });
   }));
 
-  var successResponse = {
+  const successResponse = {
     data: {
       items: [
         {
@@ -33,11 +37,11 @@ describe('grrArtifactDescriptorsService service', function() {
             artifact: {
               value: {
                 name: {
-                  value: 'foo'
-                }
-              }
-            }
-          }
+                  value: 'foo',
+                },
+              },
+            },
+          },
         },
         {
           type: 'ArtifactDescriptor',
@@ -45,52 +49,51 @@ describe('grrArtifactDescriptorsService service', function() {
             artifact: {
               value: {
                 name: {
-                  value: 'bar'
-                }
-              }
-            }
-          }
-        }
-      ]
-    }
+                  value: 'bar',
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
   };
 
-  var failureResponse = {
+  const failureResponse = {
     data: {
-      message: 'Oh no!'
-    }
+      message: 'Oh no!',
+    },
   };
 
-  describe('listDescriptors()', function() {
-    it('resolves to a dictionary of descriptors on success', function(done) {
-      var deferred = $q.defer();
+  describe('listDescriptors()', () => {
+    it('resolves to a dictionary of descriptors on success', (done) => {
+      const deferred = $q.defer();
       deferred.resolve(successResponse);
       spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-      grrArtifactDescriptorsService.listDescriptors().then(function(descriptors) {
+      grrArtifactDescriptorsService.listDescriptors().then((descriptors) => {
         expect(Object.keys(descriptors)).toEqual(['foo', 'bar']);
         done();
       });
       $rootScope.$apply();
     });
 
-    it('resolves to an error message on error', function(done) {
-      var deferred = $q.defer();
+    it('resolves to an error message on error', (done) => {
+      const deferred = $q.defer();
       deferred.reject(failureResponse);
       spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
       grrArtifactDescriptorsService.listDescriptors().then(
-          function success() {},
-          function faiure(message) {
+          () => {}, (message) => {
             expect(message).toBe('Oh no!');
             done();
           });
       $rootScope.$apply();
     });
 
-    it('does not start more than one API requests', function() {
-      var deferred1 = $q.defer();
-      var deferred2 = $q.defer();
+    it('does not start more than one API requests', () => {
+      const deferred1 = $q.defer();
+      const deferred2 = $q.defer();
       spyOn(grrApiServiceMock, 'get').and.returnValues(deferred1.promise,
                                                        deferred2.promise);
 
@@ -101,41 +104,40 @@ describe('grrArtifactDescriptorsService service', function() {
     });
   });
 
-  describe('getDescriptorByName()', function() {
-    it('resolves to a descriptor', function(done) {
-      var deferred = $q.defer();
+  describe('getDescriptorByName()', () => {
+    it('resolves to a descriptor', (done) => {
+      const deferred = $q.defer();
       deferred.resolve(successResponse);
       spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
       grrArtifactDescriptorsService.getDescriptorByName('foo').then(
-          function(descriptor) {
+          (descriptor) => {
             expect(descriptor).toEqual(successResponse.data.items[0]);
             done();
           });
       $rootScope.$apply();
     });
 
-    it('resolves to undefined if descriptor not found', function(done) {
-      var deferred = $q.defer();
+    it('resolves to undefined if descriptor not found', (done) => {
+      const deferred = $q.defer();
       deferred.resolve(successResponse);
       spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-      grrArtifactDescriptorsService.getDescriptorByName('something').then(
-          function(descriptor) {
+      grrArtifactDescriptorsService.getDescriptorByName('something')
+          .then((descriptor) => {
             expect(descriptor).toBeUndefined();
             done();
           });
       $rootScope.$apply();
     });
 
-    it('resolve to an error message in case of error', function(done) {
-      var deferred = $q.defer();
+    it('resolve to an error message in case of error', (done) => {
+      const deferred = $q.defer();
       deferred.reject(failureResponse);
       spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-      grrArtifactDescriptorsService.getDescriptorByName('something').then(
-          function success() {},
-          function failure(message) {
+      grrArtifactDescriptorsService.getDescriptorByName('something')
+          .then(() => {}, (message) => {
             expect(message).toBe('Oh no!');
             done();
           });
@@ -143,12 +145,12 @@ describe('grrArtifactDescriptorsService service', function() {
     });
   });
 
-  describe('clearCache()', function() {
-    it('forces next listDescriptors call to do an API request', function() {
-      var deferred1 = $q.defer();
+  describe('clearCache()', () => {
+    it('forces next listDescriptors call to do an API request', () => {
+      const deferred1 = $q.defer();
       deferred1.resolve(successResponse);
 
-      var deferred2 = $q.defer();
+      const deferred2 = $q.defer();
       deferred2.resolve(successResponse);
 
       spyOn(grrApiServiceMock, 'get').and.returnValues(deferred1.promise,
@@ -165,3 +167,6 @@ describe('grrArtifactDescriptorsService service', function() {
     });
   });
 });
+
+
+exports = {};

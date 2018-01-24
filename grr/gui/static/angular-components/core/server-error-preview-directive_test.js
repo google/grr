@@ -1,60 +1,64 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorPreviewDirectiveTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.serverErrorPreviewDirectiveTest');
 
-describe('server error preview directive', function () {
+const ServerErrorButtonDirective = goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  var ERROR_EVENT_NAME =
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 
-  var $compile, $rootScope, $scope;
+describe('server error preview directive', () => {
+  const ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  let $compile;
+  let $rootScope;
+  let $scope;
 
-  beforeEach(inject(function ($injector) {
+
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $scope = $rootScope.$new();
   }));
 
-  var render = function () {
-    var template = '<grr-server-error-preview />';
-    var element = $compile(template)($scope);
+  const render = () => {
+    const template = '<grr-server-error-preview />';
+    const element = $compile(template)($scope);
     $scope.$apply();
     return element;
   };
 
-  var isVisible = function (element) {
-    return !element.hasClass('ng-hide');
-  };
+  const isVisible = (element) => !element.hasClass('ng-hide');
 
-  it('should be hidden by default', function () {
-    var element = render();
+  it('should be hidden by default', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
   });
 
-  it('should show error message once a non-empty server error event is fired', function () {
-    var errorMessage = 'some event value';
-    var element = render();
-    expect(isVisible(element)).toBe(false);
-    $scope.$apply(function () {
-      $rootScope.$broadcast(ERROR_EVENT_NAME, {message: errorMessage});
-    });
-    expect(isVisible(element)).toBe(true);
-    expect(element.text().trim()).toBe(errorMessage);
-  });
+  it('should show error message once a non-empty server error event is fired',
+     () => {
+       const errorMessage = 'some event value';
+       const element = render();
+       expect(isVisible(element)).toBe(false);
+       $scope.$apply(() => {
+         $rootScope.$broadcast(ERROR_EVENT_NAME, {message: errorMessage});
+       });
+       expect(isVisible(element)).toBe(true);
+       expect(element.text().trim()).toBe(errorMessage);
+     });
 
-  it('should ignore empty server error events', function () {
-    var element = render();
+  it('should ignore empty server error events', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
-    $scope.$apply(function () {
+    $scope.$apply(() => {
       $rootScope.$broadcast(ERROR_EVENT_NAME);
     });
     expect(isVisible(element)).toBe(false);
   });
-
 });
+
+
+exports = {};

@@ -1,23 +1,28 @@
 'use strict';
 
-goog.provide('grrUi.core.globalNotificationsDirectiveTest');
-goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
-goog.require('grrUi.core.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.globalNotificationsDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const GlobalNotificationsDirective = goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('Global notifications directive', function() {
-  var $q, $compile, $rootScope, $interval, grrApiService;
 
-  var FETCH_INTERVAL =
-      grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective.fetch_interval;
+describe('Global notifications directive', () => {
+  let $compile;
+  let $interval;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+
+
+  const FETCH_INTERVAL = GlobalNotificationsDirective.fetch_interval;
 
   beforeEach(module('/static/angular-components/core/global-notifications.html'));
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -25,118 +30,124 @@ describe('Global notifications directive', function() {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var render = function() {
-    var template = '<grr-global-notifications />';
-    var element = $compile(template)($rootScope);
+  const render = () => {
+    const template = '<grr-global-notifications />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;
   };
 
-  var mockApiServiceResponse = function(items){
-    spyOn(grrApiService, 'get').and.callFake(function() {
-      return $q.when({ data: { items: items }});
-    });
+  const mockApiServiceResponse = (items) => {
+    spyOn(grrApiService, 'get').and.callFake(() => $q.when({
+      data: {items: items}
+    }));
   };
 
-  it('fetches pending gobal notifications and displays them', function() {
-    var items = [{
-      "value": {
-        "content": {
-          "value": "Houston, Houston, we have a prob..."
+  it('fetches pending gobal notifications and displays them', () => {
+    const items = [{
+      'value': {
+        'content': {
+          'value': 'Houston, Houston, we have a prob...',
         },
-        "header": {
-          "value": "Oh no, we're doomed!"
+        'header': {
+          'value': 'Oh no, we\'re doomed!',
         },
-        "link": {
-          "value": "http://www.google.com"
+        'link': {
+          'value': 'http://www.google.com',
         },
-        "type": {
-          "value": "ERROR"
-        }
-      }
+        'type': {
+          'value': 'ERROR',
+        },
+      },
     }];
     mockApiServiceResponse(items);
 
-    var element = render();
+    const element = render();
     $interval.flush(FETCH_INTERVAL);
 
-    var url = 'users/me/notifications/pending/global';
+    const url = 'users/me/notifications/pending/global';
     expect(grrApiService.get).toHaveBeenCalledWith(url);
 
-    var alertElement = element.find('.alert.alert-error');
+    const alertElement = element.find('.alert.alert-error');
     expect(alertElement.length).toBe(1);
     expect(alertElement.find('h4').text().trim()).toBe('Oh no, we\'re doomed!');
     expect(alertElement.find('p').text().trim()).toBe('Houston, Houston, we have a prob...');
     expect(alertElement.find('a[href="http://www.google.com"]').length).toBe(1);
   });
 
-  it('shows all notifications if multiple are returned', function() {
-    var items = [{
-      "value": {
-        "content": {
-          "value": "Houston, Houston, we have a prob..."
+  it('shows all notifications if multiple are returned', () => {
+    const items = [
+      {
+        'value': {
+          'content': {
+            'value': 'Houston, Houston, we have a prob...',
+          },
+          'header': {
+            'value': 'Oh no, we\'re doomed!',
+          },
+          'link': {
+            'value': 'http://www.google.com',
+          },
+          'type': {
+            'value': 'ERROR',
+          },
         },
-        "header": {
-          "value": "Oh no, we're doomed!"
+      },
+      {
+        'value': {
+          'content': {
+            'value': 'The word is nukular.',
+          },
+          'header': {
+            'value': 'In case you didn\'t know!',
+          },
+          'type': {
+            'value': 'INFO',
+          },
         },
-        "link": {
-          "value": "http://www.google.com"
-        },
-        "type": {
-          "value": "ERROR"
-        }
       }
-    }, {
-      "value": {
-        "content": {
-          "value": "The word is nukular."
-        },
-        "header": {
-          "value": "In case you didn't know!"
-        },
-        "type": {
-          "value": "INFO"
-        }
-      }
-    }];
+    ];
     mockApiServiceResponse(items);
 
-    var element = render();
+    const element = render();
     $interval.flush(FETCH_INTERVAL);
 
-    var url = 'users/me/notifications/pending/global';
+    const url = 'users/me/notifications/pending/global';
     expect(grrApiService.get).toHaveBeenCalledWith(url);
 
-    var errorAlertElement = element.find('.alert.alert-error');
+    const errorAlertElement = element.find('.alert.alert-error');
     expect(errorAlertElement.length).toBe(1);
 
-    var infoAlertElement = element.find('.alert.alert-info');
+    const infoAlertElement = element.find('.alert.alert-info');
     expect(infoAlertElement.length).toBe(1);
     expect(infoAlertElement.find('a').length).toBe(0);
   });
 
-  it('deletes a notification when the close button is clicked', function() {
-    var items = [{
-      "value": {
-        "content": {
-          "value": "The word is nukular."
+  it('deletes a notification when the close button is clicked', () => {
+    const items = [{
+      'value': {
+        'content': {
+          'value': 'The word is nukular.',
         },
-        "header": {
-          "value": "In case you didn't know!"
+        'header': {
+          'value': 'In case you didn\'t know!',
         },
-        "type": {
-          "value": "INFO"
-        }
-      }
+        'type': {
+          'value': 'INFO',
+        },
+      },
     }];
     mockApiServiceResponse(items);
     spyOn(grrApiService, 'delete');
 
-    var element = render();
+    const element = render();
     $interval.flush(FETCH_INTERVAL);
 
-    browserTrigger(element.find('button.close'), 'click');
+    browserTriggerEvent(element.find('button.close'), 'click');
     expect(grrApiService.delete).toHaveBeenCalledWith(
       'users/me/notifications/pending/global/INFO');
   });
 });
+
+
+exports = {};

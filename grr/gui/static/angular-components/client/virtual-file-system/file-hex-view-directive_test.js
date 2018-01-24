@@ -1,47 +1,55 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirectiveTest');
-goog.require('grrUi.client.virtualFileSystem.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.client.virtualFileSystem.fileHexViewDirectiveTest');
 
-describe('file hex view directive', function() {
-  var $q, $compile, $rootScope, grrApiService;
+const testsModule = goog.require('grrUi.tests.testsModule');
+const virtualFileSystemModule = goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
+
+
+describe('file hex view directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+
 
   beforeEach(module('/static/angular-components/client/virtual-file-system/file-hex-view.html'));
-  beforeEach(module(grrUi.client.virtualFileSystem.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(virtualFileSystemModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var render = function(clientId, filePath) {
+  const render = (clientId, filePath) => {
     $rootScope.clientId = clientId;
     $rootScope.selectedFilePath = filePath;
 
-    var template = '<grr-file-context' +
-                   '    client-id="clientId"' +
-                   '    selected-file-path="selectedFilePath">' +
-                   '  <grr-file-hex-view />' +
-                   '</grr-file-context>';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-file-context' +
+        '    client-id="clientId"' +
+        '    selected-file-path="selectedFilePath">' +
+        '  <grr-file-hex-view />' +
+        '</grr-file-context>';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows proper hex values', function() {
-    spyOn(grrApiService, 'head').and.callFake(function() {
-      return $q.when({ headers: function(){ return 100; } });
-    });
-    spyOn(grrApiService, 'get').and.callFake(function() {
-      return $q.when({ data: 'some text' }); // Hex: 736f6d652074657874.
-    });
+  it('shows proper hex values', () => {
+    spyOn(grrApiService, 'head').and.callFake(() => $q.when({
+      headers: function() {
+        return 100;
+      }
+    }));
+    spyOn(grrApiService, 'get').and.callFake(() => $q.when({
+      data: 'some text'
+    }));
 
-    var element = render('C.0000111122223333', 'fs/os/c/test.txt');
+    const element = render('C.0000111122223333', 'fs/os/c/test.txt');
 
     expect(grrApiService.get).toHaveBeenCalled();
     expect(element.find('table.offset-area tr:first-child td').text().trim())
@@ -54,14 +62,16 @@ describe('file hex view directive', function() {
         .toEqual('some text');
   });
 
-  it('shows a hint when the file is not available', function() {
-    spyOn(grrApiService, 'head').and.callFake(function() {
-      return $q.reject('Some Error Message');
-    });
+  it('shows a hint when the file is not available', () => {
+    spyOn(grrApiService, 'head')
+        .and.callFake(() => $q.reject('Some Error Message'));
 
-    var element = render('C.0000111122223333', 'fs/os/c/test.txt');
+    const element = render('C.0000111122223333', 'fs/os/c/test.txt');
 
     expect(grrApiService.head).toHaveBeenCalled();
     expect(element.find('.no-content').length).toEqual(1);
   });
 });
+
+
+exports = {};

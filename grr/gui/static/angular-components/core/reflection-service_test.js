@@ -1,31 +1,34 @@
 'use strict';
 
-goog.provide('grrUi.core.reflectionServiceTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.core.reflectionService.ReflectionService');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.reflectionServiceTest');
+
+const ReflectionService = goog.require('grrUi.core.reflectionService.ReflectionService');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-describe('AFF4 items provider directive', function() {
-  var $rootScope, $q, grrApiServiceMock, grrReflectionService;
+describe('AFF4 items provider directive', () => {
+  let $q;
+  let $rootScope;
+  let grrApiServiceMock;
+  let grrReflectionService;
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
 
     grrApiServiceMock = {get: function() {}};
-    grrReflectionService = $injector.instantiate(
-        grrUi.core.reflectionService.ReflectionService,
-        {
-          'grrApiService': grrApiServiceMock
-        });
+    grrReflectionService = $injector.instantiate(ReflectionService, {
+      'grrApiService': grrApiServiceMock,
+    });
   }));
 
-  it('fetches data from the server only once', function() {
-    var deferred = $q.defer();
+  it('fetches data from the server only once', () => {
+    const deferred = $q.defer();
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     grrReflectionService.getRDFValueDescriptor('Duration');
@@ -34,18 +37,17 @@ describe('AFF4 items provider directive', function() {
     expect(grrApiServiceMock.get.calls.count()).toBe(1);
   });
 
-  it('queues requests until the data are fetched', function() {
-    var deferred = $q.defer();
+  it('queues requests until the data are fetched', () => {
+    const deferred = $q.defer();
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-    var responses = [];
-    grrReflectionService.getRDFValueDescriptor('Duration').then(
-        function(response) {
-          responses.push(response);
-        });
+    const responses = [];
+    grrReflectionService.getRDFValueDescriptor('Duration').then((response) => {
+      responses.push(response);
+    });
 
-    grrReflectionService.getRDFValueDescriptor('RDFDatetime').then(
-        function(response) {
+    grrReflectionService.getRDFValueDescriptor('RDFDatetime')
+        .then((response) => {
           responses.push(response);
         });
 
@@ -57,15 +59,15 @@ describe('AFF4 items provider directive', function() {
           {
             'doc': 'Duration value stored in seconds internally.',
             'kind': 'primitive',
-            'name': 'Duration'
+            'name': 'Duration',
           },
           {
             'doc': 'Date and time.',
             'kind': 'primitive',
-            'name': 'RDFDatetime'
-          }
-        ]
-      }
+            'name': 'RDFDatetime',
+          },
+        ],
+      },
     });
     $rootScope.$apply();
 
@@ -73,17 +75,17 @@ describe('AFF4 items provider directive', function() {
     expect(responses[0]).toEqual({
       'doc': 'Duration value stored in seconds internally.',
       'kind': 'primitive',
-      'name': 'Duration'
+      'name': 'Duration',
     });
     expect(responses[1]).toEqual({
       'doc': 'Date and time.',
       'kind': 'primitive',
-      'name': 'RDFDatetime'
+      'name': 'RDFDatetime',
     });
   });
 
-  it('returns data with dependencies if opt_withDeps is true', function() {
-    var deferred = $q.defer();
+  it('returns data with dependencies if opt_withDeps is true', () => {
+    const deferred = $q.defer();
     deferred.resolve({
       data: {
         items: [
@@ -92,22 +94,22 @@ describe('AFF4 items provider directive', function() {
             'kind': 'struct',
             'name': 'Struct',
             'fields': [
-              {'type': 'RDFInteger'}
-            ]
+              {'type': 'RDFInteger'},
+            ],
           },
           {
             'doc': 'Sample integer.',
             'kind': 'primitive',
-            'name': 'RDFInteger'
-          }
-        ]
-      }
+            'name': 'RDFInteger',
+          },
+        ],
+      },
     });
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-    var descriptors;
-    grrReflectionService.getRDFValueDescriptor('Struct', true).then(
-        function(response) {
+    let descriptors;
+    grrReflectionService.getRDFValueDescriptor('Struct', true)
+        .then((response) => {
           descriptors = response;
         });
     $rootScope.$apply();
@@ -115,5 +117,7 @@ describe('AFF4 items provider directive', function() {
     expect(descriptors['Struct']).toBeDefined();
     expect(descriptors['RDFInteger']).toBeDefined();
   });
-
 });
+
+
+exports = {};

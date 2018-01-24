@@ -1,85 +1,86 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportListingDirectiveTest');
-goog.require('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
+goog.module('grrUi.stats.reportListingDirectiveTest');
 
-goog.scope(function() {
+const parseStatsReportsApiResponse = goog.require('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
 
-describe('stats.reportListingDirective.parseStatsReportsApiResponse', function() {
-
-  it('Parses the response into a jsTree-compatible format.', function() {
-    var reports = [{
-      desc: {
-        name: 'FooReportPlugin',
-        title: 'Foos\' Activity',
-        type: 'SERVER',
+describe('stats.reportListingDirective.parseStatsReportsApiResponse', () => {
+  it('Parses the response into a jsTree-compatible format.', () => {
+    const reports = [
+      {
+        desc: {
+          name: 'FooReportPlugin',
+          title: 'Foos\' Activity',
+          type: 'SERVER',
+        },
+      },
+      {
+        desc: {
+          name: 'BarReportPlugin',
+          title: 'Bars Reported Over Time',
+          type: 'SERVER',
+        },
+      },
+      {
+        desc: {
+          name: 'BazReportPlugin',
+          title: 'Baz Statistics',
+          type: 'CLIENT',
+        },
       }
-    }, {
-      desc: {
-        name: 'BarReportPlugin',
-        title: 'Bars Reported Over Time',
-        type: 'SERVER',
-      }
-    }, {
-      desc: {
-        name: 'BazReportPlugin',
-        title: 'Baz Statistics',
-        type: 'CLIENT',
-      }
-    }];
+    ];
 
-    var ret = grrUi.stats.reportListingDirective.parseStatsReportsApiResponse(
-        reports);
+    const ret = parseStatsReportsApiResponse(reports);
 
     expect(ret).toEqual([
       {
-        children:[
+        children: [
           {
             desc: {
               name: 'FooReportPlugin',
               title: 'Foos\' Activity',
-              type: 'SERVER'
+              type: 'SERVER',
             },
             id: 'FooReportPlugin',
-            text: 'Foos\' Activity'
+            text: 'Foos\' Activity',
           },
           {
             desc: {
               name: 'BarReportPlugin',
               title: 'Bars Reported Over Time',
-              type: 'SERVER'
+              type: 'SERVER',
             },
             id: 'BarReportPlugin',
-            text: 'Bars Reported Over Time'
-          }
+            text: 'Bars Reported Over Time',
+          },
         ],
         state: {
           disabled: true,
-          opened: true
+          opened: true,
         },
-        text: 'Server'
+        text: 'Server',
       },
       {
-        children:[
+        children: [
           {
             desc: {
               name: 'BazReportPlugin',
               title: 'Baz Statistics',
-              type: 'CLIENT'
+              type: 'CLIENT',
             },
             id: 'BazReportPlugin',
-            text: 'Baz Statistics'
-          }
+            text: 'Baz Statistics',
+          },
         ],
         state: {
           disabled: true,
-          opened: true
+          opened: true,
         },
-        text: 'Client'
-      }
+        text: 'Client',
+      },
     ]);
   });
-
 });
 
-});  // goog.scope
+
+exports = {};

@@ -1,22 +1,25 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginNoteDirectiveTest');
-goog.require('grrUi.outputPlugins.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.outputPlugins.outputPluginNoteDirectiveTest');
+
+const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-describe('output plugin note directive', function() {
-  var $compile, $rootScope;
-  var grrOutputPluginsDirectivesRegistryService;
+describe('output plugin note directive', () => {
+  let $compile;
+  let $rootScope;
+
+  let grrOutputPluginsDirectivesRegistryService;
 
   beforeEach(module('/static/angular-components/output-plugins/output-plugin-note.html'));
-  beforeEach(module(grrUi.outputPlugins.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(outputPluginsModule.name));
+  beforeEach(module(testsModule.name));
 
   grrUi.tests.stubDirective('grrOutputPluginNoteBody');
   grrUi.tests.stubDirective('grrOutputPluginLogs');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
 
@@ -24,74 +27,77 @@ describe('output plugin note directive', function() {
         'grrOutputPluginsDirectivesRegistryService');
   }));
 
-  var defaultOutputPlugin = {
+  const defaultOutputPlugin = {
     value: {
       plugin_descriptor: {
         value: {
           plugin_name: {
-            value: 'Foo'
-          }
-        }
+            value: 'Foo',
+          },
+        },
       },
       id: {
-        value: '42'
-      }
-    }
+        value: '42',
+      },
+    },
   };
 
-  var renderTestTemplate = function(outputPlugin) {
+  const renderTestTemplate = (outputPlugin) => {
     $rootScope.outputPlugin = outputPlugin || angular.copy(defaultOutputPlugin);
     $rootScope.outputPluginsUrl = '/foo/bar';
 
-    var template = '<grr-output-plugin-note output-plugin="outputPlugin" ' +
+    const template = '<grr-output-plugin-note output-plugin="outputPlugin" ' +
         'output-plugins-url="outputPluginsUrl" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows registered plugin title if registered', function() {
-    var element = renderTestTemplate();
+  it('shows registered plugin title if registered', () => {
+    let element = renderTestTemplate();
     expect(element.text()).toContain('');
 
-    var directiveMock = {
+    const directiveMock = {
       directive_name: 'theTestDirective',
-      output_plugin_title: 'a bar plugin'
+      output_plugin_title: 'a bar plugin',
     };
     grrOutputPluginsDirectivesRegistryService.registerDirective(
         'Foo', directiveMock);
 
-    var element = renderTestTemplate();
+    element = renderTestTemplate();
     expect(element.text()).toContain('a bar plugin');
   });
 
-  it('shows plugin descriptor name if not registered', function() {
-    var element = renderTestTemplate();
+  it('shows plugin descriptor name if not registered', () => {
+    const element = renderTestTemplate();
     expect(element.text()).toContain('Foo');
   });
 
-  it('delegates rendering to grr-output-plugin-note-body', function() {
-    var element = renderTestTemplate();
+  it('delegates rendering to grr-output-plugin-note-body', () => {
+    const element = renderTestTemplate();
 
-    var body = element.find('grr-output-plugin-note-body');
+    const body = element.find('grr-output-plugin-note-body');
     expect(body.scope().$eval(body.attr('output-plugin'))).toEqual(
         defaultOutputPlugin);
   });
 
-  it('delegates logs info rendering to grr-output-plugin-logs', function() {
-    var element = renderTestTemplate();
+  it('delegates logs info rendering to grr-output-plugin-logs', () => {
+    const element = renderTestTemplate();
 
-    var logs = element.find('grr-output-plugin-logs:nth(0)');
+    const logs = element.find('grr-output-plugin-logs:nth(0)');
     expect(logs.scope().$eval(logs.attr('url'))).toEqual(
         '/foo/bar/42/logs');
   });
 
-  it('delegates errors info rendering to grr-output-plugin-logs', function() {
-    var element = renderTestTemplate();
+  it('delegates errors info rendering to grr-output-plugin-logs', () => {
+    const element = renderTestTemplate();
 
-    var errors = element.find('grr-output-plugin-logs:nth(1)');
+    const errors = element.find('grr-output-plugin-logs:nth(1)');
     expect(errors.scope().$eval(errors.attr('url'))).toEqual(
         '/foo/bar/42/errors');
   });
 });
+
+
+exports = {};

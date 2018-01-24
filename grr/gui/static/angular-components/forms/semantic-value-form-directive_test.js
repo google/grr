@@ -1,17 +1,23 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticValueFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.semanticValueFormDirectiveTest');
 
-describe('semantic value form directive', function() {
-  var $compile, $rootScope, $q, grrSemanticFormDirectivesRegistryService;
-  var grrReflectionService;
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('semantic value form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrSemanticFormDirectivesRegistryService;
+
+  let grrReflectionService;
+
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     grrUi.forms.semanticValueFormDirective.clearCaches();
 
     $compile = $injector.get('$compile');
@@ -21,58 +27,58 @@ describe('semantic value form directive', function() {
         'grrSemanticFormDirectivesRegistryService');
     grrReflectionService = $injector.get('grrReflectionService');
 
-    grrReflectionService.getRDFValueDescriptor = function(valueType) {
-      var deferred = $q.defer();
+    grrReflectionService.getRDFValueDescriptor = ((valueType) => {
+      const deferred = $q.defer();
       deferred.resolve({
         name: valueType,
-        mro: [valueType]
+        mro: [valueType],
       });
       return deferred.promise;
-    };
+    });
   }));
 
-  var renderTestTemplate = function(value, metadata) {
+  const renderTestTemplate = (value, metadata) => {
     $rootScope.value = value;
     $rootScope.metadata = metadata;
 
-    var template = '<grr-form-value value="value" metadata="metadata" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-form-value value="value" metadata="metadata" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows error message if no corresponding directive found', function() {
-    var fooValue = {
+  it('shows error message if no corresponding directive found', () => {
+    const fooValue = {
       type: 'Foo',
       mro: ['Foo'],
-      value: 'foo'
+      value: 'foo',
     };
 
-    var element = renderTestTemplate(fooValue);
+    const element = renderTestTemplate(fooValue);
     expect(element.text()).toContain('No directive for type: Foo');
   });
 
-  it('renders registered type with a corresponding directive', function() {
+  it('renders registered type with a corresponding directive', () => {
     // This directive does not exist and Angular won't process it,
     // but it still will be inserted into DOM and we can check
     // that it's inserted correctly.
-    var directiveMock = {
-      directive_name: 'theTestDirective'
+    const directiveMock = {
+      directive_name: 'theTestDirective',
     };
 
     grrSemanticFormDirectivesRegistryService.registerDirective(
         'Foo', directiveMock);
-    var fooValue = {
+    const fooValue = {
       type: 'Foo',
       mro: ['Foo'],
-      value: 'foo'
+      value: 'foo',
     };
-    var metadata = {
-      foo: 'bar'
+    const metadata = {
+      foo: 'bar',
     };
 
-    var element = renderTestTemplate(fooValue);
+    const element = renderTestTemplate(fooValue);
     expect($('the-test-directive', element).length).toBe(1);
     // Check that registered directive has "value" attribute specified.
     expect($('the-test-directive[value]', element).length).toBe(1);
@@ -80,12 +86,12 @@ describe('semantic value form directive', function() {
     expect($('the-test-directive[metadata]', element).length).toBe(1);
   });
 
-  it('destroys nested directive\'s scope if value type is changed', function() {
-    var directiveFooMock = {
-      directive_name: 'theFooTestDirective'
+  it('destroys nested directive\'s scope if value type is changed', () => {
+    const directiveFooMock = {
+      directive_name: 'theFooTestDirective',
     };
-    var directiveBarMock = {
-      directive_name: 'theBarTestDirective'
+    const directiveBarMock = {
+      directive_name: 'theBarTestDirective',
     };
 
     grrSemanticFormDirectivesRegistryService.registerDirective(
@@ -93,25 +99,25 @@ describe('semantic value form directive', function() {
     grrSemanticFormDirectivesRegistryService.registerDirective(
         'Bar', directiveBarMock);
 
-    var fooValue = {
+    const fooValue = {
       type: 'Foo',
       mro: ['Foo'],
-      value: 'foo'
+      value: 'foo',
     };
-    var barValue = {
+    const barValue = {
       type: 'Bar',
       mro: ['Bar'],
-      value: 'bar'
+      value: 'bar',
     };
 
-    var element = renderTestTemplate(fooValue);
+    const element = renderTestTemplate(fooValue);
     expect($('the-foo-test-directive', element).length).toBe(1);
 
-    var fooScope =  $('the-foo-test-directive', element).scope();
+    const fooScope = $('the-foo-test-directive', element).scope();
     fooScope.foo = 42;
 
-    var firesCount = 0;
-    fooScope.$watch('foo', function() {
+    let firesCount = 0;
+    fooScope.$watch('foo', () => {
       firesCount += 1;
     });
 
@@ -138,3 +144,6 @@ describe('semantic value form directive', function() {
     expect(firesCount).toBe(2);
   });
 });
+
+
+exports = {};

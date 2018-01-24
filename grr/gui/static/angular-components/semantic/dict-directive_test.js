@@ -1,50 +1,53 @@
 'use strict';
 
-goog.provide('grrUi.semantic.dictDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.dictDirectiveTest');
 
-describe('dict semantic directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('dict semantic directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/semantic/dict.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
   grrUi.tests.stubDirective('grrSemanticValue');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-dict value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-dict value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows empty table when value is empty', function() {
-    var element = renderTestTemplate({
+  it('shows empty table when value is empty', () => {
+    const element = renderTestTemplate({
       type: 'dict',
-      value: {
-      }
+      value: {},
     });
     expect(element.find('table').length).toBe(1);
     expect(element.find('tr').length).toBe(0);
   });
 
-  it('shows 2 keys and corresponding values for value with 2 keys', function() {
-    var element = renderTestTemplate({
+  it('shows 2 keys and corresponding values for value with 2 keys', () => {
+    const element = renderTestTemplate({
       type: 'dict',
       value: {
         fooKey: {type: 'Foo'},
-        barKey: {type: 'Bar'}
-      }
+        barKey: {type: 'Bar'},
+      },
     });
     expect(element.find('table').length).toBe(1);
     expect(element.find('tr').length).toBe(2);
@@ -54,5 +57,7 @@ describe('dict semantic directive', function() {
 
     expect(element.find('grr-semantic-value').length).toBe(2);
   });
-
 });
+
+
+exports = {};

@@ -1,21 +1,27 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirectiveTest');
-goog.require('grrUi.client.virtualFileSystem.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.client.virtualFileSystem.recursiveListButtonDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const testsModule = goog.require('grrUi.tests.testsModule');
+const virtualFileSystemModule = goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
 
-describe('"recursive list directory" button', function() {
-  var $q, $compile, $rootScope, $timeout, grrReflectionService, grrApiService;
+
+describe('"recursive list directory" button', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let $timeout;
+  let grrApiService;
+  let grrReflectionService;
+
 
   beforeEach(module('/static/angular-components/client/virtual-file-system/recursive-list-button.html'));
   beforeEach(module('/static/angular-components/client/virtual-file-system/recursive-list-button-modal.html'));
-  beforeEach(module(grrUi.client.virtualFileSystem.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(virtualFileSystemModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -24,33 +30,33 @@ describe('"recursive list directory" button', function() {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var renderTestTemplate = function(clientId, filePath) {
+  const renderTestTemplate = (clientId, filePath) => {
     $rootScope.clientId = clientId || 'C.0000111122223333';
     $rootScope.filePath = filePath || 'fs/os/c/';
 
-    var template = '<grr-recursive-list-button ' +
+    const template = '<grr-recursive-list-button ' +
         'client-id="clientId" file-path="filePath" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('fetches descriptors on click', function() {
-    var deferred = $q.defer();
+  it('fetches descriptors on click', () => {
+    const deferred = $q.defer();
     spyOn(grrReflectionService, 'getRDFValueDescriptor').and.returnValue(
         deferred.promise);
 
-    var element = renderTestTemplate();
-    browserTrigger(element.find('button'), 'click');
+    const element = renderTestTemplate();
+    browserTriggerEvent(element.find('button'), 'click');
 
     expect(grrReflectionService.getRDFValueDescriptor).toHaveBeenCalledWith(
         'ApiCreateVfsRefreshOperationArgs', true);
   });
 
-  describe('modal dialog', function() {
-    beforeEach(function() {
-      var deferred = $q.defer();
+  describe('modal dialog', () => {
+    beforeEach(() => {
+      const deferred = $q.defer();
       spyOn(grrReflectionService, 'getRDFValueDescriptor').and.returnValue(
         deferred.promise);
 
@@ -58,153 +64,156 @@ describe('"recursive list directory" button', function() {
         'ApiCreateVfsRefreshOperationArgs': {
           default: {
             type: 'ApiCreateVfsRefreshOperationArgs',
-            value: {}
-          }
+            value: {},
+          },
         },
         'RDFInteger': {
           default: {
             type: 'RDFInteger',
-            value: 0
-          }
+            value: 0,
+          },
         },
         'RDFString': {
           default: {
             type: 'RDFString',
-            value: ''
-          }
+            value: '',
+          },
         },
         'ClientURN': {
           default: {
             type: 'ClientURN',
-            value: ''
-          }
-        }
+            value: '',
+          },
+        },
       });
     });
 
-    afterEach(function() {
+    afterEach(() => {
       // We have to clean document's body to remove modal windows that were not
       // closed.
       $(document.body).html('');
     });
 
-    it('is shown when button clicked and descriptors fetched', function() {
-      var element = renderTestTemplate();
-      browserTrigger(element.find('button'), 'click');
+    it('is shown when button clicked and descriptors fetched', () => {
+      const element = renderTestTemplate();
+      browserTriggerEvent(element.find('button'), 'click');
 
       expect($(document.body).text()).toContain(
           'Recursive Directory Refresh');
     });
 
-    it('is closed when close button is clicked', function() {
-      var element = renderTestTemplate();
-      browserTrigger($('button', element), 'click');
+    it('is closed when close button is clicked', () => {
+      const element = renderTestTemplate();
+      browserTriggerEvent($('button', element), 'click');
 
-      browserTrigger($('button.close'), 'click');
+      browserTriggerEvent($('button.close'), 'click');
       $timeout.flush();
 
       expect($(document.body).text()).not.toContain(
           'Recursive Directory Refresh');
     });
 
-    it('is closed when cancel button is clicked', function() {
-      var element = renderTestTemplate();
-      browserTrigger($('button', element), 'click');
+    it('is closed when cancel button is clicked', () => {
+      const element = renderTestTemplate();
+      browserTriggerEvent($('button', element), 'click');
 
-      browserTrigger($('button[name=Cancel]'), 'click');
+      browserTriggerEvent($('button[name=Cancel]'), 'click');
       $timeout.flush();
 
       expect($(document.body).text()).not.toContain(
           'Recursive Directory Refresh');
     });
 
-    it('sends an API request when "refresh" is clicked', function() {
-      var deferred = $q.defer();
+    it('sends an API request when "refresh" is clicked', () => {
+      const deferred = $q.defer();
       spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-      var element = renderTestTemplate();
-      browserTrigger(element.find('button'), 'click');
-      browserTrigger($('button[name=Proceed]'), 'click');
+      const element = renderTestTemplate();
+      browserTriggerEvent(element.find('button'), 'click');
+      browserTriggerEvent($('button[name=Proceed]'), 'click');
 
-      expect(grrApiService.post).toHaveBeenCalledWith(
-          'clients/C.0000111122223333/vfs-refresh-operations',
-          {
-            type: 'ApiCreateVfsRefreshOperationArgs',
-            value: {
-              file_path: {
-                type: 'RDFString',
-                value: 'fs/os/c'
+      expect(grrApiService.post)
+          .toHaveBeenCalledWith(
+              'clients/C.0000111122223333/vfs-refresh-operations', {
+                type: 'ApiCreateVfsRefreshOperationArgs',
+                value: {
+                  file_path: {
+                    type: 'RDFString',
+                    value: 'fs/os/c',
+                  },
+                  max_depth: {
+                    type: 'RDFInteger',
+                    value: 5,
+                  },
+                  notify_user: true,
+                },
               },
-              max_depth: {
-                type: 'RDFInteger',
-                value: 5
-              },
-              notify_user: true
-            }
-          },
-          true);
+              true);
     });
 
-    it('strips "aff4:/" prefix from client id', function() {
-      var deferred = $q.defer();
+    it('strips "aff4:/" prefix from client id', () => {
+      const deferred = $q.defer();
       spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-      var element = renderTestTemplate('aff4:/C.0000111122223333');
-      browserTrigger(element.find('button'), 'click');
-      browserTrigger($('button[name=Proceed]'), 'click');
+      const element = renderTestTemplate('aff4:/C.0000111122223333');
+      browserTriggerEvent(element.find('button'), 'click');
+      browserTriggerEvent($('button[name=Proceed]'), 'click');
 
       expect(grrApiService.post).toHaveBeenCalled();
       expect(grrApiService.post.calls.mostRecent().args[0]).toBe(
           'clients/C.0000111122223333/vfs-refresh-operations');
     });
 
-    it('disables the button when API request is sent', function() {
-      var deferred = $q.defer();
+    it('disables the button when API request is sent', () => {
+      const deferred = $q.defer();
       spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
-      var element = renderTestTemplate();
-      browserTrigger(element.find('button'), 'click');
+      const element = renderTestTemplate();
+      browserTriggerEvent(element.find('button'), 'click');
 
       expect(element.find('button[disabled]').length).toBe(0);
-      browserTrigger($('button[name=Proceed]'), 'click');
+      browserTriggerEvent($('button[name=Proceed]'), 'click');
       expect(element.find('button[disabled]').length).toBe(1);
     });
 
-    it('shows success message when API request is successful', function() {
-      var deferred = $q.defer();
+    it('shows success message when API request is successful', () => {
+      const deferred = $q.defer();
       spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
       deferred.resolve({
         data: {
-          status: 'OK'
-        }
+          status: 'OK',
+        },
       });
 
       // Polling will start immediately after POST request is successful.
       spyOn(grrApiService, 'get').and.returnValue($q.defer().promise);
 
-      var element = renderTestTemplate();
-      browserTrigger(element.find('button'), 'click');
-      browserTrigger($('button[name=Proceed]'), 'click');
+      const element = renderTestTemplate();
+      browserTriggerEvent(element.find('button'), 'click');
+      browserTriggerEvent($('button[name=Proceed]'), 'click');
 
       expect($(document.body).text()).toContain(
           'Refresh started successfully!');
     });
 
-    it('shows failure message when API request fails', function() {
-      var deferred = $q.defer();
+    it('shows failure message when API request fails', () => {
+      const deferred = $q.defer();
       spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
       deferred.reject({
         data: {
-          message: 'Oh no!'
-        }
+          message: 'Oh no!',
+        },
       });
 
-      var element = renderTestTemplate();
-      browserTrigger(element.find('button'), 'click');
-      browserTrigger($('button[name=Proceed]'), 'click');
+      const element = renderTestTemplate();
+      browserTriggerEvent(element.find('button'), 'click');
+      browserTriggerEvent($('button[name=Proceed]'), 'click');
 
       expect($(document.body).text()).toContain(
           'Oh no!');
     });
   });
 });
+
+
+exports = {};

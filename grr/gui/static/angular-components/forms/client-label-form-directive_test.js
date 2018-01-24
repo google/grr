@@ -1,102 +1,106 @@
 'use strict';
 
-goog.provide('grrUi.forms.clientLabelFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.clientLabelFormDirectiveTest');
+
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-describe('client label form directive', function() {
-  var $compile, $rootScope, value, $q, grrApiService;
-  var defaultOption = '-- All clients --';
+describe('client label form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+
+  const defaultOption = '-- All clients --';
 
   beforeEach(module('/static/angular-components/forms/client-label-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     grrApiService = $injector.get('grrApiService');
 
-    spyOn(grrApiService, 'get').and.callFake(function(url) {
-          var deferred = $q.defer();
+    spyOn(grrApiService, 'get').and.callFake((url) => {
+      const deferred = $q.defer();
 
-          if (url === '/clients/labels') {
-            deferred.resolve({
-              data: {
-                items: [
-                  {
-                    type: 'AFF4ObjectLabel',
-                    value: {
-                      name: {
-                        type: 'unicode',
-                        value: 'ClientLabelFoo'
-                      }
-                    }
+      if (url === '/clients/labels') {
+        deferred.resolve({
+          data: {
+            items: [
+              {
+                type: 'AFF4ObjectLabel',
+                value: {
+                  name: {
+                    type: 'unicode',
+                    value: 'ClientLabelFoo',
                   },
-                  {
-                    type: 'AFF4ObjectLabel',
-                    value: {
-                      name: {
-                        type: 'unicode',
-                        value: 'ClientLabelBar'
-                      }
-                    }
-                  }
-                ]
-              }
-            });
-          } else {
-            throw new Error('Unexpected url: ' + url);
-          }
-
-          return deferred.promise;
+                },
+              },
+              {
+                type: 'AFF4ObjectLabel',
+                value: {
+                  name: {
+                    type: 'unicode',
+                    value: 'ClientLabelBar',
+                  },
+                },
+              },
+            ],
+          },
         });
+      } else {
+        throw new Error(`Unexpected url: ${url}`);
+      }
+
+      return deferred.promise;
+    });
   }));
 
-  var renderTestTemplate = function(
-      clientLabel, formLabel, hideEmptyOption, emptyOptionLabel) {
-    $rootScope.clientLabel = clientLabel;
-    $rootScope.formLabel = formLabel;
-    $rootScope.hideEmptyOption = hideEmptyOption;
-    $rootScope.emptyOptionLabel = emptyOptionLabel;
+  const renderTestTemplate =
+      ((clientLabel, formLabel, hideEmptyOption, emptyOptionLabel) => {
+        $rootScope.clientLabel = clientLabel;
+        $rootScope.formLabel = formLabel;
+        $rootScope.hideEmptyOption = hideEmptyOption;
+        $rootScope.emptyOptionLabel = emptyOptionLabel;
 
-    var template = '<grr-form-client-label ' +
-                       'client-label="clientLabel" ' +
-                       'form-label="formLabel" ' +
-                       'hide-empty-option="hideEmptyOption" ' +
-                       'empty-option-label="emptyOptionLabel" ' +
-                   '></grr-form-client-label>';
-    var element = $compile(template)($rootScope);
-    $rootScope.$apply();
+        const template = '<grr-form-client-label ' +
+            'client-label="clientLabel" ' +
+            'form-label="formLabel" ' +
+            'hide-empty-option="hideEmptyOption" ' +
+            'empty-option-label="emptyOptionLabel" ' +
+            '></grr-form-client-label>';
+        const element = $compile(template)($rootScope);
+        $rootScope.$apply();
 
-    return element;
-  };
+        return element;
+      });
 
-  it('shows the list of available client labels', function() {
-    var element = renderTestTemplate('');
+  it('shows the list of available client labels', () => {
+    const element = renderTestTemplate('');
 
-    var select = element.find('select');
-    var children = select.children();
-    var options = children.map(function(index) {
-        return children[index].innerText;
-    });
+    const select = element.find('select');
+    const children = select.children();
+    const options = children.map((index) => children[index].innerText);
 
     expect(options).toContain(defaultOption);
     expect(options).toContain('ClientLabelFoo');
     expect(options).toContain('ClientLabelBar');
   });
 
-  it('selects the label given through scope params initially', function() {
-    var initialSelection = 'ClientLabelFoo';
-    var element = renderTestTemplate(initialSelection);
+  it('selects the label given through scope params initially', () => {
+    const initialSelection = 'ClientLabelFoo';
+    const element = renderTestTemplate(initialSelection);
 
-    var select = element.find('select');
-    var children = select.children();
+    const select = element.find('select');
+    const children = select.children();
 
-    var found = false;
-    for (var i = 0; i < children.length; ++i) {
+    let found = false;
+    for (let i = 0; i < children.length; ++i) {
       expect(children[i].selected).toBe(
           children[i].innerText === initialSelection);
 
@@ -109,62 +113,60 @@ describe('client label form directive', function() {
     expect(found).toBe(true);
   });
 
-  it('shows default <label> text by default', function() {
-    var element = renderTestTemplate('');
+  it('shows default <label> text by default', () => {
+    const element = renderTestTemplate('');
 
-    var labelTag = element.find('label');
+    const labelTag = element.find('label');
 
     expect(labelTag.text()).toBe('Client label');
   });
 
-  it('shows custom <label> text if given', function() {
-    var element = renderTestTemplate('', 'Custom label text');
+  it('shows custom <label> text if given', () => {
+    const element = renderTestTemplate('', 'Custom label text');
 
-    var labelTag = element.find('label');
+    const labelTag = element.find('label');
 
     expect(labelTag.text()).toBe('Custom label text');
   });
 
-  it('forwards value changes to parent scope', function() {
-    var element = renderTestTemplate('');
+  it('forwards value changes to parent scope', () => {
+    const element = renderTestTemplate('');
 
-    var select = element.find('select');
-    var newSelection = 'ClientLabelBar';
-    select.val('string:' + newSelection);
+    const select = element.find('select');
+    const newSelection = 'ClientLabelBar';
+    select.val(`string:${newSelection}`);
 
-    browserTrigger(select, 'change');
+    browserTriggerEvent(select, 'change');
     $rootScope.$apply();
 
     expect(element.scope().$eval(element.attr('client-label'))).toEqual(
         newSelection);
   });
 
-  it('hides the empty option if requested', function() {
-    var element = renderTestTemplate('', undefined, /* hideEmptyOption */ true);
+  it('hides the empty option if requested', () => {
+    const element =
+        renderTestTemplate('', undefined, /* hideEmptyOption */ true);
 
-    var select = element.find('select');
-    var children = select.children();
-    var options = children.map(function(index) {
-        return children[index].innerText;
-    });
+    const select = element.find('select');
+    const children = select.children();
+    const options = children.map((index) => children[index].innerText);
 
     expect(options).not.toContain(defaultOption);
   });
 
-  it('displays a given string describing the empty option if requested',
-      function() {
-    var customDefaultOption = 'Custom empty option description';
-    var element = renderTestTemplate(
+  it('displays a given string describing the empty option if requested', () => {
+    const customDefaultOption = 'Custom empty option description';
+    const element = renderTestTemplate(
         '', undefined, undefined, /* emptyOptionLabel */ customDefaultOption);
 
-    var select = element.find('select');
-    var children = select.children();
-    var options = children.map(function(index) {
-        return children[index].innerText;
-    });
+    const select = element.find('select');
+    const children = select.children();
+    const options = children.map((index) => children[index].innerText);
 
     expect(options).not.toContain(defaultOption);
     expect(options).toContain(customDefaultOption);
   });
-
 });
+
+
+exports = {};

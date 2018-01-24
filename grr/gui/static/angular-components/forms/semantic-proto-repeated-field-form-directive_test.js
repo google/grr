@@ -1,79 +1,82 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('semantic proto repeated field form directive', function() {
-  var $compile, $rootScope, $q, grrReflectionService;
+
+describe('semantic proto repeated field form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrReflectionService;
+
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-repeated-field-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
   // Stub out grrFormValue directive, as all rendering is going to be
   // delegated to it.
   grrUi.tests.stubDirective('grrFormValue');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
   }));
 
-  var renderTestTemplate = function(value, descriptor, field,
-                                    noCustomTemplate) {
+  const renderTestTemplate = (value, descriptor, field, noCustomTemplate) => {
     $rootScope.value = value;
     $rootScope.descriptor = descriptor;
     $rootScope.field = field;
     $rootScope.noCustomTemplate = noCustomTemplate;
 
-    var template = '<grr-form-proto-repeated-field value="value" ' +
+    const template = '<grr-form-proto-repeated-field value="value" ' +
         'descriptor="descriptor" field="field" ' +
         'no-custom-template="noCustomTemplate" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  var typedPrimitiveValue = {
+  const typedPrimitiveValue = {
     type: 'PrimitiveType',
-    value: 42
+    value: 42,
   };
 
-  var primitiveValueDescriptor = {
+  const primitiveValueDescriptor = {
     type: 'PrimitiveType',
     mro: ['PrimitiveType'],
     kind: 'primitive',
-    default: angular.copy(typedPrimitiveValue)
+    default: angular.copy(typedPrimitiveValue),
   };
 
-  describe('without custom directives', function() {
-    beforeEach(inject(function($injector) {
+  describe('without custom directives', () => {
+    beforeEach(inject(($injector) => {
       // Always return false here - i.e. no custom directives are registered for
       // repeated fields.
-      var grrSemanticRepeatedFormDirectivesRegistryService = $injector.get(
-          'grrSemanticRepeatedFormDirectivesRegistryService');
+      const grrSemanticRepeatedFormDirectivesRegistryService =
+          $injector.get('grrSemanticRepeatedFormDirectivesRegistryService');
 
-      spyOn(grrSemanticRepeatedFormDirectivesRegistryService,
-            'findDirectiveForType')
-                .and.callFake(
-                    function(type) {
-                      var q = $q.defer();
-                      q.reject();
+      spyOn(
+          grrSemanticRepeatedFormDirectivesRegistryService,
+          'findDirectiveForType')
+          .and.callFake((type) => {
+            const q = $q.defer();
+            q.reject();
 
-                      return q.promise;
-                    });
+            return q.promise;
+          });
     }));
 
-    it('renders doc and friendly name', function() {
-      var element = renderTestTemplate([], primitiveValueDescriptor, {
+    it('renders doc and friendly name', () => {
+      const element = renderTestTemplate([], primitiveValueDescriptor, {
         doc: 'Field documentation',
-        friendly_name: 'Field friendly name'
+        friendly_name: 'Field friendly name',
       });
 
       expect(element.find('label[title="Field documentation"]').length)
@@ -81,71 +84,75 @@ describe('semantic proto repeated field form directive', function() {
       expect(element.text()).toContain('Field friendly name');
     });
 
-    it('delegates items rendering to grr-form-value', function() {
-      var element = renderTestTemplate(
-          [{type: 'PrimitiveType', value: 42},
-           {type: 'PrimitiveType', value: 43}], primitiveValueDescriptor, {});
+    it('delegates items rendering to grr-form-value', () => {
+      const element = renderTestTemplate(
+          [
+            {type: 'PrimitiveType', value: 42},
+            {type: 'PrimitiveType', value: 43}
+          ],
+          primitiveValueDescriptor, {});
 
       expect(element.find('grr-form-value').length).toBe(2);
     });
 
-    it('adds new item when "Add" is clicked', function() {
-      var value = [];
+    it('adds new item when "Add" is clicked', () => {
+      const value = [];
 
-      var element = renderTestTemplate(value, primitiveValueDescriptor, {});
+      const element = renderTestTemplate(value, primitiveValueDescriptor, {});
       expect(element.find('grr-form-value').length).toBe(0);
 
-      browserTrigger($('button[name=Add]', element), 'click');
+      browserTriggerEvent($('button[name=Add]', element), 'click');
       expect(element.find('grr-form-value').length).toBe(1);
       // Please see http://stackoverflow.com/a/26370331 on why we're using here
       // angular.equals() and not Jasmine's toEqual here.
       expect(angular.equals(value, [typedPrimitiveValue])).toBe(true);
 
-      browserTrigger($('button[name=Add]', element), 'click');
+      browserTriggerEvent($('button[name=Add]', element), 'click');
       expect(element.find('grr-form-value').length).toBe(2);
       expect(angular.equals(value, [typedPrimitiveValue,
                                     typedPrimitiveValue])).toBe(true);
     });
 
-    it('removes an item when "Remove" is clicked', function() {
-      var value = [angular.copy(typedPrimitiveValue),
-                   angular.copy(typedPrimitiveValue)];
+    it('removes an item when "Remove" is clicked', () => {
+      const value = [
+        angular.copy(typedPrimitiveValue), angular.copy(typedPrimitiveValue)
+      ];
 
-      var element = renderTestTemplate(value, primitiveValueDescriptor, {});
+      const element = renderTestTemplate(value, primitiveValueDescriptor, {});
       expect(element.find('grr-form-value').length).toBe(2);
 
-      browserTrigger($('button[name=Remove]:nth(0)', element), 'click');
+      browserTriggerEvent($('button[name=Remove]:nth(0)', element), 'click');
       expect(element.find('grr-form-value').length).toBe(1);
       expect(angular.equals(value, [typedPrimitiveValue])).toBe(true);
 
-      browserTrigger($('button[name=Remove]:nth(0)', element), 'click');
+      browserTriggerEvent($('button[name=Remove]:nth(0)', element), 'click');
       expect(element.find('grr-form-value').length).toBe(0);
       expect(value).toEqual([]);
     });
   });
 
-  describe('with custom directive', function() {
-    beforeEach(inject(function($injector) {
-      var grrSemanticRepeatedFormDirectivesRegistryService = $injector.get(
-          'grrSemanticRepeatedFormDirectivesRegistryService');
+  describe('with custom directive', () => {
+    beforeEach(inject(($injector) => {
+      const grrSemanticRepeatedFormDirectivesRegistryService =
+          $injector.get('grrSemanticRepeatedFormDirectivesRegistryService');
 
-      spyOn(grrSemanticRepeatedFormDirectivesRegistryService,
-            'findDirectiveForType')
-                .and.callFake(
-                    function(type) {
-                      var q = $q.defer();
-                      q.resolve({
-                        directive_name: 'fooBar'
-                      });
+      spyOn(
+          grrSemanticRepeatedFormDirectivesRegistryService,
+          'findDirectiveForType')
+          .and.callFake((type) => {
+            const q = $q.defer();
+            q.resolve({
+              directive_name: 'fooBar',
+            });
 
-                      return q.promise;
-                    });
+            return q.promise;
+          });
     }));
 
-    it('renders doc and friendly name', function() {
-      var element = renderTestTemplate([], primitiveValueDescriptor, {
+    it('renders doc and friendly name', () => {
+      const element = renderTestTemplate([], primitiveValueDescriptor, {
         doc: 'Field documentation',
-        friendly_name: 'Field friendly name'
+        friendly_name: 'Field friendly name',
       });
 
       expect(element.find('label[title="Field documentation"]').length)
@@ -153,16 +160,18 @@ describe('semantic proto repeated field form directive', function() {
       expect(element.text()).toContain('Field friendly name');
     });
 
-    it('delegates items rendering to grr-form-value', function() {
-      var element = renderTestTemplate([], primitiveValueDescriptor, {});
+    it('delegates items rendering to grr-form-value', () => {
+      const element = renderTestTemplate([], primitiveValueDescriptor, {});
 
       expect(element.find('foo-bar').length).toBe(1);
     });
 
-    it('ignores custom directive if no-custom-template binding is true', function() {
-      var element = renderTestTemplate(
-          [{type: 'PrimitiveType', value: 42},
-           {type: 'PrimitiveType', value: 43}],
+    it('ignores custom directive if no-custom-template binding is true', () => {
+      const element = renderTestTemplate(
+          [
+            {type: 'PrimitiveType', value: 42},
+            {type: 'PrimitiveType', value: 43}
+          ],
           primitiveValueDescriptor, {}, true);
 
       // No custom directive should be present.
@@ -173,27 +182,27 @@ describe('semantic proto repeated field form directive', function() {
     });
   });
 
-  describe('with custom directive with "hideCustomTemplateLabel" set', function() {
-    beforeEach(inject(function($injector) {
-      var grrSemanticRepeatedFormDirectivesRegistryService = $injector.get(
-          'grrSemanticRepeatedFormDirectivesRegistryService');
+  describe('with custom directive with "hideCustomTemplateLabel" set', () => {
+    beforeEach(inject(($injector) => {
+      const grrSemanticRepeatedFormDirectivesRegistryService =
+          $injector.get('grrSemanticRepeatedFormDirectivesRegistryService');
 
-      spyOn(grrSemanticRepeatedFormDirectivesRegistryService,
-            'findDirectiveForType')
-                .and.callFake(
-                    function(type) {
-                      var q = $q.defer();
-                      q.resolve({
-                        directive_name: 'fooBar',
-                        hideCustomTemplateLabel: true
-                      });
+      spyOn(
+          grrSemanticRepeatedFormDirectivesRegistryService,
+          'findDirectiveForType')
+          .and.callFake((type) => {
+            const q = $q.defer();
+            q.resolve({
+              directive_name: 'fooBar',
+              hideCustomTemplateLabel: true,
+            });
 
-                      return q.promise;
-                    });
+            return q.promise;
+          });
     }));
 
-    it('does not render custom field\'s label', function() {
-      var element = renderTestTemplate([], primitiveValueDescriptor, {});
+    it('does not render custom field\'s label', () => {
+      const element = renderTestTemplate([], primitiveValueDescriptor, {});
 
       expect(element.find('label[title="Field documentation"]').length)
           .toBe(0);
@@ -202,3 +211,6 @@ describe('semantic proto repeated field form directive', function() {
     });
   });
 });
+
+
+exports = {};

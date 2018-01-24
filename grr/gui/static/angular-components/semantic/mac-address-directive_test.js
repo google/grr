@@ -1,46 +1,52 @@
 'use strict';
 
-goog.provide('grrUi.semantic.macAddressDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.macAddressDirectiveTest');
 
-describe('mac address directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('mac address directive', () => {
+  let $compile;
+  let $rootScope;
+
+
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-mac-address value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-mac-address value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows "-" when value is empty', function() {
-    var macAddress = {
+  it('shows "-" when value is empty', () => {
+    const macAddress = {
       type: 'MacAddress',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(macAddress);
+    const element = renderTestTemplate(macAddress);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('expands base64-encoded value into a human-readable string', function() {
-    var macAddress = {
+  it('expands base64-encoded value into a human-readable string', () => {
+    const macAddress = {
       type: 'MacAddress',
-      value: '+BZUBnli'
+      value: '+BZUBnli',
     };
-    var element = renderTestTemplate(macAddress);
+    const element = renderTestTemplate(macAddress);
     expect(element.text()).toContain('f8:16:54:06:79:62');
   });
-
 });
+
+
+exports = {};

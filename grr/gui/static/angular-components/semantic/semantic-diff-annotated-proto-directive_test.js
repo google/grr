@@ -1,17 +1,23 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.semanticDiffAnnotatedProtoDirectiveTest');
 
-describe('grr-semantic-diff-annotated-proto directive', function() {
-  var $compile, $rootScope, $q, grrReflectionService;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('grr-semantic-diff-annotated-proto directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrReflectionService;
+
 
   beforeEach(module('/static/angular-components/semantic/semantic-diff-annotated-proto.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
@@ -19,36 +25,35 @@ describe('grr-semantic-diff-annotated-proto directive', function() {
     grrReflectionService = $injector.get('grrReflectionService');
     spyOn(grrReflectionService, 'getRDFValueDescriptor');
 
-    var descriptors = {
+    const descriptors = {
       'Bar': {},
       'Foo': {
         fields: [
-          { name: 'a' },
-          { name: 'foo' },
-          { name: 'bar' },
-        ]
-      }
+          {name: 'a'},
+          {name: 'foo'},
+          {name: 'bar'},
+        ],
+      },
     };
-    grrReflectionService.getRDFValueDescriptor.and.callFake(
-          function(typeName) {
-            var deferred = $q.defer();
-            deferred.resolve(descriptors[typeName]);
-            return deferred.promise;
-          });
+    grrReflectionService.getRDFValueDescriptor.and.callFake((typeName) => {
+      const deferred = $q.defer();
+      deferred.resolve(descriptors[typeName]);
+      return deferred.promise;
+    });
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-semantic-diff-annotated-proto value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-semantic-diff-annotated-proto value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('renders only after the "value" binding is set', function() {
-    var element = renderTestTemplate(undefined);
+  it('renders only after the "value" binding is set', () => {
+    const element = renderTestTemplate(undefined);
     expect(element.find('td:contains("foo")').length).toBe(0);
 
     $rootScope.value = {
@@ -57,31 +62,31 @@ describe('grr-semantic-diff-annotated-proto directive', function() {
         foo: {
           type: 'Bar',
           value: 42,
-          }
-      }
+        },
+      },
     };
     $rootScope.$apply();
 
     expect(element.find('td:contains("foo")').length).toBe(1);
   });
 
-  it('"value" binding is effectively a one-time binding', function() {
-    var value = {
+  it('"value" binding is effectively a one-time binding', () => {
+    const value = {
       type: 'Foo',
       value: {
         foo: {
           type: 'Bar',
-          value: 42
-        }
-      }
+          value: 42,
+        },
+      },
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.find('td:contains("bar")').length).toBe(0);
 
-    var newValue = angular.copy(value);
+    const newValue = angular.copy(value);
     newValue['value']['bar'] = {
       type: 'Bar',
-      value: 43
+      value: 43,
     };
     $rootScope.value = newValue;
     $rootScope.$apply();
@@ -89,50 +94,54 @@ describe('grr-semantic-diff-annotated-proto directive', function() {
     expect(element.find('td:contains("bar")').length).toBe(0);
   });
 
-  angular.forEach(['added', 'changed', 'removed'], function(annotation) {
-    it('renders "' + annotation + '" annotation on the value itself correctly', function() {
-      var value = {
-        type: 'Foo',
-        value: 42,
-        _diff: annotation
-      };
+  angular.forEach(['added', 'changed', 'removed'], (annotation) => {
+    it(`renders "${annotation}" annotation on the value itself correctly`,
+       () => {
+         const value = {
+           type: 'Foo',
+           value: 42,
+           _diff: annotation,
+         };
 
-      var element = renderTestTemplate(value);
-      expect(element.find('table.diff-' + annotation).length).toBe(1);
-    });
+         const element = renderTestTemplate(value);
+         expect(element.find(`table.diff-${annotation}`).length).toBe(1);
+       });
 
-    it('renders "' + annotation + '"-annotated non-repeated field correctly', function() {
-      var value = {
+    it(`renders "${annotation}"-annotated non-repeated field correctly`, () => {
+      const value = {
         type: 'Foo',
         value: {
           a: {
             type: 'Bar',
             value: 42,
-            _diff: annotation
-          }
-        }
+            _diff: annotation,
+          },
+        },
       };
 
-      var element = renderTestTemplate(value);
-      expect(element.find('tr.diff-' + annotation).length).toBe(1);
+      const element = renderTestTemplate(value);
+      expect(element.find(`tr.diff-${annotation}`).length).toBe(1);
     });
 
-    it('renders "' + annotation + '"-annotated repeated field correctly', function() {
-      var value = {
+    it(`renders "${annotation}"-annotated repeated field correctly`, () => {
+      const value = {
         type: 'Foo',
         value: {
           a: [
             {
               type: 'Bar',
               value: 42,
-              _diff: annotation
-            }
-          ]
-        }
+              _diff: annotation,
+            },
+          ],
+        },
       };
 
-      var element = renderTestTemplate(value);
-      expect(element.find('div.repeated.diff-' + annotation).length).toBe(1);
+      const element = renderTestTemplate(value);
+      expect(element.find(`div.repeated.diff-${annotation}`).length).toBe(1);
     });
   });
 });
+
+
+exports = {};

@@ -1,22 +1,27 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationButtonDirectiveTest');
-goog.require('grrUi.tests.module');
-goog.require('grrUi.user.module');
-goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
+goog.module('grrUi.user.userNotificationButtonDirectiveTest');
+
+const UserNotificationButtonDirective = goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
+const testsModule = goog.require('grrUi.tests.testsModule');
+const userModule = goog.require('grrUi.user.userModule');
 
 
-describe('User notification button directive', function() {
-  var $q, $compile, $rootScope, $interval, grrApiService;
+describe('User notification button directive', () => {
+  let $compile;
+  let $interval;
+  let $q;
+  let $rootScope;
+  let grrApiService;
 
-  var FETCH_INTERVAL =
-      grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.fetch_interval;
+
+  const FETCH_INTERVAL = UserNotificationButtonDirective.fetch_interval;
 
   beforeEach(module('/static/angular-components/user/user-notification-button.html'));
-  beforeEach(module(grrUi.user.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(userModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -24,38 +29,42 @@ describe('User notification button directive', function() {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var render = function() {
-    var template = '<grr-user-notification-button />';
-    var element = $compile(template)($rootScope);
+  const render = () => {
+    const template = '<grr-user-notification-button />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
     return element;
   };
 
-  var mockApiServiceResponse = function(value){
-    spyOn(grrApiService, 'get').and.callFake(function() {
-      var deferred = $q.defer();
+  const mockApiServiceResponse = (value) => {
+    spyOn(grrApiService, 'get').and.callFake(() => {
+      const deferred = $q.defer();
       deferred.resolve({ data: { count: value }});
       return deferred.promise;
     });
   };
 
-  it('fetches pending notifications count and displays an info-styled button on 0', function() {
-    mockApiServiceResponse(0);
+  it('fetches pending notifications count and displays an info-styled button on 0',
+     () => {
+       mockApiServiceResponse(0);
 
-    var element = render();
-    $interval.flush(FETCH_INTERVAL);
-    expect(grrApiService.get).toHaveBeenCalled();
-    expect(element.text().trim()).toBe("0");
-    expect(element.find('button').hasClass('btn-info')).toBe(true);
-  });
+       const element = render();
+       $interval.flush(FETCH_INTERVAL);
+       expect(grrApiService.get).toHaveBeenCalled();
+       expect(element.text().trim()).toBe("0");
+       expect(element.find('button').hasClass('btn-info')).toBe(true);
+     });
 
-  it('non-zero notifications count is shown as danger-styled button', function() {
+  it('non-zero notifications count is shown as danger-styled button', () => {
     mockApiServiceResponse(5);
 
-    var element = render();
+    const element = render();
     $interval.flush(FETCH_INTERVAL);
     expect(grrApiService.get).toHaveBeenCalled();
     expect(element.text().trim()).toBe("5");
     expect(element.find('button').hasClass('btn-danger')).toBe(true);
   });
 });
+
+
+exports = {};

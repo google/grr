@@ -1,19 +1,20 @@
-goog.provide('grrUi.tests.browserTrigger');
-goog.provide('grrUi.tests.module');
+goog.provide('grrUi.tests.browserTriggerEvent');
+goog.provide('grrUi.tests.browserTriggerKeyDown');
 goog.provide('grrUi.tests.stubDirective');
 goog.provide('grrUi.tests.stubTranscludeDirective');
 goog.provide('grrUi.tests.stubUiTrait');
+goog.provide('grrUi.tests.testsModule');
 
 
 /**
  * Module required to run GRR javascript tests in Karma.
  */
-grrUi.tests.module = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
+grrUi.tests.testsModule = angular.module('grrUi.tests', ['ng', 'ui.bootstrap']);
 
 var $animate;
 beforeEach(module('ngAnimateMock'));
 
-grrUi.tests.module.config(function($interpolateProvider, $qProvider,
+grrUi.tests.testsModule.config(function($interpolateProvider, $qProvider,
                                    $uibModalProvider) {
   $interpolateProvider.startSymbol('{$');
   $interpolateProvider.endSymbol('$}');
@@ -55,7 +56,7 @@ beforeEach(function() {
  * @param {string} eventType
  * @export
  */
-grrUi.tests.browserTrigger = function(element, eventType) {
+grrUi.tests.browserTriggerEvent = function(element, eventType) {
   if (element.injector) {
     element = element[0];
   } else if (element.prevObject) {

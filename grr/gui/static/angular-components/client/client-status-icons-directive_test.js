@@ -1,200 +1,197 @@
 'use strict';
 
-goog.provide('grrUi.client.clientStatusIconsDirectiveTest');
-goog.require('grrUi.client.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.client.clientStatusIconsDirectiveTest');
 
-describe('client status icons', function() {
-  var $compile, $rootScope, grrTimeService;
+const clientModule = goog.require('grrUi.client.clientModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('client status icons', () => {
+  let $compile;
+  let $rootScope;
+  let grrTimeService;
+
 
   beforeEach(module('/static/angular-components/client/client-status-icons.html'));
-  beforeEach(module(grrUi.client.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(clientModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     grrTimeService = $injector.get('grrTimeService');
   }));
 
-  var render = function(client) {
+  const render = (client) => {
     $rootScope.client = client;
 
-    var template = '<grr-client-status-icons client="client" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-client-status-icons client="client" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows online icon when last ping is 1 minute ago', function() {
-    var client = {
+  it('shows online icon when last ping is 1 minute ago', () => {
+    const client = {
       type: 'ApiClient',
       value: {
         'last_seen_at': {
-          value: 42 * 1000000
-        }
-      }
+          value: 42 * 1000000,
+        },
+      },
     };
-    grrTimeService.getCurrentTimeMs = function() {
-      return (42 + 60) * 1000;
-    };
+    grrTimeService.getCurrentTimeMs = (() => (42 + 60) * 1000);
 
-    var element = render(client);
-    var iconElement = $('img[name=clientStatusIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientStatusIcon]', element);
 
     expect(iconElement.length).toBe(1);
     expect(iconElement[0].src).toContain('online.png');
     expect(iconElement[0].title).toBe('1 minutes ago');
   });
 
-  it('shows online-1day icon when last ping is 23 hours ago', function() {
-    var client = {
+  it('shows online-1day icon when last ping is 23 hours ago', () => {
+    const client = {
       type: 'ApiClient',
       value: {
         'last_seen_at': {
-          value: 42 * 1000000
-        }
-      }
+          value: 42 * 1000000,
+        },
+      },
     };
-    grrTimeService.getCurrentTimeMs = function() {
-      return (42 + 60 * 60 * 23) * 1000;
-    };
+    grrTimeService.getCurrentTimeMs = (() => (42 + 60 * 60 * 23) * 1000);
 
-    var element = render(client);
-    var iconElement = $('img[name=clientStatusIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientStatusIcon]', element);
 
     expect(iconElement.length).toBe(1);
     expect(iconElement[0].src).toContain('online-1d.png');
     expect(iconElement[0].title).toBe('23 hours ago');
   });
 
-  it('shows offline icon when last ping is is 3 days ago', function() {
-    var client = {
+  it('shows offline icon when last ping is is 3 days ago', () => {
+    const client = {
       type: 'ApiClient',
       value: {
         'last_seen_at': {
-          value: 42 * 1000000
-        }
-      }
+          value: 42 * 1000000,
+        },
+      },
     };
-    grrTimeService.getCurrentTimeMs = function() {
-      return (42 + 60 * 60 * 24 * 3) * 1000;
-    };
+    grrTimeService.getCurrentTimeMs = (() => (42 + 60 * 60 * 24 * 3) * 1000);
 
-    var element = render(client);
-    var iconElement = $('img[name=clientStatusIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientStatusIcon]', element);
 
     expect(iconElement.length).toBe(1);
     expect(iconElement[0].src).toContain('offline.png');
     expect(iconElement[0].title).toBe('3 days ago');
   });
 
-  it('does not show crash icon if no crash happened', function() {
-    var client = {
+  it('does not show crash icon if no crash happened', () => {
+    const client = {
       type: 'ApiClient',
-      value: {}
+      value: {},
     };
 
-    var element = render(client);
-    var iconElement = $('img[name=clientCrashIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientCrashIcon]', element);
 
     expect(iconElement.length).toBe(0);
   });
 
-  it('does not show crash icon if crash happened 1 week ago', function() {
-    var client = {
+  it('does not show crash icon if crash happened 1 week ago', () => {
+    const client = {
       type: 'ApiClient',
       value: {
         'last_crash_at': {
-          value: 42 * 1000000
-        }
-      }
+          value: 42 * 1000000,
+        },
+      },
     };
-    grrTimeService.getCurrentTimeMs = function() {
-      return (42 + 60 * 60 * 24 * 7) * 1000;
-    };
+    grrTimeService.getCurrentTimeMs = (() => (42 + 60 * 60 * 24 * 7) * 1000);
 
-    var element = render(client);
-    var iconElement = $('img[name=clientCrashIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientCrashIcon]', element);
     expect(iconElement.length).toBe(0);
   });
 
-  it('shows crash icon if crash happened 1 hour ago', function() {
-    var client = {
+  it('shows crash icon if crash happened 1 hour ago', () => {
+    const client = {
       type: 'ApiClient',
       value: {
         'last_crash_at': {
-          value: 42 * 1000000
-        }
-      }
+          value: 42 * 1000000,
+        },
+      },
     };
-    grrTimeService.getCurrentTimeMs = function() {
-      return (42 + 60 * 60) * 1000;
-    };
+    grrTimeService.getCurrentTimeMs = (() => (42 + 60 * 60) * 1000);
 
-    var element = render(client);
-    var iconElement = $('img[name=clientCrashIcon]', element);
+    const element = render(client);
+    const iconElement = $('img[name=clientCrashIcon]', element);
 
     expect(iconElement.length).toBe(1);
     expect(iconElement[0].src).toContain('skull-icon.png');
     expect(iconElement[0].title).toBe('1 hours ago');
   });
 
-  it('shows no disk warning if none are present', function() {
-    var element = render({
+  it('shows no disk warning if none are present', () => {
+    const element = render({
       type: 'ApiClient',
-      value: {}
+      value: {},
     });
-    var warningElement = $('span[name=clientDiskWarnings]', element);
+    const warningElement = $('span[name=clientDiskWarnings]', element);
     expect(warningElement.length).toBe(0);
   });
 
-  it('shows two disk warnings correctly', function() {
-    var volume1 = {
+  it('shows two disk warnings correctly', () => {
+    const volume1 = {
       name: {
-        value: '/Volume/A'
+        value: '/Volume/A',
       },
       total_allocation_units: {
-        value: 100
+        value: 100,
       },
       actual_available_allocation_units: {
-        value: 3
-      }
+        value: 3,
+      },
     };
-    var volume2 = {
+    const volume2 = {
       name: {
-        value: 'C:'
+        value: 'C:',
       },
       total_allocation_units: {
-        value: 100
+        value: 100,
       },
       actual_available_allocation_units: {
-        value: 4
-      }
+        value: 4,
+      },
     };
-    var client = {
+    const client = {
       type: 'ApiClient',
       value: {
         volumes: [
           {
             type: 'Volume',
-            value: volume1
+            value: volume1,
           },
           {
             type: 'Volume',
-            value: volume2
-          }
-        ]
-      }
+            value: volume2,
+          },
+        ],
+      },
     };
 
-    var element = render(client);
-    var warningElement = $('span[name=clientDiskWarnings]', element);
+    const element = render(client);
+    const warningElement = $('span[name=clientDiskWarnings]', element);
 
     expect(warningElement.length).toBe(1);
     expect(warningElement.text()).toContain('/Volume/A 3% free');
     expect(warningElement.text()).toContain('C: 4% free');
   });
-
 });
+
+
+exports = {};

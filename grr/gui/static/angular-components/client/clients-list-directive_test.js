@@ -1,23 +1,31 @@
 'use strict';
 
-goog.provide('grrUi.client.clientsListDirectiveTest');
-goog.require('grrUi.client.module');
-goog.require('grrUi.tests.module');
-goog.require('grrUi.tests.stubDirective');
+goog.module('grrUi.client.clientsListDirectiveTest');
 
-describe('clients list', function() {
-  var $q, $compile, $rootScope, $interval, grrApiService, grrRoutingService;
-  var grrReflectionService;
+const clientModule = goog.require('grrUi.client.clientModule');
+const stubDirective = goog.require('grrUi.tests.stubDirective');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('clients list', () => {
+  let $compile;
+  let $interval;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+  let grrRoutingService;
+
+  let grrReflectionService;
 
   beforeEach(module('/static/angular-components/client/clients-list.html'));
-  beforeEach(module(grrUi.client.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(clientModule.name));
+  beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrClientStatusIcons');
-  grrUi.tests.stubDirective('grrSemanticValue');
-  grrUi.tests.stubDirective('grrDisableIfNoTrait');
+  stubDirective('grrClientStatusIcons');
+  stubDirective('grrSemanticValue');
+  stubDirective('grrDisableIfNoTrait');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -26,24 +34,24 @@ describe('clients list', function() {
     grrReflectionService = $injector.get('grrReflectionService');
     grrRoutingService = $injector.get('grrRoutingService');
 
-    grrReflectionService.getRDFValueDescriptor = function(valueType) {
-      var deferred = $q.defer();
+    grrReflectionService.getRDFValueDescriptor = ((valueType) => {
+      const deferred = $q.defer();
       deferred.resolve({
         name: valueType,
-        mro: [valueType]
+        mro: [valueType],
       });
       return deferred.promise;
-    };
+    });
   }));
 
-  afterEach(function() {
+  afterEach(() => {
     // We have to clean document's body to remove tables we add there.
     $(document.body).html('');
   });
 
-  var render = function(query) {
-    var template = '<grr-clients-list />';
-    var element = $compile(template)($rootScope);
+  const render = (query) => {
+    const template = '<grr-clients-list />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     $('body').append(element);
@@ -52,7 +60,7 @@ describe('clients list', function() {
     return element;
   };
 
-  var mockApiService = function(value) {
+  const mockApiService = (value) => {
     if (value) {
       // Be able to handle 2 requests: second request will be made if less
       // then 1 page of items is returned.
@@ -63,34 +71,33 @@ describe('clients list', function() {
     }
   };
 
-  var mockRoutingService = function(query) {
-    spyOn(grrRoutingService, 'uiOnParamsChanged').and.callFake(function(s, p, cb) {
+  const mockRoutingService = (query) => {
+    spyOn(grrRoutingService, 'uiOnParamsChanged').and.callFake((s, p, cb) => {
       cb(query);
     });
   };
 
-  it('sends request with a query to the server', function() {
+  it('sends request with a query to the server', () => {
     mockApiService();
     mockRoutingService('.');
 
-    var element = render();
-    expect(grrApiService.get).toHaveBeenCalledWith(
-        '/clients', {
-          query: '.',
-          offset: 0,
-          count: 50
-        });
+    render();
+    expect(grrApiService.get).toHaveBeenCalledWith('/clients', {
+      query: '.',
+      offset: 0,
+      count: 50,
+    });
   });
 
-  it('renders list with one client correctly', function() {
-    var clientsResponse = {
+  it('renders list with one client correctly', () => {
+    const clientsResponse = {
       items: [
         {
           type: 'VFSGRRClient',
           value: {
             urn: {
               value: 'aff4:/C.0000000000000001',
-              type: 'RDFURN'
+              type: 'RDFURN',
             },
             first_seen_at: {
               value: 1358346544915179,
@@ -123,23 +130,23 @@ describe('clients list', function() {
                   'owner': {
                     'value': 'GRR',
                     'type': 'unicode',
-                    'age': 0
+                    'age': 0,
                   },
                   'name': {
                     'value': 'foobar-label',
                     'type': 'unicode',
-                    'age': 0
-                  }
-                }
+                    'age': 0,
+                  },
+                },
               },
             ],
             interfaces: [
               {
                 type: 'Interface',
                 value: {
-                  mac_address: "<mac address>"
-                }
-              }
+                  mac_address: '<mac address>',
+                },
+              },
             ],
             users: [
               {
@@ -148,75 +155,77 @@ describe('clients list', function() {
                   username: {
                     type: 'RDFString',
                     value: 'user_foo',
-                  }
-                }
+                  },
+                },
               },
               {
                 type: 'User',
                 value: {
                   type: 'RDFString',
                   value: 'user_bar',
-                }
-              }
-            ]
-          }
-        }
-      ]
+                },
+              },
+            ],
+          },
+        },
+      ],
     };
 
     mockApiService(clientsResponse);
     mockRoutingService('.');
 
-    var element = render();
+    const element = render();
     // Check that grrClientStatusIcons directive is rendered. It means
     // that the row with a client info got rendered correctly.
     expect($('grr-client-status-icons', element).length).toBe(1);
   });
 
-  it('ignores interfaces without mac addresses', function() {
-    var clientsResponse = {
+  it('ignores interfaces without mac addresses', () => {
+    const clientsResponse = {
       items: [
         {
           type: 'VFSGRRClient',
           value: {
             urn: {
               value: 'aff4:/C.0000000000000001',
-              type: 'RDFURN'
+              type: 'RDFURN',
             },
             interfaces: [
               {
                 type: 'Interface1',
                 value: {
-                  mac_address: "<mac address 1>"
-                }
+                  mac_address: '<mac address 1>',
+                },
               },
               {
                 type: 'Interface Without Mac Address',
-                value: {
-                }
+                value: {},
               },
               {
                 type: 'Interface2',
                 value: {
-                  mac_address: "<mac address 2>"
-                }
-              }
-            ]
-          }
-        }
-      ]
+                  mac_address: '<mac address 2>',
+                },
+              },
+            ],
+          },
+        },
+      ],
     };
 
     mockApiService(clientsResponse);
     mockRoutingService('.');
 
-    var element = render();
-    var macTableColumn = $('th:contains(MAC)', element).index();
-    var macCell = $('tr td', element)[macTableColumn];
-    var macDirective = $('grr-semantic-value', macCell);
-    var macDirectiveScope = macDirective.scope();
+    const element = render();
+    const macTableColumn = $('th:contains(MAC)', element).index();
+    const macCell = $('tr td', element)[macTableColumn];
+    const macDirective = $('grr-semantic-value', macCell);
+    const macDirectiveScope = macDirective.scope();
 
-    var addresses = macDirectiveScope.$eval(macDirective.attr('value'));
+    const addresses = macDirectiveScope.$eval(macDirective.attr('value'));
     expect(addresses).toEqual(['<mac address 1>', '<mac address 2>']);
   });
 });
+
+
+exports = {};

@@ -1,74 +1,79 @@
 'use strict';
 
-goog.provide('grrUi.semantic.bytesDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.bytesDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('bytes directive', function() {
-  var $compile, $rootScope;
+
+describe('bytes directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/semantic/bytes.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-bytes value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-bytes value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing when value is empty', function() {
-    var value = {
+  it('shows nothing when value is empty', () => {
+    const value = {
       type: 'RDFBytes',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('');
   });
 
-  it('shows error message if value is incorrectly base64-encoded', function() {
-    var value = {
+  it('shows error message if value is incorrectly base64-encoded', () => {
+    const value = {
       type: 'RDFBytes',
-      value: '--'
+      value: '--',
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toMatch(/base64decodeerror.*:--/);
   });
 
-  it('converts base64-encoded value into a hex-encoded string', function() {
-    var macAddress = {
+  it('converts base64-encoded value into a hex-encoded string', () => {
+    const macAddress = {
       type: 'MacAddress',
-      value: 'Zm9vDcg='
+      value: 'Zm9vDcg=',
     };
-    var element = renderTestTemplate(macAddress);
+    const element = renderTestTemplate(macAddress);
     expect(element.text()).toContain('foo\\x0d\\xc8');
   });
 
-  it('hides content behind a link if its longer than 1024 bytes', function() {
-    var value = {
+  it('hides content behind a link if its longer than 1024 bytes', () => {
+    const value = {
       type: 'RDFBytes',
-      value: Array(1025).join('-')
+      value: Array(1025).join('-'),
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text()).not.toMatch(/base64decodeerror.*:--/);
     expect(element.text()).toContain('Show bytes...');
 
-    browserTrigger($('a', element), 'click');
+    browserTriggerEvent($('a', element), 'click');
     expect(element.text()).toMatch(/base64decodeerror.*:--/);
     expect(element.text()).not.toContain('Show bytes...');
   });
 });
+
+
+exports = {};

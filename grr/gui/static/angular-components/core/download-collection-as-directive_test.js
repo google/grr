@@ -1,55 +1,52 @@
 'use strict';
 
-goog.provide('grrUi.core.downloadCollectionAsDirectiveTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.downloadCollectionAsDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('"download collection as" panel', function() {
-  var $q, $compile, $rootScope, $timeout, grrApiService;
 
-  var ERROR_EVENT_NAME =
-      grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective
-      .error_event_name;
+describe('"download collection as" panel', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
 
   beforeEach(module('/static/angular-components/core/download-collection-as.html'));
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var renderTestTemplate = function(baseUrl) {
+  const renderTestTemplate = (baseUrl) => {
     $rootScope.baseUrl = baseUrl || 'foo/bar';
 
-    var template = '<grr-download-collection-as ' +
+    const template = '<grr-download-collection-as ' +
         'base-url="baseUrl" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  var testDownloadAsType = function(plugin) {
-    return function() {
-      var deferred = $q.defer();
-      spyOn(grrApiService, 'downloadFile').and.returnValue(deferred.promise);
+  const testDownloadAsType =
+      ((plugin) => (() => {
+         const deferred = $q.defer();
+         spyOn(grrApiService, 'downloadFile').and.returnValue(deferred.promise);
 
-      var element = renderTestTemplate();
-      element.find('#plugin-select').val('string:' + plugin).change();
-      browserTrigger(element.find('button[name="download-as"]'), 'click');
+         const element = renderTestTemplate();
+         element.find('#plugin-select').val(`string:${plugin}`).change();
+         browserTriggerEvent(element.find('button[name="download-as"]'), 'click');
 
-      expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-          'foo/bar/' + plugin);
-    };
-  };
+         expect(grrApiService.downloadFile)
+             .toHaveBeenCalledWith(`foo/bar/${plugin}`);
+       }));
 
   it('sends correct request for CSV download', testDownloadAsType('csv-zip'));
 
@@ -59,3 +56,6 @@ describe('"download collection as" panel', function() {
   it('sends correct request for sqlite download',
       testDownloadAsType('sqlite-zip'));
 });
+
+
+exports = {};

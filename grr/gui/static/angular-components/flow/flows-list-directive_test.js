@@ -1,35 +1,33 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowsListDirectiveTest');
-goog.require('grrUi.flow.flowsListDirective.flattenFlowsList');
-goog.require('grrUi.flow.flowsListDirective.toggleFlowExpansion');
-goog.require('grrUi.flow.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.flow.flowsListDirectiveTest');
 
-describe('grr-flows-list directive', function() {
+const flowsListDirectiveFlattenFlowsList = goog.require('grrUi.flow.flowsListDirective.flattenFlowsList');
+const flowsListDirectiveToggleFlowExpansion = goog.require('grrUi.flow.flowsListDirective.toggleFlowExpansion');
 
-  describe('flattenFlowsList()', function() {
-    var flattenFlowsList = grrUi.flow.flowsListDirective.flattenFlowsList;
+describe('grr-flows-list directive', () => {
+  describe('flattenFlowsList()', () => {
+    const flattenFlowsList = flowsListDirectiveFlattenFlowsList;
 
-    it('assigns zero depth when flows have no nested_flows', function() {
-      var source = [
+    it('assigns zero depth when flows have no nested_flows', () => {
+      const source = [
         {value: {foo: 1}},
         {value: {foo: 2}},
-        {value: {foo: 3}}
+        {value: {foo: 3}},
       ];
       expect(flattenFlowsList(source)).toEqual([
         {value: {foo: 1}, depth: 0},
         {value: {foo: 2}, depth: 0},
-        {value: {foo: 3}, depth: 0}
+        {value: {foo: 3}, depth: 0},
       ]);
     });
 
-    it('assigns depths correctly for flows with nested_flows', function() {
-      var source = [
+    it('assigns depths correctly for flows with nested_flows', () => {
+      const source = [
         {
           value: {
-            foo: 1
-          }
+            foo: 1,
+          },
         },
         {
           value: {
@@ -37,8 +35,8 @@ describe('grr-flows-list directive', function() {
             nested_flows: [
               {
                 value: {
-                  foo: 21
-                }
+                  foo: 21,
+                },
               },
               {
                 value: {
@@ -46,23 +44,23 @@ describe('grr-flows-list directive', function() {
                   nested_flows: [
                     {
                       value: {
-                        foo: 223
-                      }
+                        foo: 223,
+                      },
                     },
                     {
                       value: {
-                        foo: 224
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
+                        foo: 224,
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
         },
         {
-          foo: 3
-        }
+          foo: 3,
+        },
       ];
 
       expect(flattenFlowsList(source)).toEqual([
@@ -72,16 +70,16 @@ describe('grr-flows-list directive', function() {
         {value: {foo: 22}, depth: 1},
         {value: {foo: 223}, depth: 2},
         {value: {foo: 224}, depth: 2},
-        {foo: 3, depth: 0}
+        {foo: 3, depth: 0},
       ]);
     });
   });
 
-  describe('toggleFlowExpansion()', function() {
-    var toggleFlowExpansion = grrUi.flow.flowsListDirective.toggleFlowExpansion;
+  describe('toggleFlowExpansion()', () => {
+    const toggleFlowExpansion = flowsListDirectiveToggleFlowExpansion;
 
-    it('expands node with 2 children correctly', function() {
-      var source = [
+    it('expands node with 2 children correctly', () => {
+      const source = [
         {value: {foo: 2}, depth: 0, shown: true},
         {value: {foo: 21}, depth: 1, shown: false},
         {value: {foo: 22}, depth: 1, shown: false},
@@ -93,8 +91,8 @@ describe('grr-flows-list directive', function() {
       ]);
     });
 
-    it('does not show adjacent items', function() {
-      var source = [
+    it('does not show adjacent items', () => {
+      const source = [
         {value: {foo: 2}, depth: 0, shown: true},
         {value: {foo: 21}, depth: 1, shown: false},
         {value: {foo: 3}, depth: 0, shown: false},
@@ -106,26 +104,26 @@ describe('grr-flows-list directive', function() {
       ]);
     });
 
-    it('collapses node with 2 children correctly', function() {
-      var source = [
+    it('collapses node with 2 children correctly', () => {
+      const source = [
         {value: {foo: 2}, depth: 0, shown: true, expanded: true},
         {value: {foo: 21}, depth: 1, shown: true},
-        {value: {foo: 22}, depth: 1, shown: true}
+        {value: {foo: 22}, depth: 1, shown: true},
       ];
       expect(toggleFlowExpansion(source, 0)).toEqual([
         {value: {foo: 2}, depth: 0, shown: true, expanded: false},
         {value: {foo: 21}, depth: 1, shown: false},
-        {value: {foo: 22}, depth: 1, shown: false}
+        {value: {foo: 22}, depth: 1, shown: false},
       ]);
     });
 
-    it('recursively shows expanded children', function() {
-      var source = [
+    it('recursively shows expanded children', () => {
+      const source = [
         {value: {foo: 2}, depth: 0, shown: true, expanded: false},
         {value: {foo: 21}, depth: 1, shown: false},
         {value: {foo: 22}, depth: 1, shown: false, expanded: true},
         {value: {foo: 223}, depth: 2, shown: false},
-        {value: {foo: 224}, depth: 2, shown: false}
+        {value: {foo: 224}, depth: 2, shown: false},
       ];
       expect(toggleFlowExpansion(source, 0)).toEqual([
         {value: {foo: 2}, depth: 0, shown: true, expanded: true},
@@ -136,13 +134,13 @@ describe('grr-flows-list directive', function() {
       ]);
     });
 
-    it('does not recursively show collapsed children', function() {
-      var source = [
+    it('does not recursively show collapsed children', () => {
+      const source = [
         {value: {foo: 2}, depth: 0, shown: true, expanded: false},
         {value: {foo: 21}, depth: 1, shown: false},
         {value: {foo: 22}, depth: 1, shown: false, expanded: false},
         {value: {foo: 223}, depth: 2, shown: false},
-        {value: {foo: 224}, depth: 2, shown: false}
+        {value: {foo: 224}, depth: 2, shown: false},
       ];
       expect(toggleFlowExpansion(source, 0)).toEqual([
         {value: {foo: 2}, depth: 0, shown: true, expanded: true},
@@ -158,3 +156,6 @@ describe('grr-flows-list directive', function() {
   // grr-infinite-table and grr-api-items-provider and test the directive
   // itself, not just the basic logic functions.
 });
+
+
+exports = {};

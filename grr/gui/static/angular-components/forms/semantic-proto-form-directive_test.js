@@ -1,37 +1,42 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.semanticProtoFormDirectiveTest');
 
-describe('semantic proto form directive', function() {
-  var $compile, $rootScope, $q;
-  var grrSemanticFormDirectivesRegistryService;
-  var grrReflectionServiceMock;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('semantic proto form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+
+  let grrSemanticFormDirectivesRegistryService;
+  let grrReflectionServiceMock;
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
   angular.forEach(
-      ['grrFormProtoSingleField',
-       'grrFormProtoRepeatedField',
-       'grrFormProtoUnion'],
-      function(directiveName) {
+      [
+        'grrFormProtoSingleField', 'grrFormProtoRepeatedField',
+        'grrFormProtoUnion'
+      ],
+      (directiveName) => {
         grrUi.tests.stubDirective(directiveName);
       });
 
-  beforeEach(module(function($provide) {
+  beforeEach(module(($provide) => {
     grrReflectionServiceMock = {
-      getRDFValueDescriptor: function() {}
+      getRDFValueDescriptor: function() {},
     };
 
-    $provide.factory('grrReflectionService', function() {
-      return grrReflectionServiceMock;
-    });
+    $provide.factory('grrReflectionService', () => grrReflectionServiceMock);
   }));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     grrUi.forms.semanticValueFormDirective.clearCaches();
 
     $compile = $injector.get('$compile');
@@ -42,34 +47,34 @@ describe('semantic proto form directive', function() {
         'grrSemanticFormDirectivesRegistryService');
   }));
 
-  var renderTestTemplate = function(value, metadata, hiddenFields) {
+  const renderTestTemplate = (value, metadata, hiddenFields) => {
     $rootScope.value = value;
     $rootScope.metadata = metadata;
     $rootScope.hiddenFields = hiddenFields;
 
-    var template = '<grr-form-proto value="value" metadata="metadata" ' +
+    const template = '<grr-form-proto value="value" metadata="metadata" ' +
         'hidden-fields="hiddenFields" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  describe('form for structure with 3 primitive fields', function() {
-    var defaultFooStructValue = {
+  describe('form for structure with 3 primitive fields', () => {
+    const defaultFooStructValue = {
       type: 'Foo',
       mro: ['Foo', 'RDFProtoStruct'],
-      value: {}
+      value: {},
     };
 
-    beforeEach(function() {
+    beforeEach(() => {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var data = {
+      const data = {
         'Foo': {
           'default': {
             'type': 'Foo',
-            'value': {}
+            'value': {},
           },
           'doc': 'This is a structure Foo.',
           'fields': [
@@ -80,12 +85,12 @@ describe('semantic proto form directive', function() {
               'index': 1,
               'name': 'field_1',
               'repeated': false,
-              'type': 'PrimitiveType'
+              'type': 'PrimitiveType',
             },
             {
               'default': {
                 'type': 'PrimitiveType',
-                'value': 'a foo bar'
+                'value': 'a foo bar',
               },
               'doc': 'Field 2 description.',
               'dynamic': false,
@@ -93,12 +98,12 @@ describe('semantic proto form directive', function() {
               'index': 1,
               'name': 'field_2',
               'repeated': false,
-              'type': 'PrimitiveType'
+              'type': 'PrimitiveType',
             },
             {
               'default': {
                 'type': 'PrimitiveType',
-                'value': ''
+                'value': '',
               },
               'doc': 'Field 3 description.',
               'dynamic': false,
@@ -106,182 +111,185 @@ describe('semantic proto form directive', function() {
               'index': 1,
               'name': 'field_3',
               'repeated': false,
-              'type': 'PrimitiveType'
+              'type': 'PrimitiveType',
             },
           ],
           'kind': 'struct',
           'name': 'Foo',
-          'mro': ['Foo', 'RDFProtoStruct']
+          'mro': ['Foo', 'RDFProtoStruct'],
         },
         'PrimitiveType': {
           'default': {
             'type': 'PrimitiveType',
-            'value': ''
+            'value': '',
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
           'name': 'PrimitiveType',
-          'mro': ['PrimitiveType']
-        }
+          'mro': ['PrimitiveType'],
+        },
       };
 
-      var reflectionDeferred = $q.defer();
+      const reflectionDeferred = $q.defer();
       reflectionDeferred.resolve(data);
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
-          function(type, opt_withDeps) {
-            var reflectionDeferred = $q.defer();
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor')
+          .and.callFake((type, opt_withDeps) => {
+            const reflectionDeferred = $q.defer();
             reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
             return reflectionDeferred.promise;
           });
     });
 
-    it('renders a form for structure with 3 primitive fields', function() {
-      var element = renderTestTemplate(defaultFooStructValue);
+    it('renders a form for structure with 3 primitive fields', () => {
+      const element = renderTestTemplate(defaultFooStructValue);
 
       // Check that for every primitive field a grr-form-proto-single-field
       // directive is created.
       expect(element.find('grr-form-proto-single-field').length).toBe(3);
     });
 
-    it('does not overwrite field prefilled with non-default value', function() {
-      var fooValue = defaultFooStructValue;
+    it('does not overwrite field prefilled with non-default value', () => {
+      const fooValue = defaultFooStructValue;
       fooValue.value = {
         field_2: {
           type: 'PrimitiveType',
-          value: '42'
-        }
+          value: '42',
+        },
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({
         field_2: {
           type: 'PrimitiveType',
-          value: '42'
-        }
+          value: '42',
+        },
       });
     });
 
     it('does not erase the field with default value prefilled with default ' +
-       'field value not equal to the default type value', function() {
-      var fooValue = defaultFooStructValue;
-      fooValue.value = {
-        field_2: {
-          type: 'PrimitiveType',
-          value: 'a foo bar'
-        }
-      };
-      var element = renderTestTemplate(fooValue);
+           'field value not equal to the default type value',
+       () => {
+         const fooValue = defaultFooStructValue;
+         fooValue.value = {
+           field_2: {
+             type: 'PrimitiveType',
+             value: 'a foo bar',
+           },
+         };
+         const element = renderTestTemplate(fooValue);
 
-      expect(fooValue.value).toEqual({
-        field_2: {
-          type: 'PrimitiveType',
-          value: 'a foo bar'
-        }
-      });
-    });
+         expect(fooValue.value).toEqual({
+           field_2: {
+             type: 'PrimitiveType',
+             value: 'a foo bar',
+           },
+         });
+       });
 
     it('erases the field with default value prefilled with default field ' +
-       'value equal to the default type value', function() {
-      var fooValue = defaultFooStructValue;
-      fooValue.value = {
-        field_3: {
-          type: 'PrimitiveType',
-          value: ''
-        }
-      };
-      var element = renderTestTemplate(fooValue);
+           'value equal to the default type value',
+       () => {
+         const fooValue = defaultFooStructValue;
+         fooValue.value = {
+           field_3: {
+             type: 'PrimitiveType',
+             value: '',
+           },
+         };
+         const element = renderTestTemplate(fooValue);
 
-      expect(fooValue.value).toEqual({});
-    });
+         expect(fooValue.value).toEqual({});
+       });
 
     it('erases the field without default prefilled with default type ' +
-        'value', function() {
-      var fooValue = defaultFooStructValue;
+           'value',
+       () => {
+         const fooValue = defaultFooStructValue;
+         fooValue.value = {
+           field_1: {
+             type: 'PrimitiveType',
+             value: '',
+           },
+         };
+         const element = renderTestTemplate(fooValue);
+
+         expect(fooValue.value).toEqual({});
+       });
+
+    it('does not erase hidden fields', () => {
+      const fooValue = defaultFooStructValue;
       fooValue.value = {
         field_1: {
           type: 'PrimitiveType',
-          value: ''
-        }
+          value: '',
+        },
       };
-      var element = renderTestTemplate(fooValue);
-
-      expect(fooValue.value).toEqual({});
-    });
-
-    it('does not erase hidden fields', function() {
-      var fooValue = defaultFooStructValue;
-      fooValue.value = {
-        field_1: {
-          type: 'PrimitiveType',
-          value: ''
-        }
-      };
-      var element = renderTestTemplate(fooValue, undefined, ['field_1']);
+      const element = renderTestTemplate(fooValue, undefined, ['field_1']);
 
       expect(fooValue.value).toEqual({
         field_1: {
           type: 'PrimitiveType',
-          value: ''
-        }
+          value: '',
+        },
       });
     });
 
-    it('does not render fields listed in hidden-fields argument', function() {
-      var element = renderTestTemplate(defaultFooStructValue, undefined,
-                                       ['field_1']);
+    it('does not render fields listed in hidden-fields argument', () => {
+      const element =
+          renderTestTemplate(defaultFooStructValue, undefined, ['field_1']);
 
       expect(element.find('grr-form-proto-single-field').length).toBe(2);
 
       // Check that rendered fields are field_2 and field_3 only.
-      var field = element.find('grr-form-proto-single-field:nth(0)');
+      let field = element.find('grr-form-proto-single-field:nth(0)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
-        value: 'a foo bar'
+        value: 'a foo bar',
       });
 
       field = element.find('grr-form-proto-single-field:nth(1)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
-        value: ''
+        value: '',
       });
     });
 
-    it('does not prefill the model with defaults', function() {
-      var fooValue = defaultFooStructValue;
-      var element = renderTestTemplate(fooValue);
+    it('does not prefill the model with defaults', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({});
     });
 
-    it('prefills nested form elements with defaults', function() {
-      var fooValue = defaultFooStructValue;
-      var element = renderTestTemplate(fooValue);
+    it('prefills nested form elements with defaults', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
 
-      var field = element.find('grr-form-proto-single-field:nth(0)');
+      let field = element.find('grr-form-proto-single-field:nth(0)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
-        value: ''
+        value: '',
       });
 
       field = element.find('grr-form-proto-single-field:nth(1)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
-        value: 'a foo bar'
+        value: 'a foo bar',
       });
 
       field = element.find('grr-form-proto-single-field:nth(2)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
-        value: ''
+        value: '',
       });
     });
 
-    it('updates model when a field is changed', function() {
-      var fooValue = defaultFooStructValue;
-      var element = renderTestTemplate(fooValue);
+    it('updates model when a field is changed', () => {
+      const fooValue = defaultFooStructValue;
+      const element = renderTestTemplate(fooValue);
 
-      var field = element.find('grr-form-proto-single-field:nth(0)');
-      var fieldValue = field.scope().$eval(field.attr('value'));
+      const field = element.find('grr-form-proto-single-field:nth(0)');
+      const fieldValue = field.scope().$eval(field.attr('value'));
       fieldValue.value = '42';
 
       $rootScope.$apply();
@@ -289,50 +297,49 @@ describe('semantic proto form directive', function() {
       expect(fooValue.value).toEqual({
         field_1: {
           type: 'PrimitiveType',
-          value: '42'
-        }
+          value: '42',
+        },
       });
     });
 
-    var icon = function(element, iconName) {
-      return element.find('i.glyphicon-' + iconName);
-    };
+    const icon =
+        ((element, iconName) => element.find(`i.glyphicon-${iconName}`));
 
-    var expectIcon = function(element, iconName) {
+    const expectIcon = ((element, iconName) => {
       expect(icon(element, iconName).length).toBe(1);
-    };
+    });
 
-    var expectNoIcon = function(element, iconName) {
+    const expectNoIcon = ((element, iconName) => {
       expect(icon(element, iconName).length).toBe(0);
-    };
+    });
 
-    it('does not render collapse/expand icon if depth is not set', function() {
-      var element = renderTestTemplate(defaultFooStructValue,
-                                       {depth: undefined});
+    it('does not render collapse/expand icon if depth is not set', () => {
+      const element =
+          renderTestTemplate(defaultFooStructValue, {depth: undefined});
 
       expectNoIcon(element, 'plus');
     });
 
-    it('does not render collapse/expand icon if depth is 0 or 1', function() {
-      var element = renderTestTemplate(defaultFooStructValue, {depth: 0});
+    it('does not render collapse/expand icon if depth is 0 or 1', () => {
+      let element = renderTestTemplate(defaultFooStructValue, {depth: 0});
       expectNoIcon(element, 'plus');
 
       element = renderTestTemplate(defaultFooStructValue, {depth: 1});
       expectNoIcon(element, 'plus');
     });
 
-    it('renders as collapsed if metadata.depth is 2', function() {
-      var element = renderTestTemplate(defaultFooStructValue, {depth: 2});
+    it('renders as collapsed if metadata.depth is 2', () => {
+      const element = renderTestTemplate(defaultFooStructValue, {depth: 2});
       expectIcon(element, 'plus');
     });
 
-    it('expands if collapsed plus icons is clicked', function() {
-      var element = renderTestTemplate(defaultFooStructValue, {depth: 2});
+    it('expands if collapsed plus icons is clicked', () => {
+      const element = renderTestTemplate(defaultFooStructValue, {depth: 2});
       // Nothing is shown by default, field is collapsed.
       expect(element.find('grr-form-proto-single-field').length).toBe(0);
 
       // Click on the '+' icon to expand it.
-      browserTrigger(icon(element, 'plus'), 'click');
+      browserTriggerEvent(icon(element, 'plus'), 'click');
       // Check that fields got displayed.
       expect(element.find('grr-form-proto-single-field').length).toBe(3);
       // Check that '+' icon became '-' icon.
@@ -340,14 +347,14 @@ describe('semantic proto form directive', function() {
       expectIcon(element, 'minus');
     });
 
-    it('collapses if expanded and minus icon is clicked', function() {
-      var element = renderTestTemplate(defaultFooStructValue, {depth: 2});
+    it('collapses if expanded and minus icon is clicked', () => {
+      const element = renderTestTemplate(defaultFooStructValue, {depth: 2});
 
       // Click on the '+' icon to expand element.
-      browserTrigger(icon(element, 'plus'), 'click');
+      browserTriggerEvent(icon(element, 'plus'), 'click');
 
       // Click on the '-' icon to collapse it.
-      browserTrigger(icon(element, 'minus'), 'click');
+      browserTriggerEvent(icon(element, 'minus'), 'click');
       // Check that fields disappeared.
       expect(element.find('grr-form-proto-single-field').length).toBe(0);
 
@@ -357,15 +364,15 @@ describe('semantic proto form directive', function() {
     });
   });
 
-  describe('form for structure with 1 repeated field', function() {
-    beforeEach(function() {
+  describe('form for structure with 1 repeated field', () => {
+    beforeEach(() => {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var data = {
+      const data = {
         'Foo': {
           'default': {
             'type': 'Foo',
-            'value': {}
+            'value': {},
           },
           'doc': 'This is a structure Foo.',
           'fields': [
@@ -373,7 +380,7 @@ describe('semantic proto form directive', function() {
               'default': {
                 'mro': ['PrimitiveType'],
                 'type': 'PrimitiveType',
-                'value': ''
+                'value': '',
               },
               'doc': 'Field 1 description.',
               'dynamic': false,
@@ -381,71 +388,71 @@ describe('semantic proto form directive', function() {
               'index': 1,
               'name': 'field_1',
               'repeated': true,
-              'type': 'PrimitiveType'
-            }
+              'type': 'PrimitiveType',
+            },
           ],
           'kind': 'struct',
-          'mro': ['Foo', 'RDFProtoStruct']
+          'mro': ['Foo', 'RDFProtoStruct'],
         },
         'PrimitiveType': {
           'default': {
             'type': 'PrimitiveType',
-            'value': ''
+            'value': '',
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
           'mro': ['PrimitiveType'],
-          'name': 'PrimitiveType'
-        }
+          'name': 'PrimitiveType',
+        },
       };
 
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
-          function(type, opt_withDeps) {
-            var reflectionDeferred = $q.defer();
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor')
+          .and.callFake((type, opt_withDeps) => {
+            const reflectionDeferred = $q.defer();
             reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
             return reflectionDeferred.promise;
           });
     });
 
-    it('does not prefill the model', function() {
-      var fooValue = {
+    it('does not prefill the model', () => {
+      const fooValue = {
         type: 'Foo',
-        value: {}
+        value: {},
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({});
     });
 
-    it('does not overwrite prefilled data', function() {
-      var fooValue = {
+    it('does not overwrite prefilled data', () => {
+      const fooValue = {
         type: 'Foo',
         value: {
           field_1: [
             {
               type: 'PrimitiveType',
-              value: '42'
-            }
-          ]
-        }
+              value: '42',
+            },
+          ],
+        },
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
       expect(fooValue.value.field_1.length).toBe(1);
       expect(fooValue.value.field_1[0]).toEqual({
         type: 'PrimitiveType',
-        value: '42'
+        value: '42',
       });
     });
 
-    it('updates the model when repeated field is changed', function() {
-      var fooValue = {
+    it('updates the model when repeated field is changed', () => {
+      const fooValue = {
         type: 'Foo',
-        value: {}
+        value: {},
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
 
-      var field = element.find('grr-form-proto-repeated-field:nth(0)');
-      var fieldValue = field.scope().$eval(field.attr('value'));
+      const field = element.find('grr-form-proto-repeated-field:nth(0)');
+      const fieldValue = field.scope().$eval(field.attr('value'));
       fieldValue.push({'type': 'PrimitiveType', value: '42'});
       $rootScope.$apply();
 
@@ -453,44 +460,44 @@ describe('semantic proto form directive', function() {
         field_1: [
           {
             type: 'PrimitiveType',
-            value: '42'
-          }
-        ]
+            value: '42',
+          },
+        ],
       });
     });
 
-    it('renders the repeated field with corresponding directive', function() {
-      var fooValue = {
+    it('renders the repeated field with corresponding directive', () => {
+      const fooValue = {
         type: 'Foo',
-        value: {}
+        value: {},
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
 
       // Check that grr-form-proto-repeated-field directive is used to trender
       // the repeated field.
       expect(element.find('grr-form-proto-repeated-field').length).toBe(1);
     });
 
-    it('does not render repeated field from the hidden-fields', function() {
-      var fooValue = {
+    it('does not render repeated field from the hidden-fields', () => {
+      const fooValue = {
         type: 'Foo',
-        value: {}
+        value: {},
       };
-      var element = renderTestTemplate(fooValue, undefined, ['field_1']);
+      const element = renderTestTemplate(fooValue, undefined, ['field_1']);
 
       expect(element.find('grr-form-proto-repeated-field').length).toBe(0);
     });
   });
 
-  describe('form for union-type structure', function() {
-    beforeEach(function() {
+  describe('form for union-type structure', () => {
+    beforeEach(() => {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var data = {
+      const data = {
         'Foo': {
           'default': {
             'type': 'Foo',
-            'value': {}
+            'value': {},
           },
           'doc': 'This is a structure Foo.',
           // Non-empty union_field attribute forces GRR to treat this structure
@@ -501,7 +508,7 @@ describe('semantic proto form directive', function() {
               'default': {
                 'mro': ['PrimitiveType'],
                 'type': 'PrimitiveType',
-                'value': ''
+                'value': '',
               },
               'doc': 'Field 1 description.',
               'dynamic': false,
@@ -509,8 +516,8 @@ describe('semantic proto form directive', function() {
               'index': 1,
               'name': 'type',
               'repeated': true,
-              'type': 'PrimitiveType'
-            }
+              'type': 'PrimitiveType',
+            },
           ],
           'kind': 'struct',
           'mro': ['Foo', 'RDFProtoStruct'],
@@ -518,34 +525,37 @@ describe('semantic proto form directive', function() {
         'PrimitiveType': {
           'default': {
             'type': 'PrimitiveType',
-            'value': ''
+            'value': '',
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
           'mro': ['PrimitiveType'],
-          'name': 'PrimitiveType'
-        }
+          'name': 'PrimitiveType',
+        },
       };
 
-      var reflectionDeferred = $q.defer();
+      const reflectionDeferred = $q.defer();
       reflectionDeferred.resolve(data);
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
-          function(type, opt_withDeps) {
-            var reflectionDeferred = $q.defer();
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor')
+          .and.callFake((type, opt_withDeps) => {
+            const reflectionDeferred = $q.defer();
             reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
             return reflectionDeferred.promise;
           });
     });
 
-    it('delegates union-type structure rendering', function() {
-      var fooValue = {
+    it('delegates union-type structure rendering', () => {
+      const fooValue = {
         type: 'Foo',
-        value: {}
+        value: {},
       };
-      var element = renderTestTemplate(fooValue);
+      const element = renderTestTemplate(fooValue);
 
       // Check that rendering is delegated to grr-form-proto-union.
       expect(element.find('grr-form-proto-union').length).toBe(1);
     });
   });
 });
+
+
+exports = {};

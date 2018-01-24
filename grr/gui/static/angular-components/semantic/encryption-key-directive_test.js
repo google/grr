@@ -1,56 +1,61 @@
 'use strict';
 
-goog.provide('grrUi.semantic.encryptionKeyDirectiveTest');
-goog.require('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.encryptionKeyDirectiveTest');
 
-describe('encryption key directive', function() {
+const encryptionKeyDirectiveStringifyEncryptionKey = goog.require('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  describe('stringifyEncryptionKey()', function() {
-    var stringifyEncryptionKey =
-        grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey;
 
-    it('converts base64 encoded string of zeroes to a hex-string', function() {
+describe('encryption key directive', () => {
+  describe('stringifyEncryptionKey()', () => {
+    const stringifyEncryptionKey = encryptionKeyDirectiveStringifyEncryptionKey;
+
+    it('converts base64 encoded string of zeroes to a hex-string', () => {
       expect(stringifyEncryptionKey('AAAAAA==')).toBe('00000000');
     });
 
-    it('converts sample base64 encoded string to a hex-string', function() {
+    it('converts sample base64 encoded string to a hex-string', () => {
       expect(stringifyEncryptionKey('AAABAgMEBQYHCAkKCwwNDg8Q')).toBe(
           '00000102030405060708090a0b0c0d0e0f10');
     });
   });
 
-  var $compile, $rootScope;
+  let $compile;
+  let $rootScope;
 
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-encryption-key value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-encryption-key value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing when value is empty', function() {
-    var element = renderTestTemplate(undefined);
+  it('shows nothing when value is empty', () => {
+    const element = renderTestTemplate(undefined);
     expect(element.text().trim()).toBe('');
   });
 
-  it('shows hex-stringified bytes when value is not empty', function() {
-    var element = renderTestTemplate({
+  it('shows hex-stringified bytes when value is not empty', () => {
+    const element = renderTestTemplate({
       type: 'EncryptionKey',
-      value: 'AAABAgMEBQYHCAkKCwwNDg8Q'
+      value: 'AAABAgMEBQYHCAkKCwwNDg8Q',
     });
     expect(element.text().trim()).toBe('00000102030405060708090a0b0c0d0e0f10');
   });
 });
+
+
+exports = {};

@@ -1,49 +1,47 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallRegistryServiceTest');
-goog.require('grrUi.semantic.rekall.module');
-goog.require('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
+goog.module('grrUi.semantic.rekall.rekallRegistryServiceTest');
 
-goog.scope(function() {
+const RekallRegistryService = goog.require('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
+const rekallModule = goog.require('grrUi.semantic.rekall.rekallModule');
 
-describe('Rekall registry', function() {
 
-  var grrRekallDirectivesRegistryService, testRegistry;
+describe('Rekall registry', () => {
+  let grrRekallDirectivesRegistryService;
+  let testRegistry;
 
-  beforeEach(module(grrUi.semantic.rekall.module.name));
-  beforeEach(inject(function($injector) {
+
+  beforeEach(module(rekallModule.name));
+  beforeEach(inject(($injector) => {
     grrRekallDirectivesRegistryService = $injector.get(
         'grrRekallDirectivesRegistryService');
 
-    testRegistry = $injector.instantiate(
-        grrUi.semantic.rekall.rekallRegistry.RekallRegistryService, {});
+    testRegistry = $injector.instantiate(RekallRegistryService, {});
   }));
 
-  it('finds previously registered directive', function() {
+  it('finds previously registered directive', () => {
     testRegistry.registerDirective('SomeType', Object);
-    var foundDirective = testRegistry.findDirectiveForMro('SomeType');
+    const foundDirective = testRegistry.findDirectiveForMro('SomeType');
     expect(foundDirective).toBe(Object);
   });
 
-  it('returns undefined when searching for not registered directive',
-      function() {
-    var foundDirective = testRegistry.findDirectiveForMro('SomeType');
+  it('returns undefined when searching for not registered directive', () => {
+    const foundDirective = testRegistry.findDirectiveForMro('SomeType');
     expect(foundDirective).toBeUndefined();
   });
 
-  it('returns more specific directive when multiple directives match',
-      function() {
-    var directive1 = Object();
-    var directive2 = Object();
+  it('returns more specific directive when multiple directives match', () => {
+    const directive1 = Object();
+    const directive2 = Object();
 
     testRegistry.registerDirective('SomeChildType', directive1);
     testRegistry.registerDirective('SomeParentType', directive2);
 
-    var foundDirective = testRegistry.findDirectiveForMro(
-       'SomeChildType:SomeParentType');
+    const foundDirective =
+        testRegistry.findDirectiveForMro('SomeChildType:SomeParentType');
     expect(foundDirective).toBe(directive1);
   });
-
 });
 
-});  // goog.scope
+
+exports = {};

@@ -1,13 +1,12 @@
 'use strict';
 
-goog.provide('grrUi.routing.rewriteUrlTest');
-goog.require('grrUi.routing.rewriteUrl');
+goog.module('grrUi.routing.rewriteUrlTest');
 
-var rewriteUrl = grrUi.routing.rewriteUrl;
+const rewriteUrl = goog.require('grrUi.routing.rewriteUrl');
 
-describe('rewriteUrl()', function() {
 
-  var mapping = {};
+describe('rewriteUrl()', () => {
+  const mapping = {};
 
   // Crons.
   mapping['main=ManageCron'] = '/crons/';
@@ -46,9 +45,12 @@ describe('rewriteUrl()', function() {
   mapping['main=HostTable'] = '/search?q=';
   mapping['main=HostTable&q=test'] = '/search?q=test';
 
-  it('should map legacy URLs to correct sane URLs', function() {
-    angular.forEach(mapping, function(targetUrl, legacyUrl) {
+  it('should map legacy URLs to correct sane URLs', () => {
+    angular.forEach(mapping, (targetUrl, legacyUrl) => {
       expect(rewriteUrl(legacyUrl)).toEqual(targetUrl);
     });
   });
 });
+
+
+exports = {};

@@ -1,24 +1,28 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statExtFlagsOsxDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.statExtFlagsOsxDirectiveTest');
+
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
 
 const HTML_TEMPLATE_URL =
     '/static/angular-components/semantic/stat-ext-flags-osx.html';
 
-describe('stat ext-flags for Mac directive', function() {
-  let $compile, $rootScope;
+describe('stat ext-flags for Mac directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module(HTML_TEMPLATE_URL));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
-  beforeEach(inject(function($injector) {
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  const render = function(value) {
+  const render = (value) => {
     $rootScope.value = value;
 
     const template = '<grr-stat-ext-flags-osx value="value" />';
@@ -28,42 +32,42 @@ describe('stat ext-flags for Mac directive', function() {
     return element;
   };
 
-  it('handles empty values', function() {
+  it('handles empty values', () => {
     const element = render(undefined);
     expect(element.text().trim()).toBe('none');
   });
 
-  it('handles incorrect input type', function() {
+  it('handles incorrect input type', () => {
     const element = render({value: 'foo'});
     expect(element.text().trim()).toBe('malformed');
   });
 
-  it('handles negative values', function() {
+  it('handles negative values', () => {
     const element = render({vaue: -42});
     expect(element.text().trim()).toBe('malformed');
   });
 
-  it('handles non-integer values', function() {
+  it('handles non-integer values', () => {
     const element = render({value: 3.14});
     expect(element.text().trim()).toBe('malformed');
   });
 
-  it('indicates regular files', function() {
+  it('indicates regular files', () => {
     const element = render({value: 0});
     expect(element.text().trim()).toBe('');
   });
 
-  it('indicates immutable files', function() {
+  it('indicates immutable files', () => {
     const element = render({value: 2});
     expect(element.text().trim()).toBe('uchg');
   });
 
-  it('indicates files with nodump flag', function() {
+  it('indicates files with nodump flag', () => {
     const element = render({value: 1});
     expect(element.text().trim()).toBe('nodump');
   });
 
-  it('indicates files with multiple flags', function() {
+  it('indicates files with multiple flags', () => {
     const element = render({value: 196616});
     const text = element.text().trim();
     expect(text).toContain('opaque');
@@ -71,8 +75,11 @@ describe('stat ext-flags for Mac directive', function() {
     expect(text).toContain('schg');
   });
 
-  it('ignores flags with unknown keywords', function() {
+  it('ignores flags with unknown keywords', () => {
     const element = render({value: 32});
     expect(element.text().trim()).toBe('');
   });
 });
+
+
+exports = {};

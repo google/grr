@@ -1,75 +1,80 @@
 'use strict';
 
-goog.provide('grrUi.semantic.jsonDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.jsonDirectiveTest');
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('json directive', function() {
-  var $compile, $rootScope;
+
+describe('json directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/semantic/json.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-json value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-json value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing when value is empty', function() {
-    var value = {
+  it('shows nothing when value is empty', () => {
+    const value = {
       type: 'ZippedJSONBytes',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('');
   });
 
-  it('shows error message if value is not correct json', function() {
-    var value = {
+  it('shows error message if value is not correct json', () => {
+    const value = {
       type: 'ZippedJSONBytes',
-      value: '--'
+      value: '--',
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toMatch(/jsonerror.*:--/);
   });
 
-  it('shows json string when it\'s a correct json string', function() {
-    var value = {
+  it('shows json string when it\'s a correct json string', () => {
+    const value = {
       type: 'ZippedJSONBytes',
-      value: '[{"foo": 42}]'
+      value: '[{"foo": 42}]',
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text()).toContain('"foo": 42');
   });
 
-  it('hides content behind a link if its longer than 1024 bytes', function() {
-    var value = {
+  it('hides content behind a link if its longer than 1024 bytes', () => {
+    const value = {
       type: 'ZippedJSONBytes',
-      value: Array(1025).join('-')
+      value: Array(1025).join('-'),
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text()).not.toMatch(/base64decodeerror.*:--/);
     expect(element.text()).toContain('Show JSON...');
 
-    browserTrigger($('a', element), 'click');
+    browserTriggerEvent($('a', element), 'click');
     expect(element.text()).toMatch(/jsonerror.*:--/);
     expect(element.text()).not.toContain('Show JSON...');
   });
 });
+
+
+exports = {};

@@ -1,6 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.artifact.module');
+goog.provide('grrUi.artifact.artifactModule');
 
 
 goog.require('grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective');
@@ -12,54 +12,54 @@ goog.require('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirecti
 goog.require('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
 goog.require('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
 
-goog.require('grrUi.core.module');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.semantic.module');
+goog.require('grrUi.core.coreModule');
+goog.require('grrUi.forms.formsModule');
+goog.require('grrUi.semantic.semanticModule');
 
 
 /**
  * Module with artifact-related directives.
  */
-grrUi.artifact.module = angular.module('grrUi.artifact',
-                                       [grrUi.core.module.name,
-                                        grrUi.forms.module.name,
-                                        grrUi.semantic.module.name,
+grrUi.artifact.artifactModule = angular.module('grrUi.artifact',
+                                       [grrUi.core.coreModule.name,
+                                        grrUi.forms.formsModule.name,
+                                        grrUi.semantic.semanticModule.name,
                                         'ui.bootstrap']);
 
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective
         .directive_name,
     grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective);
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.artifactNameDirective.ArtifactNameDirective.directive_name,
     grrUi.artifact.artifactNameDirective.ArtifactNameDirective);
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective
         .directive_name,
     grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective);
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective
         .directive_name,
     grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective);
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.deleteArtifactsDialogDirective
         .DeleteArtifactsDialogDirective.directive_name,
     grrUi.artifact.deleteArtifactsDialogDirective
         .DeleteArtifactsDialogDirective);
-grrUi.artifact.module.directive(
+grrUi.artifact.artifactModule.directive(
     grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective
         .directive_name,
     grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective);
 
-grrUi.core.module.service(
+grrUi.core.coreModule.service(
     grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService
         .service_name,
     grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService);
-grrUi.core.module.service(
+grrUi.core.coreModule.service(
     grrUi.artifact.artifactDialogService.ArtifactDialogService.service_name,
     grrUi.artifact.artifactDialogService.ArtifactDialogService);
 
-grrUi.artifact.module.run(
+grrUi.artifact.artifactModule.run(
     function(grrSemanticRepeatedFormDirectivesRegistryService) {
   var registry = grrSemanticRepeatedFormDirectivesRegistryService;
 
@@ -70,7 +70,7 @@ grrUi.artifact.module.run(
 });
 
 
-grrUi.artifact.module.run(function(grrSemanticValueDirectivesRegistryService) {
+grrUi.artifact.artifactModule.run(function(grrSemanticValueDirectivesRegistryService) {
   var registry = grrSemanticValueDirectivesRegistryService;
 
   registry.registerDirective(

@@ -1,42 +1,49 @@
 'use strict';
 
-goog.provide('grrUi.core.bindKeyDirectiveTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.bindKeyDirectiveTest');
 
-var browserTriggerKeyDown = grrUi.tests.browserTriggerKeyDown;
+const browserTriggerKeyDown = goog.require('grrUi.tests.browserTriggerKeyDown');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-describe('bind key directive', function() {
-  var $compile, $rootScope;
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+describe('bind key directive', () => {
+  let $compile;
+  let $rootScope;
 
-  beforeEach(inject(function($injector, _$interval_) {
+
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector, _$interval_) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var render = function(callback, key) {
+  const render = (callback, key) => {
     $rootScope.callback = callback;
 
-    var template = '<input type="text" grr-bind-key="callback()" key="' + key + '" />';
-    var element = $compile(template)($rootScope);
+    const template =
+        '<input type="text" grr-bind-key="callback()" key="' + key + '" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('calls the specified function on keydown', function(done) {
-    var element = render(done, 13); // ENTER
+  it('calls the specified function on keydown', (done) => {
+    const element = render(done, 13);     // ENTER
     browserTriggerKeyDown(element, 13);
   });
 
-  it('calls the specified function on keydown', function() {
-    var callback = function(){
+  it('calls the specified function only on specified keydown', () => {
+    const callback = (() => {
       fail('Callback should not be called');
-    };
-    var element = render(callback, 13); // ENTER
-    browserTriggerKeyDown(element, 15); // Raise some other key.
+    });
+    const element = render(callback, 13); // ENTER
+    browserTriggerKeyDown(element, 15);   // Raise some other key.
   });
 });
+
+
+exports = {};

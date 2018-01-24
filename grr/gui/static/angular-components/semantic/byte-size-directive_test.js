@@ -1,91 +1,98 @@
 'use strict';
 
-goog.provide('grrUi.semantic.byteSizeDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.byteSizeDirectiveTest');
 
-describe('grrByteSize directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('grrByteSize directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/semantic/byte-size.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-byte-size value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-byte-size value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows "-" when value is empty', function() {
-    var value = {
+  it('shows "-" when value is empty', () => {
+    const value = {
       type: 'ByteSize',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('shows 0 if value is 0', function() {
-    var value = {
+  it('shows 0 if value is 0', () => {
+    const value = {
       type: 'ByteSize',
-      value: 0
+      value: 0,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('0');
   });
 
-  it('shows value in bytes if it is less than 1024', function() {
-    var value = {
+  it('shows value in bytes if it is less than 1024', () => {
+    const value = {
       type: 'ByteSize',
       value: 42,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('42B');
   });
 
-  it('shows value in kibibytes if it is less than 1024**2', function() {
-    var value = {
+  it('shows value in kibibytes if it is less than 1024**2', () => {
+    const value = {
       type: 'ByteSize',
-      value: 1124
+      value: 1124,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('1.1KiB');
   });
 
-  it('shows value in mebibytes if it is less than 1024**3', function() {
-    var value = {
+  it('shows value in mebibytes if it is less than 1024**3', () => {
+    const value = {
       type: 'ByteSize',
-      value: 44040192
+      value: 44040192,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('42MiB');
   });
 
-  it('shows value in gibibytes if it is more than 1024**3', function() {
-    var value = {
+  it('shows value in gibibytes if it is more than 1024**3', () => {
+    const value = {
       type: 'ByteSize',
-      value: 1610612736
+      value: 1610612736,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('1.5GiB');
   });
 
-  it('shows value in bytes in the tooltip', function() {
-    var value = {
+  it('shows value in bytes in the tooltip', () => {
+    const value = {
       type: 'ByteSize',
-      value: 1610612736
+      value: 1610612736,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.find('span').attr('title')).toBe('1610612736 bytes');
   });
 });
+
+
+exports = {};

@@ -1,47 +1,54 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowStatusIconDirectiveTest');
-goog.require('grrUi.flow.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.flow.flowStatusIconDirectiveTest');
 
-describe('grr-flow-status-icon directive', function() {
-  var $compile, $rootScope;
+const flowModule = goog.require('grrUi.flow.flowModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('grr-flow-status-icon directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/flow/flow-status-icon.html'));
-  beforeEach(module(grrUi.flow.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(flowModule.name));
+  beforeEach(module(testsModule.name));
 
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
 
-  var renderTestTemplate = function(state) {
+  const renderTestTemplate = (state) => {
     $rootScope.flow = {
       type: 'ApiFlow',
       value: {
         state: {
           type: 'EnumNamedValue',
-          value: state
-        }
-      }
+          value: state,
+        },
+      },
     };
 
-    var template = '<grr-flow-status-icon flow="flow" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-flow-status-icon flow="flow" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows an image for 4 possible flow states', function() {
-    var states = ['TERMINATED', 'RUNNING', 'ERROR', 'CLIENT_CRASHED'];
+  it('shows an image for 4 possible flow states', () => {
+    const states = ['TERMINATED', 'RUNNING', 'ERROR', 'CLIENT_CRASHED'];
 
-    angular.forEach(states, function(state) {
-      var element = renderTestTemplate(state);
+    angular.forEach(states, (state) => {
+      const element = renderTestTemplate(state);
       expect($('img', element).length).toBe(1);
     });
   });
 });
+
+
+exports = {};

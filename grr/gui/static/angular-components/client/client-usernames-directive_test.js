@@ -1,37 +1,43 @@
 'use strict';
 
-goog.provide('grrUi.client.clientUsernamesDirectiveTest');
-goog.require('grrUi.client.module');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.client.clientUsernamesDirectiveTest');
 
-describe('client usernames', function() {
-  var $q, $compile, $rootScope;
-  beforeEach(module(grrUi.client.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+const clientModule = goog.require('grrUi.client.clientModule');
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('client usernames', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+
+  beforeEach(module(clientModule.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
   grrUi.tests.stubDirective('grrSemanticValue');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var render = function(value) {
+  const render = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-client-usernames value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-client-usernames value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('List client usernames with grr-semantic-value', function() {
-    var usernames = {value: 'test_1 test_2 test_3'};
-    var element = render(usernames);
-    var directive = element.find('grr-semantic-value');
+  it('List client usernames with grr-semantic-value', () => {
+    const usernames = {value: 'test_1 test_2 test_3'};
+    const element = render(usernames);
+    const directive = element.find('grr-semantic-value');
     expect(directive.scope().$eval('usernames').length).toEqual(3);
     expect(directive.scope().$eval('usernames')[0].value).toEqual('test_1');
     expect(directive.scope().$eval('usernames')[1].value).toEqual('test_2');
@@ -41,5 +47,7 @@ describe('client usernames', function() {
     expect(directive.scope().$eval('usernames')[1].type).toEqual('RDFString');
     expect(directive.scope().$eval('usernames')[2].type).toEqual('RDFString');
   });
-
 });
+
+
+exports = {};

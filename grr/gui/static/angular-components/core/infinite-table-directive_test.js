@@ -1,37 +1,36 @@
 'use strict';
 
-goog.provide('grrUi.core.infiniteTableDirectiveTest');
-goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
-goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
-goog.require('grrUi.core.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.infiniteTableDirectiveTest');
 
-goog.scope(function() {
+const InfiniteTableController = goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
+const MemoryItemsProviderController = goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-var MemoryItemsProviderController =
-    grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController;
-var browserTrigger = grrUi.tests.browserTrigger;
 
-describe('infinite table', function() {
-  var $compile, $rootScope, $interval, $q;
+describe('infinite table', () => {
+  let $compile;
+  let $interval;
+  let $q;
+  let $rootScope;
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $interval = $injector.get('$interval');
     $q = $injector.get('$q');
   }));
 
-  afterEach(function() {
+  afterEach(() => {
     // We have to clean document's body to remove tables we add there.
     $(document.body).html('');
   });
 
-  var render = function(items, noDomAppend, filterValue, withAutoRefresh) {
+  const render = (items, noDomAppend, filterValue, withAutoRefresh) => {
     $rootScope.testItems = items;
     if (filterValue) {
       $rootScope.filterValue = filterValue;
@@ -44,8 +43,7 @@ describe('infinite table', function() {
     // grr-infinite-table is working correctly. Mocking out
     // items providers would require writing code that's almost
     // equal to grr-memory-items-provider code.
-    var template =
-        '<div>' +
+    const template = '<div>' +
         '<table>' +
         '<tbody>' +
         '<tr grr-infinite-table grr-memory-items-provider ' +
@@ -59,7 +57,7 @@ describe('infinite table', function() {
         '</tbody' +
         '</table>' +
         '</div>';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     if (!noDomAppend) {
@@ -70,24 +68,25 @@ describe('infinite table', function() {
     return element;
   };
 
-  it('throws if items provider is not specified', function() {
-    var template = '<table><tbody><tr grr-infinite-table />' +
+  it('throws if items provider is not specified', () => {
+    const template = '<table><tbody><tr grr-infinite-table />' +
         '</tbody></table>';
-    var compiledTemplate = $compile(template);
-    expect(function() { compiledTemplate($rootScope); }).toThrow(
-        Error('Data provider not specified.'));
+    const compiledTemplate = $compile(template);
+    expect(() => {
+      compiledTemplate($rootScope);
+    }).toThrow(Error('Data provider not specified.'));
   });
 
-  it('shows empty table when there are no elements', function() {
-    var element = render([]);
+  it('shows empty table when there are no elements', () => {
+    const element = render([]);
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(0);
   });
 
-  it('shows 2 rows for 2 items', function() {
-    var element = render([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}]);
+  it('shows 2 rows for 2 items', () => {
+    const element = render(
+        [{timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}]);
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(2);
@@ -102,9 +101,10 @@ describe('infinite table', function() {
         toBe(1);
   });
 
-  it('does nothing when "Loading..." row is not seen', function() {
-    var element = render([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}], true);
+  it('does nothing when "Loading..." row is not seen', () => {
+    const element = render(
+        [{timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}],
+        true);
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(1);
@@ -129,9 +129,10 @@ describe('infinite table', function() {
         toBe(1);
   });
 
-  it('applies the filter when a filter value is set', function() {
-    var element = render([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}], false, 'foo');
+  it('applies the filter when a filter value is set', () => {
+    const element = render(
+        [{timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}],
+        false, 'foo');
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(1);
@@ -142,21 +143,22 @@ describe('infinite table', function() {
         toBe(1);
   });
 
-  it('shows an empty table when the filter removes all items', function() {
-    var element = render([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}], false, 'xxx');
+  it('shows an empty table when the filter removes all items', () => {
+    const element = render(
+        [{timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}],
+        false, 'xxx');
 
     expect($('table', element).length).toBe(1);
     expect($('table tr', element).length).toBe(0);
   });
 
-  it('cancels an in-flight request when trigger-update is called', function() {
-    var deferred1 = $q.defer();
-    var deferred2 = $q.defer();
+  it('cancels an in-flight request when trigger-update is called', () => {
+    const deferred1 = $q.defer();
+    const deferred2 = $q.defer();
     spyOn(MemoryItemsProviderController.prototype, 'fetchItems').and
         .returnValues(deferred1.promise, deferred2.promise);
 
-    var element = render([]);
+    const element = render([]);
     // Only the 'Loading...' row should be displayed.
     expect($('table tr', element).length).toBe(1);
 
@@ -170,8 +172,8 @@ describe('infinite table', function() {
       offset: 0,
       items: [
         {timestamp: 44, message: 'foo2'},
-        {timestamp: 45, message: 'bar2'}
-      ]
+        {timestamp: 45, message: 'bar2'},
+      ],
     });
     $rootScope.$apply();
 
@@ -179,8 +181,8 @@ describe('infinite table', function() {
       offset: 0,
       items: [
         {timestamp: 42, message: 'foo1'},
-        {timestamp: 43, message: 'bar1'}
-      ]
+        {timestamp: 43, message: 'bar1'},
+      ],
     });
     $rootScope.$apply();
 
@@ -192,27 +194,24 @@ describe('infinite table', function() {
     expect($('td:contains("bar1")', element).length).toBe(0);
   });
 
-  describe('with auto refresh turned on', function() {
-    var TABLE_KEY =
-        grrUi.core.infiniteTableDirective.InfiniteTableController
-        .UNIQUE_KEY_NAME;
-    var ROW_HASH =
-        grrUi.core.infiniteTableDirective.InfiniteTableController
-        .ROW_HASH_NAME;
+  describe('with auto refresh turned on', () => {
+    const TABLE_KEY = InfiniteTableController.UNIQUE_KEY_NAME;
+    const ROW_HASH = InfiniteTableController.ROW_HASH_NAME;
 
-    var transformItems = function(items) {
-      for (var i = 0; i < items.length; ++i) {
-        var item = items[i];
+    const transformItems = ((items) => {
+      for (let i = 0; i < items.length; ++i) {
+        const item = items[i];
         item[TABLE_KEY] = item['message'];
         item[ROW_HASH] = item['timestamp'];
       }
       return items;
-    };
+    });
 
-    it('adds new element to the beginning of the list', function() {
-      var element = render(
-          transformItems([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}]),
+    it('adds new element to the beginning of the list', () => {
+      const element = render(
+          transformItems([
+            {timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}
+          ]),
           undefined, undefined, true);
 
       expect($('table', element).length).toBe(1);
@@ -249,8 +248,8 @@ describe('infinite table', function() {
           toBe(1);
     });
 
-    it('adds multiple new elements in the right order', function() {
-      var element = render([], undefined, undefined, true);
+    it('adds multiple new elements in the right order', () => {
+      const element = render([], undefined, undefined, true);
 
       expect($('table tr', element).length).toBe(0);
 
@@ -269,10 +268,11 @@ describe('infinite table', function() {
           toBe(1);
     });
 
-    it('does nothing with the row if row hash has not changed', function() {
-      var element = render(
-          transformItems([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}]),
+    it('does nothing with the row if row hash has not changed', () => {
+      const element = render(
+          transformItems([
+            {timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}
+          ]),
           undefined, undefined, true);
 
       expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
@@ -291,10 +291,11 @@ describe('infinite table', function() {
           toBe(1);
     });
 
-    it('updates the row if row hash has changed', function() {
-      var element = render(
-          transformItems([{timestamp: 42, message: 'foo'},
-                          {timestamp: 43, message: 'bar'}]),
+    it('updates the row if row hash has changed', () => {
+      const element = render(
+          transformItems([
+            {timestamp: 42, message: 'foo'}, {timestamp: 43, message: 'bar'}
+          ]),
           undefined, undefined, true);
 
       expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
@@ -313,8 +314,8 @@ describe('infinite table', function() {
       expect($('table tr:eq(0) td:eq(0):contains(88)', element).length).
           toBe(1);
     });
-
   });
 });
 
-});
+
+exports = {};

@@ -1,56 +1,62 @@
 'use strict';
 
-goog.provide('grrUi.semantic.hashDigestDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.hashDigestDirectiveTest');
 
-describe('hash digest directive', function() {
-  var $compile, $rootScope;
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('hash digest directive', () => {
+  let $compile;
+  let $rootScope;
+
+
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-hash-digest value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-hash-digest value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing when value is empty', function() {
-    var value = {
+  it('shows nothing when value is empty', () => {
+    const value = {
       type: 'HashDigest',
-      value: null
+      value: null,
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toBe('');
   });
 
-  it('shows error message if value is incorrectly base64-encoded', function() {
-    var value = {
+  it('shows error message if value is incorrectly base64-encoded', () => {
+    const value = {
       type: 'HashDigest',
-      value: '--'
+      value: '--',
     };
 
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     expect(element.text().trim()).toMatch(/base64decodeerror.*:--/);
   });
 
-  it('converts base64-encoded value into a hex-encoded string', function() {
-    var base64EncodedHash = {
+  it('converts base64-encoded value into a hex-encoded string', () => {
+    const base64EncodedHash = {
       type: 'HashDigest',
-      value: 'dGVzdA=='
+      value: 'dGVzdA==',
     };
-    var element = renderTestTemplate(base64EncodedHash);
+    const element = renderTestTemplate(base64EncodedHash);
     expect(element.text()).toContain('74657374');
   });
-
 });
+
+
+exports = {};

@@ -1,74 +1,78 @@
 'use strict';
 
-goog.provide('grrUi.core.loadingIndicatorDirectiveTest');
-goog.require('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
-goog.require('grrUi.core.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.loadingIndicatorDirectiveTest');
 
-describe('loading indicator directive', function() {
+const LoadingIndicatorDirectiveLoadingIndicatorDirective = goog.require('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  var LoadingIndicatorDirective =
-      grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective;
 
-  var LOADING_STARTED_EVENT_NAME =
+describe('loading indicator directive', () => {
+  const LoadingIndicatorDirective =
+      LoadingIndicatorDirectiveLoadingIndicatorDirective;
+
+  const LOADING_STARTED_EVENT_NAME =
       LoadingIndicatorDirective.loading_started_event_name;
 
-  var LOADING_FINISHED_EVENT_NAME =
+  const LOADING_FINISHED_EVENT_NAME =
       LoadingIndicatorDirective.loading_finished_event_name;
 
-  var $compile, $rootScope, $scope;
+  let $compile;
+  let $rootScope;
+  let $scope;
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $scope = $rootScope.$new();
   }));
 
-  var render = function() {
-    var template = '<grr-loading-indicator />';
-    var element = $compile(template)($scope);
+  const render = () => {
+    const template = '<grr-loading-indicator />';
+    const element = $compile(template)($scope);
     $scope.$apply();
     return element;
   };
 
-  var isVisible = function(element){
-    return !element.find('.ajax_spinner').hasClass('ng-hide');
-  };
+  const isVisible =
+      ((element) => !element.find('.ajax_spinner').hasClass('ng-hide'));
 
-  var broadcast = function(event, key){
-    $rootScope.$apply(function() {
+  const broadcast = (event, key) => {
+    $rootScope.$apply(() => {
       $rootScope.$broadcast(event, key);
     });
   };
 
-  it('should be hidden by default', function() {
-    var element = render();
+  it('should be hidden by default', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
   });
 
-  it('should turn visible once a loading started event is fired', function() {
-    var element = render();
+  it('should turn visible once a loading started event is fired', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
     broadcast(LOADING_STARTED_EVENT_NAME, 'some key');
     expect(isVisible(element)).toBe(true);
   });
 
-  it('should turn invisible once a corresponding loading finished event is fired', function() {
-    var element = render();
-    expect(isVisible(element)).toBe(false);
+  it('should turn invisible once a corresponding loading finished event is fired',
+     () => {
+       const element = render();
+       expect(isVisible(element)).toBe(false);
 
-    broadcast(LOADING_STARTED_EVENT_NAME, 'some key');
-    expect(isVisible(element)).toBe(true);
+       broadcast(LOADING_STARTED_EVENT_NAME, 'some key');
+       expect(isVisible(element)).toBe(true);
 
-    broadcast(LOADING_FINISHED_EVENT_NAME, 'some key');
-    expect(isVisible(element)).toBe(false);
-  });
+       broadcast(LOADING_FINISHED_EVENT_NAME, 'some key');
+       expect(isVisible(element)).toBe(false);
+     });
 
-  it('should ignore unrelated loading finished events', function() {
-    var element = render();
+  it('should ignore unrelated loading finished events', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
 
     broadcast(LOADING_STARTED_EVENT_NAME, 'some key');
@@ -79,14 +83,14 @@ describe('loading indicator directive', function() {
 
     // TODO(user): once all requests go through angular, we can throw error on
     // unrelated events. This code can be used to test this behavior:
-//    expect(function(){
-//      broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
-//    }).toThrowError("Key not found: some other key");
-//    expect(isVisible(element)).toBe(true);
+    //    expect(function(){
+    //      broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
+    //    }).toThrowError("Key not found: some other key");
+    //    expect(isVisible(element)).toBe(true);
   });
 
-  it('should turn invisible once all loading finished events occured', function() {
-    var element = render();
+  it('should turn invisible once all loading finished events occurred', () => {
+    const element = render();
     expect(isVisible(element)).toBe(false);
 
     broadcast(LOADING_STARTED_EVENT_NAME, 'some key');
@@ -102,7 +106,8 @@ describe('loading indicator directive', function() {
     expect(isVisible(element)).toBe(true);
 
     broadcast(LOADING_FINISHED_EVENT_NAME, 'some other key');
-    expect(isVisible(element)).toBe(false); // all finished events occured
+    expect(isVisible(element)).toBe(false); // all finished events occurred
   });
-
 });
+
+exports = {};

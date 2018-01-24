@@ -1,17 +1,24 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowDescriptorsTreeDirectiveTest');
-goog.require('grrUi.flow.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.flow.flowDescriptorsTreeDirectiveTest');
 
-describe('flow descriptors tree directive', function() {
-  var $compile, $rootScope, $q, grrApiService;
-  var emptySettingsDeferred;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const flowModule = goog.require('grrUi.flow.flowModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.flow.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('flow descriptors tree directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrApiService;
+
+  let emptySettingsDeferred;
+
+  beforeEach(module(flowModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
@@ -23,24 +30,24 @@ describe('flow descriptors tree directive', function() {
       data: {
         value: {
           settings: {
-            value: {}
-          }
-        }
-      }
+            value: {},
+          },
+        },
+      },
     });
   }));
 
-  afterEach(function() {
+  afterEach(() => {
     // We have to clean document's body to remove tables we add there.
     $(document.body).html('');
   });
 
-  var renderTestTemplate = function() {
-    var template = '<grr-flow-descriptors-tree ' +
+  const renderTestTemplate = () => {
+    const template = '<grr-flow-descriptors-tree ' +
         'selected-descriptor="selectedDescriptor.value" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.selectedDescriptor = {
-      value: undefined
+      value: undefined,
     };
     $rootScope.$apply();
 
@@ -56,8 +63,8 @@ describe('flow descriptors tree directive', function() {
     return element;
   };
 
-  it('fetches descriptors from the server', function() {
-    var deferred = $q.defer();
+  it('fetches descriptors from the server', () => {
+    const deferred = $q.defer();
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     renderTestTemplate();
@@ -65,8 +72,8 @@ describe('flow descriptors tree directive', function() {
     expect(grrApiService.get).toHaveBeenCalledWith('/flows/descriptors');
   });
 
-  it('fetches user settings from the server', function() {
-    var deferred = $q.defer();
+  it('fetches user settings from the server', () => {
+    const deferred = $q.defer();
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     renderTestTemplate();
@@ -74,9 +81,9 @@ describe('flow descriptors tree directive', function() {
     expect(grrApiService.get).toHaveBeenCalledWith('/users/me');
   });
 
-  it('creates node per category', function(done) {
-    var deferred = $q.defer();
-    spyOn(grrApiService, 'get').and.callFake(function(url) {
+  it('creates node per category', (done) => {
+    const deferred = $q.defer();
+    spyOn(grrApiService, 'get').and.callFake((url) => {
       if (url == '/users/me') {
         return emptySettingsDeferred.promise;
       } else {
@@ -92,49 +99,49 @@ describe('flow descriptors tree directive', function() {
             value: {
               category: {
                 type: 'RDFString',
-                value: 'Category foo'
+                value: 'Category foo',
               },
               name: {
                 type: 'RDFString',
-                value: 'foo'
+                value: 'foo',
               },
               friendly_name: {
                 type: 'RDFString',
-                value: 'friendly foo'
+                value: 'friendly foo',
               },
               behaviours: [{
                 type: 'RDFString',
-                value: 'BASIC'
-              }]
-            }
+                value: 'BASIC',
+              }],
+            },
           },
           {
             type: 'ApiFlowDescriptor',
             value: {
               category: {
                 type: 'RDFString',
-                value: 'Category bar'
+                value: 'Category bar',
               },
               name: {
                 type: 'RDFString',
-                value: 'bar'
+                value: 'bar',
               },
               friendly_name: {
                 type: 'RDFString',
-                value: 'friendly bar'
+                value: 'friendly bar',
               },
               behaviours: [{
                 type: 'RDFString',
-                value: 'BASIC'
-              }]
-            }
-          }
-        ]
-      }
+                value: 'BASIC',
+              }],
+            },
+          },
+        ],
+      },
     });
 
-    var element = renderTestTemplate();
-    element.bind('DOMNodeInserted', function(e) {
+    const element = renderTestTemplate();
+    element.bind('DOMNodeInserted', (e) => {
       if (element.text().indexOf('Category foo') != -1 &&
           element.text().indexOf('Category bar') != -1) {
         done();
@@ -142,9 +149,9 @@ describe('flow descriptors tree directive', function() {
     });
   });
 
-  it('uses friendly name if available', function(done) {
-    var deferred = $q.defer();
-    spyOn(grrApiService, 'get').and.callFake(function(url) {
+  it('uses friendly name if available', (done) => {
+    const deferred = $q.defer();
+    spyOn(grrApiService, 'get').and.callFake((url) => {
       if (url == '/users/me') {
         return emptySettingsDeferred.promise;
       } else {
@@ -160,51 +167,51 @@ describe('flow descriptors tree directive', function() {
             value: {
               category: {
                 type: 'RDFString',
-                value: 'Category foo'
+                value: 'Category foo',
               },
               name: {
                 type: 'RDFString',
-                value: 'foo'
+                value: 'foo',
               },
               friendly_name: {
                 type: 'RDFString',
-                value: 'friendly foo'
+                value: 'friendly foo',
               },
               behaviours: [{
                 type: 'RDFString',
-                value: 'BASIC'
-              }]
-            }
-          }
+                value: 'BASIC',
+              }],
+            },
+          },
         ],
-      }
+      },
     });
 
-    var element = renderTestTemplate();
-    element.bind('DOMNodeInserted', function(e) {
+    const element = renderTestTemplate();
+    element.bind('DOMNodeInserted', (e) => {
       if (element.text().indexOf('friendly foo') != -1) {
         done();
       }
     });
   });
 
-  it('hides flows without specified behavior', function(done) {
-    var advancedSettingsDeferred = $q.defer();
+  it('hides flows without specified behavior', (done) => {
+    const advancedSettingsDeferred = $q.defer();
     advancedSettingsDeferred.resolve({
       data: {
         value: {
           settings: {
             value: {
               mode: {
-                value: 'ADVANCED'
-              }
-            }
-          }
-        }
-      }
+                value: 'ADVANCED',
+              },
+            },
+          },
+        },
+      },
     });
 
-    var deferred = $q.defer();
+    const deferred = $q.defer();
     deferred.resolve({
       data: {
         items: [
@@ -213,48 +220,48 @@ describe('flow descriptors tree directive', function() {
             value: {
               category: {
                 type: 'RDFString',
-                value: 'Category foo'
+                value: 'Category foo',
               },
               name: {
                 type: 'RDFString',
-                value: 'foo'
+                value: 'foo',
               },
               friendly_name: {
                 type: 'RDFString',
-                value: 'friendly foo'
+                value: 'friendly foo',
               },
               behaviours: [{
                 type: 'RDFString',
-                value: 'BASIC'
-              }]
-            }
+                value: 'BASIC',
+              }],
+            },
           },
           {
             type: 'ApiFlowDescriptor',
             value: {
               category: {
                 type: 'RDFString',
-                value: 'Category bar'
+                value: 'Category bar',
               },
               name: {
                 type: 'RDFString',
-                value: 'bar'
+                value: 'bar',
               },
               friendly_name: {
                 type: 'RDFString',
-                value: 'friendly bar'
+                value: 'friendly bar',
               },
               behaviours: [{
                 type: 'RDFString',
-                value: 'ADVANCED'
-              }]
-            }
-          }
+                value: 'ADVANCED',
+              }],
+            },
+          },
         ],
-      }
+      },
     });
 
-    spyOn(grrApiService, 'get').and.callFake(function(url) {
+    spyOn(grrApiService, 'get').and.callFake((url) => {
       if (url == '/users/me') {
         return advancedSettingsDeferred.promise;
       } else {
@@ -262,8 +269,8 @@ describe('flow descriptors tree directive', function() {
       }
     });
 
-    var element = renderTestTemplate();
-    element.bind('DOMNodeInserted', function(e) {
+    const element = renderTestTemplate();
+    element.bind('DOMNodeInserted', (e) => {
       if (element.text().indexOf('friendly bar') != -1 &&
           element.text().indexOf('friendly foo') == -1) {
         done();
@@ -271,12 +278,12 @@ describe('flow descriptors tree directive', function() {
     });
   });
 
-  describe('when clicked', function() {
-    var element;
+  describe('when clicked', () => {
+    let element;
 
-    beforeEach(function(done) {
-      var deferred = $q.defer();
-      spyOn(grrApiService, 'get').and.callFake(function(url) {
+    beforeEach((done) => {
+      const deferred = $q.defer();
+      spyOn(grrApiService, 'get').and.callFake((url) => {
         if (url == '/users/me') {
           return emptySettingsDeferred.promise;
         } else {
@@ -292,39 +299,39 @@ describe('flow descriptors tree directive', function() {
               value: {
                 category: {
                   type: 'RDFString',
-                  value: 'Category 1'
+                  value: 'Category 1',
                 },
                 name: {
                   type: 'RDFString',
-                  value: 'foo'
+                  value: 'foo',
                 },
                 friendly_name: {
                   type: 'RDFString',
-                  value: 'friendly foo'
+                  value: 'friendly foo',
                 },
                 behaviours: [{
                   type: 'RDFString',
-                value: 'BASIC'
-                }]
-              }
-            }
+                  value: 'BASIC',
+                }],
+              },
+            },
           ],
-        }
+        },
       });
 
       element = renderTestTemplate();
-      element.bind('DOMNodeInserted', function(e) {
+      element.bind('DOMNodeInserted', (e) => {
         if (element.text().indexOf('friendly foo') != -1) {
           done();
         }
       });
     });
 
-    it('updates selectedDescriptor binding', function() {
+    it('updates selectedDescriptor binding', () => {
       expect($rootScope.selectedDescriptor.value).toBeUndefined();
 
-      browserTrigger(element.find('a:contains("Category 1")'), 'click');
-      browserTrigger(element.find('a:contains("friendly foo")'), 'click');
+      browserTriggerEvent(element.find('a:contains("Category 1")'), 'click');
+      browserTriggerEvent(element.find('a:contains("friendly foo")'), 'click');
       $rootScope.$apply();
 
       expect($rootScope.selectedDescriptor.value).toEqual({
@@ -332,22 +339,25 @@ describe('flow descriptors tree directive', function() {
         value: {
           category: {
             type: 'RDFString',
-            value: 'Category 1'
+            value: 'Category 1',
           },
           name: {
             type: 'RDFString',
-            value: 'foo'
+            value: 'foo',
           },
           friendly_name: {
             type: 'RDFString',
-            value: 'friendly foo'
+            value: 'friendly foo',
           },
           behaviours: [{
             type: 'RDFString',
-            value: 'BASIC'
-          }]
-        }
+            value: 'BASIC',
+          }],
+        },
       });
     });
   });
 });
+
+
+exports = {};

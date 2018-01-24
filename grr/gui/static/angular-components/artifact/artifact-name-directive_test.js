@@ -1,72 +1,78 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactNameDirectiveTest');
-goog.require('grrUi.artifact.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.artifact.artifactNameDirectiveTest');
 
-describe('grr-artifact-name directive', function() {
-  var $compile, $rootScope, $q, grrArtifactDescriptorsService;
+const artifactModule = goog.require('grrUi.artifact.artifactModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('grr-artifact-name directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let grrArtifactDescriptorsService;
+
 
   beforeEach(module('/static/angular-components/artifact/artifact-name.html'));
-  beforeEach(module(grrUi.artifact.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(artifactModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     grrArtifactDescriptorsService = $injector.get('grrArtifactDescriptorsService');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-artifact-name value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-artifact-name value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  var systemDescriptor = {
+  const systemDescriptor = {
     type: 'ArtifactDescriptor',
     value: {
       artifact: {
         value: {
           name: {
-            value: 'foo'
-          }
-        }
+            value: 'foo',
+          },
+        },
       },
       is_custom: {
-        value: false
-      }
-    }
+        value: false,
+      },
+    },
   };
 
-  var userDescriptor = {
+  const userDescriptor = {
     type: 'ArtifactDescriptor',
     value: {
       artifact: {
         value: {
           name: {
-            value: 'foo'
-          }
-        }
+            value: 'foo',
+          },
+        },
       },
       is_custom: {
-        value: true
-      }
-    }
+        value: true,
+      },
+    },
   };
 
-  it('shows artifact name as a string before it\'s resolved', function() {
-    var deferred = $q.defer();
+  it('shows artifact name as a string before it\'s resolved', () => {
+    const deferred = $q.defer();
     spyOn(grrArtifactDescriptorsService, 'getDescriptorByName')
         .and.returnValue(deferred.promise);
 
-    var element = renderTestTemplate({
-      value: 'foo'
+    const element = renderTestTemplate({
+      value: 'foo',
     });
     expect($('span.system', element).length).toBe(0);
     expect($('span.user', element).length).toBe(0);
@@ -74,14 +80,14 @@ describe('grr-artifact-name directive', function() {
     expect(element.text()).toContain('foo');
   });
 
-  it('marks system artifacts with .system class and no icon', function() {
-    var deferred = $q.defer();
+  it('marks system artifacts with .system class and no icon', () => {
+    const deferred = $q.defer();
     deferred.resolve(systemDescriptor);
     spyOn(grrArtifactDescriptorsService, 'getDescriptorByName')
         .and.returnValue(deferred.promise);
 
-    var element = renderTestTemplate({
-      value: 'foo'
+    const element = renderTestTemplate({
+      value: 'foo',
     });
     expect($('span.system', element).length).toBe(1);
     expect($('span.user', element).length).toBe(0);
@@ -89,28 +95,28 @@ describe('grr-artifact-name directive', function() {
     expect(element.text()).toContain('foo');
   });
 
-  it('marks user artifacts with .user class and an icon', function() {
-    var deferred = $q.defer();
+  it('marks user artifacts with .user class and an icon', () => {
+    const deferred = $q.defer();
     deferred.resolve(userDescriptor);
     spyOn(grrArtifactDescriptorsService, 'getDescriptorByName')
         .and.returnValue(deferred.promise);
 
-    var element = renderTestTemplate({
-      value: 'foo'
+    const element = renderTestTemplate({
+      value: 'foo',
     });
     expect($('span.system', element).length).toBe(0);
     expect($('span.user', element).length).toBe(1);
     expect(element.text()).toContain('foo');
   });
 
-  it('does not mark unknown artifacts', function() {
-    var deferred = $q.defer();
+  it('does not mark unknown artifacts', () => {
+    const deferred = $q.defer();
     deferred.resolve(undefined);
     spyOn(grrArtifactDescriptorsService, 'getDescriptorByName')
         .and.returnValue(deferred.promise);
 
-    var element = renderTestTemplate({
-      value: 'foo'
+    const element = renderTestTemplate({
+      value: 'foo',
     });
     expect($('span.system', element).length).toBe(0);
     expect($('span.user', element).length).toBe(0);
@@ -118,3 +124,6 @@ describe('grr-artifact-name directive', function() {
     expect(element.text()).toContain('foo');
   });
 });
+
+
+exports = {};

@@ -1,81 +1,90 @@
 'use strict';
 
-goog.provide('grrUi.semantic.timestampDirectiveTest');
-goog.require('grrUi.semantic.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.semantic.timestampDirectiveTest');
 
-describe('timestamp directive', function() {
-  var MICRO_IN_MILLI = 1000, MILLI_IN_UNIT = 1000;
-  var SECONDS = MICRO_IN_MILLI * MILLI_IN_UNIT;
-  var MINUTES = 60 * SECONDS;
-  var $compile, $rootScope;
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const semanticModule = goog.require('grrUi.semantic.semanticModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('timestamp directive', () => {
+  const MICRO_IN_MILLI = 1000;
+  const MILLI_IN_UNIT = 1000;
+
+  const SECONDS = MICRO_IN_MILLI * MILLI_IN_UNIT;
+  const MINUTES = 60 * SECONDS;
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/semantic/timestamp.html'));
-  beforeEach(module(grrUi.semantic.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(semanticModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-timestamp value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-timestamp value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('does not show anything when value is undefined', function() {
-    var element = renderTestTemplate(undefined);
+  it('does not show anything when value is undefined', () => {
+    const element = renderTestTemplate(undefined);
     expect(element.text().trim()).toBe('');
   });
 
-  it('does not show anything when value is null', function() {
-    var element = renderTestTemplate(null);
+  it('does not show anything when value is null', () => {
+    const element = renderTestTemplate(null);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('shows "-" when value is 0', function() {
-    var element = renderTestTemplate(0);
+  it('shows "-" when value is 0', () => {
+    const element = renderTestTemplate(0);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('shows integer value', function() {
-    var element = renderTestTemplate(42 * SECONDS);
+  it('shows integer value', () => {
+    const element = renderTestTemplate(42 * SECONDS);
     expect(element.text()).toContain('1970-01-01 00:00:42');
   });
 
-  it('shows value with type information', function() {
-    var timestamp = {
-      'mro': ['RDFDatetime', 'RDFInteger', 'RDFString', 'RDFBytes', 'RDFValue',
-              'object'],
+  it('shows value with type information', () => {
+    const timestamp = {
+      'mro': [
+        'RDFDatetime', 'RDFInteger', 'RDFString', 'RDFBytes', 'RDFValue',
+        'object'
+      ],
       'value': 42 * SECONDS,
       'age': 0,
-      'type': 'RDFDatetime'
+      'type': 'RDFDatetime',
     };
-    var element = renderTestTemplate(timestamp);
+    const element = renderTestTemplate(timestamp);
     expect(element.text()).toContain('1970-01-01 00:00:42');
   });
 
-  it('includes a human-readable diff when hovered', function() {
+  it('includes a human-readable diff when hovered', () => {
     function assertTimestampRendersDiff(timestamp, diff) {
-      var element = renderTestTemplate(timestamp);
-      var span = $(element).find('> span');
+      const element = renderTestTemplate(timestamp);
+      const span = $(element).find('> span');
 
       // Simulate a mouseenter event on the span.
       // Doing a mouseenter on the parent directive would not work, as the
       // events bubble outwards towards the parent hierarchy, and the span
       // would not see // this event, so the controller wouldn't capture it.
-      browserTrigger($(element).find('> span'), 'mouseenter');
+      browserTriggerEvent($(element).find('> span'), 'mouseenter');
 
       expect(span.attr('title')).toContain(diff);
     }
 
-    var now = (new Date() - 0) * MICRO_IN_MILLI;
+    const now = (new Date() - 0) * MICRO_IN_MILLI;
 
     // ignore very small differences from the current time
     assertTimestampRendersDiff(now + 5 * SECONDS,
@@ -89,3 +98,6 @@ describe('timestamp directive', function() {
                                '2 minutes ago');
   });
 });
+
+
+exports = {};

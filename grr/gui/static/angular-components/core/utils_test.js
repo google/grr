@@ -1,75 +1,79 @@
 'use strict';
 
-goog.provide('grrUi.core.utilsTest');
-goog.require('grrUi.core.utils.camelCaseToDashDelimited');
-goog.require('grrUi.core.utils.getLastPathComponent');
-goog.require('grrUi.core.utils.stringToList');
+goog.module('grrUi.core.utilsTest');
 
-describe('core utils', function() {
+const utilsCamelCaseToDashDelimited = goog.require('grrUi.core.utils.camelCaseToDashDelimited');
+const utilsGetLastPathComponent = goog.require('grrUi.core.utils.getLastPathComponent');
+const utilsStringToList = goog.require('grrUi.core.utils.stringToList');
 
-  describe('camelCaseToDashDelimited', function() {
-    var camelCaseToDashDelimited = grrUi.core.utils.camelCaseToDashDelimited;
 
-    it('returns a dash delimited string on camel case input', function() {
-      var result = camelCaseToDashDelimited('someTestInput');
+describe('core utils', () => {
+  describe('camelCaseToDashDelimited', () => {
+    const camelCaseToDashDelimited = utilsCamelCaseToDashDelimited;
+
+    it('returns a dash delimited string on camel case input', () => {
+      const result = camelCaseToDashDelimited('someTestInput');
       expect(result).toBe('some-test-input');
     });
 
-    it('replaces spaces with dashes', function() {
-      var result = camelCaseToDashDelimited('some string with spaces');
+    it('replaces spaces with dashes', () => {
+      const result = camelCaseToDashDelimited('some string with spaces');
       expect(result).toBe('some-string-with-spaces');
     });
 
-    it('handles non-word characters by substitution with dash', function() {
-      var result = camelCaseToDashDelimited('some string with $ symbols');
+    it('handles non-word characters by substitution with dash', () => {
+      const result = camelCaseToDashDelimited('some string with $ symbols');
       expect(result).toBe('some-string-with-symbols');
     });
 
-    it('handles uppercase abbreviations correctly', function() {
-      var result = camelCaseToDashDelimited('someDDirectiveName');
+    it('handles uppercase abbreviations correctly', () => {
+      let result = camelCaseToDashDelimited('someDDirectiveName');
       expect(result).toBe('some-d-directive-name');
 
-      var result = camelCaseToDashDelimited('someDDDirectiveName');
+      result = camelCaseToDashDelimited('someDDDirectiveName');
       expect(result).toBe('some-d-d-directive-name');
     });
 
-    it('handles string beginning with uppercase characters correctly', function() {
-      var result = camelCaseToDashDelimited('SOMEUppercaseString');
+    it('handles string beginning with uppercase characters correctly', () => {
+      const result = camelCaseToDashDelimited('SOMEUppercaseString');
       expect(result).toBe('s-o-m-e-uppercase-string');
     });
   });
 
 
-  describe('stringToList', function() {
-    var stringToList = grrUi.core.utils.stringToList;
+  describe('stringToList', () => {
+    const stringToList = utilsStringToList;
 
-    it('returns empty list for empty string', function() {
-      var result = stringToList('');
+    it('returns empty list for empty string', () => {
+      const result = stringToList('');
       expect(result).toEqual([]);
     });
 
-    it('splits 3 items correctly', function() {
-      var result = stringToList('a, b, c');
+    it('splits 3 items correctly', () => {
+      const result = stringToList('a, b, c');
       expect(result).toEqual(['a', 'b', 'c']);
     });
 
-    it('trims spaces from elements', function() {
-      var result = stringToList('a  , b  ,c ');
+    it('trims spaces from elements', () => {
+      const result = stringToList('a  , b  ,c ');
       expect(result).toEqual(['a', 'b', 'c']);
     });
   });
 
-  describe('getLastPathComponent', function() {
-    var getLastPathComponent = grrUi.core.utils.getLastPathComponent;
+  describe('getLastPathComponent', () => {
+    const getLastPathComponent = utilsGetLastPathComponent;
 
-    it('returns empty string for an empty string', function() {
+    it('returns empty string for an empty string', () => {
       expect(getLastPathComponent('')).toBe('');
     });
 
-    it('returns correct last component', function() {
+    it('returns correct last component', () => {
       expect(getLastPathComponent('foo')).toBe('foo');
       expect(getLastPathComponent('foo/bar')).toBe('bar');
       expect(getLastPathComponent('foo/bar/blah')).toBe('blah');
     });
   });
 });
+
+
+exports = {};

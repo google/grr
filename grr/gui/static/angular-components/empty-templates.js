@@ -1,6 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.templates.module');
+goog.provide('grrUi.templates.templatesModule');
 
 /**
  * If GRR is running with AdminUI.use_precompiled_js = True, then
@@ -9,4 +9,4 @@ goog.provide('grrUi.templates.module');
  * of GRR is running with AdminUI.use_precompiled_js = False, then
  * this module is loaded. See base.html for details.
  */
-grrUi.templates.module = angular.module('grrUi.templates', []);
+grrUi.templates.templatesModule = angular.module('grrUi.templates', []);

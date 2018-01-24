@@ -1,234 +1,227 @@
 'use strict';
 
-goog.provide('grrUi.forms.bytesFormDirectiveTest');
-goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
-goog.require('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
-goog.require('grrUi.forms.bytesFormDirective.isByteString');
+goog.module('grrUi.forms.bytesFormDirectiveTest');
 
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.browserTrigger');
-goog.require('grrUi.tests.module');
+const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
+const bytesToHexEncodedString = goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
+const formsModule = goog.require('grrUi.forms.formsModule');
+const hexEncodedStringToBytes = goog.require('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
+const isByteString = goog.require('grrUi.forms.bytesFormDirective.isByteString');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
 
-var browserTrigger = grrUi.tests.browserTrigger;
+const hexChars = String.fromCharCode(13) + String.fromCharCode(200);
+const encodedHexChars = '\\x0d\\xc8';
+const nonHexChars = 'foo';
 
-var hexChars = String.fromCharCode(13) + String.fromCharCode(200);
-var encodedHexChars = '\\x0d\\xc8';
-var nonHexChars = 'foo';
-
-describe('bytesToHexEncodedString()', function() {
-  var bytesToHexEncodedString =
-      grrUi.forms.bytesFormDirective.bytesToHexEncodedString;
-
-  it('does nothing with an empty string', function() {
+describe('bytesToHexEncodedString()', () => {
+  it('does nothing with an empty string', () => {
     expect(bytesToHexEncodedString('')).toBe('');
   });
 
-  it('doesn\'t encode characters with codes from 32 to 126', function() {
-    var s = '';
-    for (var i = 32; i <= 126; ++i) {
+  it('doesn\'t encode characters with codes from 32 to 126', () => {
+    let s = '';
+    for (let i = 32; i <= 126; ++i) {
       s += String.fromCharCode(i);
     }
 
     expect(bytesToHexEncodedString(s)).toBe(s);
   });
 
-  it('encodes characters with codes from 0 to 31 and from 127 to 255',
-     function() {
-    var i, s;
-    for (i = 0; i <= 31; ++i) {
-      s = String.fromCharCode(i);
+  it('encodes characters with codes from 0 to 31 and from 127 to 255', () => {
+    for (let i = 0; i <= 31; ++i) {
+      const s = String.fromCharCode(i);
       expect(bytesToHexEncodedString(s)).toMatch(/\\x[0-9A-Fa-f]{2}/);
     }
   });
 
 
-  it('encodes hex chars in the beginning of the string', function() {
+  it('encodes hex chars in the beginning of the string', () => {
     expect(bytesToHexEncodedString(hexChars + nonHexChars))
         .toBe(encodedHexChars + nonHexChars);
   });
 
-  it('encodes hex chars in the middle of the string', function() {
+  it('encodes hex chars in the middle of the string', () => {
     expect(bytesToHexEncodedString(nonHexChars + hexChars + nonHexChars))
         .toBe(nonHexChars + encodedHexChars + nonHexChars);
   });
 
-  it('encodes hex chars in the end of the string', function() {
+  it('encodes hex chars in the end of the string', () => {
     expect(bytesToHexEncodedString(nonHexChars + hexChars))
         .toBe(nonHexChars + encodedHexChars);
   });
 
-  it('encodes hex chars in the beginning and end of the string', function() {
+  it('encodes hex chars in the beginning and end of the string', () => {
     expect(bytesToHexEncodedString(hexChars + nonHexChars + hexChars))
         .toBe(encodedHexChars + nonHexChars + encodedHexChars);
   });
 });
 
-describe('hexEncodedStringToBytes()', function() {
-  var hexEncodedStringToBytes =
-      grrUi.forms.bytesFormDirective.hexEncodedStringToBytes;
-
-  it('does nothing with an empty string', function() {
+describe('hexEncodedStringToBytes()', () => {
+  it('does nothing with an empty string', () => {
     expect(hexEncodedStringToBytes('')).toBe('');
   });
 
-  it('decodes all possible characters', function() {
-    for (var i = 0; i < 256; ++i) {
-      var s = i.toString(16);
+  it('decodes all possible characters', () => {
+    for (let i = 0; i < 256; ++i) {
+      let s = i.toString(16);
       if (s.length == 1) {
-        s = '0' + s;
+        s = `0${s}`;
       }
-      s = '\\x' + s;
+      s = `\\x${s}`;
 
       expect(hexEncodedStringToBytes(s)).toBe(String.fromCharCode(i));
     }
   });
 
-  it('decodes hex chars in the beginning of the string', function() {
+  it('decodes hex chars in the beginning of the string', () => {
     expect(hexEncodedStringToBytes(encodedHexChars + nonHexChars))
         .toBe(hexChars + nonHexChars);
   });
 
-  it('decodes hex chars in the middle of the string', function() {
+  it('decodes hex chars in the middle of the string', () => {
     expect(hexEncodedStringToBytes(nonHexChars + encodedHexChars + nonHexChars))
         .toBe(nonHexChars + hexChars + nonHexChars);
   });
 
-  it('decodes hex chars in the end of the string', function() {
+  it('decodes hex chars in the end of the string', () => {
     expect(hexEncodedStringToBytes(nonHexChars + encodedHexChars))
         .toBe(nonHexChars + hexChars);
   });
 
-  it('decodes hex chars in the beginning and end of the string', function() {
+  it('decodes hex chars in the beginning and end of the string', () => {
     expect(hexEncodedStringToBytes(
         encodedHexChars + nonHexChars + encodedHexChars))
             .toBe(hexChars + nonHexChars + hexChars);
   });
 });
 
-describe('isByteString()', function() {
-  var isByteString = grrUi.forms.bytesFormDirective.isByteString;
-
-  it('returns true if a string had only characters with car code < 256', function() {
-    var s = '';
-    for (var i = 0; i < 256; ++i) {
+describe('isByteString()', () => {
+  it('returns true if a string had only characters with car code < 256', () => {
+    let s = '';
+    for (let i = 0; i < 256; ++i) {
       s += String.fromCharCode(i);
     }
 
     expect(isByteString(s)).toBe(true);
   });
 
-  it('returns false if a string has a character with a char code >= 256', function() {
-    expect(isByteString(String.fromCharCode(256))).toBe(false);
-  });
+  it('returns false if a string has a character with a char code >= 256',
+     () => {
+       expect(isByteString(String.fromCharCode(256))).toBe(false);
+     });
 });
 
-describe('bytes form directive', function() {
-  var $compile, $rootScope, value;
+describe('bytes form directive', () => {
+  let $compile;
+  let $rootScope;
 
   beforeEach(module('/static/angular-components/forms/bytes-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
 
-    var template = '<grr-form-bytes value="value" />';
-    var element = $compile(template)($rootScope);
+    const template = '<grr-form-bytes value="value" />';
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing if value is null', function() {
-    var element = renderTestTemplate({
+  it('shows nothing if value is null', () => {
+    const element = renderTestTemplate({
       type: 'RDFBytes',
-      value: null
+      value: null,
     });
     expect(element.find('input').val()).toBe('');
   });
 
-  it('shows base64-decoded value for plain latin characters', function() {
-    var element = renderTestTemplate({
+  it('shows base64-decoded value for plain latin characters', () => {
+    const element = renderTestTemplate({
       type: 'RDFBytes',
-      value: window.btoa('foo')
+      value: window.btoa('foo'),
     });
     expect(element.find('input').val()).toBe('foo');
   });
 
-  it('shows nothing for incorrectly base64-encoded value', function() {
-    var element = renderTestTemplate({
+  it('shows nothing for incorrectly base64-encoded value', () => {
+    const element = renderTestTemplate({
       type: 'RDFBytes',
-      value: '--'
+      value: '--',
     });
     expect(element.find('input').val()).toBe('');
   });
 
-  it('updates value to a base64 version on input', function() {
-    var value = {
+  it('updates value to a base64 version on input', () => {
+    const value = {
       type: 'RDFBytes',
-      value: ''
+      value: '',
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
 
     element.find('input').val('a');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
     expect(value.value).toBe('YQ==');
   });
 
-  it('updates value coorectly on hex-encoded input', function() {
-    var value = {
+  it('updates value coorectly on hex-encoded input', () => {
+    const value = {
       type: 'RDFBytes',
-      value: ''
+      value: '',
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
 
     // Simulate user gradually typing \\x0d
     element.find('input').val('\\');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
     expect(value.value).toBe('XA==');
 
     element.find('input').val('\\x');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
     expect(value.value).toBe('XHg=');
 
     element.find('input').val('\\x0');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
     expect(value.value).toBe('XHgw');
 
     element.find('input').val('\\x0d');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
     expect(value.value).toBe('DQ==');
   });
 
-  it('shows a validation message on unicode input', function() {
-    var value = {
+  it('shows a validation message on unicode input', () => {
+    const value = {
       type: 'RDFBytes',
-      value: ''
+      value: '',
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('昨');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(element.text()).toContain(
         'Unicode characters are not allowed in a byte string');
   });
 
-  it('updates value.validationError on unicode input', function() {
-    var value = {
+  it('updates value.validationError on unicode input', () => {
+    const value = {
       type: 'RDFBytes',
-      value: ''
+      value: '',
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
     element.find('input').val('昨');
-    browserTrigger(element.find('input'), 'change');
+    browserTriggerEvent(element.find('input'), 'change');
 
     expect(value.validationError).toContain(
         'Unicode characters are not allowed in a byte string');
   });
 });
+
+
+exports = {};

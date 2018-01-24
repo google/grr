@@ -1,48 +1,52 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowResultsDirectiveTest');
-goog.require('grrUi.flow.module');
-goog.require('grrUi.tests.module');
-goog.require('grrUi.tests.stubDirective');
+goog.module('grrUi.flow.flowResultsDirectiveTest');
 
-describe('flow results directive', function() {
-  var $compile, $rootScope;
+const flowModule = goog.require('grrUi.flow.flowModule');
+const stubDirective = goog.require('grrUi.tests.stubDirective');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('flow results directive', () => {
+  let $compile;
+  let $rootScope;
+
 
   beforeEach(module('/static/angular-components/flow/flow-results.html'));
-  beforeEach(module(grrUi.flow.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(flowModule.name));
+  beforeEach(module(testsModule.name));
 
   // Stub out grrResultsCollection directive, as all rendering is going
   // to be delegated to it.
-  grrUi.tests.stubDirective('grrResultsCollection');
+  stubDirective('grrResultsCollection');
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(flowId) {
+  const renderTestTemplate = (flowId) => {
     $rootScope.flowId = flowId;
     $rootScope.apiBasePath = 'foo/bar';
 
-    var template =  '<grr-flow-results flow-id="flowId" ' +
+    const template = '<grr-flow-results flow-id="flowId" ' +
         'api-base-path="apiBasePath" />';
 
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('delegates rendering to grr-results-collection directive', function() {
-    var element = renderTestTemplate('F:1234');
-    var directive = element.find('grr-results-collection:nth(0)');
+  it('delegates rendering to grr-results-collection directive', () => {
+    const element = renderTestTemplate('F:1234');
+    const directive = element.find('grr-results-collection:nth(0)');
     expect(directive.length).toBe(1);
   });
 
-  it('builds grr-result-collection urls correctly', function() {
-    var element = renderTestTemplate('F:1234');
-    var directive = element.find('grr-results-collection:nth(0)');
+  it('builds grr-result-collection urls correctly', () => {
+    const element = renderTestTemplate('F:1234');
+    const directive = element.find('grr-results-collection:nth(0)');
     expect(directive.scope().$eval(directive.attr('results-url'))).toEqual(
         'foo/bar/F:1234/results');
     expect(
@@ -53,3 +57,6 @@ describe('flow results directive', function() {
             'foo/bar/F:1234/results/files-archive');
   });
 });
+
+
+exports = {};

@@ -1,39 +1,46 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoUnionFormDirectiveTest');
-goog.require('grrUi.forms.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.forms.semanticProtoUnionFormDirectiveTest');
 
-describe('semantic proto union form directive', function() {
-  var $compile, $rootScope, $q, grrReflectionService, descriptor;
+const formsModule = goog.require('grrUi.forms.formsModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
+
+
+describe('semantic proto union form directive', () => {
+  let $compile;
+  let $q;
+  let $rootScope;
+  let descriptor;
+  let grrReflectionService;
+
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
   beforeEach(module('/static/angular-components/forms/semantic-proto-union-form.html'));
   beforeEach(module('/static/angular-components/forms/semantic-proto-single-field-form.html'));
   beforeEach(module('/static/angular-components/forms/semantic-proto-repeated-field-form.html'));
-  beforeEach(module(grrUi.forms.module.name));
-  beforeEach(module(grrUi.tests.module.name));
+  beforeEach(module(formsModule.name));
+  beforeEach(module(testsModule.name));
 
-  beforeEach(inject(function($injector) {
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     grrReflectionService = $injector.get('grrReflectionService');
 
-    grrReflectionService.getRDFValueDescriptor = function(valueType) {
-      var deferred = $q.defer();
+    grrReflectionService.getRDFValueDescriptor = ((valueType) => {
+      const deferred = $q.defer();
       deferred.resolve({
         name: valueType,
-        mro: [valueType]
+        mro: [valueType],
       });
       return deferred.promise;
-    };
+    });
 
     descriptor = {
       'default': {
         'mro': ['Foo', 'RDFProtoStruct'],
         'type': 'Foo',
-        'value': {}
+        'value': {},
       },
       'doc': 'This is a structure Foo.',
       'union_field': 'type',
@@ -42,74 +49,74 @@ describe('semantic proto union form directive', function() {
           'default': {
             'mro': ['PrimitiveType'],
             'type': 'PrimitiveType',
-            'value': ''
+            'value': '',
           },
           'index': 1,
           'name': 'type',
           'repeated': false,
-          'type': 'PrimitiveType'
+          'type': 'PrimitiveType',
         },
         {
           'default': {
             'mro': ['PrimitiveTypeFoo'],
             'type': 'PrimitiveTypeFoo',
-            'value': 'foo'
+            'value': 'foo',
           },
           'index': 2,
           'name': 'foo',
           'repeated': false,
-          'type': 'PrimitiveTypeFoo'
+          'type': 'PrimitiveTypeFoo',
         },
         {
           'default': {
             'mro': ['PrimitiveTypeBar'],
             'type': 'PrimitiveTypeBar',
-            'value': 'bar'
+            'value': 'bar',
           },
           'index': 3,
           'name': 'bar',
           'repeated': false,
-          'type': 'PrimitiveTypeBar'
-        }
+          'type': 'PrimitiveTypeBar',
+        },
       ],
     };
   }));
 
-  var renderTestTemplate = function(value) {
+  const renderTestTemplate = (value) => {
     $rootScope.value = value;
     $rootScope.descriptor = descriptor;
 
-    var template = '<grr-form-proto-union value="value" ' +
+    const template = '<grr-form-proto-union value="value" ' +
         'descriptor="descriptor" />';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('displays field based on union field value', function() {
-    var value = {
+  it('displays field based on union field value', () => {
+    const value = {
       type: 'Foo',
       mro: ['Foo'],
       value: {
         type: {
           type: 'PrimitiveType',
           mro: ['PrimitiveType'],
-          value: 'foo'
+          value: 'foo',
         },
         foo: {
           type: 'PrimitiveTypeFoo',
           mro: ['PrimitiveTypeFoo'],
-          value: 42
+          value: 42,
         },
         bar: {
           type: 'PrimitiveTypeBar',
           mro: ['PrimitiveTypeBar'],
-          value: 43
-        }
-      }
+          value: 43,
+        },
+      },
     };
-    var element = renderTestTemplate(value);
+    const element = renderTestTemplate(value);
 
     // Check that only the field 'foo' is displayed. As we expect no directives
     // to be registered for PrimitiveTypeFoo and PrimitiveTypeBar, we check
@@ -127,15 +134,15 @@ describe('semantic proto union form directive', function() {
         'No directive for type: PrimitiveTypeFoo');
   });
 
-  it('resets entered data when union type is changed', function() {
-    var value = {
+  it('resets entered data when union type is changed', () => {
+    const value = {
       type: 'Foo',
       mro: ['Foo'],
       value: {
         type: {
           type: 'PrimitiveType',
           mro: ['PrimitiveType'],
-          value: 'foo'
+          value: 'foo',
         },
         foo: {
           type: 'PrimitiveTypeFoo',
@@ -144,10 +151,10 @@ describe('semantic proto union form directive', function() {
         bar: {
           type: 'PrimitiveTypeBar',
           mro: ['PrimitiveTypeBar'],
-        }
-      }
+        },
+      },
     };
-    var element = renderTestTemplate(value);
+    renderTestTemplate(value);
     $rootScope.$apply();
 
     value.value.foo.value = 42;
@@ -158,5 +165,7 @@ describe('semantic proto union form directive', function() {
     $rootScope.$apply();
     expect(value.value.foo.value).toEqual({});
   });
-
 });
+
+
+exports = {};

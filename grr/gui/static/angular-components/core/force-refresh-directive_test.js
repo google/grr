@@ -1,42 +1,45 @@
 'use strict';
 
-goog.provide('grrUi.core.forceRefreshDirectiveTest');
-goog.require('grrUi.core.module');
-goog.require('grrUi.tests.module');
+goog.module('grrUi.core.forceRefreshDirectiveTest');
 
-describe('grr-force-refresh directive', function() {
-  var $compile, $rootScope;
+const coreModule = goog.require('grrUi.core.coreModule');
+const testsModule = goog.require('grrUi.tests.testsModule');
 
-  beforeEach(module(grrUi.core.module.name));
-  beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(inject(function($injector) {
+describe('grr-force-refresh directive', () => {
+  let $compile;
+  let $rootScope;
+
+
+  beforeEach(module(coreModule.name));
+  beforeEach(module(testsModule.name));
+
+  beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
 
     $rootScope.value = 42;
   }));
 
-  var render = function(objectEquality) {
+  const render = (objectEquality) => {
     $rootScope.objectEquality = objectEquality;
 
-    var template = '<grr-force-refresh object-equality="objectEquality" ' +
+    const template = '<grr-force-refresh object-equality="objectEquality" ' +
         'refresh-trigger="value">' +
         '{$ ::value $}</grr-force-refresh>';
-    var element = $compile(template)($rootScope);
+    const element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows transcluded template immediately', function() {
-    var element = render();
+  it('shows transcluded template immediately', () => {
+    const element = render();
     expect(element.text()).toContain('42');
   });
 
-  it('reloads children elements effectively updating one-time bindings',
-     function() {
-    var element = render();
+  it('reloads children elements effectively updating one-time bindings', () => {
+    const element = render();
     expect(element.text()).toContain('42');
 
     $rootScope.value = 43;
@@ -44,16 +47,18 @@ describe('grr-force-refresh directive', function() {
     expect(element.text()).toContain('43');
   });
 
-  it('reloads on object-level changes', function() {
+  it('reloads on object-level changes', () => {
     $rootScope.value = {
-      a: 'a'
+      a: 'a',
     };
-    var element = render(true);
+    const element = render(true);
     expect(element.text()).toContain('{"a":"a"}');
 
     $rootScope.value['a'] = 'b';
     $rootScope.$apply();
     expect(element.text()).toContain('{"a":"b"}');
   });
-
 });
+
+
+exports = {};
