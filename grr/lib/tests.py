@@ -8,7 +8,6 @@ This module loads and registers all the GRR library tests.
 # pylint: disable=unused-import,g-import-not-at-top
 
 from grr.lib import build_test
-from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test
 from grr.lib import fleetspeak_test
