@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron.newCronJobWizard.statusPageDirective');
 goog.provide('grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective');
 
 goog.scope(function() {

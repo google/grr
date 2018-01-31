@@ -110,7 +110,7 @@ class ExportTestBase(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ExportTestBase, self).setUp()
-    self.client_id = rdf_client.ClientURN("C.0000000000000000")
+    self.client_id = test_lib.TEST_CLIENT_ID
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
 

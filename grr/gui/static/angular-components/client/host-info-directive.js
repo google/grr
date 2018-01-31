@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.hostInfoDirective');
 goog.provide('grrUi.client.hostInfoDirective.HostInfoDirective');
 
 goog.scope(function() {

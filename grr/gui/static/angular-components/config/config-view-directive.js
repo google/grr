@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.config.configViewDirective');
 goog.provide('grrUi.config.configViewDirective.ConfigViewDirective');
 
 goog.scope(function() {

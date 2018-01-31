@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientDialogService');
 goog.provide('grrUi.client.clientDialogService.ClientDialogService');
 goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
 goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');

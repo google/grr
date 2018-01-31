@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.docs.apiRouteDirective');
 goog.provide('grrUi.docs.apiRouteDirective.ApiRouteDirective');
 
 goog.scope(function() {

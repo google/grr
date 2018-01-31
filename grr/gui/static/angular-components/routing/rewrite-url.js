@@ -1,11 +1,12 @@
 'use strict';
 
 goog.provide('grrUi.routing.rewriteUrl');
+goog.provide('grrUi.routing.rewriteUrl.rewriteUrl');
 
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
 goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.routing.aff4UrnToUrl');
+goog.require('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
 
 
 goog.scope(function() {
@@ -15,14 +16,38 @@ var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder
 var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
 
 /**
+ * Parses the location bar's #hash value into an object.
+ *
+ * @param {string} hash Hash to be parsed.
+ * @return {Object} an associative array of encoded values.
+ */
+const parseHash = function(hash) {
+  if (hash.indexOf('#') == 0) {
+    hash = hash.substr(1);
+  }
+
+  var result = {};
+  var parts = hash.split('&');
+
+  for (var i = 0; i < parts.length; i++) {
+    var kv = parts[i].split('=');
+    if (kv[0] && kv[1]) {
+      result[kv[0]] = decodeURIComponent(kv[1].replace(/\+/g, ' ') || '');
+    }
+  }
+
+  return result;
+};
+
+/**
  * Rewrites legacy URLs to URLs compatible with the new URL scheme.
  *
  * @param {string} url The URL to rewrite.
  * @return {?string} A URL compatible with UI router.
  * @export
  */
-grrUi.routing.rewriteUrl = function(url) {
-  var hashState = grrUi.routing.parseHash_(url);
+grrUi.routing.rewriteUrl.rewriteUrl = function(url) {
+  var hashState = parseHash(url);
 
   var clientId = hashState['c'];
   if (clientId && clientId.indexOf('aff4:/') === 0) {
@@ -31,10 +56,9 @@ grrUi.routing.rewriteUrl = function(url) {
 
   var main = hashState['main'];
   switch(main) {
-
-    //
-    // Management redirects.
-    //
+      //
+      // Management redirects.
+      //
 
     case 'ManageCron':
       var cronJobUrn = hashState['cron_job_urn'];
@@ -52,9 +76,9 @@ grrUi.routing.rewriteUrl = function(url) {
     case 'ServerLoadView':
       return '/server-load';
 
-    //
-    // Configuration redirects.
-    //
+      //
+      // Configuration redirects.
+      //
 
     case 'BinaryConfigurationView':
       return '/manage-binaries';
@@ -65,9 +89,9 @@ grrUi.routing.rewriteUrl = function(url) {
     case 'ArtifactManagerView':
       return '/artifacts';
 
-    //
-    // Misc. redirects.
-    //
+      //
+      // Misc. redirects.
+      //
 
     case 'ApiDocumentation':
       return '/api-docs';
@@ -76,7 +100,7 @@ grrUi.routing.rewriteUrl = function(url) {
     // previously send approval notifications are not important.
     case 'GrantAccess':
       var acl = hashState['acl'] || '';
-      var routingState = grrUi.routing.aff4UrnToUrl(acl);
+      var routingState = grrUi.routing.aff4UrnToUrl.aff4UrnToUrl(acl);
       switch (routingState['state']) {
         case 'clientApproval':
           return ['/users',
@@ -102,16 +126,16 @@ grrUi.routing.rewriteUrl = function(url) {
                   routingState['params']['approvalId']].join('/');
 
         default:
-        break;
+          break;
       }
       return '/';
 
     case 'CanaryTestRenderer':
       return '/canary-test';
 
-    //
-    // Client redirects.
-    //
+      //
+      // Client redirects.
+      //
 
     case 'HostTable':
       var q = hashState['q'] || '';
@@ -168,32 +192,6 @@ grrUi.routing.rewriteUrl = function(url) {
       // do no rewriting.
       return null;
   }
-};
-
-
-/**
- * Parses the location bar's #hash value into an object.
- *
- * @param {string} hash Hash to be parsed.
- * @return {Object} an associative array of encoded values.
- * @private
- */
-grrUi.routing.parseHash_ = function(hash) {
-  if (hash.indexOf('#') == 0) {
-    hash = hash.substr(1);
-  }
-
-  var result = {};
-  var parts = hash.split('&');
-
-  for (var i = 0; i < parts.length; i++) {
-    var kv = parts[i].split('=');
-    if (kv[0] && kv[1]) {
-      result[kv[0]] = decodeURIComponent(kv[1].replace(/\+/g, ' ') || '');
-    }
-  }
-
-  return result;
 };
 
 });  // goog.scope

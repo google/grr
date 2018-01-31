@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.serverErrorDialogDirective');
 goog.provide('grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective');
 
 goog.scope(function() {

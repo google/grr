@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntResultsDirective');
 goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 
 goog.require('grrUi.core.fileDownloadUtils.downloadableVfsRoots');

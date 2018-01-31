@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactManagerViewDirective');
 goog.provide('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective');
 
 

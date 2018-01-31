@@ -57,8 +57,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
 
     # Setup a specific client so the knowledge base is correctly
     # initialised for the artifact collection.
-    clients = self.SetupClients(1, system="Linux", os_version="16.04")
-    self.client_id = clients[0]
+    self.client_id = self.SetupClient(0, system="Linux", os_version="16.04")
 
   def testDumpFlash(self):
     """Dump Flash Image."""
@@ -151,27 +150,28 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
     """Tests dumping ACPI table."""
     client_mock = DumpACPITableMock()
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
+    client_id = self.SetupClient(0)
 
     for _ in flow_test_lib.TestFlowHelper(
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
-        client_id=self.client_id,
+        client_id=client_id,
         token=self.token):
       pass
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/DSDT"))
+        client_id.Add("/devices/chipsec/acpi/tables/DSDT"))
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["DSDT"][0])
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/XSDT"))
+        client_id.Add("/devices/chipsec/acpi/tables/XSDT"))
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["XSDT"][0])
 
     fd = aff4_hardware.ACPITableDataCollection(
-        self.client_id.Add("/devices/chipsec/acpi/tables/SSDT"))
+        client_id.Add("/devices/chipsec/acpi/tables/SSDT"))
     self.assertEqual(len(fd), 2)
     self.assertEqual(fd[0], DumpACPITableMock.ACPI_TABLES["SSDT"][0])
     self.assertEqual(fd[1], DumpACPITableMock.ACPI_TABLES["SSDT"][1])
@@ -179,6 +179,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
   def testDumpInvalidACPITable(self):
     """Tests dumping nonexistent ACPI table."""
     client_mock = DumpACPITableMock()
+    client_id = self.SetupClient(0)
     table_signature_list = ["ABC"]
     session_id = None
 
@@ -186,7 +187,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         hardware.DumpACPITable.__name__,
         client_mock,
         table_signature_list=table_signature_list,
-        client_id=self.client_id,
+        client_id=client_id,
         token=self.token):
       session_id = s
 
@@ -196,6 +197,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
 
   def testEmptyTableSignatureList(self):
     """Tests DumpACPITable with empty table_signature_list."""
+    client_id = self.SetupClient(0)
     client_mock = DumpACPITableMock()
     table_signature_list = []
 
@@ -204,7 +206,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
           hardware.DumpACPITable.__name__,
           client_mock,
           table_signature_list=table_signature_list,
-          client_id=self.client_id,
+          client_id=client_id,
           token=self.token):
         pass
 

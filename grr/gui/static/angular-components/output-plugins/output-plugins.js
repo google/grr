@@ -1,9 +1,10 @@
 'use strict';
 
+goog.provide('grrUi.outputPlugins');
 goog.provide('grrUi.outputPlugins.outputPluginsModule');
 
 goog.require('grrUi.core.coreModule');
-goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
 goog.require('grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective');
 goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective.OutputPluginNoteBodyDirective');
 goog.require('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
@@ -40,9 +41,9 @@ grrUi.outputPlugins.outputPluginsModule.directive(
 
 
 grrUi.outputPlugins.outputPluginsModule.service(
-    grrUi.core.semanticRegistry.SemanticRegistryService
+    grrUi.core.semanticRegistryService.SemanticRegistryService
         .output_plugins_service_name,
-    grrUi.core.semanticRegistry.SemanticRegistryService);
+    grrUi.core.semanticRegistryService.SemanticRegistryService);
 
 
 grrUi.outputPlugins.outputPluginsModule.run(function(

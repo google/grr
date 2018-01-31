@@ -27,7 +27,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def _RunRegistryFinder(self, paths=None):
     client_mock = action_mocks.GlobClientMock()
 
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     for s in flow_test_lib.TestFlowHelper(
         flow_registry.RegistryFinder.__name__,
@@ -46,8 +46,8 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
         ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
     self.assertEqual(len(results), 2)
     self.assertEqual(
-        sorted([x.stat_entry.registry_data.GetValue()
-                for x in results]), ["Value1", "Value2"])
+        sorted([x.stat_entry.registry_data.GetValue() for x in results]),
+        ["Value1", "Value2"])
 
     # This is a key so we should get back the default value.
     results = self._RunRegistryFinder(

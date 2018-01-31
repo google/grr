@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntContextDirective');
 goog.provide('grrUi.hunt.huntContextDirective.HuntContextDirective');
 
 goog.scope(function() {

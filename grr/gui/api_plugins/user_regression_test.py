@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 """This module contains regression tests for user API handlers."""
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import user as user_plugin
 
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import hunts as rdf_hunts
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs
@@ -99,19 +100,18 @@ class ApiGrantClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("requestor")
 
-      clients = self.SetupClients(1)
-      for client_id in clients:
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      client_id = self.SetupClient(0)
+      # Delete the certificate as it's being regenerated every time the
+      # client is created.
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as grr_client:
+        grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       requestor_token = access_control.ACLToken(username="requestor")
       approval_urn = security.ClientApprovalRequestor(
           reason="foo",
-          subject_urn=clients[0],
+          subject_urn=client_id,
           approver=self.token.username,
           token=requestor_token).Request()
       approval_id = approval_urn.Basename()
@@ -120,7 +120,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
       self.Check(
           "GrantClientApproval",
           args=user_plugin.ApiGrantClientApprovalArgs(
-              client_id=clients[0].Basename(),
+              client_id=client_id.Basename(),
               approval_id=approval_id,
               username="requestor"),
           replace={
@@ -139,7 +139,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateUser("approver")
 
-      client_id = self.SetupClients(1)[0]
+      client_id = self.SetupClient(0)
 
       # Delete the certificate as it's being regenerated every time the
       # client is created.
@@ -333,7 +333,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
-      client_urn = self.SetupClients(1)[0]
+      client_urn = self.SetupClient(0)
       flow_urn = flow.GRRFlow.StartFlow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
@@ -629,15 +629,27 @@ class ApiGetOwnGrrUserHandlerRegresstionTest(
   handler = user_plugin.ApiGetOwnGrrUserHandler
 
   def Run(self):
+    user_urn = aff4.ROOT_URN.Add("users").Add(self.token.username)
     with test_lib.FakeTime(42):
       with aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(self.token.username),
-          aff4_type=aff4_users.GRRUser,
-          mode="w",
+          user_urn, aff4_type=aff4_users.GRRUser, mode="w",
           token=self.token) as user_fd:
         user_fd.Set(
             user_fd.Schema.GUI_SETTINGS,
             aff4_users.GUISettings(canary_mode=True))
+
+    # Setup relational DB.
+    data_store.REL_DB.WriteGRRUser(
+        username=self.token.username, canary_mode=True)
+
+    self.Check("GetGrrUser")
+
+    # Make user an admin and do yet another request.
+    with aff4.FACTORY.Open(user_urn, mode="rw", token=self.token) as user_fd:
+      user_fd.SetLabel("admin", owner="GRR")
+    data_store.REL_DB.WriteGRRUser(
+        username=self.token.username,
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 
     self.Check("GetGrrUser")
 
@@ -652,7 +664,7 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
   def setUp(self):
     super(ApiGetPendingUserNotificationsCountHandlerRegressionTest,
           self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     self._SendNotification(
@@ -678,7 +690,7 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListPendingUserNotificationsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -713,7 +725,7 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListAndResetUserNotificationsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     with test_lib.FakeTime(42):

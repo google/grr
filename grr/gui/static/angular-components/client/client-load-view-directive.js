@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientLoadViewDirective');
 goog.provide('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
 
 goog.scope(function() {

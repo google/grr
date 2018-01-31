@@ -61,7 +61,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsTextPresent("User123"))
 
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
-    client_id, = self.SetupClients(1)
+    client_id = self.SetupClient(0)
 
     with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
       client.AddLabel("bar", owner="owner")

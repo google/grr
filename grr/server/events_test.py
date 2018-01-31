@@ -83,7 +83,7 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
     for _ in flow_test_lib.TestFlowHelper(
         flow_test_lib.DummyLogFlow.__name__,
         client_mock,
-        client_id=self.client_id,
+        client_id=test_lib.TEST_CLIENT_ID,
         notification_urn=rdfvalue.SessionID(
             queue=rdfvalue.RDFURN("EV"), flow_name="FlowDone"),
         token=self.token):

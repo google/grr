@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This module contains tests for flows-related API handlers."""
 
-
 import os
 import StringIO
 import tarfile
@@ -41,7 +40,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
 
   def setUp(self):
     super(ApiFlowIdTest, self).setUp()
-    self.client_urn = self.SetupClients(1)[0]
+    self.client_urn = self.SetupClient(0)
 
   def GenerateSample(self, number=0):
     return flow_plugin.ApiFlowId("F:" + "123" * (number + 1))
@@ -136,7 +135,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
   """Test for ApiFlow."""
 
   def testInitializesClientIdForClientBasedFlows(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     flow_urn = flow.GRRFlow.StartFlow(
         # Override base session id, so that the flow URN looks
         # like: aff4:/F:112233
@@ -151,7 +150,7 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     self.assertIsNone(flow_api_obj.client_id)
 
   def testLeavesClientIdEmptyForNonClientBasedFlows(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_id,
         flow_name=processes.ListProcesses.__name__,
@@ -169,7 +168,7 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiCreateFlowHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.handler = flow_plugin.ApiCreateFlowHandler()
 
   def testRunnerArgsBaseSessionIdDoesNotAffectCreatedFlow(self):
@@ -193,7 +192,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler = flow_plugin.ApiGetFlowFilesArchiveHandler()
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
     self.flow_urn = flow.GRRFlow.StartFlow(
         flow_name=file_finder.FileFinder.__name__,
@@ -329,7 +328,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
     super(ApiGetExportedFlowResultsHandlerTest, self).setUp()
 
     self.handler = flow_plugin.ApiGetExportedFlowResultsHandler()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):

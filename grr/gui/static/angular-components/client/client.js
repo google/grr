@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client');
 goog.provide('grrUi.client.clientModule');
 goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
 goog.require('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');

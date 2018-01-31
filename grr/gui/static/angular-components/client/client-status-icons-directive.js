@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientStatusIconsDirective');
 goog.provide('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
 
 

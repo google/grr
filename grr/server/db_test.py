@@ -50,7 +50,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
-      d.WriteClient(client_id, objects.Client(client_id=client_id))
+      d.WriteClient(objects.Client(client_id=client_id))
 
     # fleetspeak_enabled not set means update.
     with self.assertRaises(db.UnknownClientError):
@@ -183,9 +183,9 @@ class DatabaseTestMixin(object):
 
     client = objects.Client(client_id=client_id, kernel="12.3")
     client.knowledge_base.fqdn = "test1234.examples.com"
-    d.WriteClient(client_id, client)
+    d.WriteClient(client)
     client.kernel = "12.4"
-    d.WriteClient(client_id, client)
+    d.WriteClient(client)
 
     hist = d.ReadClientHistory(client_id)
     self.assertEqual(len(hist), 2)
@@ -206,18 +206,18 @@ class DatabaseTestMixin(object):
     client = objects.Client(client_id=client_id, kernel="12.3")
     client.startup_info = rdf_client.StartupInfo(boot_time=123)
     client.knowledge_base.fqdn = "test1234.examples.com"
-    d.WriteClient(client_id, client)
+    d.WriteClient(client)
 
     client = d.ReadClient(client_id)
     self.assertEqual(client.startup_info.boot_time, 123)
 
     client.kernel = "12.4"
     client.startup_info = rdf_client.StartupInfo(boot_time=124)
-    d.WriteClient(client_id, client)
+    d.WriteClient(client)
 
     client.kernel = "12.5"
     client.startup_info = rdf_client.StartupInfo(boot_time=125)
-    d.WriteClient(client_id, client)
+    d.WriteClient(client)
 
     hist = d.ReadClientHistory(client_id)
     self.assertEqual(len(hist), 3)
@@ -239,25 +239,25 @@ class DatabaseTestMixin(object):
     self._InitializeClient(client_id_2)
     self._InitializeClient(client_id_3)
 
-    d.WriteClient(client_id_1,
-                  objects.Client(
-                      client_id=client_id_1,
-                      knowledge_base=rdf_client.KnowledgeBase(
-                          fqdn="test1234.examples.com"),
-                      kernel="12.3"))
-    d.WriteClient(client_id_1,
-                  objects.Client(
-                      client_id=client_id_1,
-                      knowledge_base=rdf_client.KnowledgeBase(
-                          fqdn="test1234.examples.com"),
-                      kernel="12.4"))
+    d.WriteClient(
+        objects.Client(
+            client_id=client_id_1,
+            knowledge_base=rdf_client.KnowledgeBase(
+                fqdn="test1234.examples.com"),
+            kernel="12.3"))
+    d.WriteClient(
+        objects.Client(
+            client_id=client_id_1,
+            knowledge_base=rdf_client.KnowledgeBase(
+                fqdn="test1234.examples.com"),
+            kernel="12.4"))
 
-    d.WriteClient(client_id_2,
-                  objects.Client(
-                      client_id=client_id_2,
-                      knowledge_base=rdf_client.KnowledgeBase(
-                          fqdn="test1235.examples.com"),
-                      kernel="12.4"))
+    d.WriteClient(
+        objects.Client(
+            client_id=client_id_2,
+            knowledge_base=rdf_client.KnowledgeBase(
+                fqdn="test1235.examples.com"),
+            kernel="12.4"))
 
     hist = d.ReadClientHistory(client_id_1)
     self.assertEqual(len(hist), 2)
@@ -283,7 +283,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
     with self.assertRaises(ValueError):
-      d.WriteClient(client_id, "test1235.examples.com")
+      d.WriteClient("test1235.examples.com")
 
   def testClientKeywords(self):
     d = self.db
@@ -416,13 +416,18 @@ class DatabaseTestMixin(object):
   def testFilledGRRUserReadWrite(self):
     d = self.db
 
-    u_expected = objects.GRRUser(ui_mode="ADVANCED", canary_mode=True)
+    u_expected = objects.GRRUser(
+        username="foo",
+        ui_mode="ADVANCED",
+        canary_mode=True,
+        user_type=objects.GRRUser.UserType.USER_TYPE_ADMIN)
     u_expected.password.SetPassword("blah")
     d.WriteGRRUser(
         "foo",
         password=u_expected.password,
         ui_mode=u_expected.ui_mode,
-        canary_mode=u_expected.canary_mode)
+        canary_mode=u_expected.canary_mode,
+        user_type=u_expected.user_type)
 
     u = d.ReadGRRUser("foo")
     self.assertEqual(u_expected, u)
@@ -430,10 +435,10 @@ class DatabaseTestMixin(object):
   def testEmptyGRRUserReadWrite(self):
     d = self.db
 
-    u_expected = objects.GRRUser()
     d.WriteGRRUser("foo")
-
     u = d.ReadGRRUser("foo")
+    u_expected = objects.GRRUser(username="foo")
+
     self.assertEqual(u_expected, u)
 
   def testReadingUnknownGRRUserFails(self):
@@ -441,6 +446,26 @@ class DatabaseTestMixin(object):
 
     with self.assertRaises(db.UnknownGRRUserError):
       d.ReadGRRUser("foo")
+
+  def testReadingMultipleGRRUsersEntriesWorks(self):
+    d = self.db
+
+    u_foo = objects.GRRUser(
+        username="foo",
+        ui_mode="ADVANCED",
+        canary_mode=True,
+        user_type=objects.GRRUser.UserType.USER_TYPE_ADMIN)
+    d.WriteGRRUser(
+        u_foo.username,
+        ui_mode=u_foo.ui_mode,
+        canary_mode=u_foo.canary_mode,
+        user_type=u_foo.user_type)
+    u_bar = objects.GRRUser(username="bar")
+    d.WriteGRRUser(u_bar.username)
+
+    users = sorted(d.ReadGRRUsers(), key=lambda x: x.username)
+    self.assertEqual(users[0], u_bar)
+    self.assertEqual(users[1], u_foo)
 
   def testStartupHistory(self):
     d = self.db

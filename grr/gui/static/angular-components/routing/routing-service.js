@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.routing.routingService');
 goog.provide('grrUi.routing.routingService.RoutingService');
 
 goog.scope(function() {

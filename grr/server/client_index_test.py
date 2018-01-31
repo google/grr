@@ -403,7 +403,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(index.LookupClients([".", "start_date:XXX"])), 0)
 
   def testRemoveLabels(self):
-    client_id, _ = self._SetupClients(1).items()[0]
+    client_id = self._SetupClients(1).keys()[0]
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])

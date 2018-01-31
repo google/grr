@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.wizardFormPageDirective');
 goog.provide('grrUi.core.wizardFormPageDirective.WizardFormPageController');
 goog.provide('grrUi.core.wizardFormPageDirective.WizardFormPageDirective');
 

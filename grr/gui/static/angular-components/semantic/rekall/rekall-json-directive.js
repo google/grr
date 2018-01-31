@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.rekallJsonDirective');
 goog.provide('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
 
 goog.require('grrUi.semantic.rekall.utils.cropRekallJson');

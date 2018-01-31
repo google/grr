@@ -139,7 +139,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
 
   def testVFSFileStartsOnlyOneMultiGetFileFlowOnUpdate(self):
     """File updates should only start one MultiGetFile at any point in time."""
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     # We need to create a file path having a pathspec.
     path = "fs/os/c/bin/bash"
 
@@ -178,7 +178,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
 
   def testVFSFileStartsNewMultiGetFileWhenLockingFlowHasFinished(self):
     """A new MultiFileGet can be started when the locking flow has finished."""
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     path = "fs/os/c/bin/bash"
 
     with aff4.FACTORY.Create(

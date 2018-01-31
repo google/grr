@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userDashboardDirective');
 goog.provide('grrUi.user.userDashboardDirective.UserDashboardDirective');
 
 

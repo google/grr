@@ -22,7 +22,7 @@ class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
     self.plugin = test_plugins.TestInstantOutputPlugin(
         source_urn=rdfvalue.RDFURN("aff4:/foo/bar"), token=self.token)
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.pool = data_store.DB.GetMutationPool()
     self.collection = multi_type_collection.MultiTypeCollection(
         rdfvalue.RDFURN("aff4:/mt_collection/testAddScan"))

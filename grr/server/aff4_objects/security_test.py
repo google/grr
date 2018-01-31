@@ -18,7 +18,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def setUp(self):
     super(ApprovalTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.approval_expiration = rdfvalue.Duration(
         "%ds" % config.CONFIG["ACL.token_expiry"])
 
@@ -123,7 +123,7 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
   """Test for client approvals."""
 
   def testCreatingApprovalCreatesSymlink(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     security.ClientApprovalRequestor(
         subject_urn=client_id,

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron');
 goog.provide('grrUi.cron.cronModule');
 
 goog.require('grrUi.core.coreModule');

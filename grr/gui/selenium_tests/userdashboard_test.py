@@ -83,7 +83,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
                         "div[name=RecentlyCreatedHunts]:contains('bar')")
 
   def testShowsClientWithRequestedApproval(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
@@ -92,7 +92,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
                    ":contains('%s')" % client_id.Basename())
 
   def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(
         client_id,
         token=access_control.ACLToken(
@@ -127,7 +127,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
                         ":contains('%s')" % c.Basename())
 
   def testValidApprovalIsNotMarked(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
@@ -140,7 +140,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
         "tr:contains('%s').half-transparent" % client_id.Basename())
 
   def testNonValidApprovalIsMarked(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     security.ClientApprovalRequestor(
         reason=self.token.reason,
         subject_urn=client_id,
@@ -153,7 +153,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
                    "tr:contains('%s').half-transparent" % client_id.Basename())
 
   def testClickingOnApprovalRedirectsToClient(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.confirmationDialogDirective');
 goog.provide('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.versionDropdownDirective');
 goog.provide('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 
 

@@ -526,6 +526,11 @@ class StatTest(unittest.TestCase):
       stat = utils.Stat(temp_filepath, follow_symlink=False)
       self.assertEqual(stat.GetSize(), 9)
 
+  def testGetPath(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      stat = utils.Stat(temp_filepath, follow_symlink=False)
+      self.assertEqual(stat.GetPath(), temp_filepath)
+
   @unittest.skipIf(platform.system() == "Windows", "requires Unix-like system")
   def testGetTime(self):
     adate = datetime.datetime(2017, 10, 2, 8, 45)

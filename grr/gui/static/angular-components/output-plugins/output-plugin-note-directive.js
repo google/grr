@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.outputPlugins.outputPluginNoteDirective');
 goog.provide('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
 
 
@@ -10,7 +11,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
+ * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
  *     grrOutputPluginsDirectivesRegistryService
  * @ngInject
  */
@@ -31,7 +32,7 @@ const OutputPluginNoteController =
   /** @type {string} */
   this.pluginErrorsUrl;
 
-  /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
+  /** @private {!grrUi.core.semanticRegistryService.SemanticRegistryService} */
   this.grrOutputPluginsDirectivesRegistryService_ =
       grrOutputPluginsDirectivesRegistryService;
 
@@ -97,6 +98,4 @@ grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective =
  */
 grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective
     .directive_name = 'grrOutputPluginNote';
-
-
 });

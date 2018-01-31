@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron.cronJobFlowsListDirective');
 goog.provide('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective');
 
 goog.scope(function() {

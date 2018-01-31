@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.byteSizeDirective');
 goog.provide('grrUi.semantic.byteSizeDirective.ByteSizeDirective');
 
 goog.scope(function() {

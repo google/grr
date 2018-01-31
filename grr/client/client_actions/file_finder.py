@@ -29,7 +29,9 @@ class _SkipFileException(Exception):
   pass
 
 
-class Component(object):
+# TODO(hanuszczak): This class should be removed once the new path component
+# system is ready.
+class _OldComponent(object):
   """A component of a path."""
 
   def __hash__(self):
@@ -39,7 +41,9 @@ class Component(object):
     raise NotImplementedError()
 
 
-class RecursiveComponent(Component):
+# TODO(hanuszczak): This class should be removed once the new path component
+# system is ready.
+class _OldRecursiveComponent(_OldComponent):
   """A recursive component."""
 
   def __init__(self, depth, follow_links=False, mountpoints_blacklist=None):
@@ -92,7 +96,9 @@ class RecursiveComponent(Component):
     return "%s:%s" % (self.__class__, self.depth)
 
 
-class RegexComponent(Component):
+# TODO(hanuszczak): This class should be removed once the new path component
+# system is ready.
+class _OldRegexComponent(_OldComponent):
   """A component matching the file name against a regex."""
 
   def __init__(self, regex):
@@ -111,7 +117,9 @@ class RegexComponent(Component):
     return "%s:%s" % (self.__class__, self.regex)
 
 
-class LiteralComponent(Component):
+# TODO(hanuszczak): This class should be removed once the new path component
+# system is ready.
+class _OldLiteralComponent(_OldComponent):
   """A component matching literal names."""
 
   def __init__(self, literal):
@@ -180,15 +188,28 @@ class FileFinderOS(actions.ActionPlugin):
       # Never stop at any device boundary.
       self.mountpoints_blacklist = set()
 
+    action = self._ParseAction(args)
+
     for fname in self.CollectGlobs(args.paths):
       self.Progress()
       try:
         matches = self._Validate(args, fname)
-        result = self._ProcessFile(args, fname)
+        result = rdf_file_finder.FileFinderResult()
         result.matches = matches
+        action.Execute(fname, result)
         self.SendReply(result)
       except _SkipFileException:
         pass
+
+  def _ParseAction(self, args):
+    action_type = args.action.action_type
+    if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
+      return StatAction(self, args.action.stat)
+    if action_type == rdf_file_finder.FileFinderAction.Action.HASH:
+      return HashAction(self, args.action.hash)
+    if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
+      return DownloadAction(self, args.action.download)
+    raise ValueError("Incorrect action type: %s" % action_type)
 
   def _GetStat(self, filepath, follow_symlink=True):
     try:
@@ -223,98 +244,6 @@ class FileFinderOS(actions.ActionPlugin):
       if not result:
         raise _SkipFileException()
       matches.extend(result)
-
-  def _ProcessFile(self, args, fname):
-    if args.action.action_type == args.action.Action.STAT:
-      return self._ExecuteStat(fname, args)
-
-    # For directories, only Stat makes sense.
-    if self._GetStat(fname, follow_symlink=True).IsDirectory():
-      raise _SkipFileException()
-
-    if args.action.action_type == args.action.Action.DOWNLOAD:
-      return self._ExecuteDownload(fname, args)
-
-    if args.action.action_type == args.action.Action.HASH:
-      return self._ExecuteHash(fname, args)
-
-    raise ValueError("incorrect action type: %s" % args.action.action_type)
-
-  def _ExecuteStat(self, fname, args):
-    stat_entry = self.Stat(fname, args.action.stat)
-    return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
-
-  def _ExecuteDownload(self, fname, args):
-    stat_opts = rdf_file_finder.FileFinderStatActionOptions(
-        resolve_links=True,
-        collect_ext_attrs=args.action.download.collect_ext_attrs)
-
-    stat_entry = self.Stat(fname, stat_opts)
-    uploaded_file = self.Upload(fname, args.action.download)
-    if uploaded_file:
-      uploaded_file.stat_entry = stat_entry
-
-    return rdf_file_finder.FileFinderResult(
-        stat_entry=stat_entry, uploaded_file=uploaded_file)
-
-  def _ExecuteHash(self, fname, args):
-    stat_opts = rdf_file_finder.FileFinderStatActionOptions(
-        resolve_links=True,
-        collect_ext_attrs=args.action.hash.collect_ext_attrs)
-
-    stat_entry = self.Stat(fname, stat_opts)
-    hash_entry = self.Hash(fname, args.action.hash)
-    return rdf_file_finder.FileFinderResult(
-        stat_entry=stat_entry, hash_entry=hash_entry)
-
-  def Stat(self, fname, opts):
-    stat = self._GetStat(fname, follow_symlink=opts.resolve_links)
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        path=client_utils.LocalPathToCanonicalPath(fname),
-        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-    return files.MakeStatResponse(
-        stat, pathspec=pathspec, ext_attrs=opts.collect_ext_attrs)
-
-  def Hash(self, fname, opts):
-    file_size = self._GetStat(fname, follow_symlink=True).GetSize()
-    if file_size <= opts.max_size:
-      max_hash_size = file_size
-    else:
-      policy = rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy
-      if opts.oversized_file_policy == policy.SKIP:
-        return None
-      elif opts.oversized_file_policy == policy.HASH_TRUNCATED:
-        max_hash_size = opts.max_size
-
-    hasher = client_utils_common.MultiHasher(progress=self.Progress)
-    try:
-      hasher.HashFilePath(fname, max_hash_size)
-    except IOError:
-      return None
-    return hasher.GetHashObject()
-
-  def Upload(self, fname, opts):
-    file_size = self._GetStat(fname, follow_symlink=True).GetSize()
-    max_bytes = None
-    if file_size > opts.max_size:
-      policy = opts.oversized_file_policy
-      policy_enum = opts.OversizedFilePolicy
-      if policy == policy_enum.DOWNLOAD_TRUNCATED:
-        max_bytes = opts.max_size
-      elif policy == policy_enum.SKIP:
-        return None
-      else:
-        raise ValueError("Unknown oversized file policy %s." % int(policy))
-
-    uploaded_file = self.grr_worker.UploadFile(
-        open(fname, "rb"),
-        opts.upload_token,
-        max_bytes=max_bytes,
-        network_bytes_limit=self.network_bytes_limit,
-        session_id=self.session_id,
-        progress_callback=self.Progress)
-    return uploaded_file
 
   def CollectGlobs(self, globs):
     expanded_globs = {}
@@ -461,20 +390,375 @@ class FileFinderOS(actions.ActionPlugin):
         if m.group(1):
           depth = int(m.group(1))
 
-        component = RecursiveComponent(
+        component = _OldRecursiveComponent(
             depth=depth,
             follow_links=self.follow_links,
             mountpoints_blacklist=self.mountpoints_blacklist)
 
       elif self.GLOB_MAGIC_CHECK.search(path_component):
-        component = RegexComponent(fnmatch.translate(path_component))
+        component = _OldRegexComponent(fnmatch.translate(path_component))
 
       else:
-        component = LiteralComponent(path_component)
+        component = _OldLiteralComponent(path_component)
 
       components.append(component)
 
     return components
+
+
+class PathOpts(object):
+  """Options used for path expansion.
+
+  This is a convenience class used to avoid threading multiple default
+  parameters in glob expansion functions.
+
+  Args:
+    follow_links: Whether glob expansion mechanism should follow symlinks.
+    recursion_blacklist: List of folders that the glob expansion should not
+                         recur to.
+  """
+
+  def __init__(self, follow_links=False, recursion_blacklist=None):
+    self.follow_links = follow_links
+    self.recursion_blacklist = set(recursion_blacklist or [])
+
+
+class PathComponent(object):
+  """An abstract class representing parsed path component.
+
+  A path component is part of the path delimited by the directory separator.
+  """
+
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractmethod
+  def Generate(self, dirpath):
+    """Yields children of a given directory matching the component."""
+
+
+class RecursiveComponent(PathComponent):
+  """A class representing recursive path components.
+
+  A recursive component (specified as `**`) matches any directory tree up to
+  some specified depth (3 by default).
+
+  Attributes:
+    max_depth: Maximum depth of the recursion for directory discovery.
+    opts: A `PathOpts` object.
+  """
+
+  DEFAULT_MAX_DEPTH = 3
+
+  def __init__(self, max_depth=None, opts=None):
+    super(RecursiveComponent, self).__init__()
+    self.max_depth = max_depth or self.DEFAULT_MAX_DEPTH
+    self.opts = opts or PathOpts()
+
+  def Generate(self, dirpath):
+    return self._Generate(dirpath, 1)
+
+  def _Generate(self, dirpath, depth):
+    if depth > self.max_depth:
+      return
+
+    for item in _ListDir(dirpath):
+      itempath = os.path.join(dirpath, item)
+      yield itempath
+
+      if itempath in self.opts.recursion_blacklist:
+        continue
+      for childpath in self._Recurse(itempath, depth):
+        yield childpath
+
+  def _Recurse(self, path, depth):
+    if not os.path.isdir(path):
+      return
+    if not self.opts.follow_links and os.path.islink(path):
+      return
+    for childpath in self._Generate(path, depth + 1):
+      yield childpath
+
+
+class GlobComponent(PathComponent):
+  """A class representing glob path components.
+
+  A glob component can use wildcards and character sets that match particular
+  strings. For more information see man page for `glob`.
+
+  Note that regular names (such as `foo`) are special case of a glob components
+  that contain no wildcards and match only themselves.
+
+  Attributes:
+    glob: A string with potential glob elements (e.g. `foo*`).
+  """
+
+  def __init__(self, glob):
+    super(GlobComponent, self).__init__()
+    self.glob = glob
+
+  def Generate(self, dirpath):
+    for item in fnmatch.filter(_ListDir(dirpath), self.glob):
+      yield os.path.join(dirpath, item)
+
+
+class CurrentComponent(PathComponent):
+  """A class representing current directory components.
+
+  A current directory is a path component that corresponds to the `.` (dot)
+  symbol on most systems. Technically it expands to nothing but it is useful
+  with group expansion mechanism.
+  """
+
+  def Generate(self, dirpath):
+    raise NotImplementedError()
+
+
+class ParentComponent(PathComponent):
+  """A class representing parent directory components.
+
+  A parent directory is a path component that corresponds to the `..` (double
+  dot) symbol on most systems. It allows to go one directory up in the hierarchy
+  and is an useful tool with group expansion.
+  """
+
+  def Generate(self, dirpath):
+    raise NotImplementedError()
+
+
+PATH_RECURSION_REGEX = re.compile(r"\*\*(?P<max_depth>\d*)")
+
+
+def ParsePathItem(item, opts=None):
+  """Parses string path component to an `PathComponent` instance.
+
+  Args:
+    item: A path component string to be parsed.
+    opts: A `PathOpts` object.
+
+  Returns:
+    `PathComponent` instance corresponding to given path fragment.
+
+  Raises:
+    ValueError: If the path item contains a recursive component fragment but
+      cannot be parsed as such.
+  """
+  if item == os.path.curdir:
+    return CurrentComponent()
+
+  if item == os.path.pardir:
+    return ParentComponent()
+
+  recursion = PATH_RECURSION_REGEX.search(item)
+  if not recursion:
+    return GlobComponent(item)
+
+  start, end = recursion.span()
+  if not (start == 0 and end == len(item)):
+    raise ValueError("malformed recursive component")
+
+  if recursion.group("max_depth"):
+    max_depth = int(recursion.group("max_depth"))
+  else:
+    max_depth = None
+
+  return RecursiveComponent(max_depth=max_depth, opts=opts)
+
+
+def ParsePath(path, opts=None):
+  """Parses given path into a stream of `PathComponent` instances.
+
+  Args:
+    path: A path to be parsed.
+    opts: An `PathOpts` object.
+
+  Yields:
+    `PathComponent` instances corresponding to the components of the given path.
+
+  Raises:
+    ValueError: If path contains more than one recursive component.
+  """
+  rcount = 0
+  for item in path.split(os.path.sep):
+    component = ParsePathItem(item, opts=opts)
+    if isinstance(component, RecursiveComponent):
+      rcount += 1
+      if rcount > 1:
+        raise ValueError("path cannot have more than one recursive component")
+    yield component
+
+
+def _ListDir(dirpath):
+  """Returns children of a given directory.
+
+  This function is intended to be used by the `PathComponent` subclasses to get
+  initial list of potential children that then need to be filtered according to
+  the rules of a specific component.
+
+  Args:
+    dirpath: A path to the directory.
+  """
+  try:
+    return os.listdir(dirpath)
+  except OSError as error:
+    if error.errno == errno.EACCES:
+      logging.info(error)
+    return []
+
+
+# TODO(hanuszczak): Move subaction classes to a separate module.
+
+
+class Action(object):
+  """An abstract class for subactions of the client-side file-finder.
+
+  Attributes:
+    flow: A parent flow action that spawned the subaction.
+  """
+
+  __metaclass__ = abc.ABCMeta
+
+  def __init__(self, flow):
+    self.flow = flow
+
+  @abc.abstractmethod
+  def Execute(self, filepath, result):
+    """Executes the action on a given path.
+
+    Concrete action implementations should return results by filling-in
+    appropriate fields of the result instance.
+
+    Args:
+      filepath: A path to the file on which the action is going to be performed.
+      result: An `FileFinderResult` instance to fill-in.
+    """
+    pass
+
+
+class StatAction(Action):
+  """Implementation of the stat subaction.
+
+  This subaction just gathers basic metadata information about the specified
+  file (such as size, modification time, extended attributes and flags.
+
+  Attributes:
+    flow: A parent flow action that spawned the subaction.
+    opts: A `FileFinderStatActionOptions` instance.
+  """
+
+  def __init__(self, flow, opts):
+    super(StatAction, self).__init__(flow)
+    self.opts = opts
+
+  def Execute(self, filepath, result):
+    stat_cache = self.flow.stat_cache
+
+    stat = stat_cache.Get(filepath, follow_symlink=self.opts.resolve_links)
+    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+
+
+class HashAction(Action):
+  """Implementation of the hash subaction.
+
+  This subaction returns results of various hashing algorithms applied to the
+  specified file. Additionally it also gathers basic information about the
+  hashed file.
+
+  Attributes:
+    flow: A parent flow action that spawned the subaction.
+    opts: A `FileFinderHashActionOptions` instance.
+  """
+
+  def __init__(self, flow, opts):
+    super(HashAction, self).__init__(flow)
+    self.opts = opts
+
+  def Execute(self, filepath, result):
+    stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
+    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+
+    if stat.IsDirectory():
+      return
+
+    policy = self.opts.oversized_file_policy
+    max_size = self.opts.max_size
+    if stat.GetSize() <= self.opts.max_size:
+      result.hash_entry = _HashEntry(stat, self.flow)
+    elif policy == self.opts.OversizedFilePolicy.HASH_TRUNCATED:
+      result.hash_entry = _HashEntry(stat, self.flow, max_size=max_size)
+    elif policy == self.opts.OversizedFilePolicy.SKIP:
+      return
+    else:
+      raise ValueError("Unknown oversized file policy: %s" % policy)
+
+
+class DownloadAction(Action):
+  """Implementation of the download subaction.
+
+  This subaction sends a specified file to the server and returns a handle to
+  its stored version. Additionally it also gathers basic metadata about the
+  file.
+
+  Attributes:
+    flow: A parent flow action that spawned the subaction.
+    opts: A `FileFinderDownloadActionOptions` instance.
+  """
+
+  def __init__(self, flow, opts):
+    super(DownloadAction, self).__init__(flow)
+    self.opts = opts
+
+  def Execute(self, filepath, result):
+    stat = self.flow.stat_cache.Get(filepath, follow_symlink=True)
+    result.stat_entry = _StatEntry(stat, ext_attrs=self.opts.collect_ext_attrs)
+
+    if stat.IsDirectory():
+      return
+
+    policy = self.opts.oversized_file_policy
+    max_size = self.opts.max_size
+    if stat.GetSize() <= max_size:
+      result.uploaded_file = self._UploadFilePath(filepath)
+      result.uploaded_file.stat_entry = result.stat_entry
+    elif policy == self.opts.OversizedFilePolicy.DOWNLOAD_TRUNCATED:
+      result.uploaded_file = self._UploadFilePath(filepath, truncate=True)
+      result.uploaded_file.stat_entry = result.stat_entry
+    elif policy == self.opts.OversizedFilePolicy.HASH_TRUNCATED:
+      result.hash_entry = _HashEntry(stat, self.flow, max_size=max_size)
+    elif policy == self.opts.OversizedFilePolicy.SKIP:
+      return
+    else:
+      raise ValueError("Unknown oversized file policy: %s" % policy)
+
+  def _UploadFilePath(self, filepath, truncate=False):
+    with open(filepath, "rb") as fdesc:
+      return self._UploadFile(fdesc, truncate=truncate)
+
+  def _UploadFile(self, fdesc, truncate=False):
+    max_size = self.opts.max_size if truncate else None
+    return self.flow.grr_worker.UploadFile(
+        fdesc,
+        self.opts.upload_token,
+        max_bytes=max_size,
+        network_bytes_limit=self.flow.network_bytes_limit,
+        session_id=self.flow.session_id,
+        progress_callback=self.flow.Progress)
+
+
+def _StatEntry(stat, ext_attrs):
+  pathspec = rdf_paths.PathSpec(
+      pathtype=rdf_paths.PathSpec.PathType.OS,
+      path=client_utils.LocalPathToCanonicalPath(stat.GetPath()),
+      path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+  return files.MakeStatResponse(stat, pathspec=pathspec, ext_attrs=ext_attrs)
+
+
+def _HashEntry(stat, flow, max_size=None):
+  hasher = client_utils_common.MultiHasher(progress=flow.Progress)
+  try:
+    hasher.HashFilePath(stat.GetPath(), max_size or stat.GetSize())
+    return hasher.GetHashObject()
+  except IOError:
+    return None
 
 
 class MetadataCondition(object):

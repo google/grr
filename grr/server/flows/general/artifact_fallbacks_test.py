@@ -21,7 +21,7 @@ class TestSystemRootSystemDriveFallbackFlow(flow_test_lib.FlowTestsBaseclass):
       for s in flow_test_lib.TestFlowHelper(
           artifact_fallbacks.SystemRootSystemDriveFallbackFlow.__name__,
           client_mock,
-          client_id=self.client_id,
+          client_id=test_lib.TEST_CLIENT_ID,
           token=self.token,
           artifact_name="WindowsEnvironmentVariableSystemRoot"):
         session_id = s

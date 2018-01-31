@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactDescriptorsService');
 goog.provide('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
 
 goog.scope(function() {

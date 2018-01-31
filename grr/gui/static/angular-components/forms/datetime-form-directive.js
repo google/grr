@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.datetimeFormDirective');
 goog.provide('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
 
 

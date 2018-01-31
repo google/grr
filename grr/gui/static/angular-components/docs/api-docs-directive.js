@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.docs.apiDocsDirective');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');

@@ -1,8 +1,10 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileTableDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 
-goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT');
 goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 

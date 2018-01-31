@@ -1,6 +1,7 @@
+goog.provide('grrUi.routing');
 goog.provide('grrUi.routing.routingModule');
 goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.routing.rewriteUrl');
+goog.require('grrUi.routing.rewriteUrl.rewriteUrl');
 goog.require('grrUi.routing.routingService.RoutingService');
 
 
@@ -273,7 +274,7 @@ grrUi.routing.routingModule.config(function ($stateProvider, $urlRouterProvider,
 
     // Try to rewrite URL.
     var url = $location.url().substring(1);
-    var rewrittenUrl = grrUi.routing.rewriteUrl(url);
+    var rewrittenUrl = grrUi.routing.rewriteUrl.rewriteUrl(url);
     if (rewrittenUrl) {
       $location.url(rewrittenUrl);
     }

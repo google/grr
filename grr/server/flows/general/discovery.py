@@ -303,12 +303,11 @@ class Interrogate(flow.GRRFlow):
       return
 
     with self._OpenClient(mode="rw") as client:
+      new_volumes = []
       for response in responses:
         if isinstance(response, rdf_client.Volume):
           # AFF4 client.
-          volumes = client.Get(client.Schema.VOLUMES) or client.Schema.VOLUMES()
-          volumes.Append(response)
-          client.Set(client.Schema.VOLUMES, volumes)
+          new_volumes.append(response)
 
           # objects.Client.
           self.state.client.volumes.append(response)
@@ -320,6 +319,12 @@ class Interrogate(flow.GRRFlow):
           self.state.client.hardware_info = response
         else:
           raise ValueError("Unexpected response type: %s", type(response))
+
+      if new_volumes:
+        volumes = client.Schema.VOLUMES()
+        for v in new_volumes:
+          volumes.Append(v)
+        client.Set(client.Schema.VOLUMES, volumes)
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
@@ -468,8 +473,7 @@ class Interrogate(flow.GRRFlow):
 
     if data_store.RelationalDBWriteEnabled():
       try:
-        data_store.REL_DB.WriteClient(self.client_id.Basename(),
-                                      self.state.client)
+        data_store.REL_DB.WriteClient(self.state.client)
       except db.UnknownClientError:
         pass
 

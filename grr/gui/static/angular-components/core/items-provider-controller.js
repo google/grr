@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.itemsProviderController');
 goog.provide('grrUi.core.itemsProviderController.Items');
 goog.provide('grrUi.core.itemsProviderController.ItemsProviderController');
 

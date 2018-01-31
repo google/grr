@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.aff4ObjectRepresentationDirective');
 goog.provide('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');
 
 goog.scope(function() {

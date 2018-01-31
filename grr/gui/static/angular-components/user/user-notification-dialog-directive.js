@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userNotificationDialogDirective');
 goog.provide('grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective');
 
 goog.scope(function() {

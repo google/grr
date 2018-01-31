@@ -49,6 +49,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     self.output_count = 0
 
+    self.client_id = self.SetupClient(0)
+
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
       kb = fd.Schema.KNOWLEDGE_BASE()
@@ -89,8 +91,9 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     # We should be using an array since users.username will expand to multiple
     # values.
-    self.assertRaises(ValueError, collect_flow.InterpolateDict,
-                      {"bad": "%%users.username%%"})
+    self.assertRaises(ValueError, collect_flow.InterpolateDict, {
+        "bad": "%%users.username%%"
+    })
 
     list_args = collect_flow.InterpolateList(
         ["%%users.username%%", r"%%users.username%%\aa"])
@@ -167,7 +170,9 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     file_path = os.path.join(self.base_path, "test_img.dd")
     coll1 = artifact_registry.ArtifactSource(
         type=artifact_registry.ArtifactSource.SourceType.FILE,
-        attributes={"paths": [file_path]})
+        attributes={
+            "paths": [file_path]
+        })
     self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
@@ -222,7 +227,9 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__})
+          attributes={
+              "client_action": standard.ListProcesses.__name__
+          })
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
       for s in flow_test_lib.TestFlowHelper(
@@ -247,7 +254,9 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__})
+          attributes={
+              "client_action": standard.ListProcesses.__name__
+          })
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]

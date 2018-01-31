@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.sidebar.navDropdownDirective');
 goog.provide('grrUi.sidebar.navDropdownDirective.NavDropdownController');
 goog.provide('grrUi.sidebar.navDropdownDirective.NavDropdownDirective');
 

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective');
 goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective.ConfigureRulesPageDirective');
 
 goog.scope(function() {

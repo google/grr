@@ -118,7 +118,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
 
     self.assertEqual(len(api_report_data.line_chart.data), 1)
-    self.assertEqual(api_report_data.line_chart.data[0].label, "GRR Monitor 0")
+    self.assertEqual(api_report_data.line_chart.data[0].label,
+                     "GRR Monitor 123")
     self.assertEqual(len(api_report_data.line_chart.data[0].points), 1)
     self.assertEqual(api_report_data.line_chart.data[0].points[0].y, 20)
 
@@ -215,10 +216,10 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(
         api_report_data,
         rdf_report_plugins.ApiReportData(
-            pie_chart=rdf_report_plugins.
-            ApiPieChartReportData(data=[
-                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
-            ]),
+            pie_chart=rdf_report_plugins.ApiPieChartReportData(
+                data=[
+                    rdf_report_plugins.ApiReportDataPoint1D(label="Linux", x=1)
+                ]),
             representation_type=rdf_report_plugins.ApiReportData.
             RepresentationType.PIE_CHART))
 
@@ -327,7 +328,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
 
   def testFileSizeDistributionReportPlugin(self):
     filename = "winexec_img.dd"
-    client_id, = self.SetupClients(1)
+    client_id = self.SetupClient(0)
 
     # Add a file to be reported.
     filestore_test_lib.AddFileToFileStore(

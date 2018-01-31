@@ -26,7 +26,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(BigQueryOutputPluginTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.results_urn = self.client_id.Add("Results")
     self.base_urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
@@ -69,11 +69,13 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # description requires you to fix the json so we just compare field names
     # and types.
     schema_fields = [(x["name"], x["type"]) for x in schema]
-    schema_metadata_fields = [(x["name"], x["type"])
-                              for x in schema[0]["fields"]]
+    schema_metadata_fields = [
+        (x["name"], x["type"]) for x in schema[0]["fields"]
+    ]
     expected_fields = [(x["name"], x["type"]) for x in expected_schema_data]
-    expected_metadata_fields = [(x["name"], x["type"])
-                                for x in expected_schema_data[0]["fields"]]
+    expected_metadata_fields = [
+        (x["name"], x["type"]) for x in expected_schema_data[0]["fields"]
+    ]
     self.assertEqual(schema_fields, expected_fields)
     self.assertEqual(schema_metadata_fields, expected_metadata_fields)
 
@@ -154,8 +156,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                path="/中国新闻网新闻中", pathtype="OS")),
+            rdf_client.StatEntry(
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
             rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
@@ -221,8 +223,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def testBigQueryPluginFallbackToAFF4(self):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
-        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="/中国新闻网新闻中", pathtype="OS")),
+        rdf_client.StatEntry(
+            pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中", pathtype="OS")),
         rdf_client.Process(pid=42),
         rdf_client.Process(pid=43),
         rdf_client.SoftwarePackage(name="test.deb")
@@ -243,8 +245,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(
-            **{"InsertData.side_effect": bigquery.BigQueryJobUploadError()})
+        mock_bigquery.return_value.configure_mock(**{
+            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
+        })
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])
@@ -284,8 +287,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # Process the same messages to make sure we're re-using the filehandles.
     with test_lib.FakeTime(1445995878):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(
-            **{"InsertData.side_effect": bigquery.BigQueryJobUploadError()})
+        mock_bigquery.return_value.configure_mock(**{
+            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
+        })
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])

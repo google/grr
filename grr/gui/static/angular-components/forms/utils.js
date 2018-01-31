@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.utils');
 goog.provide('grrUi.forms.utils.valueHasErrors');
 
 goog.scope(function() {

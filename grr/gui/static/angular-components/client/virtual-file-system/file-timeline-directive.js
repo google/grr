@@ -1,7 +1,9 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective');
-goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT');
 goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 
 goog.scope(function() {

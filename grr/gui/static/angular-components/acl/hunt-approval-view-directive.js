@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.huntApprovalViewDirective');
 goog.provide('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
 
 goog.scope(function() {

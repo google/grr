@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.infiniteTableDirective');
 goog.provide('grrUi.core.infiniteTableDirective.InfiniteTableController');
 goog.provide('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 

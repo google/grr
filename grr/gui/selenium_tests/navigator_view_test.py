@@ -19,7 +19,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     if last_ping is None:
       last_ping = rdfvalue.RDFDatetime.Now()
 
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     with aff4.FACTORY.Open(
         client_id, mode="rw", token=self.token) as client_obj:
       client_obj.Set(client_obj.Schema.PING(last_ping))
@@ -41,7 +41,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
         pass
 
   def CreateClientWithVolumes(self, available=50):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     with aff4.FACTORY.Open(
         client_id, mode="rw", token=self.token) as client_obj:
       volume = rdf_client.Volume(

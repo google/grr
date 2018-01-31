@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.foremanLabelRuleFormDirective');
 goog.provide('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective');
 
 goog.scope(function() {

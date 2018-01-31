@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.forceRefreshDirective');
 goog.provide('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 
 goog.scope(function() {

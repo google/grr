@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.encodeUriComponentFilter');
 goog.provide('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 
 goog.scope(function() {

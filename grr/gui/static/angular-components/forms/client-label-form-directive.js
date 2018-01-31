@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.clientLabelFormDirective');
 goog.provide('grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');

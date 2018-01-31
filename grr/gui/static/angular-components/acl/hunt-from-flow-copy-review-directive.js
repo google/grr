@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective');
 goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
 
 goog.scope(function() {

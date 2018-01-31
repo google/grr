@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.utils');
 goog.provide('grrUi.semantic.rekall.utils.cropRekallJson');
 goog.provide('grrUi.semantic.rekall.utils.stackRekallTables');
 

@@ -1,3 +1,4 @@
+goog.provide('grrUi.acl');
 goog.provide('grrUi.acl.aclModule');
 goog.require('grrUi.acl.aclDialogService.AclDialogService');
 goog.require('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
@@ -7,7 +8,7 @@ goog.require('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
 goog.require('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
 goog.require('grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective');
 goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
-goog.require('grrUi.core.apiService');
+goog.require('grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT');
 
 /**
  * Angular module for acl GRR UI components.

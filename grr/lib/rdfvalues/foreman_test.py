@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test for the foreman client rule classes."""
 
-
 from grr.lib import flags
 from grr.lib.rdfvalues import test_base
 from grr.server import aff4
@@ -59,7 +58,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
-    client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
+    client_id_dar = self.SetupClient(0, system="Darwin")
     # One of the set's rules has os_darwin=True, so the whole set matches
     # with the match any match mode
     self.assertTrue(
@@ -83,7 +82,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
-    client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
+    client_id_win = self.SetupClient(0, system="Windows")
     # None of the set's rules has os_windows=True, so the whole set doesn't
     # match
     self.assertFalse(
@@ -107,7 +106,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
-    client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
+    client_id_dar = self.SetupClient(0, system="Darwin")
     # One of the set's rules has os_darwin=False, so the whole set doesn't
     # match with the match all match mode
     self.assertFalse(
@@ -131,7 +130,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
                     os_windows=False, os_linux=True, os_darwin=True))
         ])
 
-    client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
+    client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=False, so the whole set matches
     self.assertTrue(
         rs.Evaluate(
@@ -144,7 +143,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
         match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY,
         rules=[])
 
-    client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
+    client_id_lin = self.SetupClient(0, system="Linux")
     # None of the set's rules has os_linux=True, so the set doesn't match
     self.assertFalse(
         rs.Evaluate(
@@ -157,7 +156,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
         match_mode=rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ALL,
         rules=[])
 
-    client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
+    client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=True, so the set matches
     self.assertTrue(
         rs.Evaluate(
@@ -182,7 +181,7 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         os=rdf_foreman.ForemanOsClientRule(
             os_windows=True, os_linux=True, os_darwin=False))
 
-    client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
+    client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client matches rule r
     self.assertTrue(
         r.Evaluate(
@@ -196,7 +195,7 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         os=rdf_foreman.ForemanOsClientRule(
             os_windows=False, os_linux=True, os_darwin=False))
 
-    client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
+    client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client doesn't match rule r
     self.assertFalse(
         r.Evaluate(
@@ -228,7 +227,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanOsClientRule(
         os_windows=False, os_linux=False, os_darwin=False)
 
-    client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
+    client_id_win = self.SetupClient(0, system="Windows")
     self.assertFalse(
         r.Evaluate(
             CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
@@ -242,7 +241,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
     r1 = rdf_foreman.ForemanOsClientRule(
         os_windows=False, os_linux=True, os_darwin=False)
 
-    client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
+    client_id_lin = self.SetupClient(0, system="Linux")
     self.assertFalse(
         r0.Evaluate(
             CollectAff4Objects(r0.GetPathsToCheck(), client_id_lin, self.token),
@@ -260,7 +259,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
     r1 = rdf_foreman.ForemanOsClientRule(
         os_windows=True, os_linux=False, os_darwin=True)
 
-    client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
+    client_id_dar = self.SetupClient(0, system="Darwin")
     self.assertFalse(
         r0.Evaluate(
             CollectAff4Objects(r0.GetPathsToCheck(), client_id_dar, self.token),
@@ -280,7 +279,7 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
     return rdf_foreman.ForemanLabelClientRule(label_names=[str(number)])
 
   def _Evaluate(self, rule):
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     objects = CollectAff4Objects(rule.GetPathsToCheck(), client_id, self.token)
     # Label the client
@@ -394,7 +393,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanRegexClientRule(
         attribute_name="type", attribute_regex="^VFSGRRClient$")
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # Aff4 object type is VFSGRRClient
     self.assertTrue(
@@ -407,7 +406,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanRegexClientRule(
         attribute_name="type", attribute_regex="GRR")
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # The type contains the substring GRR
     self.assertTrue(
@@ -420,7 +419,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanRegexClientRule(
         attribute_name="type", attribute_regex="foo")
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # The type doesn't contain foo
     self.assertFalse(
@@ -447,7 +446,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
         value=0)
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # The size is not less than 0
     self.assertFalse(
@@ -462,7 +461,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
         value=-1)
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # size > -1
     self.assertTrue(
@@ -477,7 +476,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
         value=123)
 
-    client_id, = self.SetupClients(nr_clients=1)
+    client_id = self.SetupClient(0)
 
     # Host is not a number
     self.assertFalse(

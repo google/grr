@@ -1,6 +1,7 @@
 
 'use strict';
 
+goog.provide('grrUi.core.bytesToHexFilter');
 goog.provide('grrUi.core.bytesToHexFilter.BytesToHexFilter');
 
 goog.scope(function() {

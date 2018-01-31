@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.reflectionService');
 goog.provide('grrUi.core.reflectionService.ReflectionService');
 
 goog.scope(function() {

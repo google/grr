@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.semanticPrimitiveFormDirective');
 goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
 
 

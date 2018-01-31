@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt');
 goog.provide('grrUi.hunt.huntModule');
 
 goog.require('grrUi.core.coreModule');

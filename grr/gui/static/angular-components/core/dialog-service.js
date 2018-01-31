@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.dialogService');
 goog.provide('grrUi.core.dialogService.DialogService');
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
 

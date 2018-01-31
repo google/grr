@@ -98,6 +98,9 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testReadingUnknownGRRUserFails(self):
     pass
 
+  def testReadingMultipleGRRUsersEntriesWorks(self):
+    pass
+
 
 if __name__ == "__main__":
   unittest.main()

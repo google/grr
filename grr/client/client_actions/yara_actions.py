@@ -108,9 +108,20 @@ class YaraProcessScan(actions.ActionPlugin):
           process, chunk_size=args.chunk_size, overlap_size=args.overlap_size)
       matches = []
 
-      for start, length in client_utils.MemoryRegions(process, args):
-        for m in self._ScanRegion(rules, streamer, start, length, deadline):
-          matches.append(m)
+      try:
+        for start, length in client_utils.MemoryRegions(process, args):
+          for m in self._ScanRegion(rules, streamer, start, length, deadline):
+            matches.append(m)
+            if (args.max_results_per_process > 0 and
+                len(matches) >= args.max_results_per_process):
+              return matches
+      except yara.Error as e:
+        # Yara internal error 30 is too many hits (obviously...). We
+        # need to report this as a hit, not an error.
+        if e.message == "internal error: 30":
+          return matches
+        raise
+
     return matches
 
   def Run(self, args):

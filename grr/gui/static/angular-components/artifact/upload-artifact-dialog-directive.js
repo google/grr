@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.uploadArtifactDialogDirective');
 goog.provide('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
 
 

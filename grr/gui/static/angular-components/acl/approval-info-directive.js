@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.approvalInfoDirective');
 goog.provide('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');

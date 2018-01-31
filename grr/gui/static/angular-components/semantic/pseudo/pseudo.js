@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.pseudo');
 goog.provide('grrUi.semantic.pseudo.pseudoModule');
 
 goog.require('grrUi.core.coreModule');

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.serverLoadGraphSerieDirective');
 goog.provide('grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective');
 
 goog.scope(function() {

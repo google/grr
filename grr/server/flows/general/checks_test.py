@@ -25,6 +25,7 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
 
   def setUp(self):
     super(TestCheckFlows, self).setUp()
+    self.client_id = self.SetupClient(0)
     # Only load the checks once.
     if self.checks_loaded is False:
       self.checks_loaded = self.LoadChecks()

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.clockDirective');
 goog.provide('grrUi.core.clockDirective.ClockDirective');
 
 goog.scope(function() {

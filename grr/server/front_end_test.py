@@ -90,7 +90,9 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testReceiveMessages(self):
     """Test Receiving messages with no status."""
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    client_id = test_lib.TEST_CLIENT_ID
+    flow_obj = self.FlowSetup(
+        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
 
     session_id = flow_obj.session_id
     messages = [
@@ -101,11 +103,11 @@ class GRRFEServerTest(GRRFEServerTestBase):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(client_id, messages)
 
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
-    tasks_on_client_queue = manager.Query(self.client_id, 100)
+    tasks_on_client_queue = manager.Query(client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
     stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
@@ -121,7 +123,9 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testReceiveMessagesWithStatus(self):
     """Receiving a sequence of messages with a status."""
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    client_id = test_lib.TEST_CLIENT_ID
+    flow_obj = self.FlowSetup(
+        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
 
     session_id = flow_obj.session_id
     messages = [
@@ -144,11 +148,11 @@ class GRRFEServerTest(GRRFEServerTestBase):
             payload=status,
             type=rdf_flows.GrrMessage.Type.STATUS))
 
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(client_id, messages)
 
     # Make sure the task is still on the client queue
     manager = queue_manager.QueueManager(token=self.token)
-    tasks_on_client_queue = manager.Query(self.client_id, 100)
+    tasks_on_client_queue = manager.Query(client_id, 100)
     self.assertEqual(len(tasks_on_client_queue), 1)
 
     stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
@@ -163,7 +167,9 @@ class GRRFEServerTest(GRRFEServerTestBase):
       self.assertRDFValuesEqual(stored_message, message)
 
   def testReceiveUnsolicitedClientMessage(self):
-    flow_obj = self.FlowSetup(flow_test_lib.FlowOrderTest.__name__)
+    client_id = test_lib.TEST_CLIENT_ID
+    flow_obj = self.FlowSetup(
+        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
 
     session_id = flow_obj.session_id
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -183,7 +189,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
             type=rdf_flows.GrrMessage.Type.STATUS)
     ]
 
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(client_id, messages)
     manager = queue_manager.QueueManager(token=self.token)
     completed = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed), 1)
@@ -201,7 +207,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
             payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
     ]
 
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     # Wait for async actions to complete
     self.server.thread_pool.Join()
@@ -233,7 +239,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
               payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
       ]
 
-      self.server.ReceiveMessages(self.client_id, messages)
+      self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
       # Wait for async actions to complete
       self.server.thread_pool.Join()
@@ -256,7 +262,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
     # Delete the local well known flow cache is empty.
     self.server.well_known_flows = {}
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     # Wait for async actions to complete
     self.server.thread_pool.Join()
@@ -293,7 +299,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     self.assertIn(session_id1.FlowName(), self.server.well_known_flows)
     self.assertNotIn(session_id2.FlowName(), self.server.well_known_flows)
 
-    self.server.ReceiveMessages(self.client_id, messages)
+    self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
 
     # Wait for async actions to complete
     self.server.thread_pool.Join()
@@ -326,13 +332,14 @@ class GRRFEServerTest(GRRFEServerTestBase):
 
   def testDrainUpdateSessionRequestStates(self):
     """Draining the flow requests and preparing messages."""
+    client_id = test_lib.TEST_CLIENT_ID
     # This flow sends 10 messages on Start()
-    flow_obj = self.FlowSetup("SendingTestFlow")
+    flow_obj = self.FlowSetup("SendingTestFlow", client_id=client_id)
     session_id = flow_obj.session_id
 
     # There should be 10 messages in the client's task queue
     manager = queue_manager.QueueManager(token=self.token)
-    tasks = manager.Query(self.client_id, 100)
+    tasks = manager.Query(client_id, 100)
     self.assertEqual(len(tasks), 10)
 
     requests_by_id = {}
@@ -356,8 +363,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     # message list.
     response = rdf_flows.MessageList()
 
-    response.job = self.server.DrainTaskSchedulerQueueForClient(
-        self.client_id, 5)
+    response.job = self.server.DrainTaskSchedulerQueueForClient(client_id, 5)
 
     # Check that we received only as many messages as we asked for
     self.assertEqual(len(response.job), 5)
@@ -373,7 +379,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
     we have no certificate for, the messages are requeued when sending fails.
     """
     # Make a new fake client
-    client_id, = self.SetupClients(1)
+    client_id = self.SetupClient(0)
 
     class MockCommunicator(object):
       """A fake that simulates an unenrolled client."""
@@ -443,7 +449,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
   def testHandleClientMessageRetransmission(self):
     """Check that requests get retransmitted but only if there is no status."""
     # Make a new fake client
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     # Test the standard behavior.
     base_time = 1000

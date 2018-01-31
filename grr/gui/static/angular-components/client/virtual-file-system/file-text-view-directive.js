@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
 
 

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.globExpressionsListFormDirective');
 goog.provide('grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective');
 
 

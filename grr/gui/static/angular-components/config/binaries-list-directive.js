@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.config.binariesListDirective');
 goog.provide('grrUi.config.binariesListDirective.BinariesListDirective');
 goog.provide('grrUi.config.binariesListDirective.sortBinaries');
 

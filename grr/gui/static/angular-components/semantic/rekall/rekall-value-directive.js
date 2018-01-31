@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.rekallValueDirective');
 goog.provide('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
 
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
@@ -12,7 +13,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @param {!jQuery} $element
  * @param {!angular.$compile} $compile
- * @param {!grrUi.semantic.rekall.rekallRegistry.RekallRegistryService}
+ * @param {!grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService}
  *     grrRekallDirectivesRegistryService
  * @constructor
  * @ngInject
@@ -28,7 +29,9 @@ const RekallValueController = function(
   /** @private {!angular.$compile} */
   this.compile_ = $compile;
 
-  /** @private {!grrUi.semantic.rekall.rekallRegistry.RekallRegistryService} */
+  /**
+   * @private {!grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService}
+   */
   this.grrRekallDirectivesRegistryService_ = grrRekallDirectivesRegistryService;
 
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
@@ -88,5 +91,4 @@ grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective = function() {
  */
 grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective.directive_name =
     'grrRekallValue';
-
 });  // goog.scope

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.canaryOnlyDirective');
 goog.provide('grrUi.core.canaryOnlyDirective.CanaryOnlyDirective');
 goog.provide('grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective');
 

@@ -1,27 +1,12 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.events');
+goog.provide('grrUi.client.virtualFileSystem.fileViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
 
 
 goog.scope(function() {
-
-
-var REFRESH_FOLDER_EVENT = "RefreshFolderEvent";
-/**
- * "Refresh folder" event name.
- * @const
- */
-grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT = REFRESH_FOLDER_EVENT;
-
-var REFRESH_FILE_EVENT = "RefreshFileEvent";
-/**
- * "Refresh file" event name.
- * @const
- */
-grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT = REFRESH_FILE_EVENT;
 
 
 /**
@@ -106,7 +91,7 @@ const FileViewController = function(
   /** @type {string} */
   this.tab = 'stats';
 
-  /** @type {number} */
+  /** @type {number|undefined} */
   this.fileVersion;
 
   /** @type {string} */
@@ -135,7 +120,7 @@ const FileViewController = function(
 FileViewController.prototype.onUrlRoutingParamsChanged_ = function(params) {
   this.clientId = params[0];
   this.selectedFilePath = params[1];
-  this.fileVersion = parseInt(params[2], 10);
+  this.fileVersion = parseInt(params[2], 10) || undefined;
   this.viewMode = params[3] || 'list';
   this.tab = params[4] || 'stats';
 };

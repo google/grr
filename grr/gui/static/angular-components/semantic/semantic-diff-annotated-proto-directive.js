@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
 goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective');
 goog.require('grrUi.semantic.semanticProtoDirective.buildItems');
 

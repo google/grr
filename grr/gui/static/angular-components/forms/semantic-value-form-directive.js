@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.semanticValueFormDirective');
 goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormController');
 goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective');
 
@@ -29,7 +30,7 @@ grrUi.forms.semanticValueFormDirective.clearCaches = function() {
  * @param {!angular.Scope} $scope
  * @param {!angular.$compile} $compile
  * @param {!angular.jQuery} $element
- * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
+ * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
  *     grrSemanticFormDirectivesRegistryService
  * @ngInject
  */
@@ -47,7 +48,7 @@ grrUi.forms.semanticValueFormDirective.SemanticValueFormController = function(
   /** @private {angular.Scope|undefined} */
   this.elementScope_;
 
-  /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
+  /** @private {!grrUi.core.semanticRegistryService.SemanticRegistryService} */
   this.grrSemanticFormDirectivesRegistryService_ =
       grrSemanticFormDirectivesRegistryService;
 

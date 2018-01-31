@@ -114,12 +114,13 @@ class InMemoryDB(db.Database):
           last_crash=md.get("last_crash"))
     return res
 
-  def WriteClient(self, client_id, client):
+  def WriteClient(self, client):
     """Write new client snapshot."""
     if not isinstance(client, objects.Client):
       raise ValueError("WriteClient requires rdfvalues.objects.Client, got: %s"
                        % type(client))
 
+    client_id = client.client_id
     self._ValidateClientId(client_id)
 
     if client_id not in self.metadatas:
@@ -246,26 +247,40 @@ class InMemoryDB(db.Database):
                    username,
                    password=None,
                    ui_mode=None,
-                   canary_mode=None):
+                   canary_mode=None,
+                   user_type=None):
     self._ValidateUsername(username)
 
-    u = self.users.setdefault(username, {})
+    u = self.users.setdefault(username, {"username": username})
     if password is not None:
       u["password"] = password
     if ui_mode is not None:
       u["ui_mode"] = ui_mode
     if canary_mode is not None:
       u["canary_mode"] = canary_mode
+    if user_type is not None:
+      u["user_type"] = user_type
 
   def ReadGRRUser(self, username):
     try:
       u = self.users[username]
       return objects.GRRUser(
+          username=u["username"],
           password=u.get("password"),
           ui_mode=u.get("ui_mode"),
-          canary_mode=u.get("canary_mode"))
+          canary_mode=u.get("canary_mode"),
+          user_type=u.get("user_type"))
     except KeyError:
       raise db.UnknownGRRUserError("Can't find user with name: %s" % username)
+
+  def ReadGRRUsers(self):
+    for u in self.users.values():
+      yield objects.GRRUser(
+          username=u["username"],
+          password=u.get("password"),
+          ui_mode=u.get("ui_mode"),
+          canary_mode=u.get("canary_mode"),
+          user_type=u.get("user_type"))
 
   def WriteClientStartupInfo(self, client_id, startup_info):
 

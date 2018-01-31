@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.docs.apiHelperCurlService');
 goog.provide('grrUi.docs.apiHelperCurlService.ApiHelperCurlService');
 
 goog.scope(function() {

@@ -15,11 +15,15 @@ from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import data_migration
 from grr.server import data_store
+from grr.server import flow
+from grr.server import queue_manager
+from grr.server import worker
 from grr.server.aff4_objects import security
 from grr.server.aff4_objects import users
 
@@ -475,3 +479,91 @@ def ExportClientsByKeywords(keywords, filename, token=None):
 
 # Pull this into the console.
 ConvertVFSGRRClient = data_migration.ConvertVFSGRRClient  # pylint: disable=invalid-name
+
+
+def StartFlowAndWorker(client_id, flow_name, **kwargs):
+  """Launches the flow and worker and waits for it to finish.
+
+  Args:
+     client_id: The client common name we issue the request.
+     flow_name: The name of the flow to launch.
+     **kwargs: passthrough to flow.
+
+  Returns:
+     A flow session id.
+
+  Note: you need raw access to run this flow as it requires running a worker.
+  """
+  # Empty token, only works with raw access.
+  queue = rdfvalue.RDFURN("DEBUG-%s-" % getpass.getuser())
+  if "token" in kwargs:
+    token = kwargs.pop("token")
+  else:
+    token = access_control.ACLToken(username="GRRConsole")
+
+  session_id = flow.GRRFlow.StartFlow(
+      client_id=client_id,
+      flow_name=flow_name,
+      queue=queue,
+      token=token,
+      **kwargs)
+  worker_thrd = worker.GRRWorker(queues=[queue], token=token, threadpool_size=1)
+  while True:
+    try:
+      worker_thrd.RunOnce()
+    except KeyboardInterrupt:
+      print "exiting"
+      worker_thrd.thread_pool.Join()
+      break
+
+    time.sleep(2)
+    with aff4.FACTORY.Open(session_id, token=token) as flow_obj:
+      if not flow_obj.GetRunner().IsRunning():
+        break
+
+  # Terminate the worker threads
+  worker_thrd.thread_pool.Join()
+
+  return session_id
+
+
+def WakeStuckFlow(session_id):
+  """Wake up stuck flows.
+
+  A stuck flow is one which is waiting for the client to do something, but the
+  client requests have been removed from the client queue. This can happen if
+  the system is too loaded and the client messages have TTLed out. In this case
+  we reschedule the client requests for this session.
+
+  Args:
+    session_id: The session for the flow to wake.
+
+  Returns:
+    The total number of client messages re-queued.
+  """
+  session_id = rdfvalue.SessionID(session_id)
+  woken = 0
+  checked_pending = False
+
+  with queue_manager.QueueManager() as manager:
+    for request, responses in manager.FetchRequestsAndResponses(session_id):
+      # We need to check if there are client requests pending.
+      if not checked_pending:
+        task = manager.Query(
+            request.client_id, task_id="task:%s" % request.request.task_id)
+
+        if task:
+          # Client has tasks pending already.
+          return
+
+        checked_pending = True
+
+      if (not responses or
+          responses[-1].type != rdf_flows.GrrMessage.Type.STATUS):
+        manager.QueueClientMessage(request.request)
+        woken += 1
+
+      if responses and responses[-1].type == rdf_flows.GrrMessage.Type.STATUS:
+        manager.QueueNotification(session_id)
+
+  return woken

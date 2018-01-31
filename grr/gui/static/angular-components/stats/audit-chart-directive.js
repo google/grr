@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.auditChartDirective');
 goog.provide('grrUi.stats.auditChartDirective.AuditChartDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');

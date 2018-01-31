@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.encryptionKeyDirective');
 goog.provide('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
 goog.provide('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
 

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.timeSinceFilter');
 goog.provide('grrUi.core.timeSinceFilter.TimeSinceFilter');
 
 goog.scope(function() {

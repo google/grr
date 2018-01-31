@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userLabelDirective');
 goog.provide('grrUi.user.userLabelDirective.UserLabelDirective');
 
 

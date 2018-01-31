@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.newHuntWizard.formDirective');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');

@@ -2,7 +2,6 @@
 """Tests for an ApiCallRouterWithChecks."""
 
 
-
 import mock
 
 from grr import config
@@ -22,7 +21,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 
 from grr.server import access_control
 from grr.server import aff4
@@ -48,7 +46,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksTest, self).setUp()
 
-    self.client_id = rdf_client.ClientURN("C.0000111122223333")
+    self.client_id = test_lib.TEST_CLIENT_ID
 
     self.delegate_mock = mock.MagicMock()
     self.legacy_manager_mock = mock.MagicMock()
@@ -362,8 +360,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
                         api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
   def testAllOtherMethodsAreNotAccessChecked(self):
-    unchecked_methods = (set(self.router.__class__.GetAnnotatedMethods().keys())
-                         - set(self.ACCESS_CHECKED_METHODS))
+    unchecked_methods = (
+        set(self.router.__class__.GetAnnotatedMethods().keys()) -
+        set(self.ACCESS_CHECKED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:
@@ -539,7 +538,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(http_api_e2e_test.ApiE2ETest):
                       self.api.Client(client_id).Flow(f.flow_id).Get)
 
   def testNonAdminsCanNotStartAdminOnlyFlow(self):
-    client_id = self.SetupClients(1)[0].Basename()
+    client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(client_id, token=self.token)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
@@ -547,7 +546,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(http_api_e2e_test.ApiE2ETest):
           name=user_managers_test.AdminOnlyFlow.__name__)
 
   def testAdminsCanStartAdminOnlyFlow(self):
-    client_id = self.SetupClients(1)[0].Basename()
+    client_id = self.SetupClient(0).Basename()
     self.CreateAdminUser(self.token.username)
     self.RequestAndGrantClientApproval(client_id, token=self.token)
 
@@ -555,7 +554,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(http_api_e2e_test.ApiE2ETest):
         name=user_managers_test.AdminOnlyFlow.__name__)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
-    client_id = self.SetupClients(1)[0].Basename()
+    client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(client_id, token=self.token)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
@@ -563,7 +562,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(http_api_e2e_test.ApiE2ETest):
           name=user_managers_test.ClientFlowWithoutCategory.__name__)
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
-    client_id = self.SetupClients(1)[0].Basename()
+    client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(client_id, token=self.token)
 
     self.api.Client(client_id).CreateFlow(

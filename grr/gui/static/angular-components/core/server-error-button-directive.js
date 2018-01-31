@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.serverErrorButtonDirective');
 goog.provide('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
 
 

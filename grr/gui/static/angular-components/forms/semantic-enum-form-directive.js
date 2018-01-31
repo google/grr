@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.semanticEnumFormDirective');
 goog.provide('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
 
 

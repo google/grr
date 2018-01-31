@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userNotificationButtonDirective');
 goog.provide('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 
 

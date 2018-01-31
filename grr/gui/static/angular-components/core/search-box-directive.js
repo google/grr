@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.searchBoxDirective');
 goog.provide('grrUi.core.searchBoxDirective.SearchBoxDirective');
 
 

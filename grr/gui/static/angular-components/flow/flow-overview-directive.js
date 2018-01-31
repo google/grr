@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowOverviewDirective');
 goog.provide('grrUi.flow.flowOverviewDirective.FlowOverviewDirective');
 goog.require('grrUi.core.utils.stripAff4Prefix');
 

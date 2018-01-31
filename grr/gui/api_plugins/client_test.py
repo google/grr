@@ -282,10 +282,10 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(
         client_plugin.ApiSearchClientsArgs(), token=self.token)
 
     self.assertEqual(len(result.items), 2)
-    sorted_items = sorted(result.items, key=lambda r: r.urn)
+    sorted_items = sorted(result.items, key=lambda r: r.client_id)
 
-    self.assertEqual(sorted_items[0].urn, self.client_ids[0])
-    self.assertEqual(sorted_items[1].urn, self.client_ids[3])
+    self.assertEqual(sorted_items[0].client_id, self.client_ids[0])
+    self.assertEqual(sorted_items[1].client_id, self.client_ids[3])
 
   def testSearchWithNonWhitelistedLabelReturnsNothing(self):
     result = self.handler.Handle(
@@ -297,25 +297,25 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:foo"), token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].urn, self.client_ids[0])
+    self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:bar"), token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].urn, self.client_ids[3])
+    self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithWhitelistedClientIdsReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[0].Basename()),
         token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].urn, self.client_ids[0])
+    self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[3].Basename()),
         token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].urn, self.client_ids[3])
+    self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithBlacklistedClientIdsReturnsNothing(self):
     result = self.handler.Handle(
@@ -334,7 +334,7 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiInterrogateClientHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.handler = client_plugin.ApiInterrogateClientHandler()
 
   def testInterrogateFlowIsStarted(self):

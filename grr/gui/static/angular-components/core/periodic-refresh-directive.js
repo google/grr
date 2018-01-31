@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.periodicRefreshDirective');
 goog.provide('grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective');
 
 goog.scope(function() {

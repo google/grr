@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.startFlowFormDirective');
 goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 

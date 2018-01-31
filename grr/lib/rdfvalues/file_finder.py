@@ -121,7 +121,6 @@ class FileFinderArgs(rdf_structs.RDFProtoStruct):
       FileFinderAction,
       FileFinderCondition,
       paths.GlobExpression,
-      client.UploadToken,
   ]
 
 

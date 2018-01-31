@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.sidebar.navigatorDirective');
 goog.provide('grrUi.sidebar.navigatorDirective.NavigatorDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 

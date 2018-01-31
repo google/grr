@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
 
 

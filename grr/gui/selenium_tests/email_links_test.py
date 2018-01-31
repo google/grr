@@ -67,7 +67,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
       return hunt.session_id
 
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     security.ClientApprovalRequestor(
         reason="Please please let me",
@@ -92,7 +92,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Host-0")
 
   def testEmailClientApprovalGrantNotificationLinkLeadsToACorrectPage(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     security.ClientApprovalRequestor(
         reason=self.APPROVAL_REASON,

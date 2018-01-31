@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.serverLoadDirective');
 goog.provide('grrUi.stats.serverLoadDirective.ServerLoadDirective');
 goog.provide('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
 

@@ -1,8 +1,9 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
 goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
 
-goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT');
 
 goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');

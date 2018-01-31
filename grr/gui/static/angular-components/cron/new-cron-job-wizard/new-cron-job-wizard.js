@@ -1,3 +1,4 @@
+goog.provide('grrUi.cron.newCronJobWizard');
 goog.provide('grrUi.cron.newCronJobWizard.newCronJobWizardModule');
 
 goog.require('grrUi.core.coreModule');

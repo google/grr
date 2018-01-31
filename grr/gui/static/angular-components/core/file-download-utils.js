@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.fileDownloadUtils');
 goog.provide('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
 goog.provide('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
 goog.provide('grrUi.core.fileDownloadUtils.makeValueDownloadable');

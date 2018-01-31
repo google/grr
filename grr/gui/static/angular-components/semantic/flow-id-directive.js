@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.flowIdDirective');
 goog.provide('grrUi.semantic.flowIdDirective.FlowIdDirective');
 
 goog.scope(function() {

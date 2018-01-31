@@ -7,6 +7,7 @@ import hashlib
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import unittest
 
@@ -25,6 +26,452 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import standard as rdf_standard
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
+
+
+class DirHierarchyTestMixin(object):
+
+  def setUp(self):
+    super(DirHierarchyTestMixin, self).setUp()
+    self.tempdir = test_lib.TempDirPath()
+
+  def tearDown(self):
+    super(DirHierarchyTestMixin, self).tearDown()
+    shutil.rmtree(self.tempdir)
+
+  def Path(self, *components):
+    return os.path.join(self.tempdir, *components)
+
+  def Touch(self, *components):
+    filepath = self.Path(*components)
+    dirpath = os.path.dirname(filepath)
+    if not os.path.exists(dirpath):
+      os.makedirs(dirpath)
+    with open(filepath, "a"):
+      pass
+
+
+class RecursiveComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testSimple(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "1")
+    self.Touch("foo", "bar", "0")
+    self.Touch("baz", "0")
+    self.Touch("baz", "1")
+
+    component = client_file_finder.RecursiveComponent()
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("foo", "0"),
+        self.Path("foo", "1"),
+        self.Path("foo", "bar"),
+        self.Path("foo", "bar", "0"),
+        self.Path("baz"),
+        self.Path("baz", "0"),
+        self.Path("baz", "1"),
+    ])
+
+    results = list(component.Generate(self.Path("foo")))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "0"),
+        self.Path("foo", "1"),
+        self.Path("foo", "bar"),
+        self.Path("foo", "bar", "0"),
+    ])
+
+    results = list(component.Generate(self.Path("baz")))
+    self.assertItemsEqual(results, [
+        self.Path("baz", "0"),
+        self.Path("baz", "1"),
+    ])
+
+    results = list(component.Generate(self.Path("foo", "bar")))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+    ])
+
+  def testMaxDepth(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "1")
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "bar", "baz", "0")
+
+    component = client_file_finder.RecursiveComponent(max_depth=3)
+
+    results = list(component.Generate(self.Path()))
+
+    # Files at level lesser than 3 should be included.
+    self.assertIn(self.Path("foo"), results)
+    self.assertIn(self.Path("foo", "0"), results)
+    self.assertIn(self.Path("foo", "1"), results)
+    self.assertIn(self.Path("foo", "bar"), results)
+
+    # Files at level equal to 3 should be included.
+    self.assertIn(self.Path("foo", "bar", "0"), results)
+    self.assertIn(self.Path("foo", "bar", "baz"), results)
+
+    # Files at level bigger that 3 should not be included.
+    self.assertNotIn(self.Path("foo", "bar", "baz", "0"), results)
+
+  def testIgnore(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "1")
+    self.Touch("foo", "bar", "0")
+    self.Touch("bar", "0")
+    self.Touch("bar", "quux", "0")
+    self.Touch("bar", "quux", "1")
+    self.Touch("baz", "0")
+    self.Touch("baz", "1")
+    self.Touch("baz", "quux", "0")
+
+    opts = client_file_finder.PathOpts(recursion_blacklist=[
+        self.Path("foo"),
+        self.Path("bar", "quux"),
+    ])
+    component = client_file_finder.RecursiveComponent(opts=opts)
+
+    results = list(component.Generate(self.Path()))
+
+    # Recursion should not visit into the blacklisted folders.
+    self.assertNotIn(self.Path("foo", "0"), results)
+    self.assertNotIn(self.Path("foo", "1"), results)
+    self.assertNotIn(self.Path("bar", "quux", "0"), results)
+    self.assertNotIn(self.Path("bar", "quux", "1"), results)
+
+    # Blacklisted folders themselves should appear in the results.
+    self.assertIn(self.Path("foo"), results)
+    self.assertIn(self.Path("bar", "quux"), results)
+
+    # Recursion should visit not blacklisted folders.
+    self.assertIn(self.Path("baz"), results)
+    self.assertIn(self.Path("baz", "0"), results)
+    self.assertIn(self.Path("baz", "1"), results)
+    self.assertIn(self.Path("baz", "quux"), results)
+    self.assertIn(self.Path("baz", "quux", "0"), results)
+
+  def testFollowLinks(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "baz", "0")
+    self.Touch("foo", "baz", "1")
+    self.Touch("quux", "0")
+    self.Touch("norf", "0")
+    os.symlink(self.Path("foo", "bar"), self.Path("quux", "bar"))
+    os.symlink(self.Path("foo", "baz"), self.Path("quux", "baz"))
+    os.symlink(self.Path("quux"), self.Path("norf", "quux"))
+
+    opts = client_file_finder.PathOpts(follow_links=True)
+    component = client_file_finder.RecursiveComponent(opts=opts)
+
+    # It should resolve two links and recur to linked directories.
+    results = list(component.Generate(self.Path("quux")))
+    self.assertItemsEqual(results, [
+        self.Path("quux", "0"),
+        self.Path("quux", "bar"),
+        self.Path("quux", "bar", "0"),
+        self.Path("quux", "baz"),
+        self.Path("quux", "baz", "0"),
+        self.Path("quux", "baz", "1"),
+    ])
+
+    # It should resolve symlinks recursively.
+    results = list(component.Generate(self.Path("norf")))
+    self.assertItemsEqual(results, [
+        self.Path("norf", "0"),
+        self.Path("norf", "quux"),
+        self.Path("norf", "quux", "0"),
+        self.Path("norf", "quux", "bar"),
+        self.Path("norf", "quux", "bar", "0"),
+        self.Path("norf", "quux", "baz"),
+        self.Path("norf", "quux", "baz", "0"),
+        self.Path("norf", "quux", "baz", "1"),
+    ])
+
+    opts = client_file_finder.PathOpts(follow_links=False)
+    component = client_file_finder.RecursiveComponent(opts=opts)
+
+    # It should list symlinks but should not recur to linked directories.
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("foo", "0"),
+        self.Path("foo", "bar"),
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "baz"),
+        self.Path("foo", "baz", "0"),
+        self.Path("foo", "baz", "1"),
+        self.Path("quux"),
+        self.Path("quux", "0"),
+        self.Path("quux", "bar"),
+        self.Path("quux", "baz"),
+        self.Path("norf"),
+        self.Path("norf", "0"),
+        self.Path("norf", "quux"),
+    ])
+
+  def testInvalidDirpath(self):
+    component = client_file_finder.RecursiveComponent()
+
+    results = list(component.Generate("/foo/bar/baz"))
+    self.assertItemsEqual(results, [])
+
+
+class GlobComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testLiterals(self):
+    self.Touch("foo")
+    self.Touch("bar")
+    self.Touch("baz")
+
+    component = client_file_finder.GlobComponent("foo")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+    ])
+
+    component = client_file_finder.GlobComponent("bar")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("bar"),
+    ])
+
+  def testStar(self):
+    self.Touch("foo")
+    self.Touch("bar")
+    self.Touch("baz")
+    self.Touch("quux")
+
+    component = client_file_finder.GlobComponent("*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("bar"),
+        self.Path("baz"),
+        self.Path("quux"),
+    ])
+
+    component = client_file_finder.GlobComponent("ba*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("bar"),
+        self.Path("baz"),
+    ])
+
+  def testQuestionmark(self):
+    self.Touch("foo")
+    self.Touch("bar")
+    self.Touch("baz")
+    self.Touch("barg")
+
+    component = client_file_finder.GlobComponent("ba?")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("bar"),
+        self.Path("baz"),
+    ])
+
+  def testSimpleClass(self):
+    self.Touch("foo")
+    self.Touch("bar")
+    self.Touch("baz")
+    self.Touch("baf")
+
+    component = client_file_finder.GlobComponent("ba[rz]")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("baz"),
+        self.Path("bar"),
+    ])
+
+  def testRangeClass(self):
+    self.Touch("foo")
+    self.Touch("8AR")
+    self.Touch("bar")
+    self.Touch("4815162342")
+    self.Touch("quux42")
+
+    component = client_file_finder.GlobComponent("[a-z]*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("bar"),
+        self.Path("quux42"),
+    ])
+
+    component = client_file_finder.GlobComponent("[0-9]*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("8AR"),
+        self.Path("4815162342"),
+    ])
+
+    component = client_file_finder.GlobComponent("*[0-9]")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("4815162342"),
+        self.Path("quux42"),
+    ])
+
+  def testMultiRangeClass(self):
+    self.Touch("f00")
+    self.Touch("b4R")
+    self.Touch("8az")
+    self.Touch("quux")
+
+    component = client_file_finder.GlobComponent("[a-z][a-z0-9]*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("f00"),
+        self.Path("b4R"),
+        self.Path("quux"),
+    ])
+
+  def testComplementationClass(self):
+    self.Touch("foo")
+    self.Touch("bar")
+    self.Touch("123")
+
+    component = client_file_finder.GlobComponent("*[!0-9]*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("bar"),
+    ])
+
+  def testCornerCases(self):
+    self.Touch("[")
+    self.Touch("-")
+    self.Touch("]")
+    self.Touch("!")
+    self.Touch("*")
+    self.Touch("?")
+    self.Touch("foo")
+
+    component = client_file_finder.GlobComponent("[][-]")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("["),
+        self.Path("-"),
+        self.Path("]"),
+    ])
+
+    component = client_file_finder.GlobComponent("[!]f-]*")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("["),
+        self.Path("*"),
+        self.Path("!"),
+        self.Path("?"),
+    ])
+
+    component = client_file_finder.GlobComponent("[*?]")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("*"),
+        self.Path("?"),
+    ])
+
+  def testWhitespace(self):
+    self.Touch("foo bar")
+    self.Touch("   ")
+    self.Touch("quux")
+
+    component = client_file_finder.GlobComponent("* *")
+
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo bar"),
+        self.Path("   "),
+    ])
+
+
+class ParsePathItemTest(unittest.TestCase):
+
+  def testRecursive(self):
+    component = client_file_finder.ParsePathItem("**")
+    self.assertIsInstance(component, client_file_finder.RecursiveComponent)
+    self.assertEqual(component.max_depth, 3)
+
+  def testRecursiveWithDepth(self):
+    component = client_file_finder.ParsePathItem("**42")
+    self.assertIsInstance(component, client_file_finder.RecursiveComponent)
+    self.assertEqual(component.max_depth, 42)
+
+  def testGlob(self):
+    component = client_file_finder.ParsePathItem("foo*")
+    self.assertIsInstance(component, client_file_finder.GlobComponent)
+
+    component = client_file_finder.ParsePathItem("*")
+    self.assertIsInstance(component, client_file_finder.GlobComponent)
+
+    component = client_file_finder.ParsePathItem("foo ba?")
+    self.assertIsInstance(component, client_file_finder.GlobComponent)
+
+  def testCurrent(self):
+    component = client_file_finder.ParsePathItem(os.path.curdir)
+    self.assertIsInstance(component, client_file_finder.CurrentComponent)
+
+  def testParent(self):
+    component = client_file_finder.ParsePathItem(os.path.pardir)
+    self.assertIsInstance(component, client_file_finder.ParentComponent)
+
+  def testMalformed(self):
+    with self.assertRaises(ValueError):
+      client_file_finder.ParsePathItem("foo**")
+
+    with self.assertRaises(ValueError):
+      client_file_finder.ParsePathItem("**10bar")
+
+
+class ParsePathTest(unittest.TestCase):
+
+  def assertAreInstances(self, instances, classes):
+    for instance, clazz in zip(instances, classes):
+      self.assertIsInstance(instance, clazz)
+    self.assertEqual(len(instances), len(classes))
+
+  def testSimple(self):
+    path = os.path.join("foo", "**", "ba*")
+
+    components = list(client_file_finder.ParsePath(path))
+    self.assertAreInstances(components, [
+        client_file_finder.GlobComponent,
+        client_file_finder.RecursiveComponent,
+        client_file_finder.GlobComponent,
+    ])
+
+    path = os.path.join("foo", os.path.curdir, "bar", "baz", os.path.pardir)
+
+    components = list(client_file_finder.ParsePath(path))
+    self.assertAreInstances(components, [
+        client_file_finder.GlobComponent,
+        client_file_finder.CurrentComponent,
+        client_file_finder.GlobComponent,
+        client_file_finder.GlobComponent,
+        client_file_finder.ParentComponent,
+    ])
+
+  def testMultiRecursive(self):
+    path = os.path.join("foo", "**", "bar", "**", "baz")
+
+    with self.assertRaises(ValueError):
+      list(client_file_finder.ParsePath(path))
 
 
 def MyStat(path):
@@ -406,6 +853,26 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertEqual(res.hash_entry.sha256.HexDigest(),
                      hashlib.sha256(data).hexdigest())
 
+  def testHashDirectory(self):
+    action = rdf_file_finder.FileFinderAction.Hash()
+    path = os.path.join(self.base_path, "a")
+
+    results = self._RunFileFinder([path], action)
+    self.assertEqual(len(results), 1)
+    self.assertTrue(results[0].HasField("stat_entry"))
+    self.assertTrue(stat.S_ISDIR(results[0].stat_entry.st_mode))
+    self.assertFalse(results[0].HasField("hash_entry"))
+
+  def testDownloadDirectory(self):
+    action = rdf_file_finder.FileFinderAction.Download()
+    path = os.path.join(self.base_path, "a")
+
+    results = self._RunFileFinder([path], action)
+    self.assertEqual(len(results), 1)
+    self.assertTrue(results[0].HasField("stat_entry"))
+    self.assertTrue(stat.S_ISDIR(results[0].stat_entry.st_mode))
+    self.assertFalse(results[0].HasField("uploaded_file"))
+
   def _RunFileFinderDownloadHello(self, upload, opts=None):
     action = rdf_file_finder.FileFinderAction.Download()
     action.download = opts
@@ -444,6 +911,20 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertTrue(upload.called_with(max_bytes=42))
     self.assertTrue(results[0].HasField("uploaded_file"))
     self.assertEquals(results[0].uploaded_file, upload.return_value)
+
+  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
+  def testDownloadActionHash(self, upload):
+    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+        max_size=42, oversized_file_policy="HASH_TRUNCATED")
+
+    results = self._RunFileFinderDownloadHello(upload, opts=opts)
+    self.assertEquals(len(results), 1)
+    self.assertFalse(upload.called)
+    self.assertFalse(results[0].HasField("uploaded_file"))
+    self.assertTrue(results[0].HasField("hash_entry"))
+    self.assertTrue(results[0].HasField("stat_entry"))
+    self.assertEqual(results[0].hash_entry.num_bytes, 42)
+    self.assertGreater(results[0].stat_entry.st_size, 42)
 
   EXT2_COMPR_FL = 0x00000004
   EXT2_IMMUTABLE_FL = 0x00000010

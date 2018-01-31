@@ -3,7 +3,7 @@
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import client as client_rdf
+from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
@@ -21,13 +21,8 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     # This is not optimal, we create clients 0-19 with Linux, then
     # overwrite clients 0-9 with Windows, leaving 10-19 for Linux.
     client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
-    self.SetupClients(
-        20,
-        system="Linux",
-        uname="Linux-#2 SMP Fri Feb 24 03:31:23 PST 2012-2.6.38.8",
-        ping=client_ping_time)
-    self.SetupClients(
-        10, system="Windows", uname="Windows-6.1.7600-7", ping=client_ping_time)
+    self.SetupClients(20, system="Linux", ping=client_ping_time)
+    self.SetupClients(10, system="Windows", ping=client_ping_time)
 
     for i in range(0, 10):
       with aff4.FACTORY.Open(
@@ -51,12 +46,12 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     # There should be counts[2] instances in 14 day actives.
     self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
-    self.assertEqual(histogram[2][0].label, "GRR Monitor 0")
+    self.assertEqual(histogram[2][0].label, "GRR Monitor 123")
     self.assertEqual(histogram[2][0].y_value, counts[2])
 
     # There should be counts[3] instances in 30 day actives.
     self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
-    self.assertEqual(histogram[3][0].label, "GRR Monitor 0")
+    self.assertEqual(histogram[3][0].label, "GRR Monitor 123")
     self.assertEqual(histogram[3][0].y_value, counts[3])
 
   def testGRRVersionBreakDown(self):
@@ -171,15 +166,16 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     self._CheckAccessStats("Label2", count=10L)
 
   def testPurgeClientStats(self):
+    client_id = test_lib.TEST_CLIENT_ID
     max_age = system.PurgeClientStats.MAX_AGE
 
     for t in [1 * max_age, 1.5 * max_age, 2 * max_age]:
       with test_lib.FakeTime(t):
-        urn = self.client_id.Add("stats")
+        urn = client_id.Add("stats")
 
         stats_fd = aff4.FACTORY.Create(
             urn, aff4_stats.ClientStats, token=self.token, mode="rw")
-        st = client_rdf.ClientStats(RSS_size=int(t))
+        st = rdf_client.ClientStats(RSS_size=int(t))
         stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         stats_fd.Close()
@@ -193,7 +189,7 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
       for _ in flow_test_lib.TestFlowHelper(
           system.PurgeClientStats.__name__,
           None,
-          client_id=self.client_id,
+          client_id=client_id,
           token=self.token):
         pass
 

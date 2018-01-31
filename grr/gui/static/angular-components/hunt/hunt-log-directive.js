@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntLogDirective');
 goog.provide('grrUi.hunt.huntLogDirective.HuntLogDirective');
 
 goog.scope(function() {

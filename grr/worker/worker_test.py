@@ -227,6 +227,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(GrrWorkerTest, self).setUp()
+    self.client_id = test_lib.TEST_CLIENT_ID
     WorkerStuckableTestFlow.Reset()
     self.patch_get_notifications = mock.patch.object(
         queue_manager, "QueueManager", ShardedQueueManager)
@@ -907,8 +908,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     request_id = 1
     messages = data_store.DB.ReadResponsesForRequestId(session_id, request_id)
     self.assertEqual(len(messages), 2)
-    self.assertItemsEqual([m.args_rdf_name
-                           for m in messages], ["DataBlob", "GrrStatus"])
+    self.assertItemsEqual([m.args_rdf_name for m in messages],
+                          ["DataBlob", "GrrStatus"])
 
     for m in messages:
       self.assertEqual(m.timestamp, frozen_timestamp)

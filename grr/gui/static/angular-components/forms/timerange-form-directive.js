@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.timerangeFormDirective');
 goog.provide('grrUi.forms.timerangeFormDirective.TimerangeFormDirective');
 
 goog.scope(function() {

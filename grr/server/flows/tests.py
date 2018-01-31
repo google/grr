@@ -3,7 +3,6 @@
 
 # pylint: disable=unused-import
 # These import populate the Flow test registry
-from grr.server.flows.console import debugging_test
 
 # Cron tests.
 from grr.server.flows.cron import data_retention_test

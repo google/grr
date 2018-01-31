@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
 
-
 import collections
 import glob
 import hashlib
@@ -233,6 +232,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.client_mock = FileFinderActionMock()
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
+    self.client_id = test_lib.TEST_CLIENT_ID
 
   def testFileFinderStatActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
@@ -816,6 +816,10 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
+
+  def setUp(self):
+    super(TestClientFileFinderFlow, self).setUp()
+    self.client_id = test_lib.TEST_CLIENT_ID
 
   def _RunCFF(self, paths, action):
     for s in flow_test_lib.TestFlowHelper(

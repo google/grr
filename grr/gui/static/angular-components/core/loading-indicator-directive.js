@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.loadingIndicatorDirective');
 goog.provide('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
 
 

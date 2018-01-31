@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.tableDirective');
 goog.provide('grrUi.semantic.rekall.tableDirective.TableDirective');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.rekallDefaultValueDirective');
 goog.provide('grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective');
 
 goog.scope(function() {

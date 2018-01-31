@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.hexNumberFilter');
 goog.provide('grrUi.core.hexNumberFilter.HexNumberFilter');
 
 goog.scope(function() {

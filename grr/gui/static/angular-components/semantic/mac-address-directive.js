@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.macAddressDirective');
 goog.provide('grrUi.semantic.macAddressDirective.MacAddressDirective');
 
 goog.scope(function() {

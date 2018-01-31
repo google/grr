@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem');
 goog.provide('grrUi.client.virtualFileSystem.virtualFileSystemModule');
 
 goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');

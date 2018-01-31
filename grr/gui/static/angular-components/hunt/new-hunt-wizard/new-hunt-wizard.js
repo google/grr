@@ -1,3 +1,4 @@
+goog.provide('grrUi.hunt.newHuntWizard');
 goog.provide('grrUi.hunt.newHuntWizard.newHuntWizardModule');
 
 goog.require('grrUi.core.coreModule');

@@ -17,8 +17,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ThrottleTest, self).setUp()
-    client_ids = self.SetupClients(1)
-    self.client_id = client_ids[0]
+    self.client_id = self.SetupClient(0)
 
   def testCheckFlowRequestLimit(self):
     # Create a flow

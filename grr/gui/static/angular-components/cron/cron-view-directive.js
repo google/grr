@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron.cronViewDirective');
 goog.provide('grrUi.cron.cronViewDirective.CronViewDirective');
 
 goog.scope(function() {

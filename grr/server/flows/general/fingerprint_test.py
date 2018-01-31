@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Fingerprint flow."""
 
-
 import os
 
 from grr.client.client_actions import file_fingerprint
@@ -21,6 +20,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the Fingerprint flow."""
 
   def testFingerprintPresence(self):
+    client_id = test_lib.TEST_CLIENT_ID
     path = os.path.join(self.base_path, "winexec_img.dd")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
@@ -34,7 +34,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
           flows_fingerprint.FingerprintFile.__name__,
           client_mock,
           token=self.token,
-          client_id=self.client_id,
+          client_id=client_id,
           pathspec=pathspec):
         pass
 
@@ -56,7 +56,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(
             str(reply.hash_entry.md5), "12be1109aa3d3b46c9398972af2008e1")
 
-    urn = pathspec.AFF4Path(self.client_id)
+    urn = pathspec.AFF4Path(client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
 

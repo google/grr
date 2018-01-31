@@ -1550,6 +1550,9 @@ class Stat(object):
   def GetRaw(self):
     return self._stat
 
+  def GetPath(self):
+    return self._path
+
   def GetLinuxFlags(self):
     if self._flags_linux is None:
       self._flags_linux = self._FetchLinuxFlags()

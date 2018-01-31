@@ -36,11 +36,10 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testNetstat(self):
     """Test that the Netstat flow works."""
-
     for s in flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,
         ClientMock(),
-        client_id=self.client_id,
+        client_id=test_lib.TEST_CLIENT_ID,
         token=self.token):
       session_id = s
 
@@ -58,7 +57,7 @@ class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
     for s in flow_test_lib.TestFlowHelper(
         network.Netstat.__name__,
         ClientMock(),
-        client_id=self.client_id,
+        client_id=test_lib.TEST_CLIENT_ID,
         listening_only=True,
         token=self.token):
       session_id = s

@@ -2,6 +2,7 @@
 
 goog.module('grrUi.semantic.urnDirectiveTest');
 
+const aff4UrnToUrl = goog.require('grrUi.routing.aff4UrnToUrl');
 const semanticModule = goog.require('grrUi.semantic.semanticModule');
 const testsModule = goog.require('grrUi.tests.testsModule');
 
@@ -38,7 +39,7 @@ describe('urn directive', () => {
   });
 
   it('shows plain string if grrRoutingService can\'t convert URN', () => {
-    spyOn(grrUi.routing, 'aff4UrnToUrl').and.returnValue(undefined);
+    spyOn(aff4UrnToUrl, 'aff4UrnToUrl').and.returnValue(undefined);
 
     const element = renderTestTemplate('aff4:/foo/bar');
     expect(element.text().trim()).toBe('aff4:/foo/bar');
@@ -46,7 +47,7 @@ describe('urn directive', () => {
   });
 
   it('shows a link if grrRoutingService can convert URN', () => {
-    spyOn(grrUi.routing, 'aff4UrnToUrl').and.returnValue({
+    spyOn(aff4UrnToUrl, 'aff4UrnToUrl').and.returnValue({
       state: 'someState',
       params: {},
     });

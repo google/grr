@@ -108,9 +108,7 @@ class HashFileStoreTest(aff4_test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(HashFileStoreTest, self).setUp()
-
-    client_ids = self.SetupClients(1)
-    self.client_id = client_ids[0]
+    self.client_id = self.SetupClient(0)
 
   def AddFile(self, path):
     """Add file with a subpath (relative to winexec_img.dd) to the store."""

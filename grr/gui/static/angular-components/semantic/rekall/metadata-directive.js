@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.metadataDirective');
 goog.provide('grrUi.semantic.rekall.metadataDirective.MetadataDirective');
 
 goog.scope(function() {

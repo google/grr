@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.statEntryDirective');
 goog.provide('grrUi.semantic.statEntryDirective.StatEntryDirective');
 
 goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');

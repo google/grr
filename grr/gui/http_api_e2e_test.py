@@ -123,7 +123,7 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def testGetClientWorks(self):
     # By testing GetClient we test a simple GET method.
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     c = self.api.Client(client_id=client_urn.Basename()).Get()
     self.assertEqual(c.client_id, client_urn.Basename())
 
@@ -133,7 +133,7 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.assertEqual(clients, [])
 
   def testPostMethodWorks(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
@@ -205,7 +205,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
       self.assertEqual(clients[i].data.urn, client_urns[i])
 
   def testListFlowsFromClientRef(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
@@ -219,7 +219,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(flows[0].data.urn, flow_urn)
 
   def testListFlowsFromClientObject(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
         flow_name=processes.ListProcesses.__name__,
@@ -234,7 +234,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(flows[0].data.urn, flow_urn)
 
   def testCreateFlowFromClientRef(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
@@ -251,7 +251,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(result_flow_obj.args, args)
 
   def testCreateFlowFromClientObject(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
@@ -276,7 +276,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
         ctime=long(1333718907.167083 * 1e6),
         RSS_size=42)
 
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
     client_mock = processes_test.ListProcessesMock([process])
 
     flow_urn = flow.GRRFlow.StartFlow(
@@ -295,7 +295,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(process.AsPrimitiveProto(), results[0].payload)
 
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
@@ -317,7 +317,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
     self.assertEqual(f.data.state, f.data.TERMINATED)
 
   def testWaitUntilDoneRaisesWhenFlowFails(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
@@ -336,7 +336,7 @@ class ApiClientLibFlowTest(ApiE2ETest):
       result_flow.WaitUntilDone()
 
   def testWaitUntilDoneRasiesWhenItTimesOut(self):
-    client_urn = self.SetupClients(1)[0]
+    client_urn = self.SetupClient(0)
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
@@ -547,7 +547,7 @@ class ApiClientLibVfsTest(ApiE2ETest):
 
   def setUp(self):
     super(ApiClientLibVfsTest, self).setUp()
-    self.client_urn = self.SetupClients(1)[0]
+    self.client_urn = self.SetupClient(0)
     fixture_test_lib.ClientFixture(self.client_urn, self.token)
 
   def testGetFileFromRef(self):
@@ -683,7 +683,7 @@ class ApiClientLibLabelsTest(ApiE2ETest):
 
   def setUp(self):
     super(ApiClientLibLabelsTest, self).setUp()
-    self.client_urn = self.SetupClients(1)[0]
+    self.client_urn = self.SetupClient(0)
 
   def testAddLabels(self):
     client_ref = self.api.Client(client_id=self.client_urn.Basename())
@@ -1000,7 +1000,7 @@ class ApiClientLibApprovalsTest(ApiE2ETest,
     self.config_overrider.Stop()
 
   def testCreateClientApproval(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     approval = self.api.Client(client_id.Basename()).CreateApproval(
         reason="blah", notified_users=["foo"])
@@ -1010,7 +1010,7 @@ class ApiClientLibApprovalsTest(ApiE2ETest,
     self.assertFalse(approval.data.is_valid)
 
   def testWaitUntilClientApprovalValid(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     approval = self.api.Client(client_id.Basename()).CreateApproval(
         reason="blah", notified_users=["foo"])

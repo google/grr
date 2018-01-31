@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.hostHistoryDialogDirective');
 goog.provide('grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 

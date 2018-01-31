@@ -62,6 +62,7 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestTransfer, self).setUp()
+    self.client_id = self.SetupClient(0)
 
     # Set suitable defaults for testing
     self.old_window_size = transfer.GetFile.WINDOW_SIZE

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats.timeseriesGraphDirective');
 goog.provide('grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactNameDirective');
 goog.provide('grrUi.artifact.artifactNameDirective.ArtifactNameDirective');
 
 goog.scope(function() {

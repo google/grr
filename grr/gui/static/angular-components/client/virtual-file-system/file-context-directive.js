@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileContextDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileContextDirective.FileContextController');
 goog.provide('grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective');
 
@@ -24,7 +25,7 @@ grrUi.client.virtualFileSystem.fileContextDirective.FileContextController = func
   /** @type {string} */
   this.selectedFilePath;
 
-  /** @type {?number} */
+  /** @type {number|undefined} */
   this.selectedFileVersion;
 
   this.scope_.$watchGroup(['clientId',
@@ -75,7 +76,7 @@ FileContextController.prototype.onControllerValuesChange_ = function() {
  */
 FileContextController.prototype.selectFile = function(filePath, opt_fileVersion) {
   this.selectedFilePath = filePath;
-  this.selectedFileVersion = opt_fileVersion || null;  // If opt_fileVersion is falsey, always coerce it to null.
+  this.selectedFileVersion = opt_fileVersion || undefined;  // If opt_fileVersion is falsey, always coerce it to undefined.
 };
 
 

@@ -77,10 +77,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -100,9 +118,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -116,9 +216,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -126,7 +238,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -150,22 +281,69 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "client_name": "GRR Monitor"
+            "build_time": "1980-01-01",
+            "client_name": "GRR Monitor",
+            "client_version": 123,
+            "labels": [
+              "label1",
+              "label2"
+            ]
           },
           "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
           },
-          "knowledge_base": {},
+          "interfaces": [
+            {
+              "addresses": [
+                {
+                  "address_type": "INET",
+                  "packed_bytes": "wKgAAA=="
+                },
+                {
+                  "address_type": "INET6",
+                  "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                }
+              ]
+            },
+            {
+              "mac_address": "qrvM3e4A"
+            },
+            {
+              "mac_address": "u8zd7v8A"
+            }
+          ],
+          "knowledge_base": {
+            "fqdn": "Host-0.example.com",
+            "os": "Linux",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
-            "version": ""
+            "kernel": "4.0.0",
+            "machine": "x86_64",
+            "system": "Linux",
+            "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": []
+          "users": [
+            {
+              "username": "user1"
+            },
+            {
+              "username": "user2"
+            }
+          ]
         }
       },
       "url": "/api/users/me/approvals/client/C.1000000000000000"
@@ -1049,10 +1227,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1072,9 +1268,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1088,9 +1366,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1098,7 +1388,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -1119,22 +1428,69 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "client_name": "GRR Monitor"
+            "build_time": "1980-01-01",
+            "client_name": "GRR Monitor",
+            "client_version": 123,
+            "labels": [
+              "label1",
+              "label2"
+            ]
           },
           "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
           },
-          "knowledge_base": {},
+          "interfaces": [
+            {
+              "addresses": [
+                {
+                  "address_type": "INET",
+                  "packed_bytes": "wKgAAA=="
+                },
+                {
+                  "address_type": "INET6",
+                  "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                }
+              ]
+            },
+            {
+              "mac_address": "qrvM3e4A"
+            },
+            {
+              "mac_address": "u8zd7v8A"
+            }
+          ],
+          "knowledge_base": {
+            "fqdn": "Host-0.example.com",
+            "os": "Linux",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
-            "version": ""
+            "kernel": "4.0.0",
+            "machine": "x86_64",
+            "system": "Linux",
+            "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": []
+          "users": [
+            {
+              "username": "user1"
+            },
+            {
+              "username": "user2"
+            }
+          ]
         }
       },
       "url": "/api/users/api_test_user/approvals/client/C.1000000000000000/approval:111111"
@@ -1184,10 +1540,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1207,9 +1581,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAQ=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAQ=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4B"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8B"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-1.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1223,9 +1679,21 @@
                     "type": "unicode",
                     "value": "Host-1.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1233,7 +1701,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000001"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -1254,22 +1741,69 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "client_name": "GRR Monitor"
+            "build_time": "1980-01-01",
+            "client_name": "GRR Monitor",
+            "client_version": 123,
+            "labels": [
+              "label1",
+              "label2"
+            ]
           },
           "client_id": "C.1000000000000001",
           "hardware_info": {
             "bios_version": "Bios-Version-1",
             "system_manufacturer": "System-Manufacturer-1"
           },
-          "knowledge_base": {},
+          "interfaces": [
+            {
+              "addresses": [
+                {
+                  "address_type": "INET",
+                  "packed_bytes": "wKgAAQ=="
+                },
+                {
+                  "address_type": "INET6",
+                  "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
+                }
+              ]
+            },
+            {
+              "mac_address": "qrvM3e4B"
+            },
+            {
+              "mac_address": "u8zd7v8B"
+            }
+          ],
+          "knowledge_base": {
+            "fqdn": "Host-1.example.com",
+            "os": "Linux",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-1.example.com",
-            "version": ""
+            "kernel": "4.0.0",
+            "machine": "x86_64",
+            "system": "Linux",
+            "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000001",
-          "users": []
+          "users": [
+            {
+              "username": "user1"
+            },
+            {
+              "username": "user2"
+            }
+          ]
         }
       },
       "url": "/api/users/api_test_user/approvals/client/C.1000000000000001/approval:222222"
@@ -1289,10 +1823,28 @@
           "agent_info": {
             "type": "ClientInformation",
             "value": {
+              "build_time": {
+                "type": "unicode",
+                "value": "1980-01-01"
+              },
               "client_name": {
                 "type": "unicode",
                 "value": "GRR Monitor"
-              }
+              },
+              "client_version": {
+                "type": "long",
+                "value": 123
+              },
+              "labels": [
+                {
+                  "type": "unicode",
+                  "value": "label1"
+                },
+                {
+                  "type": "unicode",
+                  "value": "label2"
+                }
+              ]
             }
           },
           "client_id": {
@@ -1312,9 +1864,91 @@
               }
             }
           },
+          "interfaces": [
+            {
+              "type": "Interface",
+              "value": {
+                "addresses": [
+                  {
+                    "type": "NetworkAddress",
+                    "value": {
+                      "address_type": {
+                        "type": "EnumNamedValue",
+                        "value": "INET"
+                      },
+                      "packed_bytes": {
+                        "type": "RDFBytes",
+                        "value": "wKgAAA=="
+                      }
+                    }
+                  },
+                  {
+                    "type": "NetworkAddress",
+                    "value": {
+                      "address_type": {
+                        "type": "EnumNamedValue",
+                        "value": "INET6"
+                      },
+                      "packed_bytes": {
+                        "type": "RDFBytes",
+                        "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Interface",
+              "value": {
+                "mac_address": {
+                  "type": "MacAddress",
+                  "value": "qrvM3e4A"
+                }
+              }
+            },
+            {
+              "type": "Interface",
+              "value": {
+                "mac_address": {
+                  "type": "MacAddress",
+                  "value": "u8zd7v8A"
+                }
+              }
+            }
+          ],
           "knowledge_base": {
             "type": "KnowledgeBase",
-            "value": {}
+            "value": {
+              "fqdn": {
+                "type": "unicode",
+                "value": "Host-0.example.com"
+              },
+              "os": {
+                "type": "unicode",
+                "value": "Linux"
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
+            }
           },
           "labels": [],
           "last_seen_at": {
@@ -1332,9 +1966,21 @@
                 "type": "unicode",
                 "value": "Host-0.example.com"
               },
+              "kernel": {
+                "type": "unicode",
+                "value": "4.0.0"
+              },
+              "machine": {
+                "type": "unicode",
+                "value": "x86_64"
+              },
+              "system": {
+                "type": "unicode",
+                "value": "Linux"
+              },
               "version": {
                 "type": "unicode",
-                "value": ""
+                "value": "buster/sid"
               }
             }
           },
@@ -1342,30 +1988,96 @@
             "type": "ClientURN",
             "value": "aff4:/C.1000000000000000"
           },
-          "users": []
+          "users": [
+            {
+              "type": "User",
+              "value": {
+                "username": {
+                  "type": "unicode",
+                  "value": "user1"
+                }
+              }
+            },
+            {
+              "type": "User",
+              "value": {
+                "username": {
+                  "type": "unicode",
+                  "value": "user2"
+                }
+              }
+            }
+          ]
         }
       },
       "test_class": "ApiGetClientHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "age": 42000000,
         "agent_info": {
-          "client_name": "GRR Monitor"
+          "build_time": "1980-01-01",
+          "client_name": "GRR Monitor",
+          "client_version": 123,
+          "labels": [
+            "label1",
+            "label2"
+          ]
         },
         "client_id": "C.1000000000000000",
         "hardware_info": {
           "bios_version": "Bios-Version-0",
           "system_manufacturer": "System-Manufacturer-0"
         },
-        "knowledge_base": {},
+        "interfaces": [
+          {
+            "addresses": [
+              {
+                "address_type": "INET",
+                "packed_bytes": "wKgAAA=="
+              },
+              {
+                "address_type": "INET6",
+                "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+              }
+            ]
+          },
+          {
+            "mac_address": "qrvM3e4A"
+          },
+          {
+            "mac_address": "u8zd7v8A"
+          }
+        ],
+        "knowledge_base": {
+          "fqdn": "Host-0.example.com",
+          "os": "Linux",
+          "users": [
+            {
+              "username": "user1"
+            },
+            {
+              "username": "user2"
+            }
+          ]
+        },
         "labels": [],
         "last_seen_at": 42000000,
         "memory_size": 4294967296,
         "os_info": {
           "fqdn": "Host-0.example.com",
-          "version": ""
+          "kernel": "4.0.0",
+          "machine": "x86_64",
+          "system": "Linux",
+          "version": "buster/sid"
         },
         "urn": "aff4:/C.1000000000000000",
-        "users": []
+        "users": [
+          {
+            "username": "user1"
+          },
+          {
+            "username": "user2"
+          }
+        ]
       },
       "url": "/api/clients/C.1000000000000000"
     }
@@ -1424,10 +2136,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1447,9 +2177,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1467,9 +2279,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1477,7 +2301,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           },
           {
@@ -1490,10 +2333,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1513,9 +2374,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1533,9 +2476,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1543,7 +2498,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -1554,44 +2528,138 @@
           {
             "age": 42000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 0,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           },
           {
             "age": 45000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -1612,10 +2680,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1635,9 +2721,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1655,9 +2823,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1665,7 +2845,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -1676,23 +2875,70 @@
           {
             "age": 42000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -1713,10 +2959,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1736,9 +3000,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1756,9 +3102,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1766,7 +3124,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -1777,23 +3154,70 @@
           {
             "age": 45000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -1814,10 +3238,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1837,9 +3279,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -1857,9 +3381,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -1867,7 +3403,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           },
           {
@@ -1922,23 +3477,70 @@
           {
             "age": 42000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 0,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           },
           {
             "age": 45000000,
@@ -1973,10 +3575,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -1996,9 +3616,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -2016,9 +3718,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -2026,7 +3740,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -2037,23 +3770,70 @@
           {
             "age": 42000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -2074,10 +3854,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -2097,9 +3895,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -2117,9 +3997,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -2127,7 +4019,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -2138,23 +4049,70 @@
           {
             "age": 45000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -6879,6 +8837,128 @@
         "username": "api_test_user"
       },
       "url": "/api/users/me"
+    },
+    {
+      "api_method": "GetGrrUser",
+      "method": "GET",
+      "response": {
+        "type": "ApiGrrUser",
+        "value": {
+          "interface_traits": {
+            "type": "ApiGrrUserInterfaceTraits",
+            "value": {
+              "artifact_manager_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "browse_virtual_file_system_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "create_cron_job_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "create_hunt_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "cron_jobs_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "hunt_manager_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "manage_binaries_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "manage_client_flows_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "modify_client_labels_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "search_clients_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "server_load_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "settings_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "show_statistics_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "start_client_flow_nav_item_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "upload_artifact_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              },
+              "upload_binary_action_enabled": {
+                "type": "RDFBool",
+                "value": true
+              }
+            }
+          },
+          "settings": {
+            "type": "GUISettings",
+            "value": {
+              "canary_mode": {
+                "type": "RDFBool",
+                "value": true
+              }
+            }
+          },
+          "user_type": {
+            "type": "EnumNamedValue",
+            "value": "USER_TYPE_ADMIN"
+          },
+          "username": {
+            "type": "unicode",
+            "value": "api_test_user"
+          }
+        }
+      },
+      "test_class": "ApiGetOwnGrrUserHandlerRegresstionTest_http_v1",
+      "type_stripped_response": {
+        "interface_traits": {
+          "artifact_manager_nav_item_enabled": true,
+          "browse_virtual_file_system_nav_item_enabled": true,
+          "create_cron_job_action_enabled": true,
+          "create_hunt_action_enabled": true,
+          "cron_jobs_nav_item_enabled": true,
+          "hunt_manager_nav_item_enabled": true,
+          "manage_binaries_nav_item_enabled": true,
+          "manage_client_flows_nav_item_enabled": true,
+          "modify_client_labels_action_enabled": true,
+          "search_clients_action_enabled": true,
+          "server_load_nav_item_enabled": true,
+          "settings_nav_item_enabled": true,
+          "show_statistics_nav_item_enabled": true,
+          "start_client_flow_nav_item_enabled": true,
+          "upload_artifact_action_enabled": true,
+          "upload_binary_action_enabled": true
+        },
+        "settings": {
+          "canary_mode": true
+        },
+        "user_type": "USER_TYPE_ADMIN",
+        "username": "api_test_user"
+      },
+      "url": "/api/users/me"
     }
   ],
   "ApiGetPendingUserNotificationsCountHandler": [
@@ -9718,10 +11798,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -9741,9 +11839,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -9757,9 +11937,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -9767,7 +11959,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -9788,22 +11999,69 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "client_name": "GRR Monitor"
+            "build_time": "1980-01-01",
+            "client_name": "GRR Monitor",
+            "client_version": 123,
+            "labels": [
+              "label1",
+              "label2"
+            ]
           },
           "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
           },
-          "knowledge_base": {},
+          "interfaces": [
+            {
+              "addresses": [
+                {
+                  "address_type": "INET",
+                  "packed_bytes": "wKgAAA=="
+                },
+                {
+                  "address_type": "INET6",
+                  "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                }
+              ]
+            },
+            {
+              "mac_address": "qrvM3e4A"
+            },
+            {
+              "mac_address": "u8zd7v8A"
+            }
+          ],
+          "knowledge_base": {
+            "fqdn": "Host-0.example.com",
+            "os": "Linux",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
             "fqdn": "Host-0.example.com",
-            "version": ""
+            "kernel": "4.0.0",
+            "machine": "x86_64",
+            "system": "Linux",
+            "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": []
+          "users": [
+            {
+              "username": "user1"
+            },
+            {
+              "username": "user2"
+            }
+          ]
         }
       },
       "url": "/api/users/requestor/approvals/client/C.1000000000000000/approval:111111/actions/grant"
@@ -10831,10 +13089,28 @@
                   "agent_info": {
                     "type": "ClientInformation",
                     "value": {
+                      "build_time": {
+                        "type": "unicode",
+                        "value": "1980-01-01"
+                      },
                       "client_name": {
                         "type": "unicode",
                         "value": "GRR Monitor"
-                      }
+                      },
+                      "client_version": {
+                        "type": "long",
+                        "value": 123
+                      },
+                      "labels": [
+                        {
+                          "type": "unicode",
+                          "value": "label1"
+                        },
+                        {
+                          "type": "unicode",
+                          "value": "label2"
+                        }
+                      ]
                     }
                   },
                   "client_id": {
@@ -10854,9 +13130,91 @@
                       }
                     }
                   },
+                  "interfaces": [
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "addresses": [
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "wKgAAQ=="
+                              }
+                            }
+                          },
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET6"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "IAGrzQAAAAAAAAAAAAAAAQ=="
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "qrvM3e4B"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "u8zd7v8B"
+                        }
+                      }
+                    }
+                  ],
                   "knowledge_base": {
                     "type": "KnowledgeBase",
-                    "value": {}
+                    "value": {
+                      "fqdn": {
+                        "type": "unicode",
+                        "value": "Host-1.example.com"
+                      },
+                      "os": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
+                      "users": [
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user1"
+                            }
+                          }
+                        },
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user2"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   },
                   "labels": [],
                   "last_seen_at": {
@@ -10870,9 +13228,21 @@
                         "type": "unicode",
                         "value": "Host-1.example.com"
                       },
+                      "kernel": {
+                        "type": "unicode",
+                        "value": "4.0.0"
+                      },
+                      "machine": {
+                        "type": "unicode",
+                        "value": "x86_64"
+                      },
+                      "system": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
                       "version": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "buster/sid"
                       }
                     }
                   },
@@ -10880,7 +13250,26 @@
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000001"
                   },
-                  "users": []
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -10927,10 +13316,28 @@
                   "agent_info": {
                     "type": "ClientInformation",
                     "value": {
+                      "build_time": {
+                        "type": "unicode",
+                        "value": "1980-01-01"
+                      },
                       "client_name": {
                         "type": "unicode",
                         "value": "GRR Monitor"
-                      }
+                      },
+                      "client_version": {
+                        "type": "long",
+                        "value": 123
+                      },
+                      "labels": [
+                        {
+                          "type": "unicode",
+                          "value": "label1"
+                        },
+                        {
+                          "type": "unicode",
+                          "value": "label2"
+                        }
+                      ]
                     }
                   },
                   "client_id": {
@@ -10950,9 +13357,91 @@
                       }
                     }
                   },
+                  "interfaces": [
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "addresses": [
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "wKgAAA=="
+                              }
+                            }
+                          },
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET6"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "qrvM3e4A"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "u8zd7v8A"
+                        }
+                      }
+                    }
+                  ],
                   "knowledge_base": {
                     "type": "KnowledgeBase",
-                    "value": {}
+                    "value": {
+                      "fqdn": {
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "os": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
+                      "users": [
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user1"
+                            }
+                          }
+                        },
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user2"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   },
                   "labels": [],
                   "last_seen_at": {
@@ -10966,9 +13455,21 @@
                         "type": "unicode",
                         "value": "Host-0.example.com"
                       },
+                      "kernel": {
+                        "type": "unicode",
+                        "value": "4.0.0"
+                      },
+                      "machine": {
+                        "type": "unicode",
+                        "value": "x86_64"
+                      },
+                      "system": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
                       "version": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "buster/sid"
                       }
                     }
                   },
@@ -10976,7 +13477,26 @@
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000000"
                   },
-                  "users": []
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -11001,22 +13521,69 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "client_name": "GRR Monitor"
+                "build_time": "1980-01-01",
+                "client_name": "GRR Monitor",
+                "client_version": 123,
+                "labels": [
+                  "label1",
+                  "label2"
+                ]
               },
               "client_id": "C.1000000000000001",
               "hardware_info": {
                 "bios_version": "Bios-Version-1",
                 "system_manufacturer": "System-Manufacturer-1"
               },
-              "knowledge_base": {},
+              "interfaces": [
+                {
+                  "addresses": [
+                    {
+                      "address_type": "INET",
+                      "packed_bytes": "wKgAAQ=="
+                    },
+                    {
+                      "address_type": "INET6",
+                      "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
+                    }
+                  ]
+                },
+                {
+                  "mac_address": "qrvM3e4B"
+                },
+                {
+                  "mac_address": "u8zd7v8B"
+                }
+              ],
+              "knowledge_base": {
+                "fqdn": "Host-1.example.com",
+                "os": "Linux",
+                "users": [
+                  {
+                    "username": "user1"
+                  },
+                  {
+                    "username": "user2"
+                  }
+                ]
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-1.example.com",
-                "version": ""
+                "kernel": "4.0.0",
+                "machine": "x86_64",
+                "system": "Linux",
+                "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000001",
-              "users": []
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
             }
           },
           {
@@ -11034,22 +13601,69 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "client_name": "GRR Monitor"
+                "build_time": "1980-01-01",
+                "client_name": "GRR Monitor",
+                "client_version": 123,
+                "labels": [
+                  "label1",
+                  "label2"
+                ]
               },
               "client_id": "C.1000000000000000",
               "hardware_info": {
                 "bios_version": "Bios-Version-0",
                 "system_manufacturer": "System-Manufacturer-0"
               },
-              "knowledge_base": {},
+              "interfaces": [
+                {
+                  "addresses": [
+                    {
+                      "address_type": "INET",
+                      "packed_bytes": "wKgAAA=="
+                    },
+                    {
+                      "address_type": "INET6",
+                      "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                    }
+                  ]
+                },
+                {
+                  "mac_address": "qrvM3e4A"
+                },
+                {
+                  "mac_address": "u8zd7v8A"
+                }
+              ],
+              "knowledge_base": {
+                "fqdn": "Host-0.example.com",
+                "os": "Linux",
+                "users": [
+                  {
+                    "username": "user1"
+                  },
+                  {
+                    "username": "user2"
+                  }
+                ]
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-0.example.com",
-                "version": ""
+                "kernel": "4.0.0",
+                "machine": "x86_64",
+                "system": "Linux",
+                "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000000",
-              "users": []
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
             }
           }
         ]
@@ -11103,10 +13717,28 @@
                   "agent_info": {
                     "type": "ClientInformation",
                     "value": {
+                      "build_time": {
+                        "type": "unicode",
+                        "value": "1980-01-01"
+                      },
                       "client_name": {
                         "type": "unicode",
                         "value": "GRR Monitor"
-                      }
+                      },
+                      "client_version": {
+                        "type": "long",
+                        "value": 123
+                      },
+                      "labels": [
+                        {
+                          "type": "unicode",
+                          "value": "label1"
+                        },
+                        {
+                          "type": "unicode",
+                          "value": "label2"
+                        }
+                      ]
                     }
                   },
                   "client_id": {
@@ -11126,9 +13758,91 @@
                       }
                     }
                   },
+                  "interfaces": [
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "addresses": [
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "wKgAAA=="
+                              }
+                            }
+                          },
+                          {
+                            "type": "NetworkAddress",
+                            "value": {
+                              "address_type": {
+                                "type": "EnumNamedValue",
+                                "value": "INET6"
+                              },
+                              "packed_bytes": {
+                                "type": "RDFBytes",
+                                "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "qrvM3e4A"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Interface",
+                      "value": {
+                        "mac_address": {
+                          "type": "MacAddress",
+                          "value": "u8zd7v8A"
+                        }
+                      }
+                    }
+                  ],
                   "knowledge_base": {
                     "type": "KnowledgeBase",
-                    "value": {}
+                    "value": {
+                      "fqdn": {
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "os": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
+                      "users": [
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user1"
+                            }
+                          }
+                        },
+                        {
+                          "type": "User",
+                          "value": {
+                            "username": {
+                              "type": "unicode",
+                              "value": "user2"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   },
                   "labels": [],
                   "last_seen_at": {
@@ -11142,9 +13856,21 @@
                         "type": "unicode",
                         "value": "Host-0.example.com"
                       },
+                      "kernel": {
+                        "type": "unicode",
+                        "value": "4.0.0"
+                      },
+                      "machine": {
+                        "type": "unicode",
+                        "value": "x86_64"
+                      },
+                      "system": {
+                        "type": "unicode",
+                        "value": "Linux"
+                      },
                       "version": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "buster/sid"
                       }
                     }
                   },
@@ -11152,7 +13878,26 @@
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000000"
                   },
-                  "users": []
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -11177,22 +13922,69 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "client_name": "GRR Monitor"
+                "build_time": "1980-01-01",
+                "client_name": "GRR Monitor",
+                "client_version": 123,
+                "labels": [
+                  "label1",
+                  "label2"
+                ]
               },
               "client_id": "C.1000000000000000",
               "hardware_info": {
                 "bios_version": "Bios-Version-0",
                 "system_manufacturer": "System-Manufacturer-0"
               },
-              "knowledge_base": {},
+              "interfaces": [
+                {
+                  "addresses": [
+                    {
+                      "address_type": "INET",
+                      "packed_bytes": "wKgAAA=="
+                    },
+                    {
+                      "address_type": "INET6",
+                      "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                    }
+                  ]
+                },
+                {
+                  "mac_address": "qrvM3e4A"
+                },
+                {
+                  "mac_address": "u8zd7v8A"
+                }
+              ],
+              "knowledge_base": {
+                "fqdn": "Host-0.example.com",
+                "os": "Linux",
+                "users": [
+                  {
+                    "username": "user1"
+                  },
+                  {
+                    "username": "user2"
+                  }
+                ]
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
                 "fqdn": "Host-0.example.com",
-                "version": ""
+                "kernel": "4.0.0",
+                "machine": "x86_64",
+                "system": "Linux",
+                "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000000",
-              "users": []
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
             }
           }
         ]
@@ -11216,10 +14008,28 @@
               "client_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "crash_message": {
@@ -11249,7 +14059,13 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "aff4:/flows/F:CrashHandler",
@@ -11276,10 +14092,28 @@
               "client_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "crash_message": {
@@ -11309,7 +14143,13 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "aff4:/flows/F:CrashHandler",
@@ -11905,7 +14745,7 @@
               },
               "doc": {
                 "type": "unicode",
-                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, DEPRECATED_upload_token=DEPRECATED_upload_token)\n\n  Args:\n    DEPRECATED_upload_token\n      description: \n      type: UploadToken\n      default: None\n\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n"
+                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n"
               },
               "friendly_name": {
                 "type": "unicode",
@@ -11965,7 +14805,7 @@
             ],
             "category": "Filesystem",
             "default_args": {},
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, DEPRECATED_upload_token=DEPRECATED_upload_token)\n\n  Args:\n    DEPRECATED_upload_token\n      description: \n      type: UploadToken\n      default: None\n\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendly_name": "File Finder",
             "name": "FileFinder"
           },
@@ -13396,10 +16236,28 @@
               "client_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "crash_message": {
@@ -13429,7 +16287,13 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "aff4:/flows/F:CrashHandler",
@@ -13456,10 +16320,28 @@
               "client_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "crash_message": {
@@ -13489,7 +16371,13 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "crash_message": "Client killed during transaction",
             "crash_type": "aff4:/flows/F:CrashHandler",
@@ -16378,10 +19266,28 @@
               "agent_info": {
                 "type": "ClientInformation",
                 "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
                   "client_name": {
                     "type": "unicode",
                     "value": "GRR Monitor"
-                  }
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
                 }
               },
               "client_id": {
@@ -16401,9 +19307,91 @@
                   }
                 }
               },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
               "knowledge_base": {
                 "type": "KnowledgeBase",
-                "value": {}
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               "labels": [],
               "last_seen_at": {
@@ -16417,9 +19405,21 @@
                     "type": "unicode",
                     "value": "Host-0.example.com"
                   },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
                   "version": {
                     "type": "unicode",
-                    "value": ""
+                    "value": "buster/sid"
                   }
                 }
               },
@@ -16427,7 +19427,26 @@
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
               },
-              "users": []
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -16438,22 +19457,69 @@
           {
             "age": 42000000,
             "agent_info": {
-              "client_name": "GRR Monitor"
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
             },
             "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"
             },
-            "knowledge_base": {},
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "os_info": {
               "fqdn": "Host-0.example.com",
-              "version": ""
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },

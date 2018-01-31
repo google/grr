@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.disableIfNoTraitDirective');
 goog.provide('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
 
 

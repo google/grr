@@ -39,7 +39,9 @@ rule test_rule {
 class FakeMatch(object):
 
   strings = [(100, "$s1", "1234"), (200, "$s1", "1234")]
-  rule = "test_rule"
+
+  def __init__(self, rule_name="test_rule"):
+    self.rule = rule_name
 
 
 class FakeRules(object):
@@ -62,6 +64,15 @@ class TimeoutRules(FakeRules):
     raise yara.TimeoutError("Timed out.")
 
 
+class TooManyHitsRules(FakeRules):
+
+  def match(self, data=None, timeout=None):  # pylint:disable=invalid-name
+    self.invocations.append((data, timeout))
+    if len(self.invocations) >= 3:
+      raise yara.Error("internal error: 30")
+    return [FakeMatch("test_rule_%d" % len(self.invocations))]
+
+
 def GeneratePattern(seed, length):
   if not "A" <= seed <= "Z":
     raise ValueError("Needs an upper case letter as seed")
@@ -80,7 +91,8 @@ class FakeMemoryProcess(object):
       103: [(0, "A" * 100), (10000, "B" * 500)],
       104: [(0, "A" * 100), (1000, "X" * 50 + "1234" + "X" * 50)],
       105: [(0, GeneratePattern("A", 100)), (300, GeneratePattern("B", 700))],
-      106: []
+      106: [],
+      107: [(0, "A" * 98 + "1234" + "B" * 50), (400, "C" * 50 + "1234")],
   }
 
   def __init__(self, pid=None):
@@ -131,6 +143,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
                           ignore_grr_process=False,
                           include_errors_in_results=False,
                           include_misses_in_results=False,
+                          max_results_per_process=0,
                           **kw):
     client_mock = action_mocks.ActionMock(yara_actions.YaraProcessScan)
 
@@ -147,6 +160,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           ignore_grr_process=ignore_grr_process,
           include_errors_in_results=include_errors_in_results,
           include_misses_in_results=include_misses_in_results,
+          max_results_per_process=max_results_per_process,
           token=self.token,
           **kw):
         session_id = s
@@ -169,6 +183,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestYaraFlows, self).setUp()
+    self.client_id = test_lib.TEST_CLIENT_ID
     self.procs = [
         client_test_lib.MockWindowsProcess(pid=101, name="proc101.exe"),
         client_test_lib.MockWindowsProcess(
@@ -222,6 +237,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(len(matches), 2)
     self.assertEqual(len(errors), 2)
     self.assertEqual(len(misses), 0)
+
+  def testYaraProcessScanLimitMatches(self):
+    proc = client_test_lib.MockWindowsProcess(pid=107, name="proc107.exe")
+    matches, _, _ = self._RunYaraProcessScan([proc])
+    self.assertEqual(len(matches[0].match), 2)
+    matches, _, _ = self._RunYaraProcessScan([proc], max_results_per_process=1)
+    self.assertEqual(len(matches[0].match), 1)
 
   def testScanTimingInformation(self):
     with test_lib.FakeTime(10000, increment=1):
@@ -289,6 +311,22 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual("Access Denied.", e.error)
       else:
         self.assertIn("Scanning timed out", e.error)
+
+  def testTooManyHitsError(self):
+    FakeRules.invocations = []
+    with utils.Stubber(rdf_yara.YaraSignature, "GetRules", TooManyHitsRules):
+      matches, errors, misses = self._RunYaraProcessScan(
+          self.procs,
+          include_errors_in_results=True,
+          include_misses_in_results=True)
+
+    # The third invocation raises too many hits, make sure we get the
+    # first two matches anyways.
+    self.assertEqual(len(matches), 2)
+    self.assertItemsEqual([m.match[0].rule_name for m in matches],
+                          ["test_rule_1", "test_rule_2"])
+    self.assertEqual(len(errors), 2)
+    self.assertEqual(len(misses), 2)
 
   def testYaraProcessScanChunkingWorks(self):
     FakeRules.invocations = []

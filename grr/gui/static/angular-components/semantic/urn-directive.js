@@ -1,7 +1,8 @@
 'use strict';
 
+goog.provide('grrUi.semantic.urnDirective');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
-goog.require('grrUi.routing.aff4UrnToUrl');
+goog.require('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
 
 goog.scope(function() {
 
@@ -54,7 +55,7 @@ UrnController.prototype.onValueChange_ = function(newValue) {
     return;
   }
 
-  var urlResult = grrUi.routing.aff4UrnToUrl(this.plainValue);
+  var urlResult = grrUi.routing.aff4UrnToUrl.aff4UrnToUrl(this.plainValue);
   if (urlResult) {
     this.refState = urlResult.state;
     this.refParams = urlResult.params;

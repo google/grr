@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.timestampFilter');
 goog.provide('grrUi.core.timestampFilter.TimestampFilter');
 
 goog.scope(function() {

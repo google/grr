@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.hashDigestDirective');
 goog.provide('grrUi.semantic.hashDigestDirective.HashDigestDirective');
 
 goog.scope(function() {

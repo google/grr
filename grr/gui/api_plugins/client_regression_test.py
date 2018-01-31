@@ -2,7 +2,6 @@
 """This modules contains regression tests for clients API handlers."""
 
 
-
 import psutil
 
 from grr.gui import api_regression_test_lib
@@ -35,18 +34,17 @@ class ApiSearchClientsHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_ids = self.SetupClients(1)
+      client_id = self.SetupClient(0)
 
       # Delete the certificate as it's being regenerated every time the
       # client is created.
       with aff4.FACTORY.Open(
-          client_ids[0], mode="rw", token=self.token) as grr_client:
+          client_id, mode="rw", token=self.token) as grr_client:
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
       self.Check(
           "SearchClients",
-          args=client_plugin.ApiSearchClientsArgs(
-              query=client_ids[0].Basename()))
+          args=client_plugin.ApiSearchClientsArgs(query=client_id.Basename()))
 
 
 class ApiGetClientHandlerRegressionTest(
@@ -58,10 +56,10 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_ids = self.SetupClients(1)
+      client_id = self.SetupClient(0)
 
       with aff4.FACTORY.Open(
-          client_ids[0], mode="rw", token=self.token) as grr_client:
+          client_id, mode="rw", token=self.token) as grr_client:
         grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
         # Delete the certificate as it's being regenerated every time the
         # client is created.
@@ -69,7 +67,7 @@ class ApiGetClientHandlerRegressionTest(
 
     self.Check(
         "GetClient",
-        args=client_plugin.ApiGetClientArgs(client_id=client_ids[0].Basename()))
+        args=client_plugin.ApiGetClientArgs(client_id=client_id.Basename()))
 
 
 class ApiGetClientVersionsRegressionTest(
@@ -81,7 +79,7 @@ class ApiGetClientVersionsRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClients(1)[0]
+      client_id = self.SetupClient(0)
       with aff4.FACTORY.Open(
           client_id, mode="rw", token=self.token) as grr_client:
         grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
@@ -124,7 +122,7 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClients(1)[0]
+      client_id = self.SetupClient(0)
 
       with aff4.FACTORY.Open(
           client_id, mode="rw", token=self.token) as grr_client:
@@ -219,8 +217,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
   handler = client_plugin.ApiListClientActionRequestsHandler
 
   def Run(self):
-    client_ids = self.SetupClients(1)
-    client_id = client_ids[0]
+    client_id = self.SetupClient(0)
 
     replace = {}
     with test_lib.FakeTime(42):
@@ -289,7 +286,7 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
           stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
   def Run(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     self.FillClientStats(client_id)
 
     self.Check(

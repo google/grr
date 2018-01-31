@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.clientUrnDirective');
 goog.provide('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
 
 goog.scope(function() {

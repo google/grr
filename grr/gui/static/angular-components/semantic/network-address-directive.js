@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.networkAddressDirective');
 goog.provide('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 
 goog.scope(function() {

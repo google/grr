@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.objectLabelsListDirective');
 goog.provide('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
 
 

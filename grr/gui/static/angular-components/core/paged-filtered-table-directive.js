@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.pagedFilteredTableDirective');
 goog.provide('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
 goog.provide('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
 goog.provide('grrUi.core.pagedFilteredTableDirective.TableTopDirective');

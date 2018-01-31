@@ -2,7 +2,6 @@
 """Tests for an ApiLabelsRestrictedCallRouter."""
 
 
-
 from grr.gui import api_labels_restricted_call_router as api_router
 
 from grr.gui.api_plugins import client as api_client
@@ -22,7 +21,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(CheckClientLabelsTest, self).setUp()
-    self.client_urn = self.SetupClients(1)[0]
+    self.client_urn = self.SetupClient(0)
     self.client_id = api_client.ApiClientId(self.client_urn.Basename())
 
     self.labels_whitelist = ["foo"]
@@ -148,8 +147,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
   def setUp(self):
     super(ApiLabelsRestrictedCallRouterTest, self).setUp()
 
-    client_urns = self.SetupClients(1)
-    self.client_urn = client_urns[0]
+    self.client_urn = self.SetupClient(0)
     with aff4.FACTORY.Open(self.client_urn, mode="rw", token=self.token) as fd:
       fd.AddLabel("foo", owner="GRR")
     self.client_id = self.client_urn.Basename()

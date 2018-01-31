@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.outputPlugins.outputPluginLogsDirective');
 goog.provide('grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective');
 
 

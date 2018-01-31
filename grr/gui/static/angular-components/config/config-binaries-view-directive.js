@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.config.configBinariesViewDirective');
 goog.provide('grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective');
 
 goog.scope(function() {

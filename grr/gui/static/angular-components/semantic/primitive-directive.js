@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.primitiveDirective');
 goog.provide('grrUi.semantic.primitiveDirective.PrimitiveDirective');
 
 goog.scope(function() {

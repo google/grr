@@ -197,7 +197,7 @@ class GRRFuseTest(GRRFuseTestBase):
   def setUp(self):
     super(GRRFuseTest, self).setUp()
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
     self.client_name = str(self.client_id)[len("aff4:/"):]
 

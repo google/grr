@@ -238,6 +238,8 @@ class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
 
 
 class ApiGrrUser(rdf_structs.RDFProtoStruct):
+  """API object describing the user."""
+
   protobuf = user_pb2.ApiGrrUser
   rdf_deps = [
       ApiGrrUserInterfaceTraits,
@@ -254,6 +256,17 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
       self.user_type = self.UserType.USER_TYPE_STANDARD
 
     return self
+
+  def InitFromDatabaseObject(self, db_obj):
+    self.obj = db_obj.username
+
+    if db_obj.user_type == db_obj.UserType.USER_TYPE_ADMIN:
+      self.user_type = self.UserType.USER_TYPE_ADMIN
+    else:
+      self.user_type = self.UserType.USER_TYPE_STANDARD
+
+    self.settings.ui_mode = db_obj.ui_mode
+    self.settings.canary_mode = db_obj.canary_mode
 
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
@@ -858,15 +871,19 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     result = ApiGrrUser(username=token.username)
 
-    try:
-      user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(token.username),
-          aff4_users.GRRUser,
-          token=token)
+    if data_store.RelationalDBReadEnabled():
+      user_record = data_store.REL_DB.ReadGRRUser(token.username)
+      result.InitFromDatabaseObject(user_record)
+    else:
+      try:
+        user_record = aff4.FACTORY.Open(
+            aff4.ROOT_URN.Add("users").Add(token.username),
+            aff4_users.GRRUser,
+            token=token)
 
-      result.InitFromAff4Object(user_record)
-    except IOError:
-      result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
+        result.InitFromAff4Object(user_record)
+      except IOError:
+        result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
     result.interface_traits = (
         self.interface_traits or ApiGrrUserInterfaceTraits())

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userSettingsButtonDirective');
 goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective');
 
 

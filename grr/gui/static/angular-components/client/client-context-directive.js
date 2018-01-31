@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientContextDirective');
 goog.provide('grrUi.client.clientContextDirective.ClientContextDirective');
 
 goog.scope(function() {

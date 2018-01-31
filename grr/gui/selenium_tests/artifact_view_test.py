@@ -38,7 +38,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestArtifactRender, self).setUp()
-    self.client_id = self.SetupClients(1, system="linux")[0]
+    self.client_id = self.SetupClient(0, system="linux")
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testArtifactRendering(self):

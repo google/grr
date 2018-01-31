@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.rekall.logDirective');
 goog.provide('grrUi.semantic.rekall.logDirective.LogDirective');
 
 goog.scope(function() {

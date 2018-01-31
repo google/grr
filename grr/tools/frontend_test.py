@@ -78,7 +78,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(GRRHTTPServerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def testServerPem(self):
     req = requests.get(self.base_url + "server.pem")
@@ -195,7 +195,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
                            action,
                            network_bytes_limit=None,
                            client_id=None):
-    client_id = client_id or self.SetupClients(1)[0]
+    client_id = client_id or self.SetupClient(0)
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
       client = comms.GRRHTTPClient(
           ca_cert=config.CONFIG["CA.certificate"],

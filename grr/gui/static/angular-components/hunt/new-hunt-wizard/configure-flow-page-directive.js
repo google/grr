@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.newHuntWizard.configureFlowPageDirective');
 goog.provide('grrUi.hunt.newHuntWizard.configureFlowPageDirective.ConfigureFlowPageDirective');
 goog.require('grrUi.forms.utils.valueHasErrors');
 

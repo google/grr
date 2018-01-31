@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.outputPluginDescriptorFormDirective');
 goog.provide('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 
 

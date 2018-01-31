@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This modules contains regression tests for VFS API handlers."""
 
-
 from grr.gui import api_regression_test_lib
 
 from grr.gui.api_plugins import vfs as vfs_plugin
@@ -22,7 +21,7 @@ class ApiListFilesHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFilesHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     fixture_test_lib.ClientFixture(self.client_id, token=self.token, age=42)
 
   def Run(self):
@@ -45,7 +44,7 @@ class ApiGetFileTextHandlerRegressionTest(
 
   def setUp(self):
     super(ApiGetFileTextHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/Downloads/a.txt"
     self.CreateFileVersions(self.client_id, self.file_path)
 
@@ -77,7 +76,7 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
 
   def setUp(self):
     super(ApiGetFileVersionTimesHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/Downloads/a.txt"
     self.CreateFileVersions(self.client_id, self.file_path)
 
@@ -105,7 +104,7 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
   handler = vfs_plugin.ApiGetFileDownloadCommandHandler
 
   def Run(self):
-    self.client_id = self.SetupClients(1)[0].Basename()
+    self.client_id = self.SetupClient(0).Basename()
     self.file_path = "fs/os/etc"
     self.Check(
         "GetFileDownloadCommand",
@@ -122,7 +121,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
   def setUp(self):
     super(ApiCreateVfsRefreshOperationHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     # Choose some directory with pathspec in the ClientFixture.
     self.file_path = "fs/os/Users/Shared"
 
@@ -154,7 +153,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
   def setUp(self):
     super(ApiGetVfsRefreshOperationStateHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     # Create a running mock refresh operation.
@@ -186,25 +185,33 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.running_flow_urn)),
-        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.running_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.finished_flow_urn)),
-        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.finished_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.non_refresh_flow_urn)),
-        replace={self.non_refresh_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.non_refresh_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.unknown_flow_id)),
-        replace={self.unknown_flow_id: "W:ABCDEF"})
+        replace={
+            self.unknown_flow_id: "W:ABCDEF"
+        })
 
 
 class ApiUpdateVfsFileContentHandlerRegressionTest(
@@ -216,7 +223,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
   def setUp(self):
     super(ApiUpdateVfsFileContentHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/bin/bash"
 
   def Run(self):
@@ -245,7 +252,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
   def setUp(self):
     super(ApiGetVfsFileContentUpdateStateHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     # Create a running mock refresh operation.
@@ -277,25 +284,33 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.running_flow_urn)),
-        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.running_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.finished_flow_urn)),
-        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.finished_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.non_update_flow_urn)),
-        replace={self.non_update_flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            self.non_update_flow_urn.Basename(): "W:ABCDEF"
+        })
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=self.client_id.Basename(),
             operation_id=str(self.unknown_flow_id)),
-        replace={self.unknown_flow_id: "W:ABCDEF"})
+        replace={
+            self.unknown_flow_id: "W:ABCDEF"
+        })
 
 
 class ApiGetVfsTimelineHandlerRegressionTest(

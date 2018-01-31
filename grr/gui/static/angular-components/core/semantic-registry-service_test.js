@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.semanticRegistryServiceTest');
 
-const SemanticRegistryService = goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+const SemanticRegistryService = goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
 const coreModule = goog.require('grrUi.core.coreModule');
 
 
@@ -122,8 +122,9 @@ describe('Semantic registry', () => {
       deferred.resolve({
         mro: ['SomeChildType', 'SomeParentType'],
       });
-      grrReflectionService.getRDFValueDescriptor = jasmine.createSpy(
-          'getRDFValueDescriptor').and.returnValue(deferred.promise);
+      grrReflectionService.getRDFValueDescriptor =
+          jasmine.createSpy('getRDFValueDescriptor')
+              .and.returnValue(deferred.promise);
 
       const promise = testRegistry.findDirectiveForType('SomeChildType');
       promise.then((value) => {
@@ -144,8 +145,9 @@ describe('Semantic registry', () => {
       deferred.resolve({
         mro: ['SomeChildType', 'SomeParentType'],
       });
-      grrReflectionService.getRDFValueDescriptor = jasmine.createSpy(
-          'getRDFValueDescriptor').and.returnValue(deferred.promise);
+      grrReflectionService.getRDFValueDescriptor =
+          jasmine.createSpy('getRDFValueDescriptor')
+              .and.returnValue(deferred.promise);
 
       const promise = testRegistry.findDirectiveForType(
           'SomeChildType', {'SomeParentType': directiveOverride});

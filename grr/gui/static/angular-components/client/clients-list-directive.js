@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientsListDirective');
 goog.provide('grrUi.client.clientsListDirective.ClientsListDirective');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntStatsDirective');
 goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 

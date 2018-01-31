@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowDescriptorsTreeDirective');
 goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 

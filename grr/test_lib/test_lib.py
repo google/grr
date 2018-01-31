@@ -36,6 +36,7 @@ from grr.lib import utils
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import objects
 
 from grr.server import access_control
 from grr.server import aff4
@@ -70,6 +71,7 @@ flags.DEFINE_string(
     "single test.")
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
 
 
 class Error(Exception):
@@ -301,11 +303,11 @@ class GRRBaseTest(unittest.TestCase):
   def _SetupClientImpl(self,
                        client_nr,
                        index=None,
-                       system=None,
-                       os_version=None,
-                       arch=None,
-                       uname=None,
-                       ping=None):
+                       arch="x86_64",
+                       kernel="4.0.0",
+                       os_version="buster/sid",
+                       ping=None,
+                       system="Linux"):
     client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
 
     with aff4.FACTORY.Create(
@@ -314,9 +316,7 @@ class GRRBaseTest(unittest.TestCase):
       cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
       fd.Set(fd.Schema.CERT, cert)
 
-      info = fd.Schema.CLIENT_INFO()
-      info.client_name = "GRR Monitor"
-      fd.Set(fd.Schema.CLIENT_INFO, info)
+      fd.Set(fd.Schema.CLIENT_INFO, self._TestClientInfo())
       fd.Set(fd.Schema.PING, ping or rdfvalue.RDFDatetime.Now())
       fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
       fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
@@ -333,12 +333,19 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.OS_VERSION(os_version))
       if arch:
         fd.Set(fd.Schema.ARCH(arch))
-      if uname:
-        fd.Set(fd.Schema.UNAME(uname))
+      if kernel:
+        fd.Set(fd.Schema.KERNEL(kernel))
 
       kb = rdf_client.KnowledgeBase()
+      kb.fqdn = "Host-%x.example.com" % client_nr
+      kb.users = [
+          rdf_client.User(username="user1"),
+          rdf_client.User(username="user2"),
+      ]
       artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
       fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
+
+      fd.Set(fd.Schema.INTERFACES(self._TestInterfaces(client_nr)))
 
       hardware_info = fd.Schema.HARDWARE_INFO()
       hardware_info.system_manufacturer = ("System-Manufacturer-%x" % client_nr)
@@ -353,71 +360,140 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClient(self,
                   client_nr,
-                  index=None,
-                  system=None,
-                  os_version=None,
-                  arch=None,
-                  uname=None,
-                  ping=None):
+                  arch="x86_64",
+                  kernel="4.0.0",
+                  os_version="buster/sid",
+                  ping=None,
+                  system="Linux"):
     """Prepares a test client mock to be used.
 
     Args:
       client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd
                      in canonical representation.
-      index: client_index.ClientIndex
-      system: string
-      os_version: string
       arch: string
-      uname: string
+      kernel: string
+      os_version: string
       ping: RDFDatetime
+      system: string
 
     Returns:
       rdf_client.ClientURN
     """
-    if index is not None:
-      # `with:' is expected to be used in the calling function.
+    with client_index.CreateClientIndex(token=self.token) as index:
       client_id_urn = self._SetupClientImpl(
           client_nr,
           index=index,
-          system=system,
-          os_version=os_version,
           arch=arch,
-          uname=uname,
-          ping=ping)
-    else:
-      with client_index.CreateClientIndex(token=self.token) as index:
-        client_id_urn = self._SetupClientImpl(
-            client_nr,
-            index=index,
-            system=system,
-            os_version=os_version,
-            arch=arch,
-            uname=uname,
-            ping=ping)
+          kernel=kernel,
+          os_version=os_version,
+          ping=ping,
+          system=system)
 
     return client_id_urn
 
   def SetupClients(self,
                    nr_clients,
-                   system=None,
-                   os_version=None,
-                   arch=None,
-                   uname=None,
-                   ping=None):
+                   arch="x86_64",
+                   kernel="4.0.0",
+                   os_version="buster/sid",
+                   ping=None,
+                   system="Linux"):
     """Prepares nr_clients test client mocks to be used."""
-    with client_index.CreateClientIndex(token=self.token) as index:
-      client_ids = [
-          self.SetupClient(
-              client_nr,
-              index=index,
-              system=system,
-              os_version=os_version,
-              arch=arch,
-              uname=uname,
-              ping=ping) for client_nr in xrange(nr_clients)
-      ]
+    return [
+        self.SetupClient(
+            client_nr,
+            arch=arch,
+            kernel=kernel,
+            os_version=os_version,
+            ping=ping,
+            system=system) for client_nr in xrange(nr_clients)
+    ]
 
-    return client_ids
+  def _TestClientInfo(self):
+    return rdf_client.ClientInformation(
+        client_name="GRR Monitor",
+        client_version="123",
+        build_time="1980-01-01",
+        labels=["label1", "label2"])
+
+  def _TestInterfaces(self, client_nr):
+    ip1 = rdf_client.NetworkAddress()
+    ip1.human_readable_address = "192.168.0.%d" % client_nr
+
+    ip2 = rdf_client.NetworkAddress()
+    ip2.human_readable_address = "2001:abcd::%x" % client_nr
+
+    mac1 = rdf_client.MacAddress()
+    mac1.human_readable_address = "aabbccddee%02x" % client_nr
+
+    mac2 = rdf_client.MacAddress()
+    mac2.human_readable_address = "bbccddeeff%02x" % client_nr
+
+    return [
+        rdf_client.Interface(addresses=[ip1, ip2]),
+        rdf_client.Interface(mac_address=mac1),
+        rdf_client.Interface(mac_address=mac2),
+    ]
+
+  def SetupTestClientObjects(self,
+                             client_count,
+                             arch="x86_64",
+                             kernel="4.0.0",
+                             os_version="buster/sid",
+                             ping=None,
+                             system="Linux"):
+    res = {}
+    for client_nr in range(client_count):
+      client = self.SetupTestClientObject(
+          client_nr,
+          arch=arch,
+          kernel=kernel,
+          os_version=os_version,
+          ping=ping,
+          system=system)
+      res[client.client_id] = client
+    return res
+
+  def SetupTestClientObject(self,
+                            client_nr,
+                            arch="x86_64",
+                            kernel="4.0.0",
+                            os_version="buster/sid",
+                            ping=None,
+                            system="Linux"):
+    """Prepares a test client object."""
+
+    client_id = "C.1%015x" % client_nr
+
+    client = objects.Client(client_id=client_id)
+    client.startup_info.client_info = self._TestClientInfo()
+
+    client.knowledge_base.fqdn = "Host-%x.example.com" % client_nr
+    client.knowledge_base.os = system
+    client.knowledge_base.users = [
+        rdf_client.User(username="user1"),
+        rdf_client.User(username="user2"),
+    ]
+    client.os_version = os_version
+    client.arch = arch
+    client.kernel = kernel
+
+    client.interfaces = self._TestInterfaces(client_nr)
+
+    client.hardware_info = rdf_client.HardwareInfo(
+        system_manufacturer="System-Manufacturer-%x" % client_nr,
+        bios_version="Bios-Version-%x" % client_nr)
+
+    ping = ping or rdfvalue.RDFDatetime.Now()
+    cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
+
+    data_store.REL_DB.WriteClientMetadata(
+        client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClient(client_id, client)
+
+    client_index.ClientIndex().AddClient(client_id, client)
+
+    return client
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)

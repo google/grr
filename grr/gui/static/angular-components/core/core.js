@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core');
 goog.provide('grrUi.core.coreModule');
 
 goog.require('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');

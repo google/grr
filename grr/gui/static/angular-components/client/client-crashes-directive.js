@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientCrashesDirective');
 goog.provide('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
 
 goog.scope(function() {

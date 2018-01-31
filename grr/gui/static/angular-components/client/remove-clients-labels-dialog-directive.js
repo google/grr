@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.removeClientsLabelsDialogDirective');
 goog.provide('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
 
 goog.scope(function() {

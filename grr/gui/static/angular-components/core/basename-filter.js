@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.basenameFilter');
 goog.provide('grrUi.core.basenameFilter.BasenameFilter');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.pseudo.fetchMoreLinkDirective');
 goog.provide('grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective');
 
 
@@ -30,7 +31,7 @@ grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective =
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/pseudo/' +
-                     'semantic-fetch-more-link.html',
+        'fetch-more-link.html',
   };
 };
 

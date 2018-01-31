@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.modifyHuntDialogDirective');
 goog.provide('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
 
 goog.require('grrUi.core.apiService.stripTypeInfo');

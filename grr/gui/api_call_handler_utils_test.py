@@ -29,7 +29,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(CollectionArchiveGeneratorTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
     archive_path1 = (
         u"test_prefix/%s/fs/os/foo/bar/hello1.txt" % self.client_id.Basename())

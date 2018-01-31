@@ -4,6 +4,7 @@
  */
 'use strict';
 
+goog.provide('grrUi.acl.aclDialogService');
 goog.provide('grrUi.acl.aclDialogService.AclDialogService');
 goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 goog.require('grrUi.core.utils.stripAff4Prefix');

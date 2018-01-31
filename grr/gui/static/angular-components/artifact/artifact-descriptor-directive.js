@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactDescriptorDirective');
 goog.provide('grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective');
 
 

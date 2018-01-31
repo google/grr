@@ -1060,53 +1060,6 @@ message ChromeHistoryArgs {
     }];
 }
 
-// Next field ID: 5
-message ClientActionArgs {
-  optional string action = 1 [(sem_type) = {
-      description: "The action to execute.",
-    }];
-
-  optional string save_to = 2 [(sem_type) = {
-      description: "If set, interpreted as a path to write pickle "
-      "dumps of responses to."
-    }, default="/tmp"];
-
-  optional bool break_pdb = 3 [(sem_type) = {
-      description: "If True, run pdb.set_trace when responses come back.",
-    }, default=false];
-
-
-  optional bytes action_args = 4 [(sem_type) = {
-      dynamic_type: "GetActionArgsClass",
-      description: "Client action arguments.",
-    }];
-}
-
-// Next field ID: 6
-message ConsoleDebugFlowArgs {
-  optional string flow = 1 [(sem_type) = {
-      description: "The flow to execute.",
-    }];
-
-  optional string save_to = 2 [(sem_type) = {
-      description: "If not None, interpreted as an path to write pickle "
-      "dumps of responses to."
-    }, default="/tmp"];
-
-  optional bool break_pdb = 3 [(sem_type) = {
-      description: "If True, run pdb.set_trace when responses come back.",
-    }, default=false];
-
-  optional bool print_responses = 4 [(sem_type) = {
-      description: "If True, print each response.",
-    }];
-
-  optional bytes flow_args = 5 [(sem_type) = {
-      dynamic_type: "GetFlowArgsClass",
-      description: "Flow arguments.",
-    }];
-}
-
 // The following messages are for SUID flows which are designed to control
 // access to the datastore.
 
@@ -1652,8 +1605,8 @@ message FileFinderArgs {
       label: ADVANCED,
     }, default = LOCAL];
 
-  // Upload token has been moved to `FileFinderDownloadActionOptions`.
-  optional UploadToken DEPRECATED_upload_token = 10;
+  // DEPRECATED: Token has been moved to `FileFinderDownloadActionOptions`.
+  // optional UploadToken upload_token = 10;
 }
 
 // TODO(amoser): This needs a bit more structure. There should be one
@@ -1844,7 +1797,7 @@ message DumpACPITableArgs {
     }, default="1.2.4.1"];
 }
 
-// Next field ID: 16
+// Next field ID: 17
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
       type: "YaraSignature",
@@ -1939,6 +1892,11 @@ message YaraProcessScanRequest {
     },
     default = false
   ];
+  optional uint32 max_results_per_process = 16 [(sem_type) = {
+    description: "Set this to limit the number of matches returned for "
+                 "each process scanned.",
+    label: ADVANCED,
+  }];
 }
 
 message YaraProcessError {

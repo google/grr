@@ -2,7 +2,7 @@
 
 goog.module('grrUi.routing.rewriteUrlTest');
 
-const rewriteUrl = goog.require('grrUi.routing.rewriteUrl');
+const rewriteUrl = goog.require('grrUi.routing.rewriteUrl.rewriteUrl');
 
 
 describe('rewriteUrl()', () => {

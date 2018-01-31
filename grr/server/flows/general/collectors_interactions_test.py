@@ -101,7 +101,7 @@ supported_os: [ "Linux" ]
 
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
-    self.SetupClients(1, system="Windows", os_version="6.2")
+    self.client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):

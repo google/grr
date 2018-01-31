@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.splitterDirective');
 goog.provide('grrUi.core.splitterDirective.SplitterDirective');
 goog.provide('grrUi.core.splitterDirective.SplitterPaneDirective');
 

@@ -24,12 +24,6 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(ArtifactFilesDownloaderFlowTest, self).setUp()
 
-    with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
-      fd.Set(fd.Schema.SYSTEM("Windows"))
-      kb = fd.Schema.KNOWLEDGE_BASE()
-      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
-      fd.Set(kb)
-
     self.stubbers = []
 
     self.collector_replies = []
@@ -67,13 +61,20 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     for stubber in self.stubbers:
       stubber.Stop()
 
-  def RunFlow(self, artifact_list=None, use_tsk=False):
+  def RunFlow(self, client_id, artifact_list=None, use_tsk=False):
     if artifact_list is None:
       artifact_list = ["WindowsRunKeys"]
 
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
+    with aff4.FACTORY.Open(client_id, token=self.token, mode="rw") as fd:
+      fd.Set(fd.Schema.SYSTEM("Windows"))
+      kb = fd.Schema.KNOWLEDGE_BASE()
+      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+      fd.Set(kb)
+
     urn = flow.GRRFlow.StartFlow(
         flow_name=collectors.ArtifactFilesDownloaderFlow.__name__,
-        client_id=self.client_id,
+        client_id=client_id,
         artifact_list=artifact_list,
         use_tsk=use_tsk,
         token=self.token)
@@ -100,34 +101,38 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     return rdf_client.StatEntry(pathspec=pathspec)
 
   def testDoesNothingIfArtifactCollectorReturnsNothing(self):
-    self.RunFlow()
+    client_id = self.SetupClient(0)
+    self.RunFlow(client_id)
     self.assertFalse(self.start_file_fetch_args)
 
   def testDoesNotIssueDownloadRequestsIfNoPathIsGuessed(self):
+    client_id = self.SetupClient(0)
     self.collector_replies = [
         self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
                                    u"blah-blah")
     ]
-    self.RunFlow()
+    self.RunFlow(client_id)
     self.assertFalse(self.start_file_fetch_args)
 
   def testJustUsesPathSpecForFileStatEntry(self):
+    client_id = self.SetupClient(0)
     self.collector_replies = [self.MakeFileStatEntry("C:\\Windows\\bar.exe")]
     self.failed_files = [self.collector_replies[0].pathspec]
 
-    results = self.RunFlow()
+    results = self.RunFlow(client_id)
 
     self.assertEquals(len(results), 1)
     self.assertEquals(results[0].found_pathspec,
                       self.collector_replies[0].pathspec)
 
   def testSendsReplyEvenIfNoPathsAreGuessed(self):
+    client_id = self.SetupClient(0)
     self.collector_replies = [
         self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
                                    u"blah-blah")
     ]
 
-    results = self.RunFlow()
+    results = self.RunFlow(client_id)
 
     self.assertEquals(len(results), 1)
     self.assertEquals(results[0].original_result, self.collector_replies[0])
@@ -135,6 +140,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesGuessedPathspecIfFileFetchFailsIntoReply(self):
+    client_id = self.SetupClient(0)
     self.collector_replies = [
         self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
                                    u"C:\\Windows\\bar.exe")
@@ -143,7 +149,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
         rdf_paths.PathSpec(path="C:\\Windows\\bar.exe", pathtype="OS")
     ]
 
-    results = self.RunFlow()
+    results = self.RunFlow(client_id)
 
     self.assertEquals(len(results), 1)
     self.assertEquals(results[0].found_pathspec,
@@ -152,13 +158,14 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):
+    client_id = self.SetupClient(0)
     self.collector_replies = [
         self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
                                    u"C:\\Windows\\bar.exe")
     ]
     self.received_files = [self.MakeFileStatEntry("C:\\Windows\\bar.exe")]
 
-    results = self.RunFlow()
+    results = self.RunFlow(client_id)
 
     self.assertEquals(len(results), 1)
     self.assertEquals(results[0].downloaded_file, self.received_files[0])

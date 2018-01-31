@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.resultsCollectionDirective');
 goog.provide('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
 
 goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');

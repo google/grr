@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.durationDirective');
 goog.provide('grrUi.semantic.durationDirective.DurationDirective');
 goog.provide('grrUi.semantic.durationDirective.stringifySeconds');
 

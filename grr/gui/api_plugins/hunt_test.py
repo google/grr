@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This modules contains tests for hunts API handlers."""
 
-
 import os
 import StringIO
 import tarfile
@@ -339,7 +338,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.aff4_file_path = "fs/os/%s" % self.file_path
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.AssignTasksToClients(client_ids=[self.client_id])
     action_mock = action_mocks.FileFinderClientMock()
     hunt_test_lib.TestHuntHelper(

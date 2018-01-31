@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowStatusIconDirective');
 goog.provide('grrUi.flow.flowStatusIconDirective.FlowStatusIconDirective');
 
 

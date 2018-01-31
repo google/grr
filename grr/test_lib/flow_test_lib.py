@@ -208,18 +208,12 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def setUp(self):
-    super(FlowTestsBaseclass, self).setUp()
-
-    client_ids = self.SetupClients(1)
-    self.client_id = client_ids[0]
-
-  def FlowSetup(self, name, client_id_urn=None):
-    if client_id_urn is None:
-      client_id_urn = self.client_id
+  def FlowSetup(self, name, client_id=None):
+    if client_id is None:
+      client_id = self.client_id
 
     session_id = flow.GRRFlow.StartFlow(
-        client_id=client_id_urn, flow_name=name, token=self.token)
+        client_id=client_id, flow_name=name, token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
@@ -355,7 +349,8 @@ class MockClient(object):
             responses = []
 
           logging.info("Called client action %s generating %s responses",
-                       message.name, len(responses) + 1)
+                       message.name,
+                       len(responses) + 1)
 
           if self.status_message_enforced:
             status = rdf_flows.GrrStatus()

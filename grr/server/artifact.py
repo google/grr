@@ -76,9 +76,9 @@ def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
 def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
   """Set core values from GRR into the knowledgebase."""
   client_schema = client_obj.Schema
-  kb.hostname = utils.SmartUnicode(client_obj.Get(client_schema.FQDN, ""))
-  if not kb.hostname:
-    kb.hostname = utils.SmartUnicode(client_obj.Get(client_schema.HOSTNAME, ""))
+  kb.fqdn = utils.SmartUnicode(client_obj.Get(client_schema.FQDN, ""))
+  if not kb.fqdn:
+    kb.fqdn = utils.SmartUnicode(client_obj.Get(client_schema.HOSTNAME, ""))
   versions = client_obj.Get(client_schema.OS_VERSION)
   if versions and versions.versions:
     kb.os_major_version = versions.versions[0]

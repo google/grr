@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.jsonDirective');
 goog.provide('grrUi.semantic.jsonDirective.JsonDirective');
 
 goog.scope(function() {

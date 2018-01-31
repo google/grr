@@ -38,9 +38,9 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
-    self.SetupClients(1, system="Windows", os_version="6.2")
 
   def _CheckDriveAndRoot(self):
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
     client_mock = action_mocks.ActionMock(standard.StatFile,
                                           standard.ListDirectory)
 
@@ -49,7 +49,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemDrive"],
         token=self.token,
-        client_id=self.client_id):
+        client_id=client_id):
       session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -61,7 +61,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         artifact_list=["WindowsEnvironmentVariableSystemRoot"],
         token=self.token,
-        client_id=self.client_id):
+        client_id=client_id):
       session_id = s
 
     fd = flow.GRRFlow.ResultCollectionForFID(session_id)
@@ -70,7 +70,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
 
   def testSystemDriveArtifact(self):
-    self.SetupClients(1, system="Windows", os_version="6.2")
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     class BrokenClientMock(action_mocks.ActionMock):
 
@@ -87,7 +87,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
           BrokenClientMock(),
           artifact_list=["WindowsEnvironmentVariableSystemDrive"],
           token=self.token,
-          client_id=self.client_id):
+          client_id=client_id):
         pass
 
     # No registry, so this should use the fallback flow
@@ -101,6 +101,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
       self._CheckDriveAndRoot()
 
   def testRunWMIComputerSystemProductArtifact(self):
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     class WMIActionMock(action_mocks.ActionMock):
 
@@ -121,7 +122,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         artifact_list=["WMIComputerSystemProduct"],
         token=self.token,
-        client_id=self.client_id,
+        client_id=client_id,
         dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
         IGNORE_DEPS):
       session_id = s
@@ -134,6 +135,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
 
   def testRunWMIArtifact(self):
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     class WMIActionMock(action_mocks.ActionMock):
 
@@ -146,7 +148,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         artifact_list=["WMILogicalDisks"],
         token=self.token,
-        client_id=self.client_id,
+        client_id=client_id,
         dependencies=(
             artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
       session_id = s
@@ -164,6 +166,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 
   def testWMIBaseObject(self):
+    client_id = self.SetupClient(0, system="Windows", os_version="6.2")
 
     class WMIActionMock(action_mocks.ActionMock):
 
@@ -179,7 +182,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         artifact_list=["WMIActiveScriptEventConsumer"],
         token=self.token,
-        client_id=self.client_id,
+        client_id=client_id,
         dependencies=(
             artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS)):
       pass

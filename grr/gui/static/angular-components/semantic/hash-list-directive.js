@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.hashListDirective');
 goog.provide('grrUi.semantic.hashListDirective.HashListDirective');
 
 goog.scope(function() {

@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.config');
 goog.provide('grrUi.config.configModule');
 
 goog.require('grrUi.config.binariesListDirective.BinariesListDirective');

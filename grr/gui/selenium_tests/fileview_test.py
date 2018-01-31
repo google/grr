@@ -13,7 +13,9 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
+from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import fixture_test_lib
+from grr.test_lib import test_lib
 
 
 class TestFileView(gui_test_lib.GRRSeleniumTest):
@@ -54,6 +56,73 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("GRR | C.0000000000000001 | /fs/os/c/Downloads/a.txt",
                         self.GetPageTitle)
 
+  def testSwitchingBetweenFilesRefreshesFileHashes(self):
+    # Create 2 files and set their HASH attributes to different values.
+    # Note that a string passed to fd.Schema.HASH constructor will be
+    # printed as a hexademical bytestring. Thus "111" will become "313131"
+    # and "222" will become "323232".
+    urn_a = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/a.txt")
+    with aff4.FACTORY.Open(urn_a, mode="rw") as fd:
+      fd.Set(fd.Schema.HASH(sha256="111"))
+
+    urn_b = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/b.txt")
+    with aff4.FACTORY.Open(urn_b, mode="rw") as fd:
+      fd.Set(fd.Schema.HASH(sha256="222"))
+
+    # Open a URL pointing to file "a".
+    self.Open(
+        "/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/a.txt?tab=download"
+    )
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('Sha256') td:contains('313131')")
+
+    # Click on a file table row with file "b". Information in the download
+    # tab should get rerendered and we should see Sha256 value corresponding
+    # to file "b".
+    self.Click("css=tr:contains(\"b.txt\")")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('Sha256') td:contains('323232')")
+
+  def testSwitchingBetweenFileVersionsRefreshesDownloadTab(self):
+    urn_a = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/a.txt")
+
+    # Test files are set up using self.CreateFileVersions call in test's
+    # setUp method. Amend created file versions by adding different
+    # hashes to versions corresponding to different times.
+    # Note that a string passed to fd.Schema.HASH constructor will be
+    # printed as a hexademical bytestring. Thus "111" will become "313131"
+    # and "222" will become "323232".
+    with test_lib.FakeTime(gui_test_lib.TIME_0):
+      with aff4.FACTORY.Create(
+          urn_a,
+          aff4_type=aff4_grr.VFSFile,
+          force_new_version=False,
+          object_exists=True) as fd:
+        fd.Set(fd.Schema.HASH(sha256="111"))
+
+    with test_lib.FakeTime(gui_test_lib.TIME_1):
+      with aff4.FACTORY.Create(
+          urn_a,
+          aff4_type=aff4_grr.VFSFile,
+          force_new_version=False,
+          object_exists=True) as fd:
+        fd.Set(fd.Schema.HASH(sha256="222"))
+
+    # Open a URL corresponding to a HEAD version of the file.
+    self.Open(
+        "/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/a.txt?tab=download"
+    )
+    # Make sure displayed hash value is correct.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('Sha256') td:contains('323232')")
+
+    # Select the previous file version.
+    self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
+               gui_test_lib.DateString(gui_test_lib.TIME_0))
+    # Make sure displayed hash value gets updated.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('Sha256') td:contains('313131')")
+
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
 
@@ -81,8 +150,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
     # Verify that we have the latest version in the table by default.
     self.assertTrue(
-        gui_test_lib.DateString(
-            gui_test_lib.TIME_2) in self.GetText("css=tr:contains(\"a.txt\")"))
+        gui_test_lib.DateString(gui_test_lib.TIME_2) in self.GetText(
+            "css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
     self.Click("css=tr:contains(\"a.txt\")")

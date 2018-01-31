@@ -29,6 +29,7 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestExports, self).setUp()
 
+    self.client_id = self.SetupClient(0)
     self.out = self.client_id.Add("fs/os")
     self.CreateFile("testfile1")
     self.CreateFile("testfile2")
@@ -96,14 +97,17 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
           self.client_id,
           mutation_pool=pool)
       fd.AddAsMessage(
-          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          rdf_file_finder.FileFinderResult(
+              stat_entry=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile5",
+                                              pathtype="OS"))),
           self.client_id,
           mutation_pool=pool)
       fd.AddAsMessage(
           collectors.ArtifactFilesDownloaderResult(
-              downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                  path="testfile6", pathtype="OS"))),
+              downloaded_file=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile6",
+                                              pathtype="OS"))),
           self.client_id,
           mutation_pool=pool)
     self._VerifyDownload()
@@ -122,13 +126,16 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
               pathspec=rdf_paths.PathSpec(path="testfile2", pathtype="OS")),
           mutation_pool=pool)
       fd.Add(
-          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          rdf_file_finder.FileFinderResult(
+              stat_entry=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile5",
+                                              pathtype="OS"))),
           mutation_pool=pool)
       fd.Add(
           collectors.ArtifactFilesDownloaderResult(
-              downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-                  path="testfile6", pathtype="OS"))),
+              downloaded_file=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile6",
+                                              pathtype="OS"))),
           mutation_pool=pool)
 
   def testDownloadCollectionIgnoresArtifactResultsWithoutFiles(self):
@@ -159,8 +166,10 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
               pathspec=rdf_paths.PathSpec(path="testfile2", pathtype="OS")),
           mutation_pool=pool)
       fd.Add(
-          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          rdf_file_finder.FileFinderResult(
+              stat_entry=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile5",
+                                              pathtype="OS"))),
           mutation_pool=pool)
 
     with utils.TempDirectory() as tmpdir:
@@ -193,13 +202,16 @@ class TestExports(flow_test_lib.FlowTestsBaseclass):
     fd = sequential_collection.GeneralIndexedCollection(self.collection_urn)
     with data_store.DB.GetMutationPool() as pool:
       fd.Add(
-          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-              pathspec=rdf_paths.PathSpec(path="testfile5", pathtype="OS"))),
+          rdf_file_finder.FileFinderResult(
+              stat_entry=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testfile5",
+                                              pathtype="OS"))),
           mutation_pool=pool)
       fd.Add(
-          rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
-              pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
-              st_mode=stat.S_IFDIR)),
+          rdf_file_finder.FileFinderResult(
+              stat_entry=rdf_client.StatEntry(
+                  pathspec=rdf_paths.PathSpec(path="testdir1", pathtype="OS"),
+                  st_mode=stat.S_IFDIR)),
           mutation_pool=pool)
 
     with utils.TempDirectory() as tmpdir:

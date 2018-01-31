@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.clientUsernamesDirective');
 goog.provide('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
 
 

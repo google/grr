@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """End to end tests for Yara based flows."""
 
+import re
+
 from grr import config
 from grr.server.end_to_end_tests import test_base
 
@@ -74,35 +76,39 @@ rule test_rule {
     args = self.grr_api.types.CreateFlowArgs(flow_name="YaraProcessScan")
     args.yara_signature = signature
     args.process_regex = GetProcessNameRegex(self.platform)
+    args.max_results_per_process = 2
 
     f = self.RunFlowAndWait("YaraProcessScan", args=args)
 
-    results = list(f.ListResults())
-    self.assertEqual(len(results), 1)
-    yara_result = results[0].payload
+    all_results = list(f.ListResults())
+    self.assertNotEmpty(all_results,
+                        "We expect results for at least one matching process.")
 
-    self.assertEqual(len(yara_result.matches), 1)
-    match = yara_result.matches[0]
+    for flow_result in all_results:
+      process_scan_match = flow_result.payload
 
-    self.assertEqual(match.process.name, GetProcessName(self.platform))
+      self.assertEqual(len(process_scan_match.match), 2)
 
-    self.assertTrue(match.match)
+      self.assertTrue(
+          re.match(args.process_regex, process_scan_match.process.name),
+          "Process name %s does not match regex %s" %
+          (process_scan_match.process.name, args.process_regex))
 
-    rules = set()
+      rules = set()
 
-    for m in match.match:
-      # Each hit has some offset + data
-      self.assertTrue(m.string_matches)
+      for yara_match in process_scan_match.match:
+        # Each hit has some offset + data
+        self.assertTrue(yara_match.string_matches)
 
-      for string_match in m.string_matches:
-        self.assertEqual(string_match.data, "1")
+        for string_match in yara_match.string_matches:
+          self.assertEqual(string_match.data, "1")
 
-      rules.add(m.rule_name)
+        rules.add(yara_match.rule_name)
 
-    self.assertEqual(list(rules), ["test_rule"])
+      self.assertEqual(list(rules), ["test_rule"])
 
-    # Ten seconds seems reasonable here, actual values are 0.5s.
-    self.assertLess(match.scan_time_us, 10 * 1e6)
+      # Ten seconds seems reasonable here, actual values are 0.5s.
+      self.assertLess(process_scan_match.scan_time_us, 10 * 1e6)
 
 
 class TestYaraProcessDump(test_base.AbstractFileTransferTest):

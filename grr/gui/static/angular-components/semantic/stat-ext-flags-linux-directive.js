@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.statExtFlagsLinuxDirective');
 goog.provide('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective');
 
 goog.scope(function() {

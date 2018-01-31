@@ -30,7 +30,7 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
   def setUp(self):
     super(InstantOutputPluginTestBase, self).setUp()
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.results_urn = self.client_id.Add("foo/bar")
 
     # pylint: disable=not-callable

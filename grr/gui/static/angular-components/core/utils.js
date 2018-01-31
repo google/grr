@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.utils');
 goog.provide('grrUi.core.utils.CLIENT_ID_RE');
 goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
 goog.provide('grrUi.core.utils.getLastPathComponent');

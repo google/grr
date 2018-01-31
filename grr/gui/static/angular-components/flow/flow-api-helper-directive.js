@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowApiHelperDirective');
 goog.provide('grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective');
 
 goog.scope(function() {

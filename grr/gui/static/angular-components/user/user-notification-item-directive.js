@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.user.userNotificationItemDirective');
 goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
 goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');

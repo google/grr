@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.cronJobApprovalViewDirective');
 goog.provide('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
 
 goog.scope(function() {

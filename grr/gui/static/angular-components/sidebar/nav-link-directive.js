@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.sidebar.navLinkDirective');
 goog.provide('grrUi.sidebar.navLinkDirective.NavLinkDirective');
 
 

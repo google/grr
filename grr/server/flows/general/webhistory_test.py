@@ -41,6 +41,7 @@ class TestWebHistory(WebHistoryFlowTest):
   def setUp(self):
     super(TestWebHistory, self).setUp()
     # Set up client info
+    self.client_id = self.SetupClient(0)
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.client.Set(self.client.Schema.SYSTEM("Linux"))
 
@@ -156,7 +157,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
 
   def setUp(self):
     super(TestWebHistoryWithArtifacts, self).setUp()
-    self.SetupClients(1, system="Linux", os_version="12.04")
+    self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     self.kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
     self.kb.users.Append(

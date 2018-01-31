@@ -2,10 +2,11 @@
 
 // TODO(user): Auto-generate parts of this file
 //
+goog.provide('grrUi.semantic');
 goog.provide('grrUi.semantic.semanticModule');
 
 goog.require('grrUi.core.coreModule');
-goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
 
 goog.require('grrUi.routing.routingModule');
 
@@ -167,8 +168,9 @@ grrUi.semantic.semanticModule.directive(
     grrUi.semantic.urnDirective.UrnDirective);
 
 grrUi.semantic.semanticModule.service(
-    grrUi.core.semanticRegistry.SemanticRegistryService.values_service_name,
-    grrUi.core.semanticRegistry.SemanticRegistryService);
+    grrUi.core.semanticRegistryService.SemanticRegistryService
+        .values_service_name,
+    grrUi.core.semanticRegistryService.SemanticRegistryService);
 
 
 grrUi.semantic.semanticModule.run(function(grrSemanticValueDirectivesRegistryService) {

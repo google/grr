@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.artifactsListFormDirective');
 goog.provide('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective');
 
 

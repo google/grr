@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntsListDirective');
 goog.provide('grrUi.hunt.huntsListDirective.HuntsListDirective');
 
 goog.require('grrUi.core.utils.stripAff4Prefix');

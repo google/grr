@@ -405,6 +405,10 @@ class MacAddress(rdfvalue.RDFBytes):
   def human_readable_address(self):
     return self._value.encode("hex")
 
+  @human_readable_address.setter
+  def human_readable_address(self, value):
+    self._value = value.decode("hex")
+
 
 class Interface(structs.RDFProtoStruct):
   """A network interface on the client system."""

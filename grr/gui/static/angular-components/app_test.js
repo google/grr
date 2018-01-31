@@ -1,3 +1,5 @@
+// TODO(hanuszczak): Figure out why this file cannot be named `tests.js`.
+goog.provide('grrUi.tests');
 goog.provide('grrUi.tests.browserTriggerEvent');
 goog.provide('grrUi.tests.browserTriggerKeyDown');
 goog.provide('grrUi.tests.stubDirective');

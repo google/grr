@@ -2,7 +2,6 @@
 """This module contains regression tests for flows-related API handlers."""
 
 
-
 import psutil
 
 from grr.gui import api_regression_test_lib
@@ -40,7 +39,7 @@ class ApiGetFlowHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_urn = self.SetupClients(1)[0]
+      client_urn = self.SetupClient(0)
 
       # Delete the certificates as it's being regenerated every time the
       # client is created.
@@ -85,7 +84,7 @@ class ApiListFlowsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      client_urn = self.SetupClients(1)[0]
+      client_urn = self.SetupClient(0)
 
     with test_lib.FakeTime(43):
       flow_id_1 = flow.GRRFlow.StartFlow(
@@ -117,7 +116,7 @@ class ApiListFlowRequestsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowRequestsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -157,13 +156,14 @@ class ApiListFlowResultsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowResultsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     runner_args = rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__)
 
-    flow_args = transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-        path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
+    flow_args = transfer.GetFileArgs(
+        pathspec=rdf_paths.PathSpec(
+            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     client_mock = hunt_test_lib.SampleHuntMock()
 
@@ -199,7 +199,7 @@ class ApiListFlowLogsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowLogsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     flow_urn = flow.GRRFlow.StartFlow(
@@ -246,7 +246,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
 
   def setUp(self):
     super(ApiGetFlowResultsExportCommandHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -279,7 +279,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowOutputPluginsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     email_descriptor = output_plugin.OutputPluginDescriptor(
@@ -318,7 +318,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowOutputPluginLogsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     email_descriptor = output_plugin.OutputPluginDescriptor(
@@ -363,7 +363,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
   def setUp(self):
     super(ApiListFlowOutputPluginErrorsHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     failing_descriptor = output_plugin.OutputPluginDescriptor(
@@ -400,7 +400,7 @@ class ApiCreateFlowHandlerRegressionTest(
 
   def setUp(self):
     super(ApiCreateFlowHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
 
@@ -435,7 +435,7 @@ class ApiCancelFlowHandlerRegressionTest(
 
   def setUp(self):
     super(ApiCancelFlowHandlerRegressionTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -461,10 +461,11 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowDescriptorsHandler
 
   def Run(self):
-    with utils.Stubber(flow.GRRFlow, "classes", {
-        processes.ListProcesses.__name__: processes.ListProcesses,
-        file_finder.FileFinder.__name__: file_finder.FileFinder,
-    }):
+    with utils.Stubber(
+        flow.GRRFlow, "classes", {
+            processes.ListProcesses.__name__: processes.ListProcesses,
+            file_finder.FileFinder.__name__: file_finder.FileFinder,
+        }):
       # RunReport flow is only shown for admins.
       self.CreateAdminUser("test")
 

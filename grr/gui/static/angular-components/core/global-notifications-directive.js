@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.globalNotificationsDirective');
 goog.provide('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
 
 

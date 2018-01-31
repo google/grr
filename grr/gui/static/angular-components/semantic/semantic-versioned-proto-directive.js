@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.semanticVersionedProtoDirective');
 goog.provide('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
 goog.require('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
 

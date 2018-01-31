@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact.deleteArtifactsDialogDirective');
 goog.provide('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
 
 

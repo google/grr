@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.acl.requestApprovalDialogDirective');
 goog.provide('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 
 goog.require('grrUi.core.utils.stringToList');

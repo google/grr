@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective');
 goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
 
 

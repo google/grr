@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.timeService');
 goog.provide('grrUi.core.timeService.TimeService');
 
 goog.scope(function() {

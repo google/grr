@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.utils');
 goog.provide('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.provide('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 

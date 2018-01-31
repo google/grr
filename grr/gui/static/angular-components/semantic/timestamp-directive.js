@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.timestampDirective');
 goog.provide('grrUi.semantic.timestampDirective.TimestampDirective');
 
 goog.scope(function() {

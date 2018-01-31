@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.statModeDirective');
 goog.provide('grrUi.semantic.statModeDirective.StatModeDirective');
 
 goog.scope(function() {

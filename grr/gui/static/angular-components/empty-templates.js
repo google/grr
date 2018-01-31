@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.templates');
 goog.provide('grrUi.templates.templatesModule');
 
 /**

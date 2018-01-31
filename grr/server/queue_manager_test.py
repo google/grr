@@ -43,7 +43,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
       for request_id in range(5):
         request = rdf_flows.RequestState(
             id=request_id,
-            client_id=self.client_id,
+            client_id=test_lib.TEST_CLIENT_ID,
             next_state="TestState",
             session_id=session_id)
 
@@ -75,7 +75,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
     request = rdf_flows.RequestState(
         id=1,
-        client_id=self.client_id,
+        client_id=test_lib.TEST_CLIENT_ID,
         next_state="TestState",
         session_id=session_id)
 
@@ -102,7 +102,7 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
 
     request = rdf_flows.RequestState(
         id=1,
-        client_id=self.client_id,
+        client_id=test_lib.TEST_CLIENT_ID,
         next_state="TestState",
         session_id=session_id)
 
@@ -350,8 +350,8 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # Now for Query.
     tasks = manager.Query(test_queue, limit=100)
     self.assertEqual(len(tasks), 10)
-    self.assertEqual([task.priority
-                      for task in tasks], [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
+    self.assertEqual([task.priority for task in tasks],
+                     [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
 
   def testUsesFrozenTimestampWhenDeletingAndFetchingNotifications(self):
     # When used in "with" statement QueueManager uses the frozen timestamp
@@ -361,14 +361,16 @@ class QueueManagerTest(flow_test_lib.FlowTestsBaseclass):
     # will only "see" it's own notification and younger queue_manager will
     # "see" both.
     with queue_manager.QueueManager(token=self.token) as manager1:
-      manager1.QueueNotification(session_id=rdfvalue.SessionID(
-          base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
+      manager1.QueueNotification(
+          session_id=rdfvalue.SessionID(
+              base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
       manager1.Flush()
 
       self._current_mock_time += 10
       with queue_manager.QueueManager(token=self.token) as manager2:
-        manager2.QueueNotification(session_id=rdfvalue.SessionID(
-            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
+        manager2.QueueNotification(
+            session_id=rdfvalue.SessionID(
+                base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
         manager2.Flush()
 
         self.assertEqual(
@@ -492,11 +494,13 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
   def testNotificationsAreDeletedFromAllShards(self):
     manager = queue_manager.QueueManager(token=self.token)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(
-        base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
     manager.Flush()
-    manager.QueueNotification(session_id=rdfvalue.SessionID(
-        base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
     manager.Flush()
     # There should be two notifications in two different shards.
     shards_with_data = 0
@@ -520,12 +524,14 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
   def testGetNotificationsForAllShards(self):
     manager = queue_manager.QueueManager(token=self.token)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(
-        base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
     manager.Flush()
 
-    manager.QueueNotification(session_id=rdfvalue.SessionID(
-        base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
     manager.Flush()
 
     live_shard_count = 0

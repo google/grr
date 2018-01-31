@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the inspect interface."""
 
-
 import unittest
 from grr.gui import gui_test_lib
 
@@ -65,7 +64,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
 
   def testInspect(self):
     """Test the inspect UI."""
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
 
     self.RequestAndGrantClientApproval(client_id)
 

@@ -90,14 +90,13 @@ class Database(object):
     return self.ReadClientMetadatas([client_id]).get(client_id)
 
   @abc.abstractmethod
-  def WriteClient(self, client_id, client):
+  def WriteClient(self, client):
     """Write new client snapshot.
 
     Writes a new snapshot of the client to the client history, typically saving
     the results of an interrogate flow.
 
     Args:
-      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       client: An rdfvalues.client.Client. Will be saved at the "current"
         timestamp.
 
@@ -244,7 +243,8 @@ class Database(object):
                    username,
                    password=None,
                    ui_mode=None,
-                   canary_mode=None):
+                   canary_mode=None,
+                   user_type=None):
     """Writes user object for a user with a given name.
 
     Args:
@@ -253,6 +253,8 @@ class Database(object):
       ui_mode: If set, should be a GUISettings.UIMode enum.
       canary_mode: If not None, should be a boolean indicating user's preferred
           canary mode setting.
+      user_type: GRRUser.UserType enum describing user type
+          (unset, standard or admin).
     """
 
   @abc.abstractmethod
@@ -265,4 +267,12 @@ class Database(object):
       A rdfvalues.objects.GRRUser object.
     Raises:
       UnknownGRRUserError: if there's no user corresponding to the given name.
+    """
+
+  @abc.abstractmethod
+  def ReadGRRUsers(self):
+    """Reads all GRR users.
+
+    Returns:
+      A generator yielding objects.GRRUser objects.
     """

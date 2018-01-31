@@ -50,8 +50,6 @@ from grr.server.aff4_objects import security
 from grr.server.console_utils import *
 # pylint: enable=wildcard-import
 
-from grr.server.flows import console
-from grr.server.flows.console import debugging
 from grr.server.flows.general import memory
 # pylint: enable=unused-import
 
@@ -111,7 +109,7 @@ def main(argv):
       # Bring some symbols from other modules into the console's
       # namespace.
       "StartFlowAndWait": flow_utils.StartFlowAndWait,
-      "StartFlowAndWorker": debugging.StartFlowAndWorker,
+      "StartFlowAndWorker": console_utils.StartFlowAndWorker,
   }
 
   locals_vars.update(globals())  # add global variables to console

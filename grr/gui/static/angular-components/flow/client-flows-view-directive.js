@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow.clientFlowsViewDirective');
 goog.provide('grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective');
 
 goog.scope(function() {

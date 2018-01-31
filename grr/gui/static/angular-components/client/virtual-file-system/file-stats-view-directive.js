@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
 
 

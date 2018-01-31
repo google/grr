@@ -1,3 +1,4 @@
+goog.provide('grrUi.semantic.rekall');
 goog.provide('grrUi.semantic.rekall.rekallModule');
 
 goog.require('grrUi.core.coreModule');
@@ -7,7 +8,7 @@ goog.require('grrUi.semantic.rekall.metadataDirective.MetadataDirective');
 goog.require('grrUi.semantic.rekall.registeredUnixTimeStampDirective.RegisteredUnixTimeStampDirective');
 goog.require('grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective');
 goog.require('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
-goog.require('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
+goog.require('grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService');
 goog.require('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
 goog.require('grrUi.semantic.rekall.tableDirective.TableDirective');
 
@@ -42,8 +43,9 @@ grrUi.semantic.rekall.rekallModule.directive(
     grrUi.semantic.rekall.tableDirective.TableDirective);
 
 grrUi.semantic.rekall.rekallModule.service(
-    grrUi.semantic.rekall.rekallRegistry.RekallRegistryService.service_name,
-    grrUi.semantic.rekall.rekallRegistry.RekallRegistryService);
+    grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService
+        .service_name,
+    grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService);
 
 grrUi.semantic.rekall.rekallModule.run(function(grrRekallDirectivesRegistryService) {
   var registry = grrRekallDirectivesRegistryService;

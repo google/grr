@@ -1,7 +1,8 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
-goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
 goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
 
 goog.scope(function() {
@@ -54,7 +55,7 @@ const FileDownloadViewController = function(
   /** @type {string} */
   this.downloadCommand;
 
-  /** @type {Object} */
+  /** @type {Object|undefined} */
   this.fileDetails;
 
   this.scope_.$watchGroup(['controller.fileContext.clientId',
@@ -90,6 +91,8 @@ FileDownloadViewController.prototype.onContextChange_ = function() {
     if (fileVersion) {
       params['timestamp'] = fileVersion;
     }
+
+    this.fileDetails = undefined;
     this.grrApiService_.get(detailsUrl, params).then(function(response) {
       this.fileDetails = response.data['file'];
     }.bind(this));

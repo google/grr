@@ -2,6 +2,7 @@
 
 goog.provide('grrUi.core.apiService');
 goog.provide('grrUi.core.apiService.ApiService');
+goog.provide('grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT');
 goog.provide('grrUi.core.apiService.encodeUrlPath');
 goog.provide('grrUi.core.apiService.stripTypeInfo');
 

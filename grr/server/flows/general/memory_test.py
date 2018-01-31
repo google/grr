@@ -58,7 +58,10 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
 
 
 class MemoryTest(flow_test_lib.FlowTestsBaseclass):
-  pass
+
+  def setUp(self):
+    super(MemoryTest, self).setUp()
+    self.client_id = test_lib.TEST_CLIENT_ID
 
 
 class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
@@ -246,7 +249,7 @@ class ListVADBinariesTest(MemoryTest):
 
   def setUp(self):
     super(ListVADBinariesTest, self).setUp()
-    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
+    self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
     self.os_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
     self.reg_overrider = vfs_test_lib.VFSOverrider(

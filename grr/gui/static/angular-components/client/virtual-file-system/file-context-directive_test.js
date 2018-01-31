@@ -64,7 +64,7 @@ describe('file context directive', () => {
     $rootScope.$apply();
 
     expect($rootScope.selectedFilePath).toEqual('some/path/test.txt');
-    expect($rootScope.selectedFileVersion).toBeNull();
+    expect($rootScope.selectedFileVersion).toBeUndefined();
 
     controller.selectFile('some/other/path/test.txt', 1337);
     $rootScope.$apply();

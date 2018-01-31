@@ -20,7 +20,7 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(EmailOutputPluginTest, self).setUp()
 
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.hostname = aff4.FACTORY.Open(
         self.client_id,
         token=self.token).Get(aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME)

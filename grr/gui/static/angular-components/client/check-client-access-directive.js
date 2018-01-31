@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.checkClientAccessDirective');
 goog.provide('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
 
 goog.scope(function() {

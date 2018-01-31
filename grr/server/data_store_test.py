@@ -1494,7 +1494,7 @@ class DataStoreTestMixin(object):
 
   def testQueueManager(self):
     session_id = rdfvalue.SessionID(flow_name="test")
-    client_id = rdf_client.ClientURN("C.1000000000000000")
+    client_id = test_lib.TEST_CLIENT_ID
 
     request = rdf_flows.RequestState(
         id=1,
@@ -2456,15 +2456,14 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   def BenchmarkAFF4Locks(self):
 
-    self.client_id = "C.%016X" % 999
+    client_id = "C.%016X" % 999
 
     # Write some data to read.
-    client = aff4.FACTORY.Create(
-        self.client_id, aff4_grr.VFSGRRClient, mode="w")
+    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="w")
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 
-    cl = aff4.FACTORY.Open(self.client_id)
+    cl = aff4.FACTORY.Open(client_id)
     self.assertEqual(cl.Get(cl.Schema.HOSTNAME), "client1")
 
     # Collect exceptions in threads.
@@ -2475,7 +2474,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
         # Using blocking_lock_timeout of 10 minutes to avoid possible
         # timeouts when running tests on slow hardware.
         with aff4.FACTORY.OpenWithLock(
-            self.client_id,
+            client_id,
             blocking=True,
             blocking_sleep_interval=0.2,
             blocking_lock_timeout=600) as client:

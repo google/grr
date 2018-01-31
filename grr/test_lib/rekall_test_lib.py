@@ -35,7 +35,7 @@ class RekallTestBase(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RekallTestBase, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
     self.get_rekall_profile_stubber = utils.Stubber(
         comms.GRRClientWorker, "GetRekallProfile", self.GetRekallProfile)

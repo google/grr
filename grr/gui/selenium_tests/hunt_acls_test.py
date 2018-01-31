@@ -358,7 +358,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "This hunt was created from a flow")
 
   def _CreateHuntFromFlow(self):
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
     flow_args = rdf_file_finder.FileFinderArgs(
         paths=["a/*", "b/*"],

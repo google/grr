@@ -212,6 +212,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(ListProcessesFleetspeakTest, self).setUp()
 
+    self.client_id = self.SetupClient(0)
     SetAFF4FSEnabledFlag(self.client_id, token=self.token)
 
   def testProcessListingOnlyFleetspeak(self):

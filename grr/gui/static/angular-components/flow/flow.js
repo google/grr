@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.flow');
 goog.provide('grrUi.flow.flowModule');
 
 goog.require('grrUi.core.coreModule');

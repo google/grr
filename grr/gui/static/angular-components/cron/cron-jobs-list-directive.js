@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron.cronJobsListDirective');
 goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 
 goog.require('grrUi.core.utils.stripAff4Prefix');

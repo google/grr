@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntStatusIconDirective');
 goog.provide('grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective');
 
 

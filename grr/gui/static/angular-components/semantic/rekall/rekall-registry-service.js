@@ -1,6 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
+goog.provide('grrUi.semantic.rekall.rekallRegistryService');
+goog.provide('grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService');
 
 goog.scope(function() {
 
@@ -12,12 +13,12 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.rekallRegistry.RekallRegistryService = function() {
+grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService = function() {
   /** @private {!Object<string, Object>} */
   this.directivesByType_ = {};
 };
 var RekallRegistryService =
-    grrUi.semantic.rekall.rekallRegistry.RekallRegistryService;
+    grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService;
 
 RekallRegistryService.service_name = 'grrRekallDirectivesRegistryService';
 
@@ -29,8 +30,7 @@ RekallRegistryService.service_name = 'grrRekallDirectivesRegistryService';
  * @param {!Object} directive Any object representing the directive.
  * @export
  */
-RekallRegistryService.prototype.registerDirective = function(
-    type, directive) {
+RekallRegistryService.prototype.registerDirective = function(type, directive) {
   this.directivesByType_[type] = directive;
 };
 
@@ -61,6 +61,4 @@ RekallRegistryService.prototype.findDirectiveForMro = function(mro) {
 
   return undefined;
 };
-
-
 });  // goog.scope

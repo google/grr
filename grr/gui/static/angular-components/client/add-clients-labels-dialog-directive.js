@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.addClientsLabelsDialogDirective');
 goog.provide('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
 
 goog.scope(function() {

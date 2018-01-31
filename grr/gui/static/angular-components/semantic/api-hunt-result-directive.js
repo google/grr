@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.apiHuntResultDirective');
 goog.provide('grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective');
 
 goog.scope(function() {

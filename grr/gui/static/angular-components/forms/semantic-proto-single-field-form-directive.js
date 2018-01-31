@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.semanticProtoSingleFieldFormDirective');
 goog.provide('grrUi.forms.semanticProtoSingleFieldFormDirective.SemanticProtoSingleFieldFormDirective');
 
 

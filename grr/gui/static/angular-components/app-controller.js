@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.appController');
 goog.provide('grrUi.appController.appControllerModule');
 
 goog.require('grrUi.acl.aclModule');

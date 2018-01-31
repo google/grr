@@ -98,7 +98,7 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  kb_attributes = ["hostname", "os", "os_major_version", "os_minor_version"]
+  kb_attributes = ["fqdn", "os", "os_major_version", "os_minor_version"]
 
   # TODO(user): time_zone, environ_path, and environ_temp are currently only
   # implemented for Windows, move to kb_attributes once available on other OSes.

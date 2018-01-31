@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the hunt."""
 
-
 import logging
 
 from grr.lib import flags
@@ -230,7 +229,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
   def testCallback(self, client_limit=None):
     """Checks that the foreman uses the callback specified in the action."""
-
+    client_id = self.SetupClient(0)
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
@@ -248,7 +247,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       hunt.GetRunner().Start()
 
     # Create a client that matches our regex.
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
     info = client.Schema.CLIENT_INFO()
     info.client_name = "GRR Monitor"
     client.Set(client.Schema.CLIENT_INFO, info)
@@ -264,6 +263,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       self.assertEqual(self.called[0][1], [client.urn])
 
   def testStartClients(self):
+    client_id = test_lib.TEST_CLIENT_ID
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.SampleHunt.__name__, client_rate=0,
         token=self.token) as hunt:
@@ -271,17 +271,17 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       hunt.GetRunner().Start()
 
     flows = list(
-        aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+        aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
         .ListChildren())
 
     self.assertEqual(flows, [])
 
-    implementation.GRRHunt.StartClients(hunt.session_id, [self.client_id])
+    implementation.GRRHunt.StartClients(hunt.session_id, [client_id])
 
-    hunt_test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
+    hunt_test_lib.TestHuntHelper(None, [client_id], False, self.token)
 
     flows = list(
-        aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+        aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
         .ListChildren())
 
     # One flow should have been started.

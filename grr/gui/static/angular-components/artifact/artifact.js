@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.artifact');
 goog.provide('grrUi.artifact.artifactModule');
 
 

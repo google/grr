@@ -1,7 +1,8 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
-goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
 goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 
 

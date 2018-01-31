@@ -2,20 +2,15 @@
 
 goog.module('grrUi.semantic.rekall.rekallRegistryServiceTest');
 
-const RekallRegistryService = goog.require('grrUi.semantic.rekall.rekallRegistry.RekallRegistryService');
+const RekallRegistryService = goog.require('grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService');
 const rekallModule = goog.require('grrUi.semantic.rekall.rekallModule');
 
 
 describe('Rekall registry', () => {
-  let grrRekallDirectivesRegistryService;
   let testRegistry;
-
 
   beforeEach(module(rekallModule.name));
   beforeEach(inject(($injector) => {
-    grrRekallDirectivesRegistryService = $injector.get(
-        'grrRekallDirectivesRegistryService');
-
     testRegistry = $injector.instantiate(RekallRegistryService, {});
   }));
 

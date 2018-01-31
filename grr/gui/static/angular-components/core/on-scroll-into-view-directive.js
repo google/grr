@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.onScrollIntoViewDirective');
 goog.provide('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
 
 

@@ -174,12 +174,14 @@ class InterrogatedClient(ActionMock):
   def InitializeClient(self,
                        system="Linux",
                        version="12.04",
-                       kernel="3.13.0-39-generic"):
+                       kernel="3.13.0-39-generic",
+                       fqdn="test_node.test"):
     self.system = system
     self.version = version
     self.kernel = kernel
     self.response_count = 0
     self.recorded_messages = []
+    self.fqdn = fqdn
 
   def HandleMessage(self, message):
     """Record all messages."""
@@ -191,7 +193,7 @@ class InterrogatedClient(ActionMock):
     return [
         rdf_client.Uname(
             system=self.system,
-            fqdn="test_node.test",
+            fqdn=self.fqdn,
             release="5",
             version=self.version,
             kernel=self.kernel,

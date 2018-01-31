@@ -18,6 +18,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
 
   def testFlowExecution(self):
     client_mock = action_mocks.ListDirectoryClientMock()
+    client_id = self.SetupClient(0)
 
     rollover = aff4.AUDIT_ROLLOVER_TIME.seconds
     # Set time to epoch + 20 intervals
@@ -25,7 +26,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
       for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
-          client_id=self.client_id,
+          client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
@@ -35,7 +36,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
       for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
-          client_id=self.client_id,
+          client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
@@ -61,7 +62,7 @@ class TestAuditSystem(flow_test_lib.FlowTestsBaseclass):
       for _ in flow_test_lib.TestFlowHelper(
           filesystem.ListDirectory.__name__,
           client_mock,
-          client_id=self.client_id,
+          client_id=client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),

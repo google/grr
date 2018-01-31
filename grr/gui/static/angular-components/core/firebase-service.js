@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.firebaseService');
 goog.provide('grrUi.core.firebaseService.FirebaseService');
 
 

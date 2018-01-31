@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective');
 goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
 
 goog.scope(function() {

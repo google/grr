@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.stats');
 goog.provide('grrUi.stats.statsModule');
 
 goog.require('grrUi.core.coreModule');

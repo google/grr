@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.cron.newCronJobWizard.configureSchedulePageDirective');
 goog.provide('grrUi.cron.newCronJobWizard.configureSchedulePageDirective.ConfigureSchedulePageDirective');
 
 goog.scope(function() {

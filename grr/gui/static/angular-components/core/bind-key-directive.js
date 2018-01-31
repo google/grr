@@ -1,6 +1,7 @@
 
 'use strict';
 
+goog.provide('grrUi.core.bindKeyDirective');
 goog.provide('grrUi.core.bindKeyDirective.BindKeyDirective');
 
 goog.scope(function() {

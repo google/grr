@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.docs.apiDescriptionDirective');
 goog.provide('grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective');
 
 goog.scope(function() {

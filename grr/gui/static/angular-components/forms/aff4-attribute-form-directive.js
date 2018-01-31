@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.aff4AttributeFormDirective');
 goog.provide('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective');
 
 

@@ -206,7 +206,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
       checks.CheckRegistry.RegisterCheck(
           check=self.sshd_perms, source="sshd_config", overwrite_if_exists=True)
     self.kb = rdf_client.KnowledgeBase()
-    self.kb.hostname = "test.example.com"
+    self.kb.fqdn = "test.example.com"
     self.host_data = {
         "KnowledgeBase": self.kb,
         "WMIInstalledSoftware": GetWMIData(),

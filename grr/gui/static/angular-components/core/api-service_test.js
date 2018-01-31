@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.apiServiceTest');
 
-const apiService = goog.require('grrUi.core.apiService');
+const UNAUTHORIZED_API_RESPONSE_EVENT = goog.require('grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT');
 const apiServiceEncodeUrlPath = goog.require('grrUi.core.apiService.encodeUrlPath');
 const apiServiceStripTypeInfo = goog.require('grrUi.core.apiService.stripTypeInfo');
 const coreModule = goog.require('grrUi.core.coreModule');
@@ -663,7 +663,7 @@ describe('API service', () => {
          $httpBackend.flush();
 
          expect($rootScope.$broadcast)
-             .toHaveBeenCalledWith(apiService.UNAUTHORIZED_API_RESPONSE_EVENT, {
+             .toHaveBeenCalledWith(UNAUTHORIZED_API_RESPONSE_EVENT, {
                subject: 'some subject',
                reason: 'some reason',
              });

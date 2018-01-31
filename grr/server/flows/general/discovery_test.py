@@ -272,7 +272,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataLinux(self):
     """Check google cloud metadata on linux."""
-    self.SetupClients(1, system="Linux", os_version="12.04")
+    self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
@@ -295,7 +295,8 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateCloudMetadataWindows(self):
     """Check google cloud metadata on windows."""
-    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
+    self.client_id = self.SetupClient(
+        0, system="Windows", os_version="6.2", arch="AMD64")
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                    vfs_test_lib.FakeRegistryVFSHandler):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -316,7 +317,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
-    self.SetupClients(1, system="Linux", os_version="12.04")
+    self.client_id = self.SetupClient(0, system="Linux", os_version="12.04")
     data_store.REL_DB.WriteClientMetadata(
         self.client_id.Basename(), fleetspeak_enabled=False)
 
@@ -359,7 +360,13 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
-    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
+    self.client_id = self.SetupClient(
+        0,
+        system="Windows",
+        kernel="10.0.14393",
+        os_version="6.2",
+        arch="AMD64")
+
     data_store.REL_DB.WriteClientMetadata(
         self.client_id.Basename(), fleetspeak_enabled=False)
 

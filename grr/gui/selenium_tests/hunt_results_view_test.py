@@ -41,7 +41,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 
   def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     h = self.CreateSampleHunt()
 
     with data_store.DB.GetMutationPool() as pool:
@@ -59,7 +59,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
         "css=.modal-dialog:contains('Client %s')" % client_id.Basename())
 
   def testResultsViewGetsAutoRefreshed(self):
-    client_id = self.SetupClients(1)[0]
+    client_id = self.SetupClient(0)
     h = self.CreateSampleHunt()
 
     with data_store.DB.GetMutationPool() as pool:

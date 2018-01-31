@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective');
 goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective');
 
 goog.scope(function() {

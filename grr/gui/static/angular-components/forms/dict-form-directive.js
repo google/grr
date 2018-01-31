@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.forms.dictFormDirective');
 goog.provide('grrUi.forms.dictFormDirective.DictFormDirective');
 
 

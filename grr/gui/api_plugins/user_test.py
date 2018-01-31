@@ -30,7 +30,7 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiNotificationTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
   def InitFromObj_(self, notification_type, subject, message=None):
     self._SendNotification(
@@ -212,7 +212,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiGetClientApprovalHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
     self.handler = user_plugin.ApiGetClientApprovalHandler()
 
   def testRendersRequestedClientApproval(self):
@@ -230,7 +230,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
         username=self.token.username)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(result.subject.urn, self.client_id)
+    self.assertEqual(result.subject.client_id, self.client_id)
     self.assertEqual(result.reason, "blah")
     self.assertEqual(result.is_valid, False)
     self.assertEqual(result.is_valid_message,
@@ -291,7 +291,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.SetUpApprovalTest()
 
-    self.subject_urn = client_id = self.SetupClients(1)[0]
+    self.subject_urn = client_id = self.SetupClient(0)
 
     self.handler = user_plugin.ApiCreateClientApprovalHandler()
 
@@ -346,7 +346,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].subject.urn, client_id)
+    self.assertEqual(result.items[0].subject.client_id, client_id)
 
   def testFiltersApprovalsByInvalidState(self):
     self._RequestClientApprovals()
@@ -380,7 +380,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
         self.client_ids[0], self.token.username, reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
-    self.assertEqual(result.items[0].subject.urn, self.client_ids[0])
+    self.assertEqual(result.items[0].subject.client_id, self.client_ids[0])
 
   def testFiltersApprovalsByClientIdAndState(self):
     client_id = self.client_ids[0]
@@ -623,7 +623,7 @@ class ApiDeletePendingUserNotificationHandlerTest(
   def setUp(self):
     super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
     self.handler = user_plugin.ApiDeletePendingUserNotificationHandler()
-    self.client_id = self.SetupClients(1)[0]
+    self.client_id = self.SetupClient(0)
 
     with test_lib.FakeTime(self.TIME_0):
       self._SendNotification(

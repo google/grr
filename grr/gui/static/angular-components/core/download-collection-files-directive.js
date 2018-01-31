@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.core.downloadCollectionFilesDirective');
 goog.provide('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.provide('grrUi.core.downloadCollectionFilesDirective.valuePointsToFile');
 
