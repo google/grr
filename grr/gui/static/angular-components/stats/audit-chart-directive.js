@@ -3,8 +3,8 @@
 goog.provide('grrUi.stats.auditChartDirective');
 goog.provide('grrUi.stats.auditChartDirective.AuditChartDirective');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
-goog.require('grrUi.core.utils.upperCaseToTitleCase');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.require('grrUi.core.utils');       // USE: upperCaseToTitleCase
 
 goog.scope(function() {
 

@@ -2,12 +2,10 @@
 
 goog.module('grrUi.flow.flowsListDirectiveTest');
 
-const flowsListDirectiveFlattenFlowsList = goog.require('grrUi.flow.flowsListDirective.flattenFlowsList');
-const flowsListDirectiveToggleFlowExpansion = goog.require('grrUi.flow.flowsListDirective.toggleFlowExpansion');
+const {flattenFlowsList, toggleFlowExpansion} = goog.require('grrUi.flow.flowsListDirective');
 
 describe('grr-flows-list directive', () => {
   describe('flattenFlowsList()', () => {
-    const flattenFlowsList = flowsListDirectiveFlattenFlowsList;
 
     it('assigns zero depth when flows have no nested_flows', () => {
       const source = [
@@ -76,7 +74,6 @@ describe('grr-flows-list directive', () => {
   });
 
   describe('toggleFlowExpansion()', () => {
-    const toggleFlowExpansion = flowsListDirectiveToggleFlowExpansion;
 
     it('expands node with 2 children correctly', () => {
       const source = [

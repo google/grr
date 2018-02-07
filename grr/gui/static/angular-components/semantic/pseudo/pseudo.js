@@ -3,8 +3,8 @@
 goog.provide('grrUi.semantic.pseudo');
 goog.provide('grrUi.semantic.pseudo.pseudoModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective');
+goog.require('grrUi.core');  // USE: coreModule
+goog.require('grrUi.semantic.pseudo.fetchMoreLinkDirective');  // USE: FetchMoreLinkDirective
 
 
 /**

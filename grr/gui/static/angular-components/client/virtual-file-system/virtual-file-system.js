@@ -3,23 +3,23 @@
 goog.provide('grrUi.client.virtualFileSystem');
 goog.provide('grrUi.client.virtualFileSystem.virtualFileSystemModule');
 
-goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
-goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
-goog.require('grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective');
-goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
-goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
-goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
-goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
-goog.require('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
-goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
-goog.require('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective');
-goog.require('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
-goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective');
-goog.require('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
-goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective');
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.semantic.semanticModule');
+goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective');  // USE: BreadcrumbsDirective
+goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective');  // USE: EncodingsDropdownDirective
+goog.require('grrUi.client.virtualFileSystem.fileContextDirective');  // USE: FileContextDirective
+goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective');  // USE: FileDetailsDirective
+goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective');  // USE: FileDownloadViewDirective
+goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective');  // USE: FileHexViewDirective
+goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective');  // USE: FileStatsViewDirective
+goog.require('grrUi.client.virtualFileSystem.fileTableDirective');  // USE: FileTableDirective
+goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective');  // USE: FileTextViewDirective
+goog.require('grrUi.client.virtualFileSystem.fileTimelineDirective');  // USE: FileTimelineDirective
+goog.require('grrUi.client.virtualFileSystem.fileTreeDirective');  // USE: FileTreeDirective
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: FileViewDirective
+goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');  // USE: RWeOwnedButtonDirective
+goog.require('grrUi.client.virtualFileSystem.recursiveListButtonDirective');  // USE: RecursiveListButtonDirective
+goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');  // USE: VfsFilesArchiveButtonDirective
+goog.require('grrUi.core');      // USE: coreModule
+goog.require('grrUi.semantic');  // USE: semanticModule
 
 
 /**

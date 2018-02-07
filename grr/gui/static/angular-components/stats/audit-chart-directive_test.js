@@ -2,9 +2,8 @@
 
 goog.module('grrUi.stats.auditChartDirectiveTest');
 
-const statsModule = goog.require('grrUi.stats.statsModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {statsModule} = goog.require('grrUi.stats');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('audit chart directive', () => {

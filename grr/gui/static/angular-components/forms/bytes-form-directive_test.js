@@ -2,12 +2,9 @@
 
 goog.module('grrUi.forms.bytesFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const bytesToHexEncodedString = goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
-const formsModule = goog.require('grrUi.forms.formsModule');
-const hexEncodedStringToBytes = goog.require('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
-const isByteString = goog.require('grrUi.forms.bytesFormDirective.isByteString');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {bytesToHexEncodedString, hexEncodedStringToBytes, isByteString} = goog.require('grrUi.forms.bytesFormDirective');
+const {formsModule} = goog.require('grrUi.forms');
 
 
 const hexChars = String.fromCharCode(13) + String.fromCharCode(200);

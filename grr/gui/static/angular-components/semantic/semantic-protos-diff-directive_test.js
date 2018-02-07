@@ -2,11 +2,10 @@
 
 goog.module('grrUi.semantic.semanticProtosDiffDirectiveTest');
 
-const semanticProtosDiffDirectiveDiffAnnotate = goog.require('grrUi.semantic.semanticProtosDiffDirective.diffAnnotate');
+const {diffAnnotate} = goog.require('grrUi.semantic.semanticProtosDiffDirective');
 
 describe('grrSemanticProtosDiff directive', () => {
   describe('diffAnnotate()', () => {
-    const diffAnnotate = semanticProtosDiffDirectiveDiffAnnotate;
 
     it('does nothing for 2 plain equal data structures', () => {
       const value = {

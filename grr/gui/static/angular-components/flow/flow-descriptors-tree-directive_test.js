@@ -2,9 +2,8 @@
 
 goog.module('grrUi.flow.flowDescriptorsTreeDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const flowModule = goog.require('grrUi.flow.flowModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {flowModule} = goog.require('grrUi.flow');
 
 
 describe('flow descriptors tree directive', () => {

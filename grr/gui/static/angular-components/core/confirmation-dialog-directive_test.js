@@ -2,9 +2,8 @@
 
 goog.module('grrUi.core.confirmationDialogDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('confirmation dialog directive', () => {

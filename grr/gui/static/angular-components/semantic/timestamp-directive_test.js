@@ -2,9 +2,8 @@
 
 goog.module('grrUi.semantic.timestampDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {semanticModule} = goog.require('grrUi.semantic');
 
 
 describe('timestamp directive', () => {

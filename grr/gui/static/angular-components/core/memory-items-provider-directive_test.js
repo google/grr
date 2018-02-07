@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.memoryItemsProviderDirectiveTest');
 
-const MemoryItemsProviderController = goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
+const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
 
 
 describe('memory items provider directive', () => {

@@ -1,4 +1,4 @@
-<div ng-if="huntUrn && !controller.hunt">
+<div ng-if="huntId && !controller.hunt">
   Loading...
 </div>
 
@@ -23,9 +23,6 @@
 
       <dt>Hunt ID</dt>
       <dd>{$ ::controller.huntId $}</dd>
-
-      <dt>Hunt URN</dt>
-      <dd>{$ ::controller.hunt.value.urn.value $}</dd>
 
       <dt>Creator</dt>
       <dd><grr-semantic-value value="::controller.hunt.value.creator" /></dd>

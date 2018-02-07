@@ -2,10 +2,8 @@
 
 goog.module('grrUi.core.searchBoxDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const coreModule = goog.require('grrUi.core.coreModule');
-const stubUiTrait = goog.require('grrUi.tests.stubUiTrait');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubUiTrait, testsModule} = goog.require('grrUi.tests');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('search box directive', () => {
@@ -106,8 +104,8 @@ describe('search box directive', () => {
     mockApiServiceResponse({
       'hunts/H:12345678': {
         value: {
-          urn: {
-            value: 'aff4:/H:12345678',
+          hunt_id: {
+            value: 'H:12345678',
           },
         },
       },

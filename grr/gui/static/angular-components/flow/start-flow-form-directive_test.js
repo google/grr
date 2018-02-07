@@ -2,9 +2,8 @@
 
 goog.module('grrUi.flow.startFlowFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const flowModule = goog.require('grrUi.flow.flowModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {flowModule} = goog.require('grrUi.flow');
 
 
 describe('start flow form directive', () => {
@@ -23,7 +22,7 @@ describe('start flow form directive', () => {
   // Stub out grr-semantic-value and grr-flow-form directives, as all
   // rendering is going to be delegated to them.
   angular.forEach(['grrFlowForm', 'grrSemanticValue'], (directiveName) => {
-    grrUi.tests.stubDirective(directiveName);
+    stubDirective(directiveName);
   });
 
   beforeEach(inject(($injector) => {

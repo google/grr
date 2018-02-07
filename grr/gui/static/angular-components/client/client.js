@@ -2,24 +2,24 @@
 
 goog.provide('grrUi.client');
 goog.provide('grrUi.client.clientModule');
-goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
-goog.require('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
-goog.require('grrUi.client.clientContextDirective.ClientContextDirective');
-goog.require('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
-goog.require('grrUi.client.clientDialogService.ClientDialogService');
-goog.require('grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective');
-goog.require('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
-goog.require('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
-goog.require('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
-goog.require('grrUi.client.clientsListDirective.ClientsListDirective');
-goog.require('grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective');
-goog.require('grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective');
-goog.require('grrUi.client.hostInfoDirective.HostInfoDirective');
-goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
-goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.semantic.semanticModule');
-goog.require('grrUi.stats.statsModule');
+goog.require('grrUi.client.addClientsLabelsDialogDirective');  // USE: AddClientsLabelsDialogDirective
+goog.require('grrUi.client.checkClientAccessDirective');  // USE: CheckClientAccessDirective
+goog.require('grrUi.client.clientContextDirective');  // USE: ClientContextDirective
+goog.require('grrUi.client.clientCrashesDirective');  // USE: ClientCrashesDirective
+goog.require('grrUi.client.clientDialogService');  // USE: ClientDialogService
+goog.require('grrUi.client.clientLoadGraphSerieDirective');  // USE: ClientLoadGraphSerieDirective
+goog.require('grrUi.client.clientLoadViewDirective');  // USE: ClientLoadViewDirective
+goog.require('grrUi.client.clientStatusIconsDirective');  // USE: ClientStatusIconsDirective
+goog.require('grrUi.client.clientUsernamesDirective');  // USE: ClientUsernamesDirective
+goog.require('grrUi.client.clientsListDirective');  // USE: ClientsListDirective
+goog.require('grrUi.client.debugRequestsViewDirective');  // USE: DebugRequestsViewDirective
+goog.require('grrUi.client.hostHistoryDialogDirective');  // USE: HostHistoryDialogDirective
+goog.require('grrUi.client.hostInfoDirective');  // USE: HostInfoDirective
+goog.require('grrUi.client.removeClientsLabelsDialogDirective');  // USE: RemoveClientsLabelsDialogDirective
+goog.require('grrUi.client.virtualFileSystem');  // USE: virtualFileSystemModule
+goog.require('grrUi.core');                      // USE: coreModule
+goog.require('grrUi.semantic');                  // USE: semanticModule
+goog.require('grrUi.stats');                     // USE: statsModule
 
 
 /**
@@ -79,6 +79,6 @@ grrUi.client.clientModule.directive(
     grrUi.client.removeClientsLabelsDialogDirective
         .RemoveClientsLabelsDialogDirective);
 
-grrUi.core.coreModule.service(
+grrUi.client.clientModule.service(
     grrUi.client.clientDialogService.ClientDialogService.service_name,
     grrUi.client.clientDialogService.ClientDialogService);

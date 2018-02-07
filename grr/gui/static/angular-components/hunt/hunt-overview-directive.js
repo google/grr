@@ -25,7 +25,7 @@ const HuntOverviewController = function(
   this.scope_ = $scope;
 
   /** @type {string} */
-  this.scope_.huntUrn;
+  this.scope_.huntId;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -46,7 +46,7 @@ const HuntOverviewController = function(
     this.grrApiService_.cancelPoll(this.pollPromise_);
   }.bind(this));
 
-  this.scope_.$watch('huntUrn', this.startPolling_.bind(this));
+  this.scope_.$watch('huntId', this.startPolling_.bind(this));
 };
 
 
@@ -60,9 +60,8 @@ HuntOverviewController.prototype.startPolling_ = function() {
   this.grrApiService_.cancelPoll(this.pollPromise_);
   this.pollPromise_ = undefined;
 
-  if (angular.isDefined(this.scope_['huntUrn'])) {
-    var huntUrnComponents = this.scope_['huntUrn'].split('/');
-    this.huntId = huntUrnComponents[huntUrnComponents.length - 1];
+  if (angular.isDefined(this.scope_['huntId'])) {
+    this.huntId = this.scope_['huntId'];
 
     var huntUrl = 'hunts/' + this.huntId;
     var interval = grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS;
@@ -88,7 +87,7 @@ HuntOverviewController.prototype.startPolling_ = function() {
 grrUi.hunt.huntOverviewDirective.HuntOverviewDirective = function() {
   return {
     scope: {
-      huntUrn: '=',
+      huntId: '=',
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-overview.html',

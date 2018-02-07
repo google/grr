@@ -2,9 +2,8 @@
 
 goog.module('grrUi.acl.requestApprovalDialogDirectiveTest');
 
-const aclModule = goog.require('grrUi.acl.aclModule');
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {aclModule} = goog.require('grrUi.acl');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 
 
 describe('request approval dialog', () => {

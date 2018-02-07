@@ -2,9 +2,9 @@
 
 goog.module('grrUi.artifact.artifactDescriptorServiceTest');
 
-const ArtifactDescriptorsService = goog.require('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
-const artifactModule = goog.require('grrUi.artifact.artifactModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {ArtifactDescriptorsService} = goog.require('grrUi.artifact.artifactDescriptorsService');
+const {artifactModule} = goog.require('grrUi.artifact');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grrArtifactDescriptorsService service', () => {

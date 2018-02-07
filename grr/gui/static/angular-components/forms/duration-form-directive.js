@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.forms.durationFormDirective');
 goog.provide('grrUi.forms.durationFormDirective.DurationFormDirective');
-goog.require('grrUi.semantic.durationDirective.stringifySeconds');
+goog.require('grrUi.semantic.durationDirective');  // USE: stringifySeconds
 
 
 goog.scope(function() {

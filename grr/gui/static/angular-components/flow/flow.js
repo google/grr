@@ -3,23 +3,23 @@
 goog.provide('grrUi.flow');
 goog.provide('grrUi.flow.flowModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective');
-goog.require('grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective');
-goog.require('grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective');
-goog.require('grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective');
-goog.require('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
-goog.require('grrUi.flow.flowFormDirective.FlowFormDirective');
-goog.require('grrUi.flow.flowInfoDirective.FlowInfoDirective');
-goog.require('grrUi.flow.flowInspectorDirective.FlowInspectorDirective');
-goog.require('grrUi.flow.flowLogDirective.FlowLogDirective');
-goog.require('grrUi.flow.flowOverviewDirective.FlowOverviewDirective');
-goog.require('grrUi.flow.flowRequestsDirective.FlowRequestsDirective');
-goog.require('grrUi.flow.flowResultsDirective.FlowResultsDirective');
-goog.require('grrUi.flow.flowStatusIconDirective.FlowStatusIconDirective');
-goog.require('grrUi.flow.flowsListDirective.FlowsListDirective');
-goog.require('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
-goog.require('grrUi.flow.startFlowViewDirective.StartFlowViewDirective');
+goog.require('grrUi.core');                           // USE: coreModule
+goog.require('grrUi.flow.clientFlowsListDirective');  // USE: ClientFlowsListDirective
+goog.require('grrUi.flow.clientFlowsViewDirective');  // USE: ClientFlowsViewDirective
+goog.require('grrUi.flow.copyFlowFormDirective');  // USE: CopyFlowFormDirective
+goog.require('grrUi.flow.flowApiHelperDirective');  // USE: FlowApiHelperDirective
+goog.require('grrUi.flow.flowDescriptorsTreeDirective');  // USE: FlowDescriptorsTreeDirective
+goog.require('grrUi.flow.flowFormDirective');       // USE: FlowFormDirective
+goog.require('grrUi.flow.flowInfoDirective');       // USE: FlowInfoDirective
+goog.require('grrUi.flow.flowInspectorDirective');  // USE: FlowInspectorDirective
+goog.require('grrUi.flow.flowLogDirective');        // USE: FlowLogDirective
+goog.require('grrUi.flow.flowOverviewDirective');  // USE: FlowOverviewDirective
+goog.require('grrUi.flow.flowRequestsDirective');  // USE: FlowRequestsDirective
+goog.require('grrUi.flow.flowResultsDirective');   // USE: FlowResultsDirective
+goog.require('grrUi.flow.flowStatusIconDirective');  // USE: FlowStatusIconDirective
+goog.require('grrUi.flow.flowsListDirective');       // USE: FlowsListDirective
+goog.require('grrUi.flow.startFlowFormDirective');  // USE: StartFlowFormDirective
+goog.require('grrUi.flow.startFlowViewDirective');  // USE: StartFlowViewDirective
 
 
 /**

@@ -2,10 +2,10 @@
 
 goog.provide('grrUi.sidebar');
 goog.provide('grrUi.sidebar.sidebarModule');
-goog.require('grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective');
-goog.require('grrUi.sidebar.navDropdownDirective.NavDropdownDirective');
-goog.require('grrUi.sidebar.navLinkDirective.NavLinkDirective');
-goog.require('grrUi.sidebar.navigatorDirective.NavigatorDirective');
+goog.require('grrUi.sidebar.clientSummaryDirective');  // USE: ClientSummaryDirective
+goog.require('grrUi.sidebar.navDropdownDirective');  // USE: NavDropdownDirective
+goog.require('grrUi.sidebar.navLinkDirective');      // USE: NavLinkDirective
+goog.require('grrUi.sidebar.navigatorDirective');    // USE: NavigatorDirective
 
 /**
  * Angular module for layout-related UI.

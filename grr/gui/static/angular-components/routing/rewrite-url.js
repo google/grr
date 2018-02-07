@@ -3,10 +3,10 @@
 goog.provide('grrUi.routing.rewriteUrl');
 goog.provide('grrUi.routing.rewriteUrl.rewriteUrl');
 
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
-goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
-goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFilePathFromId
+goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder
+goog.require('grrUi.core.apiService');                 // USE: encodeUrlPath
+goog.require('grrUi.routing.aff4UrnToUrl');            // USE: aff4UrnToUrl
 
 
 goog.scope(function() {

@@ -2,9 +2,9 @@
 
 goog.module('grrUi.semantic.flowIdDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grr-flow-id directive', () => {

@@ -2,8 +2,8 @@
 
 goog.module('grrUi.client.clientStatusIconsDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('client status icons', () => {

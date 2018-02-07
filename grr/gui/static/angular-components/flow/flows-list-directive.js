@@ -5,7 +5,7 @@ goog.provide('grrUi.flow.flowsListDirective.FlowsListDirective');
 goog.provide('grrUi.flow.flowsListDirective.flattenFlowsList');
 goog.provide('grrUi.flow.flowsListDirective.toggleFlowExpansion');
 
-goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
+goog.require('grrUi.core.infiniteTableDirective');  // USE: InfiniteTableController
 
 goog.scope(function() {
 

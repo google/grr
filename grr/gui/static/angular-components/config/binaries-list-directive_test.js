@@ -2,15 +2,13 @@
 
 goog.module('grrUi.config.binariesListDirectiveTest');
 
-const binariesListDirectiveSortBinaries = goog.require('grrUi.config.binariesListDirective.sortBinaries');
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const configModule = goog.require('grrUi.config.configModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {configModule} = goog.require('grrUi.config');
+const {sortBinaries} = goog.require('grrUi.config.binariesListDirective');
 
 
 describe('grr-binaries-list directive', () => {
   describe('sortBinaries()', () => {
-    const sortBinaries = binariesListDirectiveSortBinaries;
 
     it('adds correct metadata to binaries without slashes in path', () => {
       const binaries = sortBinaries([{

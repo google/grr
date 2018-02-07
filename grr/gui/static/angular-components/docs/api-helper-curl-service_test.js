@@ -2,7 +2,7 @@
 
 goog.module('grrUi.docs.apiHelperCurlServiceTest');
 
-const docsModule = goog.require('grrUi.docs.docsModule');
+const {docsModule} = goog.require('grrUi.docs');
 
 
 describe('ApiHelperCurlService', () => {

@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.timestampFilterTest');
 
-const TimestampFilter = goog.require('grrUi.core.timestampFilter.TimestampFilter');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {TimestampFilter} = goog.require('grrUi.core.timestampFilter');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grrTimestamp filter', () => {

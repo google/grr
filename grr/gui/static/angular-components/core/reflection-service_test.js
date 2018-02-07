@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.reflectionServiceTest');
 
-const ReflectionService = goog.require('grrUi.core.reflectionService.ReflectionService');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {ReflectionService} = goog.require('grrUi.core.reflectionService');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('AFF4 items provider directive', () => {

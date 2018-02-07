@@ -3,26 +3,31 @@ import logging
 import os
 import random
 import string
+import unittest
 
+# TODO(hanuszczak): This should be imported conditionally.
 import MySQLdb
 
 import unittest
 from grr.server import db_test
 from grr.server.databases import mysql
 
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("MYSQL_TEST_USER"),
-    "MYSQL_* environment variables not set")
+
+def _GetEnvironOrSkip(key):
+  value = os.environ.get(key)
+  if value is None:
+    raise unittest.SkipTest("'%s' variable is not set" % key)
+  return value
 
 
 class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
 
   def CreateDatabase(self):
     # pylint: disable=unreachable
-    user = os.environ.get("MYSQL_TEST_USER")
-    host = os.environ.get("MYSQL_TEST_HOST")
-    port = os.environ.get("MYSQL_TEST_PORT")
-    passwd = os.environ.get("MYSQL_TEST_PASS")
+    user = _GetEnvironOrSkip("MYSQL_TEST_USER")
+    host = _GetEnvironOrSkip("MYSQL_TEST_HOST")
+    port = _GetEnvironOrSkip("MYSQL_TEST_PORT")
+    passwd = _GetEnvironOrSkip("MYSQL_TEST_PASS")
     dbname = "".join(
         random.choice(string.ascii_uppercase + string.digits)
         for _ in range(10))
@@ -72,6 +77,9 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
     pass
 
   def testStartupHistory(self):
+    pass
+
+  def testCrashHistory(self):
     pass
 
   def testClientKeywords(self):

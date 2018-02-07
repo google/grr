@@ -3,8 +3,8 @@
 goog.provide('grrUi.hunt.modifyHuntDialogDirective');
 goog.provide('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.require('grrUi.core.utils');       // USE: stripAff4Prefix
 
 
 goog.scope(function() {

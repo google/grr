@@ -2,9 +2,8 @@
 
 goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const clientModule = goog.require('grrUi.client.clientModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {clientModule} = goog.require('grrUi.client');
 
 
 describe('breadcrums directive', () => {

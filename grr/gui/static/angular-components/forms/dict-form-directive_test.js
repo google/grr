@@ -2,9 +2,8 @@
 
 goog.module('grrUi.forms.dictFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const formsModule = goog.require('grrUi.forms.formsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {formsModule} = goog.require('grrUi.forms');
 
 
 describe('dict form directive', () => {
@@ -12,14 +11,12 @@ describe('dict form directive', () => {
   let $q;
   let $rootScope;
   let grrReflectionService;
-  let value;
-
 
   beforeEach(module('/static/angular-components/forms/dict-form.html'));
   beforeEach(module(formsModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrFormValue');
+  stubDirective('grrFormValue');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

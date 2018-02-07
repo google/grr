@@ -3,15 +3,15 @@
 goog.provide('grrUi.cron');
 goog.provide('grrUi.cron.cronModule');
 
-goog.require('grrUi.core.coreModule');
+goog.require('grrUi.core');  // USE: coreModule
 
-goog.require('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective');
-goog.require('grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective');
-goog.require('grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective');
-goog.require('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective');
-goog.require('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
-goog.require('grrUi.cron.cronViewDirective.CronViewDirective');
-goog.require('grrUi.cron.newCronJobWizard.newCronJobWizardModule');
+goog.require('grrUi.cron.cronJobFlowsListDirective');  // USE: CronJobFlowsListDirective
+goog.require('grrUi.cron.cronJobInspectorDirective');  // USE: CronJobInspectorDirective
+goog.require('grrUi.cron.cronJobOverviewDirective');  // USE: CronJobOverviewDirective
+goog.require('grrUi.cron.cronJobStatusIconDirective');  // USE: CronJobStatusIconDirective
+goog.require('grrUi.cron.cronJobsListDirective');  // USE: CronJobsListDirective
+goog.require('grrUi.cron.cronViewDirective');      // USE: CronViewDirective
+goog.require('grrUi.cron.newCronJobWizard');  // USE: newCronJobWizardModule
 
 
 /**

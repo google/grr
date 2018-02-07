@@ -2,9 +2,8 @@
 
 goog.module('grrUi.forms.timerangeFormDirectiveTest');
 
-const formsModule = goog.require('grrUi.forms.formsModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {formsModule} = goog.require('grrUi.forms');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('timerange form directive', () => {

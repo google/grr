@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.firebaseServiceTest');
 
-const coreModule = goog.require('grrUi.core.coreModule');
+const {coreModule} = goog.require('grrUi.core');
 
 window.firebase = window.firebase || {};
 

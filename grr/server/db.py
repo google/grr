@@ -175,6 +175,42 @@ class Database(object):
     """
 
   @abc.abstractmethod
+  def WriteClientCrashInfo(self, client_id, crash_info):
+    """Writes a new client crash record.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      crash_info: An rdfvalues.client.ClientCrash object. Will be saved at
+          the "current" timestamp.
+
+    Raises:
+      UnknownClientError: The client_id is not known yet.
+    """
+
+  @abc.abstractmethod
+  def ReadClientCrashInfo(self, client_id):
+    """Reads the latest client crash record for a single client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+
+    Returns:
+      An rdfvalues.client.ClientCrash object.
+    """
+
+  @abc.abstractmethod
+  def ReadClientCrashInfoHistory(self, client_id):
+    """Reads the full crash history for a particular client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+
+    Returns:
+      A list of rdfvalues.client.ClientCrash objects sorted by timestamp,
+      newest entry first.
+    """
+
+  @abc.abstractmethod
   def WriteClientKeywords(self, client_id, keywords):
     """Associates the provided keywords with the client.
 

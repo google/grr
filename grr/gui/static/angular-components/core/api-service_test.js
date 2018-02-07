@@ -2,10 +2,8 @@
 
 goog.module('grrUi.core.apiServiceTest');
 
-const UNAUTHORIZED_API_RESPONSE_EVENT = goog.require('grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT');
-const apiServiceEncodeUrlPath = goog.require('grrUi.core.apiService.encodeUrlPath');
-const apiServiceStripTypeInfo = goog.require('grrUi.core.apiService.stripTypeInfo');
-const coreModule = goog.require('grrUi.core.coreModule');
+const {coreModule} = goog.require('grrUi.core');
+const {encodeUrlPath, stripTypeInfo, UNAUTHORIZED_API_RESPONSE_EVENT} = goog.require('grrUi.core.apiService');
 
 
 describe('API service', () => {
@@ -34,7 +32,6 @@ describe('API service', () => {
   });
 
   describe('encodeUrlPath() function', () => {
-    const encodeUrlPath = apiServiceEncodeUrlPath;
 
     it('does not touch slashes and normal characters', () => {
       expect(encodeUrlPath('////')).toBe('////');
@@ -47,7 +44,6 @@ describe('API service', () => {
   });
 
   describe('stripTypeInfo() function', () => {
-    const stripTypeInfo = apiServiceStripTypeInfo;
 
     it('converts richly typed primitive into a primitive value', () => {
       const richData = {

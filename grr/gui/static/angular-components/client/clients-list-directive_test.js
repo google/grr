@@ -2,9 +2,8 @@
 
 goog.module('grrUi.client.clientsListDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('clients list', () => {
@@ -95,9 +94,9 @@ describe('clients list', () => {
         {
           type: 'VFSGRRClient',
           value: {
-            urn: {
-              value: 'aff4:/C.0000000000000001',
-              type: 'RDFURN',
+            client_id: {
+              value: 'C.0000000000000001',
+              type: 'ApiClientId',
             },
             first_seen_at: {
               value: 1358346544915179,
@@ -186,9 +185,9 @@ describe('clients list', () => {
         {
           type: 'VFSGRRClient',
           value: {
-            urn: {
-              value: 'aff4:/C.0000000000000001',
-              type: 'RDFURN',
+            client_id: {
+              value: 'C.0000000000000001',
+              type: 'ApiClientId',
             },
             interfaces: [
               {

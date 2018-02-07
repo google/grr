@@ -16,7 +16,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "C.0000000000000001", mode="rw", token=self.token) as client:
       client.AddLabel("foo", owner=self.token.username)
 
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "
                    "span.label-success:contains('foo')")
@@ -26,32 +26,28 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "C.0000000000000001", mode="rw", token=self.token) as client:
       client.AddLabel("bar", owner="GRR")
 
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
     self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "
                    "span.label:not(.label-success):contains('bar')")
 
   def testLabelButtonIsDisabledByDefault(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
     self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testLabelButtonIsEnabledWhenClientIsSelected(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.WaitUntilNot(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testAddClientsLabelsDialogShowsListOfSelectedClients(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 3 clients and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000003']")
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000007']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000003']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000007']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Check that all 3 client ids are shown in the dialog.
@@ -63,11 +59,10 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
                    "contains('C.0000000000000007')")
 
   def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name
@@ -80,11 +75,10 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name.
@@ -107,13 +101,11 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
                    "span.label-success:contains('issue 42')")
 
   def testAppliedLabelBecomesSearchableImmediately(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 2 clients and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000002']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000002']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name.
@@ -139,8 +131,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     # Now we test if we can remove the label and if the search index is updated.
 
     # Select 1 client and click 'Remove Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.Click("css=button[name=RemoveLabels]:not([disabled])")
     # The label should already be prefilled in the dropdown.
     self.WaitUntil(self.IsTextPresent, "issue 42")
@@ -156,11 +147,10 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     self.assertFalse(self.IsTextPresent("C.0000000000000001"))
 
   def testSelectionIsPreservedWhenAddClientsLabelsDialogIsCancelled(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Click on "Cancel" button and check that dialog has disappeared.
@@ -169,14 +159,13 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
 
     # Ensure that checkbox is still checked
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000001']:checked")
+                   "client_id='C.0000000000000001']:checked")
 
   def testSelectionIsResetWhenLabelIsAppliedViaAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
-    self.Click("css=input.client-checkbox["
-               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox[client_id='C.0000000000000001']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name, click on "Proceed" and "Close" buttons.
@@ -187,45 +176,45 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
 
     # Ensure that checkbox is not checked anymore.
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000001']:not(:checked)")
+                   "client_id='C.0000000000000001']:not(:checked)")
 
   def testCheckAllCheckboxSelectsAllClients(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
     # Check that checkboxes for certain clients are unchecked.
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000001']:not(:checked)")
+                   "client_id='C.0000000000000001']:not(:checked)")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000004']:not(:checked)")
+                   "client_id='C.0000000000000004']:not(:checked)")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000007']:not(:checked)")
+                   "client_id='C.0000000000000007']:not(:checked)")
 
     # Click on 'check all checkbox'
     self.Click("css=input.client-checkbox.select-all")
 
     # Check that checkboxes for certain clients are now checked.
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000001']:checked")
+                   "client_id='C.0000000000000001']:checked")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000004']:checked")
+                   "client_id='C.0000000000000004']:checked")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000007']:checked")
+                   "client_id='C.0000000000000007']:checked")
 
     # Click once more on 'check all checkbox'.
     self.Click("css=input.client-checkbox.select-all")
 
     # Check that checkboxes for certain clients are now again unchecked.
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000001']:not(:checked)")
+                   "client_id='C.0000000000000001']:not(:checked)")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000004']:not(:checked)")
+                   "client_id='C.0000000000000004']:not(:checked)")
     self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
-                   "client_urn='aff4:/C.0000000000000007']:not(:checked)")
+                   "client_id='C.0000000000000007']:not(:checked)")
 
   def testClientsSelectedWithSelectAllAreShownInAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable")
+    self.Open("/#/search?q=.")
 
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 

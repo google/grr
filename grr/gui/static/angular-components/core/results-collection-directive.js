@@ -3,7 +3,7 @@
 goog.provide('grrUi.core.resultsCollectionDirective');
 goog.provide('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
 
-goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
+goog.require('grrUi.core.fileDownloadUtils');  // USE: getPathSpecFromValue
 
 
 goog.scope(function() {

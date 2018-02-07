@@ -2,8 +2,8 @@
 
 goog.provide('grrUi.client.clientDialogService');
 goog.provide('grrUi.client.clientDialogService.ClientDialogService');
-goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
-goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
+goog.require('grrUi.client.addClientsLabelsDialogDirective');  // USE: AddClientsLabelsDialogDirective
+goog.require('grrUi.client.removeClientsLabelsDialogDirective');  // USE: RemoveClientsLabelsDialogDirective
 
 goog.scope(function() {
 

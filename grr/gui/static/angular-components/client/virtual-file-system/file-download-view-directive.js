@@ -2,8 +2,8 @@
 
 goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
-goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
 goog.scope(function() {
 

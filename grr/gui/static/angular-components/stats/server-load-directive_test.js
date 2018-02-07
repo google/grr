@@ -2,8 +2,8 @@
 
 goog.module('grrUi.stats.serverLoadDirectiveTest');
 
-const ServerLoadIndicatorService = goog.require('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
-const statsModule = goog.require('grrUi.stats.statsModule');
+const {ServerLoadIndicatorService} = goog.require('grrUi.stats.serverLoadDirective');
+const {statsModule} = goog.require('grrUi.stats');
 
 
 describe('server load indicator service', () => {

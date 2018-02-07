@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.urnDirective');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
-goog.require('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
+goog.require('grrUi.routing.aff4UrnToUrl');  // USE: aff4UrnToUrl
 
 goog.scope(function() {
 

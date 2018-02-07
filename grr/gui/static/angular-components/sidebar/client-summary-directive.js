@@ -59,9 +59,7 @@ ClientSummaryController.prototype.onClientChange_ = function() {
     }
   }
 
-  var clientUrn = this.scope_['client']['value']['urn']['value'];
-  var clientId = clientUrn.split('/')[1];
-
+  var clientId = this.scope_['client']['value']['client_id']['value'];
   var lastIPUrl = 'clients/' + clientId + '/last-ip';
   this.grrApiService_.get(lastIPUrl).then(function(response) {
     this.lastIP = response.data;

@@ -499,6 +499,39 @@ class DatabaseTestMixin(object):
     self.assertIsNone(d.ReadClientStartupInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientStartupInfoHistory("C.0000000000000000"), [])
 
+  def testCrashHistory(self):
+    d = self.db
+
+    client_id = "C.0000000050000001"
+    ci = rdf_client.ClientCrash(timestamp=12345, crash_message="Crash #1")
+
+    with self.assertRaises(db.UnknownClientError):
+      d.WriteClientCrashInfo(client_id, ci)
+
+    self._InitializeClient(client_id)
+
+    d.WriteClientCrashInfo(client_id, ci)
+    ci.crash_message = "Crash #2"
+    d.WriteClientCrashInfo(client_id, ci)
+    ci.crash_message = "Crash #3"
+    d.WriteClientCrashInfo(client_id, ci)
+
+    last_is = d.ReadClientCrashInfo(client_id)
+    self.assertIsInstance(last_is, rdf_client.ClientCrash)
+    self.assertEqual(last_is.crash_message, "Crash #3")
+    self.assertIsInstance(last_is.timestamp, rdfvalue.RDFDatetime)
+
+    hist = d.ReadClientCrashInfoHistory(client_id)
+    self.assertEqual(len(hist), 3)
+    self.assertEqual([ci.crash_message for ci in hist],
+                     ["Crash #3", "Crash #2", "Crash #1"])
+    self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
+    self.assertGreater(hist[0].timestamp, hist[1].timestamp)
+    self.assertGreater(hist[1].timestamp, hist[2].timestamp)
+
+    self.assertIsNone(d.ReadClientCrashInfo("C.0000000000000000"))
+    self.assertEqual(d.ReadClientCrashInfoHistory("C.0000000000000000"), [])
+
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM

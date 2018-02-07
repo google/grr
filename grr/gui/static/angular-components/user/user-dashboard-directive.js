@@ -62,11 +62,10 @@ UserDashboardController.prototype.onHunts_ = function(response) {
 /**
  * Handles clicks in the client panel.
  *
- * @param {string} clientUrn Client urn corresponding to a clicked row.
+ * @param {string} clientId Client ID corresponding to a clicked row.
  * @export
  */
-UserDashboardController.prototype.onClientClicked = function(clientUrn) {
-  var clientId = clientUrn.split('/')[1];
+UserDashboardController.prototype.onClientClicked = function(clientId) {
   this.grrRoutingService_.go('client', {clientId: clientId});
 };
 

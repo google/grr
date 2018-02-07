@@ -3,7 +3,7 @@
 goog.provide('grrUi.core.downloadCollectionAsDirective');
 goog.provide('grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective');
 
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
 goog.scope(function() {
 

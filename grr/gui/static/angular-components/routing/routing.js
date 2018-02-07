@@ -1,8 +1,8 @@
 goog.provide('grrUi.routing');
 goog.provide('grrUi.routing.routingModule');
-goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.routing.rewriteUrl.rewriteUrl');
-goog.require('grrUi.routing.routingService.RoutingService');
+goog.require('grrUi.core.apiService');         // USE: encodeUrlPath
+goog.require('grrUi.routing.rewriteUrl');      // USE: rewriteUrl
+goog.require('grrUi.routing.routingService');  // USE: RoutingService
 
 
 /**

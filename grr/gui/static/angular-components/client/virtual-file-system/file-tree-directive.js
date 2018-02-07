@@ -2,10 +2,9 @@
 
 goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
-goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
-goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FOLDER_EVENT
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFileId
+goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
 
 goog.scope(function() {
 

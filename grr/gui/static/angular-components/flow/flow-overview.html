@@ -1,4 +1,4 @@
-<div ng-if="flowUrn && !controller.flow">
+<div ng-if="flowId && !controller.flow">
   Loading...
 </div>
 
@@ -19,9 +19,6 @@
 
       <dt>Flow ID</dt>
       <dd><grr-semantic-value value="::controller.flow.value.flow_id" /></dd>
-
-      <dt>Flow URN</dt>
-      <dd><grr-semantic-value value="::controller.flow.value.urn" /></dd>
 
       <dt>Creator</dt>
       <dd><grr-semantic-value value="::controller.flow.value.creator" /></dd>

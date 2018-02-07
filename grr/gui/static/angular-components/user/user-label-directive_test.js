@@ -2,8 +2,8 @@
 
 goog.module('grrUi.user.userLabelDirectiveTest');
 
-const testsModule = goog.require('grrUi.tests.testsModule');
-const userModule = goog.require('grrUi.user.userModule');
+const {testsModule} = goog.require('grrUi.tests');
+const {userModule} = goog.require('grrUi.user');
 
 
 describe('User label directive', () => {

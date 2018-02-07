@@ -2,8 +2,8 @@
 
 goog.module('grrUi.client.virtualFileSystem.encodingsDropdownDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('encodings dropdown directive', () => {

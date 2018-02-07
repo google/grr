@@ -4,11 +4,9 @@ goog.provide('grrUi.user.userNotificationItemDirective');
 goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
 goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-goog.require('grrUi.core.apiService.encodeUrlPath');
-goog.require('grrUi.core.apiService.stripTypeInfo');
-goog.require('grrUi.core.utils.getLastPathComponent');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFileId
+goog.require('grrUi.core.apiService');  // USE: encodeUrlPath, stripTypeInfo
+goog.require('grrUi.core.utils');  // USE: getLastPathComponent, stripAff4Prefix
 
 goog.scope(function() {
 

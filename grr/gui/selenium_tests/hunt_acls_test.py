@@ -91,7 +91,6 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     # Hunt overview should be visible
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
-    self.WaitUntil(self.IsTextPresent, "Hunt URN")
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
 
     self.Click("css=button:contains('Approve')")

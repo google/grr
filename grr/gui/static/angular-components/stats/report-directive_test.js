@@ -2,10 +2,9 @@
 
 goog.module('grrUi.stats.reportDirectiveTest');
 
-const statsModule = goog.require('grrUi.stats.statsModule');
-const stripTypeInfo = goog.require('grrUi.core.apiService.stripTypeInfo');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {statsModule} = goog.require('grrUi.stats');
+const {stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('report directive', () => {

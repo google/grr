@@ -3,8 +3,7 @@
 goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective');
 goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormDirective');
 
-goog.require('grrUi.core.utils.camelCaseToDashDelimited');
-goog.require('grrUi.forms.semanticValueFormDirective.SemanticValueFormController');
+goog.require('grrUi.core.utils');  // USE: camelCaseToDashDelimited
 
 
 goog.scope(function() {

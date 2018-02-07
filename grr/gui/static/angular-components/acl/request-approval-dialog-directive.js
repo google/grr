@@ -3,7 +3,7 @@
 goog.provide('grrUi.acl.requestApprovalDialogDirective');
 goog.provide('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 
-goog.require('grrUi.core.utils.stringToList');
+goog.require('grrUi.core.utils');  // USE: stringToList
 
 
 goog.scope(function() {

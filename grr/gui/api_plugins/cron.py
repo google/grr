@@ -23,6 +23,16 @@ class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a cron job could not be found."""
 
 
+class ApiCronJobId(rdfvalue.RDFString):
+  """Class encapsulating cron job ids."""
+
+  def ToURN(self):
+    if not self._value:
+      raise ValueError("Can't call ToURN() on an empty cron job id.")
+
+    return aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(self._value)
+
+
 class ApiCronJob(rdf_structs.RDFProtoStruct):
   """ApiCronJob is used when rendering responses.
 
@@ -32,6 +42,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
   """
   protobuf = cron_pb2.ApiCronJob
   rdf_deps = [
+      ApiCronJobId,
       rdfvalue.Duration,
       flows.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
@@ -71,6 +82,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
     cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
 
     api_cron_job = ApiCronJob(
+        cron_job_id=cron_job.urn.Basename(),
         urn=cron_job.urn,
         description=cron_args.description,
         flow_name=cron_args.flow_runner_args.flow_name,
@@ -136,6 +148,9 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiGetCronJobArgs
+  rdf_deps = [
+      ApiCronJobId,
+  ]
 
 
 class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -147,7 +162,7 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       cron_job = aff4.FACTORY.Open(
-          aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(args.cron_job_id),
+          args.cron_job_id.ToURN(),
           aff4_type=aff4_cronjobs.CronJob,
           token=token)
 
@@ -159,6 +174,9 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiListCronJobFlowsArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiListCronJobFlowsArgs
+  rdf_deps = [
+      ApiCronJobId,
+  ]
 
 
 class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
@@ -168,16 +186,14 @@ class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
   result_type = api_plugins_flow.ApiListFlowsResult
 
   def Handle(self, args, token=None):
-    cron_job_root_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
-        args.cron_job_id)
-
     return api_plugins_flow.ApiListFlowsHandler.BuildFlowList(
-        cron_job_root_urn, args.count, args.offset, token=token)
+        args.cron_job_id.ToURN(), args.count, args.offset, token=token)
 
 
 class ApiGetCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiGetCronJobFlowArgs
   rdf_deps = [
+      ApiCronJobId,
       api_plugins_flow.ApiFlowId,
   ]
 
@@ -248,6 +264,9 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiForceRunCronJobArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiForceRunCronJobArgs
+  rdf_deps = [
+      ApiCronJobId,
+  ]
 
 
 class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -256,17 +275,15 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiForceRunCronJobArgs
 
   def Handle(self, args, token=None):
-    if not args.cron_job_id:
-      raise ValueError("cron_job_id can't be empty")
-
-    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
-        args.cron_job_id)
     aff4_cronjobs.CRON_MANAGER.RunOnce(
-        urns=[cron_job_urn], token=token, force=True)
+        urns=[args.cron_job_id.ToURN()], token=token, force=True)
 
 
 class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiModifyCronJobArgs
+  rdf_deps = [
+      ApiCronJobId,
+  ]
 
 
 class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -276,11 +293,7 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJob
 
   def Handle(self, args, token=None):
-    if not args.cron_job_id:
-      raise ValueError("cron_job_id can't be empty")
-
-    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
-        args.cron_job_id)
+    cron_job_urn = args.cron_job_id.ToURN()
 
     if args.state == "ENABLED":
       aff4_cronjobs.CRON_MANAGER.EnableJob(cron_job_urn, token=token)
@@ -296,6 +309,9 @@ class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):
   protobuf = cron_pb2.ApiDeleteCronJobArgs
+  rdf_deps = [
+      ApiCronJobId,
+  ]
 
 
 class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -304,6 +320,4 @@ class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteCronJobArgs
 
   def Handle(self, args, token=None):
-    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
-        args.cron_job_id)
-    aff4_cronjobs.CRON_MANAGER.DeleteJob(cron_job_urn, token=token)
+    aff4_cronjobs.CRON_MANAGER.DeleteJob(args.cron_job_id.ToURN(), token=token)

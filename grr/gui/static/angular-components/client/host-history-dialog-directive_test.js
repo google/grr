@@ -2,9 +2,8 @@
 
 goog.module('grrUi.client.hostHistoryDialogDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('semantic versioned proto directive', () => {

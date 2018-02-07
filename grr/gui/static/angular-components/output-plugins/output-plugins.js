@@ -3,12 +3,12 @@
 goog.provide('grrUi.outputPlugins');
 goog.provide('grrUi.outputPlugins.outputPluginsModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
-goog.require('grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective');
-goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective.OutputPluginNoteBodyDirective');
-goog.require('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
-goog.require('grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesDirective');
+goog.require('grrUi.core');                          // USE: coreModule
+goog.require('grrUi.core.semanticRegistryService');  // USE: SemanticRegistryService
+goog.require('grrUi.outputPlugins.outputPluginLogsDirective');  // USE: OutputPluginLogsDirective
+goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective');  // USE: OutputPluginNoteBodyDirective
+goog.require('grrUi.outputPlugins.outputPluginNoteDirective');  // USE: OutputPluginNoteDirective
+goog.require('grrUi.outputPlugins.outputPluginsNotesDirective');  // USE: OutputPluginsNotesDirective
 
 
 /**

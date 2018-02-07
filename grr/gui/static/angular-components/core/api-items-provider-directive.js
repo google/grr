@@ -3,7 +3,7 @@
 goog.provide('grrUi.core.apiItemsProviderDirective');
 goog.provide('grrUi.core.apiItemsProviderDirective.ApiItemsProviderController');
 goog.provide('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
-goog.require('grrUi.core.itemsProviderController.ItemsProviderController');
+goog.require('grrUi.core.itemsProviderController');  // USE: ItemsProviderController
 
 goog.scope(function() {
 

@@ -3,7 +3,7 @@
 goog.provide('grrUi.docs.apiDocsDirective');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 goog.scope(function() {
 

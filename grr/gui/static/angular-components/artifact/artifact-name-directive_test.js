@@ -2,8 +2,8 @@
 
 goog.module('grrUi.artifact.artifactNameDirectiveTest');
 
-const artifactModule = goog.require('grrUi.artifact.artifactModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {artifactModule} = goog.require('grrUi.artifact');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grr-artifact-name directive', () => {

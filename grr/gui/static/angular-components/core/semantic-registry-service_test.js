@@ -2,8 +2,8 @@
 
 goog.module('grrUi.core.semanticRegistryServiceTest');
 
-const SemanticRegistryService = goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
-const coreModule = goog.require('grrUi.core.coreModule');
+const {SemanticRegistryService} = goog.require('grrUi.core.semanticRegistryService');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('Semantic registry', () => {

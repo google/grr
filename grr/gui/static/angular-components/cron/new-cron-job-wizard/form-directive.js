@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.cron.newCronJobWizard.formDirective');
 goog.provide('grrUi.cron.newCronJobWizard.formDirective.FormDirective');
-goog.require('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
+goog.require('grrUi.hunt.newHuntWizard.formDirective');  // USE: DEFAULT_PLUGIN_URL
 
 goog.scope(function() {
 

@@ -11,6 +11,7 @@ import mock
 from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -190,12 +191,19 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
               st_mtime=1336129892,
               st_ctime=1336129892))
 
-    # Force an early flush. This max file size value has been chosen to force a
-    # flush at least once, but not for all 10 records.
+    sizes = [37, 687, 722, 755, 788, 821, 684, 719, 752, 785]
+
+    def GetSize(unused_path):
+      return sizes.pop(0)
+
+    # Force an early flush. Gzip is non deterministic since our
+    # metadata is a dict with unpredictable order so we make up the file sizes
+    # such that there is one flush during processing.
     with test_lib.ConfigOverrider({"BigQuery.max_file_post_size": 800}):
-      output = self.ProcessResponses(
-          plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
-          responses=responses)
+      with utils.Stubber(os.path, "getsize", GetSize):
+        output = self.ProcessResponses(
+            plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
+            responses=responses)
 
     self.assertEqual(len(output), 2)
     # Check that the output is still consistent

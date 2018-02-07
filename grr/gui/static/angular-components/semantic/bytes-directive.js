@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.bytesDirective');
 goog.provide('grrUi.semantic.bytesDirective.BytesDirective');
-goog.require('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
+goog.require('grrUi.forms.bytesFormDirective');  // USE: bytesToHexEncodedString
 
 goog.scope(function() {
 

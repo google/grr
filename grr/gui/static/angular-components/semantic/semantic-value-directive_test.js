@@ -2,9 +2,9 @@
 
 goog.module('grrUi.semantic.semanticValueDirectiveTest');
 
-const clearCaches = goog.require('grrUi.semantic.semanticValueDirective.clearCaches');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clearCaches} = goog.require('grrUi.semantic.semanticValueDirective');
+const {semanticModule, semanticValueDirective} = goog.require('grrUi.semantic');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('semantic value directive', () => {
@@ -237,8 +237,7 @@ describe('semantic value directive', () => {
     element = $compile(template)($rootScope);
     $rootScope.$apply();
 
-    const cache =
-        grrUi.semantic.semanticValueDirective.singleValueTemplateCache;
+    const cache = semanticValueDirective.singleValueTemplateCache;
     expect(Object.keys(cache).length).toBe(2);
     expect(cache['SomeType']).toBeDefined();
     expect(cache['SomeType:AnotherType_theTestDirectiveOverride:' +

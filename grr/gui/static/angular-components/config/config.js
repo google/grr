@@ -3,11 +3,11 @@
 goog.provide('grrUi.config');
 goog.provide('grrUi.config.configModule');
 
-goog.require('grrUi.config.binariesListDirective.BinariesListDirective');
-goog.require('grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective');
-goog.require('grrUi.config.configViewDirective.ConfigViewDirective');
+goog.require('grrUi.config.binariesListDirective');  // USE: BinariesListDirective
+goog.require('grrUi.config.configBinariesViewDirective');  // USE: ConfigBinariesViewDirective
+goog.require('grrUi.config.configViewDirective');  // USE: ConfigViewDirective
 
-goog.require('grrUi.core.coreModule');
+goog.require('grrUi.core');  // USE: coreModule
 
 
 /**

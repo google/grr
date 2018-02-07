@@ -70,7 +70,7 @@ class HuntNotDeletableError(Error):
 
 
 class ApiHuntId(rdfvalue.RDFString):
-  """Class encapsulating client ids."""
+  """Class encapsulating hunt ids."""
 
   def __init__(self, initializer=None, age=None):
     super(ApiHuntId, self).__init__(initializer=initializer, age=age)

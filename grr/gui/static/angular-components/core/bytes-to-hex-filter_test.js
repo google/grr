@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.bytesToHexFilterTest');
 
-const BytesToHexFilter = goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {BytesToHexFilter} = goog.require('grrUi.core.bytesToHexFilter');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grrBytesToHex filter', () => {

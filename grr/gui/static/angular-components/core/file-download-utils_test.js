@@ -2,13 +2,10 @@
 
 goog.module('grrUi.core.fileDownloadUtilsTest');
 
-const fileDownloadUtilsGetPathSpecFromValue = goog.require('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
-const fileDownloadUtilsMakeValueDownloadable = goog.require('grrUi.core.fileDownloadUtils.makeValueDownloadable');
-const fileDownloadUtilsPathSpecToAff4Path = goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');
+const {getPathSpecFromValue, makeValueDownloadable, pathSpecToAff4Path} = goog.require('grrUi.core.fileDownloadUtils');
 
 
 describe('statEntryDirective.buildAff4Path', () => {
-  const pathSpecToAff4Path = fileDownloadUtilsPathSpecToAff4Path;
 
   it('converts os+tsk pathspec correctly', () => {
     const pathspec = {
@@ -104,7 +101,6 @@ describe('fileDownloadUtils', () => {
   });
 
   describe('getPathSpecFromValue', () => {
-    const getPathSpecFromValue = fileDownloadUtilsGetPathSpecFromValue;
 
     it('returns null if argument is null or undefined', () => {
       expect(getPathSpecFromValue(null)).toBe(null);
@@ -203,8 +199,6 @@ describe('fileDownloadUtils', () => {
 
 
   describe('makeValueDownloadable', () => {
-    const makeValueDownloadable = fileDownloadUtilsMakeValueDownloadable;
-
     const downloadUrl = 'download/foo/bar';
     const downloadParams = {
       foo: 'bar',

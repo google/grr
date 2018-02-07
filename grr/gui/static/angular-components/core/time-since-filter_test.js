@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.timeSinceFilterTest');
 
-const TimeSinceFilter = goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
-const clientModule = goog.require('grrUi.client.clientModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {TimeSinceFilter} = goog.require('grrUi.core.timeSinceFilter');
+const {clientModule} = goog.require('grrUi.client');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grrTimeSince filter', () => {

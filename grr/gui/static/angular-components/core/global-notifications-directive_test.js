@@ -2,10 +2,9 @@
 
 goog.module('grrUi.core.globalNotificationsDirectiveTest');
 
-const GlobalNotificationsDirective = goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {GlobalNotificationsDirective} = goog.require('grrUi.core.globalNotificationsDirective');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('Global notifications directive', () => {

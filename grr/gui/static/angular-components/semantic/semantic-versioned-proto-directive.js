@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.semanticVersionedProtoDirective');
 goog.provide('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
+goog.require('grrUi.semantic.semanticProtoDirective');  // USE: buildNonUnionItems
 
 goog.scope(function() {
 

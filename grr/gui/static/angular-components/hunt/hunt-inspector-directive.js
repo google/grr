@@ -18,7 +18,7 @@ const HuntInspectorController = function($scope) {
   this.scope_ = $scope;
 
   /** @type {string} */
-  this.shownHuntUrn;
+  this.shownHuntId;
 
   /** @type {string} */
   this.activeTab = '';
@@ -26,14 +26,14 @@ const HuntInspectorController = function($scope) {
   /** type {Object<string, boolean>} */
   this.tabsShown = {};
 
-  this.scope_.$watchGroup(['huntUrn', 'activeTab'], this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watchGroup(['huntId', 'activeTab'], this.onDirectiveArgumentsChange_.bind(this));
   this.scope_.$watch('controller.activeTab', this.onTabChange_.bind(this));
 };
 
 
 
 /**
- * Handles huntUrn and activeTab scope attribute changes.
+ * Handles huntId and activeTab scope attribute changes.
  *
  * @private
  */
@@ -46,12 +46,12 @@ HuntInspectorController.prototype.onDirectiveArgumentsChange_ = function() {
   // triggered. This ensures that new hunt information gets properly
   // rerendered.
   this.scope_.$evalAsync(function() {
-    this.shownHuntUrn = this.scope_['huntUrn'];
+    this.shownHuntId = this.scope_['huntId'];
   }.bind(this));
 };
 
 /**
- * Handles huntUrn scope attribute changes.
+ * Handles huntId scope attribute changes.
  *
  * @param {string} newValue
  * @param {string} oldValue
@@ -73,7 +73,7 @@ HuntInspectorController.prototype.onTabChange_ = function(newValue, oldValue) {
 grrUi.hunt.huntInspectorDirective.HuntInspectorDirective = function() {
   return {
     scope: {
-      huntUrn: '=',
+      huntId: '=',
       activeTab: '=?'
     },
     restrict: 'E',

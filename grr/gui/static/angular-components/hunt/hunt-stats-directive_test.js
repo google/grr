@@ -2,8 +2,8 @@
 
 goog.module('grrUi.hunt.huntStatsDirectiveTest');
 
-const huntModule = goog.require('grrUi.hunt.huntModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {huntModule} = goog.require('grrUi.hunt');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('hunt stats directive', () => {
@@ -24,10 +24,10 @@ describe('hunt stats directive', () => {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  const render = (huntUrn) => {
-    $rootScope.huntUrn = huntUrn;
+  const render = (huntId) => {
+    $rootScope.huntId = huntId;
 
-    const template = '<grr-hunt-stats hunt-urn="huntUrn" />';
+    const template = '<grr-hunt-stats hunt-id="huntId" />';
     const element = $compile(template)($rootScope);
     $rootScope.$apply();
 

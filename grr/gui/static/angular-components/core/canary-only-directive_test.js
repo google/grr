@@ -2,8 +2,8 @@
 
 goog.module('grrUi.core.canaryOnlyDirectiveTest');
 
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('The canaryOnlyDirective package', () => {

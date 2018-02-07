@@ -3,19 +3,18 @@
 goog.provide('grrUi.artifact');
 goog.provide('grrUi.artifact.artifactModule');
 
+goog.require('grrUi.artifact.artifactDescriptorDirective');  // USE: ArtifactDescriptorDirective
+goog.require('grrUi.artifact.artifactDescriptorsService');  // USE: ArtifactDescriptorsService
+goog.require('grrUi.artifact.artifactDialogService');  // USE: ArtifactDialogService
+goog.require('grrUi.artifact.artifactManagerViewDirective');  // USE: ArtifactManagerViewDirective
+goog.require('grrUi.artifact.artifactNameDirective');  // USE: ArtifactNameDirective
+goog.require('grrUi.artifact.artifactsListFormDirective');  // USE: ArtifactsListFormDirective
+goog.require('grrUi.artifact.deleteArtifactsDialogDirective');  // USE: DeleteArtifactsDialogDirective
+goog.require('grrUi.artifact.uploadArtifactDialogDirective');  // USE: UploadArtifactDialogDirective
 
-goog.require('grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective');
-goog.require('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
-goog.require('grrUi.artifact.artifactDialogService.ArtifactDialogService');
-goog.require('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective');
-goog.require('grrUi.artifact.artifactNameDirective.ArtifactNameDirective');
-goog.require('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective');
-goog.require('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
-goog.require('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
-
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.forms.formsModule');
-goog.require('grrUi.semantic.semanticModule');
+goog.require('grrUi.core');      // USE: coreModule
+goog.require('grrUi.forms');     // USE: formsModule
+goog.require('grrUi.semantic');  // USE: semanticModule
 
 
 /**
@@ -52,11 +51,11 @@ grrUi.artifact.artifactModule.directive(
         .directive_name,
     grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective);
 
-grrUi.core.coreModule.service(
+grrUi.artifact.artifactModule.service(
     grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService
         .service_name,
     grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService);
-grrUi.core.coreModule.service(
+grrUi.artifact.artifactModule.service(
     grrUi.artifact.artifactDialogService.ArtifactDialogService.service_name,
     grrUi.artifact.artifactDialogService.ArtifactDialogService);
 

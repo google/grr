@@ -1,14 +1,14 @@
 goog.provide('grrUi.acl');
 goog.provide('grrUi.acl.aclModule');
-goog.require('grrUi.acl.aclDialogService.AclDialogService');
-goog.require('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
-goog.require('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
-goog.require('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
-goog.require('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
-goog.require('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
-goog.require('grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective');
-goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
-goog.require('grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT');
+goog.require('grrUi.acl.aclDialogService');       // USE: AclDialogService
+goog.require('grrUi.acl.approvalInfoDirective');  // USE: ApprovalInfoDirective
+goog.require('grrUi.acl.clientApprovalViewDirective');  // USE: ClientApprovalViewDirective
+goog.require('grrUi.acl.cronJobApprovalViewDirective');  // USE: CronJobApprovalViewDirective
+goog.require('grrUi.acl.huntApprovalViewDirective');  // USE: HuntApprovalViewDirective
+goog.require('grrUi.acl.huntFromFlowCopyReviewDirective');  // USE: HuntFromFlowCopyReviewDirective
+goog.require('grrUi.acl.huntFromHuntCopyReviewDirective');  // USE: HuntFromHuntCopyReviewDirective
+goog.require('grrUi.acl.requestApprovalDialogDirective');  // USE: RequestApprovalDialogDirective
+goog.require('grrUi.core.apiService');  // USE: UNAUTHORIZED_API_RESPONSE_EVENT
 
 /**
  * Angular module for acl GRR UI components.

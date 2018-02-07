@@ -2,14 +2,12 @@
 
 goog.module('grrUi.core.loadingIndicatorDirectiveTest');
 
-const LoadingIndicatorDirectiveLoadingIndicatorDirective = goog.require('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDirective');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('loading indicator directive', () => {
-  const LoadingIndicatorDirective =
-      LoadingIndicatorDirectiveLoadingIndicatorDirective;
 
   const LOADING_STARTED_EVENT_NAME =
       LoadingIndicatorDirective.loading_started_event_name;

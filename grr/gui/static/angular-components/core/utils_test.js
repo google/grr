@@ -2,14 +2,11 @@
 
 goog.module('grrUi.core.utilsTest');
 
-const utilsCamelCaseToDashDelimited = goog.require('grrUi.core.utils.camelCaseToDashDelimited');
-const utilsGetLastPathComponent = goog.require('grrUi.core.utils.getLastPathComponent');
-const utilsStringToList = goog.require('grrUi.core.utils.stringToList');
+const {camelCaseToDashDelimited, getLastPathComponent, stringToList} = goog.require('grrUi.core.utils');
 
 
 describe('core utils', () => {
   describe('camelCaseToDashDelimited', () => {
-    const camelCaseToDashDelimited = utilsCamelCaseToDashDelimited;
 
     it('returns a dash delimited string on camel case input', () => {
       const result = camelCaseToDashDelimited('someTestInput');
@@ -42,7 +39,6 @@ describe('core utils', () => {
 
 
   describe('stringToList', () => {
-    const stringToList = utilsStringToList;
 
     it('returns empty list for empty string', () => {
       const result = stringToList('');
@@ -61,7 +57,6 @@ describe('core utils', () => {
   });
 
   describe('getLastPathComponent', () => {
-    const getLastPathComponent = utilsGetLastPathComponent;
 
     it('returns empty string for an empty string', () => {
       expect(getLastPathComponent('')).toBe('');

@@ -2,7 +2,7 @@
 
 goog.module('grrUi.client.virtualFileSystem.fileContextDirectiveTest');
 
-const FileContextController = goog.require('grrUi.client.virtualFileSystem.fileContextDirective.FileContextController');
+const {FileContextController} = goog.require('grrUi.client.virtualFileSystem.fileContextDirective');
 
 
 describe('file context directive', () => {

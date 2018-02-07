@@ -3,13 +3,13 @@
 goog.provide('grrUi.docs');
 goog.provide('grrUi.docs.docsModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective');
-goog.require('grrUi.docs.apiDocsDirective.ApiDocsDirective');
-goog.require('grrUi.docs.apiHelperCurlService.ApiHelperCurlService');
-goog.require('grrUi.docs.apiHelperService.ApiHelperService');
-goog.require('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective');
-goog.require('grrUi.docs.apiRouteDirective.ApiRouteDirective');
+goog.require('grrUi.core');                          // USE: coreModule
+goog.require('grrUi.docs.apiDescriptionDirective');  // USE: ApiDescriptionDirective
+goog.require('grrUi.docs.apiDocsDirective');         // USE: ApiDocsDirective
+goog.require('grrUi.docs.apiHelperCurlService');   // USE: ApiHelperCurlService
+goog.require('grrUi.docs.apiHelperService');       // USE: ApiHelperService
+goog.require('grrUi.docs.apiQuerySpecDirective');  // USE: ApiQuerySpecDirective
+goog.require('grrUi.docs.apiRouteDirective');      // USE: ApiRouteDirective
 
 
 /**
@@ -31,10 +31,10 @@ grrUi.docs.docsModule.directive(
     grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective);
 
 
-grrUi.core.coreModule.service(
+grrUi.docs.docsModule.service(
     grrUi.docs.apiHelperService.ApiHelperService.service_name,
     grrUi.docs.apiHelperService.ApiHelperService);
-grrUi.core.coreModule.service(
+grrUi.docs.docsModule.service(
     grrUi.docs.apiHelperCurlService.ApiHelperCurlService.service_name,
     grrUi.docs.apiHelperCurlService.ApiHelperCurlService);
 

@@ -6,8 +6,8 @@
 
 goog.provide('grrUi.acl.aclDialogService');
 goog.provide('grrUi.acl.aclDialogService.AclDialogService');
-goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.acl.requestApprovalDialogDirective');  // USE: RequestApprovalDialogDirective
+goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
 
 goog.scope(function() {
 

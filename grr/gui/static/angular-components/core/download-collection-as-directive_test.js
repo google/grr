@@ -2,9 +2,8 @@
 
 goog.module('grrUi.core.downloadCollectionAsDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('"download collection as" panel', () => {

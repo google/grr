@@ -2,11 +2,10 @@
 
 goog.module('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirectiveTest');
 
-const DOWNLOAD_EVERYTHING_REENABLE_DELAY = goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.DOWNLOAD_EVERYTHING_REENABLE_DELAY');
-const ServerErrorButtonDirective = goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const testsModule = goog.require('grrUi.tests.testsModule');
-const virtualFileSystemModule = goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
+const {DOWNLOAD_EVERYTHING_REENABLE_DELAY} = goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem');
 
 
 describe('"download vfs archive" button', () => {

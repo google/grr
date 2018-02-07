@@ -145,6 +145,7 @@
         "reason": "really important reason!",
         "subject": {
           "allowOverruns": false,
+          "cronJobId": "CronJob_123456",
           "description": "",
           "flowName": "",
           "flowRunnerArgs": {},
@@ -1180,6 +1181,7 @@
         "reason": "foo",
         "subject": {
           "allowOverruns": false,
+          "cronJobId": "CronJob_123456",
           "description": "",
           "flowName": "",
           "flowRunnerArgs": {},
@@ -1208,6 +1210,7 @@
         "reason": "bar",
         "subject": {
           "allowOverruns": false,
+          "cronJobId": "CronJob_567890",
           "description": "",
           "flowName": "",
           "flowRunnerArgs": {},
@@ -5181,6 +5184,7 @@
         "reason": "foo",
         "subject": {
           "allowOverruns": false,
+          "cronJobId": "CronJob_123456",
           "description": "",
           "flowName": "",
           "flowRunnerArgs": {},
@@ -5843,6 +5847,7 @@
         "items": [
           {
             "allowOverruns": false,
+            "cronJobId": "GRRVersionBreakDown",
             "description": "foo",
             "flowArgs": {
               "@type": "type.googleapis.com/EmptyMessage"
@@ -5859,6 +5864,7 @@
           },
           {
             "allowOverruns": false,
+            "cronJobId": "LastAccessStats",
             "description": "",
             "flowArgs": {
               "@type": "type.googleapis.com/EmptyMessage"
@@ -5876,6 +5882,7 @@
           },
           {
             "allowOverruns": false,
+            "cronJobId": "OSBreakDown",
             "description": "bar",
             "flowArgs": {
               "@type": "type.googleapis.com/EmptyMessage"
@@ -7011,6 +7018,7 @@
       },
       "response": {
         "allowOverruns": false,
+        "cronJobId": "OSBreakDown",
         "description": "",
         "flowArgs": {
           "@type": "type.googleapis.com/EmptyMessage"
@@ -7035,6 +7043,7 @@
       },
       "response": {
         "allowOverruns": false,
+        "cronJobId": "GRRVersionBreakDown",
         "description": "",
         "flowArgs": {
           "@type": "type.googleapis.com/EmptyMessage"

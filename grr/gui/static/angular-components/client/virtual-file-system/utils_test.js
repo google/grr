@@ -2,13 +2,11 @@
 
 goog.module('grrUi.client.virtualFileSystem.utilsTest');
 
-const utilsEnsurePathIsFolder = goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
-const utilsGetFolderFromPath = goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
 
 describe('client virtual file system utils', () => {
   describe('ensurePathIsFolder()', () => {
-    const ensurePathIsFolder = utilsEnsurePathIsFolder;
 
     it('does nothing if path ends with "/"', () => {
       expect(ensurePathIsFolder('/')).toBe('/');
@@ -22,7 +20,6 @@ describe('client virtual file system utils', () => {
   });
 
   describe('getFolderFromPath()', () => {
-    const getFolderFromPath = utilsGetFolderFromPath;
 
     it('does nothing for falsey values', () => {
       expect(getFolderFromPath(null)).toBe('');

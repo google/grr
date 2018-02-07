@@ -2,8 +2,8 @@
 
 goog.module('grrUi.outputPlugins.outputPluginNoteBodyDirectiveTest');
 
-const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('output plugin note directive', () => {

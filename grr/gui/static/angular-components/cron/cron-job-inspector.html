@@ -1,17 +1,17 @@
-<div class="padded" grr-force-refresh refresh-trigger="cronJobUrn">
+<div class="padded" grr-force-refresh refresh-trigger="cronJobId">
 
-  <div ng-if="!cronJobUrn">
+  <div ng-if="!cronJobId">
     Please select a cron job to see the details.
   </div>
 
-  <uib-tabset ng-if="cronJobUrn">
+  <uib-tabset ng-if="cronJobId">
     <uib-tab heading="Details" id="Details">
-      <grr-cron-job-overview cron-job-urn="cronJobUrn">
+      <grr-cron-job-overview cron-job-id="cronJobId">
       </grr-cron-job-overview>
     </uib-tab>
 
     <uib-tab heading="Flows" id="Flows">
-      <grr-cron-job-flows-list cron-job-urn="cronJobUrn">
+      <grr-cron-job-flows-list cron-job-id="cronJobId">
       </grr-cron-job-flows-list>
     </uib-tab>
   </uib-tabset>

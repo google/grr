@@ -2,14 +2,13 @@
 
 goog.module('grrUi.semantic.encryptionKeyDirectiveTest');
 
-const encryptionKeyDirectiveStringifyEncryptionKey = goog.require('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {stringifyEncryptionKey} = goog.require('grrUi.semantic.encryptionKeyDirective');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('encryption key directive', () => {
   describe('stringifyEncryptionKey()', () => {
-    const stringifyEncryptionKey = encryptionKeyDirectiveStringifyEncryptionKey;
 
     it('converts base64 encoded string of zeroes to a hex-string', () => {
       expect(stringifyEncryptionKey('AAAAAA==')).toBe('00000000');

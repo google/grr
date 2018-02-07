@@ -1,12 +1,12 @@
 goog.provide('grrUi.cron.newCronJobWizard');
 goog.provide('grrUi.cron.newCronJobWizard.newCronJobWizardModule');
 
-goog.require('grrUi.core.coreModule');
+goog.require('grrUi.core');  // USE: coreModule
 
-goog.require('grrUi.cron.newCronJobWizard.configureSchedulePageDirective.ConfigureSchedulePageDirective');
-goog.require('grrUi.cron.newCronJobWizard.formDirective.FormDirective');
-goog.require('grrUi.cron.newCronJobWizard.reviewPageDirective.ReviewPageDirective');
-goog.require('grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective');
+goog.require('grrUi.cron.newCronJobWizard.configureSchedulePageDirective');  // USE: ConfigureSchedulePageDirective
+goog.require('grrUi.cron.newCronJobWizard.formDirective');  // USE: FormDirective
+goog.require('grrUi.cron.newCronJobWizard.reviewPageDirective');  // USE: ReviewPageDirective
+goog.require('grrUi.cron.newCronJobWizard.statusPageDirective');  // USE: StatusPageDirective
 
 
 /**

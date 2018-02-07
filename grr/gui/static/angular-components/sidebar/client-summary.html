@@ -4,7 +4,7 @@
       {$ client.value.os_info.value.fqdn.value $}
     </span>
     <span ng-if="!client.value.os_info.value.fqdn">
-      {$ client.value.urn.value $}
+      {$ client.value.client_id.value $}
     </span>
   </div>
   <div class="approval-reason" ng-if="controller.approvalReason">

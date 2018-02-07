@@ -2,8 +2,8 @@
 
 goog.module('grrUi.core.forceRefreshDirectiveTest');
 
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grr-force-refresh directive', () => {

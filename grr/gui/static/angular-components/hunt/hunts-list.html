@@ -9,15 +9,15 @@
       <div class="btn-group">
         <button class="btn btn-default" name="RunHunt"
                 title="Run Hunt"
-                ng-disabled="controller.huntsByUrn[selectedHuntUrn].value.state.value != 'PAUSED' &&
-                             controller.huntsByUrn[selectedHuntUrn].value.state.value != 'STOPPED'"
+                ng-disabled="controller.huntsById[selectedHuntId].value.state.value != 'PAUSED' &&
+                             controller.huntsById[selectedHuntId].value.state.value != 'STOPPED'"
                 ng-click="controller.runHunt()">
           <img src="/static/images/play_button.png" class="toolbar-icon" />
         </button>
 
         <button class="btn btn-default" name="StopHunt"
                 title="Stop Hunt"
-                ng-disabled="controller.huntsByUrn[selectedHuntUrn].value.state.value != 'STARTED'"
+                ng-disabled="controller.huntsById[selectedHuntId].value.state.value != 'STARTED'"
                 ng-click="controller.stopHunt()">
           <img src="/static/images/stop_button.png" class="toolbar-icon" />
         </button>
@@ -26,23 +26,23 @@
       <div class="btn-group">
         <button class="btn btn-default" name="ModifyHunt"
                 title="Modify Hunt"
-                ng-disabled="controller.huntsByUrn[selectedHuntUrn].value.state.value != 'PAUSED' &&
-                             controller.huntsByUrn[selectedHuntUrn].value.state.value != 'STOPPED'"
+                ng-disabled="controller.huntsById[selectedHuntId].value.state.value != 'PAUSED' &&
+                             controller.huntsById[selectedHuntId].value.state.value != 'STOPPED'"
                 ng-click="controller.modifyHunt()">
           <img src="/static/images/modify.png" class="toolbar-icon" />
         </button>
 
         <button class="btn btn-default" name="CopyHunt"
                 title="Copy Hunt"
-                ng-disabled="!selectedHuntUrn"
+                ng-disabled="!selectedHuntId"
                 ng-click="controller.copyHunt()">
           <img src="/static/images/copy.png" class="toolbar-icon" />
         </button>
 
         <button class="btn btn-default" name="DeleteHunt"
                 title="Delete Hunt"
-                ng-disabled="controller.huntsByUrn[selectedHuntUrn].value.state.value != 'PAUSED' &&
-                             controller.huntsByUrn[selectedHuntUrn].value.state.value != 'STOPPED'"
+                ng-disabled="controller.huntsById[selectedHuntId].value.state.value != 'PAUSED' &&
+                             controller.huntsById[selectedHuntId].value.state.value != 'STOPPED'"
                 ng-click="controller.deleteHunt()">
           <img src="/static/images/editdelete.png" class="toolbar-icon" />
         </button>
@@ -92,7 +92,7 @@
           grr-api-items-provider url="controller.huntsUrl"
           transform-items="controller.transformItems(items)" trigger-update="controller.triggerUpdate"
           ng-click="controller.selectItem(item)"
-          ng-class="{'row-selected': item.value.urn.value == selectedHuntUrn, 'warning': item.value.is_robot.value}"
+          ng-class="{'row-selected': item.value.hunt_id.value == selectedHuntId, 'warning': item.value.is_robot.value}"
           ng-show="controller.showRobotHunts || !item.value.is_robot.value">
 
         <td><grr-hunt-status-icon hunt="::item" /></td>

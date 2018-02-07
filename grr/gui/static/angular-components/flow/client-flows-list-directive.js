@@ -96,13 +96,13 @@ ClientFlowsListController.prototype.cancelButtonClicked = function() {
  * @export
  */
 ClientFlowsListController.prototype.createHuntFromFlow = function() {
-  var huntUrn;
+  var huntId;
 
   var modalScope = this.scope_.$new();
   modalScope['clientId'] = this.scope_['clientId'];
   modalScope['flowId'] = this.scope_['selectedFlowId'];
-  modalScope['resolve'] = function(newHuntUrn) {
-    huntUrn = newHuntUrn;
+  modalScope['resolve'] = function(newHuntId) {
+    huntId = newHuntId;
     modalInstance.close();
   }.bind(this);
   modalScope['reject'] = function() {
@@ -114,14 +114,13 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
   });
 
   var modalInstance = this.uibModal_.open({
-    template: '<grr-new-hunt-wizard-create-from-flow-form on-resolve="resolve(huntUrn)" ' +
+    template: '<grr-new-hunt-wizard-create-from-flow-form on-resolve="resolve(huntId)" ' +
         'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
   });
   modalInstance.result.then(function resolve() {
-    var huntId = huntUrn.split('/')[2];
     this.grrRoutingService_.go('hunts', {huntId: huntId});
   }.bind(this));
 };

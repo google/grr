@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
 goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective.buildItems');
+goog.require('grrUi.semantic.semanticProtoDirective');  // USE: buildItems
 
 goog.scope(function() {
 

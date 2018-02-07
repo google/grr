@@ -2,13 +2,11 @@
 
 goog.module('grrUi.client.virtualFileSystem.fileViewDirectiveTest');
 
-const fileViewDirectiveGetFileId = goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-const fileViewDirectiveGetFilePathFromId = goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
+const {getFileId, getFilePathFromId} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
 
 
 describe('file view directive', () => {
   describe('getFileId()', () => {
-    const getFileId = fileViewDirectiveGetFileId;
 
     it('returns the file id for any given path', () => {
       expect(getFileId('some/regular/path')).toEqual('_some-regular-path');
@@ -28,7 +26,6 @@ describe('file view directive', () => {
   });
 
   describe('getFilePathFromId()', () => {
-    const getFilePathFromId = fileViewDirectiveGetFilePathFromId;
 
     it('returns the path for any given id', () => {
       expect(getFilePathFromId('_some-regular-path')).toEqual('some/regular/path');

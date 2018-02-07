@@ -1,8 +1,14 @@
 goog.provide('grrUi.routing.aff4UrnToUrl');
 goog.provide('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
-goog.require('grrUi.core.fileDownloadUtils.vfsRoots');
-goog.require('grrUi.core.utils.CLIENT_ID_RE');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.core.fileDownloadUtils');  // USE: vfsRoots
+goog.require('grrUi.core.utils');  // USE: CLIENT_ID_RE, stripAff4Prefix
+
+
+// TODO(hanuszczak): Delete suppression once ES6 module migration is complete.
+/**
+ * @fileoverview
+ * @suppress {missingRequire}
+ */
 
 
 /**

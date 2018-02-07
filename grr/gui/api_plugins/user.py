@@ -778,7 +778,7 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectUrn(self):
-    return aff4.ROOT_URN.Add("cron").Add(self.cron_job_id)
+    return self.cron_job_id.ToURN()
 
   def BuildApprovalObjUrn(self):
     return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(
@@ -788,6 +788,7 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
 class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiCreateCronJobApprovalArgs
   rdf_deps = [
+      api_cron.ApiCronJobId,
       ApiCronJobApproval,
   ]
 
@@ -804,6 +805,9 @@ class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
 
 class ApiGetCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiGetCronJobApprovalArgs
+  rdf_deps = [
+      api_cron.ApiCronJobId,
+  ]
 
 
 class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
@@ -817,6 +821,9 @@ class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
 
 class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiGrantCronJobApprovalArgs
+  rdf_deps = [
+      api_cron.ApiCronJobId,
+  ]
 
 
 class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):

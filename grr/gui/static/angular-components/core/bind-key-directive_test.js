@@ -2,9 +2,8 @@
 
 goog.module('grrUi.core.bindKeyDirectiveTest');
 
-const browserTriggerKeyDown = goog.require('grrUi.tests.browserTriggerKeyDown');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerKeyDown, testsModule} = goog.require('grrUi.tests');
+const {coreModule} = goog.require('grrUi.core');
 
 
 describe('bind key directive', () => {

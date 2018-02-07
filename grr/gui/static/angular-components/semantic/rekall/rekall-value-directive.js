@@ -3,7 +3,7 @@
 goog.provide('grrUi.semantic.rekall.rekallValueDirective');
 goog.provide('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
 
-goog.require('grrUi.core.utils.camelCaseToDashDelimited');
+goog.require('grrUi.core.utils');  // USE: camelCaseToDashDelimited
 
 goog.scope(function() {
 

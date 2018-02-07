@@ -489,7 +489,7 @@ class GRRBaseTest(unittest.TestCase):
 
     data_store.REL_DB.WriteClientMetadata(
         client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClient(client_id, client)
+    data_store.REL_DB.WriteClient(client)
 
     client_index.ClientIndex().AddClient(client_id, client)
 

@@ -143,6 +143,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
   def testAlertEmailIsSentWhenClientKilled(self):
     """Test that client killed messages are handled correctly."""
     client_id = self.SetupClient(0)
+    self.SetupTestClientObject(0)
+
     self.email_messages = []
 
     def SendEmail(address, sender, title, message, **_):
@@ -180,8 +182,14 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(flow_obj.context.state, rdf_flows.FlowContext.State.ERROR)
 
     # Make sure client object is updated with the last crash.
+
+    # AFF4.
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+    self.CheckCrash(crash, flow_obj.session_id, client_id)
+
+    # Relational db.
+    crash = data_store.REL_DB.ReadClientCrashInfo(client_id.Basename())
     self.CheckCrash(crash, flow_obj.session_id, client_id)
 
     # Make sure crashes collections are created and written

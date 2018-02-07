@@ -3,9 +3,8 @@
 goog.provide('grrUi.user.userDesktopNotificationsDirective');
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
 
-goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
-goog.require('grrUi.user.userNotificationItemDirective.annotateApiNotification');
-goog.require('grrUi.user.userNotificationItemDirective.openReference');
+goog.require('grrUi.user.userNotificationButtonDirective');  // USE: UserNotificationButtonDirective
+goog.require('grrUi.user.userNotificationItemDirective');  // USE: annotateApiNotification, openReference
 
 
 goog.scope(function() {

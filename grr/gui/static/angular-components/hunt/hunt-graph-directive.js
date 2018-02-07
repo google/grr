@@ -26,7 +26,7 @@ const HuntGraphController = function($scope, $element, grrApiService) {
     this.grrApiService_ = grrApiService;
 
     /** @type {string} */
-    this.scope_.huntUrn;
+    this.scope_.huntId;
 
     /** @export {boolean} */
     this.inProgress = false;
@@ -43,32 +43,31 @@ const HuntGraphController = function($scope, $element, grrApiService) {
     /** @export {number} */
     this.maxSampleSize = 1000;
 
-    this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
+    this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
 
 
 
 /**
- * Handles huntUrn attribute changes.
+ * Handles huntId attribute changes.
  *
  * @private
  */
-HuntGraphController.prototype.onHuntUrnChange_ = function() {
+HuntGraphController.prototype.onHuntIdChange_ = function() {
     this.hunt = null;
     this.huntSummary = null;
 
-    if (angular.isDefined(this.scope_.huntUrn)) {
-        var huntUrnComponents = this.scope_.huntUrn.split('/');
-        this.huntId = huntUrnComponents[huntUrnComponents.length - 1];
-        this.inProgress = true;
+    if (angular.isDefined(this.scope_.huntId)) {
+      this.huntId = this.scope_['huntId'];
+      this.inProgress = true;
 
-        var url = 'hunts/' + this.huntId + '/client-completion-stats';
-        var params = {
-            'strip_type_info': 1,
-            'size': this.maxSampleSize
-        };
-        this.grrApiService_.get(url, params).then(
-            this.onHuntGraphFetched_.bind(this));
+      var url = 'hunts/' + this.huntId + '/client-completion-stats';
+      var params = {
+        'strip_type_info': 1,
+        'size': this.maxSampleSize
+      };
+      this.grrApiService_.get(url, params).then(
+          this.onHuntGraphFetched_.bind(this));
     }
 };
 
@@ -150,7 +149,7 @@ HuntGraphController.prototype.drawGraph_ = function() {
 grrUi.hunt.huntGraphDirective.HuntGraphDirective = function() {
     return {
         scope: {
-            huntUrn: '='
+            huntId: '='
         },
         restrict: 'E',
         templateUrl: '/static/angular-components/hunt/hunt-graph.html',

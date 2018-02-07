@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.sidebar.navigatorDirective');
 goog.provide('grrUi.sidebar.navigatorDirective.NavigatorDirective');
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 
 goog.scope(function() {

@@ -28,7 +28,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
-    self.WaitUntil(self.IsTextPresent, "Hunt URN")
+    self.WaitUntil(self.IsTextPresent, "Hunt ID")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RunHunt]:not([disabled])")
@@ -50,7 +50,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
-    self.WaitUntil(self.IsTextPresent, "Hunt URN")
+    self.WaitUntil(self.IsTextPresent, "Hunt ID")
 
     self.WaitUntil(self.IsElementPresent, "css=button[name=RunHunt][disabled]")
     self.WaitUntil(self.IsElementPresent,

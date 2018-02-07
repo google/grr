@@ -5,47 +5,46 @@
 goog.provide('grrUi.semantic');
 goog.provide('grrUi.semantic.semanticModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.core.semanticRegistryService.SemanticRegistryService');
+goog.require('grrUi.core');                          // USE: coreModule
+goog.require('grrUi.core.semanticRegistryService');  // USE: SemanticRegistryService
 
-goog.require('grrUi.routing.routingModule');
+goog.require('grrUi.routing');  // USE: routingModule
 
-goog.require('grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective');
-goog.require('grrUi.semantic.byteSizeDirective.ByteSizeDirective');
-goog.require('grrUi.semantic.bytesDirective.BytesDirective');
-goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
-goog.require('grrUi.semantic.dataObjectDirective.DataObjectDirective');
-goog.require('grrUi.semantic.dictDirective.DictDirective');
-goog.require('grrUi.semantic.durationDirective.DurationDirective');
-goog.require('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
-goog.require('grrUi.semantic.flowIdDirective.FlowIdDirective');
-goog.require('grrUi.semantic.hashDigestDirective.HashDigestDirective');
-goog.require('grrUi.semantic.hashListDirective.HashListDirective');
-goog.require('grrUi.semantic.huntIdDirective.HuntIdDirective');
-goog.require('grrUi.semantic.jsonDirective.JsonDirective');
-goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
-goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
-goog.require('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
-goog.require('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
-goog.require('grrUi.semantic.primitiveDirective.PrimitiveDirective');
-goog.require('grrUi.semantic.pseudo.pseudoModule');
+goog.require('grrUi.semantic.apiHuntResultDirective');  // USE: ApiHuntResultDirective
+goog.require('grrUi.semantic.byteSizeDirective');    // USE: ByteSizeDirective
+goog.require('grrUi.semantic.bytesDirective');       // USE: BytesDirective
+goog.require('grrUi.semantic.clientUrnDirective');   // USE: ClientUrnDirective
+goog.require('grrUi.semantic.dataObjectDirective');  // USE: DataObjectDirective
+goog.require('grrUi.semantic.dictDirective');        // USE: DictDirective
+goog.require('grrUi.semantic.durationDirective');    // USE: DurationDirective
+goog.require('grrUi.semantic.encryptionKeyDirective');  // USE: EncryptionKeyDirective
+goog.require('grrUi.semantic.flowIdDirective');         // USE: FlowIdDirective
+goog.require('grrUi.semantic.hashDigestDirective');  // USE: HashDigestDirective
+goog.require('grrUi.semantic.hashListDirective');    // USE: HashListDirective
+goog.require('grrUi.semantic.huntIdDirective');      // USE: HuntIdDirective
+goog.require('grrUi.semantic.jsonDirective');        // USE: JsonDirective
+goog.require('grrUi.semantic.macAddressDirective');  // USE: MacAddressDirective
+goog.require('grrUi.semantic.networkAddressDirective');  // USE: NetworkAddressDirective
+goog.require('grrUi.semantic.objectLabelDirective');  // USE: ObjectLabelDirective
+goog.require('grrUi.semantic.objectLabelsListDirective');  // USE: ObjectLabelsListDirective
+goog.require('grrUi.semantic.primitiveDirective');  // USE: PrimitiveDirective
+goog.require('grrUi.semantic.pseudo');              // USE: pseudoModule
 
-goog.require('grrUi.semantic.rekall.rekallModule');
-goog.require('grrUi.semantic.rekallResponseDirective.RekallResponseDirective');
+goog.require('grrUi.semantic.rekall');                   // USE: rekallModule
+goog.require('grrUi.semantic.rekallResponseDirective');  // USE: RekallResponseDirective
 
-goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
-goog.require('grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective');
-goog.require('grrUi.semantic.semanticValueDirective.RegistryOverrideDirective');
-goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
-goog.require('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
-goog.require('grrUi.semantic.statEntryDirective.StatEntryDirective');
-goog.require('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective');
-goog.require('grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective');
-goog.require('grrUi.semantic.statModeDirective.StatModeDirective');
-goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
-goog.require('grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective');
-goog.require('grrUi.semantic.urnDirective.UrnDirective');
+goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective');  // USE: SemanticDiffAnnotatedProtoDirective
+goog.require('grrUi.semantic.semanticProtoDirective');  // USE: SemanticProtoDirective
+goog.require('grrUi.semantic.semanticProtosDiffDirective');  // USE: SemanticProtosDiffDirective
+goog.require('grrUi.semantic.semanticValueDirective');  // USE: RegistryOverrideDirective, SemanticValueDirective
+goog.require('grrUi.semantic.semanticVersionedProtoDirective');  // USE: SemanticVersionedProtoDirective
+goog.require('grrUi.semantic.statEntryDirective');  // USE: StatEntryDirective
+goog.require('grrUi.semantic.statExtFlagsLinuxDirective');  // USE: StatExtFlagsLinuxDirective
+goog.require('grrUi.semantic.statExtFlagsOsxDirective');  // USE: StatExtFlagsOsxDirective
+goog.require('grrUi.semantic.statModeDirective');   // USE: StatModeDirective
+goog.require('grrUi.semantic.timestampDirective');  // USE: TimestampDirective
+goog.require('grrUi.semantic.timestampSecondsDirective');  // USE: TimestampSecondsDirective
+goog.require('grrUi.semantic.urnDirective');               // USE: UrnDirective
 
 
 /**

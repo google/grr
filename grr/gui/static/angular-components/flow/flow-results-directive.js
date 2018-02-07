@@ -2,7 +2,6 @@
 
 goog.provide('grrUi.flow.flowResultsDirective');
 goog.provide('grrUi.flow.flowResultsDirective.FlowResultsDirective');
-goog.require('grrUi.core.downloadCollectionFilesDirective.valuePointsToFile');
 
 goog.scope(function() {
 

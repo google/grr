@@ -60,8 +60,8 @@
       <td>
         <input type="checkbox" class="client-checkbox"
                grr-disable-if-no-trait="modify_client_labels_action_enabled"
-               client_urn="{$ item.value.urn.value $}"
-               ng-model="controller.selectedClients[item.value.urn.value]"
+               client_id="{$ item.value.client_id.value $}"
+               ng-model="controller.selectedClients[item.value.client_id.value]"
                ng-change="controller.updateNumSelectedClients()"
                ng-click="$event.stopPropagation()"
                />
@@ -74,7 +74,7 @@
 
       <!-- Subject -->
       <td>
-        <span type="subject">{$ ::item.value.urn.value | grrBasename $}</span>
+        <span type="subject">{$ ::item.value.client_id.value $}</span>
       </td>
 
       <!-- Host -->

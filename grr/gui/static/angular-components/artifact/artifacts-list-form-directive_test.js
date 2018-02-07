@@ -2,9 +2,8 @@
 
 goog.module('grrUi.artifact.artifactsListFormDirectiveTest');
 
-const artifactModule = goog.require('grrUi.artifact.artifactModule');
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {artifactModule} = goog.require('grrUi.artifact');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('artifacts list form directive', () => {
@@ -21,7 +20,7 @@ describe('artifacts list form directive', () => {
   beforeEach(module(artifactModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrSemanticValue');
+  stubDirective('grrSemanticValue');
 
   beforeEach(inject(($injector) => {
     $q = $injector.get('$q');

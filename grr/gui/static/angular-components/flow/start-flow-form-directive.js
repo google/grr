@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.flow.startFlowFormDirective');
 goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 goog.scope(function() {
 

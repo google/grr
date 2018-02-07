@@ -10,21 +10,21 @@
     <div class="btn-group">
       <button title="Enable Cron Job" class="btn btn-default" name="EnableCronJob"
               ng-click="controller.enableCronJob()"
-              ng-disabled="!controller.selectedCronJobUrn ||
-                           controller.cronJobsByUrn[controller.selectedCronJobUrn].value.state.value == 'ENABLED'">
+              ng-disabled="!controller.selectedCronJobId ||
+                           controller.cronJobsById[controller.selectedCronJobId].value.state.value == 'ENABLED'">
         <img src="/static/images/play_button.png" class="toolbar_icon">
       </button>
 
       <button title="Force Run Cron Job" class="btn btn-default" name="ForceRunCronJob"
               ng-click="controller.forceRunCronJob()"
-              ng-disabled="!controller.selectedCronJobUrn">
+              ng-disabled="!controller.selectedCronJobId">
         <img src="/static/images/play_force_button.png" class="toolbar_icon">
       </button>
 
       <button title="Disable Cron Job" class="btn btn-default" name="DisableCronJob"
               ng-click="controller.disableCronJob()"
-              ng-disabled="!controller.selectedCronJobUrn ||
-                           controller.cronJobsByUrn[controller.selectedCronJobUrn].value.state.value == 'DISABLED'">
+              ng-disabled="!controller.selectedCronJobId ||
+                           controller.cronJobsById[controller.selectedCronJobId].value.state.value == 'DISABLED'">
         <img src="/static/images/pause_button.png" class="toolbar_icon">
       </button>
     </div>
@@ -32,7 +32,7 @@
     <div class="btn-group">
       <button title="Delete Cron Job" class="btn btn-default" name="DeleteCronJob"
               ng-click="controller.showDeleteCronJobConfirmation()"
-              ng-disabled="!controller.selectedCronJobUrn">
+              ng-disabled="!controller.selectedCronJobId">
         <img src="/static/images/editdelete.png" class="toolbar_icon">
       </button>
     </div>
@@ -61,11 +61,11 @@
         transform-items="controller.transformItems(items)"
         trigger-update="controller.triggerUpdate"
         ng-click="controller.selectItem(item)"
-        ng-class="{'row-selected': item.value.urn.value == controller.selectedCronJobUrn,
+        ng-class="{'row-selected': item.value.cron_job_id.value == controller.selectedCronJobId,
                   'danger': item.value.is_failing.value == true,
                   'warning': item.value.is_failing.value != true && item.isStuck == true}">
       <td><grr-cron-job-status-icon cron-job="::item" /></td>
-      <td>{$::item.shortUrn $}</td>
+      <td>{$ ::item.value.cron_job_id.value $}</td>
       <td><grr-semantic-value value="::item.value.last_run_time" /></td>
       <td><grr-semantic-value value="::item.value.periodicity" /></td>
       <td><grr-semantic-value value="::item.value.description" /></td>

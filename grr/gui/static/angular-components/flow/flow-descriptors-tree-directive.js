@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.flow.flowDescriptorsTreeDirective');
 goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 goog.scope(function() {
 

@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.apiItemsProviderDirectiveTest');
 
-const ApiItemsProviderController = goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderController');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {ApiItemsProviderController} = goog.require('grrUi.core.apiItemsProviderDirective');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('API items provider directive', () => {

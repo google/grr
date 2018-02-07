@@ -2,8 +2,8 @@
 
 goog.module('grrUi.outputPlugins.outputPluginNoteDirectiveTest');
 
-const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('output plugin note directive', () => {
@@ -16,8 +16,8 @@ describe('output plugin note directive', () => {
   beforeEach(module(outputPluginsModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrOutputPluginNoteBody');
-  grrUi.tests.stubDirective('grrOutputPluginLogs');
+  stubDirective('grrOutputPluginNoteBody');
+  stubDirective('grrOutputPluginLogs');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

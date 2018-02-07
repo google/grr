@@ -22,7 +22,7 @@ const HuntCrashesController = function($scope) {
   this.scope_ = $scope;
 
   /** @type {string} */
-  this.scope_.huntUrn;
+  this.scope_.huntId;
 
   /** @export {string} */
   this.crashesUrl;
@@ -31,20 +31,19 @@ const HuntCrashesController = function($scope) {
   this.autoRefreshInterval =
       grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS;
 
-  this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
+  this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
 
 
 
 /**
- * Handles huntUrn attribute changes.
+ * Handles huntId attribute changes.
  *
+ * @param {string} huntId
  * @private
  */
-HuntCrashesController.prototype.onHuntUrnChange_ = function() {
-  if (angular.isDefined(this.scope_.huntUrn)) {
-    var huntUrnComponents = this.scope_.huntUrn.split('/');
-    var huntId = huntUrnComponents[huntUrnComponents.length - 1];
+HuntCrashesController.prototype.onHuntIdChange_ = function(huntId) {
+  if (angular.isDefined(huntId)) {
     this.crashesUrl = 'hunts/' + huntId + '/crashes';
   }
 };
@@ -60,7 +59,7 @@ HuntCrashesController.prototype.onHuntUrnChange_ = function() {
 grrUi.hunt.huntCrashesDirective.HuntCrashesDirective = function() {
   return {
     scope: {
-      huntUrn: '='
+      huntId: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-crashes.html',

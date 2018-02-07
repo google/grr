@@ -2,9 +2,8 @@
 
 goog.module('grrUi.semantic.dataObjectDirectiveTest');
 
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('data object semantic directive', () => {

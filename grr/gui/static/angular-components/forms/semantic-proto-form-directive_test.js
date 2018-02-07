@@ -2,9 +2,8 @@
 
 goog.module('grrUi.forms.semanticProtoFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const formsModule = goog.require('grrUi.forms.formsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {formsModule, semanticValueFormDirective} = goog.require('grrUi.forms');
 
 
 describe('semantic proto form directive', () => {
@@ -12,7 +11,6 @@ describe('semantic proto form directive', () => {
   let $q;
   let $rootScope;
 
-  let grrSemanticFormDirectivesRegistryService;
   let grrReflectionServiceMock;
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
@@ -25,7 +23,7 @@ describe('semantic proto form directive', () => {
         'grrFormProtoUnion'
       ],
       (directiveName) => {
-        grrUi.tests.stubDirective(directiveName);
+        stubDirective(directiveName);
       });
 
   beforeEach(module(($provide) => {
@@ -37,14 +35,11 @@ describe('semantic proto form directive', () => {
   }));
 
   beforeEach(inject(($injector) => {
-    grrUi.forms.semanticValueFormDirective.clearCaches();
+    semanticValueFormDirective.clearCaches();
 
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
-
-    grrSemanticFormDirectivesRegistryService = $injector.get(
-        'grrSemanticFormDirectivesRegistryService');
   }));
 
   const renderTestTemplate = (value, metadata, hiddenFields) => {
@@ -156,7 +151,7 @@ describe('semantic proto form directive', () => {
           value: '42',
         },
       };
-      const element = renderTestTemplate(fooValue);
+      renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({
         field_2: {
@@ -176,7 +171,7 @@ describe('semantic proto form directive', () => {
              value: 'a foo bar',
            },
          };
-         const element = renderTestTemplate(fooValue);
+         renderTestTemplate(fooValue);
 
          expect(fooValue.value).toEqual({
            field_2: {
@@ -196,7 +191,7 @@ describe('semantic proto form directive', () => {
              value: '',
            },
          };
-         const element = renderTestTemplate(fooValue);
+         renderTestTemplate(fooValue);
 
          expect(fooValue.value).toEqual({});
        });
@@ -211,7 +206,7 @@ describe('semantic proto form directive', () => {
              value: '',
            },
          };
-         const element = renderTestTemplate(fooValue);
+         renderTestTemplate(fooValue);
 
          expect(fooValue.value).toEqual({});
        });
@@ -224,7 +219,7 @@ describe('semantic proto form directive', () => {
           value: '',
         },
       };
-      const element = renderTestTemplate(fooValue, undefined, ['field_1']);
+      renderTestTemplate(fooValue, undefined, ['field_1']);
 
       expect(fooValue.value).toEqual({
         field_1: {
@@ -256,7 +251,7 @@ describe('semantic proto form directive', () => {
 
     it('does not prefill the model with defaults', () => {
       const fooValue = defaultFooStructValue;
-      const element = renderTestTemplate(fooValue);
+      renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({});
     });
@@ -419,7 +414,7 @@ describe('semantic proto form directive', () => {
         type: 'Foo',
         value: {},
       };
-      const element = renderTestTemplate(fooValue);
+      renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({});
     });
@@ -436,7 +431,7 @@ describe('semantic proto form directive', () => {
           ],
         },
       };
-      const element = renderTestTemplate(fooValue);
+      renderTestTemplate(fooValue);
       expect(fooValue.value.field_1.length).toBe(1);
       expect(fooValue.value.field_1[0]).toEqual({
         type: 'PrimitiveType',

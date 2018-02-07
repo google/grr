@@ -23,33 +23,31 @@ const HuntClientsController = function($scope) {
   /** @export {string} */
   this.clientType = 'completed';
 
-  this.scope_.$watchGroup(['huntUrn', 'controller.clientType'],
-                          this.onHuntUrnOrClientTypeChange_.bind(this));
+  this.scope_.$watchGroup(['huntId', 'controller.clientType'],
+                          this.onHuntIdOrClientTypeChange_.bind(this));
 };
 
 
 
 /**
- * Handles huntUrn attribute changes.
+ * Handles huntId attribute changes.
  *
  * @private
  */
-HuntClientsController.prototype.onHuntUrnOrClientTypeChange_ = function() {
-  var huntUrn = this.scope_['huntUrn'];
+HuntClientsController.prototype.onHuntIdOrClientTypeChange_ = function() {
+  var huntId = this.scope_['huntId'];
 
-  if (!angular.isString(huntUrn) ||
+  if (!angular.isString(huntId) ||
       !angular.isString(this.clientType)) {
     return;
   }
 
-  var components = huntUrn.split('/');
-  var huntId = components[components.length - 1];
   this.huntClientsUrl = '/hunts/' + huntId + '/clients/' + this.clientType;
 };
 
 
 /**
- * Directive for displaying clients of a hunt with a given URN.
+ * Directive for displaying clients of a hunt with a given ID.
  *
  * @return {angular.Directive} Directive definition object.
  * @export
@@ -57,7 +55,7 @@ HuntClientsController.prototype.onHuntUrnOrClientTypeChange_ = function() {
 grrUi.hunt.huntClientsDirective.HuntClientsDirective = function() {
   return {
     scope: {
-      huntUrn: '='
+      huntId: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-clients.html',

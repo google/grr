@@ -24,6 +24,7 @@ class InMemoryDB(db.Database):
     self.labels = {}
     self.users = {}
     self.startup_history = {}
+    self.crash_history = {}
 
   def ClearTestDB(self):
     self._Init()
@@ -317,6 +318,45 @@ class InMemoryDB(db.Database):
     res = []
     for ts in sorted(history, reverse=True):
       client_data = rdf_client.StartupInfo.FromSerializedString(history[ts])
+      client_data.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      res.append(client_data)
+    return res
+
+  def WriteClientCrashInfo(self, client_id, crash_info):
+
+    if not isinstance(crash_info, rdf_client.ClientCrash):
+      raise ValueError(
+          "WriteClientCrashInfo requires rdf_client.ClientCrash, got: %s" %
+          type(crash_info))
+
+    self._ValidateClientId(client_id)
+
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError()
+
+    history = self.crash_history.setdefault(client_id, {})
+    history[time.time()] = crash_info.SerializeToString()
+
+  def ReadClientCrashInfo(self, client_id):
+    self._ValidateClientId(client_id)
+    history = self.crash_history.get(client_id, None)
+    if not history:
+      return None
+
+    ts = max(history)
+    res = rdf_client.ClientCrash.FromSerializedString(history[ts])
+    res.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+    return res
+
+  def ReadClientCrashInfoHistory(self, client_id):
+    self._ValidateClientId(client_id)
+
+    history = self.crash_history.get(client_id)
+    if not history:
+      return []
+    res = []
+    for ts in sorted(history, reverse=True):
+      client_data = rdf_client.ClientCrash.FromSerializedString(history[ts])
       client_data.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
       res.append(client_data)
     return res

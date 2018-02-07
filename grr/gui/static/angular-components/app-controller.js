@@ -3,6 +3,17 @@
 goog.provide('grrUi.appController');
 goog.provide('grrUi.appController.appControllerModule');
 
+/*
+ * TODO(hanuszczak): This module still uses old-style `goog.require` statements
+ * because of the issues with `grrUi.templates`. `grrUi.templates` module is
+ * auto-generated and we cannot easily fix its `goog.provide` statements.
+ *
+ * This should not be a big problem though. This module is ought to be
+ * converted to ES6-style module system as the last one. Because of that we can
+ * skip the `goog.require` migration step and do it in a single CL when
+ * everything else is already converted.
+ */
+
 goog.require('grrUi.acl.aclModule');
 goog.require('grrUi.artifact.artifactModule');
 goog.require('grrUi.client.clientModule');

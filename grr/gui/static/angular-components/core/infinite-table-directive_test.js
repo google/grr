@@ -2,10 +2,10 @@
 
 goog.module('grrUi.core.infiniteTableDirectiveTest');
 
-const InfiniteTableController = goog.require('grrUi.core.infiniteTableDirective.InfiniteTableController');
-const MemoryItemsProviderController = goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirective');
+const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('infinite table', () => {

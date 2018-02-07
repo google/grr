@@ -60,7 +60,7 @@ ClientFlowsViewController.prototype.onRoutingParamsChange_ = function(
 };
 
 /**
- * Handles selectedFlowUrn binding changes.
+ * Handles binding changes.
  *
  * @private
  */

@@ -3,12 +3,10 @@
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective');
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 
-goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT');
-goog.require('grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT');
-goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
-goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT
+goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
 
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
 
 goog.scope(function() {

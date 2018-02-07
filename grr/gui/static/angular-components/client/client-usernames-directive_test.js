@@ -2,24 +2,22 @@
 
 goog.module('grrUi.client.clientUsernamesDirectiveTest');
 
-const clientModule = goog.require('grrUi.client.clientModule');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {clientModule} = goog.require('grrUi.client');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('client usernames', () => {
   let $compile;
-  let $q;
   let $rootScope;
 
   beforeEach(module(clientModule.name));
   beforeEach(module(semanticModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrSemanticValue');
+  stubDirective('grrSemanticValue');
 
   beforeEach(inject(($injector) => {
-    $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));

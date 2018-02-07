@@ -3,8 +3,8 @@
 goog.provide('grrUi.semantic.statEntryDirective');
 goog.provide('grrUi.semantic.statEntryDirective.StatEntryDirective');
 
-goog.require('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.require('grrUi.core.fileDownloadUtils');  // USE: pathSpecToAff4Path
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
 goog.scope(function() {
 

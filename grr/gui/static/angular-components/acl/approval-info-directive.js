@@ -3,7 +3,7 @@
 goog.provide('grrUi.acl.approvalInfoDirective');
 goog.provide('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 
 goog.scope(function() {

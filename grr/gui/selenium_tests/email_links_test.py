@@ -147,7 +147,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, self.token.username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, str(hunt_id))
+    self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
   def testEmailHuntApprovalGrantNotificationLinkLeadsToCorrectPage(self):

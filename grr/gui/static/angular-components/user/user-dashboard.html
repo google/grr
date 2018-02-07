@@ -47,16 +47,16 @@
           </thead>
           <tr ng-repeat="approval in ::controller.clientApprovals"
               ng-class="::{'half-transparent': !approval.value.is_valid.value}"
-              ng-click="controller.onClientClicked(approval.value.subject.value.urn.value)">
+              ng-click="controller.onClientClicked(approval.value.subject.value.client_id.value)">
             <!-- Online status -->
             <td>
               <grr-client-status-icons client="::approval.value.subject" />
             </td>
 
-            <!-- Client URN -->
+            <!-- Client Id -->
             <td>
               <span type="subject">
-                {$ ::approval.value.subject.value.urn.value | grrBasename $}
+                {$ ::approval.value.subject.value.client_id.value $}
               </span>
             </td>
 
@@ -134,7 +134,7 @@
             <tr ng-repeat="hunt in ::controller.hunts"
                 ng-click="controller.onHuntClicked(hunt)">
               <td><grr-hunt-status-icon hunt="::hunt" /></td>
-              <td>{$ ::hunt.value.urn.value | grrBasename $}</td>
+              <td>{$ ::hunt.value.hunt_id.value $}</td>
               <td>{$ ::hunt.value.name.value $}</td>
               <td><grr-timestamp value="::hunt.value.created" /></td>
               <td><grr-timestamp value="::hunt.value.expires" /></td>

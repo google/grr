@@ -4,7 +4,7 @@ goog.provide('grrUi.stats.reportListingDirective');
 goog.provide('grrUi.stats.reportListingDirective.ReportListingDirective');
 goog.provide('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
 
-goog.require('grrUi.core.utils.upperCaseToTitleCase');
+goog.require('grrUi.core.utils');  // USE: upperCaseToTitleCase
 
 goog.scope(function() {
 

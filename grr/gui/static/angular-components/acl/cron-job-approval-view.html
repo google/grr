@@ -6,7 +6,5 @@
 
 <hr>
 
-<!-- TODO(user): grr-cron-job-overview should accept cron-job-id, not
-     cron-job-urn. -->
 <grr-cron-job-overview ng-if="controller.cronJobId"
-                       cron-job-urn="'aff4:/cron/' + controller.cronJobId" />
+                       cron-job-id="controller.cronJobId" />

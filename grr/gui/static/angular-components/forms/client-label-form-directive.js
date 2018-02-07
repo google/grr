@@ -3,7 +3,7 @@
 goog.provide('grrUi.forms.clientLabelFormDirective');
 goog.provide('grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective');
 
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 goog.scope(function() {
 

@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.cron.cronJobOverviewDirective');
 goog.provide('grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
 
 goog.scope(function() {
 
@@ -24,7 +24,7 @@ const CronJobOverviewController =
   this.scope_ = $scope;
 
   /** @type {string} */
-  this.scope_.cronJobUrn;
+  this.scope_.cronJobId;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -35,25 +35,23 @@ const CronJobOverviewController =
   /** @export {string} */
   this.cronJobId;
 
-  this.scope_.$watch('cronJobUrn', this.onCronJobUrnChange.bind(this));
+  this.scope_.$watch('cronJobId', this.onCronJobIdChange.bind(this));
 };
 
 
 
 /**
- * Handles cronJobUrn attribute changes.
+ * Handles cronJobId attribute changes.
  *
- * @param {string} newCronJobUrn
+ * @param {string} newCronJobId
  * @export
  */
-CronJobOverviewController.prototype.onCronJobUrnChange = function(
-    newCronJobUrn) {
+CronJobOverviewController.prototype.onCronJobIdChange = function(
+    newCronJobId) {
   this.cronJob = null;
 
-  if (angular.isDefined(newCronJobUrn)) {
-    var cronJobUrnComponents = stripAff4Prefix(newCronJobUrn).split('/');
-    this.cronJobId = cronJobUrnComponents[cronJobUrnComponents.length - 1];
-
+  if (angular.isDefined(newCronJobId)) {
+    this.cronJobId = newCronJobId;
     this.grrApiService_.get('cron-jobs/' + this.cronJobId)
         .then(this.onCronJobFetched.bind(this));
   }
@@ -70,7 +68,7 @@ CronJobOverviewController.prototype.onCronJobFetched = function(response) {
 
 
 /**
- * Directive for displaying log records of a cronJob with a given URN.
+ * Directive for displaying log records of a cronJob with a given id
  *
  * @return {angular.Directive} Directive definition object.
  * @ngInject
@@ -79,7 +77,7 @@ CronJobOverviewController.prototype.onCronJobFetched = function(response) {
 grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective = function() {
   return {
     scope: {
-      cronJobUrn: '=',
+      cronJobId: '=',
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/cron/cron-job-overview.html',

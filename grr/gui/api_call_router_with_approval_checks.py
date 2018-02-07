@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
 
-
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
@@ -12,7 +11,6 @@ from grr.gui.api_plugins import user as api_user
 from grr.server import access_control
 from grr.server import aff4
 
-from grr.server.aff4_objects import cronjobs
 from grr.server.aff4_objects import user_managers
 
 from grr.server.hunts import implementation
@@ -42,8 +40,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.legacy_manager.CheckHuntAccess(token.RealUID(), hunt_id.ToURN())
 
   def CheckCronJobAccess(self, cron_job_id, token=None):
-    cron_job_urn = cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id)
-    self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_urn)
+    self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_id.ToURN())
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
     self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name)

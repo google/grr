@@ -1,16 +1,16 @@
 goog.provide('grrUi.semantic.rekall');
 goog.provide('grrUi.semantic.rekall.rekallModule');
 
-goog.require('grrUi.core.coreModule');
+goog.require('grrUi.core');  // USE: coreModule
 
-goog.require('grrUi.semantic.rekall.logDirective.LogDirective');
-goog.require('grrUi.semantic.rekall.metadataDirective.MetadataDirective');
-goog.require('grrUi.semantic.rekall.registeredUnixTimeStampDirective.RegisteredUnixTimeStampDirective');
-goog.require('grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective');
-goog.require('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
-goog.require('grrUi.semantic.rekall.rekallRegistryService.RekallRegistryService');
-goog.require('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
-goog.require('grrUi.semantic.rekall.tableDirective.TableDirective');
+goog.require('grrUi.semantic.rekall.logDirective');       // USE: LogDirective
+goog.require('grrUi.semantic.rekall.metadataDirective');  // USE: MetadataDirective
+goog.require('grrUi.semantic.rekall.registeredUnixTimeStampDirective');  // USE: RegisteredUnixTimeStampDirective
+goog.require('grrUi.semantic.rekall.rekallDefaultValueDirective');  // USE: RekallDefaultValueDirective
+goog.require('grrUi.semantic.rekall.rekallJsonDirective');  // USE: RekallJsonDirective
+goog.require('grrUi.semantic.rekall.rekallRegistryService');  // USE: RekallRegistryService
+goog.require('grrUi.semantic.rekall.rekallValueDirective');  // USE: RekallValueDirective
+goog.require('grrUi.semantic.rekall.tableDirective');  // USE: TableDirective
 
 
 /**

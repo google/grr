@@ -2,8 +2,8 @@
 
 goog.module('grrUi.outputPlugins.outputPluginsNotesDirectiveTest');
 
-const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('output plugins notes list directive', () => {
@@ -18,7 +18,7 @@ describe('output plugins notes list directive', () => {
   beforeEach(module(outputPluginsModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrOutputPluginNote');
+  stubDirective('grrOutputPluginNote');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');
@@ -42,7 +42,7 @@ describe('output plugins notes list directive', () => {
     const deferred = $q.defer();
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
-    const element = renderTestTemplate();
+    renderTestTemplate();
 
     expect(grrApiService.get).toHaveBeenCalledWith('/foo/bar/plugins');
   });

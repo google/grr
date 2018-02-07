@@ -2,9 +2,8 @@
 
 goog.module('grrUi.flow.flowFormDirectiveTest');
 
-const flowModule = goog.require('grrUi.flow.flowModule');
-const stubDirective = goog.require('grrUi.tests.stubDirective');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {flowModule} = goog.require('grrUi.flow');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('flow form directive', () => {

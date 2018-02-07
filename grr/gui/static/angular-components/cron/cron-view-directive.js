@@ -23,10 +23,10 @@ const CronViewController = function(
   this.grrRoutingService_ = grrRoutingService;
 
   /** @type {string} */
-  this.selectedCronJobUrn;
+  this.selectedCronJobId;
 
-  this.scope_.$watch('controller.selectedCronJobUrn',
-                     this.onSelectedCronJobUrnChange_.bind(this));
+  this.scope_.$watch('controller.selectedCronJobId',
+                     this.onSelectedCronJobIdChange_.bind(this));
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'cronJobId',
       this.onParamsChange_.bind(this));
 };
@@ -35,26 +35,25 @@ const CronViewController = function(
 /**
  * Handles changes to the state params.
  *
- * @param {Array} cronJobId The new value for the selected cron job.
+ * @param {string} cronJobId The new value for the selected cron job.
  * @private
  */
 CronViewController.prototype.onParamsChange_ = function(cronJobId) {
   if (cronJobId) {
-    this.selectedCronJobUrn = 'aff4:/cron/' + cronJobId;
+    this.selectedCronJobId = cronJobId;
   }
 };
 
 /**
- * Handles selectedCronUrn binding changes.
+ * Handles selectedCronJobId binding changes.
  *
  * @param {?string} newValue New binding value.
  * @private
  */
-CronViewController.prototype.onSelectedCronJobUrnChange_ = function(
+CronViewController.prototype.onSelectedCronJobIdChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
-    var cronJobId = this.selectedCronJobUrn.split('/')[2];
-    this.grrRoutingService_.go('crons', {cronJobId: cronJobId});
+    this.grrRoutingService_.go('crons', {cronJobId: newValue});
   }
 };
 

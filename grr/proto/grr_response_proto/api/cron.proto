@@ -10,13 +10,17 @@ import "grr_response_proto/semantic.proto";
 // Entities.
 //
 
-// Next id: 13
+// Next id: 14
 message ApiCronJob {
   enum State {
     ENABLED = 0;
     DISABLED = 1;
   };
 
+  optional string cron_job_id = 13 [(sem_type) = {
+      type: "ApiCronJobId",
+      description: "Cron job ID."
+    }];
   optional string urn = 1 [(sem_type) = {
       type: "RDFURN",
       description: "Cron job URN."
@@ -86,18 +90,21 @@ message ApiListCronJobsResult {
 
 message ApiGetCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron job id."
     }];
 }
 
 message ApiForceRunCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron job id."
     }];
 }
 
 message ApiModifyCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron job id."
     }];
   optional ApiCronJob.State state = 2 [(sem_type) = {
@@ -107,6 +114,7 @@ message ApiModifyCronJobArgs {
 
 message ApiListCronJobFlowsArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron job id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -119,6 +127,7 @@ message ApiListCronJobFlowsArgs {
 
 message ApiGetCronJobFlowArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron job id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -129,6 +138,7 @@ message ApiGetCronJobFlowArgs {
 
 message ApiDeleteCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "The id of the cron job."
     }];
 };

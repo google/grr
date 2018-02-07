@@ -2,8 +2,8 @@
 
 goog.module('grrUi.semantic.dictDirectiveTest');
 
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('dict semantic directive', () => {
@@ -15,7 +15,7 @@ describe('dict semantic directive', () => {
   beforeEach(module(semanticModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrSemanticValue');
+  stubDirective('grrSemanticValue');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

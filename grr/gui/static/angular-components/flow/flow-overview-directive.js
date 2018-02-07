@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.flow.flowOverviewDirective');
 goog.provide('grrUi.flow.flowOverviewDirective.FlowOverviewDirective');
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
 
 goog.scope(function() {
 

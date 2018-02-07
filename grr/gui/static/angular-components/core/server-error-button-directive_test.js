@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.serverErrorButtonDirectiveTest');
 
-const ServerErrorButtonDirective = goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('server error button directive', () => {

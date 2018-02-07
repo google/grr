@@ -28,6 +28,9 @@ from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 
+# TODO(hanuszczak): Consider refactoring these tests with `pyfakefs`.
+
+
 class DirHierarchyTestMixin(object):
 
   def setUp(self):
@@ -400,6 +403,68 @@ class GlobComponentTest(DirHierarchyTestMixin, unittest.TestCase):
         self.Path("   "),
     ])
 
+  def testCaseInsensivity(self):
+    self.Touch("foo")
+    self.Touch("BAR")
+    self.Touch("BaZ")
+    self.Touch("qUuX")
+
+    component = client_file_finder.GlobComponent("b*")
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("BAR"),
+        self.Path("BaZ"),
+    ])
+
+    component = client_file_finder.GlobComponent("quux")
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("qUuX"),
+    ])
+
+    component = client_file_finder.GlobComponent("FoO")
+    results = list(component.Generate(self.Path()))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+    ])
+
+
+class CurrentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testSimple(self):
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "baz", "0")
+
+    component = client_file_finder.CurrentComponent()
+
+    results = list(component.Generate(self.Path("foo")))
+    self.assertItemsEqual(results, [self.Path("foo")])
+
+    results = list(component.Generate(self.Path("foo", "bar")))
+    self.assertItemsEqual(results, [self.Path("foo", "bar")])
+
+    results = list(component.Generate(self.Path("foo", "baz")))
+    self.assertItemsEqual(results, [self.Path("foo", "baz")])
+
+
+class ParentComponentTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testSimple(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "bar", "baz", "0")
+
+    component = client_file_finder.ParentComponent()
+
+    results = list(component.Generate(self.Path("foo")))
+    self.assertItemsEqual(results, [self.Path()])
+
+    results = list(component.Generate(self.Path("foo", "bar")))
+    self.assertItemsEqual(results, [self.Path("foo")])
+
+    results = list(component.Generate(self.Path("foo", "bar", "baz")))
+    self.assertItemsEqual(results, [self.Path("foo", "bar")])
+
 
 class ParsePathItemTest(unittest.TestCase):
 
@@ -472,6 +537,249 @@ class ParsePathTest(unittest.TestCase):
 
     with self.assertRaises(ValueError):
       list(client_file_finder.ParsePath(path))
+
+
+class ExpandGroupsTest(unittest.TestCase):
+
+  def testSimple(self):
+    path = "fooba{r,z}"
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, [
+        "foobar",
+        "foobaz",
+    ])
+
+  def testMultiple(self):
+    path = os.path.join("f{o,0}o{bar,baz}", "{quux,norf}")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, [
+        os.path.join("foobar", "quux"),
+        os.path.join("foobar", "norf"),
+        os.path.join("foobaz", "quux"),
+        os.path.join("foobaz", "norf"),
+        os.path.join("f0obar", "quux"),
+        os.path.join("f0obar", "norf"),
+        os.path.join("f0obaz", "quux"),
+        os.path.join("f0obaz", "norf"),
+    ])
+
+  def testMany(self):
+    path = os.path.join("foo{bar,baz,quux,norf}thud")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, [
+        os.path.join("foobarthud"),
+        os.path.join("foobazthud"),
+        os.path.join("fooquuxthud"),
+        os.path.join("foonorfthud"),
+    ])
+
+  def testEmpty(self):
+    path = os.path.join("foo{}bar")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foo{}bar"])
+
+  def testSingleton(self):
+    path = os.path.join("foo{bar}baz")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foo{bar}baz"])
+
+  def testUnclosed(self):
+    path = os.path.join("foo{bar")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foo{bar"])
+
+    path = os.path.join("foo}bar")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foo}bar"])
+
+  def testEscaped(self):
+    path = os.path.join("foo\\{baz}bar")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foo\\{baz}bar"])
+
+  def testNoGroup(self):
+    path = os.path.join("foobarbaz")
+
+    results = list(client_file_finder.ExpandGroups(path))
+    self.assertItemsEqual(results, ["foobarbaz"])
+
+
+class ExpandGlobsTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testWildcards(self):
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "baz", "1")
+    self.Touch("foo", "norf", "0")
+    self.Touch("quux", "bar", "0")
+    self.Touch("quux", "baz", "0")
+    self.Touch("quux", "norf", "0")
+
+    path = self.Path("*", "ba?", "0")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("quux", "bar", "0"),
+        self.Path("quux", "baz", "0"),
+    ])
+
+  def testRecursion(self):
+    self.Touch("foo", "bar", "baz", "0")
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "quux", "0")
+    self.Touch("foo", "quux", "1")
+
+    path = self.Path("foo", "**", "0")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "baz", "0"),
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "quux", "0"),
+    ])
+
+  def testMixed(self):
+    self.Touch("foo", "bar", "0")
+    self.Touch("norf", "bar", "0")
+    self.Touch("norf", "baz", "0")
+    self.Touch("norf", "baz", "1")
+    self.Touch("norf", "baz", "7")
+    self.Touch("quux", "bar", "0")
+    self.Touch("quux", "baz", "1")
+    self.Touch("quux", "baz", "2")
+
+    path = self.Path("**", "ba?", "[0-2]")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("norf", "bar", "0"),
+        self.Path("norf", "baz", "0"),
+        self.Path("norf", "baz", "1"),
+        self.Path("quux", "bar", "0"),
+        self.Path("quux", "baz", "1"),
+        self.Path("quux", "baz", "2"),
+    ])
+
+  def testEmpty(self):
+    with self.assertRaises(ValueError):
+      list(client_file_finder.ExpandGlobs(""))
+
+  def testRelative(self):
+    with self.assertRaises(ValueError):
+      list(client_file_finder.ExpandGlobs(os.path.join("foo", "bar")))
+
+  def testCurrent(self):
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "bar", "1")
+    self.Touch("quux", "bar", "0")
+
+    path = self.Path("foo", os.path.curdir, "bar", "*")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "bar", "1"),
+    ])
+
+    path = self.Path(os.path.curdir, "*", "bar", "0")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("quux", "bar", "0"),
+    ])
+
+  def testParent(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "1")
+    self.Touch("foo", "bar", "0")
+    self.Touch("bar", "0")
+
+    path = self.Path("foo", "*")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "0"),
+        self.Path("foo", "1"),
+        self.Path("foo", "bar"),
+    ])
+
+    path = self.Path("foo", os.path.pardir, "*")
+
+    results = list(client_file_finder.ExpandGlobs(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("bar"),
+    ])
+
+
+class ExpandPathTest(DirHierarchyTestMixin, unittest.TestCase):
+
+  def testGlobAndGroup(self):
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "bar", "1")
+    self.Touch("foo", "baz", "0")
+    self.Touch("foo", "baz", "1")
+    self.Touch("foo", "quux", "0")
+    self.Touch("foo", "quux", "1")
+
+    path = self.Path("foo/ba{r,z}/*")
+    results = list(client_file_finder.ExpandPath(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "bar", "1"),
+        self.Path("foo", "baz", "0"),
+        self.Path("foo", "baz", "1"),
+    ])
+
+    path = self.Path("foo/ba*/{0,1}")
+    results = list(client_file_finder.ExpandPath(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "bar", "1"),
+        self.Path("foo", "baz", "0"),
+        self.Path("foo", "baz", "1"),
+    ])
+
+  def testRecursiveAndGroup(self):
+    self.Touch("foo", "0")
+    self.Touch("foo", "1")
+    self.Touch("foo", "bar", "0")
+    self.Touch("foo", "baz", "quux", "0")
+
+    path = self.Path("foo/**")
+    results = list(client_file_finder.ExpandPath(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo", "0"),
+        self.Path("foo", "1"),
+        self.Path("foo", "bar"),
+        self.Path("foo", "baz"),
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "baz", "quux"),
+        self.Path("foo", "baz", "quux", "0"),
+    ])
+
+    path = self.Path("foo/{.,**}")
+    results = list(client_file_finder.ExpandPath(path))
+    self.assertItemsEqual(results, [
+        self.Path("foo"),
+        self.Path("foo", "0"),
+        self.Path("foo", "1"),
+        self.Path("foo", "bar"),
+        self.Path("foo", "baz"),
+        self.Path("foo", "bar", "0"),
+        self.Path("foo", "baz", "quux"),
+        self.Path("foo", "baz", "quux", "0"),
+    ])
 
 
 def MyStat(path):

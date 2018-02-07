@@ -25,24 +25,22 @@ const HuntContextController = function(
   /** @export {Object} */
   this.state;
 
-  $scope.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
+  $scope.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
 
 
 
 /**
- * Handles huntUrn attribute changes.
+ * Handles huntId attribute changes.
  *
- * @param {?string} huntUrn
+ * @param {?string} huntId
  * @private
  */
-HuntContextController.prototype.onHuntUrnChange_ = function(huntUrn) {
-  if (!angular.isString(huntUrn)) {
+HuntContextController.prototype.onHuntIdChange_ = function(huntId) {
+  if (!angular.isString(huntId)) {
     return;
   }
 
-  var components = huntUrn.split('/');
-  var huntId = components[components.length - 1];
   var url = '/hunts/' + huntId + '/context';
   this.grrApiService_.get(url).then(function success(response) {
     this.context = response.data['context'];
@@ -61,7 +59,7 @@ HuntContextController.prototype.onHuntUrnChange_ = function(huntUrn) {
 grrUi.hunt.huntContextDirective.HuntContextDirective = function() {
   return {
     scope: {
-      huntUrn: '='
+      huntId: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-context.html',

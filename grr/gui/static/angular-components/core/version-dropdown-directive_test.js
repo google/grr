@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.versionDropdownDirectiveTest');
 
-const VersionDropdownDirective = goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('version dropdown directive', () => {

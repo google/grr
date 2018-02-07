@@ -2,17 +2,14 @@
 
 goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const formsModule = goog.require('grrUi.forms.formsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {formsModule} = goog.require('grrUi.forms');
 
 
 describe('semantic proto repeated field form directive', () => {
   let $compile;
   let $q;
   let $rootScope;
-  let grrReflectionService;
-
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-repeated-field-form.html'));
   beforeEach(module(formsModule.name));
@@ -20,7 +17,7 @@ describe('semantic proto repeated field form directive', () => {
 
   // Stub out grrFormValue directive, as all rendering is going to be
   // delegated to it.
-  grrUi.tests.stubDirective('grrFormValue');
+  stubDirective('grrFormValue');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

@@ -2,11 +2,10 @@
 
 goog.module('grrUi.forms.utilsTest');
 
-const utilsValueHasErrors = goog.require('grrUi.forms.utils.valueHasErrors');
+const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
 describe('forms utils', () => {
   describe('valueHasErrors', () => {
-    const valueHasErrors = utilsValueHasErrors;
 
     it('returns false for a primitive value without errors', () => {
       expect(valueHasErrors({

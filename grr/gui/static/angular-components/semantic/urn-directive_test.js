@@ -2,9 +2,9 @@
 
 goog.module('grrUi.semantic.urnDirectiveTest');
 
-const aff4UrnToUrl = goog.require('grrUi.routing.aff4UrnToUrl');
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {aff4UrnToUrl} = goog.require('grrUi.routing');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('urn directive', () => {

@@ -2,12 +2,10 @@
 
 goog.module('grrUi.user.userNotificationItemDirectiveTest');
 
-const userNotificationItemDirectiveAnnotateApiNotification = goog.require('grrUi.user.userNotificationItemDirective.annotateApiNotification');
+const {annotateApiNotification} = goog.require('grrUi.user.userNotificationItemDirective');
 
 describe('User notification item directive', () => {
   describe('annotateApiNotification()', () => {
-    const annotateApiNotification =
-        userNotificationItemDirectiveAnnotateApiNotification;
 
     const buildNotification =
         ((reference) => ({

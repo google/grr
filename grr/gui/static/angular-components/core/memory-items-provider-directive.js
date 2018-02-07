@@ -3,7 +3,7 @@
 goog.provide('grrUi.core.memoryItemsProviderDirective');
 goog.provide('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
 goog.provide('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
-goog.require('grrUi.core.itemsProviderController.ItemsProviderController');
+goog.require('grrUi.core.itemsProviderController');  // USE: ItemsProviderController
 
 goog.scope(function() {
 

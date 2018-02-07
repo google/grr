@@ -3,7 +3,7 @@
 goog.provide('grrUi.hunt.huntsListDirective');
 goog.provide('grrUi.hunt.huntsListDirective.HuntsListDirective');
 
-goog.require('grrUi.core.utils.stripAff4Prefix');
+goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
 
 goog.scope(function() {
 
@@ -47,11 +47,11 @@ const HuntsListController = function(
   // Internal state.
 
   /**
-   * Dictionary with hunts as values and urns as keys. Used to find currently
-   * selected hunt object using selectedHuntUrn.
+   * Dictionary with hunts as values and ids as keys. Used to find currently
+   * selected hunt object using selectedHuntId.
    * @export {!Object<string, Object>}
    */
-  this.huntsByUrn = {};
+  this.huntsById = {};
 
   /**
    * If true, show hunts initiated by GRRWorker user.
@@ -78,7 +78,7 @@ HuntsListController.prototype.huntsUrl = '/hunts';
 
 
 HuntsListController.prototype.buildHuntUrl_ = function() {
-  var components = this.scope_['selectedHuntUrn'].split('/');
+  var components = this.scope_['selectedHuntId'].split('/');
   var basename = components[components.length - 1];
   return this.huntsUrl + '/' + basename;
 };
@@ -111,7 +111,7 @@ HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage
  * @suppress {missingProperties} For items, as they crom from JSON response.
  */
 HuntsListController.prototype.selectItem = function(item) {
-  this.scope_['selectedHuntUrn'] = item.value.urn.value;
+  this.scope_['selectedHuntId'] = item.value.hunt_id.value;
 };
 
 
@@ -205,7 +205,7 @@ HuntsListController.prototype.stopHunt = function() {
  * @export
  */
 HuntsListController.prototype.modifyHunt = function() {
-  var components = this.scope_['selectedHuntUrn'].split('/');
+  var components = this.scope_['selectedHuntId'].split('/');
   var huntId = components[components.length - 1];
 
   var argsObj = {};
@@ -231,7 +231,7 @@ HuntsListController.prototype.modifyHunt = function() {
  */
 HuntsListController.prototype.copyHunt = function() {
   var modalScope = this.scope_.$new();
-  modalScope.huntUrn = this.scope_['selectedHuntUrn'];
+  modalScope.huntId = this.scope_['selectedHuntId'];
   modalScope.resolve = function() {
     modalInstance.close();
   };
@@ -245,7 +245,7 @@ HuntsListController.prototype.copyHunt = function() {
 
   var modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-copy-form on-resolve="resolve()" ' +
-        'on-reject="reject()" hunt-urn="huntUrn" />',
+        'on-reject="reject()" hunt-id="huntId" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
@@ -282,7 +282,7 @@ HuntsListController.prototype.deleteHunt = function() {
 
 
 /**
- * Fills in huntsByUrn dictionary.
+ * Fills in huntsById dictionary.
  *
  * @param {!Array<Object>} items Items to be transformed.
  * @return {!Array<Object>} Transformed items.
@@ -291,7 +291,7 @@ HuntsListController.prototype.deleteHunt = function() {
  */
 HuntsListController.prototype.transformItems = function(items) {
   angular.forEach(items, function(item) {
-    this.huntsByUrn[item.value.urn.value] = item;
+    this.huntsById[item['value']['hunt_id']['value']] = item;
   }.bind(this));
 
   return items;
@@ -306,7 +306,7 @@ HuntsListController.prototype.transformItems = function(items) {
 grrUi.hunt.huntsListDirective.HuntsListDirective = function() {
   return {
     scope: {
-      selectedHuntUrn: '=?'
+      selectedHuntId: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunts-list.html',

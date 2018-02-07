@@ -2,9 +2,8 @@
 
 goog.module('grrUi.client.virtualFileSystem.fileTreeDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const testsModule = goog.require('grrUi.tests.testsModule');
-const virtualFileSystemModule = goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
+const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
+const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem');
 
 
 describe('file tree view directive', () => {

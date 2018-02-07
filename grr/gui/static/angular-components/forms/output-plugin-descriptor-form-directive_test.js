@@ -2,9 +2,8 @@
 
 goog.module('grrUi.forms.outputPluginDescriptorFormDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const formsModule = goog.require('grrUi.forms.formsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {formsModule} = goog.require('grrUi.forms');
 
 
 describe('grr-output-plugin-descriptor-form directive', () => {
@@ -22,7 +21,7 @@ describe('grr-output-plugin-descriptor-form directive', () => {
 
   // Stub out grr-form-value directive, as arguments rendering is going
   // to be delegated to it.
-  grrUi.tests.stubDirective('grrFormValue');
+  stubDirective('grrFormValue');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

@@ -62,9 +62,19 @@ class ClientCrashEventListener(flow.EventListener):
                            flow_session_id=None,
                            hunt_session_id=None):
     # Update last crash attribute of the client.
+
+    # AFF4.
     with aff4.FACTORY.Create(
         client_id, aff4_grr.VFSGRRClient, token=self.token) as client_obj:
       client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
+
+    # Relational db.
+    if data_store.RelationalDBWriteEnabled():
+      try:
+        data_store.REL_DB.WriteClientCrashInfo(client_id.Basename(),
+                                               crash_details)
+      except db.UnknownClientError:
+        pass
 
     # Duplicate the crash information in a number of places so we can find it
     # easily.

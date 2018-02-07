@@ -494,11 +494,12 @@ class GlobComponent(PathComponent):
 
   def __init__(self, glob):
     super(GlobComponent, self).__init__()
-    self.glob = glob
+    self.regex = re.compile(fnmatch.translate(glob), re.I)
 
   def Generate(self, dirpath):
-    for item in fnmatch.filter(_ListDir(dirpath), self.glob):
-      yield os.path.join(dirpath, item)
+    for item in _ListDir(dirpath):
+      if self.regex.match(item):
+        yield os.path.join(dirpath, item)
 
 
 class CurrentComponent(PathComponent):
@@ -510,7 +511,7 @@ class CurrentComponent(PathComponent):
   """
 
   def Generate(self, dirpath):
-    raise NotImplementedError()
+    yield dirpath
 
 
 class ParentComponent(PathComponent):
@@ -522,9 +523,11 @@ class ParentComponent(PathComponent):
   """
 
   def Generate(self, dirpath):
-    raise NotImplementedError()
+    yield os.path.dirname(dirpath)
 
 
+PATH_PARAM_REGEX = re.compile("%%(?P<name>[^%]+?)%%")
+PATH_GROUP_REGEX = re.compile("{(?P<alts>[^}]+,[^}]+)}")
 PATH_RECURSION_REGEX = re.compile(r"\*\*(?P<max_depth>\d*)")
 
 
@@ -585,6 +588,109 @@ def ParsePath(path, opts=None):
       if rcount > 1:
         raise ValueError("path cannot have more than one recursive component")
     yield component
+
+
+def ExpandPath(path, opts=None):
+  """Applies all expansion mechanisms to the given path.
+
+  Args:
+    path: A path to expand.
+    opts: A `PathOpts` object.
+
+  Yields:
+    All paths possible to obtain from a given path by performing expansions.
+  """
+  parametrized_path = ExpandParams(path)
+  for grouped_path in ExpandGroups(parametrized_path):
+    for globbed_path in ExpandGlobs(grouped_path, opts=opts):
+      yield globbed_path
+
+
+# TODO(hanuszczak): Implement parameter expansion of client-side file-finder.
+# Future request for this is here: https://github.com/google/grr/issues/548.
+def ExpandParams(path):
+  """Performs path parameter interpolation.
+
+  Args:
+    path: A path to expand.
+
+  Returns:
+    A path with all parameters interpolated according to the knowledgebase.
+
+  Raises:
+    NotImplementedError: If the path contains a parameter since parameter
+                         interpolation is not implemented yet.
+  """
+  for match in PATH_PARAM_REGEX.finditer(path):
+    del match  # Unused.
+    raise NotImplementedError("Client-side parameter expansion not supported")
+  return path
+
+
+def ExpandGroups(path):
+  """Performs group expansion on a given path.
+
+  For example, given path `foo/{bar,baz}/{quux,norf}` this method will yield
+  `foo/bar/quux`, `foo/bar/norf`, `foo/baz/quux`, `foo/baz/norf`.
+
+  Args:
+    path: A path to expand.
+
+  Yields:
+    Paths that can be obtained from given path by expanding groups.
+  """
+  chunks = []
+  offset = 0
+
+  for match in PATH_GROUP_REGEX.finditer(path):
+    chunks.append([path[offset:match.start()]])
+    chunks.append(match.group("alts").split(","))
+    offset = match.end()
+
+  chunks.append([path[offset:]])
+
+  for prod in itertools.product(*chunks):
+    yield "".join(prod)
+
+
+def ExpandGlobs(path, opts=None):
+  """Performs glob expansion on a given path.
+
+  Path can contain regular glob elements (such as `**`, `*`, `?`, `[a-z]`). For
+  example, having files `foo`, `bar`, `baz` glob expansion of `ba?` will yield
+  `bar` and `baz`.
+
+  Args:
+    path: A path to expand.
+    opts: A `PathOpts` object.
+
+  Returns:
+    Generator over all possible glob expansions of a given path.
+
+  Raises:
+    ValueError: If given path is empty or relative.
+  """
+  if not path:
+    raise ValueError("Path is empty")
+
+  root, path = os.path.splitdrive(path)
+  if not root:
+    if path[0] != "/":
+      raise ValueError("Path '%s' is not absolute" % path)
+    root, path = path[0], path[1:]
+
+  components = list(ParsePath(path, opts=opts))
+  return _ExpandComponents(root.upper(), components)
+
+
+def _ExpandComponents(basepath, components, index=0):
+  if index == len(components):
+    yield basepath
+    return
+
+  for childpath in components[index].Generate(basepath):
+    for path in _ExpandComponents(childpath, components, index + 1):
+      yield path
 
 
 def _ListDir(dirpath):

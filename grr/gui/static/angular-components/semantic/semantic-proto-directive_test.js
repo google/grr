@@ -2,17 +2,13 @@
 
 goog.module('grrUi.semantic.semanticProtoDirectiveTest');
 
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const semanticProtoDirectiveBuildItems = goog.require('grrUi.semantic.semanticProtoDirective.buildItems');
-const semanticProtoDirectiveBuildNonUnionItems = goog.require('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
-const semanticProtoDirectiveBuildUnionItems = goog.require('grrUi.semantic.semanticProtoDirective.buildUnionItems');
-const semanticProtoDirectiveGetUnionFieldValue = goog.require('grrUi.semantic.semanticProtoDirective.getUnionFieldValue');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {buildItems, buildNonUnionItems, buildUnionItems, getUnionFieldValue} = goog.require('grrUi.semantic.semanticProtoDirective');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 
 describe('semantic proto directive', () => {
   describe('getUnionFieldValue()', () => {
-    const getUnionFieldValue = semanticProtoDirectiveGetUnionFieldValue;
 
     it('throws if descriptor doesn\'t have union_field', () => {
       expect(() => {
@@ -58,7 +54,6 @@ describe('semantic proto directive', () => {
   });
 
   describe('buildUnionItems()', () => {
-    const buildUnionItems = semanticProtoDirectiveBuildUnionItems;
 
     const descriptor = {
       union_field: 'action_type',
@@ -150,7 +145,6 @@ describe('semantic proto directive', () => {
   });
 
   describe('buildNonUnionItems()', () => {
-    const buildNonUnionItems = semanticProtoDirectiveBuildNonUnionItems;
 
     const descriptor = {
       fields: [
@@ -190,7 +184,6 @@ describe('semantic proto directive', () => {
   });
 
   describe('buildItems()', () => {
-    const buildItems = semanticProtoDirectiveBuildItems;
 
     it('builds items for a non-union-type value', () => {
       const descriptor = {
@@ -264,7 +257,7 @@ describe('semantic proto directive', () => {
   beforeEach(module(semanticModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrSemanticValue');
+  stubDirective('grrSemanticValue');
 
   beforeEach(inject(($injector) => {
     $compile = $injector.get('$compile');

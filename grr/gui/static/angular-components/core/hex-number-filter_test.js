@@ -2,9 +2,9 @@
 
 goog.module('grrUi.core.hexNumberFilterTest');
 
-const HexNumberFilter = goog.require('grrUi.core.hexNumberFilter.HexNumberFilter');
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {HexNumberFilter} = goog.require('grrUi.core.hexNumberFilter');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grrHexNumber filter', () => {

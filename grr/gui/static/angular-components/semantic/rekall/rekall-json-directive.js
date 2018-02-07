@@ -3,8 +3,7 @@
 goog.provide('grrUi.semantic.rekall.rekallJsonDirective');
 goog.provide('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
 
-goog.require('grrUi.semantic.rekall.utils.cropRekallJson');
-goog.require('grrUi.semantic.rekall.utils.stackRekallTables');
+goog.require('grrUi.semantic.rekall.utils');  // USE: cropRekallJson, stackRekallTables
 
 goog.scope(function() {
 

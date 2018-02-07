@@ -2,9 +2,8 @@
 
 goog.module('grrUi.outputPlugins.outputPluginLogsDirectiveTest');
 
-const browserTriggerEvent = goog.require('grrUi.tests.browserTriggerEvent');
-const outputPluginsModule = goog.require('grrUi.outputPlugins.outputPluginsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
 
 
 describe('output plugin logs directive', () => {
@@ -20,7 +19,7 @@ describe('output plugin logs directive', () => {
   beforeEach(module(outputPluginsModule.name));
   beforeEach(module(testsModule.name));
 
-  grrUi.tests.stubDirective('grrPagedFilteredTable');
+  stubDirective('grrPagedFilteredTable');
 
   beforeEach(inject(($injector) => {
     $q = $injector.get('$q');

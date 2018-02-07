@@ -2,8 +2,8 @@
 
 goog.module('grrUi.flow.flowStatusIconDirectiveTest');
 
-const flowModule = goog.require('grrUi.flow.flowModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {flowModule} = goog.require('grrUi.flow');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('grr-flow-status-icon directive', () => {

@@ -2,8 +2,8 @@
 
 goog.module('grrUi.semantic.networkAddressDirectiveTest');
 
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('mac address directive', () => {

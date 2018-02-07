@@ -24,7 +24,6 @@ from grr.server import instant_output_plugin
 from grr.server import output_plugin
 from grr.server import queue_manager
 from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import cronjobs as aff4_cronjobs
 
 from grr.server.aff4_objects import users as aff4_users
 
@@ -59,8 +58,7 @@ class ApiFlowId(rdfvalue.RDFString):
       raise ValueError("Can't call ResolveCronJobFlowURN on an empty "
                        "client id.")
 
-    return aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id).Add(
-        self._value)
+    return cron_job_id.ToURN().Add(self._value)
 
   def ResolveClientFlowURN(self, client_id, token=None):
     """Resolve a URN of a flow with this id belonging to a given client.

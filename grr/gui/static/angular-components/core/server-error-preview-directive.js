@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.core.serverErrorPreviewDirective');
 goog.provide('grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
 
 goog.scope(function() {

@@ -413,6 +413,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "CronJob_123456"
+              },
               "description": {
                 "type": "unicode",
                 "value": ""
@@ -463,6 +467,7 @@
         "reason": "really important reason!",
         "subject": {
           "allow_overruns": false,
+          "cron_job_id": "CronJob_123456",
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
@@ -519,6 +524,10 @@
           "allow_overruns": {
             "type": "RDFBool",
             "value": false
+          },
+          "cron_job_id": {
+            "type": "ApiCronJobId",
+            "value": "CreateAndRunGeneicHuntFlow_1234"
           },
           "description": {
             "type": "unicode",
@@ -642,6 +651,7 @@
       "test_class": "ApiCreateCronJobHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
+        "cron_job_id": "CreateAndRunGeneicHuntFlow_1234",
         "description": "Foobar!",
         "flow_args": {
           "hunt_args": {
@@ -4162,6 +4172,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "CronJob_123456"
+              },
               "description": {
                 "type": "unicode",
                 "value": ""
@@ -4209,6 +4223,7 @@
         "reason": "foo",
         "subject": {
           "allow_overruns": false,
+          "cron_job_id": "CronJob_123456",
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
@@ -4262,6 +4277,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "CronJob_567890"
+              },
               "description": {
                 "type": "unicode",
                 "value": ""
@@ -4309,6 +4328,7 @@
         "reason": "bar",
         "subject": {
           "allow_overruns": false,
+          "cron_job_id": "CronJob_567890",
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
@@ -12110,6 +12130,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "CronJob_123456"
+              },
               "description": {
                 "type": "unicode",
                 "value": ""
@@ -12157,6 +12181,7 @@
         "reason": "foo",
         "subject": {
           "allow_overruns": false,
+          "cron_job_id": "CronJob_123456",
           "description": "",
           "flow_name": "",
           "flow_runner_args": {},
@@ -14312,6 +14337,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "GRRVersionBreakDown"
+              },
               "description": {
                 "type": "unicode",
                 "value": "foo"
@@ -14361,6 +14390,10 @@
               "allow_overruns": {
                 "type": "RDFBool",
                 "value": false
+              },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "LastAccessStats"
               },
               "description": {
                 "type": "unicode",
@@ -14416,6 +14449,10 @@
                 "type": "RDFBool",
                 "value": false
               },
+              "cron_job_id": {
+                "type": "ApiCronJobId",
+                "value": "OSBreakDown"
+              },
               "description": {
                 "type": "unicode",
                 "value": "bar"
@@ -14467,6 +14504,7 @@
         "items": [
           {
             "allow_overruns": false,
+            "cron_job_id": "GRRVersionBreakDown",
             "description": "foo",
             "flow_args": {},
             "flow_name": "GRRVersionBreakDown",
@@ -14481,6 +14519,7 @@
           },
           {
             "allow_overruns": false,
+            "cron_job_id": "LastAccessStats",
             "description": "",
             "flow_args": {},
             "flow_name": "LastAccessStats",
@@ -14496,6 +14535,7 @@
           },
           {
             "allow_overruns": false,
+            "cron_job_id": "OSBreakDown",
             "description": "bar",
             "flow_args": {},
             "flow_name": "OSBreakDown",
@@ -18570,6 +18610,10 @@
             "type": "RDFBool",
             "value": false
           },
+          "cron_job_id": {
+            "type": "ApiCronJobId",
+            "value": "OSBreakDown"
+          },
           "description": {
             "type": "unicode",
             "value": ""
@@ -18612,6 +18656,7 @@
       "test_class": "ApiModifyCronJobRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
+        "cron_job_id": "OSBreakDown",
         "description": "",
         "flow_args": {},
         "flow_name": "OSBreakDown",
@@ -18637,6 +18682,10 @@
           "allow_overruns": {
             "type": "RDFBool",
             "value": false
+          },
+          "cron_job_id": {
+            "type": "ApiCronJobId",
+            "value": "GRRVersionBreakDown"
           },
           "description": {
             "type": "unicode",
@@ -18680,6 +18729,7 @@
       "test_class": "ApiModifyCronJobRegressionTest_http_v1",
       "type_stripped_response": {
         "allow_overruns": false,
+        "cron_job_id": "GRRVersionBreakDown",
         "description": "",
         "flow_args": {},
         "flow_name": "GRRVersionBreakDown",

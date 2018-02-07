@@ -3,24 +3,24 @@
 goog.provide('grrUi.hunt');
 goog.provide('grrUi.hunt.huntModule');
 
-goog.require('grrUi.core.coreModule');
+goog.require('grrUi.core');  // USE: coreModule
 
-goog.require('grrUi.hunt.huntClientsDirective.HuntClientsDirective');
-goog.require('grrUi.hunt.huntContextDirective.HuntContextDirective');
-goog.require('grrUi.hunt.huntCrashesDirective.HuntCrashesDirective');
-goog.require('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
-goog.require('grrUi.hunt.huntGraphDirective.HuntGraphDirective');
-goog.require('grrUi.hunt.huntInspectorDirective.HuntInspectorDirective');
-goog.require('grrUi.hunt.huntLogDirective.HuntLogDirective');
-goog.require('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
-goog.require('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
-goog.require('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
-goog.require('grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective');
-goog.require('grrUi.hunt.huntsListDirective.HuntsListDirective');
-goog.require('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
-goog.require('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
+goog.require('grrUi.hunt.huntClientsDirective');    // USE: HuntClientsDirective
+goog.require('grrUi.hunt.huntContextDirective');    // USE: HuntContextDirective
+goog.require('grrUi.hunt.huntCrashesDirective');    // USE: HuntCrashesDirective
+goog.require('grrUi.hunt.huntErrorsDirective');     // USE: HuntErrorsDirective
+goog.require('grrUi.hunt.huntGraphDirective');      // USE: HuntGraphDirective
+goog.require('grrUi.hunt.huntInspectorDirective');  // USE: HuntInspectorDirective
+goog.require('grrUi.hunt.huntLogDirective');        // USE: HuntLogDirective
+goog.require('grrUi.hunt.huntOverviewDirective');  // USE: HuntOverviewDirective
+goog.require('grrUi.hunt.huntResultsDirective');   // USE: HuntResultsDirective
+goog.require('grrUi.hunt.huntStatsDirective');     // USE: HuntStatsDirective
+goog.require('grrUi.hunt.huntStatusIconDirective');  // USE: HuntStatusIconDirective
+goog.require('grrUi.hunt.huntsListDirective');       // USE: HuntsListDirective
+goog.require('grrUi.hunt.huntsViewDirective');       // USE: HuntsViewDirective
+goog.require('grrUi.hunt.modifyHuntDialogDirective');  // USE: ModifyHuntDialogDirective
 
-goog.require('grrUi.hunt.newHuntWizard.newHuntWizardModule');
+goog.require('grrUi.hunt.newHuntWizard');  // USE: newHuntWizardModule
 
 
 /**

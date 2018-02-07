@@ -2,8 +2,8 @@
 
 goog.module('grrUi.forms.semanticProtoSingleFieldFormDirectiveTest');
 
-const formsModule = goog.require('grrUi.forms.formsModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {formsModule} = goog.require('grrUi.forms');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('semantic proto single field form directive', () => {

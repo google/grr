@@ -2,8 +2,8 @@
 
 goog.provide('grrUi.artifact.artifactDialogService');
 goog.provide('grrUi.artifact.artifactDialogService.ArtifactDialogService');
-goog.require('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
-goog.require('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
+goog.require('grrUi.artifact.deleteArtifactsDialogDirective');  // USE: DeleteArtifactsDialogDirective
+goog.require('grrUi.artifact.uploadArtifactDialogDirective');  // USE: UploadArtifactDialogDirective
 
 goog.scope(function() {
 

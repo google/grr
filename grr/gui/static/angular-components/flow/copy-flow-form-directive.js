@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.flow.copyFlowFormDirective');
 goog.provide('grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective');
-goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
 
 goog.scope(function() {
 

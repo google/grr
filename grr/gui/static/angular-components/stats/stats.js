@@ -3,18 +3,17 @@
 goog.provide('grrUi.stats');
 goog.provide('grrUi.stats.statsModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.stats.auditChartDirective.AuditChartDirective');
-goog.require('grrUi.stats.chartDirective.ChartDirective');
-goog.require('grrUi.stats.reportDescsService.ReportDescsService');
-goog.require('grrUi.stats.reportDirective.ReportDirective');
-goog.require('grrUi.stats.reportListingDirective.ReportListingDirective');
-goog.require('grrUi.stats.serverLoadDirective.ServerLoadDirective');
-goog.require('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
-goog.require('grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective');
-goog.require('grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective');
-goog.require('grrUi.stats.statsViewDirective.StatsViewDirective');
-goog.require('grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective');
+goog.require('grrUi.core');                          // USE: coreModule
+goog.require('grrUi.stats.auditChartDirective');     // USE: AuditChartDirective
+goog.require('grrUi.stats.chartDirective');          // USE: ChartDirective
+goog.require('grrUi.stats.reportDescsService');      // USE: ReportDescsService
+goog.require('grrUi.stats.reportDirective');         // USE: ReportDirective
+goog.require('grrUi.stats.reportListingDirective');  // USE: ReportListingDirective
+goog.require('grrUi.stats.serverLoadDirective');  // USE: ServerLoadDirective, ServerLoadIndicatorService
+goog.require('grrUi.stats.serverLoadGraphSerieDirective');  // USE: ServerLoadGraphSerieDirective
+goog.require('grrUi.stats.serverLoadIndicatorDirective');  // USE: ServerLoadIndicatorDirective
+goog.require('grrUi.stats.statsViewDirective');  // USE: StatsViewDirective
+goog.require('grrUi.stats.timeseriesGraphDirective');  // USE: TimeseriesGraphDirective
 
 
 /**

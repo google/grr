@@ -2,8 +2,8 @@
 
 goog.module('grrUi.semantic.statModeDirectiveTest');
 
-const semanticModule = goog.require('grrUi.semantic.semanticModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {semanticModule} = goog.require('grrUi.semantic');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('stat mode directive', () => {

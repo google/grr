@@ -3,15 +3,15 @@
 goog.provide('grrUi.user');
 goog.provide('grrUi.user.userModule');
 
-goog.require('grrUi.core.coreModule');
-goog.require('grrUi.forms.formsModule');
-goog.require('grrUi.user.userDashboardDirective.UserDashboardDirective');
-goog.require('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
-goog.require('grrUi.user.userLabelDirective.UserLabelDirective');
-goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
-goog.require('grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective');
-goog.require('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
-goog.require('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective');
+goog.require('grrUi.core');                         // USE: coreModule
+goog.require('grrUi.forms');                        // USE: formsModule
+goog.require('grrUi.user.userDashboardDirective');  // USE: UserDashboardDirective
+goog.require('grrUi.user.userDesktopNotificationsDirective');  // USE: UserDesktopNotificationsDirective
+goog.require('grrUi.user.userLabelDirective');  // USE: UserLabelDirective
+goog.require('grrUi.user.userNotificationButtonDirective');  // USE: UserNotificationButtonDirective
+goog.require('grrUi.user.userNotificationDialogDirective');  // USE: UserNotificationDialogDirective
+goog.require('grrUi.user.userNotificationItemDirective');  // USE: UserNotificationItemDirective
+goog.require('grrUi.user.userSettingsButtonDirective');  // USE: UserSettingsButtonDirective
 
 
 /**
@@ -25,20 +25,25 @@ grrUi.user.userModule.directive(
     grrUi.user.userDashboardDirective.UserDashboardDirective
         .directive_name,
     grrUi.user.userDashboardDirective.UserDashboardDirective);
-grrUi.core.coreModule.directive(
-    grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective.directive_name,
-    grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective);
-grrUi.core.coreModule.directive(
+grrUi.user.userModule.directive(
+    grrUi.user.userDesktopNotificationsDirective
+        .UserDesktopNotificationsDirective.directive_name,
+    grrUi.user.userDesktopNotificationsDirective
+        .UserDesktopNotificationsDirective);
+grrUi.user.userModule.directive(
     grrUi.user.userLabelDirective.UserLabelDirective.directive_name,
     grrUi.user.userLabelDirective.UserLabelDirective);
-grrUi.core.coreModule.directive(
-    grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.directive_name,
+grrUi.user.userModule.directive(
+    grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective
+        .directive_name,
     grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective);
-grrUi.core.coreModule.directive(
-    grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective.directive_name,
+grrUi.user.userModule.directive(
+    grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective
+        .directive_name,
     grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective);
-grrUi.core.coreModule.directive(
-    grrUi.user.userNotificationItemDirective.UserNotificationItemDirective.directive_name,
+grrUi.user.userModule.directive(
+    grrUi.user.userNotificationItemDirective.UserNotificationItemDirective
+        .directive_name,
     grrUi.user.userNotificationItemDirective.UserNotificationItemDirective);
 grrUi.user.userModule.directive(
     grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective

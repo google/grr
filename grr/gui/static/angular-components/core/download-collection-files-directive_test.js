@@ -2,8 +2,8 @@
 
 goog.module('grrUi.core.downloadCollectionFilesDirectiveTest');
 
-const coreModule = goog.require('grrUi.core.coreModule');
-const testsModule = goog.require('grrUi.tests.testsModule');
+const {coreModule} = goog.require('grrUi.core');
+const {testsModule} = goog.require('grrUi.tests');
 
 
 describe('download collection files directive', () => {

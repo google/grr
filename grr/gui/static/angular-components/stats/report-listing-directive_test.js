@@ -2,7 +2,7 @@
 
 goog.module('grrUi.stats.reportListingDirectiveTest');
 
-const parseStatsReportsApiResponse = goog.require('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
+const {parseStatsReportsApiResponse} = goog.require('grrUi.stats.reportListingDirective');
 
 describe('stats.reportListingDirective.parseStatsReportsApiResponse', () => {
   it('Parses the response into a jsTree-compatible format.', () => {

@@ -3,49 +3,45 @@
 goog.provide('grrUi.core');
 goog.provide('grrUi.core.coreModule');
 
-goog.require('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');
-goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
-goog.require('grrUi.core.apiService.ApiService');
-goog.require('grrUi.core.basenameFilter.BasenameFilter');
-goog.require('grrUi.core.bindKeyDirective.BindKeyDirective');
-goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
-goog.require('grrUi.core.canaryOnlyDirective.CanaryOnlyDirective');
-goog.require('grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective');
-goog.require('grrUi.core.clockDirective.ClockDirective');
-goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
-goog.require('grrUi.core.dialogService.DialogService');
-goog.require('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
-goog.require('grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective');
-goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
-goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
-goog.require('grrUi.core.firebaseService.FirebaseService');
-goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
-goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
-goog.require('grrUi.core.hexNumberFilter.HexNumberFilter');
-goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
-goog.require('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
-goog.require('grrUi.core.loadingIndicatorService.LoadingIndicatorService');
-goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
-goog.require('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
-goog.require('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
-goog.require('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
-goog.require('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
-goog.require('grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective');
-goog.require('grrUi.core.reflectionService.ReflectionService');
-goog.require('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
-goog.require('grrUi.core.searchBoxDirective.SearchBoxDirective');
-goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
-goog.require('grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective');
-goog.require('grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory');
-goog.require('grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective');
-goog.require('grrUi.core.splitterDirective.SplitterDirective');
-goog.require('grrUi.core.splitterDirective.SplitterPaneDirective');
-goog.require('grrUi.core.timeService.TimeService');
-goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
-goog.require('grrUi.core.timestampFilter.TimestampFilter');
-goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
-goog.require('grrUi.core.wizardFormDirective.WizardFormDirective');
-goog.require('grrUi.core.wizardFormPageDirective.WizardFormPageDirective');
+goog.require('grrUi.core.aff4ObjectRepresentationDirective');  // USE: Aff4ObjectRepresentationDirective
+goog.require('grrUi.core.apiItemsProviderDirective');  // USE: ApiItemsProviderDirective
+goog.require('grrUi.core.apiService');                 // USE: ApiService
+goog.require('grrUi.core.basenameFilter');             // USE: BasenameFilter
+goog.require('grrUi.core.bindKeyDirective');           // USE: BindKeyDirective
+goog.require('grrUi.core.bytesToHexFilter');           // USE: BytesToHexFilter
+goog.require('grrUi.core.canaryOnlyDirective');  // USE: CanaryOnlyDirective, NonCanaryOnlyDirective
+goog.require('grrUi.core.clockDirective');               // USE: ClockDirective
+goog.require('grrUi.core.confirmationDialogDirective');  // USE: ConfirmationDialogDirective
+goog.require('grrUi.core.dialogService');                // USE: DialogService
+goog.require('grrUi.core.disableIfNoTraitDirective');  // USE: DisableIfNoTraitDirective
+goog.require('grrUi.core.downloadCollectionAsDirective');  // USE: DownloadCollectionAsDirective
+goog.require('grrUi.core.downloadCollectionFilesDirective');  // USE: DownloadCollectionFilesDirective
+goog.require('grrUi.core.encodeUriComponentFilter');  // USE: EncodeUriComponentFilter
+goog.require('grrUi.core.firebaseService');           // USE: FirebaseService
+goog.require('grrUi.core.forceRefreshDirective');  // USE: ForceRefreshDirective
+goog.require('grrUi.core.globalNotificationsDirective');  // USE: GlobalNotificationsDirective
+goog.require('grrUi.core.hexNumberFilter');         // USE: HexNumberFilter
+goog.require('grrUi.core.infiniteTableDirective');  // USE: InfiniteTableDirective
+goog.require('grrUi.core.loadingIndicatorDirective');  // USE: LoadingIndicatorDirective
+goog.require('grrUi.core.loadingIndicatorService');  // USE: LoadingIndicatorService
+goog.require('grrUi.core.memoryItemsProviderDirective');  // USE: MemoryItemsProviderDirective
+goog.require('grrUi.core.onScrollIntoViewDirective');  // USE: OnScrollIntoViewDirective
+goog.require('grrUi.core.pagedFilteredTableDirective');  // USE: PagedFilteredTableDirective, TableBottomDirective, TableTopDirective
+goog.require('grrUi.core.periodicRefreshDirective');  // USE: PeriodicRefreshDirective
+goog.require('grrUi.core.reflectionService');         // USE: ReflectionService
+goog.require('grrUi.core.resultsCollectionDirective');  // USE: ResultsCollectionDirective
+goog.require('grrUi.core.searchBoxDirective');  // USE: SearchBoxDirective
+goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
+goog.require('grrUi.core.serverErrorDialogDirective');  // USE: ServerErrorDialogDirective
+goog.require('grrUi.core.serverErrorInterceptorFactory');  // USE: ServerErrorInterceptorFactory
+goog.require('grrUi.core.serverErrorPreviewDirective');  // USE: ServerErrorPreviewDirective
+goog.require('grrUi.core.splitterDirective');  // USE: SplitterDirective, SplitterPaneDirective
+goog.require('grrUi.core.timeService');               // USE: TimeService
+goog.require('grrUi.core.timeSinceFilter');           // USE: TimeSinceFilter
+goog.require('grrUi.core.timestampFilter');           // USE: TimestampFilter
+goog.require('grrUi.core.versionDropdownDirective');  // USE: VersionDropdownDirective
+goog.require('grrUi.core.wizardFormDirective');      // USE: WizardFormDirective
+goog.require('grrUi.core.wizardFormPageDirective');  // USE: WizardFormPageDirective
 
 
 /**

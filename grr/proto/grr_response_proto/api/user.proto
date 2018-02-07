@@ -370,6 +370,7 @@ message ApiListHuntApprovalsResult {
 
 message ApiCreateCronJobApprovalArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron id."
     }];
   optional ApiCronJobApproval approval = 2;
@@ -377,6 +378,7 @@ message ApiCreateCronJobApprovalArgs {
 
 message ApiGetCronJobApprovalArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron id."
     }];
   optional string approval_id = 2 [(sem_type) = {
@@ -391,6 +393,7 @@ message ApiGetCronJobApprovalArgs {
 
 message ApiGrantCronJobApprovalArgs {
   optional string cron_job_id = 1 [(sem_type) = {
+      type: "ApiCronJobId",
       description: "Cron id."
     }];
   optional string approval_id = 2 [(sem_type) = {

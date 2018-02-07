@@ -2,7 +2,7 @@
 
 goog.module('grrUi.routing.aff4UrnToUrlTest');
 
-const aff4UrnToUrl = goog.require('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
+const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
 
 
 describe('aff4UrnToUrl()', () => {

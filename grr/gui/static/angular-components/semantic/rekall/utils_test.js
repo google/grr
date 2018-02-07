@@ -2,8 +2,7 @@
 
 goog.module('grrUi.semantic.rekall.utilsTest');
 
-const cropRekallJson = goog.require('grrUi.semantic.rekall.utils.cropRekallJson');
-const stackRekallTables = goog.require('grrUi.semantic.rekall.utils.stackRekallTables');
+const {cropRekallJson, stackRekallTables} = goog.require('grrUi.semantic.rekall.utils');
 
 
 describe('semantic.rekall.utils.cropRekallJson', () => {

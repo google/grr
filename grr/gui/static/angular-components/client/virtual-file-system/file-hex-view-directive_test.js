@@ -2,8 +2,8 @@
 
 goog.module('grrUi.client.virtualFileSystem.fileHexViewDirectiveTest');
 
-const testsModule = goog.require('grrUi.tests.testsModule');
-const virtualFileSystemModule = goog.require('grrUi.client.virtualFileSystem.virtualFileSystemModule');
+const {testsModule} = goog.require('grrUi.tests');
+const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem');
 
 
 describe('file hex view directive', () => {
