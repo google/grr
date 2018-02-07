@@ -52,8 +52,7 @@ class InMemoryDB(db.Database):
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
-                          last_foreman=None,
-                          last_crash=None):
+                          last_foreman=None):
     self._ValidateClientId(client_id)
 
     md = {}
@@ -86,13 +85,6 @@ class InMemoryDB(db.Database):
     if last_foreman is not None:
       md["last_foreman_time"] = last_foreman
 
-    if last_crash is not None:
-      if not isinstance(last_crash, rdf_client.ClientCrash):
-        raise ValueError(
-            "last_crash must be client.ClientCrash, got: %s" % type(last_crash))
-
-      md["last_crash"] = last_crash
-
     if not md:
       raise ValueError("NOOP write.")
 
@@ -111,8 +103,7 @@ class InMemoryDB(db.Database):
           ping=md.get("ping"),
           clock=md.get("clock"),
           ip=md.get("ip"),
-          last_foreman_time=md.get("last_foreman_time"),
-          last_crash=md.get("last_crash"))
+          last_foreman_time=md.get("last_foreman_time"))
     return res
 
   def WriteClient(self, client):

@@ -145,35 +145,12 @@ class DatabaseTestMixin(object):
         m1.ip, rdf_client.NetworkAddress(human_readable_address="8.8.8.8"))
     self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000000000))
 
-  def testClientMetadataCrash(self):
-    d = self.db
-
-    client_id_1 = "C.fc413187fefa1dcf"
-    self._InitializeClient(client_id_1)
-
-    # Typical update on client crash.
-    d.WriteClientMetadata(
-        client_id_1,
-        last_crash=rdf_client.ClientCrash(crash_message="Et tu, Brute?"))
-    res = d.ReadClientMetadatas([client_id_1])
-    self.assertEqual(len(res), 1)
-    m1 = res[client_id_1]
-    self.assertEqual(
-        m1.last_crash, rdf_client.ClientCrash(crash_message="Et tu, Brute?"))
-
   def testClientMetadataValidatesIP(self):
     d = self.db
     client_id = "C.fc413187fefa1dcf"
     with self.assertRaises(ValueError):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
-
-  def testClientMetadataValidatesCrash(self):
-    d = self.db
-    client_id = "C.fc413187fefa1dcf"
-    with self.assertRaises(ValueError):
-      d.WriteClientMetadata(
-          client_id, fleetspeak_enabled=True, last_crash="Et tu, Brute?")
 
   def testClientHistory(self):
     d = self.db

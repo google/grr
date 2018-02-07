@@ -75,26 +75,25 @@ message Client {
 
 
 message ClientMetadata {
-  optional ClientCrash last_crash = 1;
-  optional bytes certificate = 2 [(sem_type) = {
+  optional bytes certificate = 1 [(sem_type) = {
       type: "RDFX509Cert",
     }];
-  optional bool fleetspeak_enabled = 3;
-  optional uint64 ping = 4 [(sem_type) = {
+  optional bool fleetspeak_enabled = 2;
+  optional uint64 ping = 3 [(sem_type) = {
       type: "RDFDatetime",
       description: "The last time the server heard from this client.",
     }];
-  optional uint64 clock = 5 [(sem_type) = {
+  optional uint64 clock = 4 [(sem_type) = {
       type: "RDFDatetime",
       description: "The last clock read on the client. "
                    "(Can be used to estimate client clock skew).",
     }];
-  optional NetworkAddress ip = 6;
-  optional uint64 last_foreman_time = 7 [(sem_type) = {
+  optional NetworkAddress ip = 5;
+  optional uint64 last_foreman_time = 6 [(sem_type) = {
       type: "RDFDatetime",
       description: "The last time the foreman checked us.",
     }];
-  optional uint64 first_seen = 8 [(sem_type) = {
+  optional uint64 first_seen = 7 [(sem_type) = {
       type: "RDFDatetime",
       description: "First time the client registered with us",
     }];

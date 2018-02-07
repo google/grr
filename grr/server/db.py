@@ -35,8 +35,7 @@ class Database(object):
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
-                          last_foreman=None,
-                          last_crash=None):
+                          last_foreman=None):
     """Write metadata about the client.
 
     Updates one or more client metadata fields for the given client_id. Any of
@@ -59,8 +58,6 @@ class Database(object):
         ip address for the client.
       last_foreman: And rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
-      last_crash: An rdfvalues.client.ClientCrash, documenting the last recorded
-        client crash event.
 
     Raises:
       UnknownClientError: The client_id is not known yet.

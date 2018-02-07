@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS clients(
     last_clock DATETIME(6),
     last_ip VARCHAR(64),
     last_foreman DATETIME(6),
-    last_crash MEDIUMBLOB,
     first_seen DATETIME(6)
 )""", """
 CREATE TABLE IF NOT EXISTS client_labels(

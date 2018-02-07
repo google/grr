@@ -91,8 +91,7 @@ class MysqlDB(object):
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
-                          last_foreman=None,
-                          last_crash=None):
+                          last_foreman=None):
     """Write metadata about the client."""
 
     columns = ["client_id"]
@@ -124,12 +123,6 @@ class MysqlDB(object):
     if last_foreman:
       columns.append("last_foreman")
       values.append(_RDFDatetimeToMysql(last_foreman))
-    if last_crash:
-      columns.append("last_crash")
-      if not isinstance(last_crash, rdf_client.ClientCrash):
-        raise ValueError(
-            "last_crash must be client.ClientCrash, got: %s" % type(last_crash))
-      values.append(last_crash.SerializeToString())
 
     query = (
         "INSERT INTO clients ({cols}) VALUES ({vals}) ON DUPLICATE KEY UPDATE "
@@ -151,7 +144,7 @@ class MysqlDB(object):
     """Reads ClientMetadata records for a list of clients."""
     ids = [_ClientIDToInt(client_id) for client_id in client_ids]
     query = ("SELECT client_id, fleetspeak_enabled, certificate, last_ping, "
-             "last_clock, last_ip, last_foreman, last_crash, first_seen FROM "
+             "last_clock, last_ip, last_foreman, first_seen FROM "
              "clients WHERE client_id IN ({})").format(", ".join(
                  ["%s"] * len(ids)))
     con = self.pool.get()
@@ -163,7 +156,7 @@ class MysqlDB(object):
         row = cursor.fetchone()
         if not row:
           break
-        cid, fs, crt, ping, clk, ip, foreman, crash, first = row
+        cid, fs, crt, ping, clk, ip, foreman, first = row
         ret[_IntToClientID(cid)] = objects.ClientMetadata(
             certificate=crt,
             fleetspeak_enabled=fs,
@@ -171,8 +164,7 @@ class MysqlDB(object):
             ping=_MysqlToRDFDatetime(ping),
             clock=_MysqlToRDFDatetime(clk),
             ip=_StringToRDFProto(rdf_client.NetworkAddress, ip),
-            last_foreman_time=_MysqlToRDFDatetime(foreman),
-            last_crash=_StringToRDFProto(rdf_client.ClientCrash, crash))
+            last_foreman_time=_MysqlToRDFDatetime(foreman))
     finally:
       cursor.close()
       con.close()

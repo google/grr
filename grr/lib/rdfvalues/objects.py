@@ -142,7 +142,6 @@ class ClientMetadata(structs.RDFProtoStruct):
   protobuf = objects_pb2.ClientMetadata
 
   rdf_deps = [
-      rdf_client.ClientCrash,
       rdf_client.NetworkAddress,
       rdf_crypto.RDFX509Cert,
       rdfvalue.RDFDatetime,
