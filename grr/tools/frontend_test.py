@@ -220,7 +220,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       return session_id
 
   def testClientFileFinderUpload(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download()
 
     session_id = self._RunClientFileFinder(paths, action)
@@ -251,7 +251,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
 
   def testClientFileFinderUploadLimit(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download()
 
     with self.assertRaises(RuntimeError) as e:
@@ -259,7 +259,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       self.assertIn("Action exceeded network send limit.", e.exception.message)
 
   def testClientFileFinderUploadBound(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download(
         oversized_file_policy="DOWNLOAD_TRUNCATED", max_size=300)
 
@@ -285,7 +285,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
                        open(r.stat_entry.pathspec.path, "rb").read(len(data)))
 
   def testClientFileFinderUploadSkip(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download(
         oversized_file_policy="SKIP", max_size=300)
 
@@ -318,7 +318,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
           open(r.stat_entry.pathspec.path, "rb").read(100))
 
   def testClientFileFinderFilestoreIntegration(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download()
 
     client_ids = self.SetupClients(2)

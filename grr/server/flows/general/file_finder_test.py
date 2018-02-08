@@ -837,7 +837,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     return results
 
   def testClientFileFinder(self):
-    paths = [os.path.join(self.base_path, "**/*.plist")]
+    paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Action.STAT
     results = self._RunCFF(paths, action)
 

@@ -8,7 +8,6 @@ import fnmatch
 import itertools
 import logging
 import os
-import platform
 import re
 
 import psutil
@@ -25,130 +24,15 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
+# TODO(hanuszczak): This module is now ready to be split into multiple
+# submodules. The main one should just contain a thin `FileFinderOS` class,
+# condition classes should be moved to `conditions` submodule, classes
+# related to path globbing to the `glob` submodule and subaction classes should
+# be move to `actions` submodule.
+
+
 class _SkipFileException(Exception):
   pass
-
-
-# TODO(hanuszczak): This class should be removed once the new path component
-# system is ready.
-class _OldComponent(object):
-  """A component of a path."""
-
-  def __hash__(self):
-    return hash(self.__str__())
-
-  def Generate(self, base_path):
-    raise NotImplementedError()
-
-
-# TODO(hanuszczak): This class should be removed once the new path component
-# system is ready.
-class _OldRecursiveComponent(_OldComponent):
-  """A recursive component."""
-
-  def __init__(self, depth, follow_links=False, mountpoints_blacklist=None):
-    self.depth = depth
-    self.follow_links = follow_links
-    self.mountpoints_blacklist = mountpoints_blacklist
-
-  def Generate(self, base_path):
-    for f in self._Generate(base_path, []):
-      yield f
-
-  def _Generate(self, base_path, relative_components):
-    """Generates the relative filenames."""
-
-    new_base = os.path.join(base_path, *relative_components)
-    if not relative_components:
-      yield new_base
-    try:
-      filenames = os.listdir(new_base)
-    except OSError as e:
-      if e.errno == errno.EACCES:  # permission denied.
-        logging.info(e)
-      return
-
-    for f in filenames:
-      new_components = relative_components + [f]
-      relative_name = os.path.join(*new_components)
-      yield relative_name
-
-      if len(new_components) >= self.depth:
-        continue
-
-      filename = os.path.join(base_path, relative_name)
-      try:
-        stat = utils.Stat(filename)
-        if not stat.IsDirectory():
-          continue
-        if filename in self.mountpoints_blacklist:
-          continue
-        if (not self.follow_links and
-            utils.Stat(filename, follow_symlink=False).IsSymlink()):
-          continue
-        for res in self._Generate(base_path, new_components):
-          yield res
-      except OSError as e:
-        if e.errno not in [errno.ENOENT, errno.ENOTDIR, errno.EINVAL]:
-          logging.info(e)
-
-  def __str__(self):
-    return "%s:%s" % (self.__class__, self.depth)
-
-
-# TODO(hanuszczak): This class should be removed once the new path component
-# system is ready.
-class _OldRegexComponent(_OldComponent):
-  """A component matching the file name against a regex."""
-
-  def __init__(self, regex):
-    self.regex = re.compile(regex, flags=re.I)
-
-  def Generate(self, base_path):
-    try:
-      for f in os.listdir(base_path):
-        if self.regex.match(f):
-          yield f
-    except OSError as e:
-      if e.errno == errno.EACCES:  # permission denied.
-        logging.error(e)
-
-  def __str__(self):
-    return "%s:%s" % (self.__class__, self.regex)
-
-
-# TODO(hanuszczak): This class should be removed once the new path component
-# system is ready.
-class _OldLiteralComponent(_OldComponent):
-  """A component matching literal names."""
-
-  def __init__(self, literal):
-    self.literal = literal
-
-  def Generate(self, base_path):
-    corrected_matches = []
-    literal_lower = self.literal.lower()
-
-    try:
-      for c in os.listdir(base_path):
-        # Perfect match.
-        if c == self.literal:
-          yield self.literal
-          return
-
-        # Case correction.
-        if c.lower() == literal_lower:
-          corrected_matches.append(c)
-
-      for m in corrected_matches:
-        yield m
-
-    except OSError as e:
-      if e.errno == errno.EACCES:  # permission denied.
-        logging.error(e)
-
-  def __str__(self):
-    return "%s:%s" % (self.__class__, self.literal)
 
 
 class FileFinderOS(actions.ActionPlugin):
@@ -157,46 +41,17 @@ class FileFinderOS(actions.ActionPlugin):
   in_rdfvalue = rdf_file_finder.FileFinderArgs
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
-  # This regex finds grouping patterns
-  # (e.g. {test.exe,foo.doc,bar.txt}) and interpolations
-  # (%%users.homedir%%).
-  GROUPING_PATTERN = re.compile("({([^}]+,[^}]+)}|%%([^%]+?)%%)")
-
-  # This regex finds recursions (C:\**, /usr/bin/**2).
-  RECURSION_REGEX = re.compile(r"\*\*(\d*)")
-
-  # A regex indicating if there are shell globs in this path.
-  GLOB_MAGIC_CHECK = re.compile("[*?[]")
-
   def Run(self, args):
-    self.follow_links = args.follow_links
-    self.process_non_regular_files = args.process_non_regular_files
-
     self.stat_cache = utils.StatCache()
 
-    # Generate a list of mount points where we stop recursive searches.
-    if args.xdev == args.XDev.NEVER:
-      # Never cross device boundaries, stop at all mount points.
-      self.mountpoints_blacklist = set(
-          [p.mountpoint for p in psutil.disk_partitions(all=True)])
-    elif args.xdev == args.XDev.LOCAL:
-      # Descend into file systems on physical devices only.
-      self.mountpoints_blacklist = (
-          set([p.mountpoint for p in psutil.disk_partitions(all=True)]) -
-          set([p.mountpoint for p in psutil.disk_partitions(all=False)]))
-    elif args.xdev == args.XDev.ALWAYS:
-      # Never stop at any device boundary.
-      self.mountpoints_blacklist = set()
-
     action = self._ParseAction(args)
-
-    for fname in self.CollectGlobs(args.paths):
+    for path in self._GetExpandedPaths(args):
       self.Progress()
       try:
-        matches = self._Validate(args, fname)
+        matches = self._Validate(args, path)
         result = rdf_file_finder.FileFinderResult()
         result.matches = matches
-        action.Execute(fname, result)
+        action.Execute(path, result)
         self.SendReply(result)
       except _SkipFileException:
         pass
@@ -210,6 +65,24 @@ class FileFinderOS(actions.ActionPlugin):
     if action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       return DownloadAction(self, args.action.download)
     raise ValueError("Incorrect action type: %s" % action_type)
+
+  def _GetExpandedPaths(self, args):
+    """Expands given path patterns.
+
+    Args:
+      args: A `FileFinderArgs` instance that dictates the behaviour of the path
+          expansion.
+
+    Yields:
+      Absolute paths (as string objects) derived from input patterns.
+    """
+    opts = PathOpts(
+        follow_links=args.follow_links,
+        recursion_blacklist=_GetMountpointBlacklist(args.xdev))
+
+    for path in args.paths:
+      for expanded_path in ExpandPath(utils.SmartStr(path), opts):
+        yield expanded_path
 
   def _GetStat(self, filepath, follow_symlink=True):
     try:
@@ -245,165 +118,48 @@ class FileFinderOS(actions.ActionPlugin):
         raise _SkipFileException()
       matches.extend(result)
 
-  def CollectGlobs(self, globs):
-    expanded_globs = {}
-    for glob in globs:
-      initial_component, path = self._SplitInitialPathComponent(
-          utils.SmartUnicode(glob))
-      expanded_globs.setdefault(initial_component, []).extend(
-          self._InterpolateGrouping(path))
 
-    component_tree = {}
-    for initial_component, glob_list in expanded_globs.iteritems():
-      for glob in glob_list:
-        node = component_tree.setdefault(initial_component, {})
-        for component in self._ConvertGlobIntoPathComponents(glob):
-          node = node.setdefault(component, {})
+def _GetMountpoints(only_physical=True):
+  """Fetches a list of mountpoints.
 
-    for initial_component in component_tree:
-      for f in self._TraverseComponentTree(component_tree[initial_component],
-                                           initial_component):
-        yield f
+  Args:
+    only_physical: Determines whether only mountpoints for physical devices
+        (e.g. hard disks) should be listed. If false, mountpoints for things
+        such as memory partitions or `/dev/shm` will be returned as well.
 
-  def _SplitInitialPathComponent(self, path):
-    r"""Splits off the initial component of the given path.
+  Returns:
+    A set of mountpoints.
+  """
+  partitions = psutil.disk_partitions(all=not only_physical)
+  return set(partition.mountpoint for partition in partitions)
 
-    This function is needed since on Windows, the first component of a
-    path (usually indicating a drive) needs to be treated
-    specially. Even though there are many ways of specifying paths on
-    Windows, we only support the syntax c:\file.
 
-    Args:
-      path: The path to split.
-    Returns:
-      A tuple, first component and remainder.
-    Raises:
-      ValueError: The path format was not understood.
-    """
+def _GetMountpointBlacklist(xdev):
+  """Builds a list of mountpoints to ignore during recursive searches.
 
-    if platform.system() != "Windows":
-      return u"/", path
+  Args:
+    xdev: A `XDev` value that determines policy for crossing device boundaries.
 
-    # In case the path start with: C:
-    if len(path) >= 2 and path[1] == u":":
-      # A backslash is needed after the drive letter to make this an
-      # absolute path. Also, we always capitalize the drive letter.
-      return path[:2].upper() + u"\\", path[2:].lstrip(u"\\")
+  Returns:
+    A set of mountpoints to ignore.
 
-    raise ValueError("Can't handle path: %s" % path)
+  Raises:
+    ValueError: If `xdev` value is invalid.
+  """
+  if xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:
+    # Never cross device boundaries, stop at all mount points.
+    return _GetMountpoints(only_physical=False)
 
-  def _TraverseComponentTree(self, component_tree, base_path):
+  if xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:
+    # Descend into file systems on physical devices only.
+    physical = _GetMountpoints(only_physical=True)
+    return _GetMountpoints(only_physical=False) - physical
 
-    for component, subtree in component_tree.iteritems():
-      for f in component.Generate(base_path):
-        if subtree:
-          for res in self._TraverseComponentTree(subtree,
-                                                 os.path.join(base_path, f)):
-            yield res
-        else:
-          yield os.path.join(base_path, f)
+  if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:
+    # Never stop at any device boundary.
+    return set()
 
-  def _InterpolateGrouping(self, pattern):
-    """Takes the pattern and splits it into components.
-
-    Each grouping pattern is expanded into a set:
-      /foo{a,b}/bar -> ["/foo", set(["a", "b"]), "/bar"]
-
-    Raises:
-      ValueError: Unknown pattern or interpolation.
-      NotImplementedError: The pattern is using knowledgebase interpolations,
-                           they are not implemented client side yet.
-    Args:
-      pattern: list of patterns.
-    Returns:
-      A list of interpolated patterns.
-    """
-    result = []
-    components = []
-    offset = 0
-    for match in self.GROUPING_PATTERN.finditer(pattern):
-      match_str = match.group(0)
-      # Alternatives.
-      if match_str.startswith(u"{"):
-        components.append([pattern[offset:match.start()]])
-
-        # Expand the attribute into the set of possibilities:
-        alternatives = match.group(2).split(u",")
-        components.append(set(alternatives))
-        offset = match.end()
-
-      # KnowledgeBase interpolation.
-      elif match_str.startswith(u"%"):
-        raise NotImplementedError("Client side knowledgebase not available.")
-
-      else:
-        raise ValueError("Unknown interpolation %s" % match.group(0))
-
-    components.append([pattern[offset:]])
-    # Now calculate the cartesian products of all these sets to form all
-    # strings.
-    for vector in itertools.product(*components):
-      result.append(u"".join(vector))
-
-    # These should be all possible patterns.
-    # e.g. /fooa/bar , /foob/bar
-    return result
-
-  def _ConvertGlobIntoPathComponents(self, pattern):
-    r"""Converts a glob pattern into a list of components.
-
-    Wildcards are also converted to regular expressions. The
-    components do not span directories, and are marked as a regex or a
-    literal component.
-    We also support recursion into directories using the ** notation.  For
-    example, /home/**2/foo.txt will find all files named foo.txt recursed 2
-    directories deep. If the directory depth is omitted, it defaults to 3.
-    Example:
-     /home/**/*.exe -> [{type: "LITERAL", path: "home"},
-                        {type: "RECURSIVE"},
-                        {type: "REGEX", path: ".*\\.exe\\Z(?ms)"}]]
-    Args:
-      pattern: A glob expression with wildcards.
-    Returns:
-      A list of Components.
-    Raises:
-      ValueError: If the glob is invalid.
-    """
-    components = []
-    recursion_count = 0
-    for path_component in pattern.split(os.path.sep):
-      if not path_component:
-        continue
-
-      m = self.RECURSION_REGEX.search(path_component)
-      if m:
-        recursion_count += 1
-        if recursion_count > 1:
-          raise ValueError("Pattern cannot have more than one recursion.")
-
-        if m.group(0) != path_component:
-          raise ValueError("Can't have combined recursive search and regex.")
-
-        depth = 3
-
-        # Allow the user to override the recursion depth.
-        if m.group(1):
-          depth = int(m.group(1))
-
-        component = _OldRecursiveComponent(
-            depth=depth,
-            follow_links=self.follow_links,
-            mountpoints_blacklist=self.mountpoints_blacklist)
-
-      elif self.GLOB_MAGIC_CHECK.search(path_component):
-        component = _OldRegexComponent(fnmatch.translate(path_component))
-
-      else:
-        component = _OldLiteralComponent(path_component)
-
-      components.append(component)
-
-    return components
+  raise ValueError("Incorrect `xdev` value: %s" % xdev)
 
 
 class PathOpts(object):
