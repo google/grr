@@ -516,8 +516,11 @@ class FrontEndServer(object):
   def RecordFleetspeakClientPing(self, client_id):
     """Records the last client contact in the datastore."""
     with aff4.FACTORY.Create(
-        client_id, aff4_type=aff4_grr.VFSGRRClient, mode="w",
-        token=self.token) as client:
+        client_id,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="w",
+        token=self.token,
+        force_new_version=False) as client:
       client.Set(client.Schema.PING, rdfvalue.RDFDatetime.Now())
 
   def ReceiveMessages(self, client_id, messages):

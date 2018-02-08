@@ -8,7 +8,7 @@ function build_sdists() {
     rm -rf sdists
   fi
 
-  python proto/setup.py --quiet sdist \
+  python grr/proto/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python setup.py --quiet sdist --formats=zip \
       --dist-dir="${PWD}/sdists" --no-sync-artifacts
