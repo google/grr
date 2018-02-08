@@ -194,6 +194,19 @@ class RDFValue(object):
   def __nonzero__(self):
     return bool(self._value)
 
+  def __str__(self):  # pylint: disable=super-on-old-class
+    """Ignores the __repr__ override below to avoid indefinite recursion."""
+    return super(RDFValue, self).__repr__()
+
+  def __repr__(self):
+    content = utils.SmartStr(self)
+    if len(content) > 100:
+      content = content[:100] + "..."
+
+    # Note %r, which prevents nasty nonascii characters from being printed,
+    # including dangerous terminal escape sequences.
+    return "<%s(%r)>" % (self.__class__.__name__, content)
+
 
 class RDFBytes(RDFValue):
   """An attribute which holds bytes."""
@@ -969,7 +982,7 @@ class RDFURN(RDFValue):
     return None
 
   def __repr__(self):
-    return "<%s age=%s>" % (str(self), self.age)
+    return "<%s age=%s>" % (self, self.age)
 
 
 class Subject(RDFURN):

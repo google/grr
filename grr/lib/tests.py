@@ -15,6 +15,7 @@ from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
 from grr.lib import objectfilter_test
 from grr.lib import parsers_test
+from grr.lib import rdfvalue_test
 from grr.lib import repacking_test
 from grr.lib import stats_test
 from grr.lib import type_info_test

@@ -8,7 +8,7 @@ function delete_gcs_keys() {
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     shred -u travis/travis_uploader_service_account.json
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    srm -sz travis/travis_uploader_service_account.json
+    rm -P travis/travis_uploader_service_account.json
   fi
 }
 
