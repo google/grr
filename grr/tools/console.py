@@ -24,7 +24,6 @@ from grr.lib import server_plugins
 from grr import config
 from grr.config import contexts
 from grr.lib import flags
-from grr.lib import fleetspeak_connector
 from grr.lib import type_info
 from grr.lib import utils
 from grr.server import access_control
@@ -34,6 +33,7 @@ from grr.server import artifact_utils
 from grr.server import console_utils
 from grr.server import data_store
 from grr.server import export_utils
+from grr.server import fleetspeak_connector
 from grr.server import flow
 from grr.server import flow_runner
 from grr.server import flow_utils

@@ -6,7 +6,6 @@ import logging
 import random
 
 from grr import config
-from grr.lib import fleetspeak_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -14,6 +13,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import data_store
+from grr.server import fleetspeak_utils
 
 
 class Error(Exception):

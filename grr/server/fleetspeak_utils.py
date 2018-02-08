@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-"""FS GRR integration utility functions."""
+"""FS GRR server side integration utility functions."""
 
 import binascii
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
-from grr.lib import fleetspeak_connector
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
+from grr.server import fleetspeak_connector
 
 
 def IsFleetspeakEnabledClient(grr_id, token):

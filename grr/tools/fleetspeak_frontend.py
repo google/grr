@@ -12,11 +12,11 @@ from grr.lib import server_plugins
 from grr import config
 from grr.lib import communicator
 from grr.lib import flags
-from grr.lib import fleetspeak_connector
-from grr.lib import fleetspeak_utils
 from grr.lib import stats
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.server import fleetspeak_connector
+from grr.server import fleetspeak_utils
 from grr.server import front_end
 from grr.server import server_startup
 

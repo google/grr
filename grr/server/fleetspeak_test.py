@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Unittest for GRR<->Fleetspeak glue code."""
+"""Unittest for GRR<->Fleetspeak server side glue code."""
 
 import itertools
 import mock
@@ -9,14 +9,14 @@ from fleetspeak.src.server.grpcservice.client import client as fs_client
 
 from grr.lib import communicator
 from grr.lib import flags
-from grr.lib import fleetspeak_connector
-from grr.lib import fleetspeak_utils
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import jobs_pb2
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import fleetspeak_connector
+from grr.server import fleetspeak_utils
 from grr.server import flow
 from grr.server import front_end_test
 from grr.server import queue_manager
