@@ -32,7 +32,7 @@ goog.require('grrUi.local.local');  // USE: localModule
 goog.require('grrUi.outputPlugins.outputPlugins');  // USE: outputPluginsModule
 goog.require('grrUi.routing.routing');              // USE: routingModule
 goog.require('grrUi.semantic.semantic');  // USE: semanticModule
-goog.require('grrUi.sidebar.sidebar.sidebarModule');
+goog.require('grrUi.sidebar.sidebar');    // USE: sidebarModule
 goog.require('grrUi.stats.stats.statsModule');
 /**
  * If GRR is running with AdminUI.use_precompiled_js = True, then

@@ -238,7 +238,11 @@ class HttpConnector(connector.Connector):
     prepped_request = request.prepare()
 
     session = requests.Session()
-    response = session.send(prepped_request, stream=True)
+
+    options = session.merge_environment_settings(prepped_request.url, {}, None,
+                                                 None, None)
+    options["stream"] = True
+    response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
     def GenerateChunks():

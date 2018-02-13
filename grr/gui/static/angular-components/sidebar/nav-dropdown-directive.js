@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.navDropdownDirective');
-goog.provide('grrUi.sidebar.navDropdownDirective.NavDropdownController');
-goog.provide('grrUi.sidebar.navDropdownDirective.NavDropdownDirective');
+goog.module('grrUi.sidebar.navDropdownDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -14,13 +11,12 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.sidebar.navDropdownDirective.NavDropdownController = function() {
+exports.NavDropdownController = function() {
   /** @type {!boolean} */
   this.isCollapsed = true;
 };
 
-var NavDropdownController =
-    grrUi.sidebar.navDropdownDirective.NavDropdownController;
+var NavDropdownController = exports.NavDropdownController;
 
 
 /**
@@ -30,8 +26,7 @@ var NavDropdownController =
  * @ngInject
  * @export
  */
-grrUi.sidebar.navDropdownDirective.NavDropdownDirective =
-    function() {
+exports.NavDropdownDirective = function() {
   return {
     scope: {
       title: '@'
@@ -51,8 +46,4 @@ grrUi.sidebar.navDropdownDirective.NavDropdownDirective =
  * @const
  * @export
  */
-grrUi.sidebar.navDropdownDirective.NavDropdownDirective
-    .directive_name = 'grrNavDropdown';
-
-
-});  // goog.scope
+exports.NavDropdownDirective.directive_name = 'grrNavDropdown';

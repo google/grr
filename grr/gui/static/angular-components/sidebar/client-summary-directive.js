@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.clientSummaryDirective');
-goog.provide('grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective');
+goog.module('grrUi.sidebar.clientSummaryDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ClientSummaryDirective.
@@ -84,7 +84,7 @@ ClientSummaryController.prototype.onClientChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective = function() {
+exports.ClientSummaryDirective = function() {
   return {
     scope: {
       client: '='
@@ -103,7 +103,4 @@ grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective = function() {
  * @const
  * @export
  */
-grrUi.sidebar.clientSummaryDirective.ClientSummaryDirective
-    .directive_name = 'grrClientSummary';
-
-});  // goog.scope
+exports.ClientSummaryDirective.directive_name = 'grrClientSummary';

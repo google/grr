@@ -1,10 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.navLinkDirective');
-goog.provide('grrUi.sidebar.navLinkDirective.NavLinkDirective');
+goog.module('grrUi.sidebar.navLinkDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
+const {NavDropdownController} = goog.require('grrUi.sidebar.navDropdownDirective');
+const {RoutingService} = goog.require('grrUi.routing.routingService');
 
 
 /**
@@ -13,7 +13,7 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.jQuery} $element
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+ * @param {!RoutingService} grrRoutingService
  * @ngInject
  */
 const NavLinkController = function(
@@ -24,10 +24,10 @@ const NavLinkController = function(
   /** @private {!angular.jQuery} */
   this.element_ = $element;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
+  /** @private {!RoutingService} */
   this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {grrUi.sidebar.navDropdownDirective.NavDropdownController} */
+  /** @type {NavDropdownController} */
   this.navDropdownController;
 
   /** @type {boolean} */
@@ -44,8 +44,9 @@ const NavLinkController = function(
 };
 
 
-
-
+/**
+ * @private
+ */
 NavLinkController.prototype.onStateOrParamsChange_ = function() {
   this.href = '#';
   if (angular.isDefined(this.scope_['state'])) {
@@ -96,7 +97,7 @@ NavLinkController.prototype.applyActiveState_ = function(activeState) {
  * @ngInject
  * @export
  */
-grrUi.sidebar.navLinkDirective.NavLinkDirective = function() {
+exports.NavLinkDirective = function() {
   return {
     scope: {
       state: '@',
@@ -122,8 +123,4 @@ grrUi.sidebar.navLinkDirective.NavLinkDirective = function() {
  * @const
  * @export
  */
-grrUi.sidebar.navLinkDirective.NavLinkDirective
-    .directive_name = 'grrNavLink';
-
-
-});  // goog.scope
+exports.NavLinkDirective.directive_name = 'grrNavLink';

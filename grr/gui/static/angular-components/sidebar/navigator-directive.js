@@ -1,14 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.sidebar.navigatorDirective');
-goog.provide('grrUi.sidebar.navigatorDirective.NavigatorDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.sidebar.navigatorDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
-
-
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {RoutingService} = goog.require('grrUi.routing.routingService');
 
 
 /**
@@ -16,8 +12,8 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+ * @param {!ApiService} grrApiService
+ * @param {!RoutingService} grrRoutingService
  * @ngInject
  */
 const NavigatorController = function(
@@ -25,10 +21,10 @@ const NavigatorController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
+  /** @private {!RoutingService} */
   this.grrRoutingService_ = grrRoutingService;
 
   /** @type {Object} */
@@ -80,6 +76,9 @@ NavigatorController.prototype.onClientSelectionChange_ = function(clientId) {
 };
 
 
+/**
+ * Fetches new client details.
+ */
 NavigatorController.prototype.refreshClientDetails = function() {
   var url = 'clients/' + this.clientId;
   this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
@@ -118,7 +117,7 @@ NavigatorController.prototype.checkClientAccess_ = function() {
  * @ngInject
  * @export
  */
-grrUi.sidebar.navigatorDirective.NavigatorDirective = function() {
+exports.NavigatorDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -134,8 +133,4 @@ grrUi.sidebar.navigatorDirective.NavigatorDirective = function() {
  * @const
  * @export
  */
-grrUi.sidebar.navigatorDirective.NavigatorDirective
-    .directive_name = 'grrNavigator';
-
-
-});  // goog.scope
+exports.NavigatorDirective.directive_name = 'grrNavigator';

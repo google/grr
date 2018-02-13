@@ -142,6 +142,16 @@ class ApiSSLE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
     self.assertTrue(result_flow.client_id)
 
+  def testDownloadingFileWorks(self):
+    client_urn = self.SetupClient(0)
+    fixture_test_lib.ClientFixture(client_urn, self.token)
+
+    out = StringIO.StringIO()
+    self.api.Client(client_id=client_urn.Basename()).File(
+        "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
+
+    self.assertTrue(out.getvalue())
+
 
 class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   """Base class for all API E2E tests."""
@@ -957,9 +967,7 @@ class CSRFProtectionTest(ApiE2ETest):
 
     # Check that calling GetGrrUser method doesn't update the cookie.
     get_user_response = requests.get(
-        self.base_url + "/api/users/me", cookies={
-            "csrftoken": csrf_token
-        })
+        self.base_url + "/api/users/me", cookies={"csrftoken": csrf_token})
     csrf_token_2 = get_user_response.cookies.get("csrftoken")
 
     self.assertIsNone(csrf_token_2)
@@ -968,9 +976,7 @@ class CSRFProtectionTest(ApiE2ETest):
     # token.
     notifications_response = requests.get(
         self.base_url + "/api/users/me/notifications/pending/count",
-        cookies={
-            "csrftoken": csrf_token
-        })
+        cookies={"csrftoken": csrf_token})
     csrf_token_3 = notifications_response.cookies.get("csrftoken")
 
     self.assertTrue(csrf_token_3)
