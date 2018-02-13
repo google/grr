@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.artifact.deleteArtifactsDialogDirective');
-goog.provide('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
+goog.module('grrUi.artifact.deleteArtifactsDialogDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -62,7 +60,7 @@ DeleteArtifactsDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective = function() {
+exports.DeleteArtifactsDialogDirective = function() {
   return {
     scope: {
       names: '='
@@ -82,8 +80,5 @@ grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective = f
  * @const
  * @export
  */
-grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective
-    .directive_name = 'grrDeleteArtifactsDialog';
-
-
-});
+exports.DeleteArtifactsDialogDirective.directive_name =
+    'grrDeleteArtifactsDialog';

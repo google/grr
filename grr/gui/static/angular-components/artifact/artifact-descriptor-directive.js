@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactDescriptorDirective');
-goog.provide('grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective');
+goog.module('grrUi.artifact.artifactDescriptorDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -29,7 +27,7 @@ const ArtifactDescriptorController = function($scope) {
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective = function() {
+exports.ArtifactDescriptorDirective = function() {
   return {
     scope: {
       value: '=',
@@ -48,8 +46,7 @@ grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective = functio
  * @const
  * @export
  */
-grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective
-    .directive_name = 'grrArtifactDescriptor';
+exports.ArtifactDescriptorDirective.directive_name = 'grrArtifactDescriptor';
 
 
 /**
@@ -58,8 +55,4 @@ grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective
  * @const
  * @export
  */
-grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective
-    .semantic_type = 'ArtifactDescriptor';
-
-
-});  // goog.scope
+exports.ArtifactDescriptorDirective.semantic_type = 'ArtifactDescriptor';

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactDescriptorsService');
-goog.provide('grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService');
+goog.module('grrUi.artifact.artifactDescriptorsService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -15,9 +14,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService =
-  function ($q, grrApiService) {
-
+exports.ArtifactDescriptorsService = function($q, grrApiService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
@@ -31,8 +28,7 @@ grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService =
   this.descriptorsCache_;
 };
 
-var ArtifactDescriptorsService =
-    grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService;
+var ArtifactDescriptorsService = exports.ArtifactDescriptorsService;
 
 
 /**
@@ -124,4 +120,3 @@ ArtifactDescriptorsService.prototype.clearCache = function() {
 ArtifactDescriptorsService.service_name = 'grrArtifactDescriptorsService';
 
 
-});

@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.artifact.uploadArtifactDialogDirective');
-goog.provide('grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective');
+goog.module('grrUi.artifact.uploadArtifactDialogDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -83,7 +81,7 @@ UploadArtifactDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective = function() {
+exports.UploadArtifactDialogDirective = function() {
   return {
     scope: {
     },
@@ -102,8 +100,5 @@ grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective = fun
  * @const
  * @export
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective
-    .directive_name = 'grrUploadArtifactDialog';
-
-
-});
+exports.UploadArtifactDialogDirective.directive_name =
+    'grrUploadArtifactDialog';

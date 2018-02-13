@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactManagerViewDirective');
-goog.provide('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective');
+goog.module('grrUi.artifact.artifactManagerViewDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -153,8 +151,7 @@ ArtifactManagerViewController.prototype.updateNumSelectedDescriptors =
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective =
-    function() {
+exports.ArtifactManagerViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -171,8 +168,4 @@ grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective =
  * @const
  * @export
  */
-grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective
-    .directive_name = 'grrArtifactManagerView';
-
-
-});  // goog.scope
+exports.ArtifactManagerViewDirective.directive_name = 'grrArtifactManagerView';

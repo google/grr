@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactNameDirective');
-goog.provide('grrUi.artifact.artifactNameDirective.ArtifactNameDirective');
+goog.module('grrUi.artifact.artifactNameDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /** @const {string} */
 var SYSTEM_ARTIFACT_TYPE = 'SYSTEM';
@@ -13,13 +13,6 @@ var USER_ARTIFACT_TYPE = 'USER';
 
 /** @const {string} */
 var UNKNOWN_ARTIFACT_TYPE = 'UNKNOWN';
-
-/** @type {Object<string, string>} */
-var namesCache;
-
-grrUi.artifact.artifactNameDirective.clearCache = function() {
-  namesCache = null;
-};
 
 
 /**
@@ -79,7 +72,7 @@ ArtifactNameController.prototype.onValueChange_ = function(newArtifactName) {
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactNameDirective.ArtifactNameDirective = function() {
+exports.ArtifactNameDirective = function() {
   return {
     scope: {
       value: '='
@@ -98,8 +91,7 @@ grrUi.artifact.artifactNameDirective.ArtifactNameDirective = function() {
  * @const
  * @export
  */
-grrUi.artifact.artifactNameDirective.ArtifactNameDirective.directive_name =
-    'grrArtifactName';
+exports.ArtifactNameDirective.directive_name = 'grrArtifactName';
 
 /**
  * Artifact type corresponding to this directive.
@@ -107,8 +99,4 @@ grrUi.artifact.artifactNameDirective.ArtifactNameDirective.directive_name =
  * @const
  * @export
  */
-grrUi.artifact.artifactNameDirective.ArtifactNameDirective.semantic_type =
-    'ArtifactName';
-
-
-});  // goog.scope
+exports.ArtifactNameDirective.semantic_type = 'ArtifactName';

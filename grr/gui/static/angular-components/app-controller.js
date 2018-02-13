@@ -15,7 +15,7 @@ goog.provide('grrUi.appController.appControllerModule');
  */
 
 goog.require('grrUi.acl.acl.aclModule');
-goog.require('grrUi.artifact.artifact.artifactModule');
+goog.require('grrUi.artifact.artifact');  // USE: artifactModule
 goog.require('grrUi.client.client');  // USE: clientModule
 goog.require('grrUi.config.config');  // USE: configModule
 goog.require('grrUi.core.core');  // USE: coreModule

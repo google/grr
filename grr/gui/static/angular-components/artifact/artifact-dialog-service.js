@@ -1,11 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactDialogService');
-goog.provide('grrUi.artifact.artifactDialogService.ArtifactDialogService');
-goog.require('grrUi.artifact.deleteArtifactsDialogDirective');  // USE: DeleteArtifactsDialogDirective
-goog.require('grrUi.artifact.uploadArtifactDialogDirective');  // USE: UploadArtifactDialogDirective
+goog.module('grrUi.artifact.artifactDialogService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {DeleteArtifactsDialogDirective} = goog.require('grrUi.artifact.deleteArtifactsDialogDirective');
+const {UploadArtifactDialogDirective} = goog.require('grrUi.artifact.uploadArtifactDialogDirective');
+
 
 
 /**
@@ -16,14 +16,12 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactDialogService.ArtifactDialogService =
-  function (grrDialogService) {
-    /** @private {grrUi.core.dialogService.DialogService} */
-    this.grrDialogService_ = grrDialogService;
-  };
+exports.ArtifactDialogService = function(grrDialogService) {
+  /** @private {grrUi.core.dialogService.DialogService} */
+  this.grrDialogService_ = grrDialogService;
+};
 
-var ArtifactDialogService =
-    grrUi.artifact.artifactDialogService.ArtifactDialogService;
+var ArtifactDialogService = exports.ArtifactDialogService;
 
 
 /**
@@ -38,8 +36,8 @@ ArtifactDialogService.service_name = 'grrArtifactDialogService';
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
-ArtifactDialogService.prototype.openDeleteArtifacts = function(names){
-  var directive = grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective;
+ArtifactDialogService.prototype.openDeleteArtifacts = function(names) {
+  var directive = DeleteArtifactsDialogDirective;
   return this.grrDialogService_.openDirectiveDialog(directive.directive_name, { names: names });
 };
 
@@ -49,10 +47,7 @@ ArtifactDialogService.prototype.openDeleteArtifacts = function(names){
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
-ArtifactDialogService.prototype.openUploadArtifact = function(){
-  var directive = grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective;
+ArtifactDialogService.prototype.openUploadArtifact = function() {
+  var directive = UploadArtifactDialogDirective;
   return this.grrDialogService_.openDirectiveDialog(directive.directive_name);
 };
-
-
-});

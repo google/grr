@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.artifact.artifactsListFormDirective');
-goog.provide('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective');
+goog.module('grrUi.artifact.artifactsListFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for ArtifactsListFormDirective.
@@ -227,8 +226,7 @@ ArtifactsListFormController.prototype.onDescriptorsOrValueChange_ = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective =
-    function() {
+exports.ArtifactsListFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -249,8 +247,7 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective =
  * @const
  * @export
  */
-grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective
-    .directive_name = 'grrArtifactsListForm';
+exports.ArtifactsListFormDirective.directive_name = 'grrArtifactsListForm';
 
 
 /**
@@ -259,8 +256,4 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective
  * @const
  * @export
  */
-grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective
-    .semantic_type = 'ArtifactName';
-
-
-});  // goog.scope
+exports.ArtifactsListFormDirective.semantic_type = 'ArtifactName';
