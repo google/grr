@@ -1,199 +1,142 @@
 'use strict';
 
-goog.provide('grrUi.core');
-goog.provide('grrUi.core.coreModule');
+goog.module('grrUi.core.core');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.aff4ObjectRepresentationDirective');  // USE: Aff4ObjectRepresentationDirective
-goog.require('grrUi.core.apiItemsProviderDirective');  // USE: ApiItemsProviderDirective
-goog.require('grrUi.core.apiService');                 // USE: ApiService
-goog.require('grrUi.core.basenameFilter');             // USE: BasenameFilter
-goog.require('grrUi.core.bindKeyDirective');           // USE: BindKeyDirective
-goog.require('grrUi.core.bytesToHexFilter');           // USE: BytesToHexFilter
-goog.require('grrUi.core.canaryOnlyDirective');  // USE: CanaryOnlyDirective, NonCanaryOnlyDirective
-goog.require('grrUi.core.clockDirective');               // USE: ClockDirective
-goog.require('grrUi.core.confirmationDialogDirective');  // USE: ConfirmationDialogDirective
-goog.require('grrUi.core.dialogService');                // USE: DialogService
-goog.require('grrUi.core.disableIfNoTraitDirective');  // USE: DisableIfNoTraitDirective
-goog.require('grrUi.core.downloadCollectionAsDirective');  // USE: DownloadCollectionAsDirective
-goog.require('grrUi.core.downloadCollectionFilesDirective');  // USE: DownloadCollectionFilesDirective
-goog.require('grrUi.core.encodeUriComponentFilter');  // USE: EncodeUriComponentFilter
-goog.require('grrUi.core.firebaseService');           // USE: FirebaseService
-goog.require('grrUi.core.forceRefreshDirective');  // USE: ForceRefreshDirective
-goog.require('grrUi.core.globalNotificationsDirective');  // USE: GlobalNotificationsDirective
-goog.require('grrUi.core.hexNumberFilter');         // USE: HexNumberFilter
-goog.require('grrUi.core.infiniteTableDirective');  // USE: InfiniteTableDirective
-goog.require('grrUi.core.loadingIndicatorDirective');  // USE: LoadingIndicatorDirective
-goog.require('grrUi.core.loadingIndicatorService');  // USE: LoadingIndicatorService
-goog.require('grrUi.core.memoryItemsProviderDirective');  // USE: MemoryItemsProviderDirective
-goog.require('grrUi.core.onScrollIntoViewDirective');  // USE: OnScrollIntoViewDirective
-goog.require('grrUi.core.pagedFilteredTableDirective');  // USE: PagedFilteredTableDirective, TableBottomDirective, TableTopDirective
-goog.require('grrUi.core.periodicRefreshDirective');  // USE: PeriodicRefreshDirective
-goog.require('grrUi.core.reflectionService');         // USE: ReflectionService
-goog.require('grrUi.core.resultsCollectionDirective');  // USE: ResultsCollectionDirective
-goog.require('grrUi.core.searchBoxDirective');  // USE: SearchBoxDirective
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
-goog.require('grrUi.core.serverErrorDialogDirective');  // USE: ServerErrorDialogDirective
-goog.require('grrUi.core.serverErrorInterceptorFactory');  // USE: ServerErrorInterceptorFactory
-goog.require('grrUi.core.serverErrorPreviewDirective');  // USE: ServerErrorPreviewDirective
-goog.require('grrUi.core.splitterDirective');  // USE: SplitterDirective, SplitterPaneDirective
-goog.require('grrUi.core.timeService');               // USE: TimeService
-goog.require('grrUi.core.timeSinceFilter');           // USE: TimeSinceFilter
-goog.require('grrUi.core.timestampFilter');           // USE: TimestampFilter
-goog.require('grrUi.core.versionDropdownDirective');  // USE: VersionDropdownDirective
-goog.require('grrUi.core.wizardFormDirective');      // USE: WizardFormDirective
-goog.require('grrUi.core.wizardFormPageDirective');  // USE: WizardFormPageDirective
+const {Aff4ObjectRepresentationDirective} = goog.require('grrUi.core.aff4ObjectRepresentationDirective');
+const {ApiItemsProviderDirective} = goog.require('grrUi.core.apiItemsProviderDirective');
+const {ApiService} = goog.require('grrUi.core.apiService');
+const {BasenameFilter} = goog.require('grrUi.core.basenameFilter');
+const {BindKeyDirective} = goog.require('grrUi.core.bindKeyDirective');
+const {BytesToHexFilter} = goog.require('grrUi.core.bytesToHexFilter');
+const {CanaryOnlyDirective, NonCanaryOnlyDirective} = goog.require('grrUi.core.canaryOnlyDirective');
+const {ClockDirective} = goog.require('grrUi.core.clockDirective');
+const {ConfirmationDialogDirective} = goog.require('grrUi.core.confirmationDialogDirective');
+const {DialogService} = goog.require('grrUi.core.dialogService');
+const {DisableIfNoTraitDirective} = goog.require('grrUi.core.disableIfNoTraitDirective');
+const {DownloadCollectionAsDirective} = goog.require('grrUi.core.downloadCollectionAsDirective');
+const {DownloadCollectionFilesDirective} = goog.require('grrUi.core.downloadCollectionFilesDirective');
+const {EncodeUriComponentFilter} = goog.require('grrUi.core.encodeUriComponentFilter');
+const {FirebaseService} = goog.require('grrUi.core.firebaseService');
+const {ForceRefreshDirective} = goog.require('grrUi.core.forceRefreshDirective');
+const {GlobalNotificationsDirective} = goog.require('grrUi.core.globalNotificationsDirective');
+const {HexNumberFilter} = goog.require('grrUi.core.hexNumberFilter');
+const {InfiniteTableDirective} = goog.require('grrUi.core.infiniteTableDirective');
+const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDirective');
+const {LoadingIndicatorService} = goog.require('grrUi.core.loadingIndicatorService');
+const {MemoryItemsProviderDirective} = goog.require('grrUi.core.memoryItemsProviderDirective');
+const {OnScrollIntoViewDirective} = goog.require('grrUi.core.onScrollIntoViewDirective');
+const {PagedFilteredTableDirective, TableBottomDirective, TableTopDirective} = goog.require('grrUi.core.pagedFilteredTableDirective');
+const {PeriodicRefreshDirective} = goog.require('grrUi.core.periodicRefreshDirective');
+const {ReflectionService} = goog.require('grrUi.core.reflectionService');
+const {ResultsCollectionDirective} = goog.require('grrUi.core.resultsCollectionDirective');
+const {SearchBoxDirective} = goog.require('grrUi.core.searchBoxDirective');
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {ServerErrorDialogDirective} = goog.require('grrUi.core.serverErrorDialogDirective');
+const {ServerErrorInterceptorFactory} = goog.require('grrUi.core.serverErrorInterceptorFactory');
+const {ServerErrorPreviewDirective} = goog.require('grrUi.core.serverErrorPreviewDirective');
+const {SplitterDirective, SplitterPaneDirective} = goog.require('grrUi.core.splitterDirective');
+const {TimeService} = goog.require('grrUi.core.timeService');
+const {TimeSinceFilter} = goog.require('grrUi.core.timeSinceFilter');
+const {TimestampFilter} = goog.require('grrUi.core.timestampFilter');
+const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
+const {WizardFormDirective} = goog.require('grrUi.core.wizardFormDirective');
+const {WizardFormPageDirective} = goog.require('grrUi.core.wizardFormPageDirective');
+
 
 
 /**
  * Angular module for core GRR UI components.
  */
-grrUi.core.coreModule = angular.module('grrUi.core', ['ngCookies',
-                                                  'ui.bootstrap']);
+exports.coreModule =
+    angular.module('grrUi.core', ['ngCookies', 'ui.bootstrap']);
 
 
-grrUi.core.coreModule.directive(
-    grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective.directive_name,
-    grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.apiItemsProviderDirective.
-        ApiItemsProviderDirective.directive_name,
-    grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.bindKeyDirective.BindKeyDirective.directive_name,
-    grrUi.core.bindKeyDirective.BindKeyDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.versionDropdownDirective.VersionDropdownDirective.directive_name,
-    grrUi.core.versionDropdownDirective.VersionDropdownDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.forceRefreshDirective.ForceRefreshDirective.directive_name,
-    grrUi.core.forceRefreshDirective.ForceRefreshDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective.directive_name,
-    grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective
-        .directive_name,
-    grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.memoryItemsProviderDirective.
-        MemoryItemsProviderDirective.directive_name,
-    grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.pagedFilteredTableDirective.
-        PagedFilteredTableDirective.directive_name,
-    grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.pagedFilteredTableDirective.TableTopDirective.directive_name,
-    grrUi.core.pagedFilteredTableDirective.TableTopDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.pagedFilteredTableDirective.TableBottomDirective.directive_name,
-    grrUi.core.pagedFilteredTableDirective.TableBottomDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective.directive_name,
-    grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.infiniteTableDirective.InfiniteTableDirective.directive_name,
-    grrUi.core.infiniteTableDirective.InfiniteTableDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.resultsCollectionDirective.ResultsCollectionDirective
-        .directive_name,
-    grrUi.core.resultsCollectionDirective.ResultsCollectionDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.splitterDirective.SplitterDirective.directive_name,
-    grrUi.core.splitterDirective.SplitterDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.splitterDirective.SplitterPaneDirective.directive_name,
-    grrUi.core.splitterDirective.SplitterPaneDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.clockDirective.ClockDirective.directive_name,
-    grrUi.core.clockDirective.ClockDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.downloadCollectionAsDirective
-        .DownloadCollectionAsDirective.directive_name,
-    grrUi.core.downloadCollectionAsDirective
-        .DownloadCollectionAsDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.downloadCollectionFilesDirective
-        .DownloadCollectionFilesDirective.directive_name,
-    grrUi.core.downloadCollectionFilesDirective
-        .DownloadCollectionFilesDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.wizardFormDirective.WizardFormDirective.directive_name,
-    grrUi.core.wizardFormDirective.WizardFormDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.wizardFormPageDirective.WizardFormPageDirective.directive_name,
-    grrUi.core.wizardFormPageDirective.WizardFormPageDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective.directive_name,
-    grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective.directive_name,
-    grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective);
+exports.coreModule.directive(
+    Aff4ObjectRepresentationDirective.directive_name,
+    Aff4ObjectRepresentationDirective);
+exports.coreModule.directive(
+    ApiItemsProviderDirective.directive_name, ApiItemsProviderDirective);
+exports.coreModule.directive(BindKeyDirective.directive_name, BindKeyDirective);
+exports.coreModule.directive(
+    VersionDropdownDirective.directive_name, VersionDropdownDirective);
+exports.coreModule.directive(
+    ForceRefreshDirective.directive_name, ForceRefreshDirective);
+exports.coreModule.directive(
+    LoadingIndicatorDirective.directive_name, LoadingIndicatorDirective);
+exports.coreModule.directive(
+    OnScrollIntoViewDirective.directive_name, OnScrollIntoViewDirective);
+exports.coreModule.directive(
+    MemoryItemsProviderDirective.directive_name, MemoryItemsProviderDirective);
+exports.coreModule.directive(
+    PagedFilteredTableDirective.directive_name, PagedFilteredTableDirective);
+exports.coreModule.directive(
+    TableTopDirective.directive_name, TableTopDirective);
+exports.coreModule.directive(
+    TableBottomDirective.directive_name, TableBottomDirective);
+exports.coreModule.directive(
+    PeriodicRefreshDirective.directive_name, PeriodicRefreshDirective);
+exports.coreModule.directive(
+    InfiniteTableDirective.directive_name, InfiniteTableDirective);
+exports.coreModule.directive(
+    ResultsCollectionDirective.directive_name, ResultsCollectionDirective);
+exports.coreModule.directive(
+    SplitterDirective.directive_name, SplitterDirective);
+exports.coreModule.directive(
+    SplitterPaneDirective.directive_name, SplitterPaneDirective);
+exports.coreModule.directive(ClockDirective.directive_name, ClockDirective);
+exports.coreModule.directive(
+    DownloadCollectionAsDirective.directive_name,
+    DownloadCollectionAsDirective);
+exports.coreModule.directive(
+    DownloadCollectionFilesDirective.directive_name,
+    DownloadCollectionFilesDirective);
+exports.coreModule.directive(
+    WizardFormDirective.directive_name, WizardFormDirective);
+exports.coreModule.directive(
+    WizardFormPageDirective.directive_name, WizardFormPageDirective);
+exports.coreModule.directive(
+    ConfirmationDialogDirective.directive_name, ConfirmationDialogDirective);
+exports.coreModule.directive(
+    DisableIfNoTraitDirective.directive_name, DisableIfNoTraitDirective);
 
-grrUi.core.coreModule.directive(
-    grrUi.core.canaryOnlyDirective.CanaryOnlyDirective.directive_name,
-    grrUi.core.canaryOnlyDirective.CanaryOnlyDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective.directive_name,
-    grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective);
+exports.coreModule.directive(
+    CanaryOnlyDirective.directive_name, CanaryOnlyDirective);
+exports.coreModule.directive(
+    NonCanaryOnlyDirective.directive_name, NonCanaryOnlyDirective);
 
-grrUi.core.coreModule.directive(
-    grrUi.core.searchBoxDirective.SearchBoxDirective.directive_name,
-    grrUi.core.searchBoxDirective.SearchBoxDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.directive_name,
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective.directive_name,
-    grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective.directive_name,
-    grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective);
-grrUi.core.coreModule.directive(
-    grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective.directive_name,
-    grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective);
+exports.coreModule.directive(
+    SearchBoxDirective.directive_name, SearchBoxDirective);
+exports.coreModule.directive(
+    ServerErrorButtonDirective.directive_name, ServerErrorButtonDirective);
+exports.coreModule.directive(
+    ServerErrorDialogDirective.directive_name, ServerErrorDialogDirective);
+exports.coreModule.directive(
+    ServerErrorPreviewDirective.directive_name, ServerErrorPreviewDirective);
+exports.coreModule.directive(
+    GlobalNotificationsDirective.directive_name, GlobalNotificationsDirective);
 
-grrUi.core.coreModule.service(
-    grrUi.core.apiService.ApiService.service_name,
-    grrUi.core.apiService.ApiService);
-grrUi.core.coreModule.service(
-    grrUi.core.firebaseService.FirebaseService.service_name,
-    grrUi.core.firebaseService.FirebaseService);
-grrUi.core.coreModule.service(
-    grrUi.core.reflectionService.ReflectionService.service_name,
-    grrUi.core.reflectionService.ReflectionService);
-grrUi.core.coreModule.service(
-    grrUi.core.timeService.TimeService.service_name,
-    grrUi.core.timeService.TimeService);
-grrUi.core.coreModule.service(
-    grrUi.core.dialogService.DialogService.service_name,
-    grrUi.core.dialogService.DialogService);
-grrUi.core.coreModule.service(
-    grrUi.core.loadingIndicatorService.LoadingIndicatorService.service_name,
-    grrUi.core.loadingIndicatorService.LoadingIndicatorService);
+exports.coreModule.service(ApiService.service_name, ApiService);
+exports.coreModule.service(FirebaseService.service_name, FirebaseService);
+exports.coreModule.service(ReflectionService.service_name, ReflectionService);
+exports.coreModule.service(TimeService.service_name, TimeService);
+exports.coreModule.service(DialogService.service_name, DialogService);
+exports.coreModule.service(
+    LoadingIndicatorService.service_name, LoadingIndicatorService);
 
 
-grrUi.core.coreModule.filter(grrUi.core.basenameFilter.BasenameFilter.filter_name,
-                         grrUi.core.basenameFilter.BasenameFilter);
-grrUi.core.coreModule.filter(grrUi.core.bytesToHexFilter.BytesToHexFilter.filter_name,
-                         grrUi.core.bytesToHexFilter.BytesToHexFilter);
-grrUi.core.coreModule.filter(
-    grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter.filter_name,
-    grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter);
-grrUi.core.coreModule.filter(grrUi.core.hexNumberFilter.HexNumberFilter.filter_name,
-                         grrUi.core.hexNumberFilter.HexNumberFilter);
-grrUi.core.coreModule.filter(grrUi.core.timeSinceFilter.TimeSinceFilter.filter_name,
-                         grrUi.core.timeSinceFilter.TimeSinceFilter);
-grrUi.core.coreModule.filter(grrUi.core.timestampFilter.TimestampFilter.filter_name,
-                         grrUi.core.timestampFilter.TimestampFilter);
+exports.coreModule.filter(BasenameFilter.filter_name, BasenameFilter);
+exports.coreModule.filter(BytesToHexFilter.filter_name, BytesToHexFilter);
+exports.coreModule.filter(
+    EncodeUriComponentFilter.filter_name, EncodeUriComponentFilter);
+exports.coreModule.filter(HexNumberFilter.filter_name, HexNumberFilter);
+exports.coreModule.filter(TimeSinceFilter.filter_name, TimeSinceFilter);
+exports.coreModule.filter(TimestampFilter.filter_name, TimestampFilter);
 
-grrUi.core.coreModule.factory(
-    grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory.factory_name,
-    grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory);
+exports.coreModule.factory(
+    ServerErrorInterceptorFactory.factory_name, ServerErrorInterceptorFactory);
 
 
-grrUi.core.coreModule.config(function($httpProvider){
-    $httpProvider.interceptors.push(
-        grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory.factory_name
-    );
+exports.coreModule.config(function($httpProvider) {
+  $httpProvider.interceptors.push(ServerErrorInterceptorFactory.factory_name);
 });

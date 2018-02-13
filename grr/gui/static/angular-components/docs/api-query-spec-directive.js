@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiQuerySpecDirective');
-goog.provide('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective');
-
-goog.scope(function() {
+goog.module('grrUi.docs.apiQuerySpecDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -75,7 +73,7 @@ ApiQuerySpecController.prototype.onArgsTypeChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective = function() {
+exports.ApiQuerySpecDirective = function() {
   return {
     scope: {
       argsType: '=',
@@ -96,8 +94,4 @@ grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective = function() {
  * @const
  * @export
  */
-grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective.directive_name =
-    'grrApiQuerySpec';
-
-
-});  // goog.scope
+exports.ApiQuerySpecDirective.directive_name = 'grrApiQuerySpec';

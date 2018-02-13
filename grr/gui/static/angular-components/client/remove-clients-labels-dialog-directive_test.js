@@ -3,7 +3,7 @@
 goog.module('grrUi.client.removeClientsLabelsDialogDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {clientModule} = goog.require('grrUi.client');
+const {clientModule} = goog.require('grrUi.client.client');
 
 
 describe('remove clients labels dialog', () => {

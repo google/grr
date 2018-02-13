@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticPrimitiveFormDirective');
-goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
+goog.module('grrUi.forms.semanticPrimitiveFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -44,8 +45,7 @@ SemanticPrimitiveFormController.prototype.onValueTypeChange_ = function(
   }
 
   var descriptorHandler = function(descriptor) {
-    var allowedTypes = grrUi.forms.semanticPrimitiveFormDirective
-        .SemanticPrimitiveFormDirective.semantic_types;
+    var allowedTypes = exports.SemanticPrimitiveFormDirective.semantic_types;
     var typeIndex = -1;
     angular.forEach(
         allowedTypes, function(type) {
@@ -70,8 +70,7 @@ SemanticPrimitiveFormController.prototype.onValueTypeChange_ = function(
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective =
-    function() {
+exports.SemanticPrimitiveFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -91,8 +90,7 @@ grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective =
  * @const
  * @export
  */
-grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
-    .directive_name = 'grrFormPrimitive';
+exports.SemanticPrimitiveFormDirective.directive_name = 'grrFormPrimitive';
 
 
 /**
@@ -101,10 +99,11 @@ grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
-    .semantic_types = ['RDFBool', 'bool',
-                       'RDFInteger', 'int', 'long', 'float',
-                       'RDFString', 'basestring', 'RDFURN',
-                       // TODO(user): check if we ever have to deal with
-                       // bytes type (RDFBytes is handled by grr-form-bytes).
-                       'bytes'];
+exports.SemanticPrimitiveFormDirective.semantic_types = [
+  'RDFBool', 'bool',                     // Boolean types.
+  'RDFInteger', 'int', 'long', 'float',  // Numeric types.
+  'RDFString', 'basestring', 'RDFURN',   // String types.
+  'bytes',                               // Byte types.
+  // TODO(user): check if we ever have to deal with
+  // bytes type (RDFBytes is handled by grr-form-bytes).
+];

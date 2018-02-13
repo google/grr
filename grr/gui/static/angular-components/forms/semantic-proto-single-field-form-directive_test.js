@@ -2,7 +2,7 @@
 
 goog.module('grrUi.forms.semanticProtoSingleFieldFormDirectiveTest');
 
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 const {testsModule} = goog.require('grrUi.tests');
 
 

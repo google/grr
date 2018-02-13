@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowRequestsDirective');
-goog.provide('grrUi.flow.flowRequestsDirective.FlowRequestsDirective');
+goog.module('grrUi.flow.flowRequestsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -49,7 +48,7 @@ FlowRequestsController.prototype.onFlowIdOrBasePathChange_ = function(
  * @ngInject
  * @export
  */
-grrUi.flow.flowRequestsDirective.FlowRequestsDirective = function() {
+exports.FlowRequestsDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -68,8 +67,4 @@ grrUi.flow.flowRequestsDirective.FlowRequestsDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowRequestsDirective.FlowRequestsDirective
-    .directive_name = 'grrFlowRequests';
-
-
-});  // goog.scope
+exports.FlowRequestsDirective.directive_name = 'grrFlowRequests';

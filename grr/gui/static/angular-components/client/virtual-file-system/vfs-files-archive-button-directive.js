@@ -1,29 +1,20 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
-goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.DOWNLOAD_EVERYTHING_REENABLE_DELAY');
-goog.provide('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective');
+goog.module('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
-goog.scope(function() {
-
-var ERROR_EVENT_NAME =
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
-
-var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
-var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 /** @const {number} */
-grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
-    .DOWNLOAD_EVERYTHING_REENABLE_DELAY = 30000;
+exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY = 30000;
 
 var DOWNLOAD_EVERYTHING_REENABLE_DELAY =
-    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
-    .DOWNLOAD_EVERYTHING_REENABLE_DELAY;
+    exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY;
 
 
 /**
@@ -130,8 +121,7 @@ VfsFilesArchiveButtonController.prototype.downloadEverything = function(e) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
-    .VfsFilesArchiveButtonDirective = function() {
+exports.VfsFilesArchiveButtonDirective = function() {
   return {
     scope: {
       clientId: '=',
@@ -152,7 +142,5 @@ grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective
-    .directive_name = 'grrVfsFilesArchiveButton';
-
-});  // goog.scope
+exports.VfsFilesArchiveButtonDirective.directive_name =
+    'grrVfsFilesArchiveButton';

@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowResultsDirective');
-goog.provide('grrUi.flow.flowResultsDirective.FlowResultsDirective');
-
-goog.scope(function() {
+goog.module('grrUi.flow.flowResultsDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -67,7 +65,7 @@ FlowResultsController.prototype.onFlowIdOrBasePathChange_ = function(
  * @ngInject
  * @export
  */
-grrUi.flow.flowResultsDirective.FlowResultsDirective = function() {
+exports.FlowResultsDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -87,8 +85,4 @@ grrUi.flow.flowResultsDirective.FlowResultsDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowResultsDirective.FlowResultsDirective.directive_name =
-    'grrFlowResults';
-
-
-});  // goog.scope
+exports.FlowResultsDirective.directive_name = 'grrFlowResults';

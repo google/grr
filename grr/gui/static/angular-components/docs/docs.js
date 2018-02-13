@@ -1,44 +1,36 @@
 'use strict';
 
-goog.provide('grrUi.docs');
-goog.provide('grrUi.docs.docsModule');
+goog.module('grrUi.docs.docs');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core');                          // USE: coreModule
-goog.require('grrUi.docs.apiDescriptionDirective');  // USE: ApiDescriptionDirective
-goog.require('grrUi.docs.apiDocsDirective');         // USE: ApiDocsDirective
-goog.require('grrUi.docs.apiHelperCurlService');   // USE: ApiHelperCurlService
-goog.require('grrUi.docs.apiHelperService');       // USE: ApiHelperService
-goog.require('grrUi.docs.apiQuerySpecDirective');  // USE: ApiQuerySpecDirective
-goog.require('grrUi.docs.apiRouteDirective');      // USE: ApiRouteDirective
+const {ApiDescriptionDirective} = goog.require('grrUi.docs.apiDescriptionDirective');
+const {ApiDocsDirective} = goog.require('grrUi.docs.apiDocsDirective');
+const {ApiHelperCurlService} = goog.require('grrUi.docs.apiHelperCurlService');
+const {ApiHelperService} = goog.require('grrUi.docs.apiHelperService');
+const {ApiQuerySpecDirective} = goog.require('grrUi.docs.apiQuerySpecDirective');
+const {ApiRouteDirective} = goog.require('grrUi.docs.apiRouteDirective');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 /**
  * Angular module for docs-related UI.
  */
-grrUi.docs.docsModule = angular.module('grrUi.docs', [grrUi.core.coreModule.name]);
+exports.docsModule = angular.module('grrUi.docs', [coreModule.name]);
 
-grrUi.docs.docsModule.directive(
-    grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective.directive_name,
-    grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective);
-grrUi.docs.docsModule.directive(
-    grrUi.docs.apiDocsDirective.ApiDocsDirective.directive_name,
-    grrUi.docs.apiDocsDirective.ApiDocsDirective);
-grrUi.docs.docsModule.directive(
-    grrUi.docs.apiRouteDirective.ApiRouteDirective.directive_name,
-    grrUi.docs.apiRouteDirective.ApiRouteDirective);
-grrUi.docs.docsModule.directive(
-    grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective.directive_name,
-    grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective);
+exports.docsModule.directive(
+    ApiDescriptionDirective.directive_name, ApiDescriptionDirective);
+exports.docsModule.directive(ApiDocsDirective.directive_name, ApiDocsDirective);
+exports.docsModule.directive(
+    ApiRouteDirective.directive_name, ApiRouteDirective);
+exports.docsModule.directive(
+    ApiQuerySpecDirective.directive_name, ApiQuerySpecDirective);
 
 
-grrUi.docs.docsModule.service(
-    grrUi.docs.apiHelperService.ApiHelperService.service_name,
-    grrUi.docs.apiHelperService.ApiHelperService);
-grrUi.docs.docsModule.service(
-    grrUi.docs.apiHelperCurlService.ApiHelperCurlService.service_name,
-    grrUi.docs.apiHelperCurlService.ApiHelperCurlService);
+exports.docsModule.service(ApiHelperService.service_name, ApiHelperService);
+exports.docsModule.service(
+    ApiHelperCurlService.service_name, ApiHelperCurlService);
 
 
-grrUi.docs.docsModule.run(function(grrApiHelperService, grrApiHelperCurlService) {
+exports.docsModule.run(function(grrApiHelperService, grrApiHelperCurlService) {
   grrApiHelperService.registerHelper('HTTP', null, grrApiHelperCurlService);
 });

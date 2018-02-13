@@ -3,7 +3,7 @@
 goog.module('grrUi.core.wizardFormDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 describe('grr-wizard-form directive', () => {

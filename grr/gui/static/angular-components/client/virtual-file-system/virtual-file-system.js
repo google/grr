@@ -1,76 +1,62 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem');
-goog.provide('grrUi.client.virtualFileSystem.virtualFileSystemModule');
+goog.module('grrUi.client.virtualFileSystem.virtualFileSystem');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective');  // USE: BreadcrumbsDirective
-goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective');  // USE: EncodingsDropdownDirective
-goog.require('grrUi.client.virtualFileSystem.fileContextDirective');  // USE: FileContextDirective
-goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective');  // USE: FileDetailsDirective
-goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective');  // USE: FileDownloadViewDirective
-goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective');  // USE: FileHexViewDirective
-goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective');  // USE: FileStatsViewDirective
-goog.require('grrUi.client.virtualFileSystem.fileTableDirective');  // USE: FileTableDirective
-goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective');  // USE: FileTextViewDirective
-goog.require('grrUi.client.virtualFileSystem.fileTimelineDirective');  // USE: FileTimelineDirective
-goog.require('grrUi.client.virtualFileSystem.fileTreeDirective');  // USE: FileTreeDirective
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: FileViewDirective
-goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');  // USE: RWeOwnedButtonDirective
-goog.require('grrUi.client.virtualFileSystem.recursiveListButtonDirective');  // USE: RecursiveListButtonDirective
-goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');  // USE: VfsFilesArchiveButtonDirective
-goog.require('grrUi.core');      // USE: coreModule
-goog.require('grrUi.semantic');  // USE: semanticModule
+const {BreadcrumbsDirective} = goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective');
+const {EncodingsDropdownDirective} = goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective');
+const {FileContextDirective} = goog.require('grrUi.client.virtualFileSystem.fileContextDirective');
+const {FileDetailsDirective} = goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective');
+const {FileDownloadViewDirective} = goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
+const {FileHexViewDirective} = goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective');
+const {FileStatsViewDirective} = goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective');
+const {FileTableDirective} = goog.require('grrUi.client.virtualFileSystem.fileTableDirective');
+const {FileTextViewDirective} = goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective');
+const {FileTimelineDirective} = goog.require('grrUi.client.virtualFileSystem.fileTimelineDirective');
+const {FileTreeDirective} = goog.require('grrUi.client.virtualFileSystem.fileTreeDirective');
+const {FileViewDirective} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
+const {RWeOwnedButtonDirective} = goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');
+const {RecursiveListButtonDirective} = goog.require('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
+const {VfsFilesArchiveButtonDirective} = goog.require('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
+const {coreModule} = goog.require('grrUi.core.core');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
+
 
 
 /**
  * Angular module for clients-related UI.
  */
-grrUi.client.virtualFileSystem.virtualFileSystemModule = angular.module('grrUi.client.virtualFileSystem',
-                                                       [grrUi.core.coreModule.name,
-                                                        grrUi.semantic.semanticModule.name]);
+exports.virtualFileSystemModule = angular.module(
+    'grrUi.client.virtualFileSystem', [coreModule.name, semanticModule.name]);
 
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective.directive_name,
-    grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective.directive_name,
-    grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective.directive_name,
-    grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective.directive_name,
-    grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective.directive_name,
-    grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective.VfsFilesArchiveButtonDirective);
-grrUi.client.virtualFileSystem.virtualFileSystemModule.directive(
-    grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective.directive_name,
-    grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective);
+exports.virtualFileSystemModule.directive(
+    BreadcrumbsDirective.directive_name, BreadcrumbsDirective);
+exports.virtualFileSystemModule.directive(
+    EncodingsDropdownDirective.directive_name, EncodingsDropdownDirective);
+exports.virtualFileSystemModule.directive(
+    FileContextDirective.directive_name, FileContextDirective);
+exports.virtualFileSystemModule.directive(
+    FileDetailsDirective.directive_name, FileDetailsDirective);
+exports.virtualFileSystemModule.directive(
+    FileDownloadViewDirective.directive_name, FileDownloadViewDirective);
+exports.virtualFileSystemModule.directive(
+    FileHexViewDirective.directive_name, FileHexViewDirective);
+exports.virtualFileSystemModule.directive(
+    FileStatsViewDirective.directive_name, FileStatsViewDirective);
+exports.virtualFileSystemModule.directive(
+    FileTableDirective.directive_name, FileTableDirective);
+exports.virtualFileSystemModule.directive(
+    FileTimelineDirective.directive_name, FileTimelineDirective);
+exports.virtualFileSystemModule.directive(
+    FileTextViewDirective.directive_name, FileTextViewDirective);
+exports.virtualFileSystemModule.directive(
+    FileTreeDirective.directive_name, FileTreeDirective);
+exports.virtualFileSystemModule.directive(
+    FileViewDirective.directive_name, FileViewDirective);
+exports.virtualFileSystemModule.directive(
+    RecursiveListButtonDirective.directive_name, RecursiveListButtonDirective);
+exports.virtualFileSystemModule.directive(
+    VfsFilesArchiveButtonDirective.directive_name,
+    VfsFilesArchiveButtonDirective);
+exports.virtualFileSystemModule.directive(
+    RWeOwnedButtonDirective.directive_name, RWeOwnedButtonDirective);

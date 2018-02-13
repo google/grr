@@ -47,7 +47,8 @@ class GRRFleetspeakClient(object):
   _SENDER_QUEUE_MAXSIZE = 50
 
   def __init__(self):
-    self._fs = fs_client.FleetspeakConnection()
+    self._fs = fs_client.FleetspeakConnection(
+        version=config.CONFIG["Source.version_string"])
 
     self._sender_queue = Queue.Queue(
         maxsize=GRRFleetspeakClient._SENDER_QUEUE_MAXSIZE)

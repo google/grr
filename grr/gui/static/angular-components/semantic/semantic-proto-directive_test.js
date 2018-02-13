@@ -3,7 +3,7 @@
 goog.module('grrUi.semantic.semanticProtoDirectiveTest');
 
 const {buildItems, buildNonUnionItems, buildUnionItems, getUnionFieldValue} = goog.require('grrUi.semantic.semanticProtoDirective');
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

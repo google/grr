@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.periodicRefreshDirective');
-goog.provide('grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective');
+goog.module('grrUi.core.periodicRefreshDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for periodic-refresh directive.
@@ -38,6 +38,10 @@ const PeriodicRefreshController = function(
 };
 
 
+/**
+ * @param {?} newValue
+ * @private
+ */
 PeriodicRefreshController.prototype.onIntervalChange_ = function(newValue) {
   if (this.updateOperationInterval_) {
     this.interval_.cancel(this.updateOperationInterval_);
@@ -50,6 +54,9 @@ PeriodicRefreshController.prototype.onIntervalChange_ = function(newValue) {
   }
 };
 
+/**
+ * @private
+ */
 PeriodicRefreshController.prototype.onInterval_ = function() {
   this.refreshTrigger += 1;
   if (this.scope_['onRefresh']) {
@@ -65,7 +72,7 @@ PeriodicRefreshController.prototype.onInterval_ = function() {
  * @ngInject
  * @export
  */
-grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective = function() {
+exports.PeriodicRefreshDirective = function() {
   return {
     scope: {
       interval: '=',
@@ -88,7 +95,4 @@ grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective = function() {
  * @const
  * @export
  */
-grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective.directive_name =
-    'grrPeriodicRefresh';
-
-});  // goog.scope
+exports.PeriodicRefreshDirective.directive_name = 'grrPeriodicRefresh';

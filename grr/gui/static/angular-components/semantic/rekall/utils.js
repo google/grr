@@ -1,8 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.utils');
-goog.provide('grrUi.semantic.rekall.utils.cropRekallJson');
-goog.provide('grrUi.semantic.rekall.utils.stackRekallTables');
+goog.module('grrUi.semantic.rekall.utils');
+goog.module.declareLegacyNamespace();
+
 
 /**
  * Crops a Json Rekall message list to its largest valid prefix of lenght at
@@ -13,7 +13,7 @@ goog.provide('grrUi.semantic.rekall.utils.stackRekallTables');
  *
  * @return {string} The cropped message list.
  */
-grrUi.semantic.rekall.utils.cropRekallJson = function(jsonStr, targetLen) {
+exports.cropRekallJson = function(jsonStr, targetLen) {
   if (targetLen <= 2 || jsonStr === '[]') {
     return '[]';
   }
@@ -72,7 +72,7 @@ grrUi.semantic.rekall.utils.cropRekallJson = function(jsonStr, targetLen) {
  * @return {Object} The given data stream, with table-row messages moved into
  *             corresponding table messages.
  */
-grrUi.semantic.rekall.utils.stackRekallTables = function(parsed) {
+exports.stackRekallTables = function(parsed) {
   var ret = [];
   var lastTableRows;
 

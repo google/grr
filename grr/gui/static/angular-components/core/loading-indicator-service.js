@@ -1,14 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.core.loadingIndicatorService');
-goog.provide('grrUi.core.loadingIndicatorService.LoadingIndicatorService');
-goog.require('grrUi.core.loadingIndicatorDirective');  // USE: LoadingIndicatorDirective
+goog.module('grrUi.core.loadingIndicatorService');
+goog.module.declareLegacyNamespace();
+
+const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDirective');
 
 
-goog.scope(function() {
-
-var LoadingIndicatorDirective =
-  grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective;
 
 var LOADING_STARTED_EVENT_NAME =
   LoadingIndicatorDirective.loading_started_event_name;
@@ -25,7 +22,7 @@ var LOADING_FINISHED_EVENT_NAME =
  * @ngInject
  * @export
  */
-grrUi.core.loadingIndicatorService.LoadingIndicatorService = function($rootScope) {
+exports.LoadingIndicatorService = function($rootScope) {
   /** @private {angular.Scope} */
   this.rootScope_ = $rootScope;
 
@@ -33,8 +30,7 @@ grrUi.core.loadingIndicatorService.LoadingIndicatorService = function($rootScope
   this.key = 0;
 };
 
-var LoadingIndicatorService =
-  grrUi.core.loadingIndicatorService.LoadingIndicatorService;
+var LoadingIndicatorService = exports.LoadingIndicatorService;
 
 
 /**
@@ -73,4 +69,3 @@ LoadingIndicatorService.prototype.stopLoading = function(key) {
 };
 
 
-});  // goog.scope

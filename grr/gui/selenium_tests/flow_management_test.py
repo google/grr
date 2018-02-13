@@ -181,7 +181,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
     flow_1 = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
@@ -481,7 +481,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -509,7 +509,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -534,7 +534,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.flow.flowOverviewDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -567,7 +567,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.flow.flowLogDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -599,7 +599,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.
@@ -631,7 +631,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/clients/C.0000000000000001")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset.

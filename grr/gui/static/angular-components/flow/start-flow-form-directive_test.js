@@ -3,7 +3,7 @@
 goog.module('grrUi.flow.startFlowFormDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {flowModule} = goog.require('grrUi.flow');
+const {flowModule} = goog.require('grrUi.flow.flow');
 
 
 describe('start flow form directive', () => {

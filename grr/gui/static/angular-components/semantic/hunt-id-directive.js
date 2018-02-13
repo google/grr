@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.huntIdDirective');
-goog.provide('grrUi.semantic.huntIdDirective.HuntIdDirective');
+goog.module('grrUi.semantic.huntIdDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -12,7 +11,7 @@ goog.scope(function() {
  * @return {!angular.Directive} Directive definition object.
  * @export
  */
-grrUi.semantic.huntIdDirective.HuntIdDirective = function() {
+exports.HuntIdDirective = function() {
   return {
     scope: {
       value: '='
@@ -29,8 +28,7 @@ grrUi.semantic.huntIdDirective.HuntIdDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.huntIdDirective.HuntIdDirective.directive_name =
-    'grrHuntId';
+exports.HuntIdDirective.directive_name = 'grrHuntId';
 
 /**
  * Semantic type corresponding to this directive.
@@ -38,8 +36,4 @@ grrUi.semantic.huntIdDirective.HuntIdDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.huntIdDirective.HuntIdDirective.semantic_type =
-    'ApiHuntId';
-
-
-});  // goog.scope
+exports.HuntIdDirective.semantic_type = 'ApiHuntId';

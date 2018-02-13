@@ -1,19 +1,13 @@
 'use strict';
 
-goog.provide('grrUi.routing.rewriteUrl');
-goog.provide('grrUi.routing.rewriteUrl.rewriteUrl');
+goog.module('grrUi.routing.rewriteUrl');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFilePathFromId
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder
-goog.require('grrUi.core.apiService');                 // USE: encodeUrlPath
-goog.require('grrUi.routing.aff4UrnToUrl');            // USE: aff4UrnToUrl
+const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
+const {encodeUrlPath} = goog.require('grrUi.core.apiService');
+const {ensurePathIsFolder} = goog.require('grrUi.client.virtualFileSystem.utils');
+const {getFilePathFromId} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
 
-
-goog.scope(function() {
-
-var getFilePathFromId = grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId;
-var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
-var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
 
 /**
  * Parses the location bar's #hash value into an object.
@@ -46,7 +40,7 @@ const parseHash = function(hash) {
  * @return {?string} A URL compatible with UI router.
  * @export
  */
-grrUi.routing.rewriteUrl.rewriteUrl = function(url) {
+exports.rewriteUrl = function(url) {
   var hashState = parseHash(url);
 
   var clientId = hashState['c'];
@@ -100,7 +94,7 @@ grrUi.routing.rewriteUrl.rewriteUrl = function(url) {
     // previously send approval notifications are not important.
     case 'GrantAccess':
       var acl = hashState['acl'] || '';
-      var routingState = grrUi.routing.aff4UrnToUrl.aff4UrnToUrl(acl);
+      var routingState = aff4UrnToUrl(acl);
       switch (routingState['state']) {
         case 'clientApproval':
           return ['/users',
@@ -193,5 +187,3 @@ grrUi.routing.rewriteUrl.rewriteUrl = function(url) {
       return null;
   }
 };
-
-});  // goog.scope

@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.clientUsernamesDirective');
-goog.provide('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
+goog.module('grrUi.client.clientUsernamesDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -52,7 +50,7 @@ ClientUsernamesController.prototype.onValueChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.client.clientUsernamesDirective.ClientUsernamesDirective = function() {
+exports.ClientUsernamesDirective = function() {
   return {
     scope: {value: '='},
     restrict: 'E', template: '<grr-semantic-value value="::usernames" />',
@@ -65,6 +63,4 @@ grrUi.client.clientUsernamesDirective.ClientUsernamesDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.client.clientUsernamesDirective.ClientUsernamesDirective.directive_name =
-    'grrClientUsernames';
-});  // goog.scope
+exports.ClientUsernamesDirective.directive_name = 'grrClientUsernames';

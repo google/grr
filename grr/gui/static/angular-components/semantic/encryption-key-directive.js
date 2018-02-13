@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.encryptionKeyDirective');
-goog.provide('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
-goog.provide('grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey');
+goog.module('grrUi.semantic.encryptionKeyDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,8 +11,7 @@ goog.scope(function() {
  * @param {string} base64Bytes Base64-encoded encryption key.
  * @return {string} Hex-encoded encryption key.
  */
-grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey = function(
-    base64Bytes) {
+exports.stringifyEncryptionKey = function(base64Bytes) {
   var decoded = window.atob(base64Bytes);
   var result = [];
   for (var i = 0; i < decoded.length; ++i) {
@@ -55,9 +52,7 @@ const EncryptionKeyController = function(
  */
 EncryptionKeyController.prototype.onValueChange = function(newValue) {
   if (angular.isDefined(newValue)) {
-    this.stringifiedKey =
-        grrUi.semantic.encryptionKeyDirective.stringifyEncryptionKey(
-            newValue);
+    this.stringifiedKey = exports.stringifyEncryptionKey(newValue);
   }
 };
 
@@ -70,7 +65,7 @@ EncryptionKeyController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective = function() {
+exports.EncryptionKeyDirective = function() {
   return {
     scope: {
       value: '='
@@ -89,8 +84,7 @@ grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective.directive_name =
-    'grrEncryptionKey';
+exports.EncryptionKeyDirective.directive_name = 'grrEncryptionKey';
 
 /**
  * Semantic type corresponding to this directive.
@@ -98,8 +92,4 @@ grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective.semantic_type =
-    'EncryptionKey';
-
-
-});  // goog.scope
+exports.EncryptionKeyDirective.semantic_type = 'EncryptionKey';

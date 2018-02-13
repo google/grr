@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.disableIfNoTraitDirectiveTest');
 
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

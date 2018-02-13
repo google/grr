@@ -1,20 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.forms.clientLabelFormDirective');
-goog.provide('grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective');
+goog.module('grrUi.forms.clientLabelFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
-goog.scope(function() {
-
-
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for ClientLabelFormDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @constructor
  * @ngInject
  */
@@ -23,7 +19,7 @@ const ClientLabelFormController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @type {*} */
@@ -55,6 +51,9 @@ const ClientLabelFormController =
 };
 
 
+/**
+ * Initializes the client label form controller.
+ */
 ClientLabelFormController.prototype.$onInit = function() {
   this.hideEmptyOption = this.hideEmptyOption || false;
   this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
@@ -67,7 +66,7 @@ ClientLabelFormController.prototype.$onInit = function() {
  * @ngInject
  * @export
  */
-grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective = function() {
+exports.ClientLabelFormDirective = function() {
   return {
     scope: {
       clientLabel: '=',
@@ -87,8 +86,4 @@ grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.forms.clientLabelFormDirective.ClientLabelFormDirective.directive_name =
-    'grrFormClientLabel';
-
-
-});  // goog.scope
+exports.ClientLabelFormDirective.directive_name = 'grrFormClientLabel';

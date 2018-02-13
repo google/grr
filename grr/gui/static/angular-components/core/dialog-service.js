@@ -1,10 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.core.dialogService');
-goog.provide('grrUi.core.dialogService.DialogService');
-goog.require('grrUi.core.utils');  // USE: camelCaseToDashDelimited
+goog.module('grrUi.core.dialogService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {camelCaseToDashDelimited} = goog.require('grrUi.core.utils');
+
 
 
 /**
@@ -16,17 +16,15 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.core.dialogService.DialogService =
-  function ($rootScope, $uibModal) {
-    /** @private {angular.Scope} */
-    this.rootScope_ = $rootScope;
+exports.DialogService = function($rootScope, $uibModal) {
+  /** @private {angular.Scope} */
+  this.rootScope_ = $rootScope;
 
-    /** @private {!angularUi.$uibModal} */
-    this.uibModal_ = $uibModal;
-  };
+  /** @private {!angularUi.$uibModal} */
+  this.uibModal_ = $uibModal;
+};
 
-var DialogService =
-  grrUi.core.dialogService.DialogService;
+var DialogService = exports.DialogService;
 
 
 /**
@@ -74,14 +72,13 @@ DialogService.prototype.openDirectiveDialog = function(directive, opt_params, op
   var paramString = '';
 
   // Convert camel-case directive name to dash-delimited tag name.
-  var tagName = grrUi.core.utils.camelCaseToDashDelimited(directive);
+  var tagName = camelCaseToDashDelimited(directive);
 
   // Assign params to scope and build param string.
   if(angular.isDefined(opt_params)){
     angular.forEach(opt_params || {}, function(value, key) {
       modalScope[key] = opt_params[key];
-      paramString += ' ' + grrUi.core.utils.camelCaseToDashDelimited(key) +
-          '="' + key + '"';
+      paramString += ' ' + camelCaseToDashDelimited(key) + '="' + key + '"';
     });
   }
 
@@ -96,4 +93,3 @@ DialogService.prototype.openDirectiveDialog = function(directive, opt_params, op
 };
 
 
-});

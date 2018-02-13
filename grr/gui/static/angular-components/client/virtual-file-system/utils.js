@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.utils');
-goog.provide('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
-goog.provide('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+goog.module('grrUi.client.virtualFileSystem.utils');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -16,7 +13,7 @@ goog.scope(function() {
  * @return {string} The given path with a single trailing slash added if needed.
  * @export
  */
-grrUi.client.virtualFileSystem.utils.ensurePathIsFolder = function(path) {
+exports.ensurePathIsFolder = function(path) {
   if (path.endsWith('/')) {
     return path;
   } else {
@@ -33,7 +30,7 @@ grrUi.client.virtualFileSystem.utils.ensurePathIsFolder = function(path) {
  * @return {string} The given path with a trailing slash stripped.
  * @export
  */
-grrUi.client.virtualFileSystem.utils.getFolderFromPath = function(path) {
+exports.getFolderFromPath = function(path) {
   if (!path) {
     return '';
   }
@@ -41,6 +38,3 @@ grrUi.client.virtualFileSystem.utils.getFolderFromPath = function(path) {
   var components = path.split('/');
   return components.slice(0, -1).join('/');
 };
-
-
-});

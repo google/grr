@@ -3,7 +3,7 @@
 goog.module('grrUi.core.hexNumberFilterTest');
 
 const {HexNumberFilter} = goog.require('grrUi.core.hexNumberFilter');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.removeClientsLabelsDialogDirective');
-goog.provide('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
+goog.module('grrUi.client.removeClientsLabelsDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -105,7 +104,7 @@ RemoveClientsLabelsDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective = function() {
+exports.RemoveClientsLabelsDialogDirective = function() {
   return {
     scope: {
       clients: '='
@@ -125,8 +124,5 @@ grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirecti
  * @const
  * @export
  */
-grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective
-    .directive_name = 'grrRemoveClientsLabelsDialog';
-
-
-});
+exports.RemoveClientsLabelsDialogDirective.directive_name =
+    'grrRemoveClientsLabelsDialog';

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallDefaultValueDirective');
-goog.provide('grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective');
+goog.module('grrUi.semantic.rekall.rekallDefaultValueDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive that displays JS objects containing Rekall objects as tables.
@@ -12,8 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective =
-    function() {
+exports.RekallDefaultValueDirective = function() {
   return {
     scope: {
       value: '='
@@ -31,7 +30,4 @@ grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective =
  * @const
  * @export
  */
-grrUi.semantic.rekall.rekallDefaultValueDirective.RekallDefaultValueDirective.
-    directive_name = 'grrRekallDefaultValue';
-
-});  // goog.scope
+exports.RekallDefaultValueDirective.directive_name = 'grrRekallDefaultValue';

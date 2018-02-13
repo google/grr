@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.forceRefreshDirectiveTest');
 
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

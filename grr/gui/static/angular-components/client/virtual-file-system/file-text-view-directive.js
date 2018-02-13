@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
+goog.module('grrUi.client.virtualFileSystem.fileTextViewDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -125,7 +123,7 @@ FileTextViewController.prototype.fetchText_ = function() {
  * FileTextViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective = function() {
+exports.FileTextViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -146,7 +144,4 @@ grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective = fun
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective.directive_name =
-    'grrFileTextView';
-
-});  // goog.scope
+exports.FileTextViewDirective.directive_name = 'grrFileTextView';

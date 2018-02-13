@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.timestampFilter');
-goog.provide('grrUi.core.timestampFilter.TimestampFilter');
+goog.module('grrUi.core.timestampFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -12,9 +11,8 @@ goog.scope(function() {
  * @param {grrUi.core.timeService.TimeService} grrTimeService
  * @param {number} value Timestamp value in microseconds.
  * @return {string} Date string.
- * @export
  */
-grrUi.core.timestampFilter.filterImplementation = function(grrTimeService, value) {
+const filterImplementation = function(grrTimeService, value) {
   if (angular.isNumber(value)) {
     var timestamp = value / 1000;
     return grrTimeService.formatAsUTC(timestamp);
@@ -31,9 +29,9 @@ grrUi.core.timestampFilter.filterImplementation = function(grrTimeService, value
  * @export
  * @ngInject
  */
-grrUi.core.timestampFilter.TimestampFilter = function(grrTimeService) {
+exports.TimestampFilter = function(grrTimeService) {
   return function(input) {
-    return grrUi.core.timestampFilter.filterImplementation(grrTimeService, input);
+    return filterImplementation(grrTimeService, input);
   };
 };
 
@@ -44,6 +42,4 @@ grrUi.core.timestampFilter.TimestampFilter = function(grrTimeService) {
  * @const
  * @export
  */
-grrUi.core.timestampFilter.TimestampFilter.filter_name = 'grrTimestamp';
-
-}); // goog.scope
+exports.TimestampFilter.filter_name = 'grrTimestamp';

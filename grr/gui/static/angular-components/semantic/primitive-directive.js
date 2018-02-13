@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.primitiveDirective');
-goog.provide('grrUi.semantic.primitiveDirective.PrimitiveDirective');
+goog.module('grrUi.semantic.primitiveDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.primitiveDirective.PrimitiveDirective = function() {
+exports.PrimitiveDirective = function() {
   return {
     scope: {
       value: '='
@@ -30,8 +29,7 @@ grrUi.semantic.primitiveDirective.PrimitiveDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.primitiveDirective.PrimitiveDirective.directive_name =
-    'grrPrimitive';
+exports.PrimitiveDirective.directive_name = 'grrPrimitive';
 
 /**
  * Semantic type corresponding to this directive.
@@ -39,8 +37,7 @@ grrUi.semantic.primitiveDirective.PrimitiveDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.primitiveDirective.PrimitiveDirective.semantic_types =
-    ['RDFBool', 'bool',
-     'RDFInteger', 'int', 'long', 'float',
-     'RDFString', 'basestring'];
-});  // goog.scope
+exports.PrimitiveDirective.semantic_types = [
+  'RDFBool', 'bool', 'RDFInteger', 'int', 'long', 'float', 'RDFString',
+  'basestring'
+];

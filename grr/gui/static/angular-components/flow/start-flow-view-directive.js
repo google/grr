@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.flow.startFlowViewDirective');
-goog.provide('grrUi.flow.startFlowViewDirective.StartFlowViewDirective');
+goog.module('grrUi.flow.startFlowViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -49,7 +48,7 @@ StartFlowViewController.prototype.onClientIdChange_ = function(clientId) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.startFlowViewDirective.StartFlowViewDirective = function() {
+exports.StartFlowViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -66,7 +65,4 @@ grrUi.flow.startFlowViewDirective.StartFlowViewDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.startFlowViewDirective.StartFlowViewDirective.directive_name =
-    'grrStartFlowView';
-
-});  // goog.scope
+exports.StartFlowViewDirective.directive_name = 'grrStartFlowView';

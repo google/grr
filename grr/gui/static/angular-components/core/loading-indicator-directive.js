@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.loadingIndicatorDirective');
-goog.provide('grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective');
+goog.module('grrUi.core.loadingIndicatorDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var LOADING_STARTED_EVENT_NAME = 'grrLoadingStartedEvent';
 var LOADING_FINISHED_EVENT_NAME = 'grrLoadingFinishedEvent';
@@ -80,7 +79,7 @@ LoadingIndicatorController.prototype.onLoadingFinishedEvent_ = function(event, k
  * @ngInject
  * @export
  */
-grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective = function() {
+exports.LoadingIndicatorDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -92,8 +91,7 @@ grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective = function() {
   };
 };
 
-var LoadingIndicatorDirective =
-  grrUi.core.loadingIndicatorDirective.LoadingIndicatorDirective;
+var LoadingIndicatorDirective = exports.LoadingIndicatorDirective;
 
 
 /**
@@ -120,4 +118,3 @@ LoadingIndicatorDirective.loading_started_event_name = LOADING_STARTED_EVENT_NAM
  */
 LoadingIndicatorDirective.loading_finished_event_name = LOADING_FINISHED_EVENT_NAME;
 
-});  // goog.scope

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.metadataDirective');
-goog.provide('grrUi.semantic.rekall.metadataDirective.MetadataDirective');
+goog.module('grrUi.semantic.rekall.metadataDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive that displays rekall metadata messages.
@@ -12,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.metadataDirective.MetadataDirective = function() {
+exports.MetadataDirective = function() {
   return {
     scope: {
       value: '='
@@ -29,7 +29,4 @@ grrUi.semantic.rekall.metadataDirective.MetadataDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekall.metadataDirective.MetadataDirective.directive_name =
-    'grrRekallMetadata';
-
-});  // goog.scope
+exports.MetadataDirective.directive_name = 'grrRekallMetadata';

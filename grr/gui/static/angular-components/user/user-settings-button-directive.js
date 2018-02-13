@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.user.userSettingsButtonDirective');
-goog.provide('grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective');
+goog.module('grrUi.user.userSettingsButtonDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -103,8 +104,7 @@ UserSettingsButtonController.prototype.saveSettings = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective =
-    function() {
+exports.UserSettingsButtonDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -122,5 +122,4 @@ grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective =
  * @const
  * @export
  */
-grrUi.user.userSettingsButtonDirective.UserSettingsButtonDirective
-    .directive_name = 'grrUserSettingsButton';
+exports.UserSettingsButtonDirective.directive_name = 'grrUserSettingsButton';

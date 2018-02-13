@@ -1,11 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.forms.durationFormDirective');
-goog.provide('grrUi.forms.durationFormDirective.DurationFormDirective');
-goog.require('grrUi.semantic.durationDirective');  // USE: stringifySeconds
+goog.module('grrUi.forms.durationFormDirective');
+goog.module.declareLegacyNamespace();
+
+const {stringifySeconds} = goog.require('grrUi.semantic.durationDirective');
 
 
-goog.scope(function() {
 
 /**
  * Controller for DurationFormDirective.
@@ -76,8 +76,7 @@ DurationFormController.prototype.onValueChange_ = function(newValue) {
       return;
     }
 
-    this.valueString = grrUi.semantic.durationDirective.stringifySeconds(
-        newValue);
+    this.valueString = stringifySeconds(newValue);
   }
 };
 
@@ -106,7 +105,7 @@ DurationFormController.prototype.onValueStringChange_ = function(newValue) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.durationFormDirective.DurationFormDirective = function() {
+exports.DurationFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -126,8 +125,7 @@ grrUi.forms.durationFormDirective.DurationFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.durationFormDirective.DurationFormDirective
-    .directive_name = 'grrFormDuration';
+exports.DurationFormDirective.directive_name = 'grrFormDuration';
 
 /**
  * Semantic type corresponding to this directive.
@@ -135,9 +133,4 @@ grrUi.forms.durationFormDirective.DurationFormDirective
  * @const
  * @export
  */
-grrUi.forms.durationFormDirective.DurationFormDirective
-    .semantic_type = 'Duration';
-
-
-
-});
+exports.DurationFormDirective.semantic_type = 'Duration';

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.hashDigestDirective');
-goog.provide('grrUi.semantic.hashDigestDirective.HashDigestDirective');
+goog.module('grrUi.semantic.hashDigestDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -74,7 +73,7 @@ HashDigestController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.hashDigestDirective.HashDigestDirective = function() {
+exports.HashDigestDirective = function() {
   return {
     scope: {
       value: '='
@@ -94,8 +93,7 @@ grrUi.semantic.hashDigestDirective.HashDigestDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.hashDigestDirective.HashDigestDirective.directive_name =
-    'grrHashDigest';
+exports.HashDigestDirective.directive_name = 'grrHashDigest';
 
 /**
  * Semantic type corresponding to this directive.
@@ -103,8 +101,4 @@ grrUi.semantic.hashDigestDirective.HashDigestDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.hashDigestDirective.HashDigestDirective.semantic_type =
-    'HashDigest';
-
-
-});  // goog.scope
+exports.HashDigestDirective.semantic_type = 'HashDigest';

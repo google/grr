@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.globalNotificationsDirective');
-goog.provide('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
+goog.module('grrUi.core.globalNotificationsDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var SECOND = 1000;
 var FETCH_INTERVAL = 60 * SECOND;
@@ -92,8 +91,7 @@ GlobalNotificationsController.prototype.stopPollingGlobalNotifications_ =
  * @ngInject
  * @export
  */
-grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective =
-    function() {
+exports.GlobalNotificationsDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -103,8 +101,7 @@ grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective =
   };
 };
 
-var GlobalNotificationsDirective =
-  grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective;
+var GlobalNotificationsDirective = exports.GlobalNotificationsDirective;
 
 /**
  * Name of the directive in Angular.
@@ -122,5 +119,3 @@ GlobalNotificationsDirective.directive_name = 'grrGlobalNotifications';
  */
 GlobalNotificationsDirective.fetch_interval = FETCH_INTERVAL;
 
-
-});  // goog.scope

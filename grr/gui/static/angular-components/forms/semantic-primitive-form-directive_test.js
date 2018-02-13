@@ -3,7 +3,7 @@
 goog.module('grrUi.forms.semanticPrimitiveFormDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 describe('semantic primitive form directive', () => {

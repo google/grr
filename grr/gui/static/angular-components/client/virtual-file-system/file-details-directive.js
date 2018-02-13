@@ -1,19 +1,14 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT
-goog.require('grrUi.core.versionDropdownDirective');  // USE: VersionDropdownDirective
+goog.module('grrUi.client.virtualFileSystem.fileDetailsDirective');
+goog.module.declareLegacyNamespace();
+
+const {REFRESH_FILE_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
 
 
-goog.scope(function() {
 
-
-var REFRESH_FILE_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
-
-var REFRESH_VERSIONS_EVENT =
-    grrUi.core.versionDropdownDirective.VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
+var REFRESH_VERSIONS_EVENT = VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 
 /**
  * Controller for FileDetailsDirective.
@@ -178,7 +173,7 @@ FileDetailsController.prototype.targetsCurrentSelection_ = function(fileDetails)
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective = function() {
+exports.FileDetailsDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -201,7 +196,4 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective = funct
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective.directive_name =
-    'grrFileDetails';
-
-});  // goog.scope
+exports.FileDetailsDirective.directive_name = 'grrFileDetails';

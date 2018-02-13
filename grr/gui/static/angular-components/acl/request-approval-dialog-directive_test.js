@@ -2,7 +2,7 @@
 
 goog.module('grrUi.acl.requestApprovalDialogDirectiveTest');
 
-const {aclModule} = goog.require('grrUi.acl');
+const {aclModule} = goog.require('grrUi.acl.acl');
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 
 

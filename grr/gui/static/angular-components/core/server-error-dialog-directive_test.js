@@ -3,7 +3,7 @@
 goog.module('grrUi.core.serverErrorDialogDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 describe('server error dialog directive', () => {

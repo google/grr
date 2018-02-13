@@ -3,7 +3,7 @@
 goog.module('grrUi.forms.outputPluginDescriptorFormDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 describe('grr-output-plugin-descriptor-form directive', () => {

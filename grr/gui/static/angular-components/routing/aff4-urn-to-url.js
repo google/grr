@@ -1,7 +1,10 @@
-goog.provide('grrUi.routing.aff4UrnToUrl');
-goog.provide('grrUi.routing.aff4UrnToUrl.aff4UrnToUrl');
-goog.require('grrUi.core.fileDownloadUtils');  // USE: vfsRoots
-goog.require('grrUi.core.utils');  // USE: CLIENT_ID_RE, stripAff4Prefix
+'use strict';
+
+goog.module('grrUi.routing.aff4UrnToUrl');
+goog.module.declareLegacyNamespace();
+
+const {CLIENT_ID_RE, stripAff4Prefix} = goog.require('grrUi.core.utils');
+const {vfsRoots} = goog.require('grrUi.core.fileDownloadUtils');
 
 
 // TODO(hanuszczak): Delete suppression once ES6 module migration is complete.
@@ -20,13 +23,13 @@ goog.require('grrUi.core.utils');  // USE: CLIENT_ID_RE, stripAff4Prefix
  *     identifying router state and 'params' identifying router params.
  * @export
  */
-grrUi.routing.aff4UrnToUrl.aff4UrnToUrl = function(urn) {
-  var components = grrUi.core.utils.stripAff4Prefix(urn).split('/');
-  if (grrUi.core.utils.CLIENT_ID_RE.test(components[0])) {
+exports.aff4UrnToUrl = function(urn) {
+  var components = stripAff4Prefix(urn).split('/');
+  if (CLIENT_ID_RE.test(components[0])) {
     // Handle references to client object or to something within the
     // client namespace: flows or VFS files.
 
-    if (grrUi.core.fileDownloadUtils.vfsRoots.includes(components[1])) {
+    if (vfsRoots.includes(components[1])) {
       return {
         state: 'client.vfs',
         params: {
@@ -71,7 +74,7 @@ grrUi.routing.aff4UrnToUrl.aff4UrnToUrl = function(urn) {
   } else if (components[0] === 'ACL') {
     // Handle references to approvals.
 
-    if (grrUi.core.utils.CLIENT_ID_RE.test(components[1])) {
+    if (CLIENT_ID_RE.test(components[1])) {
       return {
         state: 'clientApproval',
         params: {

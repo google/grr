@@ -1,25 +1,32 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowsListDirective');
-goog.provide('grrUi.flow.flowsListDirective.FlowsListDirective');
-goog.provide('grrUi.flow.flowsListDirective.flattenFlowsList');
-goog.provide('grrUi.flow.flowsListDirective.toggleFlowExpansion');
+goog.module('grrUi.flow.flowsListDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.infiniteTableDirective');  // USE: InfiniteTableController
+const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirective');
 
-goog.scope(function() {
 
-var TABLE_KEY_NAME =
-    grrUi.core.infiniteTableDirective.InfiniteTableController.UNIQUE_KEY_NAME;
-var TABLE_ROW_HASH =
-    grrUi.core.infiniteTableDirective.InfiniteTableController.ROW_HASH_NAME;
+
+var TABLE_KEY_NAME = InfiniteTableController.UNIQUE_KEY_NAME;
+var TABLE_ROW_HASH = InfiniteTableController.ROW_HASH_NAME;
+
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 30 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes of the flow list.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /** @const {number} */
-grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS = 30 * 1000;
-
-/** @const {number} */
-grrUi.flow.flowsListDirective.PAGE_SIZE = 100;
+const PAGE_SIZE = 100;
 
 /**
  * Flattens list of flows returned by the server. Every flow in the list
@@ -33,8 +40,7 @@ grrUi.flow.flowsListDirective.PAGE_SIZE = 100;
  *
  * @export
  */
-grrUi.flow.flowsListDirective.flattenFlowsList = function(
-    flows, opt_currentDepth) {
+exports.flattenFlowsList = function(flows, opt_currentDepth) {
   if (angular.isUndefined(opt_currentDepth)) {
     opt_currentDepth = 0;
   }
@@ -47,16 +53,15 @@ grrUi.flow.flowsListDirective.flattenFlowsList = function(
     result.push(flow);
     if (angular.isDefined(flow['value']) &&
         angular.isDefined(flow['value']['nested_flows'])) {
-      result = result.concat(
-          grrUi.flow.flowsListDirective.flattenFlowsList(
-              flow['value']['nested_flows'], opt_currentDepth + 1));
+      result = result.concat(exports.flattenFlowsList(
+          flow['value']['nested_flows'], opt_currentDepth + 1));
 
       delete flow['value']['nested_flows'];
     }
   }
   return result;
 };
-var flattenFlowsList = grrUi.flow.flowsListDirective.flattenFlowsList;
+var flattenFlowsList = exports.flattenFlowsList;
 
 
 /**
@@ -72,7 +77,7 @@ var flattenFlowsList = grrUi.flow.flowsListDirective.flattenFlowsList;
  *
  * @export
  */
-grrUi.flow.flowsListDirective.toggleFlowExpansion = function(flows, index) {
+exports.toggleFlowExpansion = function(flows, index) {
   var flowToExpand = flows[index];
   var i;
 
@@ -130,7 +135,7 @@ grrUi.flow.flowsListDirective.toggleFlowExpansion = function(flows, index) {
 
   return flows;
 };
-var toggleFlowExpansion = grrUi.flow.flowsListDirective.toggleFlowExpansion;
+var toggleFlowExpansion = exports.toggleFlowExpansion;
 
 
 /**
@@ -160,11 +165,10 @@ const FlowsListController = function(
   this.triggerTableUpdate;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.flow.flowsListDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   /** @type {number} */
-  this.pageSize = grrUi.flow.flowsListDirective.PAGE_SIZE;
+  this.pageSize = PAGE_SIZE;
 
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.
@@ -262,7 +266,7 @@ FlowsListController.prototype.triggerUpdate = function() {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowsListDirective.FlowsListDirective = function() {
+exports.FlowsListDirective = function() {
   return {
     scope: {
       flowsUrl: '=',
@@ -283,9 +287,4 @@ grrUi.flow.flowsListDirective.FlowsListDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowsListDirective.FlowsListDirective
-    .directive_name = 'grrFlowsList';
-
-
-
-});  // goog.scope
+exports.FlowsListDirective.directive_name = 'grrFlowsList';

@@ -2,7 +2,7 @@
 
 goog.module('grrUi.core.apiServiceTest');
 
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {encodeUrlPath, stripTypeInfo, UNAUTHORIZED_API_RESPONSE_EVENT} = goog.require('grrUi.core.apiService');
 
 

@@ -1,84 +1,65 @@
 'use strict';
 
-goog.provide('grrUi.client');
-goog.provide('grrUi.client.clientModule');
-goog.require('grrUi.client.addClientsLabelsDialogDirective');  // USE: AddClientsLabelsDialogDirective
-goog.require('grrUi.client.checkClientAccessDirective');  // USE: CheckClientAccessDirective
-goog.require('grrUi.client.clientContextDirective');  // USE: ClientContextDirective
-goog.require('grrUi.client.clientCrashesDirective');  // USE: ClientCrashesDirective
-goog.require('grrUi.client.clientDialogService');  // USE: ClientDialogService
-goog.require('grrUi.client.clientLoadGraphSerieDirective');  // USE: ClientLoadGraphSerieDirective
-goog.require('grrUi.client.clientLoadViewDirective');  // USE: ClientLoadViewDirective
-goog.require('grrUi.client.clientStatusIconsDirective');  // USE: ClientStatusIconsDirective
-goog.require('grrUi.client.clientUsernamesDirective');  // USE: ClientUsernamesDirective
-goog.require('grrUi.client.clientsListDirective');  // USE: ClientsListDirective
-goog.require('grrUi.client.debugRequestsViewDirective');  // USE: DebugRequestsViewDirective
-goog.require('grrUi.client.hostHistoryDialogDirective');  // USE: HostHistoryDialogDirective
-goog.require('grrUi.client.hostInfoDirective');  // USE: HostInfoDirective
-goog.require('grrUi.client.removeClientsLabelsDialogDirective');  // USE: RemoveClientsLabelsDialogDirective
-goog.require('grrUi.client.virtualFileSystem');  // USE: virtualFileSystemModule
-goog.require('grrUi.core');                      // USE: coreModule
-goog.require('grrUi.semantic');                  // USE: semanticModule
-goog.require('grrUi.stats');                     // USE: statsModule
+goog.module('grrUi.client.client');
+goog.module.declareLegacyNamespace();
+
+const {AddClientsLabelsDialogDirective} = goog.require('grrUi.client.addClientsLabelsDialogDirective');
+const {CheckClientAccessDirective} = goog.require('grrUi.client.checkClientAccessDirective');
+const {ClientContextDirective} = goog.require('grrUi.client.clientContextDirective');
+const {ClientCrashesDirective} = goog.require('grrUi.client.clientCrashesDirective');
+const {ClientDialogService} = goog.require('grrUi.client.clientDialogService');
+const {ClientLoadGraphSerieDirective} = goog.require('grrUi.client.clientLoadGraphSerieDirective');
+const {ClientLoadViewDirective} = goog.require('grrUi.client.clientLoadViewDirective');
+const {ClientStatusIconsDirective} = goog.require('grrUi.client.clientStatusIconsDirective');
+const {ClientUsernamesDirective} = goog.require('grrUi.client.clientUsernamesDirective');
+const {ClientsListDirective} = goog.require('grrUi.client.clientsListDirective');
+const {DebugRequestsViewDirective} = goog.require('grrUi.client.debugRequestsViewDirective');
+const {HostHistoryDialogDirective} = goog.require('grrUi.client.hostHistoryDialogDirective');
+const {HostInfoDirective} = goog.require('grrUi.client.hostInfoDirective');
+const {RemoveClientsLabelsDialogDirective} = goog.require('grrUi.client.removeClientsLabelsDialogDirective');
+const {coreModule} = goog.require('grrUi.core.core');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
+const {statsModule} = goog.require('grrUi.stats.stats');
+const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem.virtualFileSystem');
 
 
 /**
  * Angular module for clients-related UI.
  */
-grrUi.client.clientModule = angular.module('grrUi.client',
-                                     [grrUi.client.virtualFileSystem.virtualFileSystemModule.name,
-                                      grrUi.core.coreModule.name,
-                                      grrUi.semantic.semanticModule.name,
-                                      grrUi.stats.statsModule.name
-                                     ]);
+exports.clientModule = angular.module('grrUi.client', [
+  virtualFileSystemModule.name, coreModule.name, semanticModule.name,
+  statsModule.name
+]);
 
-grrUi.client.clientModule.directive(
-    grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective
-        .directive_name,
-    grrUi.client.addClientsLabelsDialogDirective
-        .AddClientsLabelsDialogDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.checkClientAccessDirective.CheckClientAccessDirective.directive_name,
-    grrUi.client.checkClientAccessDirective.CheckClientAccessDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientContextDirective.ClientContextDirective.directive_name,
-    grrUi.client.clientContextDirective.ClientContextDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientCrashesDirective.ClientCrashesDirective.directive_name,
-    grrUi.client.clientCrashesDirective.ClientCrashesDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientsListDirective.ClientsListDirective.directive_name,
-    grrUi.client.clientsListDirective.ClientsListDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective
-        .directive_name,
-    grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientLoadViewDirective.ClientLoadViewDirective.directive_name,
-    grrUi.client.clientLoadViewDirective.ClientLoadViewDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective
-        .directive_name,
-    grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.clientUsernamesDirective.ClientUsernamesDirective
-        .directive_name,
-    grrUi.client.clientUsernamesDirective.ClientUsernamesDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective.directive_name,
-    grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective.directive_name,
-    grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.hostInfoDirective.HostInfoDirective.directive_name,
-    grrUi.client.hostInfoDirective.HostInfoDirective);
-grrUi.client.clientModule.directive(
-    grrUi.client.removeClientsLabelsDialogDirective
-        .RemoveClientsLabelsDialogDirective.directive_name,
-    grrUi.client.removeClientsLabelsDialogDirective
-        .RemoveClientsLabelsDialogDirective);
+exports.clientModule.directive(
+    AddClientsLabelsDialogDirective.directive_name,
+    AddClientsLabelsDialogDirective);
+exports.clientModule.directive(
+    CheckClientAccessDirective.directive_name, CheckClientAccessDirective);
+exports.clientModule.directive(
+    ClientContextDirective.directive_name, ClientContextDirective);
+exports.clientModule.directive(
+    ClientCrashesDirective.directive_name, ClientCrashesDirective);
+exports.clientModule.directive(
+    ClientsListDirective.directive_name, ClientsListDirective);
+exports.clientModule.directive(
+    ClientLoadGraphSerieDirective.directive_name,
+    ClientLoadGraphSerieDirective);
+exports.clientModule.directive(
+    ClientLoadViewDirective.directive_name, ClientLoadViewDirective);
+exports.clientModule.directive(
+    ClientStatusIconsDirective.directive_name, ClientStatusIconsDirective);
+exports.clientModule.directive(
+    ClientUsernamesDirective.directive_name, ClientUsernamesDirective);
+exports.clientModule.directive(
+    DebugRequestsViewDirective.directive_name, DebugRequestsViewDirective);
+exports.clientModule.directive(
+    HostHistoryDialogDirective.directive_name, HostHistoryDialogDirective);
+exports.clientModule.directive(
+    HostInfoDirective.directive_name, HostInfoDirective);
+exports.clientModule.directive(
+    RemoveClientsLabelsDialogDirective.directive_name,
+    RemoveClientsLabelsDialogDirective);
 
-grrUi.client.clientModule.service(
-    grrUi.client.clientDialogService.ClientDialogService.service_name,
-    grrUi.client.clientDialogService.ClientDialogService);
+exports.clientModule.service(
+    ClientDialogService.service_name, ClientDialogService);

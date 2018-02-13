@@ -3,7 +3,7 @@
 goog.module('grrUi.core.apiItemsProviderDirectiveTest');
 
 const {ApiItemsProviderController} = goog.require('grrUi.core.apiItemsProviderDirective');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

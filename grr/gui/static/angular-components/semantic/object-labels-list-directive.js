@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.objectLabelsListDirective');
-goog.provide('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
+goog.module('grrUi.semantic.objectLabelsListDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -14,26 +12,22 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective =
-    function() {
-      return {
-        scope: {
-          value: '='
-        },
-        restrict: 'E',
-        template: '<grr-object-label ' +
-            'ng-repeat="label in ::value.value.labels" ' +
-            'value="::label"></grr-object-label>',
-        controllerAs: 'controller'
-      };
-    };
+exports.ObjectLabelsListDirective = function() {
+  return {
+    scope: {value: '='},
+    restrict: 'E',
+    template: '<grr-object-label ' +
+        'ng-repeat="label in ::value.value.labels" ' +
+        'value="::label"></grr-object-label>',
+    controllerAs: 'controller'
+  };
+};
 
 
 /**
  * Name of the directive in Angular.
  */
-grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
-    .directive_name = 'grrObjectLabelsList';
+exports.ObjectLabelsListDirective.directive_name = 'grrObjectLabelsList';
 
 
 /**
@@ -42,7 +36,4 @@ grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
  * @const
  * @export
  */
-grrUi.semantic.objectLabelsListDirective
-    .ObjectLabelsListDirective.semantic_type =
-    'AFF4ObjectLabelsList';
-});  // goog.scope
+exports.ObjectLabelsListDirective.semantic_type = 'AFF4ObjectLabelsList';

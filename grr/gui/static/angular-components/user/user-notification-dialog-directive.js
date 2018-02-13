@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationDialogDirective');
-goog.provide('grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective');
+goog.module('grrUi.user.userNotificationDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -31,7 +30,7 @@ const UserNotificationDialogController =
  * @ngInject
  * @export
  */
-grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective = function() {
+exports.UserNotificationDialogDirective = function() {
   return {
     scope: {
       close: '&'
@@ -50,8 +49,5 @@ grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective = fun
  * @const
  * @export
  */
-grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective.directive_name =
-  'grrUserNotificationDialog';
-
-
-});  // goog.scope
+exports.UserNotificationDialogDirective.directive_name =
+    'grrUserNotificationDialog';

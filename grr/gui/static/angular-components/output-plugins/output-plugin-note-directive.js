@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginNoteDirective');
-goog.provide('grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective');
+goog.module('grrUi.outputPlugins.outputPluginNoteDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for OutputPluginNoteDirective.
@@ -75,8 +74,7 @@ OutputPluginNoteController.prototype.onOutputPluginChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective =
-    function() {
+exports.OutputPluginNoteDirective = function() {
   return {
     scope: {
       outputPluginsUrl: '=',
@@ -96,6 +94,4 @@ grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective =
  * @const
  * @export
  */
-grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective
-    .directive_name = 'grrOutputPluginNote';
-});
+exports.OutputPluginNoteDirective.directive_name = 'grrOutputPluginNote';

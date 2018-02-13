@@ -1,25 +1,15 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
-goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
+goog.module('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FOLDER_EVENT
-
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
-
-
-goog.scope(function() {
+const {REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
 
-var REFRESH_FOLDER_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
 
 var OPERATION_POLL_INTERVAL_MS = 1000;
 
-
-var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
-
-var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
 
 
 /**
@@ -188,8 +178,7 @@ RecursiveListButtonController.prototype.createRefreshOperation = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.recursiveListButtonDirective
-    .RecursiveListButtonDirective = function() {
+exports.RecursiveListButtonDirective = function() {
   return {
     scope: {
       clientId: '=',
@@ -210,7 +199,4 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective
-    .directive_name = 'grrRecursiveListButton';
-
-});  // goog.scope
+exports.RecursiveListButtonDirective.directive_name = 'grrRecursiveListButton';

@@ -1,18 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.flow.copyFlowFormDirective');
-goog.provide('grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.flow.copyFlowFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for CopyFlowFormDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @constructor
  * @ngInject
  */
@@ -21,7 +19,7 @@ const CopyFlowFormController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @private {Object} */
@@ -90,7 +88,7 @@ CopyFlowFormController.prototype.proceed = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective = function() {
+exports.CopyFlowFormDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -111,7 +109,4 @@ grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective.directive_name =
-    'grrCopyFlowForm';
-
-});  // goog.scope
+exports.CopyFlowFormDirective.directive_name = 'grrCopyFlowForm';

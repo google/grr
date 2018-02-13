@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowInfoDirective');
-goog.provide('grrUi.flow.flowInfoDirective.FlowInfoDirective');
+goog.module('grrUi.flow.flowInfoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for FlowInfoDirective.
@@ -23,7 +23,7 @@ const FlowInfoController = function($scope) {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowInfoDirective.FlowInfoDirective = function() {
+exports.FlowInfoDirective = function() {
   return {
     scope: {
       descriptor: '='
@@ -42,9 +42,4 @@ grrUi.flow.flowInfoDirective.FlowInfoDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowInfoDirective.FlowInfoDirective.directive_name =
-    'grrFlowInfo';
-
-
-
-});  // goog.scope
+exports.FlowInfoDirective.directive_name = 'grrFlowInfo';

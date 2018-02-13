@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.disableIfNoTraitDirective');
-goog.provide('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
+goog.module('grrUi.core.disableIfNoTraitDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -31,6 +29,10 @@ const DisableIfNoTraitController = function(
 };
 
 
+/**
+ * @param {?} newValue
+ * @private
+ */
 DisableIfNoTraitController.prototype.onTraitNameChange_ = function(newValue) {
   this.traitName_ = newValue;
 
@@ -42,6 +44,10 @@ DisableIfNoTraitController.prototype.onTraitNameChange_ = function(newValue) {
   }
 };
 
+/**
+ * @param {Object} response
+ * @private
+ */
 DisableIfNoTraitController.prototype.onUserInfo_ = function(response) {
   var traitValue = false;
 
@@ -62,8 +68,7 @@ DisableIfNoTraitController.prototype.onUserInfo_ = function(response) {
  * @ngInject
  * @export
  */
-grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective =
-    function() {
+exports.DisableIfNoTraitDirective = function() {
   return {
     scope: {},
     restrict: 'A',
@@ -79,8 +84,4 @@ grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective =
  * @const
  * @export
  */
-grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective
-    .directive_name = 'grrDisableIfNoTrait';
-
-
-});  // goog.scope
+exports.DisableIfNoTraitDirective.directive_name = 'grrDisableIfNoTrait';

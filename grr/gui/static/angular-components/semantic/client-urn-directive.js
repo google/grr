@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.semantic.clientUrnDirective');
-goog.provide('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
-
-goog.scope(function() {
+goog.module('grrUi.semantic.clientUrnDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -84,7 +82,7 @@ ClientUrnController.prototype.onInfoClick = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.semantic.clientUrnDirective.ClientUrnDirective = function() {
+exports.ClientUrnDirective = function() {
   return {
     scope: {
       value: '='
@@ -103,8 +101,7 @@ grrUi.semantic.clientUrnDirective.ClientUrnDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name =
-    'grrClientUrn';
+exports.ClientUrnDirective.directive_name = 'grrClientUrn';
 
 
 /**
@@ -113,8 +110,4 @@ grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_types =
-      ['ClientURN', 'ApiClientId'];
-
-
-});  // goog.scope
+exports.ClientUrnDirective.semantic_types = ['ClientURN', 'ApiClientId'];

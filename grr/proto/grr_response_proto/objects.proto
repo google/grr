@@ -97,6 +97,15 @@ message ClientMetadata {
       type: "RDFDatetime",
       description: "First time the client registered with us",
     }];
+  optional uint64 last_crash_timestamp = 8 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last time this client reported a crash.",
+    }];
+  optional uint64 startup_info_timestamp = 9 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp for the latest change of startup information for "
+                   "this client.",
+    }];
 }
 
 // Next field id: 6

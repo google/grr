@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.semantic.timestampDirective');
-goog.provide('grrUi.semantic.timestampDirective.TimestampDirective');
-
-goog.scope(function() {
+goog.module('grrUi.semantic.timestampDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -89,7 +87,7 @@ TimestampController.prototype.onMouseEnter = function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.timestampDirective.TimestampDirective = function() {
+exports.TimestampDirective = function() {
   return {
     scope: {
       value: '='
@@ -108,8 +106,7 @@ grrUi.semantic.timestampDirective.TimestampDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.timestampDirective.TimestampDirective.directive_name =
-    'grrTimestamp';
+exports.TimestampDirective.directive_name = 'grrTimestamp';
 
 /**
  * Semantic type corresponding to this directive.
@@ -117,8 +114,4 @@ grrUi.semantic.timestampDirective.TimestampDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.timestampDirective.TimestampDirective.semantic_type =
-    'RDFDatetime';
-
-
-});  // goog.scope
+exports.TimestampDirective.semantic_type = 'RDFDatetime';

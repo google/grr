@@ -3,7 +3,7 @@
 goog.module('grrUi.core.searchBoxDirectiveTest');
 
 const {browserTriggerEvent, stubUiTrait, testsModule} = goog.require('grrUi.tests');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 describe('search box directive', () => {

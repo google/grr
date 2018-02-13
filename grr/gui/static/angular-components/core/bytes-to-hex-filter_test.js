@@ -3,7 +3,7 @@
 goog.module('grrUi.core.bytesToHexFilterTest');
 
 const {BytesToHexFilter} = goog.require('grrUi.core.bytesToHexFilter');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

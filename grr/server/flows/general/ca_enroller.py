@@ -80,7 +80,7 @@ class CAEnroler(flow.GRRFlow):
 
       index = client_index.CreateClientIndex(token=self.token)
       index.AddClient(client)
-      if data_store.RelationalDBWriteEnabled:
+      if data_store.RelationalDBWriteEnabled():
         index = client_index.ClientIndex()
         index.AddClient(self.client_id.Basename(),
                         data_migration.ConvertVFSGRRClient(client))

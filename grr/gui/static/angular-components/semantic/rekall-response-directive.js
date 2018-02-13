@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekallResponseDirective');
-goog.provide('grrUi.semantic.rekallResponseDirective.RekallResponseDirective');
+goog.module('grrUi.semantic.rekallResponseDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekallResponseDirective.RekallResponseDirective = function() {
+exports.RekallResponseDirective = function() {
   return {
     scope: {
       value: '='
@@ -30,8 +29,7 @@ grrUi.semantic.rekallResponseDirective.RekallResponseDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekallResponseDirective.RekallResponseDirective.directive_name =
-    'grrRekallResponse';
+exports.RekallResponseDirective.directive_name = 'grrRekallResponse';
 
 /**
  * Semantic type corresponding to this directive.
@@ -39,8 +37,4 @@ grrUi.semantic.rekallResponseDirective.RekallResponseDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.rekallResponseDirective.RekallResponseDirective.semantic_type =
-    'RekallResponse';
-
-
-});  // goog.scope
+exports.RekallResponseDirective.semantic_type = 'RekallResponse';

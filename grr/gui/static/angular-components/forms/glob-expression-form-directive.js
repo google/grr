@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.globExpressionFormDirective');
-goog.provide('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
+goog.module('grrUi.forms.globExpressionFormDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -133,8 +131,7 @@ GlobExpressionFormController.prototype.onGetFields_ = function(response) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective =
-    function() {
+exports.GlobExpressionFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -154,8 +151,7 @@ grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective =
  * @const
  * @export
  */
-grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
-    .directive_name = 'grrFormGlobExpression';
+exports.GlobExpressionFormDirective.directive_name = 'grrFormGlobExpression';
 
 /**
  * Semantic type corresponding to this directive.
@@ -163,8 +159,4 @@ grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
  * @const
  * @export
  */
-grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
-    .semantic_type = 'GlobExpression';
-
-
-});
+exports.GlobExpressionFormDirective.semantic_type = 'GlobExpression';

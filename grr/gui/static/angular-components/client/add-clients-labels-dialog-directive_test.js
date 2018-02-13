@@ -3,7 +3,7 @@
 goog.module('grrUi.client.addClientsLabelsDialogDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {clientModule} = goog.require('grrUi.client');
+const {clientModule} = goog.require('grrUi.client.client');
 
 
 describe('add clients labels dialog', () => {

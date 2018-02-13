@@ -4,7 +4,7 @@ goog.module('grrUi.core.infiniteTableDirectiveTest');
 
 const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirective');
 const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

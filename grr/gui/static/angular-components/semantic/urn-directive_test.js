@@ -2,8 +2,8 @@
 
 goog.module('grrUi.semantic.urnDirectiveTest');
 
-const {aff4UrnToUrl} = goog.require('grrUi.routing');
-const {semanticModule} = goog.require('grrUi.semantic');
+const aff4UrnToUrl = goog.require('grrUi.routing.aff4UrnToUrl');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {testsModule} = goog.require('grrUi.tests');
 
 

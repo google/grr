@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.itemsProviderController');
-goog.provide('grrUi.core.itemsProviderController.Items');
-goog.provide('grrUi.core.itemsProviderController.ItemsProviderController');
+goog.module('grrUi.core.itemsProviderController');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /** @typedef {!Object|{
@@ -14,7 +11,7 @@ goog.scope(function() {
  *             items:Array<?>
  *           }}
  */
-grrUi.core.itemsProviderController.Items;
+exports.Items;
 
 
 
@@ -25,9 +22,8 @@ grrUi.core.itemsProviderController.Items;
  * @interface
  * @export
  */
-grrUi.core.itemsProviderController.ItemsProviderController = function() {};
-var ItemsProviderController =
-    grrUi.core.itemsProviderController.ItemsProviderController;
+exports.ItemsProviderController = function() {};
+var ItemsProviderController = exports.ItemsProviderController;
 
 
 /**
@@ -39,7 +35,7 @@ var ItemsProviderController =
  * @param {boolean=} opt_withTotalCount if true, total number of elements in
  *     the collection will be returned along with fetched items.
  * @return {!angular.$q.Promise} Fetched items promise. Resolves to
- *     grrUi.core.itemsProviderController.Items. If opt_withTotalCount
+ *     exports.Items. If opt_withTotalCount
  *     was set to true, resulting object will have a totalCount attribute
  *     containing total number of items in the collection on the server.
  */
@@ -54,8 +50,7 @@ ItemsProviderController.prototype.fetchItems = goog.abstractMethod;
  * @param {number} offset Number of items to skip in the resulting set.
  * @param {number} count Maximum number of items to be returned.
  * @return {!angular.$q.Promise} Fetched items promise. Resolves to
- *     grrUi.core.itemsProviderController.Items.
+ *     exports.Items.
  */
 ItemsProviderController.prototype.fetchFilteredItems = goog.abstractMethod;
 
-});  // goog.scope

@@ -3,7 +3,7 @@
 goog.module('grrUi.core.serverErrorButtonDirectiveTest');
 
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

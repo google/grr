@@ -3,7 +3,7 @@
 goog.module('grrUi.outputPlugins.outputPluginLogsDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins.outputPlugins');
 
 
 describe('output plugin logs directive', () => {

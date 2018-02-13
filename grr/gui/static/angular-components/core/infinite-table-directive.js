@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.infiniteTableDirective');
-goog.provide('grrUi.core.infiniteTableDirective.InfiniteTableController');
-goog.provide('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
+goog.module('grrUi.core.infiniteTableDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -21,7 +18,7 @@ goog.scope(function() {
  * @param {!angular.$log} $log
  * @ngInject
  */
-grrUi.core.infiniteTableDirective.InfiniteTableController = function(
+exports.InfiniteTableController = function(
     $scope, $attrs, $element, $interval, $transclude, $parse, $log) {
   // Injected dependencies.
 
@@ -164,8 +161,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   this.scope_.$watch(this.attrs_['filterValue'], this.onFilterChange_.bind(this));
 };
 
-var InfiniteTableController =
-    grrUi.core.infiniteTableDirective.InfiniteTableController;
+var InfiniteTableController = exports.InfiniteTableController;
 
 
 /** @const */
@@ -488,7 +484,7 @@ InfiniteTableController.prototype.onItemsFetched_ = function(
  * @ngInject
  * @export
  */
-grrUi.core.infiniteTableDirective.InfiniteTableDirective = function() {
+exports.InfiniteTableDirective = function() {
   return {
     transclude: 'element',
     restrict: 'A',
@@ -524,7 +520,4 @@ grrUi.core.infiniteTableDirective.InfiniteTableDirective = function() {
  * @const
  * @export
  */
-grrUi.core.infiniteTableDirective.InfiniteTableDirective
-    .directive_name = 'grrInfiniteTable';
-
-});  // goog.scope
+exports.InfiniteTableDirective.directive_name = 'grrInfiniteTable';

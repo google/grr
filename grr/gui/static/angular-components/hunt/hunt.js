@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt');
-goog.provide('grrUi.hunt.huntModule');
+goog.provide('grrUi.hunt.hunt');
+goog.provide('grrUi.hunt.hunt.huntModule');
 
-goog.require('grrUi.core');  // USE: coreModule
+goog.require('grrUi.core.core');  // USE: coreModule
 
 goog.require('grrUi.hunt.huntClientsDirective');    // USE: HuntClientsDirective
 goog.require('grrUi.hunt.huntContextDirective');    // USE: HuntContextDirective
@@ -20,58 +20,58 @@ goog.require('grrUi.hunt.huntsListDirective');       // USE: HuntsListDirective
 goog.require('grrUi.hunt.huntsViewDirective');       // USE: HuntsViewDirective
 goog.require('grrUi.hunt.modifyHuntDialogDirective');  // USE: ModifyHuntDialogDirective
 
-goog.require('grrUi.hunt.newHuntWizard');  // USE: newHuntWizardModule
+goog.require('grrUi.hunt.newHuntWizard.newHuntWizard');  // USE: newHuntWizardModule
 
 
 /**
  * Angular module for hunts-related UI.
  */
-grrUi.hunt.huntModule = angular.module('grrUi.hunt',
-                                   ['ui.bootstrap',
-                                    grrUi.core.coreModule.name,
-                                    grrUi.hunt.newHuntWizard.newHuntWizardModule.name]);
+grrUi.hunt.hunt.huntModule = angular.module('grrUi.hunt', [
+  'ui.bootstrap', grrUi.core.core.coreModule.name,
+  grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.name
+]);
 
 
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntClientsDirective.HuntClientsDirective.directive_name,
     grrUi.hunt.huntClientsDirective.HuntClientsDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntContextDirective.HuntContextDirective.directive_name,
     grrUi.hunt.huntContextDirective.HuntContextDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntCrashesDirective.HuntCrashesDirective.directive_name,
     grrUi.hunt.huntCrashesDirective.HuntCrashesDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntErrorsDirective.HuntErrorsDirective.directive_name,
     grrUi.hunt.huntErrorsDirective.HuntErrorsDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntGraphDirective.HuntGraphDirective.directive_name,
     grrUi.hunt.huntGraphDirective.HuntGraphDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntInspectorDirective.HuntInspectorDirective.directive_name,
     grrUi.hunt.huntInspectorDirective.HuntInspectorDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntLogDirective.HuntLogDirective.directive_name,
     grrUi.hunt.huntLogDirective.HuntLogDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntOverviewDirective.HuntOverviewDirective.directive_name,
     grrUi.hunt.huntOverviewDirective.HuntOverviewDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntResultsDirective.HuntResultsDirective.directive_name,
     grrUi.hunt.huntResultsDirective.HuntResultsDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective.directive_name,
     grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntStatsDirective.HuntStatsDirective.directive_name,
     grrUi.hunt.huntStatsDirective.HuntStatsDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntsListDirective.HuntsListDirective.directive_name,
     grrUi.hunt.huntsListDirective.HuntsListDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.huntsViewDirective.HuntsViewDirective.directive_name,
     grrUi.hunt.huntsViewDirective.HuntsViewDirective);
-grrUi.hunt.huntModule.directive(
+grrUi.hunt.hunt.huntModule.directive(
     grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective
         .directive_name,
     grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective);

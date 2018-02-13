@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobStatusIconDirective');
-goog.provide('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective');
+goog.module('grrUi.cron.cronJobStatusIconDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -14,21 +12,16 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective =
-    function() {
-      return {
-        scope: {
-          cronJob: '='
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/cron/cron-job-status-icon.html'
-      };
-    };
+exports.CronJobStatusIconDirective = function() {
+  return {
+    scope: {cronJob: '='},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/cron/cron-job-status-icon.html'
+  };
+};
 
 
 /**
  * Name of the directive in Angular.
  */
-grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective
-    .directive_name = 'grrCronJobStatusIcon';
-});  // goog.scope
+exports.CronJobStatusIconDirective.directive_name = 'grrCronJobStatusIcon';

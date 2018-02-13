@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowInspectorDirective');
-goog.provide('grrUi.flow.flowInspectorDirective.FlowInspectorDirective');
+goog.module('grrUi.flow.flowInspectorDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -62,7 +61,7 @@ FlowInspectorController.prototype.onTabChange_ = function(newValue, oldValue) {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowInspectorDirective.FlowInspectorDirective = function() {
+exports.FlowInspectorDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -83,9 +82,4 @@ grrUi.flow.flowInspectorDirective.FlowInspectorDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowInspectorDirective.FlowInspectorDirective
-    .directive_name = 'grrFlowInspector';
-
-
-
-});  // goog.scope
+exports.FlowInspectorDirective.directive_name = 'grrFlowInspector';

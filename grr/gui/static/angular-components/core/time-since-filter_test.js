@@ -3,7 +3,7 @@
 goog.module('grrUi.core.timeSinceFilterTest');
 
 const {TimeSinceFilter} = goog.require('grrUi.core.timeSinceFilter');
-const {clientModule} = goog.require('grrUi.client');
+const {clientModule} = goog.require('grrUi.client.client');
 const {testsModule} = goog.require('grrUi.tests');
 
 

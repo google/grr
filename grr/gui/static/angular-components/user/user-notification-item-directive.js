@@ -1,20 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationItemDirective');
-goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
-goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification');
-goog.provide('grrUi.user.userNotificationItemDirective.openReference');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFileId
-goog.require('grrUi.core.apiService');  // USE: encodeUrlPath, stripTypeInfo
-goog.require('grrUi.core.utils');  // USE: getLastPathComponent, stripAff4Prefix
+goog.module('grrUi.user.userNotificationItemDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {encodeUrlPath, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {getLastPathComponent, stripAff4Prefix} = goog.require('grrUi.core.utils');
 
-var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
-var getLastPathComponent = grrUi.core.utils.getLastPathComponent;
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
-var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
-var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
 
 /**
  * Opens the reference of a notification.
@@ -25,8 +16,7 @@ var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
  *
  * @export
  */
-grrUi.user.userNotificationItemDirective.openReference =
-    function(notification, angularWindow) {
+exports.openReference = function(notification, angularWindow) {
   if (!notification['isFileDownload'] && notification['link']) {
     angularWindow.location.href = '#/' + notification['link'];
     return true;
@@ -34,15 +24,14 @@ grrUi.user.userNotificationItemDirective.openReference =
     return false;
   }
 };
-var openReference = grrUi.user.userNotificationItemDirective.openReference;
+var openReference = exports.openReference;
 
 /**
  * Prepares the notification for displaying.
  *
  * @param {Object} notification
  */
-grrUi.user.userNotificationItemDirective.annotateApiNotification =
-    function(notification) {
+exports.annotateApiNotification = function(notification) {
   notification['isPending'] = notification['value']['is_pending']['value'];
 
   if (angular.isDefined(notification['value']['reference'])) {
@@ -51,7 +40,7 @@ grrUi.user.userNotificationItemDirective.annotateApiNotification =
         notification['value']['reference']['value']['type']['value'];
   }
 };
-var annotateApiNotification = grrUi.user.userNotificationItemDirective.annotateApiNotification;
+var annotateApiNotification = exports.annotateApiNotification;
 
 /**
  * Creates a link for the notification.
@@ -123,18 +112,6 @@ var getLink_ = function(notification) {
   return null;
 };
 
-/**
- * Gets the file id for the full vfs path, which includes aff4:/<client>/.
- *
- * @param {string} vfsPath The full vfs path.
- * @return {string} The file id for the given VFS path.
- * @private
- */
-var getFileIdFromFullPath_ = function(vfsPath) {
-  var components = vfsPath.split('/').slice(2, -1);
-  return getFileId(components.join('/'));
-};
-
 
 /**
  * Controller for UserNotificationItemDirective.
@@ -187,7 +164,7 @@ UserNotificationItemController.prototype.openReference = function() {
  * @ngInject
  * @export
  */
-grrUi.user.userNotificationItemDirective.UserNotificationItemDirective = function() {
+exports.UserNotificationItemDirective = function() {
   return {
     scope: {
       notification: '=',
@@ -207,8 +184,5 @@ grrUi.user.userNotificationItemDirective.UserNotificationItemDirective = functio
  * @const
  * @export
  */
-grrUi.user.userNotificationItemDirective.UserNotificationItemDirective.directive_name =
-  'grrUserNotificationItem';
-
-
-});  // goog.scope
+exports.UserNotificationItemDirective.directive_name =
+    'grrUserNotificationItem';

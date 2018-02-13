@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.encodeUriComponentFilter');
-goog.provide('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
+goog.module('grrUi.core.encodeUriComponentFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -14,7 +13,7 @@ goog.scope(function() {
  * @export
  * @ngInject
  */
-grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter = function() {
+exports.EncodeUriComponentFilter = function() {
   return window.encodeURIComponent;
 };
 
@@ -25,7 +24,4 @@ grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter = function() {
  * @const
  * @export
  */
-grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter.filter_name =
-    'grrEncodeUriComponent';
-
-}); // goog.scope
+exports.EncodeUriComponentFilter.filter_name = 'grrEncodeUriComponent';

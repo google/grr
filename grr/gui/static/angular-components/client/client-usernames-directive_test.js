@@ -2,8 +2,8 @@
 
 goog.module('grrUi.client.clientUsernamesDirectiveTest');
 
-const {clientModule} = goog.require('grrUi.client');
-const {semanticModule} = goog.require('grrUi.semantic');
+const {clientModule} = goog.require('grrUi.client.client');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

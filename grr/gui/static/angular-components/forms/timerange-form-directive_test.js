@@ -2,7 +2,7 @@
 
 goog.module('grrUi.forms.timerangeFormDirectiveTest');
 
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

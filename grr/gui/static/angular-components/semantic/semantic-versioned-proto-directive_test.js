@@ -3,7 +3,7 @@
 goog.module('grrUi.semantic.semanticVersionedProtoDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 
 
 describe('semantic versioned proto directive', () => {

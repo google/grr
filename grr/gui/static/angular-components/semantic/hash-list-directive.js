@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.hashListDirective');
-goog.provide('grrUi.semantic.hashListDirective.HashListDirective');
+goog.module('grrUi.semantic.hashListDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -69,7 +68,7 @@ HashListController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.hashListDirective.HashListDirective = function() {
+exports.HashListDirective = function() {
   return {
     scope: {
       value: '='
@@ -88,8 +87,7 @@ grrUi.semantic.hashListDirective.HashListDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.hashListDirective.HashListDirective.directive_name =
-    'grrHashList';
+exports.HashListDirective.directive_name = 'grrHashList';
 
 /**
  * Semantic type corresponding to this directive.
@@ -97,8 +95,4 @@ grrUi.semantic.hashListDirective.HashListDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.hashListDirective.HashListDirective.semantic_type =
-    'HashList';
-
-
-});  // goog.scope
+exports.HashListDirective.semantic_type = 'HashList';

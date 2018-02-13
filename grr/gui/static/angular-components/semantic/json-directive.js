@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.jsonDirective');
-goog.provide('grrUi.semantic.jsonDirective.JsonDirective');
+goog.module('grrUi.semantic.jsonDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -36,6 +35,11 @@ const JsonController = function(
 var FIRST_RENDER_LIMIT = 1024;
 
 
+/**
+ * Handler for the click events.
+ *
+ * @param {?} e An event object.
+ */
 JsonController.prototype.onClick = function(e) {
   // onClick event should not be handled by
   // anything other than this, otherwise the click
@@ -83,7 +87,7 @@ JsonController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.jsonDirective.JsonDirective = function() {
+exports.JsonDirective = function() {
   return {
     scope: {
       value: '='
@@ -102,8 +106,7 @@ grrUi.semantic.jsonDirective.JsonDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.jsonDirective.JsonDirective.directive_name =
-    'grrJson';
+exports.JsonDirective.directive_name = 'grrJson';
 
 /**
  * Semantic type corresponding to this directive.
@@ -111,8 +114,4 @@ grrUi.semantic.jsonDirective.JsonDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.jsonDirective.JsonDirective.semantic_type =
-    'ZippedJSONBytes';
-
-
-});  // goog.scope
+exports.JsonDirective.semantic_type = 'ZippedJSONBytes';

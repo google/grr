@@ -1,14 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.fileDownloadUtils');
-goog.provide('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
-goog.provide('grrUi.core.fileDownloadUtils.getPathSpecFromValue');
-goog.provide('grrUi.core.fileDownloadUtils.makeValueDownloadable');
-goog.provide('grrUi.core.fileDownloadUtils.pathSpecToAff4Path');
-goog.provide('grrUi.core.fileDownloadUtils.vfsRoots');
+goog.module('grrUi.core.fileDownloadUtils');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 var AFF4_PREFIXES = {
@@ -19,6 +13,10 @@ var AFF4_PREFIXES = {
   'TMPFILE': "temp",  // PathSpec.PathType.TMPFILE
 };
 
+/**
+ * @param {Object} pathspec
+ * @return {Array}
+ */
 var splitPathspec = function(pathspec) {
   var result = [];
 
@@ -45,7 +43,7 @@ var splitPathspec = function(pathspec) {
  * @return {string} AFF4 path built.
  * @export
  */
-grrUi.core.fileDownloadUtils.pathSpecToAff4Path = function(pathspec, clientId) {
+exports.pathSpecToAff4Path = function(pathspec, clientId) {
   var components = splitPathspec(pathspec);
 
   var firstComponent = components[0];
@@ -85,7 +83,7 @@ grrUi.core.fileDownloadUtils.pathSpecToAff4Path = function(pathspec, clientId) {
 
   return result.join('/');
 };
-var pathSpecToAff4Path = grrUi.core.fileDownloadUtils.pathSpecToAff4Path;
+var pathSpecToAff4Path = exports.pathSpecToAff4Path;
 
 
 /**
@@ -93,7 +91,7 @@ var pathSpecToAff4Path = grrUi.core.fileDownloadUtils.pathSpecToAff4Path;
   *
   * @const {Array<string>}
   */
-grrUi.core.fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
+exports.vfsRoots = ['fs', 'registry', 'temp'];
 
 /**
   * List of VFS roots that contain files that can be downloaded
@@ -101,7 +99,7 @@ grrUi.core.fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
   *
   * @const {Array<string>}
   */
-grrUi.core.fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
+exports.downloadableVfsRoots = ['fs', 'temp'];
 
 /**
  * Returns a pathspec of a file that a given value points to.
@@ -111,7 +109,7 @@ grrUi.core.fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
  *     if there's none.
  * @export
  */
-grrUi.core.fileDownloadUtils.getPathSpecFromValue = function(value) {
+exports.getPathSpecFromValue = function(value) {
   if (!value) {
     return null;
   }
@@ -122,31 +120,34 @@ grrUi.core.fileDownloadUtils.getPathSpecFromValue = function(value) {
 
   switch (value['type']) {
     case 'StatEntry':
-    return value['value']['pathspec'];
+      return value['value']['pathspec'];
 
     case 'FileFinderResult':
-    var st = value['value']['stat_entry'];
-    if (angular.isDefined(st) &&
-        angular.isDefined(st['value']['pathspec'])) {
-      return st['value']['pathspec'];
-    }
-    return null;
+      var st = value['value']['stat_entry'];
+      if (angular.isDefined(st) && angular.isDefined(st['value']['pathspec'])) {
+        return st['value']['pathspec'];
+      }
+      return null;
     case 'ArtifactFilesDownloaderResult':
-    return grrUi.core.fileDownloadUtils.getPathSpecFromValue(
-        value['value']['downloaded_file']);
+      return exports.getPathSpecFromValue(value['value']['downloaded_file']);
 
     default:
-    return null;
+      return null;
   }
 };
 
 
-grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_ = function(
+/**
+ * @param {Object} value
+ * @param {string} downloadUrl
+ * @param {Object} downloadParams
+ */
+const makeStatEntryDownloadable_ = function(
     value, downloadUrl, downloadParams) {
   var originalValue = angular.copy(value);
   for (var prop in value) {
     if (value.hasOwnProperty(prop)) {
-        delete value[prop];
+      delete value[prop];
     }
   }
 
@@ -159,22 +160,37 @@ grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_ = function(
 };
 
 
-grrUi.core.fileDownloadUtils.makeFileFinderResultDownloadable_ = function(
+/**
+ * @param {Object} value
+ * @param {string} downloadUrl
+ * @param {Object} downloadParams
+ */
+const makeFileFinderResultDownloadable_ = function(
     value, downloadUrl, downloadParams) {
-  grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_(
+  makeStatEntryDownloadable_(
       value['value']['stat_entry'], downloadUrl, downloadParams);
 };
 
 
-grrUi.core.fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_ = function(
+/**
+ * @param {Object} value
+ * @param {string} downloadUrl
+ * @param {Object} downloadParams
+ */
+const makeArtifactFilesDownloaderResultDownloadable_ = function(
     value, downloadUrl, downloadParams) {
-  grrUi.core.fileDownloadUtils.makeValueDownloadable(
+  exports.makeValueDownloadable(
       value['value']['downloaded_file'], downloadUrl, downloadParams);
 };
 
 
-grrUi.core.fileDownloadUtils.makeValueDownloadable = function(
-    value, downloadUrl, downloadParams) {
+/**
+ * @param {Object} value
+ * @param {string} downloadUrl
+ * @param {Object} downloadParams
+ * @return {boolean}
+ */
+exports.makeValueDownloadable = function(value, downloadUrl, downloadParams) {
   if (!value) {
     return false;
   }
@@ -185,24 +201,19 @@ grrUi.core.fileDownloadUtils.makeValueDownloadable = function(
 
   switch (value['type']) {
     case 'StatEntry':
-    grrUi.core.fileDownloadUtils.makeStatEntryDownloadable_(
-        value, downloadUrl, downloadParams);
-    return true;
+      makeStatEntryDownloadable_(value, downloadUrl, downloadParams);
+      return true;
 
     case 'FileFinderResult':
-    grrUi.core.fileDownloadUtils.makeFileFinderResultDownloadable_(
-        value, downloadUrl, downloadParams);
-    return true;
+      makeFileFinderResultDownloadable_(value, downloadUrl, downloadParams);
+      return true;
 
     case 'ArtifactFilesDownloaderResult':
-    grrUi.core.fileDownloadUtils.makeArtifactFilesDownloaderResultDownloadable_(
-        value, downloadUrl, downloadParams);
-    return true;
+      makeArtifactFilesDownloaderResultDownloadable_(
+          value, downloadUrl, downloadParams);
+      return true;
 
     default:
-    return false;
+      return false;
   }
 };
-
-
-});  // goog.scope

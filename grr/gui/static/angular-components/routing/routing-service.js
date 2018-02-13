@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.routing.routingService');
-goog.provide('grrUi.routing.routingService.RoutingService');
+goog.module('grrUi.routing.routingService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -16,11 +15,11 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.routing.routingService.RoutingService = function($state) {
+exports.RoutingService = function($state) {
   /** @private {!ui.router.$state} */
   this.state_ = $state;
 };
-var RoutingService = grrUi.routing.routingService.RoutingService;
+var RoutingService = exports.RoutingService;
 
 
 /**
@@ -138,4 +137,3 @@ RoutingService.prototype.onStateChange = function(scope, callback) {
 };
 
 
-});  // goog.scope

@@ -1,13 +1,12 @@
 'use strict';
 
-goog.provide('grrUi.user.userDesktopNotificationsDirective');
-goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
+goog.module('grrUi.user.userDesktopNotificationsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.user.userNotificationButtonDirective');  // USE: UserNotificationButtonDirective
-goog.require('grrUi.user.userNotificationItemDirective');  // USE: annotateApiNotification, openReference
+const {UserNotificationButtonDirective} = goog.require('grrUi.user.userNotificationButtonDirective');
+const {annotateApiNotification, openReference} = goog.require('grrUi.user.userNotificationItemDirective');
 
 
-goog.scope(function() {
 
 document.addEventListener('DOMContentLoaded', function() {
   if(Notification && Notification.permission !== 'granted') {
@@ -15,8 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-var FETCH_INTERVAL =
-    grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.fetch_interval;
+var FETCH_INTERVAL = UserNotificationButtonDirective.fetch_interval;
 
 var MAX_DISPLAYED_NOTIFICATIONS = 2;
 
@@ -134,8 +132,7 @@ UserDesktopNotificationsController.prototype.
     for (var i = 0; i < items.length; ++i) {
       var item = items[i];
 
-      grrUi.user.userNotificationItemDirective.annotateApiNotification(
-          item);
+      annotateApiNotification(item);
 
       this.notify_('GRR',
                    item['value']['message']['value'],
@@ -144,8 +141,7 @@ UserDesktopNotificationsController.prototype.
         this.grrApiService_.delete('users/me/notifications/pending/' +
                                    item['value']['timestamp']['value']);
 
-        grrUi.user.userNotificationItemDirective.openReference(
-            item, this.window_);
+        openReference(item, this.window_);
       }.bind(this));
     }
   }.bind(this));
@@ -155,12 +151,11 @@ UserDesktopNotificationsController.prototype.
 /**
  * Directive that displays desktop notifications.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.user.userDesktopNotificationsDirective.
-    UserDesktopNotificationsDirective = function() {
+exports.UserDesktopNotificationsDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -170,8 +165,7 @@ grrUi.user.userDesktopNotificationsDirective.
 };
 
 var UserDesktopNotificationsDirective =
-  grrUi.user.userDesktopNotificationsDirective.
-      UserDesktopNotificationsDirective;
+    exports.UserDesktopNotificationsDirective;
 
 
 /**
@@ -184,4 +178,3 @@ UserDesktopNotificationsDirective.
     directive_name = 'grrUserDesktopNotifications';
 
 
-});  // goog.scope

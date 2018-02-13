@@ -3,7 +3,8 @@
 goog.module('grrUi.forms.semanticProtoFormDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {formsModule, semanticValueFormDirective} = goog.require('grrUi.forms');
+const {clearCaches} = goog.require('grrUi.forms.semanticValueFormDirective');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 describe('semantic proto form directive', () => {
@@ -35,7 +36,7 @@ describe('semantic proto form directive', () => {
   }));
 
   beforeEach(inject(($injector) => {
-    semanticValueFormDirective.clearCaches();
+    clearCaches();
 
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');

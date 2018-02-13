@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.tableDirective');
-goog.provide('grrUi.semantic.rekall.tableDirective.TableDirective');
+goog.module('grrUi.semantic.rekall.tableDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive that displays rekall table and row messages.
@@ -12,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.tableDirective.TableDirective = function() {
+exports.TableDirective = function() {
   return {
     scope: {
       value: '='
@@ -29,7 +29,4 @@ grrUi.semantic.rekall.tableDirective.TableDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekall.tableDirective.TableDirective.directive_name =
-    'grrRekallTable';
-
-});  // goog.scope
+exports.TableDirective.directive_name = 'grrRekallTable';

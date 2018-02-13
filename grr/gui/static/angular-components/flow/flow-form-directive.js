@@ -1,12 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowFormDirective');
-goog.provide('grrUi.flow.flowFormDirective.FlowFormDirective');
-goog.require('grrUi.forms.utils');  // USE: valueHasErrors
+goog.module('grrUi.flow.flowFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
-var valueHasErrors = grrUi.forms.utils.valueHasErrors;
 
 /**
  * Controller for FlowFormDirective.
@@ -54,7 +52,9 @@ const FlowFormController = function(
 };
 
 
-
+/**
+ * @private
+ */
 FlowFormController.prototype.onArgsDeepChange_ = function() {
   this.scope_['hasErrors'] = valueHasErrors(this.scope_['flowArgs']) ||
       valueHasErrors(this.scope_['flowRunnerArgs']);
@@ -86,7 +86,7 @@ FlowFormController.prototype.onOutputPluginsChanged_ = function(newValue) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowFormDirective.FlowFormDirective = function() {
+exports.FlowFormDirective = function() {
   return {
     scope: {
       flowArgs: '=',
@@ -108,7 +108,4 @@ grrUi.flow.flowFormDirective.FlowFormDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowFormDirective.FlowFormDirective.directive_name =
-    'grrFlowForm';
-
-});  // goog.scope
+exports.FlowFormDirective.directive_name = 'grrFlowForm';

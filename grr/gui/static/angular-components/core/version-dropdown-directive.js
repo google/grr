@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.versionDropdownDirective');
-goog.provide('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
+goog.module('grrUi.core.versionDropdownDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 var REFRESH_VERSIONS_EVENT = "RefreshVersionsEvent";
@@ -224,7 +222,7 @@ VersionDropdownController.prototype.isLatestSelected = function() {
  * VersionDropdownDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.core.versionDropdownDirective.VersionDropdownDirective = function() {
+exports.VersionDropdownDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -244,14 +242,11 @@ grrUi.core.versionDropdownDirective.VersionDropdownDirective = function() {
  * @const
  * @export
  */
-grrUi.core.versionDropdownDirective.VersionDropdownDirective.directive_name =
-    'grrVersionDropdown';
+exports.VersionDropdownDirective.directive_name = 'grrVersionDropdown';
 
 /**
  * "Refresh versions" event name.
  * @const
  */
-grrUi.core.versionDropdownDirective.VersionDropdownDirective.REFRESH_VERSIONS_EVENT =
+exports.VersionDropdownDirective.REFRESH_VERSIONS_EVENT =
     REFRESH_VERSIONS_EVENT;
-
-});  // goog.scope

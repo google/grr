@@ -3,7 +3,7 @@
 goog.module('grrUi.forms.durationFormDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 describe('duration form directive', () => {

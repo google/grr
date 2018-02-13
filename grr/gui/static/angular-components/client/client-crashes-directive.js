@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.client.clientCrashesDirective');
-goog.provide('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
+goog.module('grrUi.client.clientCrashesDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ClientCrashesDirective.
@@ -56,7 +56,7 @@ ClientCrashesController.prototype.onClientIdChange_ = function(clientId) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.clientCrashesDirective.ClientCrashesDirective = function() {
+exports.ClientCrashesDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -73,7 +73,4 @@ grrUi.client.clientCrashesDirective.ClientCrashesDirective = function() {
  * @const
  * @export
  */
-grrUi.client.clientCrashesDirective.ClientCrashesDirective.directive_name =
-    'grrClientCrashes';
-
-});  // goog.scope
+exports.ClientCrashesDirective.directive_name = 'grrClientCrashes';

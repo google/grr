@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.flow.clientFlowsListDirective');
-goog.provide('grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective');
-
-goog.scope(function() {
+goog.module('grrUi.flow.clientFlowsListDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -170,7 +168,7 @@ ClientFlowsListController.prototype.copyFlow = function() {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective = function() {
+exports.ClientFlowsListDirective = function() {
   return {
     scope: {
       clientId: '=',
@@ -190,9 +188,4 @@ grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective
-    .directive_name = 'grrClientFlowsList';
-
-
-
-});  // goog.scope
+exports.ClientFlowsListDirective.directive_name = 'grrClientFlowsList';

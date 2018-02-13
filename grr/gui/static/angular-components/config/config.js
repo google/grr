@@ -1,28 +1,24 @@
 'use strict';
 
-goog.provide('grrUi.config');
-goog.provide('grrUi.config.configModule');
+goog.module('grrUi.config.config');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.config.binariesListDirective');  // USE: BinariesListDirective
-goog.require('grrUi.config.configBinariesViewDirective');  // USE: ConfigBinariesViewDirective
-goog.require('grrUi.config.configViewDirective');  // USE: ConfigViewDirective
+const {BinariesListDirective} = goog.require('grrUi.config.binariesListDirective');
+const {ConfigBinariesViewDirective} = goog.require('grrUi.config.configBinariesViewDirective');
+const {ConfigViewDirective} = goog.require('grrUi.config.configViewDirective');
+const {coreModule} = goog.require('grrUi.core.core');
 
-goog.require('grrUi.core');  // USE: coreModule
 
 
 /**
  * Angular module for config-related UI.
  */
-grrUi.config.configModule = angular.module('grrUi.config', [grrUi.core.coreModule.name]);
+exports.configModule = angular.module('grrUi.config', [coreModule.name]);
 
 
-grrUi.config.configModule.directive(
-    grrUi.config.binariesListDirective.BinariesListDirective.directive_name,
-    grrUi.config.binariesListDirective.BinariesListDirective);
-grrUi.config.configModule.directive(
-    grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective
-        .directive_name,
-    grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective);
-grrUi.config.configModule.directive(
-    grrUi.config.configViewDirective.ConfigViewDirective.directive_name,
-    grrUi.config.configViewDirective.ConfigViewDirective);
+exports.configModule.directive(
+    BinariesListDirective.directive_name, BinariesListDirective);
+exports.configModule.directive(
+    ConfigBinariesViewDirective.directive_name, ConfigBinariesViewDirective);
+exports.configModule.directive(
+    ConfigViewDirective.directive_name, ConfigViewDirective);

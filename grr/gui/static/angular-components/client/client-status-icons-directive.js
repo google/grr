@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.clientStatusIconsDirective');
-goog.provide('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
+goog.module('grrUi.client.clientStatusIconsDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -107,26 +105,19 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective =
-    function() {
-      return {
-        scope: {
-          client: '='
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/client/' +
-            'client-status-icons.html',
-        controller: ClientStatusIconsController,
-        controllerAs: 'controller'
-      };
-    };
+exports.ClientStatusIconsDirective = function() {
+  return {
+    scope: {client: '='},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/client/' +
+        'client-status-icons.html',
+    controller: ClientStatusIconsController,
+    controllerAs: 'controller'
+  };
+};
 
 
 /**
  * Name of the directive in Angular.
  */
-grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective
-    .directive_name = 'grrClientStatusIcons';
-
-
-});  // goog.scope
+exports.ClientStatusIconsDirective.directive_name = 'grrClientStatusIcons';

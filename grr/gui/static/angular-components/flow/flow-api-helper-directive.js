@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowApiHelperDirective');
-goog.provide('grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective');
+goog.module('grrUi.flow.flowApiHelperDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for FlowApiHelperDirective.
@@ -76,7 +76,7 @@ FlowApiHelperController.prototype.onFlowIdOrBasePathChange_ = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective = function() {
+exports.FlowApiHelperDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -102,7 +102,4 @@ grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective.directive_name =
-    'grrFlowApiHelper';
-
-});  // goog.scope
+exports.FlowApiHelperDirective.directive_name = 'grrFlowApiHelper';

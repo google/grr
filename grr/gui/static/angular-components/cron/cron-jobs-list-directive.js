@@ -1,11 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobsListDirective');
-goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
+goog.module('grrUi.cron.cronJobsListDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
-goog.scope(function() {
 
 
 /**
@@ -108,8 +107,7 @@ CronJobsListController.prototype.wrapApiPromise_ = function(
 
           if (response['status'] === 403) {
             var subject = response['data']['subject'];
-            var cronJobId = grrUi.core.utils.stripAff4Prefix(
-                subject).split('/')[1];
+            var cronJobId = stripAff4Prefix(subject).split('/')[1];
 
             this.grrAclDialogService_.openRequestCronJobApprovalDialog(
                 cronJobId, message);
@@ -340,7 +338,7 @@ CronJobsListController.prototype.forceRunCronJob = function() {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.cron.cronJobsListDirective.CronJobsListDirective = function() {
+exports.CronJobsListDirective = function() {
   return {
     scope: {
       selectedCronJobId: '=?',
@@ -359,9 +357,4 @@ grrUi.cron.cronJobsListDirective.CronJobsListDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.cronJobsListDirective.CronJobsListDirective
-    .directive_name = 'grrCronJobsList';
-
-
-
-});  // goog.scope
+exports.CronJobsListDirective.directive_name = 'grrCronJobsList';

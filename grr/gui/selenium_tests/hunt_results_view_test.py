@@ -71,7 +71,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")

@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.aff4AttributeFormDirective');
-goog.provide('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective');
+goog.module('grrUi.forms.aff4AttributeFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for Aff4AttributeFormDirective.
@@ -54,8 +53,7 @@ Aff4AttributeFormController.prototype.onGetAttributes_ = function(response) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective =
-    function() {
+exports.Aff4AttributeFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -75,8 +73,7 @@ grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective =
  * @const
  * @export
  */
-grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective
-    .directive_name = 'grrFormAff4Attribute';
+exports.Aff4AttributeFormDirective.directive_name = 'grrFormAff4Attribute';
 
 /**
  * Semantic type corresponding to this directive.
@@ -84,8 +81,4 @@ grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective
  * @const
  * @export
  */
-grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective
-    .semantic_type = 'AFF4Attribute';
-
-
-});
+exports.Aff4AttributeFormDirective.semantic_type = 'AFF4Attribute';

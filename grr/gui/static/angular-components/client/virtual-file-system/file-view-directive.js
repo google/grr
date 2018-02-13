@@ -1,12 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-goog.provide('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
-
-
-goog.scope(function() {
+goog.module('grrUi.client.virtualFileSystem.fileViewDirective');
+goog.module.declareLegacyNamespace();
 
 
 /**
@@ -17,15 +12,12 @@ goog.scope(function() {
  *     value.
  * @private
  */
-grrUi.client.virtualFileSystem.fileViewDirective.replaceInvalidChars_ =
-    function(item) {
+const replaceInvalidChars_ = function(item) {
   return item.replace(/[^a-zA-Z0-9]/g, function(invChar){
     var hex = invChar.charCodeAt(0).toString(16);
     return '_' + hex.toUpperCase();
   });
 };
-var replaceInvalidChars_ =
-    grrUi.client.virtualFileSystem.fileViewDirective.replaceInvalidChars_;
 
 
 /**
@@ -35,8 +27,7 @@ var replaceInvalidChars_ =
  * @return {string} A unique id for the file derived from the path.
  * @export
  */
-grrUi.client.virtualFileSystem.fileViewDirective.getFileId =
-    function(filePath) {
+exports.getFileId = function(filePath) {
   var components = filePath.split('/');
   var result = components.map(replaceInvalidChars_);
   return '_' + result.join('-');
@@ -50,8 +41,7 @@ grrUi.client.virtualFileSystem.fileViewDirective.getFileId =
  * @return {string} File path.
  * @export
  */
-grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId =
-    function(fileId) {
+exports.getFilePathFromId = function(fileId) {
   var replaceEncodedChars = function(item) {
     return item.replace(/_[0-9A-F][0-9A-F]?/g, function(encChar) {
       var charNum = parseInt(encChar.substr(1), 16);
@@ -156,7 +146,7 @@ FileViewController.prototype.onFileContextRoutingParamsChange_ = function() {
  * FileViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective = function() {
+exports.FileViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -173,7 +163,4 @@ grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective = function() 
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective.directive_name =
-    'grrFileView';
-
-});  // goog.scope
+exports.FileViewDirective.directive_name = 'grrFileView';

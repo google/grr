@@ -1,20 +1,19 @@
 'use strict';
 
-goog.provide('grrUi.flow.startFlowFormDirective');
-goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.flow.startFlowFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {ReflectionService} = goog.require('grrUi.core.reflectionService');
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for StartFlowFormDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
+ * @param {!ApiService} grrApiService
+ * @param {!ReflectionService} grrReflectionService
  * @ngInject
  */
 const StartFlowFormController = function(
@@ -25,10 +24,10 @@ const StartFlowFormController = function(
   /** @type {string} */
   this.scope_.clientId;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  /** @private {!ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
   /** @type {Object} */
@@ -107,7 +106,7 @@ StartFlowFormController.prototype.startClientFlow = function() {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.startFlowFormDirective.StartFlowFormDirective = function() {
+exports.StartFlowFormDirective = function() {
   return {
     scope: {
       clientId: '=?',
@@ -127,9 +126,4 @@ grrUi.flow.startFlowFormDirective.StartFlowFormDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.startFlowFormDirective.StartFlowFormDirective.directive_name =
-    'grrStartFlowForm';
-
-
-
-});  // goog.scope
+exports.StartFlowFormDirective.directive_name = 'grrStartFlowForm';

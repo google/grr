@@ -1,10 +1,8 @@
-
 'use strict';
 
-goog.provide('grrUi.core.bytesToHexFilter');
-goog.provide('grrUi.core.bytesToHexFilter.BytesToHexFilter');
+goog.module('grrUi.core.bytesToHexFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -12,9 +10,8 @@ goog.scope(function() {
  *
  * @param {string} bytes String representation of the input bytes.
  * @return {string} Hex string representation of the input bytes.
- * @export
  */
-grrUi.core.bytesToHexFilter.filterImplementation = function(bytes) {
+const filterImplementation = function(bytes) {
   var hex = '';
   for(var i = 0; i < bytes.length; i += 1) {
     var char = bytes.charCodeAt(i).toString(16);
@@ -30,9 +27,9 @@ grrUi.core.bytesToHexFilter.filterImplementation = function(bytes) {
  * @export
  * @ngInject
  */
-grrUi.core.bytesToHexFilter.BytesToHexFilter = function() {
+exports.BytesToHexFilter = function() {
   return function(input) {
-    return grrUi.core.bytesToHexFilter.filterImplementation(input);
+    return filterImplementation(input);
   };
 };
 
@@ -43,6 +40,4 @@ grrUi.core.bytesToHexFilter.BytesToHexFilter = function() {
  * @const
  * @export
  */
-grrUi.core.bytesToHexFilter.BytesToHexFilter.filter_name = 'grrBytesToHex';
-
-}); // goog.scope
+exports.BytesToHexFilter.filter_name = 'grrBytesToHex';

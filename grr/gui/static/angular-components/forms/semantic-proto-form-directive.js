@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoFormDirective');
-goog.provide('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective');
+goog.module('grrUi.forms.semanticProtoFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -261,7 +262,7 @@ SemanticProtoFormController.prototype.onDescriptorsFetched_ = function(
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective = function() {
+exports.SemanticProtoFormDirective = function() {
   return {
     scope: {
       value: '=',
@@ -283,8 +284,7 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective
-    .directive_name = 'grrFormProto';
+exports.SemanticProtoFormDirective.directive_name = 'grrFormProto';
 
 
 /**
@@ -293,5 +293,4 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective
-    .semantic_type = 'RDFProtoStruct';
+exports.SemanticProtoFormDirective.semantic_type = 'RDFProtoStruct';

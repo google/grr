@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.basenameFilter');
-goog.provide('grrUi.core.basenameFilter.BasenameFilter');
+goog.module('grrUi.core.basenameFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -12,9 +11,8 @@ goog.scope(function() {
  *
  * @param {string} input
  * @return {string} Basename component of the input string.
- * @export
  */
-grrUi.core.basenameFilter.filterImplementation = function(input) {
+const filterImplementation = function(input) {
   if (!angular.isString(input)) {
     return input;
   } else {
@@ -31,8 +29,8 @@ grrUi.core.basenameFilter.filterImplementation = function(input) {
  * @export
  * @ngInject
  */
-grrUi.core.basenameFilter.BasenameFilter = function() {
-  return grrUi.core.basenameFilter.filterImplementation;
+exports.BasenameFilter = function() {
+  return filterImplementation;
 };
 
 
@@ -42,6 +40,4 @@ grrUi.core.basenameFilter.BasenameFilter = function() {
  * @const
  * @export
  */
-grrUi.core.basenameFilter.BasenameFilter.filter_name = 'grrBasename';
-
-}); // goog.scope
+exports.BasenameFilter.filter_name = 'grrBasename';

@@ -4,7 +4,7 @@ goog.module('grrUi.forms.bytesFormDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
 const {bytesToHexEncodedString, hexEncodedStringToBytes, isByteString} = goog.require('grrUi.forms.bytesFormDirective');
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 const hexChars = String.fromCharCode(13) + String.fromCharCode(200);

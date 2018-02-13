@@ -2,7 +2,7 @@
 
 goog.module('grrUi.semantic.semanticDiffAnnotatedProtoDirectiveTest');
 
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {testsModule} = goog.require('grrUi.tests');
 
 

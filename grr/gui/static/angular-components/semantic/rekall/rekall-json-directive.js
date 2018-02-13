@@ -1,11 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallJsonDirective');
-goog.provide('grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective');
+goog.module('grrUi.semantic.rekall.rekallJsonDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.semantic.rekall.utils');  // USE: cropRekallJson, stackRekallTables
+const {cropRekallJson, stackRekallTables} = goog.require('grrUi.semantic.rekall.utils');
 
-goog.scope(function() {
 
 
 /**
@@ -49,6 +48,11 @@ const RekallJsonController =
 var FIRST_RENDER_LIMIT = 1024;
 
 
+/**
+ * Handler for the click events.
+ *
+ * @param {?} e An event object.
+ */
 RekallJsonController.prototype.onClick = function(e) {
   // onClick event should not be handled by
   // anything other than this, otherwise the click
@@ -73,13 +77,11 @@ RekallJsonController.prototype.render_ = function(opt_renderLimit) {
   }
 
   try {
-    this.parsedJson = JSON.parse(
-        grrUi.semantic.rekall.utils.cropRekallJson(
-            this.jsonContextStr, renderLimit)
-        ).concat(JSON.parse(
-        grrUi.semantic.rekall.utils.cropRekallJson(
-            this.compressedJsonStr, renderLimit - this.jsonContextStr.length)
-        ));
+    this.parsedJson =
+        JSON.parse(cropRekallJson(this.jsonContextStr, renderLimit))
+            .concat(JSON.parse(cropRekallJson(
+                this.compressedJsonStr,
+                renderLimit - this.jsonContextStr.length)));
   }
   catch (err) {
     this.error = 'error: ' + err.message + ', in:' + this.jsonContextStr +
@@ -88,7 +90,7 @@ RekallJsonController.prototype.render_ = function(opt_renderLimit) {
     return;
   }
 
-  this.state = grrUi.semantic.rekall.utils.stackRekallTables(this.parsedJson);
+  this.state = stackRekallTables(this.parsedJson);
 };
 
 /**
@@ -130,7 +132,7 @@ RekallJsonController.prototype.onScopeChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective = function() {
+exports.RekallJsonDirective = function() {
   return {
     scope: {
       jsonContextMessages: '=',
@@ -150,8 +152,4 @@ grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekall.rekallJsonDirective.RekallJsonDirective.directive_name =
-    'grrRekallJson';
-
-
-});  // goog.scope
+exports.RekallJsonDirective.directive_name = 'grrRekallJson';

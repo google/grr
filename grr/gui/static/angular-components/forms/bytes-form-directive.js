@@ -1,12 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.bytesFormDirective');
-goog.provide('grrUi.forms.bytesFormDirective.BytesFormDirective');
-goog.provide('grrUi.forms.bytesFormDirective.bytesToHexEncodedString');
-goog.provide('grrUi.forms.bytesFormDirective.hexEncodedStringToBytes');
-goog.provide('grrUi.forms.bytesFormDirective.isByteString');
+goog.module('grrUi.forms.bytesFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -18,7 +14,7 @@ goog.scope(function() {
  * @return {string} Hex-encoded string. Only characters with codes
  *     below than 32 and greater than 126 get encoded
  */
-grrUi.forms.bytesFormDirective.bytesToHexEncodedString = function(bytes) {
+exports.bytesToHexEncodedString = function(bytes) {
   var segmentStart = 0;
   var str = [];
 
@@ -48,8 +44,7 @@ grrUi.forms.bytesFormDirective.bytesToHexEncodedString = function(bytes) {
 
   return str.join('');
 };
-var bytesToHexEncodedString =
-    grrUi.forms.bytesFormDirective.bytesToHexEncodedString;
+var bytesToHexEncodedString = exports.bytesToHexEncodedString;
 
 
 
@@ -61,13 +56,12 @@ var bytesToHexEncodedString =
  *     are.
  * @return {string} Bytes string.
  */
-grrUi.forms.bytesFormDirective.hexEncodedStringToBytes = function(str) {
+exports.hexEncodedStringToBytes = function(str) {
   return str.replace(/\\x([0-9A-Fa-f]{2})/g, function() {
     return String.fromCharCode(parseInt(arguments[1], 16));
   });
 };
-var hexEncodedStringToBytes =
-    grrUi.forms.bytesFormDirective.hexEncodedStringToBytes;
+var hexEncodedStringToBytes = exports.hexEncodedStringToBytes;
 
 
 /**
@@ -77,7 +71,7 @@ var hexEncodedStringToBytes =
  * @param {string} str String to be checked.
  * @return {boolean} True, if the string is a byte string, false otherwise.
  */
-grrUi.forms.bytesFormDirective.isByteString = function(str) {
+exports.isByteString = function(str) {
   var blen = str.length;
   for (var i = 0; i < blen; i += 1) {
     var c = str.charCodeAt(i);
@@ -88,7 +82,7 @@ grrUi.forms.bytesFormDirective.isByteString = function(str) {
 
   return true;
 };
-var isByteString = grrUi.forms.bytesFormDirective.isByteString;
+var isByteString = exports.isByteString;
 
 
 /**
@@ -174,7 +168,7 @@ BytesFormController.prototype.onValueStringChange_ = function(newValue) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.bytesFormDirective.BytesFormDirective = function() {
+exports.BytesFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -194,8 +188,7 @@ grrUi.forms.bytesFormDirective.BytesFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.bytesFormDirective.BytesFormDirective
-    .directive_name = 'grrFormBytes';
+exports.BytesFormDirective.directive_name = 'grrFormBytes';
 
 /**
  * Semantic types corresponding to this directive.
@@ -203,9 +196,4 @@ grrUi.forms.bytesFormDirective.BytesFormDirective
  * @const
  * @export
  */
-grrUi.forms.bytesFormDirective.BytesFormDirective
-    .semantic_type = 'RDFBytes';
-
-
-
-});
+exports.BytesFormDirective.semantic_type = 'RDFBytes';

@@ -1,10 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.core.splitterDirective');
-goog.provide('grrUi.core.splitterDirective.SplitterDirective');
-goog.provide('grrUi.core.splitterDirective.SplitterPaneDirective');
-
-goog.scope(function() {
+goog.module('grrUi.core.splitterDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -108,11 +105,11 @@ SplitterController.prototype.link = function() {
 /**
  * Displays the splitter with 2 panes defined via grr-splitter-pane directives.
  *
- * @constructor
+ * @return {!angular.Directive}
  * @ngInject
  * @export
  */
-grrUi.core.splitterDirective.SplitterDirective = function() {
+exports.SplitterDirective = function() {
   return {
     scope: {
       orientation: '@',
@@ -139,8 +136,7 @@ grrUi.core.splitterDirective.SplitterDirective = function() {
  * @const
  * @export
  */
-grrUi.core.splitterDirective.SplitterDirective.directive_name =
-    'grrSplitter';
+exports.SplitterDirective.directive_name = 'grrSplitter';
 
 
 
@@ -151,7 +147,7 @@ grrUi.core.splitterDirective.SplitterDirective.directive_name =
  * @ngInject
  * @export
  */
-grrUi.core.splitterDirective.SplitterPaneDirective = function() {
+exports.SplitterPaneDirective = function() {
   return {
     scope: {},
     restrict: 'EA',
@@ -172,7 +168,4 @@ grrUi.core.splitterDirective.SplitterPaneDirective = function() {
  * @const
  * @export
  */
-grrUi.core.splitterDirective.SplitterPaneDirective.directive_name =
-    'grrSplitterPane';
-
-});  // goog.scope
+exports.SplitterPaneDirective.directive_name = 'grrSplitterPane';

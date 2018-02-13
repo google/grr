@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.config.configViewDirective');
-goog.provide('grrUi.config.configViewDirective.ConfigViewDirective');
+goog.module('grrUi.config.configViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -35,7 +34,7 @@ const ConfigViewController = function($scope, $http) {
  * ConfigViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.config.configViewDirective.ConfigViewDirective = function() {
+exports.ConfigViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -52,7 +51,4 @@ grrUi.config.configViewDirective.ConfigViewDirective = function() {
  * @const
  * @export
  */
-grrUi.config.configViewDirective.ConfigViewDirective.directive_name =
-    'grrConfigView';
-
-});  // goog.scope
+exports.ConfigViewDirective.directive_name = 'grrConfigView';

@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.client.clientLoadGraphSerieDirective');
-goog.provide('grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective');
-
-goog.scope(function() {
+goog.module('grrUi.client.clientLoadGraphSerieDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -13,18 +11,18 @@ goog.scope(function() {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective =
-    function() {
-      return {
-        scope: {
-          clientId: '=',
-          metric: '@',
-          rate: '@',
-          label: '@'
-        },
-        restrict: 'E',
-        require: '^grrTimeseriesGraph',
-        link: function(scope, element, attrs, grrTimeseriesGrpahCtrl) {
+exports.ClientLoadGraphSerieDirective = function() {
+  return {
+    scope: {
+      clientId: '=',
+      metric: '@',
+      rate: '@',
+      label: '@',
+    },
+    restrict: 'E',
+    require: '^grrTimeseriesGraph',
+    link:
+        function(scope, element, attrs, grrTimeseriesGrpahCtrl) {
           // Only register the graph when client id has a value.
           scope.$watch("::clientId", function() {
             if (angular.isUndefined(scope.clientId)) {
@@ -46,8 +44,8 @@ grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective =
             });
           });
         }
-      };
-    };
+  };
+};
 
 
 /**
@@ -56,8 +54,5 @@ grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective =
  * @const
  * @export
  */
-grrUi.client.clientLoadGraphSerieDirective.
-    ClientLoadGraphSerieDirective.directive_name = 'grrClientLoadGraphSerie';
-
-
-});  // goog.scope
+exports.ClientLoadGraphSerieDirective.directive_name =
+    'grrClientLoadGraphSerie';

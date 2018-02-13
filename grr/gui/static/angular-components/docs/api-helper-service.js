@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiHelperService');
-goog.provide('grrUi.docs.apiHelperService.ApiHelperService');
+goog.module('grrUi.docs.apiHelperService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Service for registering objects by their semantic types.
@@ -14,8 +14,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.docs.apiHelperService.ApiHelperService = function($q, grrApiService) {
-
+exports.ApiHelperService = function($q, grrApiService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
@@ -25,8 +24,7 @@ grrUi.docs.apiHelperService.ApiHelperService = function($q, grrApiService) {
   /** @private {!Array<Object>} */
   this.helperTuples_ = [];
 };
-var ApiHelperService =
-    grrUi.docs.apiHelperService.ApiHelperService;
+var ApiHelperService = exports.ApiHelperService;
 
 
 ApiHelperService.service_name = 'grrApiHelperService';
@@ -131,4 +129,3 @@ ApiHelperService.prototype.buildStartFlow = function(clientId, createFlowJson) {
 };
 
 
-});  // goog.scope

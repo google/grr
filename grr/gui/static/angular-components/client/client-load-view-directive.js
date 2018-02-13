@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.client.clientLoadViewDirective');
-goog.provide('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
+goog.module('grrUi.client.clientLoadViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ClientLoadViewDirective.
@@ -67,7 +67,7 @@ ClientLoadViewController.prototype.onDurationChange = function(newValue) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.clientLoadViewDirective.ClientLoadViewDirective = function() {
+exports.ClientLoadViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -84,7 +84,4 @@ grrUi.client.clientLoadViewDirective.ClientLoadViewDirective = function() {
  * @const
  * @export
  */
-grrUi.client.clientLoadViewDirective.ClientLoadViewDirective.directive_name =
-    'grrClientLoadView';
-
-});  // goog.scope
+exports.ClientLoadViewDirective.directive_name = 'grrClientLoadView';

@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticEnumFormDirective');
-goog.provide('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
+goog.module('grrUi.forms.semanticEnumFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -61,7 +62,7 @@ SemanticEnumFormController.prototype.onAllowedValuesChange_ = function(
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective = function() {
+exports.SemanticEnumFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -81,8 +82,7 @@ grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
-    .directive_name = 'grrFormEnum';
+exports.SemanticEnumFormDirective.directive_name = 'grrFormEnum';
 
 /**
  * Semantic type corresponding to this directive.
@@ -90,5 +90,4 @@ grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
-    .semantic_type = 'EnumNamedValue';
+exports.SemanticEnumFormDirective.semantic_type = 'EnumNamedValue';

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.client.debugRequestsViewDirective');
-goog.provide('grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective');
+goog.module('grrUi.client.debugRequestsViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for DebugRequestsViewDirective.
@@ -65,7 +65,7 @@ DebugRequestsViewController.prototype.onClientIdChange_ = function(clientId) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective = function() {
+exports.DebugRequestsViewDirective = function() {
   return {
     scope: {
       fetchResponses: '='
@@ -84,7 +84,4 @@ grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective = function() 
  * @const
  * @export
  */
-grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective.directive_name =
-    'grrDebugRequestsView';
-
-});  // goog.scope
+exports.DebugRequestsViewDirective.directive_name = 'grrDebugRequestsView';

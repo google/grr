@@ -1,10 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.semantic.urnDirective');
-goog.provide('grrUi.semantic.urnDirective.UrnDirective');
-goog.require('grrUi.routing.aff4UrnToUrl');  // USE: aff4UrnToUrl
+goog.module('grrUi.semantic.urnDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
+
 
 
 /**
@@ -55,7 +55,7 @@ UrnController.prototype.onValueChange_ = function(newValue) {
     return;
   }
 
-  var urlResult = grrUi.routing.aff4UrnToUrl.aff4UrnToUrl(this.plainValue);
+  var urlResult = aff4UrnToUrl(this.plainValue);
   if (urlResult) {
     this.refState = urlResult.state;
     this.refParams = urlResult.params;
@@ -81,7 +81,7 @@ UrnController.prototype.onClick = function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.urnDirective.UrnDirective = function() {
+exports.UrnDirective = function() {
   return {
     scope: {
       value: '='
@@ -100,8 +100,7 @@ grrUi.semantic.urnDirective.UrnDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.urnDirective.UrnDirective.directive_name =
-    'grrUrn';
+exports.UrnDirective.directive_name = 'grrUrn';
 
 /**
  * Semantic type corresponding to this directive.
@@ -109,8 +108,4 @@ grrUi.semantic.urnDirective.UrnDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.urnDirective.UrnDirective.semantic_type =
-    'RDFURN';
-
-
-});  // goog.scope
+exports.UrnDirective.semantic_type = 'RDFURN';

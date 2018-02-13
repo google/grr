@@ -1,13 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticProtosDiffDirective');
-goog.provide('grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective');
-goog.provide('grrUi.semantic.semanticProtosDiffDirective.diffAnnotate');
+goog.module('grrUi.semantic.semanticProtosDiffDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective');  // USE: SemanticDiffAnnotatedProtoDirective
-goog.require('grrUi.semantic.semanticProtoDirective');  // USE: SemanticProtoDirective
+const {SemanticDiffAnnotatedProtoDirective} = goog.require('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
+const {SemanticProtoDirective} = goog.require('grrUi.semantic.semanticProtoDirective');
 
-goog.scope(function() {
 
 
 /**
@@ -76,8 +74,7 @@ var diffAnnotateArrays = function(originalValue, newValue) {
  *
  * @export
  */
-grrUi.semantic.semanticProtosDiffDirective.diffAnnotate = function(
-    originalValue, newValue) {
+exports.diffAnnotate = function(originalValue, newValue) {
   if (angular.isUndefined(originalValue) && angular.isUndefined(newValue)) {
     return;
   }
@@ -173,7 +170,7 @@ grrUi.semantic.semanticProtosDiffDirective.diffAnnotate = function(
     diffAnnotate(originalValue['value'][key], newValue['value'][key]);
   }
 };
-var diffAnnotate = grrUi.semantic.semanticProtosDiffDirective.diffAnnotate;
+var diffAnnotate = exports.diffAnnotate;
 
 /**
  * Controller for SemanticProtosDiffDirective.
@@ -193,12 +190,8 @@ const SemanticProtosDiffController = function(
   /** @type {Object} */
   this.annotatedNewValue;
 
-  var protoType =
-      grrUi.semantic.semanticProtoDirective.SemanticProtoDirective
-      .semantic_type;
-  var protoDirectiveOverride =
-      grrUi.semantic.semanticDiffAnnotatedProtoDirective
-      .SemanticDiffAnnotatedProtoDirective;
+  var protoType = SemanticProtoDirective.semantic_type;
+  var protoDirectiveOverride = SemanticDiffAnnotatedProtoDirective;
 
   /** @type {Object<string, Object>} */
   this.overrideMap = {};
@@ -234,7 +227,7 @@ SemanticProtosDiffController.prototype.onValuesChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective = function() {
+exports.SemanticProtosDiffDirective = function() {
   return {
     scope: {
       originalValue: '=',
@@ -257,8 +250,4 @@ grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective = functio
  * @const
  * @export
  */
-grrUi.semantic.semanticProtosDiffDirective.SemanticProtosDiffDirective
-      .directive_name = 'grrSemanticProtosDiff';
-
-
-});  // goog.scope
+exports.SemanticProtosDiffDirective.directive_name = 'grrSemanticProtosDiff';

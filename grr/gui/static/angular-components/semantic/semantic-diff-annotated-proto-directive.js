@@ -1,12 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
-goog.provide('grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective');  // USE: buildItems
+goog.module('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {buildItems} = goog.require('grrUi.semantic.semanticProtoDirective');
 
-var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
 
 
 /**
@@ -83,7 +81,7 @@ SemanticDiffAnnotatedProtoController.prototype.onValueChange_ = function(
  * @ngInject
  * @export
  */
-grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective = function() {
+exports.SemanticDiffAnnotatedProtoDirective = function() {
   return {
     scope: {
       value: '=',
@@ -105,7 +103,5 @@ grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDir
  * @const
  * @export
  */
-grrUi.semantic.semanticDiffAnnotatedProtoDirective.SemanticDiffAnnotatedProtoDirective.directive_name =
-      'grrSemanticDiffAnnotatedProto';
-
-});  // goog.scope
+exports.SemanticDiffAnnotatedProtoDirective.directive_name =
+    'grrSemanticDiffAnnotatedProto';

@@ -1,23 +1,18 @@
 'use strict';
 
-goog.provide('grrUi.core.pagedFilteredTableDirective');
-goog.provide('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
-goog.provide('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
-goog.provide('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
-
-
-goog.scope(function() {
+goog.module('grrUi.core.pagedFilteredTableDirective');
+goog.module.declareLegacyNamespace();
 
 
 
 /**
  * Directive for displaying the top pane of the paged/filtered table.
  *
- * @constructor
+ * @return {!angular.Directive}
  * @ngInject
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableTopDirective = function() {
+exports.TableTopDirective = function() {
   return {
     scope: {
       parentController: '='
@@ -36,19 +31,18 @@ grrUi.core.pagedFilteredTableDirective.TableTopDirective = function() {
  * @const
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableTopDirective
-    .directive_name = 'grrPagedFilteredTableTop';
+exports.TableTopDirective.directive_name = 'grrPagedFilteredTableTop';
 
 
 
 /**
  * Directive for displaying the bottom part of the paged/filtered table.
  *
- * @constructor
+ * @return {!angular.Directive}
  * @ngInject
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableBottomDirective = function() {
+exports.TableBottomDirective = function() {
   return {
     scope: {
       parentController: '='
@@ -67,8 +61,7 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective = function() {
  * @const
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableBottomDirective
-    .directive_name = 'grrPagedFilteredTableBottom';
+exports.TableBottomDirective.directive_name = 'grrPagedFilteredTableBottom';
 
 
 
@@ -438,8 +431,7 @@ PagedFilteredTableController.prototype.onPageChange = function(newPage) {
  * @ngInject
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective =
-    function() {
+exports.PagedFilteredTableDirective = function() {
   return {
     scope: {
       pageSize: '=?',
@@ -479,8 +471,4 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective =
  * @const
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective.
-    directive_name = 'grrPagedFilteredTable';
-
-
-});  // goog.scope
+exports.PagedFilteredTableDirective.directive_name = 'grrPagedFilteredTable';

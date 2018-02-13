@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.user.userDashboardDirective');
-goog.provide('grrUi.user.userDashboardDirective.UserDashboardDirective');
+goog.module('grrUi.user.userDashboardDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -87,8 +88,7 @@ UserDashboardController.prototype.onHuntClicked = function(hunt) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.user.userDashboardDirective.UserDashboardDirective =
-    function() {
+exports.UserDashboardDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -105,5 +105,4 @@ grrUi.user.userDashboardDirective.UserDashboardDirective =
  * @const
  * @export
  */
-grrUi.user.userDashboardDirective.UserDashboardDirective
-    .directive_name = 'grrUserDashboard';
+exports.UserDashboardDirective.directive_name = 'grrUserDashboard';

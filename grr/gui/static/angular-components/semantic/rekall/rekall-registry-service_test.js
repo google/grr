@@ -3,7 +3,7 @@
 goog.module('grrUi.semantic.rekall.rekallRegistryServiceTest');
 
 const {RekallRegistryService} = goog.require('grrUi.semantic.rekall.rekallRegistryService');
-const {rekallModule} = goog.require('grrUi.semantic.rekall');
+const {rekallModule} = goog.require('grrUi.semantic.rekall.rekall');
 
 
 describe('Rekall registry', () => {

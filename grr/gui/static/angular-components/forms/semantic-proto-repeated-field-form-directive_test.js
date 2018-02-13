@@ -3,7 +3,7 @@
 goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirectiveTest');
 
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
-const {formsModule} = goog.require('grrUi.forms');
+const {formsModule} = goog.require('grrUi.forms.forms');
 
 
 describe('semantic proto repeated field form directive', () => {

@@ -2,7 +2,7 @@
 
 goog.module('grrUi.semantic.rekall.rekallJsonDirectiveTest');
 
-const {rekallModule} = goog.require('grrUi.semantic.rekall');
+const {rekallModule} = goog.require('grrUi.semantic.rekall.rekall');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

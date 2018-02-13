@@ -3,7 +3,7 @@
 goog.module('grrUi.core.versionDropdownDirectiveTest');
 
 const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

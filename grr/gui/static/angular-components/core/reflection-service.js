@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.core.reflectionService');
-goog.provide('grrUi.core.reflectionService.ReflectionService');
-
-goog.scope(function() {
+goog.module('grrUi.core.reflectionService');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -17,7 +15,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.core.reflectionService.ReflectionService = function($q, grrApiService) {
+exports.ReflectionService = function($q, grrApiService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
@@ -30,7 +28,7 @@ grrUi.core.reflectionService.ReflectionService = function($q, grrApiService) {
   /** @private {Array.<Object>} */
   this.requestsQueue_ = [];
 };
-var ReflectionService = grrUi.core.reflectionService.ReflectionService;
+var ReflectionService = exports.ReflectionService;
 
 
 /**
@@ -133,4 +131,3 @@ ReflectionService.prototype.getRDFValueDescriptor = function(
 };
 
 
-});  // goog.scope

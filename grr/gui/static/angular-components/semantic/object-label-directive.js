@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.objectLabelDirective');
-goog.provide('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
+goog.module('grrUi.semantic.objectLabelDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -59,7 +58,7 @@ ObjectLabelController.prototype.onValueChange_ = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.objectLabelDirective.ObjectLabelDirective = function() {
+exports.ObjectLabelDirective = function() {
   return {
     scope: {
       value: '='
@@ -75,8 +74,7 @@ grrUi.semantic.objectLabelDirective.ObjectLabelDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.semantic.objectLabelDirective.ObjectLabelDirective.directive_name =
-    'grrObjectLabel';
+exports.ObjectLabelDirective.directive_name = 'grrObjectLabel';
 
 /**
  * Semantic type corresponding to this directive.
@@ -84,8 +82,4 @@ grrUi.semantic.objectLabelDirective.ObjectLabelDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.objectLabelDirective.ObjectLabelDirective.semantic_type =
-    'ClientLabel';
-
-
-});  // goog.scope
+exports.ObjectLabelDirective.semantic_type = 'ClientLabel';

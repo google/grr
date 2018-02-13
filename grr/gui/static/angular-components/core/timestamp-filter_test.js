@@ -3,7 +3,7 @@
 goog.module('grrUi.core.timestampFilterTest');
 
 const {TimestampFilter} = goog.require('grrUi.core.timestampFilter');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

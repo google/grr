@@ -2,7 +2,7 @@
 
 goog.module('grrUi.flow.flowStatusIconDirectiveTest');
 
-const {flowModule} = goog.require('grrUi.flow');
+const {flowModule} = goog.require('grrUi.flow.flow');
 const {testsModule} = goog.require('grrUi.tests');
 
 

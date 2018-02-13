@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.dictDirective');
-goog.provide('grrUi.semantic.dictDirective.DictDirective');
+goog.module('grrUi.semantic.dictDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.dictDirective.DictDirective = function() {
+exports.DictDirective = function() {
   return {
     scope: {
       value: '='
@@ -27,8 +26,7 @@ grrUi.semantic.dictDirective.DictDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.semantic.dictDirective.DictDirective.directive_name =
-    'grrDict';
+exports.DictDirective.directive_name = 'grrDict';
 
 
 /**
@@ -37,6 +35,4 @@ grrUi.semantic.dictDirective.DictDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.dictDirective.DictDirective.semantic_types =
-    ['dict', 'Dict'];
-});  // goog.scope
+exports.DictDirective.semantic_types = ['dict', 'Dict'];

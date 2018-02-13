@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.user.userNotificationButtonDirective');
-goog.provide('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
+goog.module('grrUi.user.userNotificationButtonDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var SECOND = 1000;
 
@@ -88,7 +87,7 @@ UserNotificationButtonController.prototype.showNotifications = function() {
  * @ngInject
  * @export
  */
-grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective = function() {
+exports.UserNotificationButtonDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -98,8 +97,7 @@ grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective = fun
   };
 };
 
-var UserNotificationButtonDirective =
-  grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective;
+var UserNotificationButtonDirective = exports.UserNotificationButtonDirective;
 
 
 /**
@@ -119,4 +117,3 @@ UserNotificationButtonDirective.directive_name = 'grrUserNotificationButton';
 UserNotificationButtonDirective.fetch_interval = FETCH_INTERVAL;
 
 
-});  // goog.scope

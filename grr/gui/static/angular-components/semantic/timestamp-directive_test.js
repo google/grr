@@ -3,7 +3,7 @@
 goog.module('grrUi.semantic.timestampDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 
 
 describe('timestamp directive', () => {

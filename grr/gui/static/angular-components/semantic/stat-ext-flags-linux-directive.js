@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statExtFlagsLinuxDirective');
-goog.provide('grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective');
+goog.module('grrUi.semantic.statExtFlagsLinuxDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * @typedef {{mask: number, symbol: string, description: string}}
@@ -193,7 +193,6 @@ const getMaskFlags = function(mask) {
  * @constructor
  * @param {!angular.Scope} $scope
  * @ngInject
- * @export
  */
 const StatExtFlagsLinuxController =
     function($scope) {
@@ -237,8 +236,7 @@ StatExtFlagsLinuxController.prototype.onValueChange = function(value) {
  * @return {!angular.Directive}
  * @export
  */
-grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective = function(
-    $filter) {
+exports.StatExtFlagsLinuxDirective = function($filter) {
   return {
     scope: {
       value: '=',
@@ -251,8 +249,7 @@ grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective = function(
   };
 };
 
-const StatExtFlagsLinuxDirective =
-    grrUi.semantic.statExtFlagsLinuxDirective.StatExtFlagsLinuxDirective;
+const StatExtFlagsLinuxDirective = exports.StatExtFlagsLinuxDirective;
 
 /**
  * Directive's name in Angular.
@@ -269,4 +266,3 @@ StatExtFlagsLinuxDirective.directive_name = 'grrStatExtFlagsLinux';
  * @export
  */
 StatExtFlagsLinuxDirective.semantic_type = 'StatExtFlagsLinux';
-});  // goog.scope

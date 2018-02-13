@@ -3,7 +3,7 @@
 goog.module('grrUi.client.virtualFileSystem.recursiveListButtonDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem');
+const {virtualFileSystemModule} = goog.require('grrUi.client.virtualFileSystem.virtualFileSystem');
 
 
 describe('"recursive list directory" button', () => {

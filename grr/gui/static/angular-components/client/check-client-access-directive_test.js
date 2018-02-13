@@ -2,7 +2,7 @@
 
 goog.module('grrUi.client.checkClientAccessDirectiveTest');
 
-const {clientModule} = goog.require('grrUi.client');
+const {clientModule} = goog.require('grrUi.client.client');
 const {testsModule} = goog.require('grrUi.tests');
 
 

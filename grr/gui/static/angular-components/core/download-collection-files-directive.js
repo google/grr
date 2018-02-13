@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.downloadCollectionFilesDirective');
-goog.provide('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
-goog.provide('grrUi.core.downloadCollectionFilesDirective.valuePointsToFile');
+goog.module('grrUi.core.downloadCollectionFilesDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -14,8 +12,7 @@ goog.scope(function() {
  * @return {boolean} True if value points to a file, false otherwise.
  * @export
  */
-grrUi.core.downloadCollectionFilesDirective.valuePointsToFile = function(
-    value) {
+exports.valuePointsToFile = function(value) {
   if (value['type'] == 'ApiFlowResult' || value['type'] == 'ApiHuntResult') {
     value = value['value']['payload'];
   }
@@ -119,8 +116,7 @@ DownloadCollectionFilesController.prototype.generateFileArchive = function(
  * @ngInject
  * @export
  */
-grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective =
-    function() {
+exports.DownloadCollectionFilesDirective = function() {
   return {
     scope: {
       exportCommandUrl: '=?',
@@ -141,8 +137,5 @@ grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective =
  * @const
  * @export
  */
-grrUi.core.downloadCollectionFilesDirective
-    .DownloadCollectionFilesDirective
-    .directive_name = 'grrDownloadCollectionFiles';
-
-});  // goog.scope
+exports.DownloadCollectionFilesDirective.directive_name =
+    'grrDownloadCollectionFiles';

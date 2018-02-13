@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.cron.newCronJobWizard.statusPageDirective');
-goog.provide('grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective');
+goog.module('grrUi.cron.newCronJobWizard.statusPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
@@ -12,8 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective =
-    function() {
+exports.StatusPageDirective = function() {
   return {
     scope: {
       response: '=',
@@ -31,6 +30,4 @@ grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective =
  * @const
  * @export
  */
-grrUi.cron.newCronJobWizard.statusPageDirective.StatusPageDirective
-    .directive_name = 'grrNewCronJobStatusPage';
-});  // goog.scope
+exports.StatusPageDirective.directive_name = 'grrNewCronJobStatusPage';

@@ -1,12 +1,13 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorInterceptorFactory');
-goog.provide('grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory');
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
+goog.module('grrUi.core.serverErrorInterceptorFactory');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
-var ERROR_EVENT_NAME = grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
+
+
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 var INTERCEPTED_STATUS_CODES = [500];
 
 
@@ -17,7 +18,7 @@ var INTERCEPTED_STATUS_CODES = [500];
  * @return {boolean} Whether interception is needed or not.
  * @private
  */
-grrUi.core.serverErrorInterceptorFactory.needsInterception_ = function(response) {
+const needsInterception_ = function(response) {
   return INTERCEPTED_STATUS_CODES.indexOf(response.status) !== -1;
 };
 
@@ -28,7 +29,7 @@ grrUi.core.serverErrorInterceptorFactory.needsInterception_ = function(response)
  * @return {{message: string, traceBack: string}} A server error object
  * @private
  */
-grrUi.core.serverErrorInterceptorFactory.extractError_ = function(response) {
+const extractError_ = function(response) {
   var data = response.data || {};
   return {
     message: data.message || 'Unknown Server Error',
@@ -46,11 +47,11 @@ grrUi.core.serverErrorInterceptorFactory.extractError_ = function(response) {
  * @constructor
  * @ngInject
  */
-grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory = function($rootScope, $q) {
+exports.ServerErrorInterceptorFactory = function($rootScope, $q) {
   return {
     responseError: function(response) {
-      if(grrUi.core.serverErrorInterceptorFactory.needsInterception_(response)) {
-        var error = grrUi.core.serverErrorInterceptorFactory.extractError_(response);
+      if (needsInterception_(response)) {
+        var error = extractError_(response);
         $rootScope.$broadcast(ERROR_EVENT_NAME, error);
       }
       return $q.reject(response);
@@ -58,8 +59,7 @@ grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory = functio
   };
 };
 
-var ServerErrorInterceptorFactory =
-  grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory;
+var ServerErrorInterceptorFactory = exports.ServerErrorInterceptorFactory;
 
 
 /**
@@ -71,4 +71,3 @@ var ServerErrorInterceptorFactory =
 ServerErrorInterceptorFactory.factory_name = 'grrServerErrorInterceptorFactory';
 
 
-});

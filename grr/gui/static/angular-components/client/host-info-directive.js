@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.hostInfoDirective');
-goog.provide('grrUi.client.hostInfoDirective.HostInfoDirective');
+goog.module('grrUi.client.hostInfoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 var OPERATION_POLL_INTERVAL_MS = 1000;
@@ -217,7 +216,7 @@ HostInfoController.prototype.showHistoryDialog = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.hostInfoDirective.HostInfoDirective = function() {
+exports.HostInfoDirective = function() {
   return {
     scope: {
       'clientId': '=',
@@ -237,7 +236,4 @@ grrUi.client.hostInfoDirective.HostInfoDirective = function() {
  * @const
  * @export
  */
-grrUi.client.hostInfoDirective.HostInfoDirective.directive_name =
-    'grrHostInfo';
-
-});  // goog.scope
+exports.HostInfoDirective.directive_name = 'grrHostInfo';

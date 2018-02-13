@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
+goog.module('grrUi.client.virtualFileSystem.fileStatsViewDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -65,7 +63,7 @@ FileStatsViewController.prototype.onContextChange_ = function() {
  * FileStatsViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective = function() {
+exports.FileStatsViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -86,7 +84,4 @@ grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective = f
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective.directive_name =
-    'grrFileStatsView';
-
-});  // goog.scope
+exports.FileStatsViewDirective.directive_name = 'grrFileStatsView';

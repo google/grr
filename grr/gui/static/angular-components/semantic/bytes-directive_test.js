@@ -3,7 +3,7 @@
 goog.module('grrUi.semantic.bytesDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 
 
 describe('bytes directive', () => {

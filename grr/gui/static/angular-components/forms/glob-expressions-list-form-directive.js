@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.globExpressionsListFormDirective');
-goog.provide('grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective');
+goog.module('grrUi.forms.globExpressionsListFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for GlobExpressionsListFormDirective.
@@ -46,8 +45,7 @@ GlobExpressionsListFormController.prototype.onArgumentsChange_ = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective =
-    function() {
+exports.GlobExpressionsListFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -69,8 +67,8 @@ grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective =
  * @const
  * @export
  */
-grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
-      .directive_name = 'grrGlobExpressionsListForm';
+exports.GlobExpressionsListFormDirective.directive_name =
+    'grrGlobExpressionsListForm';
 
 /**
  * Flag indicating that this custom repeated field directive should be rendered
@@ -79,8 +77,7 @@ grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
  * @const
  * @export
  */
-grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
-      .hideCustomTemplateLabel = true;
+exports.GlobExpressionsListFormDirective.hideCustomTemplateLabel = true;
 
 
 /**
@@ -89,8 +86,4 @@ grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
  * @const
  * @export
  */
-grrUi.forms.globExpressionsListFormDirective.GlobExpressionsListFormDirective
-    .semantic_type = 'GlobExpression';
-
-
-});  // goog.scope
+exports.GlobExpressionsListFormDirective.semantic_type = 'GlobExpression';

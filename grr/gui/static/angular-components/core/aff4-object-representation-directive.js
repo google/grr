@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.core.aff4ObjectRepresentationDirective');
-goog.provide('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');
-
-goog.scope(function() {
+goog.module('grrUi.core.aff4ObjectRepresentationDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -47,7 +45,7 @@ Aff4ObjectRepresentationController.prototype.onValueChange = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective = function() {
+exports.Aff4ObjectRepresentationDirective = function() {
   return {
     scope: {
       value: '='
@@ -66,8 +64,5 @@ grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective =
  * @const
  * @export
  */
-grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective.directive_name =
+exports.Aff4ObjectRepresentationDirective.directive_name =
     'grrAff4ObjectRepresentation';
-
-
-});  // goog.scope

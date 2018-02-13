@@ -4,7 +4,7 @@ goog.module('grrUi.user.userDesktopNotificationsDirectiveTest');
 
 const {UserNotificationButtonDirective} = goog.require('grrUi.user.userNotificationButtonDirective');
 const {testsModule} = goog.require('grrUi.tests');
-const {userModule} = goog.require('grrUi.user');
+const {userModule} = goog.require('grrUi.user.user');
 
 
 describe('User desktop notifications directive', () => {

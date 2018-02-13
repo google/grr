@@ -2,7 +2,7 @@
 
 goog.module('grrUi.flow.copyFlowFormDirectiveTest');
 
-const {flowModule} = goog.require('grrUi.flow');
+const {flowModule} = goog.require('grrUi.flow.flow');
 const {stubDirective, stubTranscludeDirective, testsModule} = goog.require('grrUi.tests');
 
 

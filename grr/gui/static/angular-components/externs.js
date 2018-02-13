@@ -282,8 +282,8 @@ ui.router.$stateParams;
 
 /**
  * This is the object that the ui-router passes to callback functions listening
- * on ui router events such as {@code $stateChangeStart} or
- * {@code $stateChangeError} as the `toState` and `fromState`.
+ * on ui router events such as `$stateChangeStart` or
+ * `$stateChangeError` as the `toState` and `fromState`.
  * Example:
  * $rootScope.$on('$stateChangeStart', function(
  *     event, toState, toParams, fromState, fromParams){ ... });

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.addClientsLabelsDialogDirective');
-goog.provide('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
+goog.module('grrUi.client.addClientsLabelsDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -66,7 +65,7 @@ AddClientsLabelsDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective = function() {
+exports.AddClientsLabelsDialogDirective = function() {
   return {
     scope: {
       clients: '='
@@ -86,8 +85,5 @@ grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective = f
  * @const
  * @export
  */
-grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective
-    .directive_name = 'grrAddClientsLabelsDialog';
-
-
-});
+exports.AddClientsLabelsDialogDirective.directive_name =
+    'grrAddClientsLabelsDialog';

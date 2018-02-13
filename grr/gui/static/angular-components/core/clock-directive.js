@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.clockDirective');
-goog.provide('grrUi.core.clockDirective.ClockDirective');
+goog.module('grrUi.core.clockDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ClockDirective.
@@ -44,7 +44,7 @@ ClockController.prototype.updateLiveClock_ =
  * @ngInject
  * @export
  */
-grrUi.core.clockDirective.ClockDirective = function() {
+exports.ClockDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -63,7 +63,4 @@ grrUi.core.clockDirective.ClockDirective = function() {
  * @const
  * @export
  */
-grrUi.core.clockDirective.ClockDirective.directive_name =
-    'grrLiveClock';
-
-});  // goog.scope
+exports.ClockDirective.directive_name = 'grrLiveClock';

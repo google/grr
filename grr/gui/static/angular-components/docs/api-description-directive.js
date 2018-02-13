@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiDescriptionDirective');
-goog.provide('grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective');
-
-goog.scope(function() {
+goog.module('grrUi.docs.apiDescriptionDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -47,7 +45,7 @@ ApiDescriptionController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective = function() {
+exports.ApiDescriptionDirective = function() {
   return {
     scope: {
       value: '='
@@ -66,10 +64,4 @@ grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective = function() {
  * @const
  * @export
  */
-grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective.directive_name =
-    'grrApiDescription';
-
-
-
-
-});  // goog.scope
+exports.ApiDescriptionDirective.directive_name = 'grrApiDescription';

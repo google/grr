@@ -1,13 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticProtoDirective');
-goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
-goog.provide('grrUi.semantic.semanticProtoDirective.buildItems');
-goog.provide('grrUi.semantic.semanticProtoDirective.buildNonUnionItems');
-goog.provide('grrUi.semantic.semanticProtoDirective.buildUnionItems');
-goog.provide('grrUi.semantic.semanticProtoDirective.getUnionFieldValue');
+goog.module('grrUi.semantic.semanticProtoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -22,15 +17,14 @@ goog.scope(function() {
  *     data structure).
  * @export
  */
-grrUi.semantic.semanticProtoDirective.getUnionFieldValue = function(
-    value, descriptor) {
+exports.getUnionFieldValue = function(value, descriptor) {
   var unionFieldName = descriptor['union_field'];
   if (angular.isUndefined(unionFieldName)) {
     throw new Error('Not a union-type structure.');
   }
 
   if (angular.isDefined(value['value'][unionFieldName])) {
-      return value['value'][unionFieldName]['value'].toLowerCase();
+    return value['value'][unionFieldName]['value'].toLowerCase();
   } else {
     var fieldsLength = descriptor['fields'].length;
     for (var i = 0; i < fieldsLength; ++i) {
@@ -43,8 +37,7 @@ grrUi.semantic.semanticProtoDirective.getUnionFieldValue = function(
 
   throw new Error('Can\'t determine value of the union field.');
 };
-var getUnionFieldValue =
-    grrUi.semantic.semanticProtoDirective.getUnionFieldValue;
+var getUnionFieldValue = exports.getUnionFieldValue;
 
 
 /**
@@ -61,8 +54,7 @@ var getUnionFieldValue =
  *     to.
  * @export
  */
-grrUi.semantic.semanticProtoDirective.buildUnionItems = function(
-    value, descriptor) {
+exports.buildUnionItems = function(value, descriptor) {
   var items = [];
 
   var unionFieldName = descriptor['union_field'];
@@ -89,7 +81,7 @@ grrUi.semantic.semanticProtoDirective.buildUnionItems = function(
 
   return items;
 };
-var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
+var buildUnionItems = exports.buildUnionItems;
 
 
 /**
@@ -108,7 +100,7 @@ var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
  * @return {Array.<Object>} List of items to display.
  * @export
  */
-grrUi.semantic.semanticProtoDirective.buildNonUnionItems = function(
+exports.buildNonUnionItems = function(
     value, descriptor, opt_visibleFields, opt_hiddenFields) {
   if (angular.isUndefined(descriptor['fields'])) {
     return [];
@@ -148,8 +140,7 @@ grrUi.semantic.semanticProtoDirective.buildNonUnionItems = function(
 
   return items;
 };
-var buildNonUnionItems =
-    grrUi.semantic.semanticProtoDirective.buildNonUnionItems;
+var buildNonUnionItems = exports.buildNonUnionItems;
 
 
 /**
@@ -168,7 +159,7 @@ var buildNonUnionItems =
  * @return {Array.<Object>} List of items to display.
  * @export
  */
-grrUi.semantic.semanticProtoDirective.buildItems = function(
+exports.buildItems = function(
     value, descriptor, opt_visibleFields, opt_hiddenFields) {
   if (angular.isDefined(descriptor['union_field'])) {
     return buildUnionItems(value, descriptor);
@@ -179,7 +170,7 @@ grrUi.semantic.semanticProtoDirective.buildItems = function(
                               opt_hiddenFields);
   }
 };
-var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
+var buildItems = exports.buildItems;
 
 /**
  * Controller for SemanticProtoDirective.
@@ -241,7 +232,7 @@ SemanticProtoController.prototype.onValueChange = function(newValue, oldValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
+exports.SemanticProtoDirective = function() {
   return {
     scope: {
       value: '=',
@@ -262,8 +253,7 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name =
-    'grrSemanticProto';
+exports.SemanticProtoDirective.directive_name = 'grrSemanticProto';
 
 /**
  * Semantic type corresponding to this directive.
@@ -271,7 +261,4 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.semantic_type =
-    'RDFProtoStruct';
-
-});  // goog.scope
+exports.SemanticProtoDirective.semantic_type = 'RDFProtoStruct';

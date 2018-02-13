@@ -2,7 +2,7 @@
 
 goog.module('grrUi.hunt.huntStatsDirectiveTest');
 
-const {huntModule} = goog.require('grrUi.hunt');
+const {huntModule} = goog.require('grrUi.hunt.hunt');
 const {testsModule} = goog.require('grrUi.tests');
 
 

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.utils');
-goog.provide('grrUi.forms.utils.valueHasErrors');
+goog.module('grrUi.forms.utils');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directives in angular-components/forms render forms that allow
@@ -31,7 +31,7 @@ goog.scope(function() {
  * @return {boolean} True if the value or any of its nested values has the
  *     'validationError' annotation, false otherwise.
  */
-grrUi.forms.utils.valueHasErrors = function(value) {
+exports.valueHasErrors = function(value) {
   if (!angular.isObject(value)) {
     return false;
   }
@@ -62,6 +62,4 @@ grrUi.forms.utils.valueHasErrors = function(value) {
 
   return false;
 };
-var valueHasErrors = grrUi.forms.utils.valueHasErrors;
-
-});
+var valueHasErrors = exports.valueHasErrors;

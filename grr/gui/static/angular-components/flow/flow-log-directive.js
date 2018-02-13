@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowLogDirective');
-goog.provide('grrUi.flow.flowLogDirective.FlowLogDirective');
-
-goog.scope(function() {
+goog.module('grrUi.flow.flowLogDirective');
+goog.module.declareLegacyNamespace();
 
 
-/** @const {number} */
-grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes of the flow log.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /**
@@ -25,8 +34,7 @@ const FlowLogController = function($scope) {
   this.logsUrl;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.flow.flowLogDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watchGroup(['flowId', 'apiBasePath'],
                           this.onFlowIdOrBasePathChange_.bind(this));
@@ -56,7 +64,7 @@ FlowLogController.prototype.onFlowIdOrBasePathChange_ = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.flow.flowLogDirective.FlowLogDirective = function() {
+exports.FlowLogDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -75,7 +83,4 @@ grrUi.flow.flowLogDirective.FlowLogDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowLogDirective.FlowLogDirective.directive_name = 'grrFlowLog';
-
-
-});  // goog.scope
+exports.FlowLogDirective.directive_name = 'grrFlowLog';

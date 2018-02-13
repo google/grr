@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.onScrollIntoViewDirective');
-goog.provide('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
+goog.module('grrUi.core.onScrollIntoViewDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -87,7 +85,7 @@ OnScrollIntoViewController.prototype.onInterval = function() {
  * @ngInject
  * @export
  */
-grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective = function() {
+exports.OnScrollIntoViewDirective = function() {
   return {
     restrict: 'A',
     controller: OnScrollIntoViewController
@@ -101,8 +99,4 @@ grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective = function() {
  * @const
  * @export
  */
-grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective
-    .directive_name = 'grrOnScrollIntoView';
-
-
-});  // goog.scope
+exports.OnScrollIntoViewDirective.directive_name = 'grrOnScrollIntoView';

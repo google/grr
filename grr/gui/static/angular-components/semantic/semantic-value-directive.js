@@ -1,11 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticValueDirective');
-goog.provide('grrUi.semantic.semanticValueDirective.RegistryOverrideDirective');
-goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
-goog.provide('grrUi.semantic.semanticValueDirective.clearCaches');
-
-goog.scope(function() {
+goog.module('grrUi.semantic.semanticValueDirective');
+goog.module.declareLegacyNamespace();
 
 
 /**
@@ -13,7 +9,7 @@ goog.scope(function() {
  *     function(!angular.Scope, function(Object, !angular.Scope=)=):Object>}
  * Cache for templates used by semantic value directive.
  */
-grrUi.semantic.semanticValueDirective.singleValueTemplateCache = {};
+let singleValueTemplateCache = {};
 
 
 /**
@@ -21,7 +17,7 @@ grrUi.semantic.semanticValueDirective.singleValueTemplateCache = {};
  *     !angular.Scope=)=):Object|undefined)}
  * Precached template for lists of values.
  */
-grrUi.semantic.semanticValueDirective.repeatedValuesTemplate;
+let repeatedValuesTemplate;
 
 
 /**
@@ -29,9 +25,21 @@ grrUi.semantic.semanticValueDirective.repeatedValuesTemplate;
  *
  * @export
  */
-grrUi.semantic.semanticValueDirective.clearCaches = function() {
-  grrUi.semantic.semanticValueDirective.singleValueTemplateCache = {};
-  grrUi.semantic.semanticValueDirective.repeatedValuesTemplate = undefined;
+exports.clearCaches = function() {
+  singleValueTemplateCache = {};
+  repeatedValuesTemplate = undefined;
+};
+
+/**
+ * Gets value of the cached single value template.
+ *
+ * @param {string} name Name of the template to lookup in the cache.
+ * @return {function(!angular.Scope, function(Object, !angular.Scope=)=):Object}
+ *
+ * @export
+ */
+exports.getCachedSingleValueTemplate = function(name) {
+  return singleValueTemplateCache[name];
 };
 
 
@@ -81,7 +89,7 @@ RegistryOverrideController.prototype.onMapChange_ = function(newValue) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.semantic.semanticValueDirective.RegistryOverrideDirective = function() {
+exports.RegistryOverrideDirective = function() {
   return {
     scope: {
       map: '='
@@ -101,7 +109,7 @@ grrUi.semantic.semanticValueDirective.RegistryOverrideDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.semanticValueDirective.RegistryOverrideDirective.directive_name =
+exports.RegistryOverrideDirective.directive_name =
     'grrSemanticValueRegistryOverride';
 
 
@@ -233,9 +241,6 @@ SemanticValueController.prototype.onValueChange = function() {
       }.bind(this));
     }.bind(this);
 
-    var singleValueTemplateCache = grrUi.semantic.semanticValueDirective
-        .singleValueTemplateCache;
-
     // Make sure that templates for overrides do not collide with either
     // templates for other overrides or with default templates.
     var cacheKey = value['type'];
@@ -264,12 +269,10 @@ SemanticValueController.prototype.onValueChange = function() {
       this.scope_.repeatedValue = value;
     }
 
-    if (angular.isUndefined(
-        grrUi.semantic.semanticValueDirective.repeatedValuesTemplate)) {
-      grrUi.semantic.semanticValueDirective.repeatedValuesTemplate =
-          this.compileRepeatedValueTemplate_();
+    if (angular.isUndefined(repeatedValuesTemplate)) {
+      repeatedValuesTemplate = this.compileRepeatedValueTemplate_();
     }
-    template = grrUi.semantic.semanticValueDirective.repeatedValuesTemplate;
+    template = repeatedValuesTemplate;
 
     template(this.scope_, function(cloned, opt_scope) {
       this.element_.html('');
@@ -288,7 +291,7 @@ SemanticValueController.prototype.onValueChange = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.semantic.semanticValueDirective.SemanticValueDirective = function() {
+exports.SemanticValueDirective = function() {
   return {
     scope: {
       value: '='
@@ -313,7 +316,4 @@ grrUi.semantic.semanticValueDirective.SemanticValueDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.semanticValueDirective.SemanticValueDirective.directive_name =
-    'grrSemanticValue';
-
-});  // goog.scope
+exports.SemanticValueDirective.directive_name = 'grrSemanticValue';

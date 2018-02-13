@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.apiHuntResultDirective');
-goog.provide('grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective');
+goog.module('grrUi.semantic.apiHuntResultDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective = function() {
+exports.ApiHuntResultDirective = function() {
   return {
     scope: {
       value: '='
@@ -30,8 +29,7 @@ grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective.directive_name =
-    'grrApiHuntResult';
+exports.ApiHuntResultDirective.directive_name = 'grrApiHuntResult';
 
 /**
  * Semantic type corresponding to this directive.
@@ -39,8 +37,4 @@ grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.apiHuntResultDirective.ApiHuntResultDirective.semantic_type =
-    'ApiHuntResult';
-
-
-});  // goog.scope
+exports.ApiHuntResultDirective.semantic_type = 'ApiHuntResult';

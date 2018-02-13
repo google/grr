@@ -1,9 +1,17 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statModeDirective');
-goog.provide('grrUi.semantic.statModeDirective.StatModeDirective');
+goog.module('grrUi.semantic.statModeDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+/*
+ * TODO(hanuszczak): Some of the declarations below are unused. For now we
+ * suppress the warning but it should be addressed at some point.
+ */
+
+/**
+ * @fileoverview
+ * @suppress {unusedLocalVariables}
+ */
 
 
 var S_IFMT = 61440;    // 0170000 type of file
@@ -246,7 +254,7 @@ StatModeController.prototype.isSocket_ = function(mode) {
  * @ngInject
  * @export
  */
-grrUi.semantic.statModeDirective.StatModeDirective = function($filter) {
+exports.StatModeDirective = function($filter) {
   return {
     scope: {
       value: '='
@@ -267,8 +275,7 @@ grrUi.semantic.statModeDirective.StatModeDirective = function($filter) {
  * @const
  * @export
  */
-grrUi.semantic.statModeDirective.StatModeDirective.directive_name =
-    'grrStatMode';
+exports.StatModeDirective.directive_name = 'grrStatMode';
 
 /**
  * Semantic type corresponding to this directive.
@@ -276,8 +283,4 @@ grrUi.semantic.statModeDirective.StatModeDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.statModeDirective.StatModeDirective.semantic_type =
-    'StatMode';
-
-
-});  // goog.scope
+exports.StatModeDirective.semantic_type = 'StatMode';

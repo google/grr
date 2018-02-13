@@ -10,6 +10,12 @@ from grr.lib.rdfvalues import objects
 from grr.server import db
 
 
+def _TSToRDFDatetime(ts):
+  if ts is None:
+    return None
+  return rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+
+
 class InMemoryDB(db.Database):
   """An in memory database implementation used for testing."""
 
@@ -103,7 +109,11 @@ class InMemoryDB(db.Database):
           ping=md.get("ping"),
           clock=md.get("clock"),
           ip=md.get("ip"),
-          last_foreman_time=md.get("last_foreman_time"))
+          last_foreman_time=md.get("last_foreman_time"),
+          last_crash_timestamp=_TSToRDFDatetime(md.get("last_crash_timestamp")),
+          startup_info_timestamp=_TSToRDFDatetime(
+              md.get("startup_info_timestamp")))
+
     return res
 
   def WriteClient(self, client):
@@ -142,8 +152,7 @@ class InMemoryDB(db.Database):
         last_timestamp = max(history)
         client_obj = objects.Client.FromSerializedString(
             history[last_timestamp])
-        client_obj.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-            last_timestamp)
+        client_obj.timestamp = _TSToRDFDatetime(last_timestamp)
         client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
             self.startup_history[client_id][last_timestamp])
         res[client_id] = client_obj
@@ -159,7 +168,7 @@ class InMemoryDB(db.Database):
     res = []
     for ts in sorted(history, reverse=True):
       client_obj = objects.Client.FromSerializedString(history[ts])
-      client_obj.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      client_obj.timestamp = _TSToRDFDatetime(ts)
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
           self.startup_history[client_id][ts])
       res.append(client_obj)
@@ -190,7 +199,7 @@ class InMemoryDB(db.Database):
       res.setdefault(keyword_mapping[k], [])
       for client_id, timestamp in self.keywords.get(k, {}).items():
         if start_time is not None:
-          rdf_ts = rdfvalue.RDFDatetime().FromSecondsFromEpoch(timestamp)
+          rdf_ts = _TSToRDFDatetime(timestamp)
           if rdf_ts < start_time:
             continue
         res[keyword_mapping[k]].append(client_id)
@@ -286,8 +295,10 @@ class InMemoryDB(db.Database):
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
+    ts = time.time()
+    self.metadatas[client_id]["startup_info_timestamp"] = ts
     history = self.startup_history.setdefault(client_id, {})
-    history[time.time()] = startup_info.SerializeToString()
+    history[ts] = startup_info.SerializeToString()
 
   def ReadClientStartupInfo(self, client_id):
     self._ValidateClientId(client_id)
@@ -297,7 +308,7 @@ class InMemoryDB(db.Database):
 
     ts = max(history)
     res = rdf_client.StartupInfo.FromSerializedString(history[ts])
-    res.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+    res.timestamp = _TSToRDFDatetime(ts)
     return res
 
   def ReadClientStartupInfoHistory(self, client_id):
@@ -309,7 +320,7 @@ class InMemoryDB(db.Database):
     res = []
     for ts in sorted(history, reverse=True):
       client_data = rdf_client.StartupInfo.FromSerializedString(history[ts])
-      client_data.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      client_data.timestamp = _TSToRDFDatetime(ts)
       res.append(client_data)
     return res
 
@@ -325,8 +336,10 @@ class InMemoryDB(db.Database):
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
+    ts = time.time()
+    self.metadatas[client_id]["last_crash_timestamp"] = ts
     history = self.crash_history.setdefault(client_id, {})
-    history[time.time()] = crash_info.SerializeToString()
+    history[ts] = crash_info.SerializeToString()
 
   def ReadClientCrashInfo(self, client_id):
     self._ValidateClientId(client_id)
@@ -336,7 +349,7 @@ class InMemoryDB(db.Database):
 
     ts = max(history)
     res = rdf_client.ClientCrash.FromSerializedString(history[ts])
-    res.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+    res.timestamp = _TSToRDFDatetime(ts)
     return res
 
   def ReadClientCrashInfoHistory(self, client_id):
@@ -348,6 +361,6 @@ class InMemoryDB(db.Database):
     res = []
     for ts in sorted(history, reverse=True):
       client_data = rdf_client.ClientCrash.FromSerializedString(history[ts])
-      client_data.timestamp = rdfvalue.RDFDatetime().FromSecondsFromEpoch(ts)
+      client_data.timestamp = _TSToRDFDatetime(ts)
       res.append(client_data)
     return res

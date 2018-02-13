@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.flowIdDirective');
-goog.provide('grrUi.semantic.flowIdDirective.FlowIdDirective');
+goog.module('grrUi.semantic.flowIdDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -28,7 +27,7 @@ const FlowIdController = function($scope) {
  * @return {!angular.Directive} Directive definition object.
  * @export
  */
-grrUi.semantic.flowIdDirective.FlowIdDirective = function() {
+exports.FlowIdDirective = function() {
   return {
     scope: {
       value: '='
@@ -53,8 +52,7 @@ grrUi.semantic.flowIdDirective.FlowIdDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.flowIdDirective.FlowIdDirective.directive_name =
-    'grrFlowId';
+exports.FlowIdDirective.directive_name = 'grrFlowId';
 
 /**
  * Semantic type corresponding to this directive.
@@ -62,8 +60,4 @@ grrUi.semantic.flowIdDirective.FlowIdDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.flowIdDirective.FlowIdDirective.semantic_type =
-    'ApiFlowId';
-
-
-});  // goog.scope
+exports.FlowIdDirective.semantic_type = 'ApiFlowId';

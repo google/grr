@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.outputPluginDescriptorFormDirective');
-goog.provide('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
+goog.module('grrUi.forms.outputPluginDescriptorFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for OutputPluginDescriptorFormDirective.
@@ -78,8 +77,7 @@ const OutputPluginDescriptorFormController = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.forms.outputPluginDescriptorFormDirective
-    .OutputPluginDescriptorFormDirective = function() {
+exports.OutputPluginDescriptorFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -99,9 +97,8 @@ grrUi.forms.outputPluginDescriptorFormDirective
  * @const
  * @export
  */
-grrUi.forms.outputPluginDescriptorFormDirective
-    .OutputPluginDescriptorFormDirective
-    .directive_name = 'grrOutputPluginDescriptorForm';
+exports.OutputPluginDescriptorFormDirective.directive_name =
+    'grrOutputPluginDescriptorForm';
 
 
 /**
@@ -110,9 +107,5 @@ grrUi.forms.outputPluginDescriptorFormDirective
  * @const
  * @export
  */
-grrUi.forms.outputPluginDescriptorFormDirective
-    .OutputPluginDescriptorFormDirective
-    .semantic_type = 'OutputPluginDescriptor';
-
-
-});  // goog.scope
+exports.OutputPluginDescriptorFormDirective.semantic_type =
+    'OutputPluginDescriptor';

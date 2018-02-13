@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.hexNumberFilter');
-goog.provide('grrUi.core.hexNumberFilter.HexNumberFilter');
+goog.module('grrUi.core.hexNumberFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -12,9 +11,8 @@ goog.scope(function() {
  * @param {number} input Number to show as hex string.
  * @return {string} Hex string representation of the input number. The return value is always
       a multiple of eight (with leading zeros if necessary) starting with 0x, e.g. 0x001234ff.
- * @export
  */
-grrUi.core.hexNumberFilter.filterImplementation = function(input) {
+const filterImplementation = function(input) {
   var hex = input.toString(16);
 
   var targetLength = Math.ceil(hex.length / 8) * 8;
@@ -30,9 +28,9 @@ grrUi.core.hexNumberFilter.filterImplementation = function(input) {
  * @export
  * @ngInject
  */
-grrUi.core.hexNumberFilter.HexNumberFilter = function() {
+exports.HexNumberFilter = function() {
   return function(input) {
-    return grrUi.core.hexNumberFilter.filterImplementation(input);
+    return filterImplementation(input);
   };
 };
 
@@ -43,6 +41,4 @@ grrUi.core.hexNumberFilter.HexNumberFilter = function() {
  * @const
  * @export
  */
-grrUi.core.hexNumberFilter.HexNumberFilter.filter_name = 'grrHexNumber';
-
-}); // goog.scope
+exports.HexNumberFilter.filter_name = 'grrHexNumber';

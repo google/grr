@@ -1,10 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.semantic.semanticVersionedProtoDirective');
-goog.provide('grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective');
-goog.require('grrUi.semantic.semanticProtoDirective');  // USE: buildNonUnionItems
+goog.module('grrUi.semantic.semanticVersionedProtoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {buildNonUnionItems} = goog.require('grrUi.semantic.semanticProtoDirective');
+
 
 
 /**
@@ -82,14 +82,13 @@ SemanticVersionedProtoController.prototype.onValueChange_ = function(
 
   if (angular.isObject(this.scope_['value'])) {
     var valueType = this.scope_['value']['type'];
-    this.grrReflectionService_.getRDFValueDescriptor(valueType, true).then(
-        function success(descriptors) {
-          var items = grrUi.semantic.semanticProtoDirective.buildNonUnionItems(
-              this.scope_['value'],
-              descriptors[valueType]);
+    this.grrReflectionService_.getRDFValueDescriptor(valueType, true)
+        .then(function success(descriptors) {
+          var items =
+              buildNonUnionItems(this.scope_['value'], descriptors[valueType]);
           this.items = this.processItems_(items, descriptors);
-        }.bind(this)); // TODO(user): Reflection failure scenario should be
-                       // handled globally by reflection service.
+        }.bind(this));  // TODO(user): Reflection failure scenario should be
+                        // handled globally by reflection service.
   } else {
     this.items = [];
   }
@@ -103,7 +102,7 @@ SemanticVersionedProtoController.prototype.onValueChange_ = function(
  * @ngInject
  * @export
  */
-grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective = function() {
+exports.SemanticVersionedProtoDirective = function() {
   return {
     scope: {
       value: '=',
@@ -125,6 +124,5 @@ grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective =
  * @const
  * @export
  */
-grrUi.semantic.semanticVersionedProtoDirective.SemanticVersionedProtoDirective.directive_name =
+exports.SemanticVersionedProtoDirective.directive_name =
     'grrSemanticVersionedProto';
-});  // goog.scope

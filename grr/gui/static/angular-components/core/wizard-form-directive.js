@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.wizardFormDirective');
-goog.provide('grrUi.core.wizardFormDirective.WizardFormController');
-goog.provide('grrUi.core.wizardFormDirective.WizardFormDirective');
+goog.module('grrUi.core.wizardFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for WizardFormDirective.
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.core.wizardFormDirective.WizardFormController = function($scope) {
+exports.WizardFormController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -36,7 +35,7 @@ grrUi.core.wizardFormDirective.WizardFormController = function($scope) {
     }
   }.bind(this));
 };
-var WizardFormController = grrUi.core.wizardFormDirective.WizardFormController;
+var WizardFormController = exports.WizardFormController;
 
 
 /**
@@ -108,7 +107,7 @@ WizardFormController.prototype.registerPage = function(pageController) {
  * @ngInject
  * @export
  */
-grrUi.core.wizardFormDirective.WizardFormDirective = function() {
+exports.WizardFormDirective = function() {
   return {
     scope: {
       title: '@',
@@ -130,7 +129,4 @@ grrUi.core.wizardFormDirective.WizardFormDirective = function() {
  * @const
  * @export
  */
-grrUi.core.wizardFormDirective.WizardFormDirective.directive_name =
-    'grrWizardForm';
-
-});  // goog.scope
+exports.WizardFormDirective.directive_name = 'grrWizardForm';

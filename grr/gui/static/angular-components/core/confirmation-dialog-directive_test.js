@@ -3,7 +3,7 @@
 goog.module('grrUi.core.confirmationDialogDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 describe('confirmation dialog directive', () => {

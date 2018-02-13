@@ -1,21 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective');
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: getFolderFromPath
+goog.module('grrUi.client.virtualFileSystem.fileTimelineDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
-
-var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
-
-
-var REFRESH_FOLDER_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
-
-var REFRESH_FILE_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
 
 /**
  * Controller for FileTimelineDirective.
@@ -66,6 +56,11 @@ const FileTimelineController = function(
 
 
 
+/**
+ * @param {?string} newFilePath
+ *
+ * @private
+ */
 FileTimelineController.prototype.onFilePathChange_ = function(newFilePath) {
   if (angular.isUndefined(newFilePath)) {
     return;
@@ -192,7 +187,7 @@ FileTimelineController.prototype.selectFile = function(timelineItem) {
  * FileTimelineDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective = function() {
+exports.FileTimelineDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -215,7 +210,4 @@ grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective = fun
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective.directive_name =
-    'grrFileTimeline';
-
-});  // goog.scope
+exports.FileTimelineDirective.directive_name = 'grrFileTimeline';

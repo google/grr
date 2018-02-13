@@ -1,12 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.utils');
-goog.provide('grrUi.core.utils.CLIENT_ID_RE');
-goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
-goog.provide('grrUi.core.utils.getLastPathComponent');
-goog.provide('grrUi.core.utils.stringToList');
-goog.provide('grrUi.core.utils.stripAff4Prefix');
-goog.provide('grrUi.core.utils.upperCaseToTitleCase');
+goog.module('grrUi.core.utils');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -15,7 +11,7 @@ goog.provide('grrUi.core.utils.upperCaseToTitleCase');
  * @const
  * @export
  */
-grrUi.core.utils.CLIENT_ID_RE = /^C\.[0-9a-fA-F]{16}$/;
+exports.CLIENT_ID_RE = /^C\.[0-9a-fA-F]{16}$/;
 
 
 /**
@@ -32,12 +28,12 @@ grrUi.core.utils.CLIENT_ID_RE = /^C\.[0-9a-fA-F]{16}$/;
  * @param {string} input String to be converted.
  * @return {string} Converted string.
  */
-grrUi.core.utils.camelCaseToDashDelimited = function(input) {
-    return input.replace(/\W+/g, '-')
-        .replace(/([A-Z])/g, '-$1')
-        .replace(/^-+/, '') // Removing leading '-'.
-        .replace(/-+$/, '') // Removing trailing '-'.
-        .toLowerCase();
+exports.camelCaseToDashDelimited = function(input) {
+  return input.replace(/\W+/g, '-')
+      .replace(/([A-Z])/g, '-$1')
+      .replace(/^-+/, '')  // Removing leading '-'.
+      .replace(/-+$/, '')  // Removing trailing '-'.
+      .toLowerCase();
 };
 
 
@@ -51,7 +47,7 @@ grrUi.core.utils.camelCaseToDashDelimited = function(input) {
  * @param {string} input Uppercase string to be converted.
  * @return {string} Converted string.
  */
-grrUi.core.utils.upperCaseToTitleCase = function(input) {
+exports.upperCaseToTitleCase = function(input) {
   return (input.charAt(0).toUpperCase() +
           input.slice(1).toLowerCase()).replace(/_/g, ' ');
 };
@@ -64,7 +60,7 @@ grrUi.core.utils.upperCaseToTitleCase = function(input) {
  * @param {string} input Comma-separated string.
  * @return {Array<string>} List of trimmed strings.
  */
-grrUi.core.utils.stringToList = function(input) {
+exports.stringToList = function(input) {
   var result = [];
 
   angular.forEach((input || '').split(','), function(item) {
@@ -84,7 +80,7 @@ grrUi.core.utils.stringToList = function(input) {
  * @param {string} input
  * @return {string} String without 'aff4:/' prefix.
  */
-grrUi.core.utils.stripAff4Prefix = function(input) {
+exports.stripAff4Prefix = function(input) {
   var aff4Prefix = 'aff4:/';
   if (input.toLowerCase().indexOf(aff4Prefix) == 0) {
     return input.substr(aff4Prefix.length);
@@ -101,7 +97,7 @@ grrUi.core.utils.stripAff4Prefix = function(input) {
  * @param {string} input
  * @return {string} The last path component of the input.
  */
-grrUi.core.utils.getLastPathComponent = function(input) {
+exports.getLastPathComponent = function(input) {
   var components = input.split('/');
   return components[components.length - 1];
 };

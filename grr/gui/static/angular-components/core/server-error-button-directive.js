@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorButtonDirective');
-goog.provide('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+goog.module('grrUi.core.serverErrorButtonDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var ERROR_EVENT_NAME = 'ServerError';
 
@@ -98,7 +97,7 @@ ServerErrorButtonController.prototype.showError = function() {
  * @ngInject
  * @export
  */
-grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective = function() {
+exports.ServerErrorButtonDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -109,8 +108,7 @@ grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective = function() {
   };
 };
 
-var ServerErrorButtonDirective =
-  grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective;
+var ServerErrorButtonDirective = exports.ServerErrorButtonDirective;
 
 /**
  * Name of the directive in Angular.
@@ -129,4 +127,3 @@ ServerErrorButtonDirective.directive_name = 'grrServerErrorButton';
 ServerErrorButtonDirective.error_event_name = ERROR_EVENT_NAME;
 
 
-});  // goog.scope

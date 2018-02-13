@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.timerangeFormDirective');
-goog.provide('grrUi.forms.timerangeFormDirective.TimerangeFormDirective');
+goog.module('grrUi.forms.timerangeFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -105,7 +104,7 @@ TimerangeFormController.prototype.onSubformsChange_ = function() {
  * @ngInject
  * @export
  */
-grrUi.forms.timerangeFormDirective.TimerangeFormDirective = function() {
+exports.TimerangeFormDirective = function() {
   return {
     scope: {
       startTimeSecs: '=',
@@ -125,8 +124,4 @@ grrUi.forms.timerangeFormDirective.TimerangeFormDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.forms.timerangeFormDirective.TimerangeFormDirective.directive_name =
-    'grrFormTimerange';
-
-
-});  // goog.scope
+exports.TimerangeFormDirective.directive_name = 'grrFormTimerange';

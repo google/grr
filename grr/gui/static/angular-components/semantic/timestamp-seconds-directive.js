@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.timestampSecondsDirective');
-goog.provide('grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective');
+goog.module('grrUi.semantic.timestampSecondsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -56,7 +55,7 @@ TimestampSecondsController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective = function() {
+exports.TimestampSecondsDirective = function() {
   return {
     scope: {
       value: '='
@@ -75,8 +74,7 @@ grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective = function() 
  * @const
  * @export
  */
-grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective.directive_name =
-    'grrTimestampSeconds';
+exports.TimestampSecondsDirective.directive_name = 'grrTimestampSeconds';
 
 /**
  * Semantic type corresponding to this directive.
@@ -84,8 +82,4 @@ grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective.directive_nam
  * @const
  * @export
  */
-grrUi.semantic.timestampSecondsDirective.TimestampSecondsDirective.semantic_type =
-    'RDFDatetimeSeconds';
-
-
-});  // goog.scope
+exports.TimestampSecondsDirective.semantic_type = 'RDFDatetimeSeconds';

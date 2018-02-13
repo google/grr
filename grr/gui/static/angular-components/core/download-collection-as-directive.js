@@ -1,15 +1,13 @@
 'use strict';
 
-goog.provide('grrUi.core.downloadCollectionAsDirective');
-goog.provide('grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective');
+goog.module('grrUi.core.downloadCollectionAsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
-
-goog.scope(function() {
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
 
-var ERROR_EVENT_NAME =
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
+
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 /**
@@ -73,7 +71,7 @@ DownloadCollectionAsController.prototype.downloadAs = function(pluginName) {
  * @export
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective = function() {
+exports.DownloadCollectionAsDirective = function() {
   return {
     scope: {
       baseUrl: '=',
@@ -92,8 +90,5 @@ grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective = functio
  * @const
  * @export
  */
-grrUi.core.downloadCollectionAsDirective.DownloadCollectionAsDirective
-    .directive_name = 'grrDownloadCollectionAs';
-
-
-});  // goog.scope
+exports.DownloadCollectionAsDirective.directive_name =
+    'grrDownloadCollectionAs';

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.foremanLabelRuleFormDirective');
-goog.provide('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective');
+goog.module('grrUi.forms.foremanLabelRuleFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -78,8 +77,7 @@ ForemanLabelRuleFormController.prototype.removeLabel = function(index) {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective =
-    function() {
+exports.ForemanLabelRuleFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -100,8 +98,7 @@ grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective =
  * @const
  * @export
  */
-grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective
-    .directive_name = 'grrFormLabel';
+exports.ForemanLabelRuleFormDirective.directive_name = 'grrFormLabel';
 
 /**
  * Semantic type corresponding to this directive.
@@ -109,7 +106,4 @@ grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective
  * @const
  * @export
  */
-grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective
-    .semantic_type = 'ForemanLabelClientRule';
-
-});  // goog.scope
+exports.ForemanLabelRuleFormDirective.semantic_type = 'ForemanLabelClientRule';

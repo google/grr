@@ -2,7 +2,7 @@
 
 goog.module('grrUi.outputPlugins.outputPluginNoteBodyDirectiveTest');
 
-const {outputPluginsModule} = goog.require('grrUi.outputPlugins');
+const {outputPluginsModule} = goog.require('grrUi.outputPlugins.outputPlugins');
 const {testsModule} = goog.require('grrUi.tests');
 
 

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.checkClientAccessDirective');
-goog.provide('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
+goog.module('grrUi.client.checkClientAccessDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -53,10 +52,16 @@ CheckClientAccessController.prototype.onClientIdChange_ = function(clientId) {
 };
 
 
+/**
+ * @private
+ */
 CheckClientAccessController.prototype.onClientAccessPermitted_ = function() {
   this.scope_['outHasAccess'] = true;
 };
 
+/**
+ * @private
+ */
 CheckClientAccessController.prototype.onClientAccessRejected_ = function() {
   this.scope_['outHasAccess'] = false;
 
@@ -79,8 +84,7 @@ CheckClientAccessController.prototype.onClientAccessRejected_ = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.checkClientAccessDirective.CheckClientAccessDirective =
-    function() {
+exports.CheckClientAccessDirective = function() {
   return {
     scope: {
       noRedirect: '=',
@@ -101,8 +105,4 @@ grrUi.client.checkClientAccessDirective.CheckClientAccessDirective =
 /**
  * Name of the directive in Angular.
  */
-grrUi.client.checkClientAccessDirective.CheckClientAccessDirective
-    .directive_name = 'grrCheckClientAccess';
-
-
-});  // goog.scope
+exports.CheckClientAccessDirective.directive_name = 'grrCheckClientAccess';

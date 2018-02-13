@@ -1,10 +1,9 @@
-
 'use strict';
 
-goog.provide('grrUi.core.bindKeyDirective');
-goog.provide('grrUi.core.bindKeyDirective.BindKeyDirective');
+goog.module('grrUi.core.bindKeyDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for BindKeyDirective.
@@ -65,7 +64,7 @@ BindKeyController.prototype.onKeyDown_ = function(event) {
  * @ngInject
  * @export
  */
-grrUi.core.bindKeyDirective.BindKeyDirective = function() {
+exports.BindKeyDirective = function() {
   return {
     restrict: 'A',
     controller: BindKeyController
@@ -79,7 +78,4 @@ grrUi.core.bindKeyDirective.BindKeyDirective = function() {
  * @const
  * @export
  */
-grrUi.core.bindKeyDirective.BindKeyDirective.directive_name =
-    'grrBindKey';
-
-});  // goog.scope
+exports.BindKeyDirective.directive_name = 'grrBindKey';

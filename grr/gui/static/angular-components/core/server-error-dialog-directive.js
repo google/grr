@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorDialogDirective');
-goog.provide('grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective');
+goog.module('grrUi.core.serverErrorDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -27,7 +26,7 @@ const ServerErrorDialogController = function($scope) {
  * @ngInject
  * @export
  */
-grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective = function() {
+exports.ServerErrorDialogDirective = function() {
   return {
     scope: {
       close: '&',
@@ -48,8 +47,4 @@ grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective = function() {
  * @const
  * @export
  */
-grrUi.core.serverErrorDialogDirective.ServerErrorDialogDirective.directive_name =
-  'grrServerErrorDialog';
-
-
-});  // goog.scope
+exports.ServerErrorDialogDirective.directive_name = 'grrServerErrorDialog';

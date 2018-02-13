@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.datetimeFormDirective');
-goog.provide('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
+goog.module('grrUi.forms.datetimeFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for DatetimeFormDirective.
@@ -103,7 +102,7 @@ DatetimeFormController.prototype.today = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.datetimeFormDirective.DatetimeFormDirective = function() {
+exports.DatetimeFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -123,8 +122,7 @@ grrUi.forms.datetimeFormDirective.DatetimeFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.datetimeFormDirective.DatetimeFormDirective
-    .directive_name = 'grrFormDatetime';
+exports.DatetimeFormDirective.directive_name = 'grrFormDatetime';
 
 /**
  * Semantic type corresponding to this directive.
@@ -132,9 +130,4 @@ grrUi.forms.datetimeFormDirective.DatetimeFormDirective
  * @const
  * @export
  */
-grrUi.forms.datetimeFormDirective.DatetimeFormDirective
-    .semantic_type = 'RDFDatetime';
-
-
-
-});
+exports.DatetimeFormDirective.semantic_type = 'RDFDatetime';

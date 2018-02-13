@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiHelperCurlService');
-goog.provide('grrUi.docs.apiHelperCurlService.ApiHelperCurlService');
+goog.module('grrUi.docs.apiHelperCurlService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Service for registering objects by their semantic types.
@@ -14,16 +14,14 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.docs.apiHelperCurlService.ApiHelperCurlService = function($q, $window) {
-
+exports.ApiHelperCurlService = function($q, $window) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
   /** @private {!angular.$window} */
   this.window_ = $window;
 };
-var ApiHelperCurlService =
-    grrUi.docs.apiHelperCurlService.ApiHelperCurlService;
+var ApiHelperCurlService = exports.ApiHelperCurlService;
 
 
 ApiHelperCurlService.service_name = 'grrApiHelperCurlService';
@@ -55,4 +53,3 @@ ApiHelperCurlService.prototype.buildStartFlow = function(clientId, createFlowJso
 };
 
 
-});  // goog.scope

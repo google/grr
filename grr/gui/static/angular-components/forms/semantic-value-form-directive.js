@@ -1,8 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticValueFormDirective');
-goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormController');
-goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective');
+goog.module('grrUi.forms.semanticValueFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -10,16 +10,15 @@ goog.provide('grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective'
  *     function(!angular.Scope, function(Object, !angular.Scope=)=):Object>}
  * Cache for templates used by semantic value directive.
  */
-grrUi.forms.semanticValueFormDirective.templatesCache = {};
-
+let templatesCache = {};
 
 /**
  * Clears cached templates.
  *
  * @export
  */
-grrUi.forms.semanticValueFormDirective.clearCaches = function() {
-  grrUi.forms.semanticValueFormDirective.templatesCache = {};
+exports.clearCaches = function() {
+  templatesCache = {};
 };
 
 
@@ -34,7 +33,7 @@ grrUi.forms.semanticValueFormDirective.clearCaches = function() {
  *     grrSemanticFormDirectivesRegistryService
  * @ngInject
  */
-grrUi.forms.semanticValueFormDirective.SemanticValueFormController = function(
+exports.SemanticValueFormController = function(
     $scope, $compile, $element, grrSemanticFormDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -54,8 +53,7 @@ grrUi.forms.semanticValueFormDirective.SemanticValueFormController = function(
 
   this.scope_.$watch('value.type', this.onValueTypeChange_.bind(this));
 };
-var SemanticValueFormController =
-    grrUi.forms.semanticValueFormDirective.SemanticValueFormController;
+var SemanticValueFormController = exports.SemanticValueFormController;
 
 
 /**
@@ -93,7 +91,6 @@ SemanticValueFormController.prototype.onValueTypeChange_ = function(newValue) {
     }
   }.bind(this);
 
-  var templatesCache = grrUi.forms.semanticValueFormDirective.templatesCache;
   var value = this.scope_.value;
   var template = templatesCache[value['type']];
   if (angular.isUndefined(template)) {
@@ -158,7 +155,7 @@ SemanticValueFormController.prototype
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective = function() {
+exports.SemanticValueFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -177,5 +174,4 @@ grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective
-    .directive_name = 'grrFormValue';
+exports.SemanticValueFormDirective.directive_name = 'grrFormValue';

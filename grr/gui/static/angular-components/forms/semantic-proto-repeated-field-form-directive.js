@@ -1,14 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective');
-goog.provide('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormDirective');
+goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: camelCaseToDashDelimited
+const {camelCaseToDashDelimited} = goog.require('grrUi.core.utils');
 
 
-goog.scope(function() {
-
-var camelCaseToDashDelimited = grrUi.core.utils.camelCaseToDashDelimited;
 
 /**
  * Controller for SemanticProtoRepeatedFieldFormDirective.
@@ -146,8 +143,7 @@ SemanticProtoRepeatedFieldFormController.prototype.removeItem = function(
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticProtoRepeatedFieldFormDirective
-    .SemanticProtoRepeatedFieldFormDirective = function() {
+exports.SemanticProtoRepeatedFieldFormDirective = function() {
   return {
     scope: {
       value: '=',
@@ -170,8 +166,5 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticProtoRepeatedFieldFormDirective
-    .SemanticProtoRepeatedFieldFormDirective.directive_name =
+exports.SemanticProtoRepeatedFieldFormDirective.directive_name =
     'grrFormProtoRepeatedField';
-
-});  // goog.scope

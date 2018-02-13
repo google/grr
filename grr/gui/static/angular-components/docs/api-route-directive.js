@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiRouteDirective');
-goog.provide('grrUi.docs.apiRouteDirective.ApiRouteDirective');
+goog.module('grrUi.docs.apiRouteDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /** @typedef {{
@@ -104,7 +103,7 @@ ApiRouteController.prototype.onValueChange = function() {
  * @ngInject
  * @export
  */
-grrUi.docs.apiRouteDirective.ApiRouteDirective = function() {
+exports.ApiRouteDirective = function() {
   return {
     scope: {
       value: '='
@@ -123,8 +122,4 @@ grrUi.docs.apiRouteDirective.ApiRouteDirective = function() {
  * @const
  * @export
  */
-grrUi.docs.apiRouteDirective.ApiRouteDirective.directive_name =
-    'grrApiRoute';
-
-
-});  // goog.scope
+exports.ApiRouteDirective.directive_name = 'grrApiRoute';

@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronViewDirective');
-goog.provide('grrUi.cron.cronViewDirective.CronViewDirective');
+goog.module('grrUi.cron.cronViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -63,7 +62,7 @@ CronViewController.prototype.onSelectedCronJobIdChange_ = function(
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.cron.cronViewDirective.CronViewDirective = function() {
+exports.CronViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -80,9 +79,4 @@ grrUi.cron.cronViewDirective.CronViewDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.cronViewDirective.CronViewDirective
-    .directive_name = 'grrCronView';
-
-
-
-});  // goog.scope
+exports.CronViewDirective.directive_name = 'grrCronView';

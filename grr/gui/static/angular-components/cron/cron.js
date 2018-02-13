@@ -1,44 +1,33 @@
 'use strict';
 
-goog.provide('grrUi.cron');
-goog.provide('grrUi.cron.cronModule');
+goog.module('grrUi.cron.cron');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core');  // USE: coreModule
-
-goog.require('grrUi.cron.cronJobFlowsListDirective');  // USE: CronJobFlowsListDirective
-goog.require('grrUi.cron.cronJobInspectorDirective');  // USE: CronJobInspectorDirective
-goog.require('grrUi.cron.cronJobOverviewDirective');  // USE: CronJobOverviewDirective
-goog.require('grrUi.cron.cronJobStatusIconDirective');  // USE: CronJobStatusIconDirective
-goog.require('grrUi.cron.cronJobsListDirective');  // USE: CronJobsListDirective
-goog.require('grrUi.cron.cronViewDirective');      // USE: CronViewDirective
-goog.require('grrUi.cron.newCronJobWizard');  // USE: newCronJobWizardModule
+const {CronJobFlowsListDirective} = goog.require('grrUi.cron.cronJobFlowsListDirective');
+const {CronJobInspectorDirective} = goog.require('grrUi.cron.cronJobInspectorDirective');
+const {CronJobOverviewDirective} = goog.require('grrUi.cron.cronJobOverviewDirective');
+const {CronJobStatusIconDirective} = goog.require('grrUi.cron.cronJobStatusIconDirective');
+const {CronJobsListDirective} = goog.require('grrUi.cron.cronJobsListDirective');
+const {CronViewDirective} = goog.require('grrUi.cron.cronViewDirective');
+const {coreModule} = goog.require('grrUi.core.core');
+const {newCronJobWizardModule} = goog.require('grrUi.cron.newCronJobWizard.newCronJobWizard');
 
 
 /**
  * Angular module for cron-related UI.
  */
-grrUi.cron.cronModule = angular.module('grrUi.cron',
-                                   [grrUi.core.coreModule.name,
-                                    grrUi.cron.newCronJobWizard.newCronJobWizardModule.name]);
+exports.cronModule = angular.module(
+    'grrUi.cron', [coreModule.name, newCronJobWizardModule.name]);
 
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective.directive_name,
-    grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective);
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective.
-        directive_name,
-    grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective);
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronJobsListDirective.CronJobsListDirective.directive_name,
-    grrUi.cron.cronJobsListDirective.CronJobsListDirective);
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective.
-        directive_name,
-    grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective);
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective
-        .directive_name,
-    grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective);
-grrUi.cron.cronModule.directive(
-    grrUi.cron.cronViewDirective.CronViewDirective.directive_name,
-    grrUi.cron.cronViewDirective.CronViewDirective);
+exports.cronModule.directive(
+    CronJobFlowsListDirective.directive_name, CronJobFlowsListDirective);
+exports.cronModule.directive(
+    CronJobInspectorDirective.directive_name, CronJobInspectorDirective);
+exports.cronModule.directive(
+    CronJobsListDirective.directive_name, CronJobsListDirective);
+exports.cronModule.directive(
+    CronJobOverviewDirective.directive_name, CronJobOverviewDirective);
+exports.cronModule.directive(
+    CronJobStatusIconDirective.directive_name, CronJobStatusIconDirective);
+exports.cronModule.directive(
+    CronViewDirective.directive_name, CronViewDirective);

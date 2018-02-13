@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
+goog.module('grrUi.client.virtualFileSystem.fileHexViewDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -146,7 +144,7 @@ FileHexViewController.prototype.parseFileContentToHexRepresentation_ = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective = function() {
+exports.FileHexViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -167,7 +165,4 @@ grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective = funct
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective.directive_name =
-    'grrFileHexView';
-
-});  // goog.scope
+exports.FileHexViewDirective.directive_name = 'grrFileHexView';

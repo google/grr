@@ -1,29 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTableDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
+goog.module('grrUi.client.virtualFileSystem.fileTableDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
+const {REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
 
-
-goog.scope(function() {
-
-var REFRESH_FOLDER_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
-
-var REFRESH_FILE_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
-
-var ERROR_EVENT_NAME =
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 var OPERATION_POLL_INTERVAL_MS = 1000;
-
-
-var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
 
 
 /**
@@ -91,14 +78,23 @@ const FileTableController = function(
 
 
 
+/**
+ * @param {string} mode
+ */
 FileTableController.prototype.setViewMode = function(mode) {
   this.scope_['viewMode'] = mode;
 };
 
 
+/**
+ * @param {?string} newValue
+ * @param {?string} oldValue
+ *
+ * @private
+ */
 FileTableController.prototype.onFilePathChange_ = function(newValue, oldValue) {
-  var newFolder = grrUi.client.virtualFileSystem.utils.getFolderFromPath(newValue);
-  var oldFolder = grrUi.client.virtualFileSystem.utils.getFolderFromPath(oldValue);
+  var newFolder = getFolderFromPath(newValue);
+  var oldFolder = getFolderFromPath(oldValue);
 
   if (newFolder !== oldFolder) {
     this.refreshFileList_();
@@ -116,8 +112,7 @@ FileTableController.prototype.onFilePathChange_ = function(newValue, oldValue) {
 FileTableController.prototype.refreshFileList_ = function() {
   var clientId = this.fileContext['clientId'];
   var selectedFilePath = this.fileContext['selectedFilePath'] || '';
-  var selectedFolderPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath(
-      selectedFilePath);
+  var selectedFolderPath = getFolderFromPath(selectedFilePath);
 
   this.filter = '';
   this.fileListUrl = 'clients/' + clientId + '/vfs-index/' + selectedFolderPath;
@@ -163,8 +158,7 @@ FileTableController.prototype.selectFolder = function(file) {
 FileTableController.prototype.startVfsRefreshOperation = function() {
   var clientId = this.fileContext['clientId'];
   var selectedFilePath = this.fileContext['selectedFilePath'];
-  var selectedFolderPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath(
-      selectedFilePath);
+  var selectedFolderPath = getFolderFromPath(selectedFilePath);
 
   var url = 'clients/' + clientId + '/vfs-refresh-operations';
   var refreshOperation = {
@@ -221,9 +215,7 @@ FileTableController.prototype.updateFilter = function() {
 FileTableController.prototype.downloadTimeline = function() {
   var clientId = this.fileContext['clientId'];
   var selectedFilePath = this.fileContext['selectedFilePath'] || '';
-  var selectedFolderPath =
-      grrUi.client.virtualFileSystem.utils.getFolderFromPath(
-          selectedFilePath);
+  var selectedFolderPath = getFolderFromPath(selectedFilePath);
 
   var url = 'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
   this.grrApiService_.downloadFile(url).then(
@@ -244,7 +236,7 @@ FileTableController.prototype.downloadTimeline = function() {
  * FileTableDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective = function() {
+exports.FileTableDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -267,7 +259,4 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective = function(
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective.directive_name =
-    'grrFileTable';
-
-});  // goog.scope
+exports.FileTableDirective.directive_name = 'grrFileTable';

@@ -4,7 +4,7 @@ goog.module('grrUi.core.pagedFilteredTableDirectiveTest');
 
 const {MemoryItemsProviderController} = goog.require('grrUi.core.memoryItemsProviderDirective');
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 describe('paged filtered table', () => {

@@ -3,7 +3,7 @@
 goog.module('grrUi.core.loadingIndicatorDirectiveTest');
 
 const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDirective');
-const {coreModule} = goog.require('grrUi.core');
+const {coreModule} = goog.require('grrUi.core.core');
 const {testsModule} = goog.require('grrUi.tests');
 
 

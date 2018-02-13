@@ -1,17 +1,14 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FILE_EVENT
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
+goog.module('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {REFRESH_FILE_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
-var REFRESH_FILE_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
 
-var ERROR_EVENT_NAME =
-    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
+
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 var OPERATION_POLL_INTERVAL_MS = 1000;
 
@@ -204,7 +201,7 @@ FileDownloadViewController.prototype.downloadFile = function() {
  * FileDownloadViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective = function() {
+exports.FileDownloadViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -225,7 +222,4 @@ grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirecti
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective.directive_name =
-    'grrFileDownloadView';
-
-});  // goog.scope
+exports.FileDownloadViewDirective.directive_name = 'grrFileDownloadView';

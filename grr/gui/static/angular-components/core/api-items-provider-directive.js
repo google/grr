@@ -1,11 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.apiItemsProviderDirective');
-goog.provide('grrUi.core.apiItemsProviderDirective.ApiItemsProviderController');
-goog.provide('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
-goog.require('grrUi.core.itemsProviderController');  // USE: ItemsProviderController
+goog.module('grrUi.core.apiItemsProviderDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {Items, ItemsProviderController} = goog.require('grrUi.core.itemsProviderController');
 
 
 
@@ -13,7 +11,7 @@ goog.scope(function() {
  * Controller for ApiItemsProviderDirective..
  *
  * @constructor
- * @implements {grrUi.core.itemsProviderController.ItemsProviderController}
+ * @implements {ItemsProviderController}
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.Attributes} $attrs
@@ -22,7 +20,7 @@ goog.scope(function() {
  * @param {!angular.$log} $log
  * @ngInject
  */
-grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
+exports.ApiItemsProviderController = function(
     $scope, $attrs, $parse, grrApiService, $log) {
 
   // Injected dependencies.
@@ -92,8 +90,7 @@ grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
   }
 };
 
-var ApiItemsProviderController =
-    grrUi.core.apiItemsProviderDirective.ApiItemsProviderController;
+var ApiItemsProviderController = exports.ApiItemsProviderController;
 
 
 /**
@@ -165,7 +162,7 @@ ApiItemsProviderController.prototype.fetchFilteredItems = function(
  * @suppress {missingProperties} As response can be anything.
  */
 ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
-  /** @type {!grrUi.core.itemsProviderController.Items} */
+  /** @type {!Items} */
   var result = {
     items: response.data['items'] || [],
     offset: response.data['offset']
@@ -205,7 +202,7 @@ ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
  * @ngInject
  * @export
  */
-grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective = function() {
+exports.ApiItemsProviderDirective = function() {
   return {
     restrict: 'A',
     priority: 2000,
@@ -220,8 +217,4 @@ grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective = function() {
  * @const
  * @export
  */
-grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective.directive_name =
-    'grrApiItemsProvider';
-
-
-});  // goog.scope
+exports.ApiItemsProviderDirective.directive_name = 'grrApiItemsProvider';

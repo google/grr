@@ -2,7 +2,8 @@
 
 goog.module('grrUi.forms.semanticValueFormDirectiveTest');
 
-const {formsModule, semanticValueFormDirective} = goog.require('grrUi.forms');
+const {clearCaches} = goog.require('grrUi.forms.semanticValueFormDirective');
+const {formsModule} = goog.require('grrUi.forms.forms');
 const {testsModule} = goog.require('grrUi.tests');
 
 
@@ -18,7 +19,7 @@ describe('semantic value form directive', () => {
   beforeEach(module(testsModule.name));
 
   beforeEach(inject(($injector) => {
-    semanticValueFormDirective.clearCaches();
+    clearCaches();
 
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');

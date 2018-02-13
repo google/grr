@@ -2,7 +2,7 @@
 
 goog.module('grrUi.semantic.dataObjectDirectiveTest');
 
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

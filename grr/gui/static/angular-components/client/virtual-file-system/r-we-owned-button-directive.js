@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');
-goog.provide('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective');
+goog.module('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var phrases = ["It is certain",
                "You were eaten by a Grue!",
@@ -75,8 +74,7 @@ RWeOwnedButtonController.prototype.onClick = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.rWeOwnedButtonDirective
-    .RWeOwnedButtonDirective = function() {
+exports.RWeOwnedButtonDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -93,7 +91,4 @@ grrUi.client.virtualFileSystem.rWeOwnedButtonDirective
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective
-    .directive_name = 'grrRWeOwnedButton';
-
-});
+exports.RWeOwnedButtonDirective.directive_name = 'grrRWeOwnedButton';

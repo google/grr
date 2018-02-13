@@ -1,11 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.memoryItemsProviderDirective');
-goog.provide('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController');
-goog.provide('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
-goog.require('grrUi.core.itemsProviderController');  // USE: ItemsProviderController
+goog.module('grrUi.core.memoryItemsProviderDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {Items, ItemsProviderController} = goog.require('grrUi.core.itemsProviderController');
 
 
 
@@ -13,7 +11,7 @@ goog.scope(function() {
  * Controller for MemoryItemsProviderDirective.
  *
  * @constructor
- * @implements {grrUi.core.itemsProviderController.ItemsProviderController}
+ * @implements {ItemsProviderController}
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
@@ -22,9 +20,7 @@ goog.scope(function() {
  *
  * @ngInject
  */
-grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
-    function($scope, $q, $attrs, $parse) {
-
+exports.MemoryItemsProviderController = function($scope, $q, $attrs, $parse) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
@@ -41,8 +37,7 @@ grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
   }.bind(this));
 };
 
-var MemoryItemsProviderController =
-    grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController;
+var MemoryItemsProviderController = exports.MemoryItemsProviderController;
 
 
 /**
@@ -69,7 +64,7 @@ MemoryItemsProviderController.prototype.fetchItems = function(
 
   var resultItems = items.slice(offset, offset + count);
 
-  /** @type {grrUi.core.itemsProviderController.Items} */
+  /** @type {Items} */
   var result = {
     offset: offset,
     items: resultItems
@@ -109,7 +104,7 @@ MemoryItemsProviderController.prototype.fetchFilteredItems = function(
 
   filteredItems = filteredItems.slice(offset, offset + count);
 
-  /** @type {grrUi.core.itemsProviderController.Items} */
+  /** @type {Items} */
   var result = {
     offset: offset,
     items: filteredItems
@@ -132,8 +127,7 @@ MemoryItemsProviderController.prototype.fetchFilteredItems = function(
  * @ngInject
  * @export
  */
-grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective =
-    function() {
+exports.MemoryItemsProviderDirective = function() {
   return {
     restrict: 'A',
     priority: 2000,
@@ -148,7 +142,4 @@ grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective =
  * @const
  * @export
  */
-grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective.
-    directive_name = 'grrMemoryItemsProvider';
-
-});  // goog.scope
+exports.MemoryItemsProviderDirective.directive_name = 'grrMemoryItemsProvider';

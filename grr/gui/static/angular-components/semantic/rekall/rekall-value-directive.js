@@ -1,11 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.rekallValueDirective');
-goog.provide('grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective');
+goog.module('grrUi.semantic.rekall.rekallValueDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: camelCaseToDashDelimited
+const {camelCaseToDashDelimited} = goog.require('grrUi.core.utils');
 
-goog.scope(function() {
+
 
 /**
  * Controller for RekallValueDirective.
@@ -39,6 +39,10 @@ const RekallValueController = function(
 
 
 
+/**
+ * @param {?} value
+ * @private
+ */
 RekallValueController.prototype.onValueChange_ = function(value) {
   if (value === null || angular.isUndefined(value)) {
     return;
@@ -56,7 +60,7 @@ RekallValueController.prototype.onValueChange_ = function(value) {
   var tag = 'grr-rekall-default-value';
 
   if (angular.isDefined(directive)) {
-    tag = grrUi.core.utils.camelCaseToDashDelimited(directive.directive_name);
+    tag = camelCaseToDashDelimited(directive.directive_name);
   }
 
   this.element_.html('<' + tag + ' value="::value"></' + tag + '>');
@@ -71,7 +75,7 @@ RekallValueController.prototype.onValueChange_ = function(value) {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective = function() {
+exports.RekallValueDirective = function() {
   return {
     scope: {
       value: '='
@@ -89,6 +93,4 @@ grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekall.rekallValueDirective.RekallValueDirective.directive_name =
-    'grrRekallValue';
-});  // goog.scope
+exports.RekallValueDirective.directive_name = 'grrRekallValue';

@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginLogsDirective');
-goog.provide('grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective');
+goog.module('grrUi.outputPlugins.outputPluginLogsDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for OutputPluginLogsDirective.
@@ -72,8 +71,7 @@ OutputPluginLogsController.prototype.onClick = function() {
  * @ngInject
  * @export
  */
-grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective =
-    function() {
+exports.OutputPluginLogsDirective = function() {
   return {
     scope: {
       url: '=',
@@ -95,8 +93,4 @@ grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective =
  * @const
  * @export
  */
-grrUi.outputPlugins.outputPluginLogsDirective.OutputPluginLogsDirective
-    .directive_name = 'grrOutputPluginLogs';
-
-
-});
+exports.OutputPluginLogsDirective.directive_name = 'grrOutputPluginLogs';

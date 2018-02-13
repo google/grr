@@ -1,13 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowDescriptorsTreeDirective');
-goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.flow.flowDescriptorsTreeDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for FlowDescriptorsTreeDirective.
@@ -15,7 +13,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.jQuery} $element
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @ngInject
  */
 const FlowDescriptorsTreeController =
@@ -26,7 +24,7 @@ const FlowDescriptorsTreeController =
   /** @private {!angular.jQuery} */
   this.element_ = $element;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @type {!Object<string, Array<Object>>} */
@@ -171,8 +169,7 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective =
-    function() {
+exports.FlowDescriptorsTreeDirective = function() {
   return {
     scope: {
       selectedDescriptor: '=?'
@@ -191,9 +188,4 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective =
  * @const
  * @export
  */
-grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective
-    .directive_name = 'grrFlowDescriptorsTree';
-
-
-
-});  // goog.scope
+exports.FlowDescriptorsTreeDirective.directive_name = 'grrFlowDescriptorsTree';

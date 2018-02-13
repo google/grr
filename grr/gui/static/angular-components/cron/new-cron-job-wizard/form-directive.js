@@ -1,13 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.cron.newCronJobWizard.formDirective');
-goog.provide('grrUi.cron.newCronJobWizard.formDirective.FormDirective');
-goog.require('grrUi.hunt.newHuntWizard.formDirective');  // USE: DEFAULT_PLUGIN_URL
+goog.module('grrUi.cron.newCronJobWizard.formDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {DEFAULT_PLUGIN_URL} = goog.require('grrUi.hunt.newHuntWizard.formDirective');
 
-var DEFAULT_PLUGIN_URL =
-    grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL;
+
 
 /**
  * Controller for FormDirective.
@@ -233,7 +231,7 @@ FormController.prototype.sendRequest = function() {
  * @ngInject
  * @export
  */
-grrUi.cron.newCronJobWizard.formDirective.FormDirective = function() {
+exports.FormDirective = function() {
   return {
     scope: {
       cronJob: '=?',
@@ -256,7 +254,4 @@ grrUi.cron.newCronJobWizard.formDirective.FormDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.newCronJobWizard.formDirective.FormDirective.directive_name =
-    'grrNewCronJobWizardForm';
-
-});  // goog.scope
+exports.FormDirective.directive_name = 'grrNewCronJobWizardForm';

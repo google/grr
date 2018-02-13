@@ -473,6 +473,9 @@ class DatabaseTestMixin(object):
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
     self.assertGreater(hist[1].timestamp, hist[2].timestamp)
 
+    md = self.db.ReadClientMetadata(client_id)
+    self.assertEqual(md.startup_info_timestamp, hist[0].timestamp)
+
     self.assertIsNone(d.ReadClientStartupInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientStartupInfoHistory("C.0000000000000000"), [])
 
@@ -505,6 +508,9 @@ class DatabaseTestMixin(object):
     self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
     self.assertGreater(hist[1].timestamp, hist[2].timestamp)
+
+    md = self.db.ReadClientMetadata(client_id)
+    self.assertEqual(md.last_crash_timestamp, hist[0].timestamp)
 
     self.assertIsNone(d.ReadClientCrashInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientCrashInfoHistory("C.0000000000000000"), [])

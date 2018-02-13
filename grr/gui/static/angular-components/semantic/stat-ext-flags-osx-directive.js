@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statExtFlagsOsxDirective');
-goog.provide('grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective');
+goog.module('grrUi.semantic.statExtFlagsOsxDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * @typedef {{mask: number, keyword: (string|undefined), description: string}}
@@ -102,7 +102,6 @@ const FlagsStatus = {
  * @constructor
  * @param {!angular.Scope} $scope
  * @ngInject
- * @export
  */
 const StatExtFlagsOsxController = function(
     $scope) {
@@ -150,8 +149,7 @@ StatExtFlagsOsxController.prototype.onValueChange = function(value) {
  * @return {!angular.Directive}
  * @export
  */
-grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective = function(
-    $filter) {
+exports.StatExtFlagsOsxDirective = function($filter) {
   return {
     scope: {
       value: '=',
@@ -163,8 +161,7 @@ grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective = function(
   };
 };
 
-const StatExtFlagsOsxDirective =
-    grrUi.semantic.statExtFlagsOsxDirective.StatExtFlagsOsxDirective;
+const StatExtFlagsOsxDirective = exports.StatExtFlagsOsxDirective;
 
 /**
  * Directive's name in Angular.
@@ -181,4 +178,3 @@ StatExtFlagsOsxDirective.directive_name = 'grrStatExtFlagsOsx';
  * @export
  */
 StatExtFlagsOsxDirective.semantic_type = 'StatExtFlagsOsx';
-});  // goog.scope

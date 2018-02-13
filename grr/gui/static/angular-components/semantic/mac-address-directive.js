@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.macAddressDirective');
-goog.provide('grrUi.semantic.macAddressDirective.MacAddressDirective');
+goog.module('grrUi.semantic.macAddressDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -71,7 +70,7 @@ MacAddressController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.macAddressDirective.MacAddressDirective = function() {
+exports.MacAddressDirective = function() {
   return {
     scope: {
       value: '='
@@ -91,8 +90,7 @@ grrUi.semantic.macAddressDirective.MacAddressDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.macAddressDirective.MacAddressDirective.directive_name =
-    'grrMacAddress';
+exports.MacAddressDirective.directive_name = 'grrMacAddress';
 
 /**
  * Semantic type corresponding to this directive.
@@ -100,8 +98,4 @@ grrUi.semantic.macAddressDirective.MacAddressDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.macAddressDirective.MacAddressDirective.semantic_type =
-    'MacAddress';
-
-
-});  // goog.scope
+exports.MacAddressDirective.semantic_type = 'MacAddress';

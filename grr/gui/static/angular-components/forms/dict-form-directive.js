@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.forms.dictFormDirective');
-goog.provide('grrUi.forms.dictFormDirective.DictFormDirective');
+goog.module('grrUi.forms.dictFormDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for DictFormDirective.
@@ -182,7 +181,7 @@ DictFormController.prototype.removePair = function(index) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.forms.dictFormDirective.DictFormDirective = function() {
+exports.DictFormDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -201,8 +200,7 @@ grrUi.forms.dictFormDirective.DictFormDirective = function() {
  * @const
  * @export
  */
-grrUi.forms.dictFormDirective.DictFormDirective
-    .directive_name = 'grrFormDict';
+exports.DictFormDirective.directive_name = 'grrFormDict';
 
 
 /**
@@ -211,8 +209,4 @@ grrUi.forms.dictFormDirective.DictFormDirective
  * @const
  * @export
  */
-grrUi.forms.dictFormDirective.DictFormDirective
-    .semantic_types = ['dict', 'Dict'];
-
-
-});  // goog.scope
+exports.DictFormDirective.semantic_types = ['dict', 'Dict'];

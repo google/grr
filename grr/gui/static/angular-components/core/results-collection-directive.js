@@ -1,16 +1,25 @@
 'use strict';
 
-goog.provide('grrUi.core.resultsCollectionDirective');
-goog.provide('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
+goog.module('grrUi.core.resultsCollectionDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.fileDownloadUtils');  // USE: getPathSpecFromValue
-
-
-goog.scope(function() {
+const {getPathSpecFromValue} = goog.require('grrUi.core.fileDownloadUtils');
 
 
-/** @const {number} */
-grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes of the results collection.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
+
 
 /** @const {number} */
 var MAX_ITEMS_TO_CHECK_FOR_FILES = 50;
@@ -36,8 +45,7 @@ const ResultsCollectionController = function(
   this.resultsAreFiles;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.core.resultsCollectionDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   /** @private {number} */
   this.numCheckedItems_ = 0;
@@ -62,7 +70,7 @@ ResultsCollectionController.prototype.transformItems = function(items) {
 
     this.resultsAreFiles = false;
     for (var i = 0; i < items.length; i++) {
-      if (grrUi.core.fileDownloadUtils.getPathSpecFromValue(items[i]) != null) {
+      if (getPathSpecFromValue(items[i]) != null) {
         this.resultsAreFiles = true;
         break;
       }
@@ -84,7 +92,7 @@ ResultsCollectionController.prototype.transformItems = function(items) {
  * @ngInject
  * @export
  */
-grrUi.core.resultsCollectionDirective.ResultsCollectionDirective = function() {
+exports.ResultsCollectionDirective = function() {
   return {
     scope: {
       resultsUrl: '=',
@@ -108,8 +116,4 @@ grrUi.core.resultsCollectionDirective.ResultsCollectionDirective = function() {
  * @const
  * @export
  */
-grrUi.core.resultsCollectionDirective.ResultsCollectionDirective
-    .directive_name = 'grrResultsCollection';
-
-
-});  // goog.scope
+exports.ResultsCollectionDirective.directive_name = 'grrResultsCollection';

@@ -1,11 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.client.clientDialogService');
-goog.provide('grrUi.client.clientDialogService.ClientDialogService');
-goog.require('grrUi.client.addClientsLabelsDialogDirective');  // USE: AddClientsLabelsDialogDirective
-goog.require('grrUi.client.removeClientsLabelsDialogDirective');  // USE: RemoveClientsLabelsDialogDirective
+goog.module('grrUi.client.clientDialogService');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {AddClientsLabelsDialogDirective} = goog.require('grrUi.client.addClientsLabelsDialogDirective');
+const {RemoveClientsLabelsDialogDirective} = goog.require('grrUi.client.removeClientsLabelsDialogDirective');
+
 
 
 /**
@@ -16,14 +16,12 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.client.clientDialogService.ClientDialogService =
-  function (grrDialogService) {
-    /** @private {grrUi.core.dialogService.DialogService} */
-    this.grrDialogService_ = grrDialogService;
-  };
+exports.ClientDialogService = function(grrDialogService) {
+  /** @private {grrUi.core.dialogService.DialogService} */
+  this.grrDialogService_ = grrDialogService;
+};
 
-var ClientDialogService =
-    grrUi.client.clientDialogService.ClientDialogService;
+var ClientDialogService = exports.ClientDialogService;
 
 
 /**
@@ -38,8 +36,8 @@ ClientDialogService.service_name = 'grrClientDialogService';
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
-ClientDialogService.prototype.openAddClientLabels = function(clients){
-  var directive = grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective;
+ClientDialogService.prototype.openAddClientLabels = function(clients) {
+  var directive = AddClientsLabelsDialogDirective;
   return this.grrDialogService_.openDirectiveDialog(directive.directive_name, { clients: clients });
 };
 
@@ -50,9 +48,7 @@ ClientDialogService.prototype.openAddClientLabels = function(clients){
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
-ClientDialogService.prototype.openRemoveClientLabels = function(clients){
-  var directive = grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective;
+ClientDialogService.prototype.openRemoveClientLabels = function(clients) {
+  var directive = RemoveClientsLabelsDialogDirective;
   return this.grrDialogService_.openDirectiveDialog(directive.directive_name, { clients: clients });
 };
-
-});

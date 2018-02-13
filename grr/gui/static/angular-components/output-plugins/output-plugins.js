@@ -1,52 +1,39 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins');
-goog.provide('grrUi.outputPlugins.outputPluginsModule');
+goog.module('grrUi.outputPlugins.outputPlugins');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core');                          // USE: coreModule
-goog.require('grrUi.core.semanticRegistryService');  // USE: SemanticRegistryService
-goog.require('grrUi.outputPlugins.outputPluginLogsDirective');  // USE: OutputPluginLogsDirective
-goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective');  // USE: OutputPluginNoteBodyDirective
-goog.require('grrUi.outputPlugins.outputPluginNoteDirective');  // USE: OutputPluginNoteDirective
-goog.require('grrUi.outputPlugins.outputPluginsNotesDirective');  // USE: OutputPluginsNotesDirective
+const {OutputPluginLogsDirective} = goog.require('grrUi.outputPlugins.outputPluginLogsDirective');
+const {OutputPluginNoteBodyDirective} = goog.require('grrUi.outputPlugins.outputPluginNoteBodyDirective');
+const {OutputPluginNoteDirective} = goog.require('grrUi.outputPlugins.outputPluginNoteDirective');
+const {OutputPluginsNotesDirective} = goog.require('grrUi.outputPlugins.outputPluginsNotesDirective');
+const {SemanticRegistryService} = goog.require('grrUi.core.semanticRegistryService');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 /**
  * Module with directives related to flows/hunts output plugins.
  */
-grrUi.outputPlugins.outputPluginsModule = angular.module('grrUi.outputPlugins',
-                                            [grrUi.core.coreModule.name,
-                                             'ui.bootstrap']);
+exports.outputPluginsModule =
+    angular.module('grrUi.outputPlugins', [coreModule.name, 'ui.bootstrap']);
 
-grrUi.outputPlugins.outputPluginsModule.directive(
-    grrUi.outputPlugins.outputPluginsNotesDirective
-        .OutputPluginsNotesDirective.directive_name,
-    grrUi.outputPlugins.outputPluginsNotesDirective
-        .OutputPluginsNotesDirective);
-grrUi.outputPlugins.outputPluginsModule.directive(
-    grrUi.outputPlugins.outputPluginLogsDirective
-        .OutputPluginLogsDirective.directive_name,
-    grrUi.outputPlugins.outputPluginLogsDirective
-        .OutputPluginLogsDirective);
-grrUi.outputPlugins.outputPluginsModule.directive(
-    grrUi.outputPlugins.outputPluginNoteDirective
-        .OutputPluginNoteDirective.directive_name,
-    grrUi.outputPlugins.outputPluginNoteDirective
-        .OutputPluginNoteDirective);
-grrUi.outputPlugins.outputPluginsModule.directive(
-    grrUi.outputPlugins.outputPluginNoteBodyDirective
-        .OutputPluginNoteBodyDirective.directive_name,
-    grrUi.outputPlugins.outputPluginNoteBodyDirective
-        .OutputPluginNoteBodyDirective);
+exports.outputPluginsModule.directive(
+    OutputPluginsNotesDirective.directive_name, OutputPluginsNotesDirective);
+exports.outputPluginsModule.directive(
+    OutputPluginLogsDirective.directive_name, OutputPluginLogsDirective);
+exports.outputPluginsModule.directive(
+    OutputPluginNoteDirective.directive_name, OutputPluginNoteDirective);
+exports.outputPluginsModule.directive(
+    OutputPluginNoteBodyDirective.directive_name,
+    OutputPluginNoteBodyDirective);
 
 
-grrUi.outputPlugins.outputPluginsModule.service(
-    grrUi.core.semanticRegistryService.SemanticRegistryService
-        .output_plugins_service_name,
-    grrUi.core.semanticRegistryService.SemanticRegistryService);
+exports.outputPluginsModule.service(
+    SemanticRegistryService.output_plugins_service_name,
+    SemanticRegistryService);
 
 
-grrUi.outputPlugins.outputPluginsModule.run(function(
+exports.outputPluginsModule.run(function(
     grrOutputPluginsDirectivesRegistryService) {
   // TODO(user): Output plugins directives should be registered here.
   // Use the template below to register new plugins.

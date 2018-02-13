@@ -1,14 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiDocsDirective');
-goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
+goog.module('grrUi.docs.apiDocsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-
-goog.scope(function() {
-
-
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
 
 /**
@@ -17,7 +12,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @param {!angular.jQuery} $element
  * @param {angular.$http} $http The Angular http service.
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @ngInject
  */
 const ApiDocsController = function($element, $http,
@@ -28,7 +23,7 @@ const ApiDocsController = function($element, $http,
   /** @private {angular.$http} */
   this.http_ = $http;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @export {!Object<string, Array<Object>>} */
@@ -48,7 +43,6 @@ const ApiDocsController = function($element, $http,
   this.http_.get('/static/angular-components/docs/api-docs-examples.json').then(
       this.onExamplesFetched_.bind(this));
 };
-
 
 
 /**
@@ -174,7 +168,7 @@ ApiDocsController.prototype.onCategoryLinkClick = function(category) {
  * @ngInject
  * @export
  */
-grrUi.docs.apiDocsDirective.ApiDocsDirective = function() {
+exports.ApiDocsDirective = function() {
   return {
     scope: {
     },
@@ -192,8 +186,4 @@ grrUi.docs.apiDocsDirective.ApiDocsDirective = function() {
  * @const
  * @export
  */
-grrUi.docs.apiDocsDirective.ApiDocsDirective.directive_name =
-    'grrApiDocs';
-
-
-});  // goog.scope
+exports.ApiDocsDirective.directive_name = 'grrApiDocs';

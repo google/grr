@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.durationDirective');
-goog.provide('grrUi.semantic.durationDirective.DurationDirective');
-goog.provide('grrUi.semantic.durationDirective.stringifySeconds');
+goog.module('grrUi.semantic.durationDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -25,7 +23,7 @@ var hasFraction_ = function(value) {
  * @param {number} value Value in seconds to be stringified.
  * @return {string} Stringified value.
  */
-grrUi.semantic.durationDirective.stringifySeconds = function(value) {
+exports.stringifySeconds = function(value) {
   if (value == 0) {
     return '0';
   }
@@ -82,8 +80,7 @@ const DurationController = function($scope) {
 DurationController.prototype.onValueChange = function(newValue) {
   var duration = newValue.value;
   if (angular.isNumber(duration)) {
-    this.stringifiedDuration =
-        grrUi.semantic.durationDirective.stringifySeconds(duration);
+    this.stringifiedDuration = exports.stringifySeconds(duration);
   } else {
     this.stringifiedDuration = '-';
   }
@@ -98,7 +95,7 @@ DurationController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.durationDirective.DurationDirective = function() {
+exports.DurationDirective = function() {
   return {
     scope: {
       value: '='
@@ -118,8 +115,7 @@ grrUi.semantic.durationDirective.DurationDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.durationDirective.DurationDirective.directive_name =
-    'grrDuration';
+exports.DurationDirective.directive_name = 'grrDuration';
 
 /**
  * Semantic type corresponding to this directive.
@@ -127,8 +123,4 @@ grrUi.semantic.durationDirective.DurationDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.durationDirective.DurationDirective.semantic_type =
-    'Duration';
-
-
-});  // goog.scope
+exports.DurationDirective.semantic_type = 'Duration';

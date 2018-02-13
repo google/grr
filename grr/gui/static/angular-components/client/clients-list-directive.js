@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.client.clientsListDirective');
-goog.provide('grrUi.client.clientsListDirective.ClientsListDirective');
-
-goog.scope(function() {
+goog.module('grrUi.client.clientsListDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -192,7 +190,7 @@ ClientsListController.prototype.clientsQueryUrl =
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.clientsListDirective.ClientsListDirective = function() {
+exports.ClientsListDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -209,7 +207,4 @@ grrUi.client.clientsListDirective.ClientsListDirective = function() {
  * @const
  * @export
  */
-grrUi.client.clientsListDirective.ClientsListDirective.directive_name =
-    'grrClientsList';
-
-});  // goog.scope
+exports.ClientsListDirective.directive_name = 'grrClientsList';

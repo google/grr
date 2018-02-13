@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoSingleFieldFormDirective');
-goog.provide('grrUi.forms.semanticProtoSingleFieldFormDirective.SemanticProtoSingleFieldFormDirective');
+goog.module('grrUi.forms.semanticProtoSingleFieldFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -10,8 +11,7 @@ goog.provide('grrUi.forms.semanticProtoSingleFieldFormDirective.SemanticProtoSin
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticProtoSingleFieldFormDirective
-    .SemanticProtoSingleFieldFormDirective = function() {
+exports.SemanticProtoSingleFieldFormDirective = function() {
   return {
     scope: {
       value: '=',
@@ -30,6 +30,5 @@ grrUi.forms.semanticProtoSingleFieldFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticProtoSingleFieldFormDirective
-    .SemanticProtoSingleFieldFormDirective.directive_name =
+exports.SemanticProtoSingleFieldFormDirective.directive_name =
     'grrFormProtoSingleField';

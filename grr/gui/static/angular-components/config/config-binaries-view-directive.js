@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.config.configBinariesViewDirective');
-goog.provide('grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective');
+goog.module('grrUi.config.configBinariesViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -37,8 +36,7 @@ const ConfigBinariesViewController = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective =
-    function() {
+exports.ConfigBinariesViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -55,7 +53,4 @@ grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective =
  * @const
  * @export
  */
-grrUi.config.configBinariesViewDirective.ConfigBinariesViewDirective
-    .directive_name = 'grrConfigBinariesView';
-
-});  // goog.scope
+exports.ConfigBinariesViewDirective.directive_name = 'grrConfigBinariesView';

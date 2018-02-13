@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.registeredUnixTimeStampDirective');
-goog.provide('grrUi.semantic.rekall.registeredUnixTimeStampDirective.RegisteredUnixTimeStampDirective');
+goog.module('grrUi.semantic.rekall.registeredUnixTimeStampDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive that displays rekall UnixTimeStamp.
@@ -13,8 +13,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.registeredUnixTimeStampDirective.
-    RegisteredUnixTimeStampDirective = function() {
+exports.RegisteredUnixTimeStampDirective = function() {
   return {
     scope: {
       value: '='
@@ -32,9 +31,8 @@ grrUi.semantic.rekall.registeredUnixTimeStampDirective.
  * @const
  * @export
  */
-grrUi.semantic.rekall.registeredUnixTimeStampDirective.
-    RegisteredUnixTimeStampDirective.directive_name =
-        'grrRekallRegisteredUnixTimeStamp';
+exports.RegisteredUnixTimeStampDirective.directive_name =
+    'grrRekallRegisteredUnixTimeStamp';
 
 /**
  * Rekall MRO type corresponding to the directive.
@@ -42,7 +40,4 @@ grrUi.semantic.rekall.registeredUnixTimeStampDirective.
  * @const
  * @export
  */
-grrUi.semantic.rekall.registeredUnixTimeStampDirective.
-    RegisteredUnixTimeStampDirective.rekall_type = 'UnixTimeStamp';
-
-});  // goog.scope
+exports.RegisteredUnixTimeStampDirective.rekall_type = 'UnixTimeStamp';

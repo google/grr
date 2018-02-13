@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.bytesDirective');
-goog.provide('grrUi.semantic.bytesDirective.BytesDirective');
-goog.require('grrUi.forms.bytesFormDirective');  // USE: bytesToHexEncodedString
+goog.module('grrUi.semantic.bytesDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {bytesToHexEncodedString} = goog.require('grrUi.forms.bytesFormDirective');
 
 
 /**
@@ -37,6 +36,11 @@ const BytesController = function(
 var FIRST_RENDER_LIMIT = 1024;
 
 
+/**
+ * Handler for the click events.
+ *
+ * @param {?} e An event object.
+ */
 BytesController.prototype.onClick = function(e) {
   // onClick event should not be handleded by
   // anything other than this, otherwise the click
@@ -46,9 +50,7 @@ BytesController.prototype.onClick = function(e) {
 
   var bytes = this.scope_['value']['value'];
   try {
-    this.stringifiedBytes =
-        grrUi.forms.bytesFormDirective.bytesToHexEncodedString(
-            this.window_.atob(bytes));
+    this.stringifiedBytes = bytesToHexEncodedString(this.window_.atob(bytes));
   } catch (err) {
     this.stringifiedBytes = 'base64decodeerror(' + err.message + '):' + bytes;
   }
@@ -66,8 +68,7 @@ BytesController.prototype.onValueChange = function(newValue) {
     if (bytes.length < FIRST_RENDER_LIMIT) {
       try {
         this.stringifiedBytes =
-            grrUi.forms.bytesFormDirective.bytesToHexEncodedString(
-                this.window_.atob(bytes));
+            bytesToHexEncodedString(this.window_.atob(bytes));
       } catch (err) {
         this.stringifiedBytes = 'base64decodeerror(' + err.message + '):' + bytes;
       }
@@ -86,7 +87,7 @@ BytesController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.bytesDirective.BytesDirective = function() {
+exports.BytesDirective = function() {
   return {
     scope: {
       value: '='
@@ -105,8 +106,7 @@ grrUi.semantic.bytesDirective.BytesDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.bytesDirective.BytesDirective.directive_name =
-    'grrBytes';
+exports.BytesDirective.directive_name = 'grrBytes';
 
 /**
  * Semantic type corresponding to this directive.
@@ -114,8 +114,4 @@ grrUi.semantic.bytesDirective.BytesDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.bytesDirective.BytesDirective.semantic_types =
-    ['RDFBytes', 'str'];
-
-
-});  // goog.scope
+exports.BytesDirective.semantic_types = ['RDFBytes', 'str'];

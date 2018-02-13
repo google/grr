@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.dataObjectDirective');
-goog.provide('grrUi.semantic.dataObjectDirective.DataObjectDirective');
+goog.module('grrUi.semantic.dataObjectDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -13,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.dataObjectDirective.DataObjectDirective = function() {
+exports.DataObjectDirective = function() {
   return {
     scope: {
       value: '='
@@ -27,8 +26,7 @@ grrUi.semantic.dataObjectDirective.DataObjectDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.semantic.dataObjectDirective.DataObjectDirective.directive_name =
-    'grrDataObject';
+exports.DataObjectDirective.directive_name = 'grrDataObject';
 
 
 /**
@@ -37,6 +35,4 @@ grrUi.semantic.dataObjectDirective.DataObjectDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.dataObjectDirective.DataObjectDirective.semantic_type =
-    'ApiDataObject';
-});  // goog.scope
+exports.DataObjectDirective.semantic_type = 'ApiDataObject';

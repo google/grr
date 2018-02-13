@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.core.semanticRegistryService');
-goog.provide('grrUi.core.semanticRegistryService.SemanticRegistryService');
-
-goog.scope(function() {
+goog.module('grrUi.core.semanticRegistryService');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -16,8 +14,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.core.semanticRegistryService.SemanticRegistryService = function(
-    $q, grrReflectionService) {
+exports.SemanticRegistryService = function($q, grrReflectionService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
@@ -27,8 +24,7 @@ grrUi.core.semanticRegistryService.SemanticRegistryService = function(
   /** @private {!Object<string, Object>} */
   this.directivesByType_ = {};
 };
-var SemanticRegistryService =
-    grrUi.core.semanticRegistryService.SemanticRegistryService;
+var SemanticRegistryService = exports.SemanticRegistryService;
 
 
 /**
@@ -148,4 +144,3 @@ SemanticRegistryService.prototype.findDirectiveForType = function(
       handleDescriptor);  // TODO(user): handle failure scenarios
                           // in grrReflectionService.
 };
-});  // goog.scope

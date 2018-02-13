@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.confirmationDialogDirective');
-goog.provide('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
+goog.module('grrUi.core.confirmationDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -92,7 +91,7 @@ ConfirmationDialogController.prototype.close = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective = function() {
+exports.ConfirmationDialogDirective = function() {
   return {
     scope: {
       title: '=',
@@ -119,8 +118,4 @@ grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective = function() 
  * @const
  * @export
  */
-grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective
-  .directive_name = 'grrConfirmationDialog';
-
-
-});
+exports.ConfirmationDialogDirective.directive_name = 'grrConfirmationDialog';

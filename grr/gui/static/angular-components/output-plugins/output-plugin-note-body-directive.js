@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.outputPlugins.outputPluginNoteBodyDirective');
-goog.provide('grrUi.outputPlugins.outputPluginNoteBodyDirective.OutputPluginNoteBodyDirective');
+goog.module('grrUi.outputPlugins.outputPluginNoteBodyDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for OutputPluginNoteBodyDirective.
@@ -89,12 +88,11 @@ OutputPluginNoteBodyController.prototype.onOutputPluginChange_ = function() {
 /**
  * Directive for displaying notes for output plugins of a flow or hunt.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.outputPlugins.outputPluginNoteBodyDirective
-    .OutputPluginNoteBodyDirective = function() {
+exports.OutputPluginNoteBodyDirective = function() {
   return {
     scope: {
       outputPlugin: '='
@@ -111,6 +109,5 @@ grrUi.outputPlugins.outputPluginNoteBodyDirective
  * @const
  * @export
  */
-grrUi.outputPlugins.outputPluginNoteBodyDirective.OutputPluginNoteBodyDirective
-    .directive_name = 'grrOutputPluginNoteBody';
-});
+exports.OutputPluginNoteBodyDirective.directive_name =
+    'grrOutputPluginNoteBody';

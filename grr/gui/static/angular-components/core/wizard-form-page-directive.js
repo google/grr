@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.wizardFormPageDirective');
-goog.provide('grrUi.core.wizardFormPageDirective.WizardFormPageController');
-goog.provide('grrUi.core.wizardFormPageDirective.WizardFormPageDirective');
+goog.module('grrUi.core.wizardFormPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for WizardFormPageDirective.
@@ -14,8 +13,7 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.core.wizardFormPageDirective.WizardFormPageController = function(
-    $scope, $attrs) {
+exports.WizardFormPageController = function($scope, $attrs) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -74,8 +72,7 @@ grrUi.core.wizardFormPageDirective.WizardFormPageController = function(
     this.helpLink = newValue;
   }.bind(this));
 };
-var WizardFormPageController =
-    grrUi.core.wizardFormPageDirective.WizardFormPageController;
+var WizardFormPageController = exports.WizardFormPageController;
 
 
 /**
@@ -94,7 +91,7 @@ WizardFormPageController.prototype.onShow = function() {
  * @ngInject
  * @export
  */
-grrUi.core.wizardFormPageDirective.WizardFormPageDirective = function() {
+exports.WizardFormPageDirective = function() {
   return {
     scope: {
       title: '@',
@@ -125,7 +122,4 @@ grrUi.core.wizardFormPageDirective.WizardFormPageDirective = function() {
  * @const
  * @export
  */
-grrUi.core.wizardFormPageDirective.WizardFormPageDirective.directive_name =
-    'grrWizardFormPage';
-
-});  // goog.scope
+exports.WizardFormPageDirective.directive_name = 'grrWizardFormPage';

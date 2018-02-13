@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.clientContextDirective');
-goog.provide('grrUi.client.clientContextDirective.ClientContextDirective');
+goog.module('grrUi.client.clientContextDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -41,7 +40,7 @@ ClientContextController.prototype.onClientIdChange_ = function(clientId) {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.client.clientContextDirective.ClientContextDirective = function() {
+exports.ClientContextDirective = function() {
   return {
     scope: {
       clientId: '='
@@ -61,7 +60,4 @@ grrUi.client.clientContextDirective.ClientContextDirective = function() {
  * @const
  * @export
  */
-grrUi.client.clientContextDirective.ClientContextDirective.directive_name =
-    'grrClientContext';
-
-});  // goog.scope
+exports.ClientContextDirective.directive_name = 'grrClientContext';

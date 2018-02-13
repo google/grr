@@ -1,79 +1,61 @@
 'use strict';
 
-goog.provide('grrUi.flow');
-goog.provide('grrUi.flow.flowModule');
+goog.module('grrUi.flow.flow');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core');                           // USE: coreModule
-goog.require('grrUi.flow.clientFlowsListDirective');  // USE: ClientFlowsListDirective
-goog.require('grrUi.flow.clientFlowsViewDirective');  // USE: ClientFlowsViewDirective
-goog.require('grrUi.flow.copyFlowFormDirective');  // USE: CopyFlowFormDirective
-goog.require('grrUi.flow.flowApiHelperDirective');  // USE: FlowApiHelperDirective
-goog.require('grrUi.flow.flowDescriptorsTreeDirective');  // USE: FlowDescriptorsTreeDirective
-goog.require('grrUi.flow.flowFormDirective');       // USE: FlowFormDirective
-goog.require('grrUi.flow.flowInfoDirective');       // USE: FlowInfoDirective
-goog.require('grrUi.flow.flowInspectorDirective');  // USE: FlowInspectorDirective
-goog.require('grrUi.flow.flowLogDirective');        // USE: FlowLogDirective
-goog.require('grrUi.flow.flowOverviewDirective');  // USE: FlowOverviewDirective
-goog.require('grrUi.flow.flowRequestsDirective');  // USE: FlowRequestsDirective
-goog.require('grrUi.flow.flowResultsDirective');   // USE: FlowResultsDirective
-goog.require('grrUi.flow.flowStatusIconDirective');  // USE: FlowStatusIconDirective
-goog.require('grrUi.flow.flowsListDirective');       // USE: FlowsListDirective
-goog.require('grrUi.flow.startFlowFormDirective');  // USE: StartFlowFormDirective
-goog.require('grrUi.flow.startFlowViewDirective');  // USE: StartFlowViewDirective
+const {ClientFlowsListDirective} = goog.require('grrUi.flow.clientFlowsListDirective');
+const {ClientFlowsViewDirective} = goog.require('grrUi.flow.clientFlowsViewDirective');
+const {CopyFlowFormDirective} = goog.require('grrUi.flow.copyFlowFormDirective');
+const {FlowApiHelperDirective} = goog.require('grrUi.flow.flowApiHelperDirective');
+const {FlowDescriptorsTreeDirective} = goog.require('grrUi.flow.flowDescriptorsTreeDirective');
+const {FlowFormDirective} = goog.require('grrUi.flow.flowFormDirective');
+const {FlowInfoDirective} = goog.require('grrUi.flow.flowInfoDirective');
+const {FlowInspectorDirective} = goog.require('grrUi.flow.flowInspectorDirective');
+const {FlowLogDirective} = goog.require('grrUi.flow.flowLogDirective');
+const {FlowOverviewDirective} = goog.require('grrUi.flow.flowOverviewDirective');
+const {FlowRequestsDirective} = goog.require('grrUi.flow.flowRequestsDirective');
+const {FlowResultsDirective} = goog.require('grrUi.flow.flowResultsDirective');
+const {FlowStatusIconDirective} = goog.require('grrUi.flow.flowStatusIconDirective');
+const {FlowsListDirective} = goog.require('grrUi.flow.flowsListDirective');
+const {StartFlowFormDirective} = goog.require('grrUi.flow.startFlowFormDirective');
+const {StartFlowViewDirective} = goog.require('grrUi.flow.startFlowViewDirective');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 /**
  * Angular module for flows-related UI.
  */
-grrUi.flow.flowModule = angular.module('grrUi.flow', [grrUi.core.coreModule.name]);
+exports.flowModule = angular.module('grrUi.flow', [coreModule.name]);
 
 
-grrUi.flow.flowModule.directive(
-    grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective.directive_name,
-    grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective.directive_name,
-    grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective.directive_name,
-    grrUi.flow.copyFlowFormDirective.CopyFlowFormDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective.directive_name,
-    grrUi.flow.flowApiHelperDirective.FlowApiHelperDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective
-        .directive_name,
-    grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowFormDirective.FlowFormDirective.directive_name,
-    grrUi.flow.flowFormDirective.FlowFormDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowInfoDirective.FlowInfoDirective.directive_name,
-    grrUi.flow.flowInfoDirective.FlowInfoDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowInspectorDirective.FlowInspectorDirective.directive_name,
-    grrUi.flow.flowInspectorDirective.FlowInspectorDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowLogDirective.FlowLogDirective.directive_name,
-    grrUi.flow.flowLogDirective.FlowLogDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowOverviewDirective.FlowOverviewDirective.directive_name,
-    grrUi.flow.flowOverviewDirective.FlowOverviewDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowRequestsDirective.FlowRequestsDirective.directive_name,
-    grrUi.flow.flowRequestsDirective.FlowRequestsDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowResultsDirective.FlowResultsDirective.directive_name,
-    grrUi.flow.flowResultsDirective.FlowResultsDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowStatusIconDirective.FlowStatusIconDirective.directive_name,
-    grrUi.flow.flowStatusIconDirective.FlowStatusIconDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.flowsListDirective.FlowsListDirective.directive_name,
-    grrUi.flow.flowsListDirective.FlowsListDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.startFlowFormDirective.StartFlowFormDirective.directive_name,
-    grrUi.flow.startFlowFormDirective.StartFlowFormDirective);
-grrUi.flow.flowModule.directive(
-    grrUi.flow.startFlowViewDirective.StartFlowViewDirective.directive_name,
-    grrUi.flow.startFlowViewDirective.StartFlowViewDirective);
+exports.flowModule.directive(
+    ClientFlowsListDirective.directive_name, ClientFlowsListDirective);
+exports.flowModule.directive(
+    ClientFlowsViewDirective.directive_name, ClientFlowsViewDirective);
+exports.flowModule.directive(
+    CopyFlowFormDirective.directive_name, CopyFlowFormDirective);
+exports.flowModule.directive(
+    FlowApiHelperDirective.directive_name, FlowApiHelperDirective);
+exports.flowModule.directive(
+    FlowDescriptorsTreeDirective.directive_name, FlowDescriptorsTreeDirective);
+exports.flowModule.directive(
+    FlowFormDirective.directive_name, FlowFormDirective);
+exports.flowModule.directive(
+    FlowInfoDirective.directive_name, FlowInfoDirective);
+exports.flowModule.directive(
+    FlowInspectorDirective.directive_name, FlowInspectorDirective);
+exports.flowModule.directive(FlowLogDirective.directive_name, FlowLogDirective);
+exports.flowModule.directive(
+    FlowOverviewDirective.directive_name, FlowOverviewDirective);
+exports.flowModule.directive(
+    FlowRequestsDirective.directive_name, FlowRequestsDirective);
+exports.flowModule.directive(
+    FlowResultsDirective.directive_name, FlowResultsDirective);
+exports.flowModule.directive(
+    FlowStatusIconDirective.directive_name, FlowStatusIconDirective);
+exports.flowModule.directive(
+    FlowsListDirective.directive_name, FlowsListDirective);
+exports.flowModule.directive(
+    StartFlowFormDirective.directive_name, StartFlowFormDirective);
+exports.flowModule.directive(
+    StartFlowViewDirective.directive_name, StartFlowViewDirective);

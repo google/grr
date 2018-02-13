@@ -1,20 +1,19 @@
 'use strict';
 
-goog.provide('grrUi.client.hostHistoryDialogDirective');
-goog.provide('grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.client.hostHistoryDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {TimeService} = goog.require('grrUi.core.timeService');
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for HostHistoryDialogDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.core.timeService.TimeService} grrTimeService
+ * @param {!ApiService} grrApiService
+ * @param {!TimeService} grrTimeService
  * @ngInject
  */
 const HostHistoryDialogController =
@@ -22,10 +21,10 @@ const HostHistoryDialogController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.core.timeService.TimeService} grrTimeService */
+  /** @private {!TimeService} grrTimeService */
   this.grrTimeService_ = grrTimeService;
 
   /** @type {Array<Object>|undefined} */
@@ -75,6 +74,13 @@ HostHistoryDialogController.prototype.onParamsChange_ = function() {
   }
 };
 
+/**
+ * @param {Object} version
+ * @param {string} fieldPath
+ * @return {Object}
+ *
+ * @private
+ */
 HostHistoryDialogController.prototype.getFieldFromVersion_ = function(
     version, fieldPath) {
   var components = fieldPath.split(".");
@@ -127,7 +133,7 @@ HostHistoryDialogController.prototype.buildItems_ = function(versions) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective = function() {
+exports.HostHistoryDialogDirective = function() {
   return {
     scope: {
       clientId: '=',
@@ -148,7 +154,4 @@ grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective = function() 
  * @const
  * @export
  */
-grrUi.client.hostHistoryDialogDirective.HostHistoryDialogDirective.directive_name =
-    'grrHostHistoryDialog';
-
-});  // goog.scope
+exports.HostHistoryDialogDirective.directive_name = 'grrHostHistoryDialog';

@@ -1,13 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobOverviewDirective');
-goog.provide('grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective');
-goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
-
-goog.scope(function() {
-
-
-var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
+goog.module('grrUi.cron.cronJobOverviewDirective');
+goog.module.declareLegacyNamespace();
 
 
 /**
@@ -74,7 +68,7 @@ CronJobOverviewController.prototype.onCronJobFetched = function(response) {
  * @ngInject
  * @export
  */
-grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective = function() {
+exports.CronJobOverviewDirective = function() {
   return {
     scope: {
       cronJobId: '=',
@@ -93,7 +87,4 @@ grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective.directive_name =
-    'grrCronJobOverview';
-
-});  // goog.scope
+exports.CronJobOverviewDirective.directive_name = 'grrCronJobOverview';

@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.user.userLabelDirective');
-goog.provide('grrUi.user.userLabelDirective.UserLabelDirective');
+goog.module('grrUi.user.userLabelDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 /**
  * Controller for UserLabelDirective.
@@ -49,7 +48,7 @@ const UserLabelController =
  * @ngInject
  * @export
  */
-grrUi.user.userLabelDirective.UserLabelDirective = function() {
+exports.UserLabelDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -59,8 +58,7 @@ grrUi.user.userLabelDirective.UserLabelDirective = function() {
   };
 };
 
-var UserLabelDirective =
-  grrUi.user.userLabelDirective.UserLabelDirective;
+var UserLabelDirective = exports.UserLabelDirective;
 
 
 /**
@@ -72,4 +70,3 @@ var UserLabelDirective =
 UserLabelDirective.directive_name = 'grrUserLabel';
 
 
-});  // goog.scope

@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.forms.semanticProtoUnionFormDirective');
-goog.provide('grrUi.forms.semanticProtoUnionFormDirective.SemanticProtoUnionFormDirective');
+goog.module('grrUi.forms.semanticProtoUnionFormDirective');
+goog.module.declareLegacyNamespace();
+
 
 /**
  * Controller for SemanticProtoUnionFormDirective.
@@ -84,8 +85,7 @@ SemanticProtoUnionFormController.prototype.onUnionFieldValueChange_ = function(
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.forms.semanticProtoUnionFormDirective
-    .SemanticProtoUnionFormDirective = function() {
+exports.SemanticProtoUnionFormDirective = function() {
   return {
     scope: {
       value: '=',
@@ -106,5 +106,4 @@ grrUi.forms.semanticProtoUnionFormDirective
  * @const
  * @export
  */
-grrUi.forms.semanticProtoUnionFormDirective
-    .SemanticProtoUnionFormDirective.directive_name = 'grrFormProtoUnion';
+exports.SemanticProtoUnionFormDirective.directive_name = 'grrFormProtoUnion';

@@ -3,7 +3,7 @@
 goog.module('grrUi.config.binariesListDirectiveTest');
 
 const {browserTriggerEvent, testsModule} = goog.require('grrUi.tests');
-const {configModule} = goog.require('grrUi.config');
+const {configModule} = goog.require('grrUi.config.config');
 const {sortBinaries} = goog.require('grrUi.config.binariesListDirective');
 
 

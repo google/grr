@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.timeSinceFilter');
-goog.provide('grrUi.core.timeSinceFilter.TimeSinceFilter');
+goog.module('grrUi.core.timeSinceFilter');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -15,10 +14,8 @@ goog.scope(function() {
  * @param {number} input Time since epoch in microseconds.
  * @return {string} Human readable string with rough estimate of
  *     seconds/minutes/days passed since 'input' moment.
- * @export
  */
-grrUi.core.timeSinceFilter.filterImplementation = function(
-    grrTimeService, input) {
+const filterImplementation = function(grrTimeService, input) {
   var currentTimeMs = grrTimeService.getCurrentTimeMs();
   var inputTimeMs = input / 1000;
 
@@ -59,10 +56,9 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
  * @export
  * @ngInject
  */
-grrUi.core.timeSinceFilter.TimeSinceFilter = function(grrTimeService) {
+exports.TimeSinceFilter = function(grrTimeService) {
   return function(input) {
-    return grrUi.core.timeSinceFilter.filterImplementation(
-        grrTimeService, input);
+    return filterImplementation(grrTimeService, input);
   };
 };
 
@@ -73,6 +69,4 @@ grrUi.core.timeSinceFilter.TimeSinceFilter = function(grrTimeService) {
  * @const
  * @export
  */
-grrUi.core.timeSinceFilter.TimeSinceFilter.filter_name = 'grrTimeSince';
-
-}); // goog.scope
+exports.TimeSinceFilter.filter_name = 'grrTimeSince';

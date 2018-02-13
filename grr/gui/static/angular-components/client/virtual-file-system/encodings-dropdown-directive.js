@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective');
-goog.provide('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
+goog.module('grrUi.client.virtualFileSystem.encodingsDropdownDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -34,7 +32,7 @@ const EncodingsDropdownController = function(
  * EncodingsDropdownDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective = function() {
+exports.EncodingsDropdownDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -53,7 +51,4 @@ grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirec
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective.directive_name =
-    'grrEncodingsDropdown';
-
-});  // goog.scope
+exports.EncodingsDropdownDirective.directive_name = 'grrEncodingsDropdown';

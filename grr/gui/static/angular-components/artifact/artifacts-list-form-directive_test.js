@@ -2,7 +2,7 @@
 
 goog.module('grrUi.artifact.artifactsListFormDirectiveTest');
 
-const {artifactModule} = goog.require('grrUi.artifact');
+const {artifactModule} = goog.require('grrUi.artifact.artifact');
 const {browserTriggerEvent, stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

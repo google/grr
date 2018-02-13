@@ -1,14 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.core.serverErrorPreviewDirective');
-goog.provide('grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective');
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
+goog.module('grrUi.core.serverErrorPreviewDirective');
+goog.module.declareLegacyNamespace();
+
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
 
-goog.scope(function() {
-
-var ServerErrorButtonDirective =
-  grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective;
 
 var ERROR_EVENT_NAME =
   ServerErrorButtonDirective.error_event_name;
@@ -81,7 +78,7 @@ ServerErrorPreviewController.prototype.onErrorEvent = function(unused_event, err
  * @ngInject
  * @export
  */
-grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective = function() {
+exports.ServerErrorPreviewDirective = function() {
   return {
     scope: true,
     restrict: 'E',
@@ -94,8 +91,7 @@ grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective = function() 
   };
 };
 
-var ServerErrorPreviewDirective =
-  grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective;
+var ServerErrorPreviewDirective = exports.ServerErrorPreviewDirective;
 
 /**
  * Name of the directive in Angular.
@@ -114,4 +110,3 @@ ServerErrorPreviewDirective.directive_name = 'grrServerErrorPreview';
 ServerErrorPreviewDirective.error_preview_interval = 5000;
 
 
-});  // goog.scope

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.forceRefreshDirective');
-goog.provide('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
+goog.module('grrUi.core.forceRefreshDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for force-refresh directive.
@@ -35,6 +35,9 @@ const ForceRefreshController = function(
 };
 
 
+/**
+ * @private
+ */
 ForceRefreshController.prototype.updateDom_ = function() {
   if (angular.isDefined(this.transcludedScope_)) {
     this.transcludedScope_.$destroy();
@@ -59,7 +62,7 @@ ForceRefreshController.prototype.updateDom_ = function() {
  * @ngInject
  * @export
  */
-grrUi.core.forceRefreshDirective.ForceRefreshDirective = function() {
+exports.ForceRefreshDirective = function() {
   return {
     scope: {
       refreshTrigger: '=',
@@ -78,7 +81,4 @@ grrUi.core.forceRefreshDirective.ForceRefreshDirective = function() {
  * @const
  * @export
  */
-grrUi.core.forceRefreshDirective.ForceRefreshDirective.directive_name =
-    'grrForceRefresh';
-
-});  // goog.scope
+exports.ForceRefreshDirective.directive_name = 'grrForceRefresh';

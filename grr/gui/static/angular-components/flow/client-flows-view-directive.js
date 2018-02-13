@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.flow.clientFlowsViewDirective');
-goog.provide('grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective');
+goog.module('grrUi.flow.clientFlowsViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -76,7 +75,7 @@ ClientFlowsViewController.prototype.onSelectionOrTabChange_ = function() {
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective = function() {
+exports.ClientFlowsViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -93,9 +92,4 @@ grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective
-    .directive_name = 'grrClientFlowsView';
-
-
-
-});  // goog.scope
+exports.ClientFlowsViewDirective.directive_name = 'grrClientFlowsView';

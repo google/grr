@@ -1,19 +1,18 @@
 'use strict';
 
-goog.provide('grrUi.cron.newCronJobWizard.configureSchedulePageDirective');
-goog.provide('grrUi.cron.newCronJobWizard.configureSchedulePageDirective.ConfigureSchedulePageDirective');
+goog.module('grrUi.cron.newCronJobWizard.configureSchedulePageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.cron.newCronJobWizard.configureSchedulePageDirective
-    .ConfigureSchedulePageDirective = function() {
+exports.ConfigureSchedulePageDirective = function() {
   return {
     scope: {
       cronJob: '='
@@ -32,8 +31,5 @@ grrUi.cron.newCronJobWizard.configureSchedulePageDirective
  * @const
  * @export
  */
-grrUi.cron.newCronJobWizard.configureSchedulePageDirective
-    .ConfigureSchedulePageDirective
-    .directive_name = 'grrConfigureSchedulePage';
-
-});  // goog.scope
+exports.ConfigureSchedulePageDirective.directive_name =
+    'grrConfigureSchedulePage';

@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.config.binariesListDirective');
-goog.provide('grrUi.config.binariesListDirective.BinariesListDirective');
-goog.provide('grrUi.config.binariesListDirective.sortBinaries');
-
-goog.scope(function() {
+goog.module('grrUi.config.binariesListDirective');
+goog.module.declareLegacyNamespace();
 
 
-grrUi.config.binariesListDirective.sortBinaries = function(binaries) {
+/**
+ * Sorts binaries by comparing path lengths.
+ *
+ * By "path length" we understand number of components in a path. For example,
+ * path `foo/bar/baz` has length 3. In case of path with equal lengths, paths
+ * are compared using the default (lexicographical) comparison.
+ *
+ * Note that returned array has some extra fields containing path information.
+ *
+ * @param {Array<Object>} binaries
+ * @return {Array<Object>}
+ */
+exports.sortBinaries = function(binaries) {
   return binaries.map(function(b) {
     var newB = angular.copy(b);
     var pathComponents = newB['value']['path']['value'].split('/');
@@ -25,7 +34,7 @@ grrUi.config.binariesListDirective.sortBinaries = function(binaries) {
         b['value']['path']['value']);
   });
 };
-var sortBinaries = grrUi.config.binariesListDirective.sortBinaries;
+var sortBinaries = exports.sortBinaries;
 
 
 /**
@@ -52,6 +61,9 @@ const BinariesListController = function(
 };
 
 
+/**
+ * @private
+ */
 BinariesListController.prototype.onBinariesChange_ = function() {
   this.binaries = [];
   if (angular.isDefined(this.scope_['binaries'])) {
@@ -62,6 +74,11 @@ BinariesListController.prototype.onBinariesChange_ = function() {
   }
 };
 
+/**
+ * Handler for binary list click action.
+ *
+ * @param {Object} binary
+ */
 BinariesListController.prototype.onBinaryClicked = function(binary) {
   var url = '/config/binaries' + '/' + binary['value']['type']['value'] + '/' +
       binary['value']['path']['value'];
@@ -72,7 +89,7 @@ BinariesListController.prototype.onBinaryClicked = function(binary) {
  * BinariesListDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.config.binariesListDirective.BinariesListDirective = function() {
+exports.BinariesListDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -92,7 +109,4 @@ grrUi.config.binariesListDirective.BinariesListDirective = function() {
  * @const
  * @export
  */
-grrUi.config.binariesListDirective.BinariesListDirective.directive_name =
-    'grrBinariesList';
-
-});  // goog.scope
+exports.BinariesListDirective.directive_name = 'grrBinariesList';

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.semantic.rekall.logDirective');
-goog.provide('grrUi.semantic.rekall.logDirective.LogDirective');
+goog.module('grrUi.semantic.rekall.logDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive that displays rekall log messages.
@@ -12,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.rekall.logDirective.LogDirective = function() {
+exports.LogDirective = function() {
   return {
     scope: {
       value: '='
@@ -29,7 +29,4 @@ grrUi.semantic.rekall.logDirective.LogDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.rekall.logDirective.LogDirective.directive_name =
-    'grrRekallLog';
-
-});  // goog.scope
+exports.LogDirective.directive_name = 'grrRekallLog';

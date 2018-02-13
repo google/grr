@@ -2,7 +2,7 @@
 
 goog.module('grrUi.semantic.hashListDirectiveTest');
 
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stubDirective, testsModule} = goog.require('grrUi.tests');
 
 

@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.core.timeService');
-goog.provide('grrUi.core.timeService.TimeService');
-
-goog.scope(function() {
+goog.module('grrUi.core.timeService');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -14,9 +12,8 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.core.timeService.TimeService = function() {
-};
-var TimeService = grrUi.core.timeService.TimeService;
+exports.TimeService = function() {};
+var TimeService = exports.TimeService;
 
 
 /**
@@ -67,4 +64,3 @@ TimeService.prototype.getFormattedDiffFromCurrentTime = function(timestamp) {
 
   return moment.duration(diff).humanize(true);
 };
-});  // goog.scope

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobFlowsListDirective');
-goog.provide('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective');
+goog.module('grrUi.cron.cronJobFlowsListDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for cronJobFlowsListDirective.
@@ -63,7 +63,7 @@ CronJobFlowsListController.prototype.closeDetails = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective = function() {
+exports.CronJobFlowsListDirective = function() {
   return {
     scope: {
       cronJobId: '=',
@@ -83,7 +83,4 @@ grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective
-    .directive_name = 'grrCronJobFlowsList';
-
-});  // goog.scope
+exports.CronJobFlowsListDirective.directive_name = 'grrCronJobFlowsList';

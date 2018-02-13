@@ -2,7 +2,7 @@
 
 goog.module('grrUi.semantic.encryptionKeyDirectiveTest');
 
-const {semanticModule} = goog.require('grrUi.semantic');
+const {semanticModule} = goog.require('grrUi.semantic.semantic');
 const {stringifyEncryptionKey} = goog.require('grrUi.semantic.encryptionKeyDirective');
 const {testsModule} = goog.require('grrUi.tests');
 

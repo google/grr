@@ -1,17 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowOverviewDirective');
-goog.provide('grrUi.flow.flowOverviewDirective.FlowOverviewDirective');
-goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
-
-goog.scope(function() {
+goog.module('grrUi.flow.flowOverviewDirective');
+goog.module.declareLegacyNamespace();
 
 
-var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
 
+/**
+ * Sets the delay between automatic refreshes of the flow overview.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
-/** @const {number} */
-grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
 
 /**
  * Controller for FlowOverviewDirective.
@@ -57,7 +62,7 @@ FlowOverviewController.prototype.startPolling = function() {
   if (angular.isDefined(this.scope_['apiBasePath']) &&
       angular.isDefined(this.scope_['flowId'])) {
     var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
-    var interval = grrUi.flow.flowOverviewDirective.AUTO_REFRESH_INTERVAL_MS;
+    var interval = AUTO_REFRESH_INTERVAL_MS;
 
     // It's important to assign the result of the poll() call, not the
     // result of the poll().then() call, since we need the original
@@ -80,7 +85,7 @@ FlowOverviewController.prototype.startPolling = function() {
  * @ngInject
  * @export
  */
-grrUi.flow.flowOverviewDirective.FlowOverviewDirective = function() {
+exports.FlowOverviewDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -100,7 +105,4 @@ grrUi.flow.flowOverviewDirective.FlowOverviewDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowOverviewDirective.FlowOverviewDirective.directive_name =
-    'grrFlowOverview';
-
-});  // goog.scope
+exports.FlowOverviewDirective.directive_name = 'grrFlowOverview';

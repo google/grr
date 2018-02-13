@@ -1,7 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.firebaseService');
-goog.provide('grrUi.core.firebaseService.FirebaseService');
+goog.module('grrUi.core.firebaseService');
+goog.module.declareLegacyNamespace();
+
 
 
 /**
@@ -13,15 +14,14 @@ goog.provide('grrUi.core.firebaseService.FirebaseService');
  * @ngInject
  * @export
  */
-grrUi.core.firebaseService.FirebaseService = function(
-    $http, grrApiService) {
+exports.FirebaseService = function($http, grrApiService) {
   /** @private {angular.$http} */
   this.http_ = $http;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 };
-var FirebaseService = grrUi.core.firebaseService.FirebaseService;
+var FirebaseService = exports.FirebaseService;
 
 
 /**

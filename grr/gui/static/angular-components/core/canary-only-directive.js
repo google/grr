@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.core.canaryOnlyDirective');
-goog.provide('grrUi.core.canaryOnlyDirective.CanaryOnlyDirective');
-goog.provide('grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective');
+goog.module('grrUi.core.canaryOnlyDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -40,7 +37,7 @@ var getCanaryModeValue = function(grrApiService, callback) {
  * @export
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.core.canaryOnlyDirective.CanaryOnlyDirective = function() {
+exports.CanaryOnlyDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -66,8 +63,7 @@ grrUi.core.canaryOnlyDirective.CanaryOnlyDirective = function() {
  * @const
  * @export
  */
-grrUi.core.canaryOnlyDirective.CanaryOnlyDirective
-    .directive_name = 'grrCanaryOnly';
+exports.CanaryOnlyDirective.directive_name = 'grrCanaryOnly';
 
 
 /**
@@ -77,7 +73,7 @@ grrUi.core.canaryOnlyDirective.CanaryOnlyDirective
  * @ngInject
  * @export
  */
-grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective = function() {
+exports.NonCanaryOnlyDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -103,8 +99,4 @@ grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective = function() {
  * @const
  * @export
  */
-grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective
-    .directive_name = 'grrNonCanaryOnly';
-
-
-});  // goog.scope
+exports.NonCanaryOnlyDirective.directive_name = 'grrNonCanaryOnly';

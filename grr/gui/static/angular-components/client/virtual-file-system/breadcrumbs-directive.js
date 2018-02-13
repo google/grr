@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective');
-goog.provide('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
+goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for BreadcrumbsDirective.
@@ -92,8 +92,7 @@ BreadcrumbsController.prototype.selectPath = function(path) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective =
-    function() {
+exports.BreadcrumbsDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -119,7 +118,4 @@ grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective =
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective.directive_name =
-    'grrBreadcrumbs';
-
-});  // goog.scope
+exports.BreadcrumbsDirective.directive_name = 'grrBreadcrumbs';

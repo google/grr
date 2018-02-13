@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.semantic.byteSizeDirective');
-goog.provide('grrUi.semantic.byteSizeDirective.ByteSizeDirective');
+goog.module('grrUi.semantic.byteSizeDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /** @const {number} */
@@ -93,7 +92,7 @@ ByteSizeController.prototype.onValueChange = function(newValue) {
  * @ngInject
  * @export
  */
-grrUi.semantic.byteSizeDirective.ByteSizeDirective = function() {
+exports.ByteSizeDirective = function() {
   return {
     scope: {
       value: '='
@@ -112,8 +111,7 @@ grrUi.semantic.byteSizeDirective.ByteSizeDirective = function() {
  * @const
  * @export
  */
-grrUi.semantic.byteSizeDirective.ByteSizeDirective.directive_name =
-    'grrByteSize';
+exports.ByteSizeDirective.directive_name = 'grrByteSize';
 
 /**
  * Semantic type corresponding to this directive.
@@ -121,8 +119,4 @@ grrUi.semantic.byteSizeDirective.ByteSizeDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.byteSizeDirective.ByteSizeDirective.semantic_type =
-    'ByteSize';
-
-
-});  // goog.scope
+exports.ByteSizeDirective.semantic_type = 'ByteSize';

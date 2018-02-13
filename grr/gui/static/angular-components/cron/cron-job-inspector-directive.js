@@ -1,16 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.cron.cronJobInspectorDirective');
-goog.provide('grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective');
+goog.module('grrUi.cron.cronJobInspectorDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * CronJobInspectorDirective definition.
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective = function() {
+exports.CronJobInspectorDirective = function() {
   return {
     scope: {
       cronJobId: '=',
@@ -27,7 +27,4 @@ grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective = function() {
  * @const
  * @export
  */
-grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective
-    .directive_name = 'grrCronJobInspector';
-
-});  // goog.scope
+exports.CronJobInspectorDirective.directive_name = 'grrCronJobInspector';

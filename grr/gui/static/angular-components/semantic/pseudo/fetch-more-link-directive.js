@@ -1,10 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.semantic.pseudo.fetchMoreLinkDirective');
-goog.provide('grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective');
-
-
-goog.scope(function() {
+goog.module('grrUi.semantic.pseudo.fetchMoreLinkDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -15,8 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective =
-    function() {
+exports.FetchMoreLinkDirective = function() {
   return {
     scope: {value: '='},
     link: function(scope) {
@@ -42,8 +38,7 @@ grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective =
  * @const
  * @export
  */
-grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective
-    .directive_name = 'grrFetchMoreLink';
+exports.FetchMoreLinkDirective.directive_name = 'grrFetchMoreLink';
 
 
 /**
@@ -52,6 +47,4 @@ grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective
  * @const
  * @export
  */
-grrUi.semantic.pseudo.fetchMoreLinkDirective.FetchMoreLinkDirective
-    .semantic_type = '__FetchMoreLink';
-});  // goog.scope
+exports.FetchMoreLinkDirective.semantic_type = '__FetchMoreLink';

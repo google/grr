@@ -1,11 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileContextDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileContextDirective.FileContextController');
-goog.provide('grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective');
+goog.module('grrUi.client.virtualFileSystem.fileContextDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -15,7 +12,7 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @ngInject
  */
-grrUi.client.virtualFileSystem.fileContextDirective.FileContextController = function($scope) {
+exports.FileContextController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -39,8 +36,7 @@ grrUi.client.virtualFileSystem.fileContextDirective.FileContextController = func
       this.onControllerValuesChange_.bind(this));
 };
 
-var FileContextController =
-    grrUi.client.virtualFileSystem.fileContextDirective.FileContextController;
+var FileContextController = exports.FileContextController;
 
 
 /**
@@ -84,7 +80,7 @@ FileContextController.prototype.selectFile = function(filePath, opt_fileVersion)
  * FileContextDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective = function() {
+exports.FileContextDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -106,7 +102,4 @@ grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective = funct
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective.directive_name =
-    'grrFileContext';
-
-});  // goog.scope
+exports.FileContextDirective.directive_name = 'grrFileContext';

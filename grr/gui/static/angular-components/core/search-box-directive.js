@@ -1,10 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.core.searchBoxDirective');
-goog.provide('grrUi.core.searchBoxDirective.SearchBoxDirective');
+goog.module('grrUi.core.searchBoxDirective');
+goog.module.declareLegacyNamespace();
 
 
-goog.scope(function() {
 
 var SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
 
@@ -129,7 +128,7 @@ SearchBoxController.prototype.contextHelpUrl =
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.core.searchBoxDirective.SearchBoxDirective = function() {
+exports.SearchBoxDirective = function() {
   return {
     scope: {
     },
@@ -147,7 +146,4 @@ grrUi.core.searchBoxDirective.SearchBoxDirective = function() {
  * @const
  * @export
  */
-grrUi.core.searchBoxDirective.SearchBoxDirective.directive_name =
-    'grrSearchBox';
-
-});  // goog.scope
+exports.SearchBoxDirective.directive_name = 'grrSearchBox';

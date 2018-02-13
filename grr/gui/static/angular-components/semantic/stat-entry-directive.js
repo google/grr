@@ -1,16 +1,15 @@
 'use strict';
 
-goog.provide('grrUi.semantic.statEntryDirective');
-goog.provide('grrUi.semantic.statEntryDirective.StatEntryDirective');
+goog.module('grrUi.semantic.statEntryDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.fileDownloadUtils');  // USE: pathSpecToAff4Path
-goog.require('grrUi.core.serverErrorButtonDirective');  // USE: ServerErrorButtonDirective
+const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
+const {pathSpecToAff4Path} = goog.require('grrUi.core.fileDownloadUtils');
 
-goog.scope(function() {
 
-var ERROR_EVENT_NAME = grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
-var pathSpecToAff4Path = grrUi.core.fileDownloadUtils.pathSpecToAff4Path;
+
 
 /**
  * Controller for StatEntryDirective.
@@ -85,6 +84,9 @@ StatEntryController.prototype.onValueChange_ = function(newValue) {
 };
 
 
+/**
+ * Handler for the download click events.
+ */
 StatEntryController.prototype.onDownloadClick = function() {
   this.grrApiService_.downloadFile(this.downloadUrl, this.downloadParams).then(
       function success() {}.bind(this),
@@ -107,7 +109,7 @@ StatEntryController.prototype.onDownloadClick = function() {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.semantic.statEntryDirective.StatEntryDirective = function() {
+exports.StatEntryDirective = function() {
   return {
     scope: {
       value: '='
@@ -129,8 +131,7 @@ grrUi.semantic.statEntryDirective.StatEntryDirective = function() {
 /**
  * Name of the directive in Angular.
  */
-grrUi.semantic.statEntryDirective.StatEntryDirective.directive_name =
-    'grrStatEntry';
+exports.StatEntryDirective.directive_name = 'grrStatEntry';
 
 /**
  * Semantic type corresponding to this directive.
@@ -138,8 +139,5 @@ grrUi.semantic.statEntryDirective.StatEntryDirective.directive_name =
  * @const
  * @export
  */
-grrUi.semantic.statEntryDirective.StatEntryDirective.semantic_types =
+exports.StatEntryDirective.semantic_types =
     ['StatEntry', '__DownloadableStatEntry'];
-
-
-});  // goog.scope

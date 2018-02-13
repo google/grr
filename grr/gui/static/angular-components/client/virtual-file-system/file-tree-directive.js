@@ -1,19 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective');
-goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
-goog.require('grrUi.client.virtualFileSystem.events');  // USE: REFRESH_FOLDER_EVENT
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective');  // USE: getFileId
-goog.require('grrUi.client.virtualFileSystem.utils');  // USE: ensurePathIsFolder, getFolderFromPath
+goog.module('grrUi.client.virtualFileSystem.fileTreeDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
-
-var REFRESH_FOLDER_EVENT =
-    grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
-
-var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
-var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
-var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
+const {REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
+const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
+const {getFileId} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
 
 
 /**
@@ -257,7 +249,7 @@ FileTreeController.prototype.expandToFilePath_ = function(
  * FileTreeDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective = function() {
+exports.FileTreeDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -278,7 +270,4 @@ grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective = function() 
  * @const
  * @export
  */
-grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective.directive_name =
-    'grrFileTree';
-
-});  // goog.scope
+exports.FileTreeDirective.directive_name = 'grrFileTree';
