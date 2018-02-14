@@ -1,14 +1,12 @@
 'use strict';
 
-goog.provide('grrUi.stats.auditChartDirective');
-goog.provide('grrUi.stats.auditChartDirective.AuditChartDirective');
+goog.module('grrUi.stats.auditChartDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-goog.require('grrUi.core.utils');       // USE: upperCaseToTitleCase
+const {stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
 
-goog.scope(function() {
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for AuditChartDirective.
@@ -70,8 +68,8 @@ AuditChartController.prototype.initAuditChart_ = function(typedAuditChartData) {
   }
 
   this.auditUsedFields = auditChartData['used_fields'];
-  this.auditTitleCaseUsedFields = auditChartData['used_fields'].map(
-          grrUi.core.utils.upperCaseToTitleCase);
+  this.auditTitleCaseUsedFields =
+      auditChartData['used_fields'].map(upperCaseToTitleCase);
   this.typedAuditRows = typedAuditChartData['value']['rows'];
 };
 
@@ -80,7 +78,7 @@ AuditChartController.prototype.initAuditChart_ = function(typedAuditChartData) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.stats.auditChartDirective.AuditChartDirective = function() {
+exports.AuditChartDirective = function() {
   return {
     scope: {
       typedData: "="
@@ -99,7 +97,4 @@ grrUi.stats.auditChartDirective.AuditChartDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.auditChartDirective.AuditChartDirective.directive_name =
-    'grrAuditChart';
-
-});  // goog.scope
+exports.AuditChartDirective.directive_name = 'grrAuditChart';

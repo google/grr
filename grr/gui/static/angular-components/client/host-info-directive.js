@@ -57,6 +57,9 @@ const HostInfoController = function(
   /** @type {boolean} */
   this.hasClientAccess;
 
+  /** @type {number} */
+  this.fetchDetailsRequestId = 0;
+
   /** @type {?string} */
   this.interrogateOperationId;
 
@@ -99,7 +102,12 @@ HostInfoController.prototype.onClientIdChange_ = function(clientId) {
  * @private
  */
 HostInfoController.prototype.onClientVersionChange_ = function(newValue) {
-  if (this.client['value']['age']['value'] !== newValue) {
+  if (angular.isUndefined(newValue)) {
+    return;
+  }
+
+  if (angular.isUndefined(this.client) ||
+      this.client['value']['age']['value'] !== newValue) {
     this.fetchClientDetails_();
   }
 };
@@ -116,7 +124,17 @@ HostInfoController.prototype.fetchClientDetails_ = function() {
     params['timestamp'] = this.clientVersion;
   }
 
+  this.fetchDetailsRequestId += 1;
+  var requestId = this.fetchDetailsRequestId;
   this.grrApiService_.get(url, params).then(function success(response) {
+    // Make sure that the request that we got corresponds to the
+    // arguments we used while sending it. This is needed for cases
+    // when bindings change so fast that we send multiple concurrent
+    // requests.
+    if (this.fetchDetailsRequestId != requestId) {
+      return;
+    }
+
     this.client = response.data;
     this.clientVersion = response.data['value']['age']['value'];
   }.bind(this));

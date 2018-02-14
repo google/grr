@@ -179,7 +179,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.hunt.huntOverviewDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
@@ -263,7 +263,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.hunt.huntLogDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
@@ -331,7 +331,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.hunt.huntErrorsDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
@@ -402,7 +402,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
-        "grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS = 1000")
+        "grrUi.hunt.huntCrashesDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")

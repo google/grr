@@ -1,16 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.hunt.modifyHuntDialogDirective');
-goog.provide('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
+goog.module('grrUi.hunt.modifyHuntDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-goog.require('grrUi.core.utils');       // USE: stripAff4Prefix
-
-
-goog.scope(function() {
-
-
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
 /**
@@ -19,8 +14,8 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
+ * @param {!ApiService} grrApiService
+ * @param {!AclDialogService} grrAclDialogService
  * @ngInject
  */
 const ModifyHuntDialogController =
@@ -31,10 +26,10 @@ const ModifyHuntDialogController =
   /** @private {!angular.$q} */
   this.q_ = $q;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+  /** @private {!AclDialogService} */
   this.grrAclDialogService_ = grrAclDialogService;
 
   /** @export {Object|undefined} */
@@ -95,8 +90,7 @@ ModifyHuntDialogController.prototype.proceed = function() {
 
             if (response['status'] === 403) {
               var subject = response['data']['subject'];
-              var huntId = grrUi.core.utils.stripAff4Prefix(
-                  subject).split('/')[1];
+              var huntId = stripAff4Prefix(subject).split('/')[1];
 
               this.grrAclDialogService_.openRequestHuntApprovalDialog(
                   huntId, message);
@@ -111,7 +105,7 @@ ModifyHuntDialogController.prototype.proceed = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective = function() {
+exports.ModifyHuntDialogDirective = function() {
   return {
     scope: {
       huntId: '=',
@@ -130,7 +124,4 @@ grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective.directive_name =
-    'grrModifyHuntDialog';
-
-});  // goog.scope
+exports.ModifyHuntDialogDirective.directive_name = 'grrModifyHuntDialog';

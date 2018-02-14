@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.statusPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective');
+goog.module('grrUi.hunt.newHuntWizard.statusPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
@@ -12,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective = function() {
+exports.StatusPageDirective = function() {
   return {
     scope: {
       response: '=',
@@ -30,6 +30,4 @@ grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective
-    .directive_name = 'grrNewHuntStatusPage';
-});  // goog.scope
+exports.StatusPageDirective.directive_name = 'grrNewHuntStatusPage';

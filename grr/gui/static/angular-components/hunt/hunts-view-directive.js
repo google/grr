@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntsViewDirective');
-goog.provide('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
+goog.module('grrUi.hunt.huntsViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -66,7 +65,7 @@ HuntsViewController.prototype.onSelectionChange_ = function() {
  * HuntsViewDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.huntsViewDirective.HuntsViewDirective = function() {
+exports.HuntsViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
@@ -83,7 +82,4 @@ grrUi.hunt.huntsViewDirective.HuntsViewDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntsViewDirective.HuntsViewDirective.directive_name =
-    'grrHuntsView';
-
-});  // goog.scope
+exports.HuntsViewDirective.directive_name = 'grrHuntsView';

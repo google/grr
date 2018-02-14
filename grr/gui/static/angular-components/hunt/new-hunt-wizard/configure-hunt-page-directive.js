@@ -1,17 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.configureHuntPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.configureHuntPageDirective.ConfigureHuntPageDirective');
+goog.module('grrUi.hunt.newHuntWizard.configureHuntPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for configuring hunt runner parameters.
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.newHuntWizard.configureHuntPageDirective
-    .ConfigureHuntPageDirective = function() {
+exports.ConfigureHuntPageDirective = function() {
   return {
     scope: {
       huntRunnerArgs: '=',
@@ -29,7 +28,4 @@ grrUi.hunt.newHuntWizard.configureHuntPageDirective
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.configureHuntPageDirective
-    .ConfigureHuntPageDirective.directive_name = 'grrConfigureHuntPage';
-
-});  // goog.scope
+exports.ConfigureHuntPageDirective.directive_name = 'grrConfigureHuntPage';

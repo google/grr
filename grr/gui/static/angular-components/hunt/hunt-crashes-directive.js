@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntCrashesDirective');
-goog.provide('grrUi.hunt.huntCrashesDirective.HuntCrashesDirective');
-
-goog.scope(function() {
+goog.module('grrUi.hunt.huntCrashesDirective');
+goog.module.declareLegacyNamespace();
 
 
-/** @const {number} */
-grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /**
@@ -28,8 +37,7 @@ const HuntCrashesController = function($scope) {
   this.crashesUrl;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.hunt.huntCrashesDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
@@ -56,7 +64,7 @@ HuntCrashesController.prototype.onHuntIdChange_ = function(huntId) {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntCrashesDirective.HuntCrashesDirective = function() {
+exports.HuntCrashesDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -75,7 +83,4 @@ grrUi.hunt.huntCrashesDirective.HuntCrashesDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntCrashesDirective.HuntCrashesDirective.directive_name =
-    'grrHuntCrashes';
-
-});  // goog.scope
+exports.HuntCrashesDirective.directive_name = 'grrHuntCrashes';

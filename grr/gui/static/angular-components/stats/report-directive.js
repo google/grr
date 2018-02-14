@@ -1,14 +1,15 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportDirective');
-goog.provide('grrUi.stats.reportDirective.ReportDirective');
+goog.module('grrUi.stats.reportDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-goog.require('grrUi.core.utils');       // USE: upperCaseToTitleCase
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {ReflectionService} = goog.require('grrUi.core.reflectionService');
+const {ReportDescsService} = goog.require('grrUi.stats.reportDescsService');
+const {TimeService} = goog.require('grrUi.core.timeService');
+const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
 
-goog.scope(function() {
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /** @type {number} */
 var WEEK_SECONDS = 7*24*60*60;
@@ -29,10 +30,10 @@ var DEFAULT_CLIENT_LABEL = '';
  * Controller for ReportDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @param {!grrUi.core.timeService.TimeService} grrTimeService
- * @param {!grrUi.stats.reportDescsService.ReportDescsService} grrReportDescsService
+ * @param {!ApiService} grrApiService
+ * @param {!ReflectionService} grrReflectionService
+ * @param {!TimeService} grrTimeService
+ * @param {!ReportDescsService} grrReportDescsService
  * @constructor
  * @ngInject
  */
@@ -42,16 +43,16 @@ const ReportController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  /** @private {!ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @private {!grrUi.core.timeService.TimeService} */
+  /** @private {!TimeService} */
   this.grrTimeService_ = grrTimeService;
 
-  /** @private {!grrUi.stats.reportDescsService.ReportDescsService} */
+  /** @private {!ReportDescsService} */
   this.grrReportDescsService_ = grrReportDescsService;
 
   /** @type {string}
@@ -95,8 +96,7 @@ const ReportController = function(
 
       this.reportDesc = desc;
 
-      this.titleCasedType =
-          grrUi.core.utils.upperCaseToTitleCase(this.reportDesc['type']);
+      this.titleCasedType = upperCaseToTitleCase(this.reportDesc['type']);
 
       this.onParamsChange_();
     }.bind(this));
@@ -208,9 +208,9 @@ ReportController.prototype.fetchData_ = function() {
 /**
  * ReportDirective definition.
  *
- * @return {angular.Directive} Directive definition object.
+ * @return {!angular.Directive} Directive definition object.
  */
-grrUi.stats.reportDirective.ReportDirective = function() {
+exports.ReportDirective = function() {
   return {
     scope: {
       name: '=?',
@@ -232,7 +232,4 @@ grrUi.stats.reportDirective.ReportDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.reportDirective.ReportDirective.directive_name =
-    'grrReport';
-
-});  // goog.scope
+exports.ReportDirective.directive_name = 'grrReport';

@@ -206,13 +206,19 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
   def CheckJavascriptErrors(self):
-    for message in self.driver.get_log("browser"):
-      logging.info("[javascript:%s]: %s",
-                   message.get("level", ""), message["message"])
-      if (message.get("source", "") == "javascript" and
-          message.get("level", "") == "SEVERE"):
-        self.fail(
-            "Javascript error ecountered during test: %s" % message["message"])
+    errors = self.driver.execute_script(
+        "return (() => {const e = window.grrInterceptedErrors_ || []; "
+        "window.grrInterceptedErrors_ = []; return e;})();")
+
+    msgs = []
+    for e in errors:
+      msg = "[javascript]: %s" % e
+      logging.error(msg)
+      msgs.append(msg)
+
+    if msgs:
+      self.fail(
+          "Javascript error encountered during test: %s" % "\n\t".join(msgs))
 
   def WaitUntil(self, condition_cb, *args):
     self.CheckJavascriptErrors()
@@ -223,6 +229,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         if res:
           return res
 
+      # Raise in case of a test-related error (i.e. failing assertion).
+      except self.failureException:
+        raise
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
@@ -231,8 +240,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       self.CheckJavascriptErrors()
       time.sleep(self.sleep_time)
 
-    raise RuntimeError("condition not met, body is: %s" %
-                       self.driver.find_element_by_tag_name("body").text)
+    self.fail("condition not met, body is: %s" %
+              self.driver.find_element_by_tag_name("body").text)
 
   def _FindElement(self, selector):
     try:
@@ -273,7 +282,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       else:
         return self.driver.find_element_by_id(effective_selector)
     else:
-      raise RuntimeError("unknown selector type %s" % selector_type)
+      raise ValueError("unknown selector type %s" % selector_type)
 
   @SeleniumAction
   def Open(self, url):
@@ -464,6 +473,9 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
         if condition_cb(*args) == target:
           return True
 
+      # Raise in case of a test-related error (i.e. failing assertion).
+      except self.failureException:
+        raise
       # The element might not exist yet and selenium could raise here. (Also
       # Selenium raises Exception not StandardError).
       except Exception as e:  # pylint: disable=broad-except
@@ -471,8 +483,8 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 
       time.sleep(self.sleep_time)
 
-    raise RuntimeError("condition not met, body is: %s" %
-                       self.driver.find_element_by_tag_name("body").text)
+    self.fail("condition not met, body is: %s" %
+              self.driver.find_element_by_tag_name("body").text)
 
   def WaitUntilContains(self, target, condition_cb, *args):
     data = ""
@@ -484,14 +496,17 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
         if target in data:
           return True
 
+      # Raise in case of a test-related error (i.e. failing assertion).
+      except self.failureException:
+        raise
       # The element might not exist yet and selenium could raise here.
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("Selenium raised %s", utils.SmartUnicode(e))
 
       time.sleep(self.sleep_time)
 
-    raise RuntimeError("condition not met. got: %r, does not contain: %s" %
-                       (data, target))
+    self.fail("condition not met. got: %r, does not contain: %s" % (data,
+                                                                    target))
 
   def _MakeFixtures(self):
     token = access_control.ACLToken(username="test", reason="Make fixtures.")
@@ -600,9 +615,11 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path=path or "/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.OS,)),
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
+                path=path or "/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.OS,
+            )),
         client_rule_set=client_rule_set,
         output_plugins=output_plugins or [],
         client_rate=0,
@@ -731,8 +748,10 @@ class FlowWithOneStatEntryResult(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.SendReply(
-        rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-            path="/some/unique/path", pathtype=rdf_paths.PathSpec.PathType.OS)))
+        rdf_client.StatEntry(
+            pathspec=rdf_paths.PathSpec(
+                path="/some/unique/path",
+                pathtype=rdf_paths.PathSpec.PathType.OS)))
 
 
 class FlowWithOneNetworkConnectionResult(flow.GRRFlow):

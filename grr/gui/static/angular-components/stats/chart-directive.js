@@ -1,13 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.stats.chartDirective');
-goog.provide('grrUi.stats.chartDirective.ChartDirective');
+goog.module('grrUi.stats.chartDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+const {stripTypeInfo} = goog.require('grrUi.core.apiService');
 
-goog.scope(function() {
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /** @type {string} */
 var DEFAULT_HOVER_TEXT = '';
@@ -298,7 +296,7 @@ ChartController.prototype.initLineChart_ = function(lineChartData) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.stats.chartDirective.ChartDirective = function() {
+exports.ChartDirective = function() {
   return {
     scope: {
       typedData: "="
@@ -317,7 +315,4 @@ grrUi.stats.chartDirective.ChartDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.chartDirective.ChartDirective.directive_name =
-    'grrChart';
-
-});  // goog.scope
+exports.ChartDirective.directive_name = 'grrChart';

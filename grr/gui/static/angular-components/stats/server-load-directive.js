@@ -1,34 +1,29 @@
 'use strict';
 
-goog.provide('grrUi.stats.serverLoadDirective');
-goog.provide('grrUi.stats.serverLoadDirective.ServerLoadDirective');
-goog.provide('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
+goog.module('grrUi.stats.serverLoadDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
-
+const {ApiService} = goog.require('grrUi.core.apiService');
 
 
 /**
  * Service for doing health indicators-related queries.
  *
  * @param {!angular.$q} $q
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  *
  * @constructor
  * @ngInject
  * @export
  */
-grrUi.stats.serverLoadDirective.ServerLoadIndicatorService = function(
-    $q, grrApiService) {
-
+exports.ServerLoadIndicatorService = function($q, grrApiService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 };
-var ServerLoadIndicatorService =
-    grrUi.stats.serverLoadDirective.ServerLoadIndicatorService;
+var ServerLoadIndicatorService = exports.ServerLoadIndicatorService;
 
 
 /**
@@ -150,7 +145,7 @@ ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.stats.serverLoadDirective.ServerLoadIndicatorService}
+ * @param {!ServerLoadIndicatorService}
  *     grrServerLoadIndicatorService
  * @ngInject
  */
@@ -159,7 +154,7 @@ const ServerLoadController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.stats.serverLoadDirective.ServerLoadIndicatorService} */
+  /** @private {!ServerLoadIndicatorService} */
   this.grrServerLoadIndicatorService_ = grrServerLoadIndicatorService;
 
   /** @export {number} Queries start time. */
@@ -227,7 +222,7 @@ ServerLoadController.prototype.fetchIndicators_ = function() {
  * @ngInject
  * @export
  */
-grrUi.stats.serverLoadDirective.ServerLoadDirective = function() {
+exports.ServerLoadDirective = function() {
   return {
     scope: {
     },
@@ -245,7 +240,4 @@ grrUi.stats.serverLoadDirective.ServerLoadDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.serverLoadDirective.ServerLoadDirective.directive_name =
-    'grrServerLoad';
-
-});  // goog.scope
+exports.ServerLoadDirective.directive_name = 'grrServerLoad';

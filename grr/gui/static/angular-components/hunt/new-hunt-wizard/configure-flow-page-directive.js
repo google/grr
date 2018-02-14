@@ -1,12 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.configureFlowPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.configureFlowPageDirective.ConfigureFlowPageDirective');
-goog.require('grrUi.forms.utils');  // USE: valueHasErrors
+goog.module('grrUi.hunt.newHuntWizard.configureFlowPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
-var valueHasErrors = grrUi.forms.utils.valueHasErrors;
+
 
 /**
  * Controller for ConfigureFlowPageDirective.
@@ -39,6 +38,11 @@ const ConfigureFlowPageController = function($scope) {
 };
 
 
+/**
+ * @param {Object} newValue
+ *
+ * @private
+ */
 ConfigureFlowPageController.prototype.onFlowArgumentsDeepChange_ = function(
     newValue) {
   this.scope_['hasErrors'] = valueHasErrors(newValue);
@@ -47,12 +51,11 @@ ConfigureFlowPageController.prototype.onFlowArgumentsDeepChange_ = function(
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.configureFlowPageDirective
-    .ConfigureFlowPageDirective = function() {
+exports.ConfigureFlowPageDirective = function() {
   return {
     scope: {
       flowName: '=',
@@ -74,7 +77,4 @@ grrUi.hunt.newHuntWizard.configureFlowPageDirective
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.configureFlowPageDirective
-    .ConfigureFlowPageDirective.directive_name = 'grrConfigureFlowPage';
-
-});  // goog.scope
+exports.ConfigureFlowPageDirective.directive_name = 'grrConfigureFlowPage';

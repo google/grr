@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntClientsDirective');
-goog.provide('grrUi.hunt.huntClientsDirective.HuntClientsDirective');
+goog.module('grrUi.hunt.huntClientsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -52,7 +51,7 @@ HuntClientsController.prototype.onHuntIdOrClientTypeChange_ = function() {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.hunt.huntClientsDirective.HuntClientsDirective = function() {
+exports.HuntClientsDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -71,7 +70,4 @@ grrUi.hunt.huntClientsDirective.HuntClientsDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntClientsDirective.HuntClientsDirective.directive_name =
-    'grrHuntClients';
-
-});  // goog.scope
+exports.HuntClientsDirective.directive_name = 'grrHuntClients';

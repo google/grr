@@ -1,26 +1,25 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.formDirective');
-goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
-goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.hunt.newHuntWizard.formDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
+const {ReflectionService} = goog.require('grrUi.core.reflectionService');
+
 
 /** @const {string} */
-grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL = '/config/' +
+exports.DEFAULT_PLUGIN_URL = '/config/' +
     'AdminUI.new_hunt_wizard.default_output_plugin';
-var DEFAULT_PLUGIN_URL =
-    grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL;
+var DEFAULT_PLUGIN_URL = exports.DEFAULT_PLUGIN_URL;
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+
 
 /**
  * Controller for FormDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ReflectionService} grrReflectionService
+ * @param {!ApiService} grrApiService
  * @constructor
  * @ngInject
  */
@@ -29,10 +28,10 @@ const FormController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  /** @private {!ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @private {!Object<string, Object>} */
@@ -144,7 +143,7 @@ FormController.prototype.resolve = function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.formDirective.FormDirective = function() {
+exports.FormDirective = function() {
   return {
     scope: {
       createHuntArgs: '=?',
@@ -165,7 +164,4 @@ grrUi.hunt.newHuntWizard.formDirective.FormDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.formDirective.FormDirective.directive_name =
-    'grrNewHuntWizardForm';
-
-});  // goog.scope
+exports.FormDirective.directive_name = 'grrNewHuntWizardForm';

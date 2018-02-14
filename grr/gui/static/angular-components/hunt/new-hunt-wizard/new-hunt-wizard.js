@@ -1,63 +1,44 @@
-goog.provide('grrUi.hunt.newHuntWizard.newHuntWizard');
-goog.provide('grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule');
+'use strict';
 
-goog.require('grrUi.core.core');  // USE: coreModule
+goog.module('grrUi.hunt.newHuntWizard.newHuntWizard');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.hunt.newHuntWizard.configureFlowPageDirective');  // USE: ConfigureFlowPageDirective
-goog.require('grrUi.hunt.newHuntWizard.configureHuntPageDirective');  // USE: ConfigureHuntPageDirective
-goog.require('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective');  // USE: ConfigureOutputPluginsPageDirective
-goog.require('grrUi.hunt.newHuntWizard.configureRulesPageDirective');  // USE: ConfigureRulesPageDirective
-goog.require('grrUi.hunt.newHuntWizard.copyFormDirective');  // USE: CopyFormDirective
-goog.require('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective');  // USE: CreateHuntFromFlowFormDirective
-goog.require('grrUi.hunt.newHuntWizard.formDirective');  // USE: FormDirective
-goog.require('grrUi.hunt.newHuntWizard.reviewPageDirective');  // USE: ReviewPageDirective
-goog.require('grrUi.hunt.newHuntWizard.statusPageDirective');  // USE: StatusPageDirective
+const {ConfigureFlowPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureFlowPageDirective');
+const {ConfigureHuntPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureHuntPageDirective');
+const {ConfigureOutputPluginsPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective');
+const {ConfigureRulesPageDirective} = goog.require('grrUi.hunt.newHuntWizard.configureRulesPageDirective');
+const {CopyFormDirective} = goog.require('grrUi.hunt.newHuntWizard.copyFormDirective');
+const {CreateHuntFromFlowFormDirective} = goog.require('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective');
+const {FormDirective} = goog.require('grrUi.hunt.newHuntWizard.formDirective');
+const {ReviewPageDirective} = goog.require('grrUi.hunt.newHuntWizard.reviewPageDirective');
+const {StatusPageDirective} = goog.require('grrUi.hunt.newHuntWizard.statusPageDirective');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 /**
  * Angular module for new hunt wizard UI.
  */
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule = angular.module(
-    'grrUi.hunt.newHuntWizard',
-    ['ui.bootstrap', grrUi.core.core.coreModule.name]);
+exports.newHuntWizardModule = angular.module(
+    'grrUi.hunt.newHuntWizard', ['ui.bootstrap', coreModule.name]);
 
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.configureFlowPageDirective
-        .ConfigureFlowPageDirective.directive_name,
-    grrUi.hunt.newHuntWizard.configureFlowPageDirective
-        .ConfigureFlowPageDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.configureHuntPageDirective
-        .ConfigureHuntPageDirective.directive_name,
-    grrUi.hunt.newHuntWizard.configureHuntPageDirective
-        .ConfigureHuntPageDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-        .ConfigureOutputPluginsPageDirective.directive_name,
-    grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-        .ConfigureOutputPluginsPageDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.configureRulesPageDirective
-        .ConfigureRulesPageDirective.directive_name,
-    grrUi.hunt.newHuntWizard.configureRulesPageDirective
-        .ConfigureRulesPageDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective
-        .directive_name,
-    grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective
-        .directive_name,
-    grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective);
+exports.newHuntWizardModule.directive(
+    ConfigureFlowPageDirective.directive_name, ConfigureFlowPageDirective);
+exports.newHuntWizardModule.directive(
+    ConfigureHuntPageDirective.directive_name, ConfigureHuntPageDirective);
+exports.newHuntWizardModule.directive(
+    ConfigureOutputPluginsPageDirective.directive_name,
+    ConfigureOutputPluginsPageDirective);
+exports.newHuntWizardModule.directive(
+    ConfigureRulesPageDirective.directive_name, ConfigureRulesPageDirective);
+exports.newHuntWizardModule.directive(
+    ReviewPageDirective.directive_name, ReviewPageDirective);
+exports.newHuntWizardModule.directive(
+    StatusPageDirective.directive_name, StatusPageDirective);
 
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective.directive_name,
-    grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.formDirective.FormDirective.directive_name,
-    grrUi.hunt.newHuntWizard.formDirective.FormDirective);
-grrUi.hunt.newHuntWizard.newHuntWizard.newHuntWizardModule.directive(
-    grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective
-        .CreateHuntFromFlowFormDirective.directive_name,
-    grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective
-        .CreateHuntFromFlowFormDirective);
+exports.newHuntWizardModule.directive(
+    CopyFormDirective.directive_name, CopyFormDirective);
+exports.newHuntWizardModule.directive(
+    FormDirective.directive_name, FormDirective);
+exports.newHuntWizardModule.directive(
+    CreateHuntFromFlowFormDirective.directive_name,
+    CreateHuntFromFlowFormDirective);

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.acl.clientApprovalViewDirective');
-goog.provide('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
+goog.module('grrUi.acl.clientApprovalViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ClientApprovalViewDirective.
@@ -45,7 +45,7 @@ const ClientApprovalViewController = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective = function() {
+exports.ClientApprovalViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -62,7 +62,4 @@ grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective = function() {
  * @const
  * @export
  */
-grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective.directive_name =
-    'grrClientApprovalView';
-
-});  // goog.scope
+exports.ClientApprovalViewDirective.directive_name = 'grrClientApprovalView';

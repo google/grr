@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntLogDirective');
-goog.provide('grrUi.hunt.huntLogDirective.HuntLogDirective');
-
-goog.scope(function() {
+goog.module('grrUi.hunt.huntLogDirective');
+goog.module.declareLegacyNamespace();
 
 
-/** @const {number} */
-grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /**
@@ -25,8 +34,7 @@ const HuntLogController = function($scope) {
   this.scope_.huntId;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.hunt.huntLogDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
@@ -93,7 +101,7 @@ HuntLogController.prototype.transformItems = function(items) {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntLogDirective.HuntLogDirective = function() {
+exports.HuntLogDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -112,6 +120,4 @@ grrUi.hunt.huntLogDirective.HuntLogDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntLogDirective.HuntLogDirective.directive_name = 'grrHuntLog';
-
-});  // goog.scope
+exports.HuntLogDirective.directive_name = 'grrHuntLog';

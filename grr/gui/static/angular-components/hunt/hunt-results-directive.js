@@ -1,12 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntResultsDirective');
-goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
+goog.module('grrUi.hunt.huntResultsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.fileDownloadUtils');  // USE: downloadableVfsRoots, getPathSpecFromValue, makeValueDownloadable, pathSpecToAff4Path
-goog.require('grrUi.core.utils');              // USE: stripAff4Prefix
-
-goog.scope(function() {
+const {downloadableVfsRoots, getPathSpecFromValue, makeValueDownloadable, pathSpecToAff4Path} = goog.require('grrUi.core.fileDownloadUtils');
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
 
@@ -73,20 +71,18 @@ HuntResultsController.prototype.transformItems = function(items) {
   var urlPrefix = '/hunts/' + this.scope_['huntId'] + '/results/clients';
 
   var newItems = items.map(function(item) {
-    var pathSpec = grrUi.core.fileDownloadUtils.getPathSpecFromValue(item);
+    var pathSpec = getPathSpecFromValue(item);
     if (!pathSpec) {
       return item;
     }
 
     var clientId = item['value']['client_id']['value'];
-    var aff4Path = grrUi.core.utils.stripAff4Prefix(
-        grrUi.core.fileDownloadUtils.pathSpecToAff4Path(pathSpec, clientId));
+    var aff4Path = stripAff4Prefix(pathSpecToAff4Path(pathSpec, clientId));
 
     var components = aff4Path.split('/');
     var vfsPath = components.slice(1).join('/');
 
-    var downloadableVfsRoots =
-        grrUi.core.fileDownloadUtils.downloadableVfsRoots;
+
 
     var legitimatePath = downloadableVfsRoots.some(function(vfsRoot) {
       var prefix = vfsRoot + '/';
@@ -101,8 +97,7 @@ HuntResultsController.prototype.transformItems = function(items) {
     var downloadParams = {'timestamp': item['value']['timestamp']['value']};
 
     var downloadableItem = angular.copy(item);
-    grrUi.core.fileDownloadUtils.makeValueDownloadable(
-        downloadableItem, downloadUrl, downloadParams);
+    makeValueDownloadable(downloadableItem, downloadUrl, downloadParams);
 
     return downloadableItem;
   });
@@ -118,7 +113,7 @@ HuntResultsController.prototype.transformItems = function(items) {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntResultsDirective.HuntResultsDirective = function() {
+exports.HuntResultsDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -137,7 +132,4 @@ grrUi.hunt.huntResultsDirective.HuntResultsDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntResultsDirective.HuntResultsDirective.directive_name =
-    'grrHuntResults';
-
-});  // goog.scope
+exports.HuntResultsDirective.directive_name = 'grrHuntResults';

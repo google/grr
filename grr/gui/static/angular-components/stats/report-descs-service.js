@@ -1,11 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportDescsService');
-goog.provide('grrUi.stats.reportDescsService.ReportDescsService');
+goog.module('grrUi.stats.reportDescsService');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
 
 /**
@@ -13,16 +11,15 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.$q} $q
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @ngInject
  * @export
  */
-grrUi.stats.reportDescsService.ReportDescsService = function(
-    $q, grrApiService) {
+exports.ReportDescsService = function($q, grrApiService) {
   /** @private {!angular.$q} */
   this.q_ = $q;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @private {*} */
@@ -31,7 +28,7 @@ grrUi.stats.reportDescsService.ReportDescsService = function(
   /** @private {*} */
   this.descsByName_;
 };
-var ReportDescsService = grrUi.stats.reportDescsService.ReportDescsService;
+var ReportDescsService = exports.ReportDescsService;
 
 ReportDescsService.service_name = 'grrReportDescsService';
 
@@ -54,8 +51,7 @@ ReportDescsService.prototype.getDescs = function() {
   }
   else {
     this.grrApiService_.get('stats/reports').then(function(response) {
-      this.reports_ = grrUi.core.apiService.stripTypeInfo(
-          response['data']['reports']);
+      this.reports_ = stripTypeInfo(response['data']['reports']);
 
       deferred.resolve(this.reports_);
     }.bind(this));
@@ -97,4 +93,3 @@ ReportDescsService.prototype.getDescByName = function(name) {
 };
 
 
-});  // goog.scope

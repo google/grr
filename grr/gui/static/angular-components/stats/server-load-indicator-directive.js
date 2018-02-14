@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.stats.serverLoadIndicatorDirective');
-goog.provide('grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective');
-
-goog.scope(function() {
+goog.module('grrUi.stats.serverLoadIndicatorDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -56,19 +54,16 @@ const ServerLoadIndicatorController =
  * @ngInject
  * @export
  */
-grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective =
-    function() {
-      return {
-        scope: {
-          status: '='
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/stats/' +
-            'server-load-indicator.html',
-        controller: ServerLoadIndicatorController,
-        controllerAs: 'controller'
-      };
-    };
+exports.ServerLoadIndicatorDirective = function() {
+  return {
+    scope: {status: '='},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/stats/' +
+        'server-load-indicator.html',
+    controller: ServerLoadIndicatorController,
+    controllerAs: 'controller'
+  };
+};
 
 
 /**
@@ -77,7 +72,4 @@ grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective =
  * @const
  * @export
  */
-grrUi.stats.serverLoadIndicatorDirective.
-    ServerLoadIndicatorDirective.directive_name = 'grrServerLoadIndicator';
-
-});  // goog.scope
+exports.ServerLoadIndicatorDirective.directive_name = 'grrServerLoadIndicator';

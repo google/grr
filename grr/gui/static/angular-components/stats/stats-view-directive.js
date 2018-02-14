@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.stats.statsViewDirective');
-goog.provide('grrUi.stats.statsViewDirective.StatsViewDirective');
+goog.module('grrUi.stats.statsViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for StatsViewDirective.
@@ -124,7 +124,7 @@ StatsViewController.prototype.onControllerParamsChange_ = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.stats.statsViewDirective.StatsViewDirective = function() {
+exports.StatsViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -141,7 +141,4 @@ grrUi.stats.statsViewDirective.StatsViewDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.statsViewDirective.StatsViewDirective.directive_name =
-    'grrStatsView';
-
-});  // goog.scope
+exports.StatsViewDirective.directive_name = 'grrStatsView';

@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.acl.huntApprovalViewDirective');
-goog.provide('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
+goog.module('grrUi.acl.huntApprovalViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for HuntApprovalViewDirective.
@@ -48,7 +48,7 @@ const HuntApprovalViewController = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective = function() {
+exports.HuntApprovalViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -65,7 +65,4 @@ grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective = function() {
  * @const
  * @export
  */
-grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective.directive_name =
-    'grrHuntApprovalView';
-
-});  // goog.scope
+exports.HuntApprovalViewDirective.directive_name = 'grrHuntApprovalView';

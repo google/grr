@@ -1,16 +1,16 @@
 'use strict';
 
-goog.provide('grrUi.acl.huntFromHuntCopyReviewDirective');
-goog.provide('grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective');
+goog.module('grrUi.acl.huntFromHuntCopyReviewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * HuntFromHuntCopyReviewDirective definition.
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective = function() {
+exports.HuntFromHuntCopyReviewDirective = function() {
   return {
     scope: {
       sourceHunt: '=',
@@ -28,7 +28,5 @@ grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective = func
  * @const
  * @export
  */
-grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective.directive_name =
+exports.HuntFromHuntCopyReviewDirective.directive_name =
     'grrHuntFromHuntCopyReview';
-
-});  // goog.scope

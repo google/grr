@@ -1,15 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.acl.requestApprovalDialogDirective');
-goog.provide('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
+goog.module('grrUi.acl.requestApprovalDialogDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: stringToList
+const {stringToList} = goog.require('grrUi.core.utils');
 
-
-goog.scope(function() {
-
-
-var stringToList = grrUi.core.utils.stringToList;
 
 
 /**
@@ -166,8 +161,7 @@ RequestApprovalDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective =
-    function() {
+exports.RequestApprovalDialogDirective = function() {
   return {
     scope: {
       approvalType: '=',
@@ -190,8 +184,5 @@ grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective =
  * @const
  * @export
  */
-grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective
-    .directive_name = 'grrRequestApprovalDialog';
-
-
-});
+exports.RequestApprovalDialogDirective.directive_name =
+    'grrRequestApprovalDialog';

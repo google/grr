@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntGraphDirective');
-goog.provide('grrUi.hunt.huntGraphDirective.HuntGraphDirective');
+goog.module('grrUi.hunt.huntGraphDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -146,16 +145,14 @@ HuntGraphController.prototype.drawGraph_ = function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntGraphDirective.HuntGraphDirective = function() {
-    return {
-        scope: {
-            huntId: '='
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/hunt/hunt-graph.html',
-        controller: HuntGraphController,
-        controllerAs: 'controller'
-    };
+exports.HuntGraphDirective = function() {
+  return {
+    scope: {huntId: '='},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/hunt/hunt-graph.html',
+    controller: HuntGraphController,
+    controllerAs: 'controller'
+  };
 };
 
 
@@ -165,8 +162,4 @@ grrUi.hunt.huntGraphDirective.HuntGraphDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntGraphDirective.HuntGraphDirective.directive_name =
-    'grrHuntGraph';
-
-
-});  // goog.scope
+exports.HuntGraphDirective.directive_name = 'grrHuntGraph';

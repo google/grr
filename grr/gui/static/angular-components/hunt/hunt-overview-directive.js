@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntOverviewDirective');
-goog.provide('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
-
-goog.scope(function() {
+goog.module('grrUi.hunt.huntOverviewDirective');
+goog.module.declareLegacyNamespace();
 
 
-/** @const {number} */
-grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /**
@@ -64,7 +73,7 @@ HuntOverviewController.prototype.startPolling_ = function() {
     this.huntId = this.scope_['huntId'];
 
     var huntUrl = 'hunts/' + this.huntId;
-    var interval = grrUi.hunt.huntOverviewDirective.AUTO_REFRESH_INTERVAL_MS;
+    var interval = AUTO_REFRESH_INTERVAL_MS;
 
     this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
     this.pollPromise_.then(
@@ -84,7 +93,7 @@ HuntOverviewController.prototype.startPolling_ = function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntOverviewDirective.HuntOverviewDirective = function() {
+exports.HuntOverviewDirective = function() {
   return {
     scope: {
       huntId: '=',
@@ -103,7 +112,4 @@ grrUi.hunt.huntOverviewDirective.HuntOverviewDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntOverviewDirective.HuntOverviewDirective.directive_name =
-    'grrHuntOverview';
-
-});  // goog.scope
+exports.HuntOverviewDirective.directive_name = 'grrHuntOverview';

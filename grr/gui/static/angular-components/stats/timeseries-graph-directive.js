@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.stats.timeseriesGraphDirective');
-goog.provide('grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective');
+goog.module('grrUi.stats.timeseriesGraphDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /** @typedef {{
  *             label:string,
@@ -11,7 +11,7 @@ goog.scope(function() {
  *             requestOptions:Object
  *           }}
  */
-grrUi.stats.timeseriesGraphDirective.TimeserieDescriptor;
+let TimeserieDescriptor;
 
 /**
  * Controller for TimeseriesGraphDirective.
@@ -40,7 +40,7 @@ const TimeseriesGraphController = function(
   /** @export {Array.<number>} */
   this.timeRange = [NaN, NaN];
 
-  /** @export {Array.<grrUi.stats.timeseriesGraphDirective.TimeserieDescriptor>} */
+  /** @export {Array.<TimeserieDescriptor>} */
   this.seriesDescriptors = [];
 
   /** @export {!Object.<string, Object>} */
@@ -150,7 +150,7 @@ TimeseriesGraphController.prototype.onConfigurationChange_ = function() {
  * Adds new timeseries specification. Called by nested
  * TimeseriesGraphSerie directives.
  *
- * @param {!grrUi.stats.timeseriesGraphDirective.TimeserieDescriptor} descriptor
+ * @param {!TimeserieDescriptor} descriptor
  * @export
  */
 TimeseriesGraphController.prototype.addSerieDescriptor = function(descriptor) {
@@ -207,7 +207,7 @@ TimeseriesGraphController.prototype.buildGraphIfNeeded_ = function() {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective = function() {
+exports.TimeseriesGraphDirective = function() {
   return {
     scope: {
       title: '@',
@@ -230,7 +230,4 @@ grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective.directive_name =
-    'grrTimeseriesGraph';
-
-});  // goog.scope
+exports.TimeseriesGraphDirective.directive_name = 'grrTimeseriesGraph';

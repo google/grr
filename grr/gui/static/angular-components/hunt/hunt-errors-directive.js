@@ -1,13 +1,22 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntErrorsDirective');
-goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
-
-goog.scope(function() {
+goog.module('grrUi.hunt.huntErrorsDirective');
+goog.module.declareLegacyNamespace();
 
 
-/** @const {number} */
-grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/** @type {number} */
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
+
+/**
+ * Sets the delay between automatic refreshes.
+ *
+ * @param {number} millis Interval value in milliseconds.
+ * @export
+ */
+exports.setAutoRefreshInterval = function(millis) {
+  AUTO_REFRESH_INTERVAL_MS = millis;
+};
 
 
 /**
@@ -28,8 +37,7 @@ const HuntErrorsController = function($scope) {
   this.errorsUrl;
 
   /** @type {number} */
-  this.autoRefreshInterval =
-      grrUi.hunt.huntErrorsDirective.AUTO_REFRESH_INTERVAL_MS;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
 };
@@ -56,7 +64,7 @@ HuntErrorsController.prototype.onHuntIdChange_ = function(huntId) {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntErrorsDirective.HuntErrorsDirective = function() {
+exports.HuntErrorsDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -75,7 +83,4 @@ grrUi.hunt.huntErrorsDirective.HuntErrorsDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntErrorsDirective.HuntErrorsDirective.directive_name =
-    'grrHuntErrors';
-
-});  // goog.scope
+exports.HuntErrorsDirective.directive_name = 'grrHuntErrors';

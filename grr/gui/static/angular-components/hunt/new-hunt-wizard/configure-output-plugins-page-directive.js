@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective.ConfigureOutputPluginsPageDirective');
+goog.module('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for ConfigureOutputPluginsPageDirective.
@@ -52,12 +52,11 @@ ConfigureOutputPluginsPageController.prototype.onDescriptors_ = function(
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-    .ConfigureOutputPluginsPageDirective = function() {
+exports.ConfigureOutputPluginsPageDirective = function() {
   return {
     scope: {
       outputPlugins: '=',
@@ -77,8 +76,5 @@ grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective
-    .ConfigureOutputPluginsPageDirective
-    .directive_name = 'grrConfigureOutputPluginsPage';
-
-});  // goog.scope
+exports.ConfigureOutputPluginsPageDirective.directive_name =
+    'grrConfigureOutputPluginsPage';

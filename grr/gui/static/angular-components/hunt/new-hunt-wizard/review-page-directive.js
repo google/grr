@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.reviewPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective');
+goog.module('grrUi.hunt.newHuntWizard.reviewPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
@@ -12,7 +12,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective = function() {
+exports.ReviewPageDirective = function() {
   return {
     scope: {
       createHuntArgs: '='
@@ -30,7 +30,4 @@ grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.reviewPageDirective
-    .ReviewPageDirective
-    .directive_name = 'grrNewHuntReviewPage';
-});  // goog.scope
+exports.ReviewPageDirective.directive_name = 'grrNewHuntReviewPage';

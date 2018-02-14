@@ -434,6 +434,56 @@ def CleanClientVersions(clients=None, dry_run=True, token=None):
       logging.info("%s: kept %d and cleared %d", client, kept, cleared)
 
 
+def CleanVacuousVersions(clients=None, dry_run=True):
+  """A script to remove no-op client versions.
+
+  This script removes versions of a client when it is identical to the previous,
+  in the sense that no versioned attributes were changed since the previous
+  client version.
+
+  Args:
+    clients: A list of ClientURN, if empty cleans all clients.
+    dry_run: whether this is a dry run
+  """
+
+  if not clients:
+    index = client_index.CreateClientIndex()
+    clients = index.LookupClients(["."])
+  clients.sort()
+  with data_store.DB.GetMutationPool() as pool:
+
+    logging.info("checking %d clients", len(clients))
+    for batch in utils.Grouper(clients, 10000):
+      # TODO(amoser): This only works on datastores that use the Bigtable
+      # scheme.
+      client_infos = data_store.DB.MultiResolvePrefix(
+          batch, ["aff4:", "aff4:"], data_store.DB.ALL_TIMESTAMPS)
+
+      for client, type_list in client_infos:
+        cleared = 0
+        kept = 0
+        updates = []
+        for a, _, ts in type_list:
+          if ts != 0:
+            updates.append((ts, a))
+        updates = sorted(updates)
+        dirty = True
+        for ts, a in updates:
+          if a == "aff4:type":
+            if dirty:
+              kept += 1
+              dirty = False
+            else:
+              cleared += 1
+              if not dry_run:
+                pool.DeleteAttributes(client, ["aff4:type"], start=ts, end=ts)
+                if pool.Size() > 1000:
+                  pool.Flush()
+          else:
+            dirty = True
+        logging.info("%s: kept %d and cleared %d", client, kept, cleared)
+
+
 def ExportClientsByKeywords(keywords, filename, token=None):
   r"""A script to export clients summaries selected by a keyword search.
 

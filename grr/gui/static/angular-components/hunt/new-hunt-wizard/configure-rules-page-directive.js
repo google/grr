@@ -1,19 +1,18 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective');
-goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective.ConfigureRulesPageDirective');
+goog.module('grrUi.hunt.newHuntWizard.configureRulesPageDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
  *
- * @constructor
+ * @return {!angular.Directive} Directive definition object.
  * @ngInject
  * @export
  */
-grrUi.hunt.newHuntWizard.configureRulesPageDirective
-    .ConfigureRulesPageDirective = function() {
+exports.ConfigureRulesPageDirective = function() {
   return {
     scope: {
       clientRuleSet: '=',
@@ -31,8 +30,4 @@ grrUi.hunt.newHuntWizard.configureRulesPageDirective
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.configureRulesPageDirective
-    .ConfigureRulesPageDirective
-    .directive_name = 'grrConfigureRulesPage';
-
-});  // goog.scope
+exports.ConfigureRulesPageDirective.directive_name = 'grrConfigureRulesPage';

@@ -1,56 +1,44 @@
-goog.provide('grrUi.acl.acl');
-goog.provide('grrUi.acl.acl.aclModule');
-goog.require('grrUi.acl.aclDialogService');       // USE: AclDialogService
-goog.require('grrUi.acl.approvalInfoDirective');  // USE: ApprovalInfoDirective
-goog.require('grrUi.acl.clientApprovalViewDirective');  // USE: ClientApprovalViewDirective
-goog.require('grrUi.acl.cronJobApprovalViewDirective');  // USE: CronJobApprovalViewDirective
-goog.require('grrUi.acl.huntApprovalViewDirective');  // USE: HuntApprovalViewDirective
-goog.require('grrUi.acl.huntFromFlowCopyReviewDirective');  // USE: HuntFromFlowCopyReviewDirective
-goog.require('grrUi.acl.huntFromHuntCopyReviewDirective');  // USE: HuntFromHuntCopyReviewDirective
-goog.require('grrUi.acl.requestApprovalDialogDirective');  // USE: RequestApprovalDialogDirective
-goog.require('grrUi.core.apiService');  // USE: UNAUTHORIZED_API_RESPONSE_EVENT
+'use strict';
+
+goog.module('grrUi.acl.acl');
+goog.module.declareLegacyNamespace();
+
+const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
+const {ApprovalInfoDirective} = goog.require('grrUi.acl.approvalInfoDirective');
+const {ClientApprovalViewDirective} = goog.require('grrUi.acl.clientApprovalViewDirective');
+const {CronJobApprovalViewDirective} = goog.require('grrUi.acl.cronJobApprovalViewDirective');
+const {HuntApprovalViewDirective} = goog.require('grrUi.acl.huntApprovalViewDirective');
+const {HuntFromFlowCopyReviewDirective} = goog.require('grrUi.acl.huntFromFlowCopyReviewDirective');
+const {HuntFromHuntCopyReviewDirective} = goog.require('grrUi.acl.huntFromHuntCopyReviewDirective');
+const {RequestApprovalDialogDirective} = goog.require('grrUi.acl.requestApprovalDialogDirective');
+const {UNAUTHORIZED_API_RESPONSE_EVENT} = goog.require('grrUi.core.apiService');
 
 /**
  * Angular module for acl GRR UI components.
  */
-grrUi.acl.acl.aclModule = angular.module('grrUi.acl', ['grrUi.core']);
+exports.aclModule = angular.module('grrUi.acl', ['grrUi.core']);
 
-grrUi.acl.acl.aclModule.service(
-    grrUi.acl.aclDialogService.AclDialogService.service_name,
-    grrUi.acl.aclDialogService.AclDialogService);
+exports.aclModule.service(AclDialogService.service_name, AclDialogService);
 
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.approvalInfoDirective.ApprovalInfoDirective.directive_name,
-    grrUi.acl.approvalInfoDirective.ApprovalInfoDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective
-        .directive_name,
-    grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective
-        .directive_name,
-    grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective
-        .directive_name,
-    grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective
-        .directive_name,
-    grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective
-        .directive_name,
-    grrUi.acl.huntFromHuntCopyReviewDirective.HuntFromHuntCopyReviewDirective);
-grrUi.acl.acl.aclModule.directive(
-    grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective
-        .directive_name,
-    grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective);
+exports.aclModule.directive(
+    ApprovalInfoDirective.directive_name, ApprovalInfoDirective);
+exports.aclModule.directive(
+    ClientApprovalViewDirective.directive_name, ClientApprovalViewDirective);
+exports.aclModule.directive(
+    CronJobApprovalViewDirective.directive_name, CronJobApprovalViewDirective);
+exports.aclModule.directive(
+    HuntApprovalViewDirective.directive_name, HuntApprovalViewDirective);
+exports.aclModule.directive(
+    HuntFromFlowCopyReviewDirective.directive_name,
+    HuntFromFlowCopyReviewDirective);
+exports.aclModule.directive(
+    HuntFromHuntCopyReviewDirective.directive_name,
+    HuntFromHuntCopyReviewDirective);
+exports.aclModule.directive(
+    RequestApprovalDialogDirective.directive_name,
+    RequestApprovalDialogDirective);
 
-grrUi.acl.acl.aclModule.run(function($rootScope, grrAclDialogService) {
-  var UNAUTHORIZED_API_RESPONSE_EVENT =
-      grrUi.core.apiService.UNAUTHORIZED_API_RESPONSE_EVENT;
-
+exports.aclModule.run(function($rootScope, grrAclDialogService) {
   // Listen to UnauthorizedApiResponse events and show the approval
   // dialog when they're fired (see core/api-service.js for the
   // source of the events).

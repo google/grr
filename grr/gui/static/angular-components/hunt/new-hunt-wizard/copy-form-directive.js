@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective');
-goog.provide('grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective');
+goog.module('grrUi.hunt.newHuntWizard.copyFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for CopyFormDirective.
@@ -87,7 +87,7 @@ CopyFormController.prototype.onHuntFetched_ = function(response) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective = function() {
+exports.CopyFormDirective = function() {
   return {
     scope: {
       huntId: '=',
@@ -109,7 +109,4 @@ grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective.directive_name =
-    'grrNewHuntWizardCopyForm';
-
-});  // goog.scope
+exports.CopyFormDirective.directive_name = 'grrNewHuntWizardCopyForm';

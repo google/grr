@@ -1,12 +1,12 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntsListDirective');
-goog.provide('grrUi.hunt.huntsListDirective.HuntsListDirective');
+goog.module('grrUi.hunt.huntsListDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
-
-goog.scope(function() {
-
+const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
+const {ApiService} = goog.require('grrUi.core.apiService');
+const {DialogService} = goog.require('grrUi.core.dialogService');
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
 /**
@@ -16,9 +16,9 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
  * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
- * @param {grrUi.core.dialogService.DialogService} grrDialogService
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
+ * @param {DialogService} grrDialogService
+ * @param {!ApiService} grrApiService
+ * @param {!AclDialogService} grrAclDialogService
  * @ngInject
  */
 const HuntsListController = function(
@@ -35,13 +35,13 @@ const HuntsListController = function(
   /** @private {!angularUi.$uibModal} */
   this.uibModal_ = $uibModal;
 
-  /** @private {grrUi.core.dialogService.DialogService} */
+  /** @private {DialogService} */
   this.grrDialogService_ = grrDialogService;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+  /** @private {!AclDialogService} */
   this.grrAclDialogService_ = grrAclDialogService;
 
   // Internal state.
@@ -77,12 +77,33 @@ const HuntsListController = function(
 HuntsListController.prototype.huntsUrl = '/hunts';
 
 
+/**
+ * Computes an URL to currently selected hunt.
+ *
+ * @return {string} URL to the selected hunt.
+ *
+ * @private
+ */
 HuntsListController.prototype.buildHuntUrl_ = function() {
   var components = this.scope_['selectedHuntId'].split('/');
   var basename = components[components.length - 1];
   return this.huntsUrl + '/' + basename;
 };
 
+
+/*
+ * TODO(hanuszczak): The method below looks like a duplication with
+ * `CronJobsListController.wrapApiPromise_`. Maybe these can be merged into one
+ * method instead?
+ */
+
+/**
+ * @param {!angular.$q.Promise} promise A promise to wrap.
+ * @param {string} successMessage Message to return on success.
+ * @return {!angular.$q.Promise} Wrapped promise.
+ *
+ * @private
+ */
 HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage) {
     return promise.then(
         function success() {
@@ -93,8 +114,7 @@ HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage
 
           if (response['status'] === 403) {
             var subject = response['data']['subject'];
-            var huntId = grrUi.core.utils.stripAff4Prefix(
-                subject).split('/')[1];
+            var huntId = stripAff4Prefix(subject).split('/')[1];
 
             this.grrAclDialogService_.openRequestHuntApprovalDialog(
                 huntId, message);
@@ -303,7 +323,7 @@ HuntsListController.prototype.transformItems = function(items) {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.huntsListDirective.HuntsListDirective = function() {
+exports.HuntsListDirective = function() {
   return {
     scope: {
       selectedHuntId: '=?'
@@ -322,8 +342,4 @@ grrUi.hunt.huntsListDirective.HuntsListDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntsListDirective.HuntsListDirective.directive_name =
-    'grrHuntsList';
-
-
-});  // goog.scope
+exports.HuntsListDirective.directive_name = 'grrHuntsList';

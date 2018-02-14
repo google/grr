@@ -1,62 +1,46 @@
 'use strict';
 
-goog.provide('grrUi.stats.stats');
-goog.provide('grrUi.stats.stats.statsModule');
+goog.module('grrUi.stats.stats');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.core');                     // USE: coreModule
-goog.require('grrUi.stats.auditChartDirective');     // USE: AuditChartDirective
-goog.require('grrUi.stats.chartDirective');          // USE: ChartDirective
-goog.require('grrUi.stats.reportDescsService');      // USE: ReportDescsService
-goog.require('grrUi.stats.reportDirective');         // USE: ReportDirective
-goog.require('grrUi.stats.reportListingDirective');  // USE: ReportListingDirective
-goog.require('grrUi.stats.serverLoadDirective');  // USE: ServerLoadDirective, ServerLoadIndicatorService
-goog.require('grrUi.stats.serverLoadGraphSerieDirective');  // USE: ServerLoadGraphSerieDirective
-goog.require('grrUi.stats.serverLoadIndicatorDirective');  // USE: ServerLoadIndicatorDirective
-goog.require('grrUi.stats.statsViewDirective');  // USE: StatsViewDirective
-goog.require('grrUi.stats.timeseriesGraphDirective');  // USE: TimeseriesGraphDirective
+const {AuditChartDirective} = goog.require('grrUi.stats.auditChartDirective');
+const {ChartDirective} = goog.require('grrUi.stats.chartDirective');
+const {ReportDescsService} = goog.require('grrUi.stats.reportDescsService');
+const {ReportDirective} = goog.require('grrUi.stats.reportDirective');
+const {ReportListingDirective} = goog.require('grrUi.stats.reportListingDirective');
+const {ServerLoadDirective, ServerLoadIndicatorService} = goog.require('grrUi.stats.serverLoadDirective');
+const {ServerLoadGraphSerieDirective} = goog.require('grrUi.stats.serverLoadGraphSerieDirective');
+const {ServerLoadIndicatorDirective} = goog.require('grrUi.stats.serverLoadIndicatorDirective');
+const {StatsViewDirective} = goog.require('grrUi.stats.statsViewDirective');
+const {TimeseriesGraphDirective} = goog.require('grrUi.stats.timeseriesGraphDirective');
+const {coreModule} = goog.require('grrUi.core.core');
 
 
 /**
  * Angular module for stats-related UI.
  */
-grrUi.stats.stats.statsModule =
-    angular.module('grrUi.stats', [grrUi.core.core.coreModule.name]);
+exports.statsModule = angular.module('grrUi.stats', [coreModule.name]);
 
 
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.auditChartDirective.AuditChartDirective.directive_name,
-    grrUi.stats.auditChartDirective.AuditChartDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.chartDirective.ChartDirective.directive_name,
-    grrUi.stats.chartDirective.ChartDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.reportDirective.ReportDirective.directive_name,
-    grrUi.stats.reportDirective.ReportDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.reportListingDirective.ReportListingDirective.directive_name,
-    grrUi.stats.reportListingDirective.ReportListingDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.serverLoadDirective.ServerLoadDirective.directive_name,
-    grrUi.stats.serverLoadDirective.ServerLoadDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective
-        .directive_name,
-    grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective
-        .directive_name,
-    grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.statsViewDirective.StatsViewDirective.directive_name,
-    grrUi.stats.statsViewDirective.StatsViewDirective);
-grrUi.stats.stats.statsModule.directive(
-    grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective
-        .directive_name,
-    grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective);
+exports.statsModule.directive(
+    AuditChartDirective.directive_name, AuditChartDirective);
+exports.statsModule.directive(ChartDirective.directive_name, ChartDirective);
+exports.statsModule.directive(ReportDirective.directive_name, ReportDirective);
+exports.statsModule.directive(
+    ReportListingDirective.directive_name, ReportListingDirective);
+exports.statsModule.directive(
+    ServerLoadDirective.directive_name, ServerLoadDirective);
+exports.statsModule.directive(
+    ServerLoadGraphSerieDirective.directive_name,
+    ServerLoadGraphSerieDirective);
+exports.statsModule.directive(
+    ServerLoadIndicatorDirective.directive_name, ServerLoadIndicatorDirective);
+exports.statsModule.directive(
+    StatsViewDirective.directive_name, StatsViewDirective);
+exports.statsModule.directive(
+    TimeseriesGraphDirective.directive_name, TimeseriesGraphDirective);
 
-grrUi.stats.stats.statsModule.service(
-    grrUi.stats.serverLoadDirective.ServerLoadIndicatorService.service_name,
-    grrUi.stats.serverLoadDirective.ServerLoadIndicatorService);
-grrUi.stats.stats.statsModule.service(
-    grrUi.stats.reportDescsService.ReportDescsService.service_name,
-    grrUi.stats.reportDescsService.ReportDescsService);
+exports.statsModule.service(
+    ServerLoadIndicatorService.service_name, ServerLoadIndicatorService);
+exports.statsModule.service(
+    ReportDescsService.service_name, ReportDescsService);

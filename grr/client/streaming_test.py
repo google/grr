@@ -5,7 +5,7 @@ import os
 
 import unittest
 from grr.client import streaming
-from grr.client.client_actions import file_finder
+from grr.client.client_actions.file_finder_utils import conditions
 from grr.lib import flags
 from grr.test_lib import test_lib
 
@@ -127,12 +127,12 @@ class FileStreamerTest(unittest.TestCase):
 
 class ChunkTest(unittest.TestCase):
 
-  Span = file_finder.Matcher.Span  # pylint: disable=invalid-name
+  Span = conditions.Matcher.Span  # pylint: disable=invalid-name
 
   def testScanSingleHit(self):
     data = "foobarbaz"
     chunk = streaming.Chunk(offset=0, data=data)
-    spans = list(chunk.Scan(file_finder.LiteralMatcher("bar")))
+    spans = list(chunk.Scan(conditions.LiteralMatcher("bar")))
 
     self.assertEqual(len(spans), 1)
     self.assertEqual(spans[0], self.Span(begin=3, end=6))
@@ -140,7 +140,7 @@ class ChunkTest(unittest.TestCase):
   def testScanMultiHit(self):
     data = "foobarfoo"
     chunk = streaming.Chunk(offset=0, data=data)
-    spans = list(chunk.Scan(file_finder.LiteralMatcher("foo")))
+    spans = list(chunk.Scan(conditions.LiteralMatcher("foo")))
 
     self.assertEqual(len(spans), 2)
     self.assertEqual(spans[0], self.Span(begin=0, end=3))
@@ -149,7 +149,7 @@ class ChunkTest(unittest.TestCase):
   def testScanOverlappedHits(self):
     data = "xoxoxoxo"
     chunk = streaming.Chunk(offset=0, data=data)
-    spans = list(chunk.Scan(file_finder.LiteralMatcher("xoxo")))
+    spans = list(chunk.Scan(conditions.LiteralMatcher("xoxo")))
 
     self.assertEqual(len(spans), 2)
     self.assertEqual(spans[0], self.Span(begin=0, end=4))
@@ -158,7 +158,7 @@ class ChunkTest(unittest.TestCase):
   def testScanWithOverlap(self):
     data = "foofoobarfoofoo"
     chunk = streaming.Chunk(offset=0, data=data, overlap=8)
-    spans = list(chunk.Scan(file_finder.LiteralMatcher("foo")))
+    spans = list(chunk.Scan(conditions.LiteralMatcher("foo")))
 
     self.assertEqual(len(spans), 2)
     self.assertEqual(spans[0], self.Span(begin=9, end=12))
@@ -167,7 +167,7 @@ class ChunkTest(unittest.TestCase):
   def testScanWithOverlapOverlapping(self):
     data = "oooooo"
     chunk = streaming.Chunk(offset=0, data=data, overlap=3)
-    spans = list(chunk.Scan(file_finder.LiteralMatcher("oo")))
+    spans = list(chunk.Scan(conditions.LiteralMatcher("oo")))
 
     self.assertEqual(len(spans), 2)
     self.assertEqual(spans[0], self.Span(begin=2, end=4))

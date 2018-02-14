@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.acl.cronJobApprovalViewDirective');
-goog.provide('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
+goog.module('grrUi.acl.cronJobApprovalViewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for CronJobApprovalViewDirective.
@@ -45,7 +45,7 @@ const CronJobApprovalViewController = function(
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective = function() {
+exports.CronJobApprovalViewDirective = function() {
   return {
     scope: {},
     restrict: 'E',
@@ -62,7 +62,4 @@ grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective = function()
  * @const
  * @export
  */
-grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective.directive_name =
-    'grrCronJobApprovalView';
-
-});  // goog.scope
+exports.CronJobApprovalViewDirective.directive_name = 'grrCronJobApprovalView';

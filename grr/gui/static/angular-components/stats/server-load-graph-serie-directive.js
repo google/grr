@@ -1,9 +1,7 @@
 'use strict';
 
-goog.provide('grrUi.stats.serverLoadGraphSerieDirective');
-goog.provide('grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective');
-
-goog.scope(function() {
+goog.module('grrUi.stats.serverLoadGraphSerieDirective');
+goog.module.declareLegacyNamespace();
 
 
 
@@ -13,43 +11,39 @@ goog.scope(function() {
  * @return {angular.Directive} Directive definition object.
  * @export
  */
-grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective =
-    function() {
-      return {
-        scope: {
-          component: '@',
-          metric: '@',
-          rate: '@',
-          aggregation: '@',
-          distributionHandling: '@',
-          label: '@'
-        },
-        restrict: 'E',
-        require: '^grrTimeseriesGraph',
-        link: function(scope, element, attrs, grrTimeseriesGrpahCtrl) {
-          var options = {};
+exports.ServerLoadGraphSerieDirective = function() {
+  return {
+    scope: {
+      component: '@',
+      metric: '@',
+      rate: '@',
+      aggregation: '@',
+      distributionHandling: '@',
+      label: '@'
+    },
+    restrict: 'E',
+    require: '^grrTimeseriesGraph',
+    link: function(scope, element, attrs, grrTimeseriesGrpahCtrl) {
+      var options = {};
 
-          if (scope.distributionHandling) {
-            options['distribution_handling_mode'] = scope.distributionHandling;
-          }
-          if (scope.aggregation) {
-            options['aggregation_mode'] = scope.aggregation;
-          }
-          if (scope.rate) {
-            options['rate'] = scope.rate;
-          }
+      if (scope.distributionHandling) {
+        options['distribution_handling_mode'] = scope.distributionHandling;
+      }
+      if (scope.aggregation) {
+        options['aggregation_mode'] = scope.aggregation;
+      }
+      if (scope.rate) {
+        options['rate'] = scope.rate;
+      }
 
-          var path = 'stats/store/' + scope.component.toUpperCase() +
-              '/metrics/' + scope.metric;
+      var path = 'stats/store/' + scope.component.toUpperCase() + '/metrics/' +
+          scope.metric;
 
-          grrTimeseriesGrpahCtrl.addSerieDescriptor({
-            label: scope.label,
-            requestPath: path,
-            requestOptions: options
-          });
-        }
-      };
-    };
+      grrTimeseriesGrpahCtrl.addSerieDescriptor(
+          {label: scope.label, requestPath: path, requestOptions: options});
+    }
+  };
+};
 
 
 /**
@@ -58,8 +52,5 @@ grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective =
  * @const
  * @export
  */
-grrUi.stats.serverLoadGraphSerieDirective.
-    ServerLoadGraphSerieDirective.directive_name = 'grrServerLoadGraphSerie';
-
-
-});  // goog.scope
+exports.ServerLoadGraphSerieDirective.directive_name =
+    'grrServerLoadGraphSerie';

@@ -1,10 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntStatusIconDirective');
-goog.provide('grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective');
+goog.module('grrUi.hunt.huntStatusIconDirective');
+goog.module.declareLegacyNamespace();
 
-
-goog.scope(function() {
 
 
 /**
@@ -14,21 +12,16 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective =
-    function() {
-      return {
-        scope: {
-          hunt: '='
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/hunt/hunt-status-icon.html'
-      };
-    };
+exports.HuntStatusIconDirective = function() {
+  return {
+    scope: {hunt: '='},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/hunt/hunt-status-icon.html'
+  };
+};
 
 
 /**
  * Name of the directive in Angular.
  */
-grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective
-    .directive_name = 'grrHuntStatusIcon';
-});  // goog.scope
+exports.HuntStatusIconDirective.directive_name = 'grrHuntStatusIcon';

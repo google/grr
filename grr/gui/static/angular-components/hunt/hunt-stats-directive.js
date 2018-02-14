@@ -1,12 +1,10 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntStatsDirective');
-goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
+goog.module('grrUi.hunt.huntStatsDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for HuntStatsDirective.
@@ -14,7 +12,7 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.jQuery} $element
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!ApiService} grrApiService
  * @ngInject
  */
 const HuntStatsController = function(
@@ -26,7 +24,7 @@ const HuntStatsController = function(
   /** @private {!angular.jQuery} */
   this.element_ = $element;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @export {Object} */
@@ -190,7 +188,7 @@ HuntStatsController.prototype.drawSingleHistogram_ = function(element, histogram
  * @ngInject
  * @export
  */
-grrUi.hunt.huntStatsDirective.HuntStatsDirective = function() {
+exports.HuntStatsDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -209,7 +207,4 @@ grrUi.hunt.huntStatsDirective.HuntStatsDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntStatsDirective.HuntStatsDirective.directive_name =
-    'grrHuntStats';
-
-});  // goog.scope
+exports.HuntStatsDirective.directive_name = 'grrHuntStats';

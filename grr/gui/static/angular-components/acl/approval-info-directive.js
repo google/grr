@@ -1,31 +1,29 @@
 'use strict';
 
-goog.provide('grrUi.acl.approvalInfoDirective');
-goog.provide('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
+goog.module('grrUi.acl.approvalInfoDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.apiService');  // USE: stripTypeInfo
-
-
-goog.scope(function() {
-
-
-var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
 
 /**
  * Controller for ApprovalInfoDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!angular.Attributes} $attrs
+ * @param {!ApiService} grrApiService
  * @constructor
  * @ngInject
  */
 const ApprovalInfoController = function(
-    $scope, grrApiService) {
+    $scope, $attrs, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
+  /** @private {!angular.Attributes} */
+  this.attrs_ = $attrs;
+
+  /** @private {!ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @type {string} */
@@ -87,8 +85,11 @@ ApprovalInfoController.prototype.onApprovalFetchUrlChanged_ = function() {
   if (angular.isString(this.fetchUrl)) {
     this.grrApiService_.get(this.fetchUrl).then(function(response) {
       // Set the out-binding so that other directives in the same
-      // template can have access to the approval object.
-      this.scope_['approvalObject'] = response['data'];
+      // template can have access to the approval object. Only do this
+      // if out-binding is actually specified.
+      if (this.attrs_['approvalObject']) {
+        this.scope_['approvalObject'] = response['data'];
+      }
 
       this.approvalObject = stripTypeInfo(response['data']);
 
@@ -125,7 +126,7 @@ ApprovalInfoController.prototype.onClick = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.approvalInfoDirective.ApprovalInfoDirective = function() {
+exports.ApprovalInfoDirective = function() {
   return {
     scope: {
       approvalType: '=',
@@ -151,7 +152,4 @@ grrUi.acl.approvalInfoDirective.ApprovalInfoDirective = function() {
  * @const
  * @export
  */
-grrUi.acl.approvalInfoDirective.ApprovalInfoDirective.directive_name =
-    'grrApprovalInfo';
-
-});  // goog.scope
+exports.ApprovalInfoDirective.directive_name = 'grrApprovalInfo';

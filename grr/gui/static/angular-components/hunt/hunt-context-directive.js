@@ -1,9 +1,8 @@
 'use strict';
 
-goog.provide('grrUi.hunt.huntContextDirective');
-goog.provide('grrUi.hunt.huntContextDirective.HuntContextDirective');
+goog.module('grrUi.hunt.huntContextDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
 
 
 /**
@@ -56,7 +55,7 @@ HuntContextController.prototype.onHuntIdChange_ = function(huntId) {
  * @ngInject
  * @export
  */
-grrUi.hunt.huntContextDirective.HuntContextDirective = function() {
+exports.HuntContextDirective = function() {
   return {
     scope: {
       huntId: '='
@@ -75,7 +74,4 @@ grrUi.hunt.huntContextDirective.HuntContextDirective = function() {
  * @const
  * @export
  */
-grrUi.hunt.huntContextDirective.HuntContextDirective.directive_name =
-    'grrHuntContext';
-
-});  // goog.scope
+exports.HuntContextDirective.directive_name = 'grrHuntContext';

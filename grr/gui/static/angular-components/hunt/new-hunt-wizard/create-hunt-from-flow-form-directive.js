@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective');
-goog.provide('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormDirective');
+goog.module('grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for CreateHuntFromFlowFormDirective.
@@ -91,7 +91,7 @@ CreateHuntFromFlowFormController.prototype.onFlowDataFetched_ = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormDirective = function() {
+exports.CreateHuntFromFlowFormDirective = function() {
   return {
     scope: {
       flowId: '=',
@@ -114,7 +114,5 @@ grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormD
  * @const
  * @export
  */
-grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormDirective.directive_name =
+exports.CreateHuntFromFlowFormDirective.directive_name =
     'grrNewHuntWizardCreateFromFlowForm';
-
-});  // goog.scope

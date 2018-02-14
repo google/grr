@@ -1,15 +1,16 @@
+'use strict';
+
+goog.module('grrUi.acl.aclDialogService');
+goog.module.declareLegacyNamespace();
+
+const {RequestApprovalDialogDirective} = goog.require('grrUi.acl.requestApprovalDialogDirective');
+const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 /**
  * @fileoverview
  * @suppress {missingProperties}
  */
-'use strict';
 
-goog.provide('grrUi.acl.aclDialogService');
-goog.provide('grrUi.acl.aclDialogService.AclDialogService');
-goog.require('grrUi.acl.requestApprovalDialogDirective');  // USE: RequestApprovalDialogDirective
-goog.require('grrUi.core.utils');  // USE: stripAff4Prefix
 
-goog.scope(function() {
 
 
 /**
@@ -21,9 +22,7 @@ goog.scope(function() {
  * @ngInject
  * @export
  */
-grrUi.acl.aclDialogService.AclDialogService = function(
-    $rootScope, grrDialogService) {
-
+exports.AclDialogService = function($rootScope, grrDialogService) {
   /** @private {angular.Scope} */
   this.rootScope_ = $rootScope;
 
@@ -31,7 +30,7 @@ grrUi.acl.aclDialogService.AclDialogService = function(
   this.grrDialogService_ = grrDialogService;
 };
 
-var AclDialogService = grrUi.acl.aclDialogService.AclDialogService;
+var AclDialogService = exports.AclDialogService;
 
 
 /**
@@ -68,8 +67,7 @@ AclDialogService.prototype.openRequestApprovalDialog = function(
     $(this).scope()['$parent']['$dismiss']();
   });
 
-  var directive =
-      grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective;
+  var directive = RequestApprovalDialogDirective;
   return this.grrDialogService_.openDirectiveDialog(directive.directive_name, {
     approvalType: approvalType,
     createRequestUrl: createRequestUrl,
@@ -165,7 +163,7 @@ AclDialogService.prototype.openApprovalDialogForSubject = function(
   // TODO(user): get rid of this code as soon as we stop passing
   // information about objects by passing URNs and guessing the
   // object type.
-  var components = grrUi.core.utils.stripAff4Prefix(subject).split('/');
+  var components = stripAff4Prefix(subject).split('/');
   if (/^C\.[0-9a-fA-F]{16}$/.test(components[0])) {
     this.openRequestClientApprovalDialog(
         components[0], message);
@@ -180,4 +178,3 @@ AclDialogService.prototype.openApprovalDialogForSubject = function(
   }
 };
 
-});

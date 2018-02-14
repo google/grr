@@ -1,9 +1,9 @@
 'use strict';
 
-goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective');
-goog.provide('grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective');
+goog.module('grrUi.acl.huntFromFlowCopyReviewDirective');
+goog.module.declareLegacyNamespace();
 
-goog.scope(function() {
+
 
 /**
  * Controller for HuntFromFlowCopyReviewDirective.
@@ -29,6 +29,9 @@ const HuntFromFlowCopyReviewController = function(
 };
 
 
+/**
+ * @private
+ */
 HuntFromFlowCopyReviewController.prototype.onValuesChanged_ = function() {
   if (angular.isDefined(this.scope_['sourceFlow']) &&
       angular.isDefined(this.scope_['newHunt'])) {
@@ -46,7 +49,7 @@ HuntFromFlowCopyReviewController.prototype.onValuesChanged_ = function() {
  *
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective = function() {
+exports.HuntFromFlowCopyReviewDirective = function() {
   return {
     scope: {
       sourceFlow: '=',
@@ -66,7 +69,5 @@ grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective = func
  * @const
  * @export
  */
-grrUi.acl.huntFromFlowCopyReviewDirective.HuntFromFlowCopyReviewDirective.directive_name =
+exports.HuntFromFlowCopyReviewDirective.directive_name =
     'grrHuntFromFlowCopyReview';
-
-});  // goog.scope

@@ -1,12 +1,11 @@
 'use strict';
 
-goog.provide('grrUi.stats.reportListingDirective');
-goog.provide('grrUi.stats.reportListingDirective.ReportListingDirective');
-goog.provide('grrUi.stats.reportListingDirective.parseStatsReportsApiResponse');
+goog.module('grrUi.stats.reportListingDirective');
+goog.module.declareLegacyNamespace();
 
-goog.require('grrUi.core.utils');  // USE: upperCaseToTitleCase
+const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
 
-goog.scope(function() {
+
 
 /**
  * Parses the stats/reports API call response and converts it to a
@@ -16,8 +15,7 @@ goog.scope(function() {
  *                         type-stripped.
  * @return {Array} The report listing in a jsTree-compatible structure.
  */
-grrUi.stats.reportListingDirective.parseStatsReportsApiResponse = function(
-    reports) {
+exports.parseStatsReportsApiResponse = function(reports) {
   var ret = [];
   var reportsByType = {};
 
@@ -32,12 +30,9 @@ grrUi.stats.reportListingDirective.parseStatsReportsApiResponse = function(
       reportsByType[reportType] = typeReportListing;
 
       ret.push({
-        text: grrUi.core.utils.upperCaseToTitleCase(reportType),
+        text: upperCaseToTitleCase(reportType),
         children: typeReportListing,
-        state: {
-          opened: true,
-          disabled: true
-        }
+        state: {opened: true, disabled: true}
       });
     }
     else {
@@ -55,8 +50,7 @@ grrUi.stats.reportListingDirective.parseStatsReportsApiResponse = function(
 
   return ret;
 };
-var parseStatsReportsApiResponse =
-    grrUi.stats.reportListingDirective.parseStatsReportsApiResponse;
+var parseStatsReportsApiResponse = exports.parseStatsReportsApiResponse;
 
 
 /**
@@ -159,7 +153,7 @@ ReportListingController.prototype.updateTreeSelection_ = function() {
  * ReportListingDirective definition.
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.stats.reportListingDirective.ReportListingDirective = function() {
+exports.ReportListingDirective = function() {
   return {
     restrict: 'E',
     scope: {
@@ -178,7 +172,4 @@ grrUi.stats.reportListingDirective.ReportListingDirective = function() {
  * @const
  * @export
  */
-grrUi.stats.reportListingDirective.ReportListingDirective.directive_name =
-    'grrReportListing';
-
-});  // goog.scope
+exports.ReportListingDirective.directive_name = 'grrReportListing';
