@@ -7,7 +7,7 @@ import StringIO
 import time
 
 
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils

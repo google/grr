@@ -3,7 +3,7 @@
 
 import os
 
-from grr.client.client_actions import plist
+from grr_response_client.client_actions import plist
 from grr.lib import flags
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist

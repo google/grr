@@ -6,8 +6,8 @@ This way we prevent loading effectively the whole client code into ours
 server parts.
 """
 
-from grr.client.components.chipsec_support.actions import chipsec_types
-from grr.client.components.rekall_support import rekall_types
+from grr_response_client.components.chipsec_support.actions import chipsec_types
+from grr_response_client.components.rekall_support import rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client

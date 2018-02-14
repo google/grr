@@ -5,8 +5,8 @@ import collections
 import types
 import pytest
 
-from grr.client import actions
-from grr.client.client_actions import standard
+from grr_response_client import actions
+from grr_response_client.client_actions import standard
 
 from grr.lib import registry
 from grr.lib import utils

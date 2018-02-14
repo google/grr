@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """The base classes for RDFValue tests."""
 import time
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client

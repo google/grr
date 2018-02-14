@@ -10,8 +10,8 @@ import time
 import psutil
 
 from grr import config
-from grr.client.client_actions import admin
-from grr.client.client_actions import standard
+from grr_response_client.client_actions import admin
+from grr_response_client.client_actions import standard
 from grr.lib import flags
 from grr.lib import queues
 from grr.lib import rdfvalue

@@ -4,7 +4,7 @@
 
 import os
 
-from grr.client.client_actions import file_fingerprint
+from grr_response_client.client_actions import file_fingerprint
 from grr.lib import flags
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4

@@ -15,9 +15,9 @@ import requests
 from google.protobuf import json_format
 
 from grr import config
-from grr.client import comms
-from grr.client.client_actions import standard
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr_response_client import comms
+from grr_response_client.client_actions import standard
+from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils

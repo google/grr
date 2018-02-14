@@ -4,9 +4,9 @@
 
 import os
 
-from grr.client.client_actions import file_fingerprint
-from grr.client.client_actions import searching
-from grr.client.client_actions import standard
+from grr_response_client.client_actions import file_fingerprint
+from grr_response_client.client_actions import searching
+from grr_response_client.client_actions import standard
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client

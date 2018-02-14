@@ -6,10 +6,10 @@ import json
 import os
 
 from grr import config
-from grr.client import comms
-from grr.client.client_actions import tempfiles
-from grr.client.components.rekall_support import grr_rekall
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr_response_client import comms
+from grr_response_client.client_actions import tempfiles
+from grr_response_client.components.rekall_support import grr_rekall
+from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import utils
 from grr.server import aff4
 from grr.server import rekall_profile_server

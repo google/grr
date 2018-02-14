@@ -6,7 +6,7 @@ import os
 import platform
 import unittest
 
-from grr.client import vfs
+from grr_response_client import vfs
 from grr.lib import constants
 from grr.lib import flags
 from grr.lib import utils

@@ -4,12 +4,12 @@
 import socket
 
 from grr import config
-from grr.client.client_actions import admin
-from grr.client.client_actions import components
-from grr.client.client_actions import file_finder
-from grr.client.client_actions import file_fingerprint
-from grr.client.client_actions import searching
-from grr.client.client_actions import standard
+from grr_response_client.client_actions import admin
+from grr_response_client.client_actions import components
+from grr_response_client.client_actions import file_finder
+from grr_response_client.client_actions import file_fingerprint
+from grr_response_client.client_actions import searching
+from grr_response_client.client_actions import standard
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud

@@ -8,8 +8,8 @@ import time
 import mock
 
 from grr import config
-from grr.client import vfs
-from grr.client.vfs_handlers import files
+from grr_response_client import vfs
+from grr_response_client.vfs_handlers import files
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -417,7 +417,7 @@ class RegistryVFSStubber(object):
     self.module_patcher.start()
 
     # pylint: disable= g-import-not-at-top
-    from grr.client.vfs_handlers import registry
+    from grr_response_client.vfs_handlers import registry
     import exceptions
     import _winreg
     # pylint: enable=g-import-not-at-top

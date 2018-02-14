@@ -9,7 +9,7 @@ import socket
 import mock
 
 from grr import config
-from grr.client.client_actions import admin
+from grr_response_client.client_actions import admin
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client

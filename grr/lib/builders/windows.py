@@ -91,7 +91,8 @@ class WindowsClientBuilder(build.ClientBuilder):
     # (since they contain invalid chars). Visual Studio requires these or it
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
-    self.nanny_dir = os.path.join(self.build_dir, "grr", "client", "nanny")
+    self.nanny_dir = os.path.join(self.build_dir, "grr", "client",
+                                  "grr_response_client", "nanny")
     nanny_src_dir = config.CONFIG.Get(
         "ClientBuilder.nanny_source_dir", context=self.context)
     logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,

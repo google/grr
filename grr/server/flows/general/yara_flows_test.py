@@ -7,10 +7,10 @@ import string
 import psutil
 import yara
 
-from grr.client import client_utils
-from grr.client import process_error
-from grr.client.client_actions import tempfiles
-from grr.client.client_actions import yara_actions
+from grr_response_client import client_utils
+from grr_response_client import process_error
+from grr_response_client.client_actions import tempfiles
+from grr_response_client.client_actions import yara_actions
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client

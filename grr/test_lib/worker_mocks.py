@@ -3,9 +3,9 @@
 
 import threading
 
-from grr.client import client_stats
-from grr.client import client_utils
-from grr.client import comms
+from grr_response_client import client_stats
+from grr_response_client import client_utils
+from grr_response_client import comms
 from grr.lib.rdfvalues import flows as rdf_flows
 
 

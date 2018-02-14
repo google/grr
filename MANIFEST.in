@@ -12,7 +12,6 @@ recursive-exclude grr/config/grr-response-* *
 recursive-exclude grr/gui/static/bower_components *
 recursive-exclude grr/gui/static/node_modules *
 recursive-exclude grr/gui/static/tmp *
-recursive-exclude client/minicomm *
 recursive-exclude executables *.zip
 recursive-exclude executables/installers *
 recursive-exclude executables *.bin
@@ -22,7 +21,6 @@ recursive-exclude executables/darwin *
 recursive-exclude grr/var *
 recursive-exclude grr-response-* *
 
-recursive-exclude client/minicomm *
 recursive-exclude * *.pyc
 
 exclude install_data/etc/server.local.yaml

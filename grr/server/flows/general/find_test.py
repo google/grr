@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
-from grr.client.client_actions import searching
+from grr_response_client.client_actions import searching
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils

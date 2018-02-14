@@ -5,8 +5,8 @@ import json
 import os
 import socket
 
-from grr.client.components.rekall_support import grr_rekall
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr_response_client.components.rekall_support import grr_rekall
+from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import flags
 from grr.lib import queues
 from grr.lib import rdfvalue

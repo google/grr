@@ -62,7 +62,7 @@ config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
 
 config_lib.DEFINE_string(
     "ClientBuilder.client_path",
-    default="grr.client.client",
+    default="grr_response_client.client",
     help="Full module path for GRR client's main file.")
 
 config_lib.DEFINE_string(
@@ -264,7 +264,8 @@ config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.nanny_source_dir",
         must_exist=True,
-        default="%(grr.client|module_path)/nanny/",
+        default=("%(grr_response_client|"
+                 "module_path)/nanny/"),
         help="Path to the windows nanny VS solution file."))
 
 config_lib.DEFINE_option(
@@ -421,7 +422,8 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.components_source_dir",
-        default="%(grr.client.components|module_path)",
+        default="%(grr.client."
+        "grr_response_client.components|module_path)",
         help="The directory that contains the component source."))
 
 config_lib.DEFINE_option(

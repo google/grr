@@ -27,7 +27,7 @@ function install() {
   cd "${BUILDDIR}/grr_tmp/grr"
   python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-ui-files --no-sync-artifacts
   cd -
-  cd "${BUILDDIR}/grr_tmp/grr/grr/config/grr-response-client/"
+  cd "${BUILDDIR}/grr_tmp/grr/grr/client/"
   python setup.py sdist --dist-dir="${BUILDDIR}/client"
   cd -
 

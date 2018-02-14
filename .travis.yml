@@ -58,7 +58,7 @@ matrix:
       script:
         - source "${HOME}/INSTALL/bin/activate"
         # TODO(ogaro): Uncomment when we have a final solution for testing on MacOS.
-        #- pytest grr/client/ --ignore grr/gui/selenium_tests/ --ignore grr/client/linux/ --ignore grr/client/client_actions/linux/
+        #- pytest grr/client/grr_response_client/ --ignore grr/gui/selenium_tests/ --ignore grr/client/grr_response_client/linux/ --ignore grr/client/grr_response_client/client_actions/linux/
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 

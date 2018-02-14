@@ -14,6 +14,9 @@ from setuptools.command.sdist import sdist
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
+# TODO(user): this should go away as soon as we have proper PIP packages
+# structure.
+#
 # If you run setup.py from the root GRR dir you get very different results since
 # setuptools uses the MANIFEST.in from the root dir.  Make sure we are in the
 # package dir.

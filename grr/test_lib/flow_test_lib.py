@@ -6,7 +6,7 @@ import logging
 import pdb
 import traceback
 
-from grr.client.client_actions import standard
+from grr_response_client.client_actions import standard
 
 from grr.lib import flags
 from grr.lib import rdfvalue

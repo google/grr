@@ -37,7 +37,7 @@ pip install ./dist/grr-response-core-*.tar.gz
 # Note that we can't do "python setup.py install" since setup.py
 # is configured to include version.ini as data and version.ini
 # only gets copied during sdist step.
-cd grr/config/grr-response-client
+cd grr/client
 python setup.py sdist
 pip install ./dist/grr-response-client-*.tar.gz
 cd -

@@ -2,9 +2,9 @@
 """Tests for server stubs for client actions."""
 
 
-from grr.client import actions
+from grr_response_client import actions
 # pylint: disable=unused-import
-from grr.client import client_actions
+from grr_response_client import client_actions
 # pylint: enable=unused-import
 
 from grr.lib import flags

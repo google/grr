@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Tests for low-level flows."""
 
-from grr.client.client_actions import standard
-from grr.client.client_actions import tempfiles
-from grr.client.components.chipsec_support.actions import chipsec_types
+from grr_response_client.client_actions import standard
+from grr_response_client.client_actions import tempfiles
+from grr_response_client.components.chipsec_support.actions import chipsec_types
 from grr.lib import flags
 from grr.server import aff4
 from grr.server import flow

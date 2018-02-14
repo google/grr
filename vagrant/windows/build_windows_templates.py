@@ -188,7 +188,7 @@ class WindowsTemplateBuilder(object):
                                   "grr-response-core-*.zip")).pop()
 
   def MakeClientSdist(self):
-    os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
+    os.chdir(os.path.join(args.grr_src, "grr/client/"))
     subprocess.check_call([
         self.virtualenv_python64, "setup.py", "sdist", "--formats=zip",
         "--dist-dir=%s" % args.build_dir

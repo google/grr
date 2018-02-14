@@ -9,9 +9,9 @@ import time
 import requests
 
 from grr import config
-from grr.client import comms
-from grr.client.client_actions import admin
-from grr.client.client_actions import standard
+from grr_response_client import comms
+from grr_response_client.client_actions import admin
+from grr_response_client.client_actions import standard
 from grr.lib import communicator
 from grr.lib import flags
 from grr.lib import queues

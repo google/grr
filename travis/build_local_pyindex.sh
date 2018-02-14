@@ -12,7 +12,7 @@ function build_sdists() {
       --formats=zip --dist-dir="${PWD}/sdists"
   python setup.py --quiet sdist --formats=zip \
       --dist-dir="${PWD}/sdists" --no-sync-artifacts
-  python grr/config/grr-response-client/setup.py --quiet sdist \
+  python grr/client/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python api_client/python/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"

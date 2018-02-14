@@ -44,7 +44,7 @@ pip install -e grr/proto/
 pip install -e .
 
 # Depends on grr-response-core
-pip install -e grr/config/grr-response-client/
+pip install -e grr/client/
 
 # Depends on grr-response-core
 pip install -e api_client/python/

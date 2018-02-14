@@ -28,7 +28,7 @@ import unittest
 
 from grr import config
 
-from grr.client import comms
+from grr_response_client import comms
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry

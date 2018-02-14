@@ -2,7 +2,7 @@
 """Test the webhistory flows."""
 import os
 
-from grr.client import client_utils
+from grr_response_client import client_utils
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client

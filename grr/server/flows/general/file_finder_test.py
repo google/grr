@@ -10,7 +10,7 @@ import platform
 import subprocess
 import unittest
 
-from grr.client import vfs
+from grr_response_client import vfs
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils

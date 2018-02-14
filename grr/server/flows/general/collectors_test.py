@@ -11,7 +11,7 @@ import mock
 import psutil
 
 from grr import config
-from grr.client.client_actions import standard
+from grr_response_client.client_actions import standard
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
