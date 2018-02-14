@@ -11,15 +11,8 @@ import sys
 
 import win32process
 
-from google.protobuf import text_format
-
-from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
-from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
-from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
-
 from grr import config
 from grr.lib import build
-from grr.lib import utils
 
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.
@@ -147,35 +140,6 @@ class WindowsClientBuilder(build.ClientBuilder):
           os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
           os.path.join(self.output_dir, "GRRservice.exe"))
 
-  def GenerateFleetspeakServiceConfig(self):
-    """Generate a service config, used to register the GRR client with FS."""
-    fs_service_config = fs_system_pb2.ClientServiceConfig(
-        name="GRR",
-        factory="Daemon",
-        required_labels=[
-            fs_common_pb2.Label(
-                service_name="client",
-                label="windows",
-            ),
-        ],
-    )
-    daemonservice_config = fs_config_pb2.Config(argv=[
-        # Note this is an argv list, so we can't use
-        # config.CONFIG["Nanny.child_command_line"] directly.
-        config.CONFIG["Nanny.child_binary"],
-        "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
-    ])
-    fs_service_config.config.Pack(daemonservice_config)
-
-    str_fs_service_config = text_format.MessageToString(
-        fs_service_config, as_one_line=True)
-
-    output_textservices_dir = os.path.join(self.output_dir,
-                                           "fleetspeak/textservices")
-    utils.EnsureDirExists(output_textservices_dir)
-    with open(os.path.join(output_textservices_dir, "GRR.txt"), "w") as fd:
-      fd.write(str_fs_service_config)
-
   def MakeExecutableTemplate(self, output_file=None):
     """Windows templates also include the nanny."""
     super(WindowsClientBuilder,
@@ -208,9 +172,6 @@ class WindowsClientBuilder(build.ClientBuilder):
       build.SetPeSubsystem(fd, console=False)
     with open(os.path.join(self.output_dir, "dbg_grr-client.exe"), "r+") as fd:
       build.SetPeSubsystem(fd, console=True)
-
-    if config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
-      self.GenerateFleetspeakServiceConfig()
 
     self.MakeZip(self.output_dir, self.template_file)
 

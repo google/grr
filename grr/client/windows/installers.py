@@ -18,10 +18,17 @@ import shutil
 import subprocess
 import sys
 import time
+import _winreg
 import pywintypes
 import win32process
 import win32service
 import win32serviceutil
+
+from google.protobuf import text_format
+
+from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
+from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
 from grr import config
 from grr.client import installer
@@ -137,7 +144,8 @@ class WindowsInstaller(installer.Installer):
       "Nanny.child_binary",
       "Nanny.child_command_line",
       "Nanny.service_name",
-      "Nanny.service_description",)
+      "Nanny.service_description",
+  )
 
   def InstallNanny(self):
     """Install the nanny program."""
@@ -161,6 +169,49 @@ class WindowsInstaller(installer.Installer):
         args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     logging.debug("%s", output)
 
+  def GenerateFleetspeakServiceConfig(self):
+    """Generate a service config, used to register the GRR client with FS."""
+    fs_service_config = fs_system_pb2.ClientServiceConfig(
+        name=config.CONFIG["Client.name"],
+        factory="Daemon",
+        required_labels=[
+            fs_common_pb2.Label(
+                service_name="client",
+                label="windows",
+            ),
+        ],
+    )
+    daemonservice_config = fs_config_pb2.Config(argv=[
+        # Note this is an argv list, so we can't use
+        # config.CONFIG["Nanny.child_command_line"] directly.
+        config.CONFIG["Nanny.child_binary"],
+        "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
+    ])
+    fs_service_config.config.Pack(daemonservice_config)
+
+    str_fs_service_config = text_format.MessageToString(
+        fs_service_config, as_one_line=True)
+
+    return str_fs_service_config
+
+  def WriteFleetspeakServiceConfigToRegistry(self, str_fs_service_config):
+    """Register the GRR client to be run by Fleetspeak."""
+    regkey = _winreg.CreateKey(
+        _winreg.HKEY_LOCAL_MACHINE,
+        r"SOFTWARE\Fleetspeak\textservices",
+    )
+
+    _winreg.SetValueEx(
+        regkey,
+        config.CONFIG["Client.name"],
+        0,
+        _winreg.REG_SZ,
+        str_fs_service_config,
+    )
+
   def Run(self):
-    if not config.CONFIG["Client.fleetspeak_enabled"]:
+    if config.CONFIG["Client.fleetspeak_enabled"]:
+      str_fs_service_config = self.GenerateFleetspeakServiceConfig()
+      self.WriteFleetspeakServiceConfigToRegistry(str_fs_service_config)
+    else:
       self.InstallNanny()
