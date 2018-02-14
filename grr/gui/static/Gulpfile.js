@@ -151,7 +151,7 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
           angular_pass: true,
           compilation_level: 'WHITESPACE_ONLY',
           dependency_mode: 'STRICT',
-          entry_point: 'grrUi.appController.appControllerModule',
+          entry_point: 'grrUi.appController',
           jscomp_off: [
             'checkTypes',
             'checkVars',

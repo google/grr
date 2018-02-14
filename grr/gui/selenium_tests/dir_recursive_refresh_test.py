@@ -57,9 +57,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
-    # The message should come and go (and the dialog should close itself).
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     # Check that the button got disabled
     self.WaitUntil(self.IsElementPresent,
@@ -78,9 +79,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
-    # The message should come and go (and the dialog should close itself).
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RecursiveRefresh][disabled]")
@@ -97,9 +99,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
-    # The message should come and go (and the dialog should close itself).
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     self.Click("css=#_fs-os-c-bin a")
 
@@ -113,9 +116,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
-    # The message should come and go (and the dialog should close itself).
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     client_id = rdf_client.ClientURN("C.0000000000000001")
     self._RunUpdateFlow(client_id)
@@ -132,9 +136,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
-    # The message should come and go (and the dialog should close itself).
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     # Change the selection while the update is in progress.
     self.WaitUntil(self.IsElementPresent,
@@ -181,8 +186,10 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.Type("css=label:contains('Max depth') ~ * input", "423")
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+    # Wait until the dialog is automatically closed.
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=.modal-header:contains('Recursive Directory Refresh')")
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.

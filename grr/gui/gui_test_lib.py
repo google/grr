@@ -286,16 +286,13 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   @SeleniumAction
   def Open(self, url):
+    # In GRR Selenium tests calling Open() implies page refresh.
+    # We make sure that browser/webdriver is not confused by the fact that
+    # only the fragment part of the URL (after the '#' symbol) changes.
+    # It's important to not confuse WebDriver since it tends to get stuck
+    # when confused.
+    self.driver.get("data:.")
     self.driver.get(self.base_url + url)
-
-    # Sometimes page doesn't get refreshed if url's path and query haven't
-    # changed, even if fragments part (part after '#' symbol) of the url has
-    # changed. We have to explicitly call Refresh() in such cases.
-    prev_parsed_url = urlparse.urlparse(self.driver.current_url)
-    new_parsed_url = urlparse.urlparse(url)
-    if (prev_parsed_url.path == new_parsed_url.path and
-        prev_parsed_url.query == new_parsed_url.query):
-      self.Refresh()
 
   @SeleniumAction
   def Refresh(self):
