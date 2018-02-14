@@ -289,6 +289,9 @@ class ClientRepacker(BuilderBase):
 
             new_config.SetRaw(descriptor.name, value)
 
+      if config.CONFIG.Get("ClientBuilder.fleetspeak_enabled", context=context):
+        new_config.Set("Client.fleetspeak_enabled", True)
+
       if deploy_timestamp:
         new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime.Now()))
       new_config.Write()

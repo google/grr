@@ -38,12 +38,6 @@ config_lib.DEFINE_string(
              "%(ClientBuilder.output_extension)"),
     help="The location of the generated installer in the config directory.")
 
-config_lib.DEFINE_bool(
-    "Client.build_service",
-    True,
-    help="Used to disable service installation in the client installer. If "
-    "False, GRR will not run automatically after installation and on boot.")
-
 config_lib.DEFINE_string(
     name="ClientBuilder.output_extension",
     default=None,
@@ -58,8 +52,12 @@ config_lib.DEFINE_string(
     help="Set this to a class name that sanity checks your client "
     "config at repacking time.")
 
-config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
+config_lib.DEFINE_bool("Client.fleetspeak_enabled", False,
                        "Whether the client uses Fleetspeak to communicate "
+                       "with the server.")
+
+config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
+                       "Whether the client will use Fleetspeak to communicate "
                        "with the server.")
 
 config_lib.DEFINE_string(

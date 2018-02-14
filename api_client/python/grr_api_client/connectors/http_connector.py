@@ -76,7 +76,7 @@ class HttpConnector(connector.Connector):
     utils.RegisterProtoDescriptors(symbol_database.Default())
 
     proto = reflection_pb2.ApiListApiMethodsResult()
-    json_format.Parse(json_str, proto)
+    json_format.Parse(json_str, proto, ignore_unknown_fields=True)
 
     routing_rules = []
 
@@ -227,7 +227,7 @@ class HttpConnector(connector.Connector):
     if method_descriptor.result_type_descriptor.name:
       default_value = method_descriptor.result_type_descriptor.default
       result = utils.TypeUrlToMessage(default_value.type_url)
-      json_format.Parse(json_str, result)
+      json_format.Parse(json_str, result, ignore_unknown_fields=True)
       return result
 
   def SendStreamingRequest(self, handler_name, args):

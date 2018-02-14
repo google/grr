@@ -162,5 +162,5 @@ class WindowsInstaller(installer.Installer):
     logging.debug("%s", output)
 
   def Run(self):
-    if config.CONFIG["Client.build_service"]:
+    if not config.CONFIG["Client.fleetspeak_enabled"]:
       self.InstallNanny()

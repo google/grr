@@ -1,0 +1,18 @@
+/**
+ * NOTE: DO NOT USE PROTOBUFS FROM THIS FILE.
+ *
+ * This file contains definitions of deleted protos. They have to be preserved
+ * so that newer versions of API client library can safely work with older
+ * server releases.
+ */
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+
+
+message CollectArtifactDependenciesArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+      description: "A list of Artifact names to collect dependencies for.",
+      type: "ArtifactName",
+    }];
+}
