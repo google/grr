@@ -422,8 +422,9 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.components_source_dir",
-        default="%(grr.client."
-        "grr_response_client.components|module_path)",
+        default=(
+            "%(grr_response_client.components"
+            "|module_path)"),
         help="The directory that contains the component source."))
 
 config_lib.DEFINE_option(
