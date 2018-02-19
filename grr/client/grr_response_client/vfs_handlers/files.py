@@ -11,7 +11,6 @@ import threading
 from grr_response_client import client_utils
 from grr_response_client import vfs
 from grr.lib import utils
-from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import paths
 
 # File handles are cached here. They expire after a couple minutes so
@@ -61,40 +60,6 @@ class FileHandleManager(object):
 
   def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
     self.fd.lock.release()
-
-
-def MakeStatResponse(stat, pathspec, ext_attrs=False):
-  """Creates a StatEntry."""
-  response = client.StatEntry(pathspec=pathspec)
-
-  if stat is None:
-    # Special case empty stat if we don't have a real value, e.g. we get Access
-    # denied when stating a file. We still want to give back a value so we let
-    # the defaults from the proto pass through.
-    return response
-
-  for attr in [
-      "st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid", "st_size",
-      "st_atime", "st_mtime", "st_ctime", "st_blocks", "st_blksize", "st_rdev"
-  ]:
-    try:
-      value = getattr(stat.GetRaw(), attr)
-      if value is None:
-        continue
-      value = long(value)
-      if value < 0:
-        value &= 0xFFFFFFFF
-
-      setattr(response, attr, value)
-    except AttributeError:
-      pass
-
-  response.st_flags_linux = stat.GetLinuxFlags()
-  response.st_flags_osx = stat.GetOsxFlags()
-  if ext_attrs:
-    client_utils.AddStatEntryExtAttrs(response)
-
-  return response
 
 
 class File(vfs.VFSHandler):
@@ -231,13 +196,6 @@ class File(vfs.VFSHandler):
       raise RuntimeError("Relative paths aren't supported.")
     return len(re.findall(r"%s+[^%s]+" % (os.path.sep, os.path.sep), path))
 
-  def _GetStat(self, local_path):
-    try:
-      return utils.Stat(local_path)
-    except IOError as e:
-      logging.info("Failed to Stat %s. Err: %s", local_path, e)
-      return None
-
   def _GetDevice(self, path):
     try:
       return utils.Stat(path).GetDevice()
@@ -312,8 +270,7 @@ class File(vfs.VFSHandler):
     """
     # Note that the encoding of local path is system specific
     local_path = client_utils.CanonicalPathToLocalPath(path or self.path)
-    stat = self._GetStat(local_path)
-    result = MakeStatResponse(stat, self.pathspec)
+    result = client_utils.StatEntryFromPath(local_path, self.pathspec)
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:

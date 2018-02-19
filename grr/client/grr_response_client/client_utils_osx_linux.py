@@ -49,19 +49,19 @@ def LocalPathToCanonicalPath(path):
   return utils.NormalizePath(path)
 
 
-def AddStatEntryExtAttrs(stat_entry):
-  """Fills `ext_attrs` field of the `StatEntry` object.
+def GetExtAttrs(filepath):
+  """Fetches extended file attributes.
 
   Args:
-    stat_entry: A `StatEntry` object to fill-in.
-  """
-  path = CanonicalPathToLocalPath(stat_entry.pathspec.path)
+    filepath: A path to the file.
 
+  Yields:
+    `ExtAttr` pairs.
+  """
+  path = CanonicalPathToLocalPath(filepath)
   for attr_name in xattr.listxattr(path):
     attr_value = xattr.getxattr(path, attr_name)
-
-    attr = rdf_client.ExtAttr(name=attr_name, value=attr_value)
-    stat_entry.ext_attrs.append(attr)
+    yield rdf_client.ExtAttr(name=attr_name, value=attr_value)
 
 
 class NannyThread(threading.Thread):

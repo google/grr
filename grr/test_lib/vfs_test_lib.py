@@ -8,8 +8,12 @@ import time
 import mock
 
 from grr import config
+from grr_response_client import client_utils
 from grr_response_client import vfs
-from grr_response_client.vfs_handlers import files
+# TODO(hanuszczak): This import is required because otherwise VFS handler
+# classes are not registered correctly and things start to fail. This is
+# terrible and has to be fixed as soon as possible.
+from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -294,16 +298,13 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
 
   def Stat(self):
     """Get Stat for self.path."""
-    test_data_path = self._AbsPath()
-    stat = utils.Stat(test_data_path)
-    return files.MakeStatResponse(stat, self.pathspec)
+    return client_utils.StatEntryFromPath(self._AbsPath(), self.pathspec)
 
   def ListFiles(self):
     for f in os.listdir(self._AbsPath()):
       ps = self.pathspec.Copy()
       ps.last.path = os.path.join(ps.last.path, f)
-      stat = utils.Stat(self._AbsPath(f))
-      yield files.MakeStatResponse(stat, ps)
+      yield client_utils.StatEntryFromPath(self._AbsPath(f), self.pathspec)
 
 
 class RegistryFake(FakeRegistryVFSHandler):

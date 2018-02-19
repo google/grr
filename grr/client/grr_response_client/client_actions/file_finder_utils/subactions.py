@@ -5,7 +5,6 @@ import abc
 
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
-from grr_response_client.vfs_handlers import files
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -150,7 +149,7 @@ def _StatEntry(stat, ext_attrs):
       pathtype=rdf_paths.PathSpec.PathType.OS,
       path=client_utils.LocalPathToCanonicalPath(stat.GetPath()),
       path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-  return files.MakeStatResponse(stat, pathspec=pathspec, ext_attrs=ext_attrs)
+  return client_utils.StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
 def _HashEntry(stat, flow, max_size=None):

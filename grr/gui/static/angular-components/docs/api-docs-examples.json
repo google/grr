@@ -3475,8 +3475,7 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              },
-              "users": []
+              }
             }
           }
         ]
@@ -3563,8 +3562,7 @@
               "fqdn": "some-other-hostname.org",
               "version": ""
             },
-            "urn": "aff4:/C.1000000000000000",
-            "users": []
+            "urn": "aff4:/C.1000000000000000"
           }
         ]
       },

@@ -15,10 +15,10 @@
 
 <!-- This makes sure templates are loaded from the JS bundle. -->
 <script>
-  goog.require('grrUi.templates.templatesModule');
+  goog.require('grrUi.templates.templates.templatesModule');
 </script>
 <script>
-  grrUi.templates.templatesModule.value('forceCachedTemplates', true);
+  grrUi.templates.templates.templatesModule.value('forceCachedTemplates', true);
 </script>
 {% else %}
 <script src="/static/dist/grr-ui.deps.js"></script>
@@ -26,12 +26,11 @@
 <!-- This bootstraps the applications and makes sure templates are loaded
      from standalone html files. -->
 <script>
-  goog.require('grrUi.appController.appControllerModule');
-
-  goog.require('grrUi.templates.templatesModule');
+  goog.require('grrUi.appController');
+  goog.require('grrUi.templates.templates.templatesModule');
 </script>
 <script>
-  grrUi.templates.templatesModule.value('forceUncachedTemplates', true);
+  grrUi.templates.templates.templatesModule.value('forceUncachedTemplates', true);
 </script>
 {% endif %}
 

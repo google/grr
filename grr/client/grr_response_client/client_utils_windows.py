@@ -418,16 +418,20 @@ def KernelVersion():
                        rtl_osversioninfoexw.dwBuildNumber)
 
 
-def AddStatEntryExtAttrs(stat_entry):
+def GetExtAttrs(filepath):
   """Does nothing.
 
   This is kept for compatibility with other platform-specific version of this
   function.
 
   Args:
-    stat_entry: An `StatEntry` object to fill-in.
+    filepath: Unused.
+
+  Returns:
+    An empty list.
   """
-  del stat_entry  # Unused on Windows.
+  del filepath  # Unused on Windows.
+  return []
 
 
 def OpenProcessForMemoryAccess(pid=None):

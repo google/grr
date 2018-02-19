@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import socket
 
+import ipaddr
+
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server import ip_resolver
 from grr.test_lib import test_lib
@@ -21,14 +22,13 @@ class IPResolverTest(test_lib.GRRBaseTest):
     resolver = ip_resolver.IPResolver()
     with utils.Stubber(socket, "getnameinfo", MockGetNameInfo):
       for ip, result in [
-          ("", ip_resolver.IPInfo.UNKNOWN),
           ("192.168.0.1", ip_resolver.IPInfo.INTERNAL),
           ("10.0.0.7", ip_resolver.IPInfo.INTERNAL),
           ("::1", ip_resolver.IPInfo.INTERNAL),
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
       ]:
-        rdf_ip = rdfvalue.RDFString(ip)
+        rdf_ip = ipaddr.IPAddress(ip)
         info, _ = resolver.RetrieveIPInfo(rdf_ip)
         self.assertEqual(info, result)
 

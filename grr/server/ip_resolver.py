@@ -36,16 +36,15 @@ class IPResolver(IPResolverBase):
   def RetrieveIPInfo(self, ip):
     if not ip:
       return (IPInfo.UNKNOWN, "No ip information.")
+    if not isinstance(ip, (ipaddr.IPv4Address, ipaddr.IPv6Address)):
+      raise ValueError("Excepted ipaddr.IPAddress object, got %s" % type(ip))
+
     ip_str = utils.SmartStr(ip)
     try:
       return self.cache.Get(ip_str)
     except KeyError:
       pass
 
-    try:
-      ip = ipaddr.IPAddress(ip_str)
-    except ValueError:
-      return (IPInfo.UNKNOWN, "No ip information.")
     if ip.version == 6:
       res = self.RetrieveIP6Info(ip)
     else:

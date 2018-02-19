@@ -16,12 +16,11 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 # Shared functions between macOS and Linux.
 # pylint: disable=invalid-name
-AddStatEntryExtAttrs = client_utils_osx_linux.AddStatEntryExtAttrs
+GetExtAttrs = client_utils_osx_linux.GetExtAttrs
 CanonicalPathToLocalPath = client_utils_osx_linux.CanonicalPathToLocalPath
 LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
 NannyController = client_utils_osx_linux.NannyController
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
-
 # pylint: enable=invalid-name
 
 

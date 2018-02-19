@@ -4,6 +4,8 @@
 import shlex
 import sys
 
+import ipaddr
+
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import stats as api_stats
@@ -117,7 +119,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     ]
     self.interfaces = client_obj.Get(client_obj.Schema.INTERFACES)
     kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
-    self.users = kb and kb.users or []
+    if kb and kb.users:
+      self.users = sorted(kb.users, key=lambda user: user.username)
     self.volumes = client_obj.Get(client_obj.Schema.VOLUMES)
 
     type_obj = client_obj.Get(client_obj.Schema.TYPE)
@@ -178,10 +181,11 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       if md.last_crash_timestamp:
         self.last_crash_at = md.last_crash_timestamp
 
-    self.labels = client_info["labels"]
+      # TODO(amoser): Deprecate this field in favor of the kb.
+      if kb.users:
+        self.users = sorted(kb.users, key=lambda user: user.username)
 
-    # TODO(amoser): Deprecate this field in favor of the kb.
-    self.users = kb and kb.users or []
+    self.labels = client_info["labels"]
 
     if client_obj.interfaces:
       self.interfaces = client_obj.interfaces
@@ -522,15 +526,28 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetLastClientIPAddressResult
 
   def Handle(self, args, token=None):
-    client = aff4.FACTORY.Open(
-        args.client_id.ToClientURN(),
-        aff4_type=aff4_grr.VFSGRRClient,
-        token=token)
+    if data_store.RelationalDBReadEnabled():
+      md = data_store.REL_DB.ReadClientMetadata(str(args.client_id))
+      try:
+        ipaddr_obj = md.ip.AsIPAddr()
+        ip_str = str(ipaddr_obj)
+      except ValueError:
+        ipaddr_obj = None
+        ip_str = ""
+    else:
+      client = aff4.FACTORY.Open(
+          args.client_id.ToClientURN(),
+          aff4_type=aff4_grr.VFSGRRClient,
+          token=token)
+      ip_str = client.Get(client.Schema.CLIENT_IP)
+      if ip_str:
+        ipaddr_obj = ipaddr.IPAddress(ip_str)
+      else:
+        ipaddr_obj = None
 
-    ip = client.Get(client.Schema.CLIENT_IP)
-    status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
+    status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
 
-    return ApiGetLastClientIPAddressResult(ip=ip, info=info, status=status)
+    return ApiGetLastClientIPAddressResult(ip=ip_str, info=info, status=status)
 
 
 class ApiListClientCrashesArgs(rdf_structs.RDFProtoStruct):

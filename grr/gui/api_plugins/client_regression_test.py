@@ -114,16 +114,25 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0)
+      if data_store.RelationalDBReadEnabled():
+        client_obj = self.SetupTestClientObject(0)
+        client_id = client_obj.client_id
 
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.Set(grr_client.Schema.CLIENT_IP("192.168.100.42"))
+        ip = rdf_client.NetworkAddress(
+            human_readable_address="192.168.100.42",
+            address_type=rdf_client.NetworkAddress.Family.INET)
+        data_store.REL_DB.WriteClientMetadata(client_id, last_ip=ip)
+      else:
+        client_urn = self.SetupClient(0)
+        client_id = client_urn.Basename()
+
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
+          grr_client.Set(grr_client.Schema.CLIENT_IP("192.168.100.42"))
 
     self.Check(
         "GetLastClientIPAddress",
-        args=client_plugin.ApiGetLastClientIPAddressArgs(
-            client_id=client_id.Basename()))
+        args=client_plugin.ApiGetLastClientIPAddressArgs(client_id=client_id))
 
 
 class ApiListClientsLabelsHandlerRegressionTest(
