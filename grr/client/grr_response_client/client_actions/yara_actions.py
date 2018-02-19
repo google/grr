@@ -71,8 +71,8 @@ class YaraProcessScan(actions.ActionPlugin):
   in_rdfvalue = rdf_yara.YaraProcessScanRequest
   out_rdfvalues = [rdf_yara.YaraProcessScanResponse]
 
-  def _ScanRegion(self, rules, streamer, start, length, deadline):
-    for chunk in streamer.Stream(start, length):
+  def _ScanRegion(self, rules, chunks, deadline):
+    for chunk in chunks:
       if not chunk.data:
         break
 
@@ -104,13 +104,14 @@ class YaraProcessScan(actions.ActionPlugin):
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
     with process:
-      streamer = streaming.MemoryStreamer(
-          process, chunk_size=args.chunk_size, overlap_size=args.overlap_size)
+      streamer = streaming.Streamer(
+          chunk_size=args.chunk_size, overlap_size=args.overlap_size)
       matches = []
 
       try:
         for start, length in client_utils.MemoryRegions(process, args):
-          for m in self._ScanRegion(rules, streamer, start, length, deadline):
+          chunks = streamer.StreamMemory(process, offset=start, amount=length)
+          for m in self._ScanRegion(rules, chunks, deadline):
             matches.append(m)
             if (args.max_results_per_process > 0 and
                 len(matches) >= args.max_results_per_process):
@@ -165,10 +166,10 @@ class YaraProcessDump(actions.ActionPlugin):
   in_rdfvalue = rdf_yara.YaraProcessDumpArgs
   out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
 
-  def _SaveMemDumpToFile(self, fd, streamer, start, length):
+  def _SaveMemDumpToFile(self, fd, chunks):
     bytes_written = 0
 
-    for chunk in streamer.Stream(start, length):
+    for chunk in chunks:
       if not chunk.data:
         return 0
 
@@ -177,9 +178,9 @@ class YaraProcessDump(actions.ActionPlugin):
 
     return bytes_written
 
-  def _SaveMemDumpToFilePath(self, filename, streamer, start, length):
+  def _SaveMemDumpToFilePath(self, filename, chunks):
     with open(filename, "wb") as fd:
-      bytes_written = self._SaveMemDumpToFile(fd, streamer, start, length)
+      bytes_written = self._SaveMemDumpToFile(fd, chunks)
 
     # When getting read errors, we just delete the file and move on.
     if not bytes_written:
@@ -199,7 +200,7 @@ class YaraProcessDump(actions.ActionPlugin):
     bytes_limit = args.size_limit
 
     with process:
-      streamer = streaming.MemoryStreamer(process, chunk_size=args.chunk_size)
+      streamer = streaming.Streamer(chunk_size=args.chunk_size)
 
       with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
         for start, length in client_utils.MemoryRegions(process, args):
@@ -215,8 +216,8 @@ class YaraProcessDump(actions.ActionPlugin):
                                           psutil_process.pid, start, end)
           filepath = os.path.join(tmp_dir.path, filename)
 
-          bytes_written = self._SaveMemDumpToFilePath(filepath, streamer, start,
-                                                      length)
+          chunks = streamer.StreamMemory(process, offset=start, amount=length)
+          bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
 
           if not bytes_written:
             continue

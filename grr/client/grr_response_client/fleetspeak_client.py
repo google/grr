@@ -15,7 +15,6 @@ import time
 from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from grr import config
-from grr_response_client import client_utils
 from grr_response_client import comms
 from grr.lib import communicator
 from grr.lib import flags
@@ -191,15 +190,9 @@ class _FleetspeakQueueForwarder(object):
       sender_queue: Queue.Queue
     """
     self._sender_queue = sender_queue
-    self.nanny_controller = client_utils.NannyController()
 
   def Put(self, grr_msg, **_):
-    while True:
-      try:
-        self._sender_queue.put(grr_msg, timeout=30)
-        return
-      except Queue.Full:
-        self.nanny_controller.Heartbeat()
+    self._sender_queue.put(grr_msg)
 
   def Get(self):
     raise NotImplementedError("This implementation only supports input.")

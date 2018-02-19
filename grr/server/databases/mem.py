@@ -148,14 +148,25 @@ class InMemoryDB(db.Database):
       history = self.clients.get(client_id, None)
       if not history:
         res[client_id] = None
-      else:
-        last_timestamp = max(history)
-        client_obj = objects.Client.FromSerializedString(
-            history[last_timestamp])
-        client_obj.timestamp = _TSToRDFDatetime(last_timestamp)
-        client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
-            self.startup_history[client_id][last_timestamp])
-        res[client_id] = client_obj
+        continue
+      last_timestamp = max(history)
+      client_obj = objects.Client.FromSerializedString(history[last_timestamp])
+      client_obj.timestamp = _TSToRDFDatetime(last_timestamp)
+      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
+          self.startup_history[client_id][last_timestamp])
+      res[client_id] = client_obj
+    return res
+
+  def ReadFullInfoClients(self, client_ids):
+    res = {}
+    for client_id in client_ids:
+      self._ValidateClientId(client_id)
+      data = {}
+      data["client"] = self.ReadClient(client_id)
+      data["metadata"] = self.ReadClientMetadata(client_id)
+      data["last_startup_info"] = self.ReadClientStartupInfo(client_id)
+      data["labels"] = self.ReadClientLabels(client_id)
+      res[client_id] = data
     return res
 
   def ReadClientHistory(self, client_id):
@@ -224,15 +235,18 @@ class InMemoryDB(db.Database):
     for l in labels:
       labelset.add(utils.SmartUnicode(l))
 
-  def GetClientLabels(self, client_id):
-    self._ValidateClientId(client_id)
+  def ReadClientsLabels(self, client_ids):
+    res = {}
+    for client_id in client_ids:
+      self._ValidateClientId(client_id)
 
-    res = []
-    owner_dict = self.labels.get(client_id, {})
-    for owner, labels in owner_dict.items():
-      for l in labels:
-        res.append(objects.ClientLabel(owner=owner, name=l))
-    return sorted(res, key=lambda label: (label.owner, label.name))
+      res[client_id] = []
+      owner_dict = self.labels.get(client_id, {})
+      for owner, labels in owner_dict.items():
+        for l in labels:
+          res[client_id].append(objects.ClientLabel(owner=owner, name=l))
+      res[client_id].sort(key=lambda label: (label.owner, label.name))
+    return res
 
   def RemoveClientLabels(self, client_id, owner, labels):
     self._ValidateClientId(client_id)
@@ -284,7 +298,6 @@ class InMemoryDB(db.Database):
           user_type=u.get("user_type"))
 
   def WriteClientStartupInfo(self, client_id, startup_info):
-
     if not isinstance(startup_info, rdf_client.StartupInfo):
       raise ValueError(
           "WriteClientStartupInfo requires rdf_client.StartupInfo, got: %s" %

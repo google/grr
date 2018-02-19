@@ -28,10 +28,8 @@ class SampleHuntMock(object):
 
   def StatFile(self, args):
     """StatFile action mock."""
-    req = rdf_client.ListDirRequest(args)
-
     response = rdf_client.StatEntry(
-        pathspec=req.pathspec,
+        pathspec=args.pathspec,
         st_mode=33184,
         st_ino=1063090,
         st_dev=64512L,

@@ -146,7 +146,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
   def testSizeQueue(self):
 
-    queue = comms.SizeQueue(maxsize=10000000)
+    queue = comms.SizeQueue(maxsize=10000000, heart_beat_cb=lambda: None)
 
     for _ in range(10):
       queue.Put("A", 1)

@@ -184,7 +184,7 @@ class ContentCondition(object):
     Yields:
       `BufferReference` objects pointing to file parts with matching content.
     """
-    streamer = streaming.FileStreamer(
+    streamer = streaming.Streamer(
         chunk_size=self.CHUNK_SIZE, overlap_size=self.OVERLAP_SIZE)
 
     offset = self.params.start_offset

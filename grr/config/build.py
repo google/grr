@@ -61,6 +61,11 @@ config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
                        "with the server.")
 
 config_lib.DEFINE_string(
+    "Client.fleetspeak_service_name", "FleetspeakService",
+    "Name of the Fleetspeak Windows service. Used to restart the Fleetspeak "
+    "service during GRR client installation.")
+
+config_lib.DEFINE_string(
     "ClientBuilder.client_path",
     default="grr_response_client.client",
     help="Full module path for GRR client's main file.")

@@ -260,7 +260,7 @@ class IteratedListDirectory(ClientActionStub):
 class StatFile(ClientActionStub):
   """Sends a StatEntry for a single file."""
 
-  in_rdfvalue = rdf_client.ListDirRequest
+  in_rdfvalue = rdf_client.StatFileArgs
   out_rdfvalues = [rdf_client.StatEntry]
 
 

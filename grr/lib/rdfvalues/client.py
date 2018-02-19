@@ -1039,6 +1039,14 @@ class ListDirRequest(structs.RDFProtoStruct):
   ]
 
 
+class StatFileArgs(structs.RDFProtoStruct):
+
+  protobuf = jobs_pb2.StatFileArgs
+  rdf_deps = [
+      paths.PathSpec,
+  ]
+
+
 class UploadPolicy(structs.RDFProtoStruct):
   protobuf = jobs_pb2.UploadPolicy
   rdf_deps = [

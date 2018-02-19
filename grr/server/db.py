@@ -94,7 +94,7 @@ class Database(object):
     the results of an interrogate flow.
 
     Args:
-      client: An rdfvalues.client.Client. Will be saved at the "current"
+      client: An rdfvalues.objects.Client. Will be saved at the "current"
         timestamp.
 
     Raises:
@@ -110,7 +110,7 @@ class Database(object):
         "C.ea3b2b71840d6fa8"]
 
     Returns:
-      A map from client_id to rdfvalues.client.Client.
+      A map from client_id to rdfvalues.objects.Client.
     """
 
   def ReadClient(self, client_id):
@@ -120,9 +120,37 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      An rdfvalues.client.Client object.
+      An rdfvalues.objects.Client object.
     """
     return self.ReadClients([client_id])[client_id]
+
+  @abc.abstractmethod
+  def ReadFullInfoClients(self, client_ids):
+    """Reads full client information for a list of clients.
+
+    Args:
+      client_ids: a collection of GRR client ids, e.g. ["C.ea3b2b71840d6fa7",
+        "C.ea3b2b71840d6fa8"]
+
+    Returns:
+      A map from client_id to a dict containing:
+        "client": rdfvalues.objects.Client.
+        "metadata": rdfvalues.objects.ClientMetadata.
+        "last_startup_info": rdfvalues.client.StartupInfo.
+        "labels": list of rdfvalues.objects.ClientLabel.
+    """
+
+  def ReadFullInfoClient(self, client_id):
+    """Reads full client information for a single client.
+
+    Args:
+      client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+
+    Returns:
+      The dict containing all information as described in ReadFullInfoClients
+      for the indicated client.
+    """
+    return self.ReadFullInfoClients([client_id])[client_id]
 
   @abc.abstractmethod
   def ReadClientHistory(self, client_id):
@@ -132,7 +160,7 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      A list of rdfvalues.client.Client, newest snapshot first.
+      A list of rdfvalues.objects.Client, newest snapshot first.
     """
 
   @abc.abstractmethod
@@ -177,7 +205,7 @@ class Database(object):
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
-      crash_info: An rdfvalues.client.ClientCrash object. Will be saved at
+      crash_info: An rdfvalues.objects.ClientCrash object. Will be saved at
           the "current" timestamp.
 
     Raises:
@@ -251,15 +279,29 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def GetClientLabels(self, client_id):
+  def ReadClientsLabels(self, client_ids):
+    """Reads the user labels for a list of clients.
+
+    Args:
+      client_ids: a collection of GRR client ids, e.g. ["C.ea3b2b71840d6fa7",
+        "C.ea3b2b71840d6fa8"]
+
+    Returns:
+      A map from client_id to a list of rdfvalue.objects.ClientLabel,
+      sorted by owner, label name.
+    """
+
+  def ReadClientLabels(self, client_id):
     """Reads the user labels for a given client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      A set of labels for the given client.
+      A list of rdfvalue.objects.ClientLabel for the given client,
+      sorted by owner, label name.
     """
+    return self.ReadClientsLabels([client_id])[client_id]
 
   @abc.abstractmethod
   def RemoveClientLabels(self, client_id, owner, labels):

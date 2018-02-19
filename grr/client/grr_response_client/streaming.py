@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 """Utility classes for streaming files and memory."""
 
+import abc
+import os
 
-class FileStreamer(object):
-  """An utility class for buffered file processing.
 
-  File is divided into chunk objects that can be processed individually. If
+class Streamer(object):
+  """An utility class for buffered processing.
+
+  Input is divided into chunk objects that can be processed individually. If
   needed chunks returned by the streamer can overlap: suffix of one chunk will
-  become prefix of a next one.
+  become prefix of the next one.
 
-  Args:
+  Attributes:
     chunk_size: A number of bytes per chunk returned by the streamer object.
     overlap_size: A number of bytes that the next chunk will share with the
       previous one.
@@ -24,78 +27,67 @@ class FileStreamer(object):
     self.chunk_size = chunk_size
     self.overlap_size = overlap_size
 
-  def StreamFile(self, fd, offset=0, amount=None):
-    """Yields chunks of a given file starting at given offset.
+  def StreamFile(self, filedesc, offset=0, amount=None):
+    """Streams chunks of a given file starting at given offset.
 
     Args:
-      fd: A file descriptor for a file to stream.
+      filedesc: A `file` object to stream.
       offset: An integer offset at which the file stream should start on.
       amount: An upper bound on number of bytes to read.
+
+    Returns:
+      Generator over `Chunk` instances.
 
     Raises:
       ValueError: If the amount of bytes is not specified.
     """
-    if amount is None:
-      raise ValueError("the amount of bytes to read must be specified")
+    reader = FileReader(filedesc, offset=offset)
+    return self.Stream(reader, amount=amount)
 
-    fd.seek(offset)
-
-    data = fd.read(min(self.chunk_size, amount))
-    if not data:
-      return
-
-    yield Chunk(offset=offset, data=data)
-
-    amount -= len(data)
-    offset += len(data) - self.overlap_size
-
-    while amount > 0:
-      # We need `len(data)` here because overlap size can be 0.
-      overlap = data[len(data) - self.overlap_size:]
-      new = fd.read(min(self.chunk_size - self.overlap_size, amount))
-      if not new:
-        return
-
-      data = overlap + new
-      yield Chunk(offset=offset, data=data, overlap=len(overlap))
-
-      amount -= len(new)
-      offset += len(new)
-
-  def StreamFilePath(self, path, offset=0, amount=None):
-    """Yields chunks of a file located at given path starting at given offset.
+  def StreamFilePath(self, filepath, offset=0, amount=None):
+    """Streams chunks of a file located at given path starting at given offset.
 
     Args:
-      path: A path to the file to stream.
+      filepath: A path to the file to stream.
       offset: An integer offset at which the file stream should start on.
       amount: An upper bound on number of bytes to read.
+
+    Yields:
+      `Chunk` instances.
+
+    Raises:
+      ValueError: If the amount of bytes is not specified.
     """
-    with open(path, "rb") as fd:
-      for chunk in self.StreamFile(fd, offset, amount):
+    with open(filepath, "rb") as filedesc:
+      for chunk in self.StreamFile(filedesc, offset=offset, amount=amount):
         yield chunk
 
-
-class MemoryStreamer(object):
-  """Utility class to stream process memory in chunks."""
-
-  def __init__(self, process, chunk_size=None, overlap_size=0):
-    if process is None:
-      raise ValueError("process must be specified")
-    if chunk_size is None:
-      raise ValueError("chunk size must be specified")
-    if overlap_size >= chunk_size:
-      raise ValueError("chunk size must be strictly greater thank overlap size")
-
-    self.chunk_size = chunk_size
-    self.overlap_size = overlap_size
-    self.process = process
-
-  def Stream(self, offset=0, amount=None):
-    """Yields chunks of a given file starting at given offset.
+  def StreamMemory(self, process, offset=0, amount=None):
+    """Streams chunks of memory of a given process starting at given offset.
 
     Args:
-      offset: An integer offset at which the file stream should start on.
+      process: A platform-specific `Process` instance.
+      offset: An integer offset at which the memory stream should start on.
       amount: An upper bound on number of bytes to read.
+
+    Returns:
+      Generator over `Chunk` instances.
+
+    Raises:
+      ValueError: If the amount of bytes is not specified.
+    """
+    reader = MemoryReader(process, offset=offset)
+    return self.Stream(reader, amount=amount)
+
+  def Stream(self, reader, amount=None):
+    """Streams chunks of a given file starting at given offset.
+
+    Args:
+      reader: A `Reader` instance.
+      amount: An upper bound on number of bytes to read.
+
+    Yields:
+      `Chunk` instances.
 
     Raises:
       ValueError: If the amount of bytes is not specified.
@@ -103,29 +95,27 @@ class MemoryStreamer(object):
     if amount is None:
       raise ValueError("the amount of bytes to read must be specified")
 
-    data = self.process.ReadBytes(offset, min(self.chunk_size, amount))
+    data = reader.Read(min(self.chunk_size, amount))
     if not data:
       return
 
-    yield Chunk(offset=offset, data=data)
-
     amount -= len(data)
-    offset += len(data) - self.overlap_size
+    offset = reader.offset - len(data)
+    yield Chunk(offset=offset, data=data)
 
     while amount > 0:
       # We need `len(data)` here because overlap size can be 0.
       overlap = data[len(data) - self.overlap_size:]
-      new = self.process.ReadBytes(offset + self.overlap_size,
-                                   min(self.chunk_size - self.overlap_size,
-                                       amount))
+
+      new = reader.Read(min(self.chunk_size - self.overlap_size, amount))
       if not new:
         return
 
       data = overlap + new
-      yield Chunk(offset=offset, data=data, overlap=len(overlap))
 
       amount -= len(new)
-      offset += len(new)
+      offset = reader.offset - len(data)
+      yield Chunk(offset=offset, data=data, overlap=len(overlap))
 
 
 class Chunk(object):
@@ -147,6 +137,11 @@ class Chunk(object):
     self.data = data
     self.overlap = overlap
 
+  # TODO(hanuszczak): This function is beyond the scope of this module. It is
+  # used in only one place [1] and should probably be moved there as well as
+  # corresponding test.
+  #
+  # [1]: grr/client/client_actions/file_finder_utils/conditions.py
   def Scan(self, matcher):
     """Yields spans occurrences of a given pattern within the chunk.
 
@@ -179,3 +174,69 @@ class Chunk(object):
       # at the end of the previous match.
       position = span.end
       yield span
+
+
+class Reader(object):
+  """A unified interface for reader-like objects."""
+
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractproperty
+  def offset(self):
+    """An integer representing current position within the source."""
+
+  @abc.abstractmethod
+  def Read(self, amount):
+    """An abstract method for reading byte segments.
+
+    Args:
+      amount: A number of bytes to read.
+
+    Returns:
+      Bytes that have been read.
+    """
+
+
+class FileReader(object):
+  """A reader implementation that wraps ordinary file objects.
+
+  Args:
+    filedesc: A file descriptor object to read from.
+    offset: An initial offset within the file.
+  """
+
+  def __init__(self, filedesc, offset=0):
+    self._filedesc = filedesc
+    self._offset = offset
+    filedesc.seek(offset, os.SEEK_SET)
+
+  @property
+  def offset(self):
+    return self._offset
+
+  def Read(self, amount):
+    result = self._filedesc.read(amount)
+    self._offset += len(result)
+    return result
+
+
+class MemoryReader(object):
+  """A reader implementation that reads from process memory.
+
+  Args:
+    process: A platform-specific `Process` instance.
+    offset: An initial offset within the memory.
+  """
+
+  def __init__(self, process, offset=0):
+    self._process = process
+    self._offset = offset
+
+  @property
+  def offset(self):
+    return self._offset
+
+  def Read(self, amount):
+    result = self._process.ReadBytes(self._offset, amount)
+    self._offset += len(result)
+    return result

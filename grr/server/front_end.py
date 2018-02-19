@@ -266,7 +266,7 @@ class RelationalServerCommunicator(communicator.Communicator):
 
       stats.STATS.IncrementCounter("grr_authenticated_messages")
 
-      for label in data_store.REL_DB.GetClientLabels(client_id):
+      for label in data_store.REL_DB.ReadClientLabels(client_id):
         stats.STATS.IncrementCounter(
             "client_pings_by_label", fields=[label.name])
 

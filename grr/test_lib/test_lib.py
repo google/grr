@@ -307,14 +307,18 @@ class GRRBaseTest(unittest.TestCase):
                        kernel="4.0.0",
                        os_version="buster/sid",
                        ping=None,
-                       system="Linux"):
+                       system="Linux",
+                       memory_size=None,
+                       add_cert=True):
     client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
 
     with aff4.FACTORY.Create(
         client_id_urn, aff4_grr.VFSGRRClient, mode="rw",
         token=self.token) as fd:
-      cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
-      fd.Set(fd.Schema.CERT, cert)
+      if add_cert:
+        cert = self.ClientCertFromPrivateKey(
+            config.CONFIG["Client.private_key"])
+        fd.Set(fd.Schema.CERT, cert)
 
       fd.Set(fd.Schema.CLIENT_INFO, self._TestClientInfo())
       fd.Set(fd.Schema.PING, ping or rdfvalue.RDFDatetime.Now())
@@ -335,6 +339,8 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.ARCH(arch))
       if kernel:
         fd.Set(fd.Schema.KERNEL(kernel))
+      if memory_size:
+        fd.Set(fd.Schema.MEMORY_SIZE(memory_size))
 
       kb = rdf_client.KnowledgeBase()
       kb.fqdn = "Host-%x.example.com" % client_nr
@@ -364,7 +370,9 @@ class GRRBaseTest(unittest.TestCase):
                   kernel="4.0.0",
                   os_version="buster/sid",
                   ping=None,
-                  system="Linux"):
+                  system="Linux",
+                  memory_size=None,
+                  add_cert=True):
     """Prepares a test client mock to be used.
 
     Args:
@@ -375,6 +383,8 @@ class GRRBaseTest(unittest.TestCase):
       os_version: string
       ping: RDFDatetime
       system: string
+      memory_size: bytes
+      add_cert: boolean
 
     Returns:
       rdf_client.ClientURN
@@ -387,7 +397,9 @@ class GRRBaseTest(unittest.TestCase):
           kernel=kernel,
           os_version=os_version,
           ping=ping,
-          system=system)
+          system=system,
+          memory_size=memory_size,
+          add_cert=add_cert)
 
     return client_id_urn
 
@@ -437,8 +449,11 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupTestClientObjects(self,
                              client_count,
+                             add_cert=True,
                              arch="x86_64",
+                             fqdn=None,
                              kernel="4.0.0",
+                             memory_size=None,
                              os_version="buster/sid",
                              ping=None,
                              system="Linux"):
@@ -446,8 +461,11 @@ class GRRBaseTest(unittest.TestCase):
     for client_nr in range(client_count):
       client = self.SetupTestClientObject(
           client_nr,
+          add_cert=add_cert,
           arch=arch,
+          fqdn=fqdn,
           kernel=kernel,
+          memory_size=memory_size,
           os_version=os_version,
           ping=ping,
           system=system)
@@ -456,8 +474,11 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupTestClientObject(self,
                             client_nr,
+                            add_cert=True,
                             arch="x86_64",
+                            fqdn=None,
                             kernel="4.0.0",
+                            memory_size=None,
                             os_version="buster/sid",
                             ping=None,
                             system="Linux"):
@@ -468,7 +489,7 @@ class GRRBaseTest(unittest.TestCase):
     client = objects.Client(client_id=client_id)
     client.startup_info.client_info = self._TestClientInfo()
 
-    client.knowledge_base.fqdn = "Host-%x.example.com" % client_nr
+    client.knowledge_base.fqdn = fqdn or "Host-%x.example.com" % client_nr
     client.knowledge_base.os = system
     client.knowledge_base.users = [
         rdf_client.User(username="user1"),
@@ -484,8 +505,14 @@ class GRRBaseTest(unittest.TestCase):
         system_manufacturer="System-Manufacturer-%x" % client_nr,
         bios_version="Bios-Version-%x" % client_nr)
 
+    if memory_size is not None:
+      client.memory_size = memory_size
+
     ping = ping or rdfvalue.RDFDatetime.Now()
-    cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
+    if add_cert:
+      cert = self.ClientCertFromPrivateKey(config.CONFIG["Client.private_key"])
+    else:
+      cert = None
 
     data_store.REL_DB.WriteClientMetadata(
         client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)

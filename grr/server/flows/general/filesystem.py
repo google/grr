@@ -883,7 +883,7 @@ class GlobMixin(object):
 
           if not next_node:
             # Check for the existence of the last node.
-            request = rdf_client.ListDirRequest(pathspec=pathspec)
+            request = rdf_client.StatFileArgs(pathspec=pathspec)
 
             if (response is None or (response and
                                      (response.st_mode == 0 or

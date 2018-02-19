@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
+from grr.server import data_store
 from grr.server import flow
 from grr.server import queue_manager
 from grr.server.aff4_objects import aff4_grr
@@ -34,17 +35,16 @@ class ApiSearchClientsHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0)
-
-      # Delete the certificate as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.RelationalDBReadEnabled():
+        client_obj = self.SetupTestClientObject(0)
+        client_id = client_obj.client_id
+      else:
+        client_urn = self.SetupClient(0, add_cert=False)
+        client_id = client_urn.Basename()
 
       self.Check(
           "SearchClients",
-          args=client_plugin.ApiSearchClientsArgs(query=client_id.Basename()))
+          args=client_plugin.ApiSearchClientsArgs(query=client_id))
 
 
 class ApiGetClientHandlerRegressionTest(
@@ -56,18 +56,16 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0)
-
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      if data_store.RelationalDBReadEnabled():
+        client_obj = self.SetupTestClientObject(
+            0, memory_size=4294967296, add_cert=False)
+        client_id = client_obj.client_id
+      else:
+        client_urn = self.SetupClient(0, memory_size=4294967296, add_cert=False)
+        client_id = client_urn.Basename()
 
     self.Check(
-        "GetClient",
-        args=client_plugin.ApiGetClientArgs(client_id=client_id.Basename()))
+        "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
 
 
 class ApiGetClientVersionsRegressionTest(
@@ -79,13 +77,7 @@ class ApiGetClientVersionsRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0)
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        grr_client.DeleteAttribute(grr_client.Schema.CERT)
+      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
 
     with test_lib.FakeTime(45):
       with aff4.FACTORY.Open(

@@ -239,7 +239,11 @@ class File(vfs.VFSHandler):
       return None
 
   def _GetDevice(self, path):
-    return self._GetStat(path).GetDevice()
+    try:
+      return utils.Stat(path).GetDevice()
+    except (IOError, OSError) as error:
+      logging.error("Failed to obtain device for '%s' (%s)", path, error)
+      return None
 
   def RecursiveListNames(self, depth=0, cross_devs=False):
     path = client_utils.CanonicalPathToLocalPath(self.path)
@@ -253,6 +257,12 @@ class File(vfs.VFSHandler):
       files.sort()
 
       root_depth = self._GetDepth(root)
+
+      # The recursion of the `os.walk` procedure is guided by the `dirs`
+      # variable [1]. By clearing `dirs` below we force the generator to omit
+      # certain paths.
+      #
+      # [1]: https://docs.python.org/2/library/os.html#os.walk
 
       if not cross_devs and self._GetDevice(root) != path_dev:
         dirs[:] = []  # We don't need to go deeper (clear the list)

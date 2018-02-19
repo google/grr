@@ -528,7 +528,7 @@ class GRRClientWorker(object):
 
   UPLOAD_BUFFER_SIZE = 1024 * 1024
 
-  def __init__(self, client=None):
+  def __init__(self, client=None, heart_beat_cb=None):
     """Create a new GRRClientWorker."""
     super(GRRClientWorker, self).__init__()
 
@@ -558,13 +558,15 @@ class GRRClientWorker(object):
 
     self.StartNanny()
 
+    if heart_beat_cb is None:
+      heart_beat_cb = self.nanny_controller.Heartbeat
+
     self.lock = threading.RLock()
 
     # The worker may communicate over HTTP independently from the comms
     # thread. This way we do not need to synchronize the HTTP manager between
     # the two threads.
-    self.http_manager = HTTPManager(
-        heart_beat_cb=self.nanny_controller.Heartbeat)
+    self.http_manager = HTTPManager(heart_beat_cb=heart_beat_cb)
 
   def StartNanny(self):
     # Use this to control the nanny transaction log.
@@ -576,14 +578,14 @@ class GRRClientWorker(object):
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
-    self.nanny_controller.Heartbeat()
+    self.heart_beat_cb()
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
     for _ in xrange(int(timeout)):
       time.sleep(1)
 
-      self.nanny_controller.Heartbeat()
+      self.heart_beat_cb()
 
   def ClientMachineIsIdle(self):
     return psutil.cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
@@ -943,13 +945,13 @@ class SizeQueue(object):
   """
   total_size = 0
 
-  def __init__(self, maxsize=1024, nanny=None):
+  def __init__(self, maxsize=1024, heart_beat_cb=None):
     self.lock = threading.RLock()
     self.queue = []
     self._reversed = []
     self.total_size = 0
     self.maxsize = maxsize
-    self.nanny = nanny
+    self.heart_beat_cb = heart_beat_cb
 
   def Put(self,
           item,
@@ -988,7 +990,7 @@ class SizeQueue(object):
       # ensure that the posting thread can drain this queue while we block here.
       while self.total_size >= self.maxsize:
         time.sleep(1)
-        self.nanny.Heartbeat()
+        self.heart_beat_cb.Heartbeat()
         count += 1
 
         if timeout and count > timeout:
@@ -1033,14 +1035,17 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
   waiting on network latency.
   """
 
-  def __init__(self, start_worker_thread=True, client=None, out_queue=None):
-    GRRClientWorker.__init__(self, client=client)
+  def __init__(self,
+               start_worker_thread=True,
+               client=None,
+               out_queue=None,
+               heart_beat_cb=None):
     threading.Thread.__init__(self)
+    GRRClientWorker.__init__(self, client=client, heart_beat_cb=heart_beat_cb)
 
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
-    self._in_queue = utils.HeartbeatQueue(
-        callback=self.nanny_controller.Heartbeat, maxsize=1024)
+    self._in_queue = utils.HeartbeatQueue(callback=heart_beat_cb, maxsize=1024)
 
     if out_queue is not None:
       self._out_queue = out_queue
@@ -1049,7 +1054,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       # is too large, the worker thread will block until the queue is drained.
       self._out_queue = SizeQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
-          nanny=self.nanny_controller)
+          heart_beat_cb=heart_beat_cb)
 
     self.daemon = True
 
@@ -1059,7 +1064,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
-    self.nanny_controller.Heartbeat()
+    self.heart_beat_cb()
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
@@ -1070,7 +1075,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       if self._out_queue.Full():
         return
 
-      self.nanny_controller.Heartbeat()
+      self.heart_beat_cb()
 
   def Drain(self, max_size=1024):
     """Return a GrrQueue message list from the queue, draining it.

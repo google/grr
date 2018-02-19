@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for the streaming utility classes."""
 
+import abc
+import functools
 import os
 
 import unittest
@@ -10,20 +12,18 @@ from grr.lib import flags
 from grr.test_lib import test_lib
 
 
-class FileStreamerTest(unittest.TestCase):
+class StreamerTestMixin(object):
 
-  def setUp(self):
-    self.temp_filepath = test_lib.TempFilePath()
+  __metaclass__ = abc.ABCMeta
 
-  def tearDown(self):
-    os.remove(self.temp_filepath)
+  @abc.abstractmethod
+  def Stream(self, streamer, data):
+    pass
 
   def testNoOverlap(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abcdefgh")
-
-    streamer = streaming.FileStreamer(chunk_size=3, overlap_size=0)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=8))
+    streamer = streaming.Streamer(chunk_size=3, overlap_size=0)
+    method = self.Stream(streamer, "abcdefgh")
+    chunks = list(method(amount=8))
 
     self.assertEqual(len(chunks), 3)
     self.assertEqual(chunks[0].data, "abc")
@@ -37,11 +37,9 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[2].overlap, 0)
 
   def testOneByteOverlap(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abcdef")
-
-    streamer = streaming.FileStreamer(chunk_size=3, overlap_size=1)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=8))
+    streamer = streaming.Streamer(chunk_size=3, overlap_size=1)
+    method = self.Stream(streamer, "abcdef")
+    chunks = list(method(amount=8))
 
     self.assertEqual(len(chunks), 3)
     self.assertEqual(chunks[0].data, "abc")
@@ -55,11 +53,9 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[2].overlap, 1)
 
   def testSmallAmount(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abc")
-
-    streamer = streaming.FileStreamer(chunk_size=1, overlap_size=0)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=2))
+    streamer = streaming.Streamer(chunk_size=1, overlap_size=0)
+    method = self.Stream(streamer, "abc")
+    chunks = list(method(amount=2))
 
     self.assertEqual(len(chunks), 2)
     self.assertEqual(chunks[0].data, "a")
@@ -70,11 +66,9 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[1].overlap, 0)
 
   def testSingleChunk(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abcdef")
-
-    streamer = streaming.FileStreamer(chunk_size=8, overlap_size=2)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=7))
+    streamer = streaming.Streamer(chunk_size=8, overlap_size=2)
+    method = self.Stream(streamer, "abcdef")
+    chunks = list(method(amount=7))
 
     self.assertEqual(len(chunks), 1)
     self.assertEqual(chunks[0].data, "abcdef")
@@ -82,18 +76,16 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[0].overlap, 0)
 
   def testNoData(self):
-    streamer = streaming.FileStreamer(chunk_size=3, overlap_size=1)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=5))
+    streamer = streaming.Streamer(chunk_size=3, overlap_size=1)
+    method = self.Stream(streamer, "")
+    chunks = list(method(amount=5))
 
     self.assertEqual(len(chunks), 0)
 
   def testOffset(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abcdefghi")
-
-    streamer = streaming.FileStreamer(chunk_size=3, overlap_size=2)
-    stream = streamer.StreamFilePath(self.temp_filepath, offset=4, amount=108)
-    chunks = list(stream)
+    streamer = streaming.Streamer(chunk_size=3, overlap_size=2)
+    method = self.Stream(streamer, "abcdefghi")
+    chunks = list(method(offset=4, amount=108))
 
     self.assertEqual(len(chunks), 3)
     self.assertEqual(chunks[0].data, "efg")
@@ -107,11 +99,9 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[2].overlap, 2)
 
   def testShorterOverlap(self):
-    with open(self.temp_filepath, "wb") as fd:
-      fd.write("abcdefg")
-
-    streamer = streaming.FileStreamer(chunk_size=4, overlap_size=2)
-    chunks = list(streamer.StreamFilePath(self.temp_filepath, amount=1024))
+    streamer = streaming.Streamer(chunk_size=4, overlap_size=2)
+    method = self.Stream(streamer, "abcdefg")
+    chunks = list(method(amount=1024))
 
     self.assertEqual(len(chunks), 3)
     self.assertEqual(chunks[0].data, "abcd")
@@ -123,6 +113,113 @@ class FileStreamerTest(unittest.TestCase):
     self.assertEqual(chunks[0].overlap, 0)
     self.assertEqual(chunks[1].overlap, 2)
     self.assertEqual(chunks[2].overlap, 2)
+
+
+class StreamFilePathTest(StreamerTestMixin, unittest.TestCase):
+
+  def setUp(self):
+    super(StreamFilePathTest, self).setUp()
+    self.temp_filepath = test_lib.TempFilePath()
+
+  def tearDown(self):
+    super(StreamFilePathTest, self).tearDown()
+    os.remove(self.temp_filepath)
+
+  def Stream(self, streamer, data):
+    with open(self.temp_filepath, "wb") as filedesc:
+      filedesc.write(data)
+
+    return functools.partial(streamer.StreamFilePath, self.temp_filepath)
+
+
+class StreamMemoryTest(StreamerTestMixin, unittest.TestCase):
+
+  def Stream(self, streamer, data):
+    process = StubProcess(data)
+    return functools.partial(streamer.StreamMemory, process)
+
+
+class ReaderTestMixin(object):
+
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractmethod
+  def Prepare(self, data, callback, offset=0):
+    pass
+
+  def testReadNormal(self):
+    data = "foobarbaz"
+
+    def Assertions(reader):
+      self.assertEqual(reader.offset, 0)
+      self.assertEqual(reader.Read(1), "f")
+      self.assertEqual(reader.offset, 1)
+      self.assertEqual(reader.Read(2), "oo")
+      self.assertEqual(reader.offset, 3)
+      self.assertEqual(reader.Read(3), "bar")
+      self.assertEqual(reader.offset, 6)
+      self.assertEqual(reader.Read(3), "baz")
+      self.assertEqual(reader.offset, 9)
+
+    self.Prepare(data, Assertions)
+
+  def testReadTruncated(self):
+    data = "foobar"
+
+    def Assertions(reader):
+      self.assertEqual(reader.offset, 0)
+      self.assertEqual(reader.Read(3), "foo")
+      self.assertEqual(reader.offset, 3)
+      self.assertEqual(reader.Read(6), "bar")
+      self.assertEqual(reader.offset, 6)
+
+    self.Prepare(data, Assertions)
+
+  def testOffset(self):
+    data = "foobar"
+
+    def Assertions(reader):
+      self.assertEqual(reader.offset, 3)
+      self.assertEqual(reader.Read(3), "bar")
+      self.assertEqual(reader.offset, 6)
+
+    self.Prepare(data, Assertions, offset=3)
+
+
+class FileReaderTest(ReaderTestMixin, unittest.TestCase):
+
+  def setUp(self):
+    super(FileReaderTest, self).setUp()
+    self.temp_filepath = test_lib.TempFilePath()
+
+  def tearDown(self):
+    super(FileReaderTest, self).tearDown()
+    os.remove(self.temp_filepath)
+
+  def Prepare(self, data, callback, offset=0):
+    with open(self.temp_filepath, "w") as filedesc:
+      filedesc.write(data)
+
+    with open(self.temp_filepath, "r") as filedesc:
+      reader = streaming.FileReader(filedesc, offset=offset)
+      callback(reader)
+
+
+class MemoryReaderTest(ReaderTestMixin, unittest.TestCase):
+
+  def Prepare(self, data, callback, offset=0):
+    process = StubProcess(data)
+    reader = streaming.MemoryReader(process, offset=offset)
+    callback(reader)
+
+
+class StubProcess(object):
+
+  def __init__(self, memory):
+    self.memory = memory
+
+  def ReadBytes(self, address, num_bytes):
+    return self.memory[address:address + num_bytes]
 
 
 class ChunkTest(unittest.TestCase):
@@ -172,74 +269,6 @@ class ChunkTest(unittest.TestCase):
     self.assertEqual(len(spans), 2)
     self.assertEqual(spans[0], self.Span(begin=2, end=4))
     self.assertEqual(spans[1], self.Span(begin=4, end=6))
-
-
-class MockProcess(object):
-
-  def __init__(self, data):
-    self.data = data
-
-  def ReadBytes(self, offset, length):
-    return self.data[offset:offset + length]
-
-
-class MemoryStreamerTest(unittest.TestCase):
-
-  def testStreaming(self):
-    data = "foofoobarfoofoo"
-    p = MockProcess(data)
-
-    s = streaming.MemoryStreamer(p, chunk_size=1000, overlap_size=0)
-
-    res = [chunk.data for chunk in s.Stream(0, 100)]
-    self.assertEqual("".join(res), data)
-
-    res = []
-    res.extend(chunk.data for chunk in s.Stream(0, 6))
-    res.extend(chunk.data for chunk in s.Stream(6, 100))
-    self.assertEqual("".join(res), data)
-
-  def testChunking(self):
-    data = "foofoobarfoofoo"
-    p = MockProcess(data)
-
-    s = streaming.MemoryStreamer(p, chunk_size=2, overlap_size=0)
-
-    res = [chunk.data for chunk in s.Stream(0, 100)]
-    self.assertEqual("".join(res), data)
-
-    res = []
-    res.extend(chunk.data for chunk in s.Stream(0, 6))
-    res.extend(chunk.data for chunk in s.Stream(6, 100))
-    self.assertEqual("".join(res), data)
-
-  def testOddChunkSize(self):
-    data = "foofoobarfoofoo"
-    p = MockProcess(data)
-
-    s = streaming.MemoryStreamer(p, chunk_size=2, overlap_size=0)
-
-    res = [len(chunk.data) for chunk in s.Stream(0, 100)]
-    self.assertEqual(res, [2, 2, 2, 2, 2, 2, 2, 1])
-
-  def testOverlap(self):
-    data = "foofoobarfoofoo"
-
-    p = MockProcess(data)
-    s = streaming.MemoryStreamer(p, chunk_size=5, overlap_size=2)
-    res = [chunk.data for chunk in s.Stream(0, 100)]
-
-    # Original data is length 15, we get 5 chars in the first chunk + 3 more in
-    # each additional one. The last chunk is short (2 overlap+ 1 data).
-    self.assertEqual(len(res), 5)
-    self.assertEqual(map(len, res), [5, 5, 5, 5, 3])
-    for i in range(len(res) - 1):
-      self.assertEqual(res[i][-2:], res[i + 1][:2])
-
-    self.assertEqual([chunk.offset for chunk in s.Stream(0, 100)],
-                     [0, 3, 6, 9, 12])
-    self.assertEqual([chunk.overlap for chunk in s.Stream(0, 100)],
-                     [0, 2, 2, 2, 2])
 
 
 def main(argv):

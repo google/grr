@@ -325,7 +325,7 @@ class DatabaseTestMixin(object):
     client_id = "C.0000000000000001"
     self._InitializeClient(client_id)
 
-    self.assertEqual(d.GetClientLabels(client_id), [])
+    self.assertEqual(d.ReadClientLabels(client_id), [])
 
     d.AddClientLabels(client_id, "owner1", ["label1"])
     d.AddClientLabels(client_id, "owner2", ["label2", "label3"])
@@ -336,23 +336,23 @@ class DatabaseTestMixin(object):
         objects.ClientLabel(name="label3", owner="owner2")
     ]
 
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
-    self.assertEqual(d.GetClientLabels("C.0000000000000002"), [])
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels("C.0000000000000002"), [])
 
     # Can't hurt to insert this one again.
     d.AddClientLabels(client_id, "owner1", ["label1"])
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner1", ["does not exist"])
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     # Label3 is actually owned by owner2.
     d.RemoveClientLabels(client_id, "owner1", ["label3"])
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner2", ["label3"])
     self.assertEqual(
-        d.GetClientLabels(client_id), [
+        d.ReadClientLabels(client_id), [
             objects.ClientLabel(name="label1", owner="owner1"),
             objects.ClientLabel(name="label2", owner="owner2"),
         ])
@@ -362,7 +362,7 @@ class DatabaseTestMixin(object):
     client_id = "C.0000000000000001"
     self._InitializeClient(client_id)
 
-    self.assertEqual(d.GetClientLabels(client_id), [])
+    self.assertEqual(d.ReadClientLabels(client_id), [])
 
     d.AddClientLabels(client_id, "owner1", [u"⛄࿄1"])
     d.AddClientLabels(client_id, "owner2", [u"⛄࿄2"])
@@ -374,18 +374,18 @@ class DatabaseTestMixin(object):
         objects.ClientLabel(name=u"⛄࿄3", owner="owner2")
     ]
 
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner1", ["does not exist"])
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     # This label is actually owned by owner2.
     d.RemoveClientLabels(client_id, "owner1", [u"⛄࿄3"])
-    self.assertEqual(d.GetClientLabels(client_id), all_labels)
+    self.assertEqual(d.ReadClientLabels(client_id), all_labels)
 
     d.RemoveClientLabels(client_id, "owner2", [u"⛄࿄3"])
     self.assertEqual(
-        d.GetClientLabels(client_id), [
+        d.ReadClientLabels(client_id), [
             objects.ClientLabel(name=u"⛄࿄1", owner="owner1"),
             objects.ClientLabel(name=u"⛄࿄2", owner="owner2")
         ])
@@ -514,6 +514,30 @@ class DatabaseTestMixin(object):
 
     self.assertIsNone(d.ReadClientCrashInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientCrashInfoHistory("C.0000000000000000"), [])
+
+  def testFullInfo(self):
+    d = self.db
+
+    client_id = "C.0000000050000001"
+    self._InitializeClient(client_id)
+
+    cl = objects.Client(
+        client_id=client_id,
+        knowledge_base=rdf_client.KnowledgeBase(fqdn="test1234.examples.com"),
+        kernel="12.3")
+    d.WriteClient(cl)
+    d.WriteClientMetadata(client_id, certificate=CERT)
+    si = rdf_client.StartupInfo(boot_time=1)
+    d.WriteClientStartupInfo(client_id, si)
+    d.AddClientLabels(client_id, "test_owner", ["test_label"])
+
+    full_info = d.ReadFullInfoClient(client_id)
+    self.assertEqual(full_info["client"], cl)
+    self.assertEqual(full_info["metadata"].certificate, CERT)
+    self.assertEqual(full_info["last_startup_info"], si)
+    self.assertEqual(
+        full_info["labels"],
+        [objects.ClientLabel(owner="test_owner", name="test_label")])
 
 
 CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----

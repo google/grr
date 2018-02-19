@@ -505,7 +505,7 @@ class ClientIndex(object):
       client_id: The client_id.
     """
     labels_to_remove = set(
-        [l.name for l in data_store.REL_DB.GetClientLabels(client_id)])
+        [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)])
     self.RemoveClientLabels(client_id, labels_to_remove)
 
   def RemoveClientLabels(self, client_id, labels):

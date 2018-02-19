@@ -34,6 +34,69 @@ from grr import config
 from grr_response_client import installer
 
 
+def StartService(service_name):
+  """Start a Windows service with the given name.
+
+  Args:
+    service_name: string The name of the service to be stopped.
+  """
+  logging.info("Starting Windows service %s", service_name)
+
+  try:
+    win32serviceutil.StartService(service_name)
+  except pywintypes.error as e:
+    logging.info("Unable to stop service: %s with error: %s", service_name, e)
+
+
+def StopService(service_name, service_binary_name=None):
+  """Stop a Windows service with the given name.
+
+  Args:
+    service_name: string The name of the service to be stopped.
+    service_binary_name: string If given, also kill this binary as a best effort
+        fallback solution.
+  """
+  logging.info("Stopping Windows service %s; Binary name: %s", service_name,
+               service_binary_name)
+
+  # QueryServiceStatus returns: scvType, svcState, svcControls, err,
+  # svcErr, svcCP, svcWH
+  try:
+    status = win32serviceutil.QueryServiceStatus(service_name)[1]
+  except pywintypes.error as e:
+    logging.info("Unable to query status of service: %s with error: %s",
+                 service_name, e)
+    return
+
+  for _ in range(20):
+    if status == win32service.SERVICE_STOPPED:
+      break
+    elif status != win32service.SERVICE_STOP_PENDING:
+      logging.info("Attempting to stop service %s", service_name)
+      try:
+        win32serviceutil.StopService(service_name)
+      except pywintypes.error as e:
+        logging.info("Unable to stop service: %s with error: %s", service_name,
+                     e)
+    time.sleep(1)
+    status = win32serviceutil.QueryServiceStatus(service_name)[1]
+
+  if status != win32service.SERVICE_STOPPED and service_binary_name is not None:
+    # Taskkill will fail on systems predating Windows XP, this is a best
+    # effort fallback solution.
+    output = subprocess.check_output(
+        ["taskkill", "/im",
+         "%s*" % service_binary_name, "/f"],
+        shell=True,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    logging.debug("%s", output)
+
+    # Sleep a bit to ensure that process really quits.
+    time.sleep(2)
+
+
 class CheckForWow64(installer.Installer):
   """Check to ensure we are not running on a Wow64 system."""
 
@@ -50,44 +113,9 @@ class CopyToSystemDir(installer.Installer):
 
   def StopPreviousService(self):
     """Wait until the service can be stopped."""
-    service = config.CONFIG["Nanny.service_name"]
-
-    # QueryServiceStatus returns: scvType, svcState, svcControls, err,
-    # svcErr, svcCP, svcWH
-    try:
-      status = win32serviceutil.QueryServiceStatus(service)[1]
-    except pywintypes.error, e:
-      logging.info("Unable to query status of service: %s with error: %s",
-                   service, e)
-      return
-
-    for _ in range(20):
-      if status == win32service.SERVICE_STOPPED:
-        break
-      elif status != win32service.SERVICE_STOP_PENDING:
-        logging.info("Attempting to stop service %s", service)
-        try:
-          win32serviceutil.StopService(service)
-        except pywintypes.error, e:
-          logging.info("Unable to stop service: %s with error: %s", service, e)
-      time.sleep(1)
-      status = win32serviceutil.QueryServiceStatus(service)[1]
-
-    if status != win32service.SERVICE_STOPPED:
-      service_binary = config.CONFIG["Nanny.service_binary_name"]
-
-      # Taskkill will fail on systems predating Windows XP, this is a best
-      # effort fallback solution.
-      output = subprocess.check_output(
-          ["taskkill", "/im", "%s*" % service_binary, "/f"],
-          shell=True,
-          stdin=subprocess.PIPE,
-          stderr=subprocess.PIPE)
-
-      logging.debug("%s", output)
-
-      # Sleep a bit to ensure that process really quits.
-      time.sleep(2)
+    StopService(
+        service_name=config.CONFIG["Nanny.service_name"],
+        service_binary_name=config.CONFIG["Nanny.service_binary_name"])
 
   def RunOnce(self):
     """Copy the binaries from the temporary unpack location.
@@ -171,6 +199,8 @@ class WindowsInstaller(installer.Installer):
 
   def GenerateFleetspeakServiceConfig(self):
     """Generate a service config, used to register the GRR client with FS."""
+    logging.info("Generating Fleetspeak service config.")
+
     fs_service_config = fs_system_pb2.ClientServiceConfig(
         name=config.CONFIG["Client.name"],
         factory="Daemon",
@@ -181,12 +211,17 @@ class WindowsInstaller(installer.Installer):
             ),
         ],
     )
-    daemonservice_config = fs_config_pb2.Config(argv=[
-        # Note this is an argv list, so we can't use
-        # config.CONFIG["Nanny.child_command_line"] directly.
-        config.CONFIG["Nanny.child_binary"],
-        "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
-    ])
+    daemonservice_config = fs_config_pb2.Config(
+        argv=[
+            # Note this is an argv list, so we can't use
+            # config.CONFIG["Nanny.child_command_line"] directly.
+            config.CONFIG["Nanny.child_binary"],
+            "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
+        ],
+        monitor_heartbeats=True,
+        heartbeat_unresponsive_grace_period_seconds=600,
+        heartbeat_unresponsive_kill_period_seconds=300,
+    )
     fs_service_config.config.Pack(daemonservice_config)
 
     str_fs_service_config = text_format.MessageToString(
@@ -196,6 +231,8 @@ class WindowsInstaller(installer.Installer):
 
   def WriteFleetspeakServiceConfigToRegistry(self, str_fs_service_config):
     """Register the GRR client to be run by Fleetspeak."""
+    logging.info("Writing Fleetspeak service config to registry.")
+
     regkey = _winreg.CreateKey(
         _winreg.HKEY_LOCAL_MACHINE,
         r"SOFTWARE\Fleetspeak\textservices",
@@ -209,9 +246,19 @@ class WindowsInstaller(installer.Installer):
         str_fs_service_config,
     )
 
+  def RestartFleetspeakService(self):
+    """Restart the Fleetspeak service so that config changes are applied."""
+    StopService(service_name=config.CONFIG["Client.fleetspeak_service_name"])
+    StartService(service_name=config.CONFIG["Client.fleetspeak_service_name"])
+
   def Run(self):
     if config.CONFIG["Client.fleetspeak_enabled"]:
       str_fs_service_config = self.GenerateFleetspeakServiceConfig()
       self.WriteFleetspeakServiceConfigToRegistry(str_fs_service_config)
+
+      logging.info(
+          "Restarting Fleetspeak service. Note it is OK that this step fails "
+          "if Fleetspeak has not been installed yet.")
+      self.RestartFleetspeakService()
     else:
       self.InstallNanny()
