@@ -11,9 +11,11 @@ import StringIO
 from grr import config
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.test_lib import test_lib
 
 
@@ -221,6 +223,39 @@ Section1.parameter3: |
     self.assertEqual(conf.Get("Section1.parameter"), "a\\b\\c\\d")
     self.assertEqual(conf.Get("Section1.parameter2"), "a\\b\\c\\d\\e")
     self.assertEqual(conf.Get("Section1.parameter3"), "%(a\\b\\c\\d)")
+
+  def testSemanticValueType(self):
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_semantic_value(rdfvalue.Duration, "Section1.foobar", None,
+                               "Sample help.")
+    conf.Initialize(
+        parser=config_lib.YamlParser, data="""
+Section1.foobar: 6d
+""")
+
+    value = conf.Get("Section1.foobar")
+    self.assertTrue(isinstance(value, rdfvalue.Duration))
+    self.assertEqual(value, rdfvalue.Duration("6d"))
+
+  def testSemanticStructType(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_semantic_struct(rdf_file_finder.FileFinderArgs,
+                                "Section1.foobar", [], "Sample help.")
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data="""
+Section1.foobar:
+  paths:
+    - "a/b"
+    - "b/c"
+  pathtype: "TSK"
+""")
+
+    values = conf.Get("Section1.foobar")
+    self.assertTrue(isinstance(values, rdf_file_finder.FileFinderArgs))
+    self.assertEqual(values.paths, ["a/b", "b/c"])
+    self.assertEqual(values.pathtype, "TSK")
 
 
 class ConfigLibTest(test_lib.GRRBaseTest):

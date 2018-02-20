@@ -8,6 +8,7 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import config as rdf_config
 from grr.server import aff4
 from grr.server.flows.general import discovery
 from grr.test_lib import action_mocks
@@ -136,6 +137,52 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
         "css=grr-host-history-dialog .modal-footer button:contains('Close')")
     self.WaitUntilNot(self.IsElementPresent,
                       "css=h4:contains('os_info.node history')")
+
+  WARNINGS_OPTION = rdf_config.AdminUIClientWarningsConfigOption(
+      rules=[
+          rdf_config.AdminUIClientWarningRule(
+              with_labels=["blah"], message="*a big warning message*")
+      ])
+
+  def testSidebarWarningIsNotShownIfClientHasNoLabels(self):
+    with test_lib.ConfigOverrider({
+        "AdminUI.client_warnings": self.WARNINGS_OPTION
+    }):
+      self.Open("/#/clients/" + self.client_id)
+
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-client-summary:contains('Hostname T2')")
+      self.WaitUntilNot(self.IsElementPresent,
+                        "css=div.danger em:contains('a big warning message')")
+
+  def testSidebarWarningIsNotShownIfClientHasNonMatchingLabels(self):
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client_obj:
+      client_obj.AddLabel("another", owner=self.token.username)
+
+    with test_lib.ConfigOverrider({
+        "AdminUI.client_warnings": self.WARNINGS_OPTION
+    }):
+      self.Open("/#/clients/" + self.client_id)
+
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-client-summary:contains('Hostname T2')")
+      self.WaitUntilNot(self.IsElementPresent,
+                        "css=div.danger em:contains('a big warning message')")
+
+  def testSidebarWarningIsShownIfClientMatchesLabels(self):
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client_obj:
+      client_obj.AddLabel("blah", owner=self.token.username)
+
+    with test_lib.ConfigOverrider({
+        "AdminUI.client_warnings": self.WARNINGS_OPTION
+    }):
+      self.Open("/#/clients/" + self.client_id)
+
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=div.alert-danger em:contains('a big warning message')")
 
 
 def main(argv):

@@ -284,6 +284,22 @@ ApiService.prototype.getCached = function(apiPath, opt_params) {
                                          {cache: true});
 };
 
+
+/**
+ * Fetches data for a given API url via HTTP GET method and caches the response.
+ * Returns cached response immediately (without querying the server),
+ * if available.
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.getV2Cached = function(apiPath, opt_params) {
+  return this.sendRequestWithoutPayload_("GET", apiPath, opt_params,
+                                         {cache: true, useV2: true});
+};
+
+
 /**
  * Polls a given URL every second until the given condition is satisfied
  * (if opt_checkFn is undefined, meaning no condition was provided, then
@@ -571,5 +587,3 @@ ApiService.prototype.patch = function(apiPath, opt_params, opt_stripTypeInfo) {
   return this.sendRequestWithPayload_(
       'PATCH', apiPath, opt_params, opt_stripTypeInfo);
 };
-
-

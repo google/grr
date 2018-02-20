@@ -29,6 +29,7 @@ from grr.lib import lexer
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import structs as rdf_structs
 
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string("config", None,
@@ -1082,7 +1083,7 @@ class GrrConfigManager(object):
 
     for k, v in merge_data.items():
       # A context clause.
-      if isinstance(v, OrderedYamlDict):
+      if isinstance(v, OrderedYamlDict) and k not in self.type_infos:
         if k not in self.valid_contexts:
           raise InvalidContextError("Invalid context specified: %s" % k)
         context_data = raw_data.setdefault(k, OrderedYamlDict())
@@ -1526,6 +1527,26 @@ class GrrConfigManager(object):
         type_info.String(name=name, default=default or "", description=help),
         constant=constant)
 
+  def DEFINE_bytes(self, name, default, help, constant=False):
+    """A helper for defining bytes options."""
+    self.AddOption(
+        type_info.Bytes(name=name, default=default or "", description=help),
+        constant=constant)
+
+  def DEFINE_choice(self, name, default, choices, help, constant=False):
+    """A helper for defining choice string options."""
+    self.AddOption(
+        type_info.Choice(
+            name=name, default=default, choices=choices, description=help),
+        constant=constant)
+
+  def DEFINE_multichoice(self, name, default, choices, help, constant=False):
+    """Choose multiple options from a list."""
+    self.AddOption(
+        type_info.MultiChoice(
+            name=name, default=default, choices=choices, description=help),
+        constant=constant)
+
   def DEFINE_integer_list(self, name, default, help, constant=False):
     """A helper for defining lists of integer options."""
     self.AddOption(
@@ -1552,6 +1573,38 @@ class GrrConfigManager(object):
         type_info.String(name=name, default=default or "", description=help),
         constant=True)
 
+  def DEFINE_semantic_value(self,
+                            semantic_type,
+                            name,
+                            default=None,
+                            description=""):
+    if issubclass(semantic_type, rdf_structs.RDFStruct):
+      raise ValueError("DEFINE_semantic_value should be used for types based "
+                       "on primitives.")
+
+    self.AddOption(
+        type_info.RDFValueType(
+            rdfclass=semantic_type,
+            name=name,
+            default=default,
+            help=description))
+
+  def DEFINE_semantic_struct(self,
+                             semantic_type,
+                             name,
+                             default=None,
+                             description=""):
+    if not issubclass(semantic_type, rdf_structs.RDFStruct):
+      raise ValueError("DEFINE_semantic_struct should be used for types based "
+                       "on structs.")
+
+    self.AddOption(
+        type_info.RDFStructDictType(
+            rdfclass=semantic_type,
+            name=name,
+            default=default,
+            help=description))
+
   def DEFINE_context(self, name):
     return self.DefineContext(name)
 
@@ -1571,78 +1624,62 @@ _CONFIG = GrrConfigManager()
 # pylint: disable=g-bad-name,redefined-builtin
 def DEFINE_bool(name, default, help):
   """A helper for defining boolean options."""
-  _CONFIG.AddOption(
-      type_info.Bool(name=name, default=default, description=help))
+  _CONFIG.DEFINE_bool(name, default, help)
 
 
 def DEFINE_float(name, default, help):
   """A helper for defining float options."""
-  _CONFIG.AddOption(
-      type_info.Float(name=name, default=default, description=help))
+  _CONFIG.DEFINE_float(name, default, help)
 
 
 def DEFINE_integer(name, default, help):
   """A helper for defining integer options."""
-  _CONFIG.AddOption(
-      type_info.Integer(name=name, default=default, description=help))
+  _CONFIG.DEFINE_integer(name, default, help)
 
 
 def DEFINE_boolean(name, default, help):
   """A helper for defining boolean options."""
-  _CONFIG.AddOption(
-      type_info.Bool(name=name, default=default, description=help))
+  _CONFIG.DEFINE_bool(name, default, help)
 
 
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
-  _CONFIG.AddOption(
-      type_info.String(name=name, default=default or "", description=help))
+  _CONFIG.DEFINE_string(name, default, help)
 
 
 def DEFINE_bytes(name, default, help):
   """A helper for defining bytes options."""
-  _CONFIG.AddOption(
-      type_info.Bytes(name=name, default=default or "", description=help))
+  _CONFIG.DEFINE_bytes(name, default, help)
 
 
 def DEFINE_choice(name, default, choices, help):
   """A helper for defining choice string options."""
-  _CONFIG.AddOption(
-      type_info.Choice(
-          name=name, default=default, choices=choices, description=help))
+  _CONFIG.DEFINE_choice(name, default, choices, help)
 
 
 def DEFINE_multichoice(name, default, choices, help):
   """Choose multiple options from a list."""
-  _CONFIG.AddOption(
-      type_info.MultiChoice(
-          name=name, default=default, choices=choices, description=help))
+  _CONFIG.DEFINE_multichoice(name, default, choices, help)
 
 
 def DEFINE_integer_list(name, default, help):
   """A helper for defining lists of integer options."""
-  _CONFIG.AddOption(
-      type_info.List(
-          name=name,
-          default=default,
-          description=help,
-          validator=type_info.Integer()))
+  _CONFIG.DEFINE_integer_list(name, default, help)
 
 
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
-  _CONFIG.AddOption(
-      type_info.List(
-          name=name,
-          default=default,
-          description=help,
-          validator=type_info.String()))
+  _CONFIG.DEFINE_list(name, default, help)
 
 
-def DEFINE_semantic(semantic_type, name, default=None, description=""):
-  _CONFIG.AddOption(
-      type_info.RDFValueType(
-          rdfclass=semantic_type, name=name, default=default, help=description))
+def DEFINE_semantic_value(semantic_type, name, default=None, description=""):
+  _CONFIG.DEFINE_semantic_value(
+      semantic_type, name, default=default, description=description)
+
+
+def DEFINE_semantic_struct(semantic_type, name, default=None, description=""):
+  _CONFIG.DEFINE_semantic_struct(
+      semantic_type, name, default=default, description=description)
 
 
 def DEFINE_option(type_descriptor):
@@ -1651,9 +1688,7 @@ def DEFINE_option(type_descriptor):
 
 def DEFINE_constant_string(name, default, help):
   """A helper for defining constant strings."""
-  _CONFIG.AddOption(
-      type_info.String(name=name, default=default or "", description=help),
-      constant=True)
+  _CONFIG.DEFINE_constant_string(name, default, help)
 
 
 def DEFINE_context(name):

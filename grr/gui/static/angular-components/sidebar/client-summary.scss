@@ -15,4 +15,9 @@ grr-client-summary {
   .client-ip-info {
     color: $color-infoline-color;
   }
+
+  grr-client-warnings {
+    display: block;
+    padding-top: .5em;
+  }
 }

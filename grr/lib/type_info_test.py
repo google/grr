@@ -3,7 +3,6 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.type_info."""
 
-
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -49,6 +48,17 @@ class TypeInfoTest(test_lib.GRRBaseTest):
                       [rdf_paths.PathSpec()])
     a.Validate([1, 2, 3])
 
+  def testTypeInfoListConvertsObjectsOnValidation(self):
+    """Test List objects return validated objects."""
+
+    class TypeInfoFoo(type_info.Integer):
+
+      def Validate(self, value):
+        return value * 2
+
+    a = type_info.List(TypeInfoFoo())
+    self.assertEqual(a.Validate([1, 2, 3]), [2, 4, 6])
+
   def testTypeInfoMultiChoiceObjects(self):
     """Test MultiChoice objects."""
     a = type_info.MultiChoice(choices=["a", "b"])
@@ -71,6 +81,24 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     a.Validate([2])
     a.Validate([1, 2])
 
+  def testStructDictType(self):
+    """Test RDFStructDictType type."""
+    a = type_info.RDFStructDictType(rdfclass=rdf_paths.PathSpec)
+    self.assertRaises(type_info.TypeValueError, a.Validate, 2)
+    self.assertRaises(type_info.TypeValueError, a.Validate, "ab")
+    self.assertRaises(type_info.TypeValueError, a.Validate, [1, 2])
+
+    # None values are left as is.
+    self.assertEqual(None, a.Validate(None))
+
+    # Check that validation raises when unknown attributes are passed.
+    self.assertRaises(type_info.TypeValueError, a.Validate, dict(foo="bar"))
+
+    v = a.Validate(dict(path="blah", pathtype="TSK"))
+    self.assertTrue(isinstance(v, rdf_paths.PathSpec))
+    self.assertEqual(v.path, "blah")
+    self.assertEqual(v.pathtype, "TSK")
+
   def testTypeDescriptorSet(self):
 
     type_infos = [
@@ -86,16 +114,14 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     info = type_info.TypeDescriptorSet(
         type_infos[0],
         type_infos[1],
-        type_infos[2],)
+        type_infos[2],
+    )
 
-    new_info = type_info.TypeDescriptorSet(
-        type_infos[0],)
+    new_info = type_info.TypeDescriptorSet(type_infos[0],)
 
-    updated_info = new_info + type_info.TypeDescriptorSet(
-        type_infos[1],)
+    updated_info = new_info + type_info.TypeDescriptorSet(type_infos[1],)
 
-    updated_info += type_info.TypeDescriptorSet(
-        type_infos[2],)
+    updated_info += type_info.TypeDescriptorSet(type_infos[2],)
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))

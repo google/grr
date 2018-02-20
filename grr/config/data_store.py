@@ -164,8 +164,9 @@ config_lib.DEFINE_string(
     default="grrbigtable",
     help="The cloud bigtable instance ID.")
 
-config_lib.DEFINE_semantic(rdfvalue.Duration, "CloudBigtable.retry_interval",
-                           "1s", "Time to wait before first retry.")
+config_lib.DEFINE_semantic_value(rdfvalue.Duration,
+                                 "CloudBigtable.retry_interval", "1s",
+                                 "Time to wait before first retry.")
 
 config_lib.DEFINE_integer(
     "CloudBigtable.retry_max_attempts",

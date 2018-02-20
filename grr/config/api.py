@@ -9,7 +9,7 @@ config_lib.DEFINE_integer("API.DailyFlowRequestLimit", "10",
                           "per day before being blocked by throttling. Set to "
                           "0 to disable checking.")
 
-config_lib.DEFINE_semantic(
+config_lib.DEFINE_semantic_value(
     rdfvalue.Duration,
     "API.FlowDuplicateInterval",
     default="1200s",

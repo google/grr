@@ -6,7 +6,6 @@ parameters. These annotations are used to assist in rendering the UI for
 starting flows and for validating arguments.
 """
 
-
 import logging
 
 from grr.lib import rdfvalue
@@ -146,7 +145,58 @@ class RDFValueType(TypeInfoObject):
         return self.rdfclass(value)
       except rdfvalue.InitializeError:
         raise TypeValueError("Value for arg %s should be an %s" %
-                             (self.name, self.rdfclass.__class__.__name__))
+                             (self.name, self.rdfclass.__name__))
+
+    return value
+
+  def FromString(self, string):
+    return self.rdfclass.FromSerializedString(string)
+
+
+class RDFStructDictType(TypeInfoObject):
+  """An arg which must be a dict that maps into an RDFStruct."""
+
+  rdfclass = rdfvalue.RDFValue
+
+  def __init__(self, rdfclass=None, **kwargs):
+    """An arg which must be an RDFStruct.
+
+    Args:
+      rdfclass: The RDFStruct subclass that this arg must be.
+      **kwargs: Passthrough to base class.
+    """
+    super(RDFStructDictType, self).__init__(**kwargs)
+    self._type = self.rdfclass = rdfclass
+
+  def Validate(self, value):
+    """Validate the value.
+
+    Args:
+      value: Value is expected to be a dict-like object that a given RDFStruct
+        can be initialized from.
+
+    Raises:
+      TypeValueError: If the value is not a valid dict-like object that a given
+        RDFStruct can be initialized from.
+
+    Returns:
+      A valid instance of self.rdfclass or None.
+    """
+    if value is None:
+      return None
+
+    if not isinstance(value, self.rdfclass):
+      # Try to coerce the type to the correct rdf_class.
+      try:
+        r = self.rdfclass()
+        r.FromDict(value)
+        return r
+      except (AttributeError, TypeError, rdfvalue.InitializeError):
+        # AttributeError is raised if value contains items that don't
+        # belong to the given rdfstruct.
+        # TypeError will be raised if value is not a dict-like object.
+        raise TypeValueError("Value for arg %s should be an %s" %
+                             (self.name, self.rdfclass.__name__))
 
     return value
 
@@ -301,12 +351,8 @@ class List(TypeInfoObject):
     elif not isinstance(value, (list, tuple)):
       raise TypeValueError("%s not a valid List" % utils.SmartStr(value))
 
-    else:
-      for val in value:
-        # Validate each value in the list validates against our type.
-        self.validator.Validate(val)
-
-    return value
+    # Validate each value in the list validates against our type.
+    return [self.validator.Validate(val) for val in value]
 
   def FromString(self, string):
     result = []

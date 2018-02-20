@@ -376,3 +376,10 @@ ui.router.$stateProvider = function(
  * @return {!ui.router.$stateProvider}
  */
 ui.router.$stateProvider.prototype.state = function(name, definition) {};
+
+
+/**
+ * @param {!string} source
+ * @return {!string}
+ */
+var marked = function(source) {};

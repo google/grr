@@ -2,6 +2,7 @@
 """API handlers for accessing config."""
 
 import itertools
+import logging
 
 from grr import config
 from grr.gui import api_call_handler_base
@@ -50,7 +51,8 @@ class ApiConfigOption(rdf_structs.RDFProtoStruct):
 
     try:
       config_value = config.CONFIG.Get(name)
-    except (config_lib.Error, type_info.TypeValueError):
+    except (config_lib.Error, type_info.TypeValueError) as e:
+      logging.exception("Can't get config value %s: %s", name, e)
       self.is_invalid = True
       return self
 
@@ -245,8 +247,10 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
     return items
 
   def Handle(self, unused_args, token=None):
-    return ApiListGrrBinariesResult(items=itertools.chain(
-        self._ListSignedBlobs(token=token), self._ListComponents(token=token)))
+    return ApiListGrrBinariesResult(
+        items=itertools.chain(
+            self._ListSignedBlobs(token=token),
+            self._ListComponents(token=token)))
 
 
 class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):

@@ -24,6 +24,7 @@ const {HexNumberFilter} = goog.require('grrUi.core.hexNumberFilter');
 const {InfiniteTableDirective} = goog.require('grrUi.core.infiniteTableDirective');
 const {LoadingIndicatorDirective} = goog.require('grrUi.core.loadingIndicatorDirective');
 const {LoadingIndicatorService} = goog.require('grrUi.core.loadingIndicatorService');
+const {MarkdownDirective} = goog.require('grrUi.core.markdownDirective');
 const {MemoryItemsProviderDirective} = goog.require('grrUi.core.memoryItemsProviderDirective');
 const {OnScrollIntoViewDirective} = goog.require('grrUi.core.onScrollIntoViewDirective');
 const {PagedFilteredTableDirective, TableBottomDirective, TableTopDirective} = goog.require('grrUi.core.pagedFilteredTableDirective');
@@ -66,6 +67,8 @@ exports.coreModule.directive(
     LoadingIndicatorDirective.directive_name, LoadingIndicatorDirective);
 exports.coreModule.directive(
     OnScrollIntoViewDirective.directive_name, OnScrollIntoViewDirective);
+exports.coreModule.directive(
+    MarkdownDirective.directive_name, MarkdownDirective);
 exports.coreModule.directive(
     MemoryItemsProviderDirective.directive_name, MemoryItemsProviderDirective);
 exports.coreModule.directive(

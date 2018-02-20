@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+
+
+
+message AdminUIClientWarningsConfigOption {
+  repeated AdminUIClientWarningRule rules = 1;
+}
+
+message AdminUIClientWarningRule {
+
+  repeated string with_labels = 1 [(sem_type) = {
+      description: "List of client labels that a warning message applies to."
+    }];
+
+  optional string message = 2 [(sem_type) = {
+      description: "Warning message text (may contain markdown)."
+    }];
+
+}

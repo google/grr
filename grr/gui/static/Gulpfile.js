@@ -51,6 +51,7 @@ gulp.task('compile-third-party-js', function() {
                    config.nodeModulesDir + '/jquery-ui-dist/jquery-ui.js',
                    config.nodeModulesDir + '/jstree/dist/jstree.js',
                    config.nodeModulesDir + '/moment/moment.js',
+                   config.nodeModulesDir + '/marked/lib/marked.js',
 
                    'third-party/jquery.splitter.js'])
       .pipe(gulpNewer(config.distDir + '/third-party.bundle.js'))
@@ -120,8 +121,9 @@ gulp.task('compile-grr-angular-template-cache', function() {
       .pipe(gulpAngularTemplateCache({
         module: 'grrUi.templates',
         standalone: true,
-        templateHeader: 'goog.provide(\'grrUi.templates.templatesModule\');' +
-            'grrUi.templates.templatesModule = angular.module(\'grrUi.templates\', []);' +
+        templateHeader: 'goog.module(\'grrUi.templates.templates.templatesModule\');' +
+            'goog.module.declareLegacyNamespace();' +
+            'exports = angular.module(\'grrUi.templates\', []);' +
             'angular.module(\'grrUi.templates\').run(["$templateCache", function($templateCache) {'
       }))
       .pipe(gulp.dest(config.tempDir));
@@ -171,7 +173,13 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
             'uselessCode',
             'visibility'
           ],
+          language_out: 'ECMASCRIPT6_STRICT',
           language_out: 'ECMASCRIPT5_STRICT',
+          // See https://github.com/google/closure-compiler/issues/1138 for details.
+          force_inject_library: [
+            'base',
+            'es6_runtime'
+          ],
           create_source_map: config.distDir + '/grr-ui.bundle.js.map',
           source_map_format: 'V3'
         }

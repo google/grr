@@ -2,6 +2,7 @@
 """Configuration parameters for the admin UI."""
 
 from grr.lib import config_lib
+from grr.lib.rdfvalues import config as rdf_config
 
 # The Admin UI web application.
 config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
@@ -94,6 +95,10 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin", None,
                          "Output plugin that will be added by default in the "
                          "'New Hunt' wizard output plugins selection page.")
+
+config_lib.DEFINE_semantic_struct(
+    rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",
+    None, "List of per-client-label warning messages to be shown.")
 
 # Temporary option that allows limiting access to legacy UI renderers. Useful
 # when giving access to GRR AdminUI to parties that have to use the HTTP API
