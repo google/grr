@@ -159,9 +159,12 @@ exe = EXE\(
 LIBCAPSTONE = None
 for name in ["capstone", "libcapstone"]:
   for ext in [".so", ".dylib", ".dll"]:
-    path = os.path.join\(capstone.__path__[0], name + ext\)
-    if os.path.exists\(path\):
-      LIBCAPSTONE = path
+    for path in [
+      os.path.join\(capstone.__path__[0], name + ext\),
+      os.path.join\(os.path.dirname\(capstone.__path__[0]\), name + ext\)
+    ]:
+      if os.path.exists\(path\):
+        LIBCAPSTONE = path
 
 if not LIBCAPSTONE:
   raise RuntimeError\("Can't find libcasptone"\)

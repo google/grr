@@ -4,7 +4,6 @@
 This module implements the Rekall enabled client actions.
 """
 
-
 import logging
 import pdb
 import sys
@@ -14,6 +13,7 @@ import traceback
 import psutil
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
+from grr_response_client.components.rekall_support import fix_deps
 from rekall import addrspace
 from rekall import config as rekall_config
 from rekall import constants
@@ -171,8 +171,10 @@ class GrrRekallSession(session.Session):
 
     # Just hard code the initial repository manager. Note this can be
     # overwritten later if needed.
-    self._repository_managers = [(None, RekallCachingIOManager(
-        initial_profiles=initial_profiles, session=self))]
+    self._repository_managers = [(None,
+                                  RekallCachingIOManager(
+                                      initial_profiles=initial_profiles,
+                                      session=self))]
 
     # Apply default configuration options to the session state, unless
     # explicitly overridden by the session_args.

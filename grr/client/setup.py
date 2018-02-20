@@ -71,7 +71,7 @@ setup_args = dict(
     include_package_data=True,
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "rekall-core==1.6.0",
+        "rekall-core==1.7.2rc1",
         "pyinstaller==3.2.1",
     ])
 
