@@ -448,9 +448,9 @@ class GRRForeman(aff4.AFF4Object):
 
     return False
 
-  def _EvaluateRules(self, objects, rule, client_id):
+  def _EvaluateRules(self, rule, client):
     """Evaluates the rules."""
-    return rule.client_rule_set.Evaluate(objects, client_id)
+    return rule.client_rule_set.Evaluate(client)
 
   def _RunActions(self, rule, client_id):
     """Run all the actions specified in the rule.
@@ -526,9 +526,6 @@ class GRRForeman(aff4.AFF4Object):
     client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
     client.Close()
 
-    # For efficiency we collect all the objects we want to open first and then
-    # open them all in one round trip.
-    object_urns = {}
     relevant_rules = []
     expired_rules = False
 
@@ -543,18 +540,11 @@ class GRRForeman(aff4.AFF4Object):
 
       relevant_rules.append(rule)
 
-      for path in rule.client_rule_set.GetPathsToCheck():
-        aff4_object = client_id.Add(path)
-        object_urns[str(aff4_object)] = aff4_object
-
-    # Retrieve all aff4 objects we need.
-    objects = {}
-    for fd in aff4.FACTORY.MultiOpen(object_urns, token=self.token):
-      objects[fd.urn] = fd
+    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
 
     actions_count = 0
     for rule in relevant_rules:
-      if self._EvaluateRules(objects, rule, client_id):
+      if self._EvaluateRules(rule, client):
         actions_count += self._RunActions(rule, client_id)
 
     if expired_rules:

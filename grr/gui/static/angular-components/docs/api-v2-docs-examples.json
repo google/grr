@@ -695,6 +695,123 @@
           },
           {
             "age": "45000000",
+            "agentInfo": {},
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {},
+            "knowledgeBase": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "osInfo": {
+              "fqdn": "some-other-hostname.org",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "buildTime": "1980-01-01",
+              "clientName": "GRR Monitor",
+              "clientVersion": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "addressType": "INET",
+                    "packedBytes": "wKgAAA=="
+                  },
+                  {
+                    "addressType": "INET6",
+                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "macAddress": "qrvM3e4A"
+              },
+              {
+                "macAddress": "u8zd7v8A"
+              }
+            ],
+            "knowledgeBase": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=44000000&mode=diff"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "45000000",
             "agentInfo": {
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
@@ -741,7 +858,148 @@
                 }
               ]
             },
-            "lastSeenAt": "42000000",
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "some-other-hostname.org",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": "42000000",
+            "agentInfo": {
+              "buildTime": "1980-01-01",
+              "clientName": "GRR Monitor",
+              "clientVersion": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "addressType": "INET",
+                    "packedBytes": "wKgAAA=="
+                  },
+                  {
+                    "addressType": "INET6",
+                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "macAddress": "qrvM3e4A"
+              },
+              {
+                "macAddress": "u8zd7v8A"
+              }
+            ],
+            "knowledgeBase": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "memorySize": "4294967296",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
+          {
+            "age": "45000000",
+            "agentInfo": {
+              "buildTime": "1980-01-01",
+              "clientName": "GRR Monitor",
+              "clientVersion": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "clientId": "C.1000000000000000",
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "addressType": "INET",
+                    "packedBytes": "wKgAAA=="
+                  },
+                  {
+                    "addressType": "INET6",
+                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "macAddress": "qrvM3e4A"
+              },
+              {
+                "macAddress": "u8zd7v8A"
+              }
+            ],
+            "knowledgeBase": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "some-other-hostname.org",
@@ -818,7 +1076,6 @@
                 }
               ]
             },
-            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -895,7 +1152,6 @@
                 }
               ]
             },
-            "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "some-other-hostname.org",
@@ -918,268 +1174,6 @@
       },
       "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "42000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          },
-          {
-            "age": "45000000",
-            "agentInfo": {},
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {},
-            "knowledgeBase": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "lastSeenAt": "42000000",
-            "osInfo": {
-              "fqdn": "some-other-hostname.org",
-              "version": ""
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?mode=diff"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "42000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "lastSeenAt": "42000000",
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?end=44000000&mode=diff"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "45000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "lastSeenAt": "42000000",
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "some-other-hostname.org",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [

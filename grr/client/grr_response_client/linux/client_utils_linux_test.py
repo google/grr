@@ -2,8 +2,15 @@
 """Tests for client_utils_linux.py."""
 
 import os
+import platform
+import subprocess
 import tempfile
 import time
+import unittest
+
+import mock
+
+import unittest
 
 from grr_response_client import client_utils_linux
 from grr.lib import flags
@@ -104,6 +111,52 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
       finally:
         nanny_controller.StopNanny()
+
+
+@unittest.skipIf(platform.system() != "Linux", "only Linux is supported")
+class GetExtAttrsText(unittest.TestCase):
+
+  @classmethod
+  def _SetAttr(cls, filepath, name, value):
+    if subprocess.call(["which", "setfattr"]) != 0:
+      raise unittest.SkipTest("`setfattr` command not available")
+    subprocess.check_call(["setfattr", "-n", name, "-v", value, filepath])
+
+  def testEmpty(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
+
+      self.assertEqual(len(attrs), 0)
+
+  def testMany(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      self._SetAttr(temp_filepath, "user.foo", "bar")
+      self._SetAttr(temp_filepath, "user.quux", "norf")
+
+      attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
+
+      self.assertEqual(len(attrs), 2)
+      self.assertEqual(attrs[0].name, "user.foo")
+      self.assertEqual(attrs[0].value, "bar")
+      self.assertEqual(attrs[1].name, "user.quux")
+      self.assertEqual(attrs[1].value, "norf")
+
+  def testIncorrectFilePath(self):
+    attrs = list(client_utils_linux.GetExtAttrs("/foo/bar/baz/quux"))
+
+    self.assertEqual(len(attrs), 0)
+
+  @mock.patch("xattr.listxattr", return_value=["user.foo", "user.bar"])
+  def testAttrChangeAfterListing(self, listxattr):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      self._SetAttr(temp_filepath, "user.bar", "baz")
+
+      attrs = list(client_utils_linux.GetExtAttrs(temp_filepath))
+
+      self.assertTrue(listxattr.called)
+      self.assertEqual(len(attrs), 1)
+      self.assertEqual(attrs[0].name, "user.bar")
+      self.assertEqual(attrs[0].value, "baz")
 
 
 def main(argv):

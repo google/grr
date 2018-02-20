@@ -81,7 +81,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       rdf_client.Volume,
   ]
 
-  def InitFromAff4Object(self, client_obj):
+  def InitFromAff4Object(self, client_obj, include_metadata=True):
     # TODO(amoser): Deprecate all urns.
     self.urn = client_obj.urn
 
@@ -106,21 +106,23 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     self.memory_size = client_obj.Get(client_obj.Schema.MEMORY_SIZE)
 
     self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
-    ping = client_obj.Get(client_obj.Schema.PING)
-    if ping:
-      self.last_seen_at = ping
 
-    booted = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
-    if booted:
-      self.last_booted_at = booted
+    if include_metadata:
+      ping = client_obj.Get(client_obj.Schema.PING)
+      if ping:
+        self.last_seen_at = ping
 
-    clock = client_obj.Get(client_obj.Schema.CLOCK)
-    if clock:
-      self.last_clock = clock
+      booted = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
+      if booted:
+        self.last_booted_at = booted
 
-    last_crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-    if last_crash is not None:
-      self.last_crash_at = last_crash.timestamp
+      clock = client_obj.Get(client_obj.Schema.CLOCK)
+      if clock:
+        self.last_clock = clock
+
+      last_crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+      if last_crash is not None:
+        self.last_crash_at = last_crash.timestamp
 
     self.labels = [
         objects.ClientLabel(name=l.name, owner=l.owner)
@@ -141,8 +143,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     self.cloud_instance = client_obj.Get(client_obj.Schema.CLOUD_INSTANCE)
     return self
 
-  def InitFromClientInfo(self, client_info):
-    client_obj = client_info["client"]
+  def InitFromClientObject(self, client_obj):
 
     # TODO(amoser): Deprecate all urns.
     self.urn = client_obj.client_id
@@ -172,29 +173,11 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       if kb.fqdn:
         os_info.fqdn = kb.fqdn
 
-    self.os_info = os_info
-
-    if client_obj.memory_size:
-      self.memory_size = client_obj.memory_size
-    if client_obj.startup_info.boot_time:
-      self.last_booted_at = client_obj.startup_info.boot_time
-
-    md = client_info["metadata"]
-    if md:
-      if md.first_seen:
-        self.first_seen_at = md.first_seen
-      if md.ping:
-        self.last_seen_at = md.ping
-      if md.clock:
-        self.last_clock = md.clock
-      if md.last_crash_timestamp:
-        self.last_crash_at = md.last_crash_timestamp
-
       # TODO(amoser): Deprecate this field in favor of the kb.
       if kb.users:
         self.users = sorted(kb.users, key=lambda user: user.username)
 
-    self.labels = client_info["labels"]
+    self.os_info = os_info
 
     if client_obj.interfaces:
       self.interfaces = client_obj.interfaces
@@ -207,6 +190,30 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     # Without self.Set self.age would reference "age" attribute instead of a
     # protobuf field.
     self.Set("age", client_obj.timestamp)
+
+    if client_obj.memory_size:
+      self.memory_size = client_obj.memory_size
+    if client_obj.startup_info.boot_time:
+      self.last_booted_at = client_obj.startup_info.boot_time
+
+    return self
+
+  def InitFromClientInfo(self, client_info):
+
+    self.InitFromClientObject(client_info["client"])
+
+    md = client_info["metadata"]
+    if md:
+      if md.first_seen:
+        self.first_seen_at = md.first_seen
+      if md.ping:
+        self.last_seen_at = md.ping
+      if md.clock:
+        self.last_clock = md.clock
+      if md.last_crash_timestamp:
+        self.last_crash_at = md.last_crash_timestamp
+
+    self.labels = client_info["labels"]
 
     return self
 
@@ -318,6 +325,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
         all_client_ids.update(index.LookupClients(label_filter))
 
       client_infos = data_store.REL_DB.ReadFullInfoClients(all_client_ids)
+
       index = 0
       for _, client_info in sorted(client_infos.items()):
         if not self._VerifyLabels(client_info["labels"]):
@@ -412,17 +420,28 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     start_time = args.start or end_time - rdfvalue.Duration("3m")
     diffs_only = args.mode == args.Mode.DIFF
 
-    all_clients = aff4.FACTORY.OpenDiscreteVersions(
-        args.client_id.ToClientURN(),
-        mode="r",
-        age=(start_time.AsMicroSecondsFromEpoch(),
-             end_time.AsMicroSecondsFromEpoch()),
-        diffs_only=diffs_only,
-        token=token)
-
     items = []
-    for fd in all_clients:
-      items.append(ApiClient().InitFromAff4Object(fd))
+
+    if data_store.RelationalDBReadEnabled():
+      history = data_store.REL_DB.ReadClientHistory(str(args.client_id))
+
+      for client in history[::-1]:
+        # TODO(amoser): Filtering could be done at the db level and we
+        # wouldn't have to read all the versions always.
+        if client.timestamp < start_time or client.timestamp > end_time:
+          continue
+        items.append(ApiClient().InitFromClientObject(client))
+    else:
+      all_clients = aff4.FACTORY.OpenDiscreteVersions(
+          args.client_id.ToClientURN(),
+          mode="r",
+          age=(start_time.AsMicroSecondsFromEpoch(),
+               end_time.AsMicroSecondsFromEpoch()),
+          diffs_only=diffs_only,
+          token=token)
+
+      for fd in all_clients:
+        items.append(ApiClient().InitFromAff4Object(fd, include_metadata=False))
 
     return ApiGetClientVersionsResult(items=items)
 
@@ -448,11 +467,23 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientVersionTimesResult
 
   def Handle(self, args, token=None):
-    fd = aff4.FACTORY.Open(
-        args.client_id.ToClientURN(), mode="r", age=aff4.ALL_TIMES, token=token)
+    if data_store.RelationalDBReadEnabled():
+      # TODO(amoser): Again, this is rather inefficient,if we moved
+      # this call to the datastore we could make it much
+      # faster. However, there is a chance that this will not be
+      # needed anymore once we use the relational db everywhere, let's
+      # decide later.
+      history = data_store.REL_DB.ReadClientHistory(str(args.client_id))
+      times = [h.timestamp for h in history]
+    else:
+      fd = aff4.FACTORY.Open(
+          args.client_id.ToClientURN(),
+          mode="r",
+          age=aff4.ALL_TIMES,
+          token=token)
 
-    type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
-    times = sorted([t.age for t in type_values], reverse=True)
+      type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
+      times = sorted([t.age for t in type_values], reverse=True)
 
     return ApiGetClientVersionTimesResult(times=times)
 

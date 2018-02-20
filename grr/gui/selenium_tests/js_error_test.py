@@ -22,6 +22,14 @@ class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
       self.Click("client_query_submit")
       self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
 
+    # The page has some tickers running that also use Angular so there
+    # is a race that they can cause more js errors after the test has
+    # already finished. By navigating to the main page, we make sure
+    # the Angular object is valid again which means no more errors and
+    # also clear the list of recorded errors in case there have been
+    # any in the meantime.
+    self.Open("/")
+
 
 def main(argv):
   del argv  # Unused.

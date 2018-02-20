@@ -27,9 +27,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
         description=description,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.TSK,)),
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.TSK,
+            )),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
                 rdf_foreman.ForemanClientRule(
@@ -282,8 +284,8 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         runner_args.client_rule_set,
         rdf_foreman.ForemanClientRuleSet(rules=[
-            rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
-                os_darwin=True))
+            rdf_foreman.ForemanClientRule(
+                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
         ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
@@ -359,9 +361,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
         description="model hunt",
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.TSK,)),
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.TSK,
+            )),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(
             rules=[
                 rdf_foreman.ForemanClientRule(
@@ -422,9 +426,8 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
                "label:contains('Os windows') ~ * input[type=checkbox]")
     self.Select("css=grr-configure-rules-page div.well:nth(0) select",
                 "Integer")
-    self.Type("css=grr-new-hunt-wizard-form "
-              "grr-form-proto-repeated-field:has(label:contains('Path')) "
-              "input", "/tmp")
+    self.Select("css=grr-configure-rules-page div.well:nth(0) "
+                "label:contains('Attribute name') ~ * select", "FQDN")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -450,7 +453,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumTest):
     rule = rules[0]
 
     self.assertEqual(rule.rule_type, rdf_foreman.ForemanClientRule.Type.INTEGER)
-    self.assertEqual(rule.integer.path, "/tmp")
+    self.assertEqual(rule.integer.attribute_name, "FQDN")
 
     # Assert that the deselected union field is cleared
     self.assertFalse(rule.os.os_windows)

@@ -2338,1103 +2338,6 @@
               },
               "agent_info": {
                 "type": "ClientInformation",
-                "value": {
-                  "build_time": {
-                    "type": "unicode",
-                    "value": "1980-01-01"
-                  },
-                  "client_name": {
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  },
-                  "client_version": {
-                    "type": "long",
-                    "value": 123
-                  },
-                  "labels": [
-                    {
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    {
-                      "type": "unicode",
-                      "value": "label2"
-                    }
-                  ]
-                }
-              },
-              "client_id": {
-                "type": "ApiClientId",
-                "value": "C.1000000000000000"
-              },
-              "hardware_info": {
-                "type": "HardwareInfo",
-                "value": {
-                  "bios_version": {
-                    "type": "unicode",
-                    "value": "Bios-Version-0"
-                  },
-                  "system_manufacturer": {
-                    "type": "unicode",
-                    "value": "System-Manufacturer-0"
-                  }
-                }
-              },
-              "interfaces": [
-                {
-                  "type": "Interface",
-                  "value": {
-                    "addresses": [
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "wKgAAA=="
-                          }
-                        }
-                      },
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET6"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "qrvM3e4A"
-                    }
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "u8zd7v8A"
-                    }
-                  }
-                }
-              ],
-              "knowledge_base": {
-                "type": "KnowledgeBase",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "some-other-hostname.org"
-                  },
-                  "os": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "memory_size": {
-                "type": "ByteSize",
-                "value": 4294967296
-              },
-              "os_info": {
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "some-other-hostname.org"
-                  },
-                  "kernel": {
-                    "type": "unicode",
-                    "value": "4.0.0"
-                  },
-                  "machine": {
-                    "type": "unicode",
-                    "value": "x86_64"
-                  },
-                  "system": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "version": {
-                    "type": "unicode",
-                    "value": "buster/sid"
-                  }
-                }
-              },
-              "urn": {
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
-      "type_stripped_response": {
-        "items": [
-          {
-            "age": 42000000,
-            "agent_info": {
-              "build_time": "1980-01-01",
-              "client_name": "GRR Monitor",
-              "client_version": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "client_id": "C.1000000000000000",
-            "hardware_info": {
-              "bios_version": "Bios-Version-0",
-              "system_manufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "address_type": "INET",
-                    "packed_bytes": "wKgAAA=="
-                  },
-                  {
-                    "address_type": "INET6",
-                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "mac_address": "qrvM3e4A"
-              },
-              {
-                "mac_address": "u8zd7v8A"
-              }
-            ],
-            "knowledge_base": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "labels": [],
-            "memory_size": 4294967296,
-            "os_info": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          },
-          {
-            "age": 45000000,
-            "agent_info": {
-              "build_time": "1980-01-01",
-              "client_name": "GRR Monitor",
-              "client_version": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "client_id": "C.1000000000000000",
-            "hardware_info": {
-              "bios_version": "Bios-Version-0",
-              "system_manufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "address_type": "INET",
-                    "packed_bytes": "wKgAAA=="
-                  },
-                  {
-                    "address_type": "INET6",
-                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "mac_address": "qrvM3e4A"
-              },
-              {
-                "mac_address": "u8zd7v8A"
-              }
-            ],
-            "knowledge_base": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "labels": [],
-            "last_seen_at": 42000000,
-            "memory_size": 4294967296,
-            "os_info": {
-              "fqdn": "some-other-hostname.org",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "url": "/api/clients/C.1000000000000000/versions?mode=full"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "type": "ApiClient",
-            "value": {
-              "age": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "agent_info": {
-                "type": "ClientInformation",
-                "value": {
-                  "build_time": {
-                    "type": "unicode",
-                    "value": "1980-01-01"
-                  },
-                  "client_name": {
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  },
-                  "client_version": {
-                    "type": "long",
-                    "value": 123
-                  },
-                  "labels": [
-                    {
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    {
-                      "type": "unicode",
-                      "value": "label2"
-                    }
-                  ]
-                }
-              },
-              "client_id": {
-                "type": "ApiClientId",
-                "value": "C.1000000000000000"
-              },
-              "hardware_info": {
-                "type": "HardwareInfo",
-                "value": {
-                  "bios_version": {
-                    "type": "unicode",
-                    "value": "Bios-Version-0"
-                  },
-                  "system_manufacturer": {
-                    "type": "unicode",
-                    "value": "System-Manufacturer-0"
-                  }
-                }
-              },
-              "interfaces": [
-                {
-                  "type": "Interface",
-                  "value": {
-                    "addresses": [
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "wKgAAA=="
-                          }
-                        }
-                      },
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET6"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "qrvM3e4A"
-                    }
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "u8zd7v8A"
-                    }
-                  }
-                }
-              ],
-              "knowledge_base": {
-                "type": "KnowledgeBase",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "os": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "memory_size": {
-                "type": "ByteSize",
-                "value": 4294967296
-              },
-              "os_info": {
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "kernel": {
-                    "type": "unicode",
-                    "value": "4.0.0"
-                  },
-                  "machine": {
-                    "type": "unicode",
-                    "value": "x86_64"
-                  },
-                  "system": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "version": {
-                    "type": "unicode",
-                    "value": "buster/sid"
-                  }
-                }
-              },
-              "urn": {
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
-      "type_stripped_response": {
-        "items": [
-          {
-            "age": 42000000,
-            "agent_info": {
-              "build_time": "1980-01-01",
-              "client_name": "GRR Monitor",
-              "client_version": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "client_id": "C.1000000000000000",
-            "hardware_info": {
-              "bios_version": "Bios-Version-0",
-              "system_manufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "address_type": "INET",
-                    "packed_bytes": "wKgAAA=="
-                  },
-                  {
-                    "address_type": "INET6",
-                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "mac_address": "qrvM3e4A"
-              },
-              {
-                "mac_address": "u8zd7v8A"
-              }
-            ],
-            "knowledge_base": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "labels": [],
-            "last_seen_at": 42000000,
-            "memory_size": 4294967296,
-            "os_info": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "url": "/api/clients/C.1000000000000000/versions?end=44000000&mode=full"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "type": "ApiClient",
-            "value": {
-              "age": {
-                "type": "RDFDatetime",
-                "value": 45000000
-              },
-              "agent_info": {
-                "type": "ClientInformation",
-                "value": {
-                  "build_time": {
-                    "type": "unicode",
-                    "value": "1980-01-01"
-                  },
-                  "client_name": {
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  },
-                  "client_version": {
-                    "type": "long",
-                    "value": 123
-                  },
-                  "labels": [
-                    {
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    {
-                      "type": "unicode",
-                      "value": "label2"
-                    }
-                  ]
-                }
-              },
-              "client_id": {
-                "type": "ApiClientId",
-                "value": "C.1000000000000000"
-              },
-              "hardware_info": {
-                "type": "HardwareInfo",
-                "value": {
-                  "bios_version": {
-                    "type": "unicode",
-                    "value": "Bios-Version-0"
-                  },
-                  "system_manufacturer": {
-                    "type": "unicode",
-                    "value": "System-Manufacturer-0"
-                  }
-                }
-              },
-              "interfaces": [
-                {
-                  "type": "Interface",
-                  "value": {
-                    "addresses": [
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "wKgAAA=="
-                          }
-                        }
-                      },
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET6"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "qrvM3e4A"
-                    }
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "u8zd7v8A"
-                    }
-                  }
-                }
-              ],
-              "knowledge_base": {
-                "type": "KnowledgeBase",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "some-other-hostname.org"
-                  },
-                  "os": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "memory_size": {
-                "type": "ByteSize",
-                "value": 4294967296
-              },
-              "os_info": {
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "some-other-hostname.org"
-                  },
-                  "kernel": {
-                    "type": "unicode",
-                    "value": "4.0.0"
-                  },
-                  "machine": {
-                    "type": "unicode",
-                    "value": "x86_64"
-                  },
-                  "system": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "version": {
-                    "type": "unicode",
-                    "value": "buster/sid"
-                  }
-                }
-              },
-              "urn": {
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
-      "type_stripped_response": {
-        "items": [
-          {
-            "age": 45000000,
-            "agent_info": {
-              "build_time": "1980-01-01",
-              "client_name": "GRR Monitor",
-              "client_version": 123,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "client_id": "C.1000000000000000",
-            "hardware_info": {
-              "bios_version": "Bios-Version-0",
-              "system_manufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "address_type": "INET",
-                    "packed_bytes": "wKgAAA=="
-                  },
-                  {
-                    "address_type": "INET6",
-                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "mac_address": "qrvM3e4A"
-              },
-              {
-                "mac_address": "u8zd7v8A"
-              }
-            ],
-            "knowledge_base": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "labels": [],
-            "last_seen_at": 42000000,
-            "memory_size": 4294967296,
-            "os_info": {
-              "fqdn": "some-other-hostname.org",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "type": "ApiClient",
-            "value": {
-              "age": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "agent_info": {
-                "type": "ClientInformation",
-                "value": {
-                  "build_time": {
-                    "type": "unicode",
-                    "value": "1980-01-01"
-                  },
-                  "client_name": {
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  },
-                  "client_version": {
-                    "type": "long",
-                    "value": 123
-                  },
-                  "labels": [
-                    {
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    {
-                      "type": "unicode",
-                      "value": "label2"
-                    }
-                  ]
-                }
-              },
-              "client_id": {
-                "type": "ApiClientId",
-                "value": "C.1000000000000000"
-              },
-              "hardware_info": {
-                "type": "HardwareInfo",
-                "value": {
-                  "bios_version": {
-                    "type": "unicode",
-                    "value": "Bios-Version-0"
-                  },
-                  "system_manufacturer": {
-                    "type": "unicode",
-                    "value": "System-Manufacturer-0"
-                  }
-                }
-              },
-              "interfaces": [
-                {
-                  "type": "Interface",
-                  "value": {
-                    "addresses": [
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "wKgAAA=="
-                          }
-                        }
-                      },
-                      {
-                        "type": "NetworkAddress",
-                        "value": {
-                          "address_type": {
-                            "type": "EnumNamedValue",
-                            "value": "INET6"
-                          },
-                          "packed_bytes": {
-                            "type": "RDFBytes",
-                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "qrvM3e4A"
-                    }
-                  }
-                },
-                {
-                  "type": "Interface",
-                  "value": {
-                    "mac_address": {
-                      "type": "MacAddress",
-                      "value": "u8zd7v8A"
-                    }
-                  }
-                }
-              ],
-              "knowledge_base": {
-                "type": "KnowledgeBase",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "os": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "users": [
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user1"
-                        }
-                      }
-                    },
-                    {
-                      "type": "User",
-                      "value": {
-                        "username": {
-                          "type": "unicode",
-                          "value": "user2"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "labels": [],
-              "memory_size": {
-                "type": "ByteSize",
-                "value": 4294967296
-              },
-              "os_info": {
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "kernel": {
-                    "type": "unicode",
-                    "value": "4.0.0"
-                  },
-                  "machine": {
-                    "type": "unicode",
-                    "value": "x86_64"
-                  },
-                  "system": {
-                    "type": "unicode",
-                    "value": "Linux"
-                  },
-                  "version": {
-                    "type": "unicode",
-                    "value": "buster/sid"
-                  }
-                }
-              },
-              "urn": {
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": [
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user1"
-                    }
-                  }
-                },
-                {
-                  "type": "User",
-                  "value": {
-                    "username": {
-                      "type": "unicode",
-                      "value": "user2"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "type": "ApiClient",
-            "value": {
-              "age": {
-                "type": "RDFDatetime",
-                "value": 45000000
-              },
-              "agent_info": {
-                "type": "ClientInformation",
                 "value": {}
               },
               "client_id": {
@@ -3479,10 +2382,6 @@
                 }
               },
               "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
               "os_info": {
                 "type": "Uname",
                 "value": {
@@ -3524,7 +2423,7 @@
           }
         ]
       },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -3612,7 +2511,6 @@
               ]
             },
             "labels": [],
-            "last_seen_at": 42000000,
             "os_info": {
               "fqdn": "some-other-hostname.org",
               "version": ""
@@ -3774,10 +2672,6 @@
                 }
               },
               "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3835,7 +2729,7 @@
           }
         ]
       },
-      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v1",
       "type_stripped_response": {
         "items": [
           {
@@ -3887,7 +2781,6 @@
               ]
             },
             "labels": [],
-            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -4053,10 +2946,1088 @@
                 }
               },
               "labels": [],
-              "last_seen_at": {
+              "memory_size": {
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "version": {
+                    "type": "unicode",
+                    "value": "buster/sid"
+                  }
+                }
+              },
+              "urn": {
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 45000000,
+            "agent_info": {
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "labels": [],
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "some-other-hostname.org",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiClient",
+            "value": {
+              "age": {
                 "type": "RDFDatetime",
                 "value": 42000000
               },
+              "agent_info": {
+                "type": "ClientInformation",
+                "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
+                  "client_name": {
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
+                }
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
+              "knowledge_base": {
+                "type": "KnowledgeBase",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "labels": [],
+              "memory_size": {
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "version": {
+                    "type": "unicode",
+                    "value": "buster/sid"
+                  }
+                }
+              },
+              "urn": {
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "type": "ClientInformation",
+                "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
+                  "client_name": {
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
+                }
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
+              "knowledge_base": {
+                "type": "KnowledgeBase",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "labels": [],
+              "memory_size": {
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "version": {
+                    "type": "unicode",
+                    "value": "buster/sid"
+                  }
+                }
+              },
+              "urn": {
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "labels": [],
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          },
+          {
+            "age": 45000000,
+            "agent_info": {
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "labels": [],
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "some-other-hostname.org",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "agent_info": {
+                "type": "ClientInformation",
+                "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
+                  "client_name": {
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
+                }
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
+              "knowledge_base": {
+                "type": "KnowledgeBase",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "labels": [],
+              "memory_size": {
+                "type": "ByteSize",
+                "value": 4294967296
+              },
+              "os_info": {
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "kernel": {
+                    "type": "unicode",
+                    "value": "4.0.0"
+                  },
+                  "machine": {
+                    "type": "unicode",
+                    "value": "x86_64"
+                  },
+                  "system": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "version": {
+                    "type": "unicode",
+                    "value": "buster/sid"
+                  }
+                }
+              },
+              "urn": {
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetClientVersionsRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "age": 42000000,
+            "agent_info": {
+              "build_time": "1980-01-01",
+              "client_name": "GRR Monitor",
+              "client_version": 123,
+              "labels": [
+                "label1",
+                "label2"
+              ]
+            },
+            "client_id": "C.1000000000000000",
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
+            "interfaces": [
+              {
+                "addresses": [
+                  {
+                    "address_type": "INET",
+                    "packed_bytes": "wKgAAA=="
+                  },
+                  {
+                    "address_type": "INET6",
+                    "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
+                  }
+                ]
+              },
+              {
+                "mac_address": "qrvM3e4A"
+              },
+              {
+                "mac_address": "u8zd7v8A"
+              }
+            ],
+            "knowledge_base": {
+              "fqdn": "Host-0.example.com",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
+            "labels": [],
+            "memory_size": 4294967296,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "kernel": "4.0.0",
+              "machine": "x86_64",
+              "system": "Linux",
+              "version": "buster/sid"
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/versions?end=44000000&mode=full"
+    },
+    {
+      "api_method": "GetClientVersions",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiClient",
+            "value": {
+              "age": {
+                "type": "RDFDatetime",
+                "value": 45000000
+              },
+              "agent_info": {
+                "type": "ClientInformation",
+                "value": {
+                  "build_time": {
+                    "type": "unicode",
+                    "value": "1980-01-01"
+                  },
+                  "client_name": {
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  },
+                  "client_version": {
+                    "type": "long",
+                    "value": 123
+                  },
+                  "labels": [
+                    {
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    {
+                      "type": "unicode",
+                      "value": "label2"
+                    }
+                  ]
+                }
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "hardware_info": {
+                "type": "HardwareInfo",
+                "value": {
+                  "bios_version": {
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
+              },
+              "interfaces": [
+                {
+                  "type": "Interface",
+                  "value": {
+                    "addresses": [
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "wKgAAA=="
+                          }
+                        }
+                      },
+                      {
+                        "type": "NetworkAddress",
+                        "value": {
+                          "address_type": {
+                            "type": "EnumNamedValue",
+                            "value": "INET6"
+                          },
+                          "packed_bytes": {
+                            "type": "RDFBytes",
+                            "value": "IAGrzQAAAAAAAAAAAAAAAA=="
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "qrvM3e4A"
+                    }
+                  }
+                },
+                {
+                  "type": "Interface",
+                  "value": {
+                    "mac_address": {
+                      "type": "MacAddress",
+                      "value": "u8zd7v8A"
+                    }
+                  }
+                }
+              ],
+              "knowledge_base": {
+                "type": "KnowledgeBase",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "labels": [],
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -4166,7 +4137,6 @@
               ]
             },
             "labels": [],
-            "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "some-other-hostname.org",
@@ -4187,7 +4157,7 @@
           }
         ]
       },
-      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
+      "url": "/api/clients/C.1000000000000000/versions?end=46000000&mode=full&start=44000000"
     }
   ],
   "ApiGetCronJobApprovalHandler": [

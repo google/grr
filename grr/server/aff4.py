@@ -819,6 +819,15 @@ class Factory(object):
                            follow_symlinks=True):
     """Returns all the versions of the object as AFF4 objects.
 
+    This iterates through versions of an object, returning the newest version
+    first, then each older version until the beginning of time.
+
+    Note that versions are defined by changes to the TYPE attribute, and this
+    takes the version between two TYPE attributes.
+    In many cases as a user you don't want this, as you want to be returned an
+    object with as many attributes as possible, instead of the subset of them
+    that were Set between these two times.
+
     Args:
       urn: The urn to open.
       mode: The mode to open the file with.
@@ -837,15 +846,6 @@ class Factory(object):
 
     Raises:
       IOError: On bad open or wrong time range specified.
-
-    This iterates through versions of an object, returning the newest version
-    first, then each older version until the beginning of time.
-
-    Note that versions are defined by changes to the TYPE attribute, and this
-    takes the version between two TYPE attributes.
-    In many cases as a user you don't want this, as you want to be returned an
-    object with as many attributes as possible, instead of the subset of them
-    that were Set between these two times.
     """
     if age == NEWEST_TIME or len(age) == 1:
       raise IOError("Bad age policy NEWEST_TIME for OpenDiscreteVersions.")

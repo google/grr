@@ -59,8 +59,22 @@ def GetExtAttrs(filepath):
     `ExtAttr` pairs.
   """
   path = CanonicalPathToLocalPath(filepath)
-  for attr_name in xattr.listxattr(path):
-    attr_value = xattr.getxattr(path, attr_name)
+
+  try:
+    attr_names = xattr.listxattr(path)
+  except (IOError, OSError) as error:
+    msg = "Failed to retrieve extended attributes for '%s': %s"
+    logging.error(msg, path, error)
+    return
+
+  for attr_name in attr_names:
+    try:
+      attr_value = xattr.getxattr(path, attr_name)
+    except (IOError, OSError) as error:
+      msg = "Failed to retrieve attribute '%s' for '%s': %s"
+      logging.error(msg, attr_name, path, error)
+      continue
+
     yield rdf_client.ExtAttr(name=attr_name, value=attr_value)
 
 

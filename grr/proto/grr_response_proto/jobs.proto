@@ -1562,8 +1562,8 @@ message ForemanLabelClientRule {
 
 // The Foreman schedules flows based on these rules firing.
 message ForemanRegexClientRule {
-  // A relative path under the client which the attribute applies to
-  optional string path = 1 [default = "/"];
+  // DEPRECATED
+  // optional string path = 1;
 
   optional string attribute_name = 2 [(sem_type) = {
       type: "AFF4Attribute",
@@ -1579,8 +1579,8 @@ message ForemanRegexClientRule {
 
 // This rule will fire if the expression operator(attribute, value) is true.
 message ForemanIntegerClientRule {
-  // A relative path under the client which the attribute applies to
-  optional string path = 1 [default = "/"];
+  // DEPRECATED
+  // optional string path = 1;
 
   optional string attribute_name = 2 [(sem_type) = {
       type: "AFF4Attribute",

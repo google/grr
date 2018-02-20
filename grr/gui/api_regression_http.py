@@ -62,7 +62,8 @@ class HttpApiRegressionTestMixinBase(object):
     super(HttpApiRegressionTestMixinBase, self).setUp()
     self.connector = self.GetConnector(self.__class__.api_version)
 
-    if self.__class__.read_from_relational_db:
+    if (not getattr(self, "aff4_only_test", False) and
+        self.__class__.read_from_relational_db):
       self.db_config_overrider = test_lib.ConfigOverrider({
           "Database.useForReads": True
       })
@@ -203,7 +204,8 @@ class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
   api_version = 2
 
   def testRelationalDBReadsEnabled(self):
-    self.assertTrue(data_store.RelationalDBReadEnabled())
+    if not getattr(self, "aff4_only_test", False):
+      self.assertTrue(data_store.RelationalDBReadEnabled())
 
   @property
   def output_file_name(self):

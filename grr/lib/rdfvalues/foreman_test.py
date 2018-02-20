@@ -62,9 +62,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     # One of the set's rules has os_darwin=True, so the whole set matches
     # with the match any match mode
     self.assertTrue(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_dar, self.token),
-            client_id_dar))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_dar, token=self.token)))
 
   def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(self):
     # Instantiate a rule set that matches if any of its two
@@ -86,9 +84,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     # None of the set's rules has os_windows=True, so the whole set doesn't
     # match
     self.assertFalse(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_win, self.token),
-            client_id_win))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
   def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(self):
     # Instantiate a rule set that matches if all of its two
@@ -110,9 +106,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     # One of the set's rules has os_darwin=False, so the whole set doesn't
     # match with the match all match mode
     self.assertFalse(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_dar, self.token),
-            client_id_dar))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_dar, token=self.token)))
 
   def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(self):
     # Instantiate a rule set that matches if all of its two
@@ -133,9 +127,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=False, so the whole set matches
     self.assertTrue(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
-            client_id_lin))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
 
   def testEvaluatesNegativeInMatchAnyModeWithNoRules(self):
     # Instantiate an empty rule set that matches if any of its rules matches
@@ -146,9 +138,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # None of the set's rules has os_linux=True, so the set doesn't match
     self.assertFalse(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
-            client_id_lin))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
 
   def testEvaluatesPositiveInMatchAllModeWithNoRules(self):
     # Instantiate an empty rule set that matches if all of its rules match
@@ -159,9 +149,7 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestMixin,
     client_id_lin = self.SetupClient(0, system="Linux")
     # All of the set's rules have os_linux=True, so the set matches
     self.assertTrue(
-        rs.Evaluate(
-            CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
-            client_id_lin))
+        rs.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
 
 
 class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -184,9 +172,7 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client matches rule r
     self.assertTrue(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
-            client_id_win))
+        r.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
   def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(self):
     # Instantiate a wrapped operating system rule
@@ -198,9 +184,7 @@ class ForemanClientRuleTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     client_id_win = self.SetupClient(0, system="Windows")
     # The Windows client doesn't match rule r
     self.assertFalse(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
-            client_id_win))
+        r.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
 
 class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
@@ -229,9 +213,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
 
     client_id_win = self.SetupClient(0, system="Windows")
     self.assertFalse(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
-            client_id_win))
+        r.Evaluate(aff4.FACTORY.Open(client_id_win, token=self.token)))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
     # Instantiate two operating system rules
@@ -243,13 +225,9 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
 
     client_id_lin = self.SetupClient(0, system="Linux")
     self.assertFalse(
-        r0.Evaluate(
-            CollectAff4Objects(r0.GetPathsToCheck(), client_id_lin, self.token),
-            client_id_lin))
+        r0.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
     self.assertTrue(
-        r1.Evaluate(
-            CollectAff4Objects(r1.GetPathsToCheck(), client_id_lin, self.token),
-            client_id_lin))
+        r1.Evaluate(aff4.FACTORY.Open(client_id_lin, token=self.token)))
 
   def testDarwinClientMatchesIffOsDarwinIsSelected(self):
     # Instantiate two operating system rules
@@ -261,13 +239,9 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
 
     client_id_dar = self.SetupClient(0, system="Darwin")
     self.assertFalse(
-        r0.Evaluate(
-            CollectAff4Objects(r0.GetPathsToCheck(), client_id_dar, self.token),
-            client_id_dar))
+        r0.Evaluate(aff4.FACTORY.Open(client_id_dar, token=self.token)))
     self.assertTrue(
-        r1.Evaluate(
-            CollectAff4Objects(r1.GetPathsToCheck(), client_id_dar, self.token),
-            client_id_dar))
+        r1.Evaluate(aff4.FACTORY.Open(client_id_dar, token=self.token)))
 
 
 class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
@@ -281,11 +255,10 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
   def _Evaluate(self, rule):
     client_id = self.SetupClient(0)
 
-    objects = CollectAff4Objects(rule.GetPathsToCheck(), client_id, self.token)
-    # Label the client
-    objects[client_id].SetLabels(["hello", "world"], owner="GRR")
+    client_obj = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
+    client_obj.SetLabels(["hello", "world"], owner="GRR")
 
-    return rule.Evaluate(objects, client_id)
+    return rule.Evaluate(client_obj)
 
   def testEvaluatesToFalseForClientWithoutTheLabel(self):
     # Instantiate a label rule
@@ -396,10 +369,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # Aff4 object type is VFSGRRClient
-    self.assertTrue(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesAttributesSubstringToTrue(self):
     # Instantiate a regex rule
@@ -409,10 +379,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # The type contains the substring GRR
-    self.assertTrue(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesNonSubstringToFalse(self):
     # Instantiate a regex rule
@@ -422,10 +389,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # The type doesn't contain foo
-    self.assertFalse(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
 
 class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
@@ -449,10 +413,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # The size is not less than 0
-    self.assertFalse(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesSizeGreaterThanMinusOneToTrue(self):
     # Instantiate an integer rule
@@ -464,10 +425,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # size > -1
-    self.assertTrue(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesToFalseWithNonIntAttribute(self):
     # Instantiate an integer rule
@@ -479,10 +437,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     client_id = self.SetupClient(0)
 
     # Host is not a number
-    self.assertFalse(
-        r.Evaluate(
-            CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
-            client_id))
+    self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
 
 def main(argv):

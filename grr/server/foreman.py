@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """RDFValue instances related to the foreman implementation."""
-
-import itertools
 
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -16,25 +13,11 @@ from grr.server import aff4
 class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
   """Abstract base class of foreman client rules."""
 
-  def GetPathsToCheck(self):
-    """Returns aff4 paths to be opened as objects passed to Evaluate.
-
-    Optional overrides of this method should return an iterable filled with
-    strs representing the aff4 paths to be opened.
-
-    Returns:
-      An iterable filled with strs representing the aff4 paths to be opened.
-    """
-    return ["/"]
-
-  def Evaluate(self, objects, client_id):
+  def Evaluate(self, client_obj):
     """Evaluates the rule represented by this object.
 
     Args:
-      objects: A dict that maps fd.urn to fd for all file descriptors fd
-          corresponding to the aff4 paths returned by the GetPathsToCheck
-          method of this object.
-      client_id: An aff4 client id object.
+      client_obj: An aff4 client object.
 
     Returns:
       A bool value of the evaluation.
@@ -49,14 +32,13 @@ class ForemanOsClientRule(ForemanClientRuleBase):
   """This rule will fire if the client OS is marked as true in the proto."""
   protobuf = jobs_pb2.ForemanOsClientRule
 
-  def Evaluate(self, objects, client_id):
+  def Evaluate(self, client_obj):
     try:
-      fd = objects[client_id]
       attribute = aff4.Attribute.NAMES["System"]
     except KeyError:
       return False
 
-    value = utils.SmartStr(fd.Get(attribute))
+    value = utils.SmartStr(client_obj.Get(attribute))
 
     return ((self.os_windows and value.startswith("Windows")) or
             (self.os_linux and value.startswith("Linux")) or
@@ -70,12 +52,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
   """This rule will fire if the client has the selected label."""
   protobuf = jobs_pb2.ForemanLabelClientRule
 
-  def Evaluate(self, objects, client_id):
-    try:
-      fd = objects[client_id]
-    except KeyError:
-      return False
-
+  def Evaluate(self, client_obj):
     if self.match_mode == ForemanLabelClientRule.MatchMode.MATCH_ALL:
       quantifier = all
     elif self.match_mode == ForemanLabelClientRule.MatchMode.MATCH_ANY:
@@ -87,7 +64,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    client_label_names = set(fd.GetLabelsNames())
+    client_label_names = set(client_obj.GetLabelsNames())
 
     return quantifier((name in client_label_names) for name in self.label_names)
 
@@ -103,18 +80,13 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       standard.RegularExpression,
   ]
 
-  def GetPathsToCheck(self):
-    return [self.path]
-
-  def Evaluate(self, objects, client_id):
-    path = client_id.Add(self.path)
+  def Evaluate(self, client_obj):
     try:
-      fd = objects[path]
       attribute = aff4.Attribute.NAMES[self.attribute_name]
     except KeyError:
       return False
 
-    value = utils.SmartStr(fd.Get(attribute))
+    value = utils.SmartStr(client_obj.Get(attribute))
 
     return self.attribute_regex.Search(value)
 
@@ -134,19 +106,14 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       aff4.AFF4Attribute,
   ]
 
-  def GetPathsToCheck(self):
-    return [self.path]
-
-  def Evaluate(self, objects, client_id):
-    path = client_id.Add(self.path)
+  def Evaluate(self, client_obj):
     try:
-      fd = objects[path]
       attribute = aff4.Attribute.NAMES[self.attribute_name]
     except KeyError:
       return False
 
     try:
-      value = int(fd.Get(attribute))
+      value = int(client_obj.Get(attribute))
     except (ValueError, TypeError):
       # Not an integer attribute.
       return False
@@ -188,11 +155,8 @@ class ForemanClientRule(ForemanClientRuleBase):
       ForemanRegexClientRule,
   ]
 
-  def GetPathsToCheck(self):
-    return self.UnionCast().GetPathsToCheck()
-
-  def Evaluate(self, objects, client_id):
-    return self.UnionCast().Evaluate(objects, client_id)
+  def Evaluate(self, client_obj):
+    return self.UnionCast().Evaluate(client_obj)
 
   def Validate(self):
     self.UnionCast().Validate()
@@ -205,20 +169,11 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
       ForemanClientRule,
   ]
 
-  def GetPathsToCheck(self):
-    """Returns aff4 paths to be opened as objects passed to Evaluate."""
-    return set(
-        itertools.chain.from_iterable(rule.GetPathsToCheck()
-                                      for rule in self.rules))
-
-  def Evaluate(self, objects, client_id):
+  def Evaluate(self, client_obj):
     """Evaluates rules held in the rule set.
 
     Args:
-      objects: A dict that maps fd.urn to fd for all file descriptors fd
-          corresponding to the aff4 paths returned by the GetPathsToCheck
-          method of this object.
-      client_id: An aff4 client id object.
+      client_obj: An aff4 client object.
 
     Returns:
       A bool value of the evaluation.
@@ -233,7 +188,7 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    return quantifier(rule.Evaluate(objects, client_id) for rule in self.rules)
+    return quantifier(rule.Evaluate(client_obj) for rule in self.rules)
 
   def Validate(self):
     for rule in self.rules:

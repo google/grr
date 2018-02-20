@@ -68,45 +68,83 @@ class ApiGetClientHandlerRegressionTest(
         "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
 
 
-class ApiGetClientVersionsRegressionTest(
-    api_regression_test_lib.ApiRegressionTest):
+class ApiGetClientVersionsRegressionTestMixin(object):
 
   api_method = "GetClientVersions"
   handler = client_plugin.ApiGetClientVersionsHandler
 
-  def Run(self):
-    # Fix the time to avoid regressions.
-    with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
+  def _SetupTestClient(self):
 
-    with test_lib.FakeTime(45):
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as grr_client:
-        grr_client.Set(grr_client.Schema.HOSTNAME("some-other-hostname.org"))
-        grr_client.Set(grr_client.Schema.FQDN("some-other-hostname.org"))
-        kb = grr_client.Get(grr_client.Schema.KNOWLEDGE_BASE)
-        kb.fqdn = "some-other-hostname.org"
-        grr_client.Set(grr_client.Schema.KNOWLEDGE_BASE(kb))
+    if data_store.RelationalDBReadEnabled():
+
+      with test_lib.FakeTime(42):
+        client_obj = self.SetupTestClientObject(
+            0, memory_size=4294967296, add_cert=False)
+        client_id = client_obj.client_id
+
+      with test_lib.FakeTime(45):
+        self.SetupTestClientObject(
+            0,
+            fqdn="some-other-hostname.org",
+            memory_size=4294967296,
+            add_cert=False)
+
+    else:  # We need AFF4 data.
+
+      with test_lib.FakeTime(42):
+        client_urn = self.SetupClient(0, memory_size=4294967296, add_cert=False)
+        client_id = client_urn.Basename()
+
+      with test_lib.FakeTime(45):
+        with aff4.FACTORY.Open(
+            client_urn, mode="rw", token=self.token) as grr_client:
+          grr_client.Set(grr_client.Schema.HOSTNAME("some-other-hostname.org"))
+          grr_client.Set(grr_client.Schema.FQDN("some-other-hostname.org"))
+          kb = grr_client.Get(grr_client.Schema.KNOWLEDGE_BASE)
+          kb.fqdn = "some-other-hostname.org"
+          grr_client.Set(grr_client.Schema.KNOWLEDGE_BASE(kb))
+
+    return client_id
+
+  def Run(self):
+    client_id = self._SetupTestClient()
 
     with test_lib.FakeTime(47):
-      for mode in ["FULL", "DIFF"]:
-        self.Check(
-            "GetClientVersions",
-            args=client_plugin.ApiGetClientVersionsArgs(
-                client_id=client_id.Basename(), mode=mode))
-        self.Check(
-            "GetClientVersions",
-            args=client_plugin.ApiGetClientVersionsArgs(
-                client_id=client_id.Basename(),
-                end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
-                mode=mode))
-        self.Check(
-            "GetClientVersions",
-            args=client_plugin.ApiGetClientVersionsArgs(
-                client_id=client_id.Basename(),
-                start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
-                end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(46),
-                mode=mode))
+      self.Check(
+          "GetClientVersions",
+          args=client_plugin.ApiGetClientVersionsArgs(
+              client_id=client_id, mode=self.mode))
+      self.Check(
+          "GetClientVersions",
+          args=client_plugin.ApiGetClientVersionsArgs(
+              client_id=client_id,
+              end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
+              mode=self.mode))
+      self.Check(
+          "GetClientVersions",
+          args=client_plugin.ApiGetClientVersionsArgs(
+              client_id=client_id,
+              start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
+              end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(46),
+              mode=self.mode))
+
+
+class ApiGetClientVersionsRegressionTest(
+    ApiGetClientVersionsRegressionTestMixin,
+    api_regression_test_lib.ApiRegressionTest,
+):
+
+  mode = "FULL"
+
+
+class ApiGetClientVersionsRegressionTestAFF4(
+    ApiGetClientVersionsRegressionTestMixin,
+    api_regression_test_lib.ApiRegressionTest,
+):
+  mode = "DIFF"
+
+  # Disable the relational DB for this class, the functionality is not needed.
+  aff4_only_test = True
 
 
 class ApiGetLastClientIPAddressHandlerRegressionTest(

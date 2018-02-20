@@ -389,6 +389,58 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(str(flows_urns[0]), result.operation_id)
 
 
+class ApiGetClientVersionTimesTestMixin(object):
+  """Test mixin for ApiGetClientVersionTimes."""
+
+  def setUp(self):
+    super(ApiGetClientVersionTimesTestMixin, self).setUp()
+    self.handler = client_plugin.ApiGetClientVersionTimesHandler()
+
+  def testHandler(self):
+    self._SetUpClient()
+    args = client_plugin.ApiGetClientVersionTimesArgs(client_id=self.client_id)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertEqual(len(result.times), 3)
+    self.assertEqual(result.times[0].AsSecondsFromEpoch(), 100)
+    self.assertEqual(result.times[1].AsSecondsFromEpoch(), 45)
+    self.assertEqual(result.times[2].AsSecondsFromEpoch(), 42)
+
+
+class ApiGetClientVersionTimesTestRelational(ApiGetClientVersionTimesTestMixin,
+                                             api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientVersionTimes using the relational db."""
+
+  def setUp(self):
+    super(ApiGetClientVersionTimesTestRelational, self).setUp()
+
+    self.enable_relational_db = test_lib.ConfigOverrider({
+        "Database.useForReads": True
+    })
+    self.enable_relational_db.Start()
+
+  def tearDown(self):
+    super(ApiGetClientVersionTimesTestRelational, self).tearDown()
+    self.enable_relational_db.Stop()
+
+  def _SetUpClient(self):
+    for time in [42, 45, 100]:
+      with test_lib.FakeTime(time):
+        client_obj = self.SetupTestClientObject(0)
+        self.client_id = client_obj.client_id
+
+
+class ApiGetClientVersionTimesTestAFF4(ApiGetClientVersionTimesTestMixin,
+                                       api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientVersionTimes using AFF4."""
+
+  def _SetUpClient(self):
+    for time in [42, 45, 100]:
+      with test_lib.FakeTime(time):
+        client_urn = self.SetupClient(0)
+        self.client_id = client_urn.Basename()
+
+
 def main(argv):
   test_lib.main(argv)
 
