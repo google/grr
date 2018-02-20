@@ -1,6 +1,7 @@
 'use strict';
 
 goog.module('grrUi.templates.templates.templatesModule');
+goog.module.declareLegacyNamespace();
 
 /**
  * If GRR is running with AdminUI.use_precompiled_js = True, then

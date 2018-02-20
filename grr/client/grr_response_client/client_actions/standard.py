@@ -270,9 +270,9 @@ class IteratedListDirectory(actions.IteratedAction):
     client_state["index"] = index + length
 
 
-class StatFile(actions.ActionPlugin):
+class StatFile(ListDirectory):
   """Sends a StatEntry for a single file."""
-  in_rdfvalue = rdf_client.StatFileArgs
+  in_rdfvalue = rdf_client.ListDirRequest
   out_rdfvalues = [rdf_client.StatEntry]
 
   def Run(self, args):

@@ -736,10 +736,6 @@ message ListDirRequest {
   optional Iterator iterator = 2;
 };
 
-message StatFileArgs {
-  optional PathSpec pathspec = 1;
-}
-
 message UploadPolicy {
   optional string client_id = 1 [(sem_type) = {type: "ClientURN"}];
 

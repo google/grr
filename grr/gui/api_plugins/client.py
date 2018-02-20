@@ -106,9 +106,18 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     self.memory_size = client_obj.Get(client_obj.Schema.MEMORY_SIZE)
 
     self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
-    self.last_seen_at = client_obj.Get(client_obj.Schema.PING)
-    self.last_booted_at = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
-    self.last_clock = client_obj.Get(client_obj.Schema.CLOCK)
+    ping = client_obj.Get(client_obj.Schema.PING)
+    if ping:
+      self.last_seen_at = ping
+
+    booted = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
+    if booted:
+      self.last_booted_at = booted
+
+    clock = client_obj.Get(client_obj.Schema.CLOCK)
+    if clock:
+      self.last_clock = clock
+
     last_crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
     if last_crash is not None:
       self.last_crash_at = last_crash.timestamp

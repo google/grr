@@ -675,7 +675,6 @@
                 }
               ]
             },
-            "lastSeenAt": "0",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -731,7 +730,7 @@
               }
             ],
             "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -745,7 +744,7 @@
             "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",
@@ -885,7 +884,7 @@
               }
             ],
             "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -899,7 +898,7 @@
             "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",
@@ -973,7 +972,6 @@
                 }
               ]
             },
-            "lastSeenAt": "0",
             "memorySize": "4294967296",
             "osInfo": {
               "fqdn": "Host-0.example.com",
@@ -997,12 +995,32 @@
             "agentInfo": {},
             "clientId": "C.1000000000000000",
             "hardwareInfo": {},
+            "knowledgeBase": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "lastSeenAt": "42000000",
             "osInfo": {
               "fqdn": "some-other-hostname.org",
               "version": ""
             },
-            "urn": "aff4:/C.1000000000000000"
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -1128,7 +1146,7 @@
               }
             ],
             "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -1142,7 +1160,7 @@
             "lastSeenAt": "42000000",
             "memorySize": "4294967296",
             "osInfo": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",

@@ -2274,10 +2274,6 @@
                 }
               },
               "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 0
-              },
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -2442,7 +2438,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "os": {
                     "type": "unicode",
@@ -2484,7 +2480,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "kernel": {
                     "type": "unicode",
@@ -2584,7 +2580,6 @@
               ]
             },
             "labels": [],
-            "last_seen_at": 0,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -2640,7 +2635,7 @@
               }
             ],
             "knowledge_base": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -2655,7 +2650,7 @@
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",
@@ -3068,7 +3063,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "os": {
                     "type": "unicode",
@@ -3110,7 +3105,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "kernel": {
                     "type": "unicode",
@@ -3198,7 +3193,7 @@
               }
             ],
             "knowledge_base": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -3213,7 +3208,7 @@
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",
@@ -3376,10 +3371,6 @@
                 }
               },
               "labels": [],
-              "last_seen_at": {
-                "type": "RDFDatetime",
-                "value": 0
-              },
               "memory_size": {
                 "type": "ByteSize",
                 "value": 4294967296
@@ -3454,6 +3445,39 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "type": "KnowledgeBase",
+                "value": {
+                  "fqdn": {
+                    "type": "unicode",
+                    "value": "some-other-hostname.org"
+                  },
+                  "os": {
+                    "type": "unicode",
+                    "value": "Linux"
+                  },
+                  "users": [
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user1"
+                        }
+                      }
+                    },
+                    {
+                      "type": "User",
+                      "value": {
+                        "username": {
+                          "type": "unicode",
+                          "value": "user2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "type": "RDFDatetime",
@@ -3475,7 +3499,27 @@
               "urn": {
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              }
+              },
+              "users": [
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user1"
+                    }
+                  }
+                },
+                {
+                  "type": "User",
+                  "value": {
+                    "username": {
+                      "type": "unicode",
+                      "value": "user2"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -3532,7 +3576,6 @@
               ]
             },
             "labels": [],
-            "last_seen_at": 0,
             "memory_size": 4294967296,
             "os_info": {
               "fqdn": "Host-0.example.com",
@@ -3556,13 +3599,33 @@
             "agent_info": {},
             "client_id": "C.1000000000000000",
             "hardware_info": {},
+            "knowledge_base": {
+              "fqdn": "some-other-hostname.org",
+              "os": "Linux",
+              "users": [
+                {
+                  "username": "user1"
+                },
+                {
+                  "username": "user2"
+                }
+              ]
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "os_info": {
               "fqdn": "some-other-hostname.org",
               "version": ""
             },
-            "urn": "aff4:/C.1000000000000000"
+            "urn": "aff4:/C.1000000000000000",
+            "users": [
+              {
+                "username": "user1"
+              },
+              {
+                "username": "user2"
+              }
+            ]
           }
         ]
       },
@@ -3961,7 +4024,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "os": {
                     "type": "unicode",
@@ -4003,7 +4066,7 @@
                 "value": {
                   "fqdn": {
                     "type": "unicode",
-                    "value": "Host-0.example.com"
+                    "value": "some-other-hostname.org"
                   },
                   "kernel": {
                     "type": "unicode",
@@ -4091,7 +4154,7 @@
               }
             ],
             "knowledge_base": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "os": "Linux",
               "users": [
                 {
@@ -4106,7 +4169,7 @@
             "last_seen_at": 42000000,
             "memory_size": 4294967296,
             "os_info": {
-              "fqdn": "Host-0.example.com",
+              "fqdn": "some-other-hostname.org",
               "kernel": "4.0.0",
               "machine": "x86_64",
               "system": "Linux",

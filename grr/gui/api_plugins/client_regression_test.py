@@ -83,6 +83,10 @@ class ApiGetClientVersionsRegressionTest(
       with aff4.FACTORY.Open(
           client_id, mode="rw", token=self.token) as grr_client:
         grr_client.Set(grr_client.Schema.HOSTNAME("some-other-hostname.org"))
+        grr_client.Set(grr_client.Schema.FQDN("some-other-hostname.org"))
+        kb = grr_client.Get(grr_client.Schema.KNOWLEDGE_BASE)
+        kb.fqdn = "some-other-hostname.org"
+        grr_client.Set(grr_client.Schema.KNOWLEDGE_BASE(kb))
 
     with test_lib.FakeTime(47):
       for mode in ["FULL", "DIFF"]:

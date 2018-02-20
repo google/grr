@@ -74,7 +74,7 @@ class GetFile(flow.GRRFlow):
 
     self.CallClient(
         server_stubs.StatFile,
-        rdf_client.StatFileArgs(pathspec=self.args.pathspec),
+        rdf_client.ListDirRequest(pathspec=self.args.pathspec),
         next_state="Stat")
 
   @flow.StateHandler()
