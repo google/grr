@@ -11,6 +11,8 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import artifact_utils
 from grr.server import data_store
 from grr.server import file_store
 from grr.server import flow
@@ -370,8 +372,19 @@ class ClientFileFinder(flow.GRRFlow):
       upload_token.GenerateHMAC()
       action.download.upload_token = upload_token
 
+    self.args.paths = list(self._InterpolatePaths(self.args.paths))
+
     self.CallClient(
         server_stubs.FileFinderOS, request=self.args, next_state="StoreResults")
+
+  def _InterpolatePaths(self, globs):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+
+    for glob in globs:
+      param_path = glob.SerializeToString()
+      for path in artifact_utils.InterpolateKbAttributes(param_path, kb):
+        yield path
 
   def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
     upload_store = file_store.UploadFileStore.GetPlugin(

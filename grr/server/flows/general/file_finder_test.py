@@ -906,6 +906,49 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     ]
     self.assertItemsEqual(relpaths, [u"厨房/卫浴洁.txt"])
 
+  def testPathInterpolation(self):
+    self.client_id = self.SetupClient(0)
+
+    bar = rdf_client.User(username="bar")
+    baz = rdf_client.User(username="baz")
+    kb = rdf_client.KnowledgeBase(os="foo", domain="norf", users=[bar, baz])
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    with client:
+      client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+
+    with test_lib.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      self._Touch(os.path.join(temp_dirpath, "foo", "bar"))
+      self._Touch(os.path.join(temp_dirpath, "foo", "baz"))
+      self._Touch(os.path.join(temp_dirpath, "foo", "quux"))
+      self._Touch(os.path.join(temp_dirpath, "thud", "norf", "plugh"))
+      self._Touch(os.path.join(temp_dirpath, "thud", "norf", "blargh"))
+
+      paths = [
+          os.path.join(temp_dirpath, "%%os%%", "%%users.username%%"),
+          os.path.join(temp_dirpath, "thud", "%%domain%%", "plugh"),
+      ]
+
+      action = rdf_file_finder.FileFinderAction.Action.STAT
+      results = self._RunCFF(paths, action)
+
+      paths = [result.stat_entry.pathspec.path for result in results]
+      self.assertItemsEqual(paths, [
+          os.path.join(temp_dirpath, "foo", "bar"),
+          os.path.join(temp_dirpath, "foo", "baz"),
+          os.path.join(temp_dirpath, "thud", "norf", "plugh")
+      ])
+
+  # TODO(hanuszczak): Similar function can be found in other modules. It should
+  # be implemented once in the test library.
+  def _Touch(self, filepath):
+    dirpath = os.path.dirname(filepath)
+    if not os.path.exists(dirpath):
+      os.makedirs(dirpath)
+
+    with open(filepath, "wb"):
+      pass
+
 
 def main(argv):
   # Run the full test suite

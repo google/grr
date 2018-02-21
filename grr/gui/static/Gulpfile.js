@@ -192,15 +192,14 @@ gulp.task(
           .pipe(gulpClosureCompiler({
             compilerPath: closureCompilerPath,
             fileName: 'grr-ui.bundle.js',
-            compilerFlags: {
-              ...closureCompilerFlags,
+            compilerFlags: Object.assign({}, closureCompilerFlags, {
               angular_pass: true,
               entry_point: 'grrUi.appController',
               externs: [
                 'angular-components/externs.js',
               ],
               create_source_map: config.distDir + '/grr-ui.bundle.js.map',
-            }
+            }),
           }))
           .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui.bundle.js.map'))
           .pipe(gulp.dest(config.distDir));
@@ -222,15 +221,14 @@ gulp.task('compile-grr-ui-tests', function() {
       .pipe(gulpClosureCompiler({
         compilerPath: closureCompilerPath,
         fileName: 'grr-ui-test.bundle.js',
-        compilerFlags: {
-          ...closureCompilerFlags,
+        compilerFlags: Object.assign({}, closureCompilerFlags, {
           angular_pass: true,
           dependency_mode: 'NONE',
           externs: [
             'angular-components/externs.js',
           ],
           create_source_map: config.distDir + '/grr-ui-test.bundle.js.map',
-        }
+        }),
       }))
       .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui-test.bundle.js.map'))
       .pipe(gulp.dest(config.distDir));
