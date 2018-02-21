@@ -828,12 +828,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # The same also applies to the StatsCollector thread.
     stats.StatsCollector.exit = True
 
-    # Stop the client from actually processing anything
-    self.out_queue_overrider = test_lib.ConfigOverrider({
-        "Client.max_out_queue": 0
-    })
-    self.out_queue_overrider.Start()
-
     # And cache it in the server
     self.CreateNewServerCommunicator()
 
@@ -880,7 +874,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def tearDown(self):
     self.requests_stubber.Stop()
-    self.out_queue_overrider.Stop()
     self.config_stubber.Stop()
     self.sleep_stubber.Stop()
     super(HTTPClientTests, self).tearDown()
@@ -956,11 +949,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def CheckClientQueue(self):
     """Checks that the client context received all server messages."""
     # Check the incoming messages
-
     self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
 
     for i, message in enumerate(
-        self.client_communicator.client_worker._in_queue):
+        self.client_communicator.client_worker._in_queue.queue):
       # This is the common name embedded in the certificate.
       self.assertEqual(message.source, "aff4:/GRR Test Server")
       self.assertEqual(message.response_id, 2)
@@ -970,7 +962,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Clear the queue
-    self.client_communicator.client_worker._in_queue = []
+    self.client_communicator.client_worker._in_queue.queue.clear()
 
   def SendToServer(self):
     """Schedule some packets from client to server."""
@@ -1320,7 +1312,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient(
-        worker_cls=worker_mocks.DisabledNannyThreadedWorker)
+        worker_cls=worker_mocks.DisabledNannyClientWorker)
     # Make the connection unavailable and skip the retry interval.
     with utils.MultiStubber(
         (requests, "request", self.RaiseError),
@@ -1331,36 +1323,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       client_obj.Run()
 
       self.assertEqual(client_obj.http_manager.consecutive_connection_errors, 9)
-
-
-class ThreadedWorkerHTTPClientTests(HTTPClientTests):
-
-  def setUp(self):
-    super(ThreadedWorkerHTTPClientTests, self).setUp()
-    self.out_queue_overrider.Stop()
-
-  def CreateClientCommunicator(self):
-    self.client_communicator = comms.GRRHTTPClient(
-        ca_cert=config.CONFIG["CA.certificate"],
-        worker_cls=worker_mocks.DisabledNannyThreadedWorker)
-
-  def CheckClientQueue(self):
-    """Checks that the client context received all server messages."""
-    # Check the incoming messages
-    self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
-
-    for i, message in enumerate(
-        self.client_communicator.client_worker._in_queue.queue):
-      # This is the common name embedded in the certificate.
-      self.assertEqual(message.source, "aff4:/GRR Test Server")
-      self.assertEqual(message.response_id, 2)
-      self.assertEqual(message.request_id, i)
-      self.assertEqual(message.session_id, "aff4:/W:session")
-      self.assertEqual(message.auth_state,
-                       rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
-
-    # Clear the queue
-    self.client_communicator.client_worker._in_queue.queue.clear()
 
 
 class RelationalClientCommsTest(ClientCommsTest):

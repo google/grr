@@ -1,2 +1,2 @@
 #!/usr/bin/env python
-"""The GRR client agent."""
+"""The GRR client agent ."""

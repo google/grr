@@ -51,9 +51,9 @@ class ClientStatsCollector(threading.Thread):
 
     # Not supported on MacOS.
     try:
-      _, _, read_bytes, write_bytes = self.proc.io_counters()
-      self.io_samples.append((rdfvalue.RDFDatetime.Now(), read_bytes,
-                              write_bytes))
+      iocounters = self.proc.io_counters()
+      self.io_samples.append((rdfvalue.RDFDatetime.Now(), iocounters.read_bytes,
+                              iocounters.write_bytes))
       self.io_samples = self.io_samples[-3600 / self.sleep_time:]
     except (AttributeError, NotImplementedError, psutil.Error):
       pass

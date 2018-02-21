@@ -33,7 +33,7 @@ class FakeMixin(object):
     return result
 
 
-class DisabledNannyThreadedWorker(comms.GRRThreadedWorker):
+class DisabledNannyClientWorker(comms.GRRClientWorker):
 
   def StartNanny(self):
     # Deliberatley no call to StartNanny()
@@ -44,16 +44,5 @@ class DisabledNannyThreadedWorker(comms.GRRThreadedWorker):
     pass
 
 
-class DisabledNannyClientWorker(comms.GRRClientWorker):
-
-  def StartNanny(self):
-    # Deliberatley no call to StartNanny()
-    self.nanny_controller = client_utils.NannyController()
-
-
 class FakeClientWorker(FakeMixin, DisabledNannyClientWorker):
   """A Fake GRR client worker which just collects SendReplys."""
-
-
-class FakeThreadedWorker(FakeMixin, DisabledNannyThreadedWorker):
-  """A Fake GRR client worker based on the actual threaded worker."""

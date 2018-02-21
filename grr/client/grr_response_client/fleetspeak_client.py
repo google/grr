@@ -57,9 +57,10 @@ class GRRFleetspeakClient(object):
     # The client worker does all the real work here.
     # In particular, we delegate sending messages to Fleetspeak to a separate
     # threading.Thread here.
-    self._threads["Worker"] = comms.GRRThreadedWorker(
+    self._threads["Worker"] = comms.GRRClientWorker(
         out_queue=_FleetspeakQueueForwarder(self._sender_queue),
         start_worker_thread=False,
+        heart_beat_cb=self._fs.Heartbeat,
         client=self)
     self._threads["Foreman"] = self._CreateThread(self._ForemanOp)
     self._threads["Sender"] = self._CreateThread(self._SendOp)

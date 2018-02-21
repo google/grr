@@ -201,7 +201,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
           ca_cert=config.CONFIG["CA.certificate"],
           private_key=config.CONFIG.Get("Client.private_key", default=None),
           worker_cls=worker_mocks.DisabledNannyClientWorker)
-      client.client_worker = worker_mocks.FakeThreadedWorker(client=client)
+      client.client_worker = worker_mocks.FakeClientWorker(client=client)
       client.server_certificate = config.CONFIG["Frontend.certificate"]
 
       for s in flow_test_lib.TestFlowHelper(

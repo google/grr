@@ -204,31 +204,9 @@ def ExpandPath(path, opts=None):
   Yields:
     All paths possible to obtain from a given path by performing expansions.
   """
-  parametrized_path = ExpandParams(path)
-  for grouped_path in ExpandGroups(parametrized_path):
+  for grouped_path in ExpandGroups(path):
     for globbed_path in ExpandGlobs(grouped_path, opts=opts):
       yield globbed_path
-
-
-# TODO(hanuszczak): Implement parameter expansion of client-side file-finder.
-# Future request for this is here: https://github.com/google/grr/issues/548.
-def ExpandParams(path):
-  """Performs path parameter interpolation.
-
-  Args:
-    path: A path to expand.
-
-  Returns:
-    A path with all parameters interpolated according to the knowledgebase.
-
-  Raises:
-    NotImplementedError: If the path contains a parameter since parameter
-                         interpolation is not implemented yet.
-  """
-  for match in PATH_PARAM_REGEX.finditer(path):
-    del match  # Unused.
-    raise NotImplementedError("Client-side parameter expansion not supported")
-  return path
 
 
 def ExpandGroups(path):

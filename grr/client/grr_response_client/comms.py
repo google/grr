@@ -444,8 +444,7 @@ class Timer(object):
   # Slew of poll time.
   poll_slew = 1.15
 
-  def __init__(self, heart_beat_cb=None):
-    self.heart_beat_cb = heart_beat_cb
+  def __init__(self):
     self.poll_min = config.CONFIG["Client.poll_min"]
     self.sleep_time = self.poll_max = config.CONFIG["Client.poll_max"]
 
@@ -465,9 +464,6 @@ class Timer(object):
     for _ in xrange(int(self.sleep_time)):
       time.sleep(1)
 
-      if self.heart_beat_cb:
-        self.heart_beat_cb()
-
     # Back off slowly at first and fast if no answer.
     self.sleep_time = min(self.poll_max,
                           max(self.poll_min, self.sleep_time) * self.poll_slew)
@@ -485,33 +481,105 @@ class CommsInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_sent_messages")
 
 
-class Status(object):
-  """An abstraction to encapsulate results of the HTTP Post."""
-  # Number of messages received
-  received_count = 0
+class SizeQueue(object):
+  """A Queue which limits the total size of its elements.
 
-  # Number of messages sent to server.
-  sent_count = 0
-  sent_len = 0
-  # Messages sent by priority.
-  sent = {}
+  The standard Queue implementations uses the total number of elements to block
+  on. In the client we want to limit the total memory footprint, hence we need
+  to use the total size as a measure of how full the queue is.
 
-  require_fastpoll = False
+  TODO(user): this class needs some attention to ensure it is thread safe.
+  """
+  total_size = 0
 
-  # Server status code (200 is OK)
-  code = 200
+  def __init__(self, maxsize=1024, heart_beat_cb=None):
+    self.lock = threading.RLock()
+    self.queue = []
+    self._reversed = []
+    self.total_size = 0
+    self.maxsize = maxsize
+    self.heart_beat_cb = heart_beat_cb
 
-  def __init__(self, **kwargs):
-    self.__dict__.update(kwargs)
+  def Put(self,
+          item,
+          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+          block=True,
+          timeout=1000):
+    """Put an item on the queue, blocking if it is too full.
+
+    This is a slightly modified Queue.put method which blocks when the queue
+    contains more than the threshold.
+
+    Args:
+      item: The item to put - must have a __len__() method.
+      priority: The priority of this message.
+      block: If True we block indefinitely.
+      timeout: Maximum time we spend waiting on the queue (1 sec resolution).
+
+    Raises:
+      Queue.Full: if the queue is full and block is False, or
+        timeout is exceeded.
+    """
+    # We only queue already serialized objects so we know how large they are.
+    if isinstance(item, rdfvalue.RDFValue):
+      item = item.SerializeToString()
+
+    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
+      pass  # If high priority is set we dont care about the size of the queue.
+
+    elif not block:
+      if self.total_size >= self.maxsize:
+        raise Queue.Full
+
+    else:
+      count = 0
+      # Wait until the queue has more space. We do not hold the lock here to
+      # ensure that the posting thread can drain this queue while we block here.
+      while self.total_size >= self.maxsize:
+        time.sleep(1)
+        self.heart_beat_cb()
+        count += 1
+
+        if timeout and count > timeout:
+          raise Queue.Full
+
+    with self.lock:
+      self.queue.append((-1 * priority, item))
+      self.total_size += len(item)
+
+  def Get(self):
+    """Retrieves the items from the queue."""
+    with self.lock:
+      if self._reversed:
+        # We have leftovers from a partial Get().
+        self._reversed.reverse()
+        self.queue = self._reversed + self.queue
+
+      self.queue.sort(key=lambda msg: msg[0])  # by priority only.
+      self.queue.reverse()
+      self._reversed, self.queue = self.queue, []
+
+      while self._reversed:
+        item = self._reversed.pop()[1]
+        self.total_size -= len(item)
+        yield item
+
+  def Size(self):
+    return self.total_size
+
+  def Full(self):
+    return self.total_size >= self.maxsize
 
 
-class GRRClientWorker(object):
-  """The main GRR Client worker.
+class GRRClientWorker(threading.Thread):
+  """This client worker runs the main loop in another thread.
 
-  This provides access to the GRR framework to plugins and other code.
+  The client which uses this worker is not blocked while queuing messages to be
+  worked on. There is only a single working thread though.
 
-  The client worker is the main thread in the client which processes requests
-  from the server.
+  The overall effect is that the HTTP client is not blocked waiting for actions
+  to be executed, and at the same time, the client working thread is not blocked
+  waiting on network latency.
   """
 
   stats_collector = None
@@ -528,21 +596,15 @@ class GRRClientWorker(object):
 
   UPLOAD_BUFFER_SIZE = 1024 * 1024
 
-  def __init__(self, client=None, heart_beat_cb=None):
-    """Create a new GRRClientWorker."""
-    super(GRRClientWorker, self).__init__()
+  def __init__(self,
+               start_worker_thread=True,
+               client=None,
+               out_queue=None,
+               heart_beat_cb=None):
+    threading.Thread.__init__(self)
 
     # A reference to the parent client that owns us.
     self.client = client
-
-    # Queue of messages from the server to be processed.
-    self._in_queue = []
-
-    # Queue of messages to be sent to the server.
-    self._out_queue = []
-
-    # A tally of the total byte count of messages
-    self._out_queue_size = 0
 
     self._is_active = False
 
@@ -568,6 +630,25 @@ class GRRClientWorker(object):
     # the two threads.
     self.http_manager = HTTPManager(heart_beat_cb=heart_beat_cb)
 
+    # This queue should never hit its maximum since the server will throttle
+    # messages before this.
+    self._in_queue = utils.HeartbeatQueue(callback=heart_beat_cb, maxsize=1024)
+
+    if out_queue is not None:
+      self._out_queue = out_queue
+    else:
+      # The size of the output queue controls the worker thread. Once this queue
+      # is too large, the worker thread will block until the queue is drained.
+      self._out_queue = SizeQueue(
+          maxsize=config.CONFIG["Client.max_out_queue"],
+          heart_beat_cb=heart_beat_cb)
+
+    self.daemon = True
+
+    # Start our working thread.
+    if start_worker_thread:
+      self.start()
+
   def StartNanny(self):
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
@@ -576,57 +657,8 @@ class GRRClientWorker(object):
       GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
       GRRClientWorker.stats_collector.start()
 
-  def Sleep(self, timeout):
-    """Sleeps the calling thread with heartbeat."""
-    self.heart_beat_cb()
-    time.sleep(timeout - int(timeout))
-
-    # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in xrange(int(timeout)):
-      time.sleep(1)
-
-      self.heart_beat_cb()
-
   def ClientMachineIsIdle(self):
     return psutil.cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
-
-  def Drain(self, max_size=1024):
-    """Return a GrrQueue message list from the queue, draining it.
-
-    This is used to get the messages going _TO_ the server when the
-    client connects.
-
-    Args:
-       max_size: The size of the returned protobuf will be at most one
-       message length over this size.
-
-    Returns:
-       A MessageList protobuf
-    """
-    queue = rdf_flows.MessageList()
-
-    length = 0
-    self._out_queue.sort(key=lambda msg: msg[0])
-
-    # Front pops are quadratic so we reverse the queue.
-    self._out_queue.reverse()
-
-    while self._out_queue and length < max_size:
-      message = self._out_queue.pop()[1]
-      queue.job.Append(message)
-      stats.STATS.IncrementCounter("grr_client_sent_messages")
-
-      # We deliberately look at the serialized length as bytes here.
-      message_length = len(message.Get("args"))
-
-      # Maintain the output queue tally
-      length += message_length
-      self._out_queue_size -= message_length
-
-    # Restore the old order.
-    self._out_queue.reverse()
-
-    return queue
 
   def SendReply(self,
                 rdf_value=None,
@@ -775,22 +807,6 @@ class GRRClientWorker(object):
       raise actions.NetworkBytesExceededError(
           "Action exceeded network send limit.")
 
-  def QueueResponse(self,
-                    message,
-                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-                    blocking=True):
-    """Push the Serialized Message on the output queue."""
-    # The simple queue has no size restrictions so we never block and ignore
-    # this parameter.
-    _ = blocking
-    self._out_queue.append((-1 * priority, message))
-
-    # Maintain the tally of the output queue size.  We estimate the size of the
-    # message by only considering the args member. This is usually close enough
-    # estimate to the overall size and avoids us un-necessarily serializing
-    # here.
-    self._out_queue_size += len(message.Get("args"))
-
   def HandleMessage(self, message):
     """Entry point for processing jobs.
 
@@ -821,63 +837,10 @@ class GRRClientWorker(object):
       # We want to send ClientStats when client action is complete.
       self._send_stats_on_check = True
 
-  def QueueMessages(self, messages):
-    """Queue messages from the server for processing.
-
-    We maintain all the incoming messages in a queue. These messages
-    are consumed until the outgoing queue fills to the allowable
-    level. This mechanism allows us to throttle the server messages
-    and limit the size of the outgoing queue on the client.
-
-    Note that we can only limit processing of single request messages
-    so if a single request message generates huge amounts of response
-    messages we will still overflow the output queue. Therefore
-    actions must be written in such a way that each request generates
-    a limited and known maximum number and size of responses. (e.g. do
-    not write a single client action to fetch the entire disk).
-
-    Args:
-      messages: List of parsed protobuf arriving from the server.
-    """
-    # Push all the messages to our input queue
-    for message in messages:
-      self._in_queue.append(message)
-      stats.STATS.IncrementCounter("grr_client_received_messages")
-
-    # As long as our output queue has some room we can process some
-    # input messages:
-    while self._in_queue and (self._out_queue_size <
-                              config.CONFIG["Client.max_out_queue"]):
-      message = self._in_queue.pop(0)
-
-      try:
-        self.HandleMessage(message)
-        # Catch any errors and keep going here
-      except Exception as e:  # pylint: disable=broad-except
-        self.SendReply(
-            rdf_flows.GrrStatus(
-                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                error_message=utils.SmartUnicode(e)),
-            request_id=message.request_id,
-            response_id=message.response_id,
-            session_id=message.session_id,
-            task_id=message.task_id,
-            message_type=rdf_flows.GrrMessage.Type.STATUS)
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
-
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
     rss_size = self.proc.memory_info().rss
     return rss_size / 1024 / 1024 > config.CONFIG["Client.rss_max"]
-
-  def InQueueSize(self):
-    """Returns the number of protobufs ready to be sent in the queue."""
-    return len(self._in_queue)
-
-  def OutQueueSize(self):
-    """Returns the total size of messages ready to be sent."""
-    return len(self._out_queue)
 
   def IsActive(self):
     """Returns True if worker is currently handling a message."""
@@ -932,150 +895,6 @@ class GRRClientWorker(object):
         session_id=rdfvalue.FlowSessionID(flow_name="ClientAlert"),
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
-
-
-class SizeQueue(object):
-  """A Queue which limits the total size of its elements.
-
-  The standard Queue implementations uses the total number of elements to block
-  on. In the client we want to limit the total memory footprint, hence we need
-  to use the total size as a measure of how full the queue is.
-
-  TODO(user): this class needs some attention to ensure it is thread safe.
-  """
-  total_size = 0
-
-  def __init__(self, maxsize=1024, heart_beat_cb=None):
-    self.lock = threading.RLock()
-    self.queue = []
-    self._reversed = []
-    self.total_size = 0
-    self.maxsize = maxsize
-    self.heart_beat_cb = heart_beat_cb
-
-  def Put(self,
-          item,
-          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-          block=True,
-          timeout=1000):
-    """Put an item on the queue, blocking if it is too full.
-
-    This is a slightly modified Queue.put method which blocks when the queue
-    contains more than the threshold.
-
-    Args:
-      item: The item to put - must have a __len__() method.
-      priority: The priority of this message.
-      block: If True we block indefinitely.
-      timeout: Maximum time we spend waiting on the queue (1 sec resolution).
-
-    Raises:
-      Queue.Full: if the queue is full and block is False, or
-        timeout is exceeded.
-    """
-    # We only queue already serialized objects so we know how large they are.
-    if isinstance(item, rdfvalue.RDFValue):
-      item = item.SerializeToString()
-
-    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
-      pass  # If high priority is set we dont care about the size of the queue.
-
-    elif not block:
-      if self.total_size >= self.maxsize:
-        raise Queue.Full
-
-    else:
-      count = 0
-      # Wait until the queue has more space. We do not hold the lock here to
-      # ensure that the posting thread can drain this queue while we block here.
-      while self.total_size >= self.maxsize:
-        time.sleep(1)
-        self.heart_beat_cb.Heartbeat()
-        count += 1
-
-        if timeout and count > timeout:
-          raise Queue.Full
-
-    with self.lock:
-      self.queue.append((-1 * priority, item))
-      self.total_size += len(item)
-
-  def Get(self):
-    """Retrieves the items from the queue."""
-    with self.lock:
-      if self._reversed:
-        # We have leftovers from a partial Get().
-        self._reversed.reverse()
-        self.queue = self._reversed + self.queue
-
-      self.queue.sort(key=lambda msg: msg[0])  # by priority only.
-      self.queue.reverse()
-      self._reversed, self.queue = self.queue, []
-
-      while self._reversed:
-        item = self._reversed.pop()[1]
-        self.total_size -= len(item)
-        yield item
-
-  def Size(self):
-    return self.total_size
-
-  def Full(self):
-    return self.total_size >= self.maxsize
-
-
-class GRRThreadedWorker(GRRClientWorker, threading.Thread):
-  """This client worker runs the main loop in another thread.
-
-  The client which uses this worker is not blocked while queuing messages to be
-  worked on. There is only a single working thread though.
-
-  The overall effect is that the HTTP client is not blocked waiting for actions
-  to be executed, and at the same time, the client working thread is not blocked
-  waiting on network latency.
-  """
-
-  def __init__(self,
-               start_worker_thread=True,
-               client=None,
-               out_queue=None,
-               heart_beat_cb=None):
-    threading.Thread.__init__(self)
-    GRRClientWorker.__init__(self, client=client, heart_beat_cb=heart_beat_cb)
-
-    # This queue should never hit its maximum since the server will throttle
-    # messages before this.
-    self._in_queue = utils.HeartbeatQueue(callback=heart_beat_cb, maxsize=1024)
-
-    if out_queue is not None:
-      self._out_queue = out_queue
-    else:
-      # The size of the output queue controls the worker thread. Once this queue
-      # is too large, the worker thread will block until the queue is drained.
-      self._out_queue = SizeQueue(
-          maxsize=config.CONFIG["Client.max_out_queue"],
-          heart_beat_cb=heart_beat_cb)
-
-    self.daemon = True
-
-    # Start our working thread.
-    if start_worker_thread:
-      self.start()
-
-  def Sleep(self, timeout):
-    """Sleeps the calling thread with heartbeat."""
-    self.heart_beat_cb()
-    time.sleep(timeout - int(timeout))
-
-    # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in xrange(int(timeout)):
-      time.sleep(1)
-      # If the output queue is full, we are ready to do a post - no
-      # point in waiting.
-      if self._out_queue.Full():
-        return
-
-      self.heart_beat_cb()
 
   def Drain(self, max_size=1024):
     """Return a GrrQueue message list from the queue, draining it.
@@ -1240,7 +1059,7 @@ class GRRHTTPClient(object):
       ca_cert: String representation of a CA certificate to use for checking
           server certificate.
 
-      worker_cls: The client worker class to use. Defaults to GRRThreadedWorker.
+      worker_cls: The client worker class to use. Defaults to GRRClientWorker.
 
       private_key: The private key for this client. Defaults to
           config Client.private_key.
@@ -1275,7 +1094,7 @@ class GRRHTTPClient(object):
     if worker_cls:
       self.client_worker = worker_cls(client=self)
     else:
-      self.client_worker = GRRThreadedWorker(client=self)
+      self.client_worker = GRRClientWorker(client=self)
 
   def FleetspeakEnabled(self):
     return False

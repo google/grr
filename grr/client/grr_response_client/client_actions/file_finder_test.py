@@ -481,14 +481,6 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   EXT2_COMPR_FL = 0x00000004
   EXT2_IMMUTABLE_FL = 0x00000010
 
-  # TODO(hanuszczak): Maybe it would make sense to refactor this to a helper
-  # constructor of the `rdf_file_finder.FileFinderAction`.
-  @staticmethod
-  def _StatAction(**kwargs):
-    action_type = rdf_file_finder.FileFinderAction.Action.STAT
-    opts = rdf_file_finder.FileFinderStatActionOptions(**kwargs)
-    return rdf_file_finder.FileFinderAction(action_type=action_type, stat=opts)
-
   @unittest.skipIf(platform.system() != "Linux", "requires Linux")
   def testStatExtFlags(self):
     with test_lib.AutoTempFilePath() as temp_filepath:
@@ -498,7 +490,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         reason = "extended attributes not supported by filesystem"
         raise unittest.SkipTest(reason)
 
-      action = self._StatAction()
+      action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
       self.assertEqual(len(results), 1)
 
@@ -511,7 +503,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self._SetExtAttr(temp_filepath, "user.foo", "bar")
       self._SetExtAttr(temp_filepath, "user.quux", "norf")
 
-      action = self._StatAction()
+      action = rdf_file_finder.FileFinderAction.Stat()
       results = self._RunFileFinder([temp_filepath], action)
       self.assertEqual(len(results), 1)
 
@@ -521,7 +513,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertEqual(ext_attrs[1].name, "user.quux")
       self.assertEqual(ext_attrs[1].value, "norf")
 
-      action = self._StatAction(collect_ext_attrs=False)
+      action = rdf_file_finder.FileFinderAction.Stat(collect_ext_attrs=False)
       results = self._RunFileFinder([temp_filepath], action)
       self.assertEqual(len(results), 1)
 
