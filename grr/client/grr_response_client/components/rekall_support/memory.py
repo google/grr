@@ -8,12 +8,11 @@ regions. It is always safe to access all of memory using this handler.
 """
 
 
-
 from rekall import session
-import rekall_types as rdf_rekall_types
 from grr_response_client import vfs
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class MemoryVFS(vfs.VFSHandler):

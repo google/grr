@@ -11,6 +11,7 @@ var gulpNewer = require('gulp-newer');
 var gulpPlumber = require('gulp-plumber');
 var gulpSass = require('gulp-sass');
 var gulpSourcemaps = require('gulp-sourcemaps');
+var karma = require('karma');
 
 
 var config = {};
@@ -19,6 +20,42 @@ config.distDir = 'dist';
 config.tempDir = 'tmp';
 
 var isWatching = false;
+
+const closureCompilerPath =
+    config.nodeModulesDir + '/google-closure-compiler/compiler.jar';
+
+const closureCompilerFlags = {
+  compilation_level: 'WHITESPACE_ONLY',
+  dependency_mode: 'STRICT',
+  jscomp_off: [
+    'checkTypes',
+    'checkVars',
+    'externsValidation',
+    'invalidCasts',
+  ],
+  jscomp_error: [
+    'const',
+    'constantProperty',
+    'globalThis',
+    'missingProvide',
+    'missingProperties',
+    'missingRequire',
+    'nonStandardJsDocs',
+    'strictModuleDepCheck',
+    'undefinedNames',
+    'uselessCode',
+    'visibility',
+  ],
+  language_out: 'ECMASCRIPT6_STRICT',
+  language_out: 'ECMASCRIPT5_STRICT',
+  // See https://github.com/google/closure-compiler/issues/1138 for details.
+  force_inject_library: [
+    'base',
+    'es6_runtime',
+  ],
+  source_map_format: 'V3'
+};
+
 
 /**
  * Third-party tasks.
@@ -121,7 +158,8 @@ gulp.task('compile-grr-angular-template-cache', function() {
       .pipe(gulpAngularTemplateCache({
         module: 'grrUi.templates',
         standalone: true,
-        templateHeader: 'goog.module(\'grrUi.templates.templates.templatesModule\');' +
+        templateHeader:
+            'goog.module(\'grrUi.templates.templates.templatesModule\');' +
             'goog.module.declareLegacyNamespace();' +
             'exports = angular.module(\'grrUi.templates\', []);' +
             'angular.module(\'grrUi.templates\').run(["$templateCache", function($templateCache) {'
@@ -130,13 +168,48 @@ gulp.task('compile-grr-angular-template-cache', function() {
 });
 
 
-gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], function() {
-  return gulp.src(['angular-components/**/*.js',
-                   '!angular-components/**/*_test.js',
-                   '!angular-components/empty-templates.js',
-                   '!angular-components/externs.js',
-                   config.tempDir + '/templates.js'])
-      .pipe(gulpNewer(config.distDir + '/grr-ui.bundle.js'))
+gulp.task(
+    'compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'],
+    function() {
+      return gulp
+          .src([
+            'angular-components/**/*.js',
+            '!angular-components/**/*_test.js',
+            '!angular-components/empty-templates.js',
+            '!angular-components/externs.js',
+            config.tempDir + '/templates.js',
+          ])
+          .pipe(gulpNewer(config.distDir + '/grr-ui.bundle.js'))
+          .pipe(gulpPlumber({
+            errorHandler: function(err) {
+              console.log(err);
+              this.emit('end');
+              if (!isWatching) {
+                process.exit(1);
+              }
+            }
+          }))
+          .pipe(gulpClosureCompiler({
+            compilerPath: closureCompilerPath,
+            fileName: 'grr-ui.bundle.js',
+            compilerFlags: {
+              ...closureCompilerFlags,
+              angular_pass: true,
+              entry_point: 'grrUi.appController',
+              externs: [
+                'angular-components/externs.js',
+              ],
+              create_source_map: config.distDir + '/grr-ui.bundle.js.map',
+            }
+          }))
+          .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui.bundle.js.map'))
+          .pipe(gulp.dest(config.distDir));
+    });
+
+
+gulp.task('compile-grr-ui-tests', function() {
+  return gulp.src(['angular-components/**/*_test.js'])
+      .pipe(gulpNewer(config.distDir + '/grr-ui-test.bundle.js'))
       .pipe(gulpPlumber({
         errorHandler: function(err) {
           console.log(err);
@@ -147,44 +220,19 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
         }
       }))
       .pipe(gulpClosureCompiler({
-        compilerPath: config.nodeModulesDir + '/google-closure-compiler/compiler.jar',
-        fileName: 'grr-ui.bundle.js',
+        compilerPath: closureCompilerPath,
+        fileName: 'grr-ui-test.bundle.js',
         compilerFlags: {
+          ...closureCompilerFlags,
           angular_pass: true,
-          compilation_level: 'WHITESPACE_ONLY',
-          dependency_mode: 'STRICT',
-          entry_point: 'grrUi.appController',
-          jscomp_off: [
-            'checkTypes',
-            'checkVars',
-            'externsValidation',
-            'invalidCasts',
+          dependency_mode: 'NONE',
+          externs: [
+            'angular-components/externs.js',
           ],
-          jscomp_error: [
-            'missingProvide',
-            'const',
-            'constantProperty',
-            'globalThis',
-            'missingProperties',
-            'missingRequire',
-            'nonStandardJsDocs',
-            'strictModuleDepCheck',
-            'undefinedNames',
-            'uselessCode',
-            'visibility'
-          ],
-          language_out: 'ECMASCRIPT6_STRICT',
-          language_out: 'ECMASCRIPT5_STRICT',
-          // See https://github.com/google/closure-compiler/issues/1138 for details.
-          force_inject_library: [
-            'base',
-            'es6_runtime'
-          ],
-          create_source_map: config.distDir + '/grr-ui.bundle.js.map',
-          source_map_format: 'V3'
+          create_source_map: config.distDir + '/grr-ui-test.bundle.js.map',
         }
       }))
-      .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui.bundle.js.map'))
+      .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui-test.bundle.js.map'))
       .pipe(gulp.dest(config.distDir));
 });
 
@@ -245,9 +293,9 @@ gulp.task('compile-third-party', ['compile-third-party-js',
                                   'compile-third-party-bootstrap-css']);
 gulp.task('compile-grr-ui', ['compile-grr-ui-js',
                              'compile-grr-ui-css']);
-gulp.task('compile', ['compile-third-party',
-                      'compile-grr-ui']);
-
+gulp.task(
+    'compile',
+    ['compile-third-party', 'compile-grr-ui', 'compile-grr-ui-tests']);
 
 /**
  * "Watch" tasks useful for development.
@@ -260,4 +308,23 @@ gulp.task('watch', function() {
              ['compile-grr-ui-js']);
   gulp.watch(['css/**/*.css', 'css/**/*.scss', 'angular-components/**/*.scss'],
              ['compile-grr-ui-css']);
+});
+
+
+gulp.task('test', ['compile'], function(done) {
+  let config = {
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: true,
+  };
+
+  new karma.Server(config, done).start();
+});
+
+
+gulp.task('test-watch', ['compile'], function(done) {
+  let config = {
+    configFile: __dirname + '/karma.conf.js',
+  };
+
+  new karma.Server(config, done).start();
 });

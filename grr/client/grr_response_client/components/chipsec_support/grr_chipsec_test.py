@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test Chipsec client actions."""
 
-
 import collections
 import sys
 import mock
@@ -9,8 +8,19 @@ import mock
 from chipsec.helper import oshelper
 
 from grr_response_client import vfs
-from grr_response_client.components.chipsec_support.actions import chipsec_types
+# If grr_response_client.components.chipsec_support.actions.grr_chipsec is
+# imported here, it will import
+# grr_response_client.components.chipsec_support.actions and fail (because of
+# the circular import dependency).
+#
+# This is a terrible hack employed in grr_chipsec implementation since GRR
+# components days. The idea is that we *must* import
+# grr_response_client.components.chipsec_support.actions before
+# grr_response_client.components.chipsec_support.actions.grr_chipsec to
+# explicitly resolve the circular dependency.
+from grr_response_client.components.chipsec_support import actions  # pylint: disable=unused-import
 from grr.lib import flags
+from grr.lib.rdfvalues import chipsec_types
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 

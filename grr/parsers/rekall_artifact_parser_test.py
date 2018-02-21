@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.rekall_artifact_parser."""
 
-
 import gzip
 import os
 from grr import config
-from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.parsers import rekall_artifact_parser
 from grr.test_lib import test_lib
 

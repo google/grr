@@ -27,8 +27,6 @@ from rekall.plugins.tools import caching_url_manager
 from rekall.ui import json_renderer
 # pylint: enable=unused-import
 
-import rekall_types
-
 from grr import config
 from grr_response_client import actions
 from grr_response_client import vfs
@@ -36,6 +34,7 @@ from grr_response_client.client_actions import tempfiles
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import rekall_types
 
 
 class Error(Exception):

@@ -8,9 +8,9 @@ import zlib
 
 
 from grr import config
-from grr_response_client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import server_stubs

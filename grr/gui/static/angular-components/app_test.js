@@ -187,8 +187,8 @@ grrUi.tests.stubTranscludeDirective = function(directiveName) {
  */
 grrUi.tests.stubUiTrait = function(traitName) {
   beforeEach(inject(function($injector) {
-    $q = $injector.get('$q');
-    grrApiService = $injector.get('grrApiService');
+    const $q = $injector.get('$q');
+    const grrApiService = $injector.get('grrApiService');
 
     var deferred = $q.defer();
     var response = {

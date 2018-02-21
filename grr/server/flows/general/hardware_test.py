@@ -3,8 +3,8 @@
 
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
-from grr_response_client.components.chipsec_support.actions import chipsec_types
 from grr.lib import flags
+from grr.lib.rdfvalues import chipsec_types
 from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import hardware as aff4_hardware

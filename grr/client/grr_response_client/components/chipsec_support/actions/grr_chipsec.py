@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Execute a Chipsec plugin on the client."""
 
-
 import logging
 from logging import handlers
 import os
@@ -26,7 +25,7 @@ from chipsec.helper import oshelper
 from grr import config
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
-from grr_response_client.components.chipsec_support.actions import chipsec_types
+from grr.lib.rdfvalues import chipsec_types
 
 
 class DumpFlashImage(actions.ActionPlugin):
@@ -96,8 +95,7 @@ class DumpFlashImage(actions.ActionPlugin):
       if args.log_level:
         self.LogError(err)
       tempfiles.DeleteGRRTempFile(dest_pathspec.path)
-      self.SendReply(chipsec_types.DumpFlashImageResponse(
-          logs=["%s" % err],))
+      self.SendReply(chipsec_types.DumpFlashImageResponse(logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode
@@ -166,8 +164,7 @@ class DumpACPITable(actions.ActionPlugin):
       # error message.
       if args.logging:
         self.LogError(err)
-      self.SendReply(chipsec_types.DumpACPITableResponse(
-          logs=["%s" % err],))
+      self.SendReply(chipsec_types.DumpACPITableResponse(logs=["%s" % err],))
       return
     except Exception as err:  # pylint: disable=broad-except
       # In case an exception is raised, if the verbose mode

@@ -6,10 +6,9 @@ This way we prevent loading effectively the whole client code into ours
 server parts.
 """
 
-from grr_response_client.components.chipsec_support.actions import chipsec_types
-from grr_response_client.components.rekall_support import rekall_types
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import chipsec_types
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud as rdf_cloud
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
@@ -18,6 +17,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import rdf_yara
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ClientActionStub(object):
@@ -413,21 +413,21 @@ class DumpACPITable(ClientActionStub):
 class WriteRekallProfile(ClientActionStub):
   """A client action to write a Rekall profile to the local cache."""
 
-  in_rdfvalue = rekall_types.RekallProfile
+  in_rdfvalue = rdf_rekall_types.RekallProfile
 
 
 class RekallAction(ClientActionStub):
   """Runs a Rekall command on live memory."""
 
-  in_rdfvalue = rekall_types.RekallRequest
-  out_rdfvalues = [rekall_types.RekallResponse]
+  in_rdfvalue = rdf_rekall_types.RekallRequest
+  out_rdfvalues = [rdf_rekall_types.RekallResponse]
 
 
 class GetMemoryInformation(ClientActionStub):
   """Loads the driver for memory access and returns a Stat for the device."""
 
   in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalues = [rekall_types.MemoryInformation]
+  out_rdfvalues = [rdf_rekall_types.MemoryInformation]
 
 
 # from yara_actions.py

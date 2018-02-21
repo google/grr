@@ -9,11 +9,11 @@ import json
 import logging
 
 from grr import config
-from grr_response_client.components.rekall_support import rekall_types
 from grr.lib import registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 
