@@ -2,7 +2,7 @@
 """End to end tests for GRR FileFinder flow."""
 
 from grr_response_proto import jobs_pb2
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 
 
 class TestFileFinderOSWindows(test_base.AbstractFileTransferTest):

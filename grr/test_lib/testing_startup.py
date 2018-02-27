@@ -37,8 +37,8 @@ def TestInit():
   flags.FLAGS.config = config_lib.Resource().Filter(
       "install_data/etc/grr-server.yaml")
 
-  flags.FLAGS.secondary_configs.append(
-      config_lib.Resource().Filter("test_data/grr_test.yaml@grr-response-test"))
+  flags.FLAGS.secondary_configs.append(config_lib.Resource().Filter(
+      "grr_response_test/test_data/grr_test.yaml@grr-response-test"))
 
   # This config contains non-public settings that should be applied during
   # tests.

@@ -10,9 +10,9 @@ from grr_api_client import api
 from grr.config import contexts
 from grr.lib import flags
 from grr.server import server_startup
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 # pylint: disable=unused-import
-from grr.server.end_to_end_tests import tests
+from grr_response_test.end_to_end_tests import tests
 # pylint: enable=unused-import
 
 flags.DEFINE_string("api_endpoint", "http://localhost:8000",

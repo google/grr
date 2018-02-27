@@ -4,7 +4,7 @@
 import re
 
 from grr import config
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 
 
 def GetProcessName(platform):

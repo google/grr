@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for registry-related flows."""
 
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 
 
 class TestFindWindowsRegistry(test_base.EndToEndTest):

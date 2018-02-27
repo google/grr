@@ -259,7 +259,7 @@ class WindowsTemplateBuilder(object):
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
     dummy_config = os.path.join(
-        args.grr_src, "grr/config/grr-response-test/test_data/dummyconfig.yaml")
+        args.grr_src, "grr/test/grr_response_test/test_data/dummyconfig.yaml")
     if args.build_32:
       template_i386 = glob.glob(os.path.join(args.output_dir,
                                              "*_i386*.zip")).pop()

@@ -10,6 +10,7 @@ If you want to do any development, you probably want this.
 import ConfigParser
 import os
 import shutil
+from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
@@ -25,7 +26,7 @@ def get_config():
   """Get INI parser with version.ini data."""
   ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
   if not os.path.exists(ini_path):
-    ini_path = os.path.join(THIS_DIRECTORY, "../../../version.ini")
+    ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
@@ -46,24 +47,8 @@ class Sdist(sdist):
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
     shutil.copy(
-        os.path.join(THIS_DIRECTORY, "../../../version.ini"), sdist_version_ini)
+        os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
-
-def find_data_files(source):
-  result = []
-  for directory, _, files in os.walk(source):
-    files = [os.path.join(directory, x) for x in files]
-    result.append((directory, files))
-
-  return result
-
-
-if "VIRTUAL_ENV" not in os.environ:
-  print "*****************************************************"
-  print "  WARNING: You are not installing in a virtual"
-  print "  environment. This configuration is not supported!!!"
-  print "  Expect breakage."
-  print "*****************************************************"
 
 setup_args = dict(
     name="grr-response-test",
@@ -81,14 +66,14 @@ setup_args = dict(
         "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
     ],
     cmdclass={"sdist": Sdist},
-    data_files=(find_data_files("test_data") + ["version.ini"]),
+    packages=find_packages(),
+    include_package_data=True,
     entry_points={
         "console_scripts": [
-            "grr_run_tests = grr.tools.run_tests:DistEntry",
-            "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
-            "grr_run_tests_api_e2e = grr.gui.http_api_e2e_test:DistEntry",
+            "grr_run_tests_api_e2e = "
+            "grr_response_test.distro_entry:EndToEndTests",
             "grr_api_regression_generate = "
-            "grr.gui.api_regression_test_generate:DistEntry"
+            "grr_response_test.distro_entry:ApiRegressionTestsGenerate"
         ]
     })
 

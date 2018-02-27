@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for client resource limits."""
 
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 
 
 class TestNetworkFlowLimit(test_base.EndToEndTest):

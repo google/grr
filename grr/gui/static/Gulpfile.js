@@ -199,6 +199,8 @@ gulp.task(
                 'angular-components/externs.js',
               ],
               create_source_map: config.distDir + '/grr-ui.bundle.js.map',
+              source_map_location_mapping:
+                  'angular-components/|/static/angular-components/',
             }),
           }))
           .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui.bundle.js.map'))
@@ -228,6 +230,8 @@ gulp.task('compile-grr-ui-tests', function() {
             'angular-components/externs.js',
           ],
           create_source_map: config.distDir + '/grr-ui-test.bundle.js.map',
+          source_map_location_mapping:
+              'angular-components/|/static/angular-components/',
         }),
       }))
       .pipe(gulpInsert.append('//# sourceMappingURL=grr-ui-test.bundle.js.map'))

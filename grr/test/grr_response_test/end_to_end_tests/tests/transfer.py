@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """End to end tests for transfer flows."""
 
-from grr.server.end_to_end_tests import test_base
+from grr_response_test.end_to_end_tests import test_base
 
 
 class TestTransferLinux(test_base.AbstractFileTransferTest):

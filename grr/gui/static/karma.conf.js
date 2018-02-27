@@ -31,6 +31,16 @@ module.exports = function(config) {
       'static/angular-components/**/*.html',
       'static/dist/grr-ui.bundle.js',
       'static/dist/grr-ui-test.bundle.js',
+      {
+        pattern: 'static/dist/*.js.map',
+        served: true,
+        included: false,
+      },
+      {
+        pattern: 'static/angular-components/**/*.js',
+        served: true,
+        included: false,
+      },
     ],
 
     exclude: [],
