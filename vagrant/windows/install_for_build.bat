@@ -36,8 +36,9 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System
 start /wait msiexec.exe /i C:\grr_deps\VCForPython27.msi /passive
 
 :: Install protobuf compiler - needed for building sdist
+:: GitHub is not happy with older versions of TLS, so we're explicitly specifying TLS v1.2 as the protocol version.
 echo Installing protobuf compiler
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-win32.zip', 'C:\grr_deps\protoc-3.3.0-win32.zip')"
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (new-object System.Net.WebClient).DownloadFile('https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-win32.zip', 'C:\grr_deps\protoc-3.3.0-win32.zip')"
 C:\Python27-x64\python.exe -m "zipfile" -e C:\grr_deps\protoc-3.3.0-win32.zip C:\grr_deps\protoc
 C:\grr_deps\protoc\bin\protoc.exe --version || echo "proto compiler install failed" && exit /b 1
 
