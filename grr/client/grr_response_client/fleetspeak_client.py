@@ -54,13 +54,21 @@ class GRRFleetspeakClient(object):
 
     self._threads = {}
 
+    # TODO(amoser): Once the Fleetspeak nanny functionality is
+    # production ready, change this to
+    # internal_nanny_monitoring=False
+    # heart_beat_cb=self._fs.Heartbeat
+    internal_nanny_monitoring = True
+    heart_beat_cb = None
+
     # The client worker does all the real work here.
     # In particular, we delegate sending messages to Fleetspeak to a separate
     # threading.Thread here.
     self._threads["Worker"] = comms.GRRClientWorker(
         out_queue=_FleetspeakQueueForwarder(self._sender_queue),
         start_worker_thread=False,
-        heart_beat_cb=self._fs.Heartbeat,
+        heart_beat_cb=heart_beat_cb,
+        internal_nanny_monitoring=internal_nanny_monitoring,
         client=self)
     self._threads["Foreman"] = self._CreateThread(self._ForemanOp)
     self._threads["Sender"] = self._CreateThread(self._SendOp)

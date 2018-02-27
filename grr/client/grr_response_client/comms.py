@@ -537,7 +537,8 @@ class SizeQueue(object):
       # ensure that the posting thread can drain this queue while we block here.
       while self.total_size >= self.maxsize:
         time.sleep(1)
-        self.heart_beat_cb()
+        if self.heart_beat_cb:
+          self.heart_beat_cb()
         count += 1
 
         if timeout and count > timeout:
@@ -600,6 +601,7 @@ class GRRClientWorker(threading.Thread):
                start_worker_thread=True,
                client=None,
                out_queue=None,
+               internal_nanny_monitoring=True,
                heart_beat_cb=None):
     threading.Thread.__init__(self)
 
@@ -618,10 +620,18 @@ class GRRClientWorker(threading.Thread):
 
     self.proc = psutil.Process()
 
-    self.StartNanny()
+    self.transaction_log = client_utils.TransactionLog()
 
-    if heart_beat_cb is None:
-      heart_beat_cb = self.nanny_controller.Heartbeat
+    if internal_nanny_monitoring:
+
+      self.StartNanny()
+
+      if heart_beat_cb is None:
+        heart_beat_cb = self.nanny_controller.Heartbeat
+
+    self.heart_beat_cb = heart_beat_cb
+
+    self.StartStatsCollector()
 
     self.lock = threading.RLock()
 
@@ -649,10 +659,19 @@ class GRRClientWorker(threading.Thread):
     if start_worker_thread:
       self.start()
 
+  def SyncTransactionLog(self):
+    self.transaction_log.Sync()
+
+  def Heartbeat(self):
+    if self.heart_beat_cb:
+      self.heart_beat_cb()
+
   def StartNanny(self):
     # Use this to control the nanny transaction log.
     self.nanny_controller = client_utils.NannyController()
     self.nanny_controller.StartNanny()
+
+  def StartStatsCollector(self):
     if not GRRClientWorker.stats_collector:
       GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
       GRRClientWorker.stats_collector.start()
@@ -824,14 +843,14 @@ class GRRClientWorker(threading.Thread):
       action = action_cls(grr_worker=self)
 
       # Write the message to the transaction log.
-      self.nanny_controller.WriteTransactionLog(message)
+      self.transaction_log.Write(message)
 
       # Heartbeat so we have the full period to work on this message.
       action.Progress()
       action.Execute(message)
 
       # If we get here without exception, we can remove the transaction.
-      self.nanny_controller.CleanTransactionLog()
+      self.transaction_log.Clear()
     finally:
       self._is_active = False
       # We want to send ClientStats when client action is complete.
@@ -880,6 +899,10 @@ class GRRClientWorker(threading.Thread):
                                 self.last_stats_sent_time.AsSecondsFromEpoch())
 
   def SendNannyMessage(self):
+    # We might be monitored by Fleetspeak.
+    if not self.nanny_controller:
+      return
+
     msg = self.nanny_controller.GetNannyMessage()
     if msg:
       self.SendReply(
@@ -951,7 +974,7 @@ class GRRClientWorker(threading.Thread):
     # is anything in the transaction log we assume its there because we crashed
     # last time and let the server know.
 
-    last_request = self.nanny_controller.GetTransactionLog()
+    last_request = self.transaction_log.Get()
     if last_request:
       status = rdf_flows.GrrStatus(
           status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
@@ -967,7 +990,7 @@ class GRRClientWorker(threading.Thread):
           session_id=last_request.session_id,
           message_type=rdf_flows.GrrMessage.Type.STATUS)
 
-    self.nanny_controller.CleanTransactionLog()
+    self.transaction_log.Clear()
 
     # Inform the server that we started.
     action_cls = actions.ActionPlugin.classes.get("SendStartupInfo",

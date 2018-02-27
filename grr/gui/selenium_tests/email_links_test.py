@@ -13,7 +13,6 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server import access_control
 from grr.server import email_alerts
-from grr.server import foreman as rdf_foreman
 from grr.server.aff4_objects import cronjobs
 from grr.server.aff4_objects import security
 from grr.server.flows.cron import system as cron_system
@@ -21,7 +20,7 @@ from grr.server.hunts import implementation
 from grr.server.hunts import standard
 
 
-class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
+class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
   GRANTOR_TOKEN = access_control.ACLToken(
@@ -50,18 +49,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumTest):
     return link.path + "/" + "#" + link.fragment
 
   def CreateSampleHunt(self, token=None):
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
-    ])
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",
-        client_rule_set=client_rule_set,
+        client_rule_set=self._CreateForemanClientRuleSet(),
         token=token or self.token) as hunt:
 
       return hunt.session_id

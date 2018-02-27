@@ -1749,17 +1749,6 @@ message CheckFlowArgs {
     }];
 }
 
-// Next field ID: 3
-message DumpProcessMemoryArgs {
-  repeated int32 pids = 1 [(sem_type) = {
-    description: "Dump memory from process whose pid is included in the list.",
-  }];
-  optional bool pause = 2 [(sem_type) = {
-    description: "Pause the process while the memory is being collected (use "
-                 "with caution).",
-  }];
-}
-
 // Next field ID: 5
 message DumpFlashImageArgs {
   optional uint32 log_level = 1 [(sem_type) = {

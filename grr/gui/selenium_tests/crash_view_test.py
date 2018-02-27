@@ -7,14 +7,13 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
-from grr.server import foreman as rdf_foreman
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 
 
-class TestCrashView(gui_test_lib.GRRSeleniumTest):
+class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
   """Tests the crash view."""
 
   client_id = rdf_client.ClientURN("C.0000000000000001")
@@ -73,15 +72,13 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
-    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(
-        client_id, self.token)) for client_id in client_ids])
+    client_mocks = dict([(client_id,
+                          flow_test_lib.CrashClientMock(client_id, self.token))
+                         for client_id in client_ids])
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex=""))
-    ])
+    client_rule_set = self._CreateForemanClientRuleSet()
+    # Make this not match anything.
+    client_rule_set.rules[0].regex.attribute_regex = ""
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.SampleHunt.__name__,

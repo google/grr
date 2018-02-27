@@ -2,6 +2,7 @@
 """Test for the foreman client rule classes."""
 
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import test_base
 from grr.server import aff4
 from grr.server import foreman as rdf_foreman
@@ -359,37 +360,43 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
   def GenerateSample(self, number=0):
     # Sample rule matches clients that have str(number) in their MAC
     return rdf_foreman.ForemanRegexClientRule(
-        attribute_name="MAC", attribute_regex=str(number))
+        field="MAC_ADDRESSES", attribute_regex=str(number))
 
   def testEvaluatesTheWholeAttributeToTrue(self):
     # Instantiate a regex rule
     r = rdf_foreman.ForemanRegexClientRule(
-        attribute_name="type", attribute_regex="^VFSGRRClient$")
+        field="SYSTEM", attribute_regex="^Linux$")
 
-    client_id = self.SetupClient(0)
-
-    # Aff4 object type is VFSGRRClient
+    client_id = self.SetupClient(0, system="Linux")
     self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesAttributesSubstringToTrue(self):
     # Instantiate a regex rule
     r = rdf_foreman.ForemanRegexClientRule(
-        attribute_name="type", attribute_regex="GRR")
+        field="SYSTEM", attribute_regex="inu")
 
-    client_id = self.SetupClient(0)
+    client_id = self.SetupClient(0, system="Linux")
 
-    # The type contains the substring GRR
+    # The system contains the substring inu
     self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
 
   def testEvaluatesNonSubstringToFalse(self):
     # Instantiate a regex rule
     r = rdf_foreman.ForemanRegexClientRule(
-        attribute_name="type", attribute_regex="foo")
+        field="SYSTEM", attribute_regex="foo")
 
-    client_id = self.SetupClient(0)
+    client_id = self.SetupClient(0, system="Linux")
 
-    # The type doesn't contain foo
+    # The system doesn't contain foo
     self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
+
+  def testUnsetFieldRaises(self):
+    client_id = self.SetupClient(0, system="Linux")
+    client = aff4.FACTORY.Open(client_id, token=self.token)
+
+    r = rdf_foreman.ForemanRegexClientRule(attribute_regex="foo")
+    with self.assertRaises(ValueError):
+      r.Evaluate(client)
 
 
 class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
@@ -399,45 +406,52 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
   def GenerateSample(self, number=0):
     # Sample rule matches clients with the attribute size equal to number
     return rdf_foreman.ForemanIntegerClientRule(
-        attribute_name="size",
+        field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
         value=number)
 
-  def testEvaluatesSizeLessThanZeroToFalse(self):
+  def testEvaluatesSizeLessThanEqualValueToFalse(self):
+    client_id = self.SetupClient(0)
+    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
+
+    now = rdfvalue.RDFDatetime().Now()
+    client.Set(client.Schema.LAST_BOOT_TIME, now)
+
     # Instantiate an integer rule
     r = rdf_foreman.ForemanIntegerClientRule(
-        attribute_name="size",
+        field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
-        value=0)
+        value=now.AsSecondsFromEpoch())
 
+    # The values are the same, less than should not trigger.
+    self.assertFalse(r.Evaluate(client))
+
+  def testEvaluatesSizeGreaterThanSmallerValueToTrue(self):
     client_id = self.SetupClient(0)
+    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
 
-    # The size is not less than 0
-    self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
+    now = rdfvalue.RDFDatetime().Now()
+    client.Set(client.Schema.LAST_BOOT_TIME, now)
 
-  def testEvaluatesSizeGreaterThanMinusOneToTrue(self):
+    before_boot = now - 1
+
     # Instantiate an integer rule
     r = rdf_foreman.ForemanIntegerClientRule(
-        attribute_name="size",
+        field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
-        value=-1)
+        value=before_boot.AsSecondsFromEpoch())
 
-    client_id = self.SetupClient(0)
+    self.assertTrue(r.Evaluate(client))
 
-    # size > -1
-    self.assertTrue(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
-
-  def testEvaluatesToFalseWithNonIntAttribute(self):
+  def testEvaluatesRaisesWithUnsetField(self):
     # Instantiate an integer rule
     r = rdf_foreman.ForemanIntegerClientRule(
-        attribute_name="Host",
-        operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
-        value=123)
+        operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL, value=123)
 
     client_id = self.SetupClient(0)
 
-    # Host is not a number
-    self.assertFalse(r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token)))
+    with self.assertRaises(ValueError):
+      r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token))
 
 
 def main(argv):

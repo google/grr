@@ -189,7 +189,7 @@ class WindowsInstaller(installer.Installer):
 
     args = [
         config.CONFIG["Nanny.binary"], "--service_key",
-        config.CONFIG["Nanny.service_key"], "install"
+        config.CONFIG["Client.config_key"], "install"
     ]
 
     logging.debug("Calling %s", (args,))

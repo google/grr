@@ -191,7 +191,8 @@ config_lib.DEFINE_string(
     "%(Nanny.child_binary)",
     help="The command line to launch the client binary.")
 
-config_lib.DEFINE_string("Nanny.logfile", "%(Logging.path)/nanny.log",
+config_lib.DEFINE_string("Client.transaction_log_file",
+                         "%(Logging.path)/transaction.log",
                          "The file where we write the nanny transaction log.")
 
 config_lib.DEFINE_string(
@@ -201,16 +202,6 @@ config_lib.DEFINE_string(
     "Nanny.service_description",
     "GRR Service",
     help="The description of the nanny service.")
-
-config_lib.DEFINE_string(
-    "Nanny.service_key",
-    r"%(Client.config_key)",
-    help="The registry key of the nanny service.")
-
-config_lib.DEFINE_string(
-    "Nanny.service_key_hive",
-    r"%(Client.config_hive)",
-    help="The registry key of the nanny service.")
 
 config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
                          "The file where we write the nanny status.")

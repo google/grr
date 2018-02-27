@@ -235,78 +235,38 @@ def GetRawDevice(path):
   return result, corrected_path
 
 
+_service_key = None
+
+
+def _GetServiceKey():
+  """Returns the service key."""
+  global _service_key
+
+  if _service_key is None:
+    hive = getattr(_winreg, config.CONFIG["Client.config_hive"])
+    path = config.CONFIG["Client.config_key"]
+
+    # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
+    _service_key = _winreg.CreateKeyEx(hive, path, 0, _winreg.KEY_ALL_ACCESS)
+
+  return _service_key
+
+
 class NannyController(object):
   """Controls communication with the nanny."""
 
-  _service_key = None
-  synced = True
-
-  def _GetKey(self):
-    """Returns the service key."""
-    if self._service_key is None:
-      hive = getattr(_winreg, config.CONFIG["Nanny.service_key_hive"])
-      path = config.CONFIG["Nanny.service_key"]
-
-      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self._service_key = _winreg.CreateKeyEx(hive, path, 0,
-                                              _winreg.KEY_ALL_ACCESS)
-
-    return self._service_key
-
   def Heartbeat(self):
     """Writes a heartbeat to the registry."""
+    service_key = _GetServiceKey()
     try:
-      _winreg.SetValueEx(self._GetKey(), "Nanny.heartbeat", 0,
-                         _winreg.REG_DWORD, int(time.time()))
+      _winreg.SetValueEx(service_key, "Nanny.heartbeat", 0, _winreg.REG_DWORD,
+                         int(time.time()))
     except exceptions.WindowsError, e:
-      logging.debug("Failed to heartbeat nanny at %s: %s",
-                    config.CONFIG["Nanny.service_key"], e)
-
-  def WriteTransactionLog(self, grr_message):
-    """Write the message into the transaction log.
-
-    Args:
-      grr_message: A GrrMessage instance.
-    """
-    grr_message = grr_message.SerializeToString()
-    try:
-      _winreg.SetValueEx(self._GetKey(), "Transaction", 0, _winreg.REG_BINARY,
-                         grr_message)
-      NannyController.synced = False
-    except exceptions.WindowsError:
-      pass
-
-  def SyncTransactionLog(self):
-    if not NannyController.synced:
-      _winreg.FlushKey(self._GetKey())
-      NannyController.synced = True
-
-  def CleanTransactionLog(self):
-    """Wipes the transaction log."""
-    try:
-      _winreg.DeleteValue(self._GetKey(), "Transaction")
-      NannyController.synced = False
-    except exceptions.WindowsError:
-      pass
-
-  def GetTransactionLog(self):
-    """Return a GrrMessage instance from the transaction log or None."""
-    try:
-      value, reg_type = _winreg.QueryValueEx(self._GetKey(), "Transaction")
-    except exceptions.WindowsError:
-      return
-
-    if reg_type != _winreg.REG_BINARY:
-      return
-
-    try:
-      return rdf_flows.GrrMessage.FromSerializedString(value)
-    except message.Error:
-      return
+      logging.debug("Failed to heartbeat nanny at %s: %s", service_key, e)
 
   def GetNannyStatus(self):
     try:
-      value, _ = _winreg.QueryValueEx(self._GetKey(), "Nanny.status")
+      value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.status")
     except exceptions.WindowsError:
       return None
 
@@ -314,7 +274,7 @@ class NannyController(object):
 
   def GetNannyMessage(self):
     try:
-      value, _ = _winreg.QueryValueEx(self._GetKey(), "Nanny.message")
+      value, _ = _winreg.QueryValueEx(_GetServiceKey(), "Nanny.message")
     except exceptions.WindowsError:
       return None
 
@@ -323,8 +283,7 @@ class NannyController(object):
   def ClearNannyMessage(self):
     """Wipes the nanny message."""
     try:
-      _winreg.DeleteValue(self._GetKey(), "Nanny.message")
-      NannyController.synced = False
+      _winreg.DeleteValue(_GetServiceKey(), "Nanny.message")
     except exceptions.WindowsError:
       pass
 
@@ -345,6 +304,55 @@ class Kernel32(object):
   @property
   def kernel32(self):
     return self._kernel32
+
+
+class TransactionLog(object):
+  """A class to manage a transaction log for client processing."""
+
+  def __init__(self):
+    self._synced = True
+
+  def Write(self, grr_message):
+    """Write the message into the transaction log.
+
+    Args:
+      grr_message: A GrrMessage instance.
+    """
+    grr_message = grr_message.SerializeToString()
+    try:
+      _winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, _winreg.REG_BINARY,
+                         grr_message)
+      self._synced = False
+    except exceptions.WindowsError:
+      pass
+
+  def Sync(self):
+    if not self._synced:
+      _winreg.FlushKey(_GetServiceKey())
+      self._synced = True
+
+  def Clear(self):
+    """Wipes the transaction log."""
+    try:
+      _winreg.DeleteValue(_GetServiceKey(), "Transaction")
+      self._synced = False
+    except exceptions.WindowsError:
+      pass
+
+  def Get(self):
+    """Return a GrrMessage instance from the transaction log or None."""
+    try:
+      value, reg_type = _winreg.QueryValueEx(_GetServiceKey(), "Transaction")
+    except exceptions.WindowsError:
+      return
+
+    if reg_type != _winreg.REG_BINARY:
+      return
+
+    try:
+      return rdf_flows.GrrMessage.FromSerializedString(value)
+    except message.Error:
+      return
 
 
 def KeepAlive():

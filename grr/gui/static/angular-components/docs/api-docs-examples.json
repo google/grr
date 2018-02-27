@@ -894,13 +894,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -1000,13 +1000,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -1097,8 +1097,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -1129,8 +1129,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -5073,13 +5073,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -5179,13 +5179,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -5273,8 +5273,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -5305,8 +5305,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -5389,13 +5389,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -5495,13 +5495,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -5589,8 +5589,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -5621,8 +5621,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -5682,13 +5682,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -5788,13 +5788,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -5907,13 +5907,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -6013,13 +6013,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -6131,8 +6131,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -6163,8 +6163,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -6200,8 +6200,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -6232,8 +6232,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -6385,13 +6385,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -6491,13 +6491,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -6641,8 +6641,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -6673,8 +6673,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -6994,13 +6994,13 @@
                     "regex": {
                       "type": "ForemanRegexClientRule",
                       "value": {
-                        "attribute_name": {
-                          "type": "AFF4Attribute",
-                          "value": "GRR client"
-                        },
                         "attribute_regex": {
                           "type": "RegularExpression",
                           "value": "GRR"
+                        },
+                        "field": {
+                          "type": "EnumNamedValue",
+                          "value": "CLIENT_NAME"
                         }
                       }
                     },
@@ -7100,13 +7100,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -7220,8 +7220,8 @@
           "rules": [
             {
               "regex": {
-                "attribute_name": "GRR client",
-                "attribute_regex": "GRR"
+                "attribute_regex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "rule_type": "REGEX"
             }
@@ -7252,8 +7252,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -7316,13 +7316,13 @@
                     "regex": {
                       "type": "ForemanRegexClientRule",
                       "value": {
-                        "attribute_name": {
-                          "type": "AFF4Attribute",
-                          "value": "GRR client"
-                        },
                         "attribute_regex": {
                           "type": "RegularExpression",
                           "value": "GRR"
+                        },
+                        "field": {
+                          "type": "EnumNamedValue",
+                          "value": "CLIENT_NAME"
                         }
                       }
                     },
@@ -7422,13 +7422,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -7534,8 +7534,8 @@
           "rules": [
             {
               "regex": {
-                "attribute_name": "GRR client",
-                "attribute_regex": "GRR"
+                "attribute_regex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "rule_type": "REGEX"
             }
@@ -7566,8 +7566,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -7628,13 +7628,13 @@
                     "regex": {
                       "type": "ForemanRegexClientRule",
                       "value": {
-                        "attribute_name": {
-                          "type": "AFF4Attribute",
-                          "value": "GRR client"
-                        },
                         "attribute_regex": {
                           "type": "RegularExpression",
                           "value": "GRR"
+                        },
+                        "field": {
+                          "type": "EnumNamedValue",
+                          "value": "CLIENT_NAME"
                         }
                       }
                     },
@@ -7734,13 +7734,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -7814,8 +7814,8 @@
           "rules": [
             {
               "regex": {
-                "attribute_name": "GRR client",
-                "attribute_regex": "GRR"
+                "attribute_regex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "rule_type": "REGEX"
             }
@@ -7846,8 +7846,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -12286,13 +12286,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -12392,13 +12392,13 @@
                             "regex": {
                               "type": "ForemanRegexClientRule",
                               "value": {
-                                "attribute_name": {
-                                  "type": "AFF4Attribute",
-                                  "value": "GRR client"
-                                },
                                 "attribute_regex": {
                                   "type": "RegularExpression",
                                   "value": "GRR"
+                                },
+                                "field": {
+                                  "type": "EnumNamedValue",
+                                  "value": "CLIENT_NAME"
                                 }
                               }
                             },
@@ -12486,8 +12486,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -12518,8 +12518,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attribute_name": "GRR client",
-                    "attribute_regex": "GRR"
+                    "attribute_regex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "rule_type": "REGEX"
                 }
@@ -18807,13 +18807,13 @@
                     "regex": {
                       "type": "ForemanRegexClientRule",
                       "value": {
-                        "attribute_name": {
-                          "type": "AFF4Attribute",
-                          "value": "GRR client"
-                        },
                         "attribute_regex": {
                           "type": "RegularExpression",
                           "value": "GRR"
+                        },
+                        "field": {
+                          "type": "EnumNamedValue",
+                          "value": "CLIENT_NAME"
                         }
                       }
                     },
@@ -18917,13 +18917,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -18997,8 +18997,8 @@
           "rules": [
             {
               "regex": {
-                "attribute_name": "GRR client",
-                "attribute_regex": "GRR"
+                "attribute_regex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "rule_type": "REGEX"
             }
@@ -19030,8 +19030,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }
@@ -19084,13 +19084,13 @@
                     "regex": {
                       "type": "ForemanRegexClientRule",
                       "value": {
-                        "attribute_name": {
-                          "type": "AFF4Attribute",
-                          "value": "GRR client"
-                        },
                         "attribute_regex": {
                           "type": "RegularExpression",
                           "value": "GRR"
+                        },
+                        "field": {
+                          "type": "EnumNamedValue",
+                          "value": "CLIENT_NAME"
                         }
                       }
                     },
@@ -19194,13 +19194,13 @@
                         "regex": {
                           "type": "ForemanRegexClientRule",
                           "value": {
-                            "attribute_name": {
-                              "type": "AFF4Attribute",
-                              "value": "GRR client"
-                            },
                             "attribute_regex": {
                               "type": "RegularExpression",
                               "value": "GRR"
+                            },
+                            "field": {
+                              "type": "EnumNamedValue",
+                              "value": "CLIENT_NAME"
                             }
                           }
                         },
@@ -19274,8 +19274,8 @@
           "rules": [
             {
               "regex": {
-                "attribute_name": "GRR client",
-                "attribute_regex": "GRR"
+                "attribute_regex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "rule_type": "REGEX"
             }
@@ -19307,8 +19307,8 @@
             "rules": [
               {
                 "regex": {
-                  "attribute_name": "GRR client",
-                  "attribute_regex": "GRR"
+                  "attribute_regex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "rule_type": "REGEX"
               }

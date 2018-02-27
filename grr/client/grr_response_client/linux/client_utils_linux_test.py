@@ -94,23 +94,17 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       finally:
         nanny_controller.StopNanny()
 
-  def testLinuxNannyLog(self):
-    """Tests the linux nanny transaction log."""
+  def testLinuxTransactionLog(self):
+    """Tests the linux transaction log."""
     with tempfile.NamedTemporaryFile() as fd:
-      nanny_controller = client_utils_linux.NannyController()
-      nanny_controller.StartNanny(nanny_logfile=fd.name)
-      try:
-        grr_message = rdf_flows.GrrMessage(session_id="W:test")
+      log = client_utils_linux.TransactionLog(logfile=fd.name)
+      grr_message = rdf_flows.GrrMessage(session_id="W:test")
 
-        nanny_controller.WriteTransactionLog(grr_message)
-        self.assertRDFValuesEqual(grr_message,
-                                  nanny_controller.GetTransactionLog())
-        nanny_controller.CleanTransactionLog()
+      log.Write(grr_message)
+      self.assertRDFValuesEqual(grr_message, log.Get())
+      log.Clear()
 
-        self.assertIsNone(nanny_controller.GetTransactionLog())
-
-      finally:
-        nanny_controller.StopNanny()
+      self.assertIsNone(log.Get())
 
 
 @unittest.skipIf(platform.system() != "Linux", "only Linux is supported")

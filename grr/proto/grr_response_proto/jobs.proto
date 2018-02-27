@@ -1565,9 +1565,10 @@ message ForemanRegexClientRule {
   // DEPRECATED
   // optional string path = 1;
 
-  optional string attribute_name = 2 [(sem_type) = {
+  optional string deprecated_attribute_name = 2 [(sem_type) = {
       type: "AFF4Attribute",
-      description: "An AFF4 attribute name"
+      description: "An AFF4 attribute name",
+      label: HIDDEN,
     }];
 
   optional string attribute_regex = 3 [(sem_type) = {
@@ -1575,6 +1576,21 @@ message ForemanRegexClientRule {
       description: "If these are specified we fire when the attribute's str() "
       "representation matches the regex."
     }];
+  enum ForemanStringField {
+    UNSET = 0 [(description) = "Unset"];
+    USERNAMES = 1 [(description) = "Space separated list of users (\"user1 user2 user3\")"];
+    UNAME = 2 [(description) = "Uname like OS information (\"Windows-10-10.0.14393SP0\" or \"Linux-debian-buster/sid\")"];
+    FQDN = 3 [(description) = "The fully qualified domain name of the machine. (\"host.example.com\")"];
+    HOST_IPS = 4 [(description) = "Space separated list of host IP addresses (\"10.240.0.12 127.0.0.1\")"];
+    CLIENT_NAME = 5 [(description) = "The name of the GRR client (\"GRR Monitor\")"];
+    CLIENT_DESCRIPTION = 6 [(description) = "The description of the GRR client (\"GRR windows amd64\")"];
+    SYSTEM = 7 [(description) = "Operating system the client machine runs (\"Windows\" or \"Linux\")"];
+    MAC_ADDRESSES = 8 [(description) = "Space separated list of mac addresses (\"42010af0000c 42010af0000d\")"];
+    KERNEL_VERSION = 9 [(description) = "Kernel version the machine is running (\"10.0.14393\" or \"4.9.0-5-amd64\")"];
+    OS_VERSION = 10 [(description) = "OS version the machine is running (\"10.0.14393SP0\" or \"buster/sid\")"];
+    OS_RELEASE = 11 [(description) = "OS release the machine is running (\"10\" or \"debian\")"];
+  }
+  optional ForemanStringField field = 5;
 }
 
 // This rule will fire if the expression operator(attribute, value) is true.
@@ -1582,9 +1598,10 @@ message ForemanIntegerClientRule {
   // DEPRECATED
   // optional string path = 1;
 
-  optional string attribute_name = 2 [(sem_type) = {
+  optional string deprecated_attribute_name = 2 [(sem_type) = {
       type: "AFF4Attribute",
       description: "An AFF4 attribute name"
+      label: HIDDEN,
     }];
 
   enum Operator {
@@ -1594,6 +1611,14 @@ message ForemanIntegerClientRule {
   }
   optional Operator operator = 3 [default = EQUAL];
   optional uint64 value = 4;
+  enum ForemanIntegerField {
+    UNSET = 0 [(description) = "Unset"];
+    INSTALL_TIME = 1 [(description) = "OS installation time (seconds from epoch)"];
+    CLIENT_VERSION = 2 [(description) = "Client version as an int (v3.2.1.4 => 3214)"];
+    LAST_BOOT_TIME = 3 [(description) = "Last time the client machine rebooted (seconds from epoch)"];
+    CLIENT_CLOCK = 4 [(description) = "Client reported time (seconds from epoch)"];
+  }
+  optional ForemanIntegerField field = 5;
 }
 
 // This action happens when the rule fires
@@ -2151,11 +2176,6 @@ message NSRLInformation {
 
 message PendingFlowTermination {
   optional string reason = 1;
-}
-
-message DumpProcessMemoryRequest {
-  optional int32 pid = 1;
-  optional bool pause = 2;
 }
 
 message SignaturePart {

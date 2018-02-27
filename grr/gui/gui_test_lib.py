@@ -578,6 +578,14 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
   """Common functionality for hunt gui tests."""
 
+  def _CreateForemanClientRuleSet(self):
+    return rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                field="CLIENT_NAME", attribute_regex="GRR"))
+    ])
+
   def _CreateHuntWithDownloadedFile(self):
     hunt = self.CreateSampleHunt(
         path=os.path.join(self.base_path, "test.plist"), client_count=1)
@@ -601,13 +609,6 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
-    ])
-
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(
@@ -617,7 +618,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
                 path=path or "/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.OS,
             )),
-        client_rule_set=client_rule_set,
+        client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=output_plugins or [],
         client_rate=0,
         client_limit=client_limit,
@@ -644,16 +645,9 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
           rdfvalue.RDFURN("aff4:/sample/3")
       ]
 
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
-    ])
-
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        client_rule_set=client_rule_set,
+        client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[],
         token=self.token) as hunt:
 

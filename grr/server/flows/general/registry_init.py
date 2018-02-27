@@ -12,7 +12,6 @@ from grr.server.flows.general import ca_enroller
 from grr.server.flows.general import checks
 from grr.server.flows.general import collectors
 from grr.server.flows.general import discovery
-from grr.server.flows.general import dump_process_memory
 
 from grr.server.flows.general import export
 

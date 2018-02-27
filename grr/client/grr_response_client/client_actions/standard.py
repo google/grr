@@ -240,12 +240,6 @@ class ListDirectory(ReadBuffer):
       self.SendReply(response)
 
 
-class DumpProcessMemory(actions.ActionPlugin):
-  """This action creates a memory dump of a process."""
-  in_rdfvalue = rdf_client.DumpProcessMemoryRequest
-  out_rdfvalues = [rdf_paths.PathSpec]
-
-
 class IteratedListDirectory(actions.IteratedAction):
   """Lists a directory as an iterator."""
   in_rdfvalue = rdf_client.ListDirRequest

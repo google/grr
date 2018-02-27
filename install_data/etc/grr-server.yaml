@@ -255,12 +255,6 @@ Platform:Windows:
 
   Nanny.service_description: "%(Client.name) Monitor Service"
 
-  Nanny.service_key: |
-    %(Client.config_key)
-
-  Nanny.service_key_hive: |
-    %(Client.config_hive)
-
   Nanny.service_name: "%(Client.name) Monitor"
 
   Arch:amd64:

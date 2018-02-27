@@ -39,6 +39,10 @@ class DisabledNannyClientWorker(comms.GRRClientWorker):
     # Deliberatley no call to StartNanny()
     self.nanny_controller = client_utils.NannyController()
 
+  def StartStatsCollector(self):
+    # Don't start any threads in tests.
+    pass
+
   def start(self):
     # Don't start any threads in tests.
     pass

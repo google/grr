@@ -33,12 +33,11 @@ class ForemanOsClientRule(ForemanClientRuleBase):
   protobuf = jobs_pb2.ForemanOsClientRule
 
   def Evaluate(self, client_obj):
-    try:
-      attribute = aff4.Attribute.NAMES["System"]
-    except KeyError:
+    value = client_obj.Get(client_obj.Schema.SYSTEM)
+    if not value:
       return False
 
-    value = utils.SmartStr(client_obj.Get(attribute))
+    value = utils.SmartStr(value)
 
     return ((self.os_windows and value.startswith("Windows")) or
             (self.os_linux and value.startswith("Linux")) or
@@ -80,22 +79,58 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       standard.RegularExpression,
   ]
 
-  def Evaluate(self, client_obj):
-    try:
-      attribute = aff4.Attribute.NAMES[self.attribute_name]
-    except KeyError:
-      return False
+  def _ResolveField(self, field, client_obj):
 
-    value = utils.SmartStr(client_obj.Get(attribute))
+    fsf = ForemanRegexClientRule.ForemanStringField
+
+    if field == fsf.UNSET:
+      raise ValueError(
+          "Received regex rule without a valid field specification.")
+    elif field == fsf.USERNAMES:
+      res = client_obj.Get(client_obj.Schema.USERNAMES)
+    elif field == fsf.UNAME:
+      res = client_obj.Get(client_obj.Schema.UNAME)
+    elif field == fsf.FQDN:
+      res = client_obj.Get(client_obj.Schema.FQDN)
+    elif field == fsf.HOST_IPS:
+      res = client_obj.Get(client_obj.Schema.HOST_IPS)
+      if res:
+        res = utils.SmartStr(res).replace("\n", " ")
+    elif field == fsf.CLIENT_NAME:
+      res = None
+      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
+      if info:
+        res = info.client_name
+    elif field == fsf.CLIENT_DESCRIPTION:
+      res = None
+      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
+      if info:
+        res = info.client_description
+    elif field == fsf.SYSTEM:
+      res = client_obj.Get(client_obj.Schema.SYSTEM)
+    elif field == fsf.MAC_ADDRESSES:
+      res = client_obj.Get(client_obj.Schema.MAC_ADDRESS)
+      if res:
+        res = utils.SmartStr(res).replace("\n", " ")
+    elif field == fsf.KERNEL_VERSION:
+      res = client_obj.Get(client_obj.Schema.KERNEL_VERSION)
+    elif field == fsf.OS_VERSION:
+      res = client_obj.Get(client_obj.Schema.OS_VERSION)
+    elif field == fsf.OS_RELEASE:
+      res = client_obj.Get(client_obj.Schema.OS_RELEASE)
+
+    if res is None:
+      return ""
+    return utils.SmartStr(res)
+
+  def Evaluate(self, client_obj):
+    value = self._ResolveField(self.field, client_obj)
 
     return self.attribute_regex.Search(value)
 
   def Validate(self):
-    if not self.attribute_name:
-      raise ValueError("ForemanRegexClientRule rule invalid - "
-                       "attribute name not set.")
-
-    self.attribute_name.Validate()
+    if self.field == ForemanRegexClientRule.ForemanStringField.UNSET:
+      raise ValueError("ForemanRegexClientRule rule invalid - field not set.")
 
 
 class ForemanIntegerClientRule(ForemanClientRuleBase):
@@ -106,16 +141,31 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       aff4.AFF4Attribute,
   ]
 
-  def Evaluate(self, client_obj):
-    try:
-      attribute = aff4.Attribute.NAMES[self.attribute_name]
-    except KeyError:
-      return False
+  def _ResolveField(self, field, client_obj):
+    if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
+      raise ValueError(
+          "Received integer rule without a valid field specification.")
 
-    try:
-      value = int(client_obj.Get(attribute))
-    except (ValueError, TypeError):
-      # Not an integer attribute.
+    if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
+      res = None
+      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
+      if info:
+        return int(info.client_version or 0)
+
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
+      res = client_obj.Get(client_obj.Schema.INSTALL_DATE)
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
+      res = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
+      res = client_obj.Get(client_obj.Schema.CLOCK)
+
+    if res is None:
+      return
+    return res.AsSecondsFromEpoch()
+
+  def Evaluate(self, client_obj):
+    value = self._ResolveField(self.field, client_obj)
+    if value is None:
       return False
 
     op = self.operator
@@ -127,14 +177,11 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return value == self.value
     else:
       # Unknown operator.
-      return False
+      raise ValueError("Unknown operator: %d" % op)
 
   def Validate(self):
-    if not self.attribute_name:
-      raise ValueError("ForemanIntegerClientRule rule invalid - "
-                       "attribute name not set.")
-
-    self.attribute_name.Validate()
+    if self.field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
+      raise ValueError("ForemanIntegerClientRule rule invalid - field not set.")
 
 
 class ForemanRuleAction(rdf_structs.RDFProtoStruct):

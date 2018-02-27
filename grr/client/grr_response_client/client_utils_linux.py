@@ -18,6 +18,8 @@ CanonicalPathToLocalPath = client_utils_osx_linux.CanonicalPathToLocalPath
 LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
 NannyController = client_utils_osx_linux.NannyController
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
+TransactionLog = client_utils_osx_linux.TransactionLog
+
 # pylint: enable=invalid-name
 
 

@@ -1121,10 +1121,6 @@ class UploadedFile(structs.RDFProtoStruct):
   ]
 
 
-class DumpProcessMemoryRequest(structs.RDFProtoStruct):
-  protobuf = jobs_pb2.DumpProcessMemoryRequest
-
-
 class FingerprintTuple(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FingerprintTuple
 

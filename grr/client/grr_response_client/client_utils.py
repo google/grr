@@ -17,16 +17,18 @@ else:
 # pylint: enable=g-import-not-at-top
 
 # pylint: disable=g-bad-name
-GetExtAttrs = _client_utils.GetExtAttrs
 CanonicalPathToLocalPath = _client_utils.CanonicalPathToLocalPath
 FindProxies = _client_utils.FindProxies
+GetExtAttrs = _client_utils.GetExtAttrs
 GetRawDevice = _client_utils.GetRawDevice
 KeepAlive = _client_utils.KeepAlive
 LocalPathToCanonicalPath = _client_utils.LocalPathToCanonicalPath
 MemoryRegions = _client_utils.MemoryRegions
 NannyController = _client_utils.NannyController
 OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess
+TransactionLog = _client_utils.TransactionLog
 VerifyFileOwner = _client_utils.VerifyFileOwner
+
 # pylint: enable=g-bad-name
 
 

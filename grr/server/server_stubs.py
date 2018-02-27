@@ -243,13 +243,6 @@ class ListDirectory(ClientActionStub):
   out_rdfvalues = [rdf_client.StatEntry]
 
 
-class DumpProcessMemory(ClientActionStub):
-  """This action creates a memory dump of a process."""
-
-  in_rdfvalue = rdf_client.DumpProcessMemoryRequest
-  out_rdfvalues = [rdf_paths.PathSpec]
-
-
 class IteratedListDirectory(ClientActionStub):
   """Lists a directory as an iterator."""
 

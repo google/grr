@@ -4,6 +4,12 @@
 
 [[ "${3}" != '/' ]] && exit 0
 
+# Use the config generated during client repacking as the
+# primary config.
+if [[ -f "${PACKAGE_PATH}" ]]; then
+  unzip -p "${PACKAGE_PATH}" config.yaml > '%(ClientBuilder.install_dir)/%(ClientBuilder.config_filename)'
+fi
+
 # Restart Fleetspeak so it picks up GRR's service config.
 if [[ -f '%(ClientBuilder.fleetspeak_plist_path)' ]]; then
   launchctl unload '%(ClientBuilder.fleetspeak_plist_path)'

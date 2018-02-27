@@ -1978,30 +1978,29 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
   def testIntegerComparisons(self):
     """Tests that we can use integer matching rules on the foreman."""
 
-    fd = aff4.FACTORY.Create(
-        "C.0000000000000011", aff4_grr.VFSGRRClient, token=self.token)
-    fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows XP"))
-    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
-    fd.Close()
+    base_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1336480583.077736)
+    boot_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1336300000.000000)
 
-    fd = aff4.FACTORY.Create(
-        "C.0000000000000012", aff4_grr.VFSGRRClient, token=self.token)
-    fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
-    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
-    fd.Close()
+    with aff4.FACTORY.Create(
+        "C.0000000000000011", aff4_grr.VFSGRRClient, token=self.token) as fd:
+      fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows XP"))
+      fd.Set(fd.Schema.INSTALL_DATE(base_time))
 
-    fd = aff4.FACTORY.Create(
-        "C.0000000000000013", aff4_grr.VFSGRRClient, token=self.token)
-    fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
-    # This one was installed one week earlier.
-    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736 - 7 * 24 * 3600 * 1e6))
-    fd.Close()
+    with aff4.FACTORY.Create(
+        "C.0000000000000012", aff4_grr.VFSGRRClient, token=self.token) as fd:
+      fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
+      fd.Set(fd.Schema.INSTALL_DATE(base_time))
 
-    fd = aff4.FACTORY.Create(
-        "C.0000000000000014", aff4_grr.VFSGRRClient, token=self.token)
-    fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
-    fd.Set(fd.Schema.LAST_BOOT_TIME(1336300000000000))
-    fd.Close()
+    with aff4.FACTORY.Create(
+        "C.0000000000000013", aff4_grr.VFSGRRClient, token=self.token) as fd:
+      fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
+      # This one was installed one week earlier.
+      fd.Set(fd.Schema.INSTALL_DATE(base_time - rdfvalue.Duration("1w")))
+
+    with aff4.FACTORY.Create(
+        "C.0000000000000014", aff4_grr.VFSGRRClient, token=self.token) as fd:
+      fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
+      fd.Set(fd.Schema.LAST_BOOT_TIME(boot_time))
 
     with utils.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
       # Now setup the filters
@@ -2014,15 +2013,16 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(old)")
 
       # Matches the old client
+      one_hour_ago = base_time - rdfvalue.Duration("1h")
       rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
           rules=[
               rdf_foreman.ForemanClientRule(
                   rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
                   integer=rdf_foreman.ForemanIntegerClientRule(
-                      attribute_name=fd.Schema.INSTALL_DATE.name,
+                      field="INSTALL_TIME",
                       operator=rdf_foreman.ForemanIntegerClientRule.Operator.
                       LESS_THAN,
-                      value=int(1336480583077736 - 3600 * 1e6)))
+                      value=one_hour_ago.AsSecondsFromEpoch()))
           ])
 
       old_flow = "Test flow for old clients"
@@ -2044,10 +2044,10 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
               rdf_foreman.ForemanClientRule(
                   rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
                   integer=rdf_foreman.ForemanIntegerClientRule(
-                      attribute_name=fd.Schema.INSTALL_DATE.name,
+                      field="INSTALL_TIME",
                       operator=rdf_foreman.ForemanIntegerClientRule.Operator.
                       GREATER_THAN,
-                      value=int(1336480583077736 - 3600 * 1e6)))
+                      value=one_hour_ago.AsSecondsFromEpoch()))
           ])
 
       new_flow = "Test flow for newer clients"
@@ -2068,10 +2068,10 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
               rdf_foreman.ForemanClientRule(
                   rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
                   integer=rdf_foreman.ForemanIntegerClientRule(
-                      attribute_name=fd.Schema.LAST_BOOT_TIME.name,
+                      field="LAST_BOOT_TIME",
                       operator=rdf_foreman.ForemanIntegerClientRule.Operator.
                       EQUAL,
-                      value=1336300000000000))
+                      value=boot_time.AsSecondsFromEpoch()))
           ])
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
@@ -2148,8 +2148,7 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
                 rdf_foreman.ForemanClientRule(
                     rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                     regex=rdf_foreman.ForemanRegexClientRule(
-                        attribute_name=fd.Schema.SYSTEM.name,
-                        attribute_regex="XXX"))
+                        field="SYSTEM", attribute_regex="XXX"))
             ])
         rule_set.Append(rule)
       foreman.Set(foreman.Schema.RULES, rule_set)

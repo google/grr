@@ -163,17 +163,15 @@ class NannyController(object):
 
   # Nanny should be a global singleton thread.
   nanny = None
-  nanny_logfile = None
   max_log_size = 100000000
 
-  def StartNanny(self, unresponsive_kill_period=None, nanny_logfile=None):
+  def StartNanny(self, unresponsive_kill_period=None):
     # The nanny thread is a singleton.
     if NannyController.nanny is None:
       if unresponsive_kill_period is None:
         unresponsive_kill_period = config.CONFIG[
             "Nanny.unresponsive_kill_period"]
 
-      NannyController.nanny_logfile = nanny_logfile
       NannyController.nanny = NannyThread(unresponsive_kill_period)
       NannyController.nanny.start()
 
@@ -186,55 +184,6 @@ class NannyController(object):
     """Notifies the nanny of a heartbeat."""
     if self.nanny:
       self.nanny.Heartbeat()
-
-  def _GetLogFilename(self):
-    return self.nanny_logfile or config.CONFIG["Nanny.logfile"]
-
-  def WriteTransactionLog(self, grr_message):
-    """Write the message into the transaction log."""
-    grr_message = grr_message.SerializeToString()
-
-    logfile = self._GetLogFilename()
-
-    try:
-      with open(logfile, "wb") as fd:
-        fd.write(grr_message)
-    except (IOError, OSError):
-      # Check if we're missing directories and try to create them.
-      if not os.path.isdir(os.path.dirname(logfile)):
-        try:
-          os.makedirs(os.path.dirname(logfile))
-          with open(logfile, "wb") as fd:
-            fd.write(grr_message)
-        except (IOError, OSError):
-          logging.exception("Couldn't write nanny transaction log to %s",
-                            logfile)
-
-  def SyncTransactionLog(self):
-    # Not implemented on Linux.
-    pass
-
-  def CleanTransactionLog(self):
-    """Wipes the transaction log."""
-    try:
-      with open(self._GetLogFilename(), "wb") as fd:
-        fd.write("")
-    except (IOError, OSError):
-      pass
-
-  def GetTransactionLog(self):
-    """Return a GrrMessage instance from the transaction log or None."""
-    try:
-      with open(self._GetLogFilename(), "rb") as fd:
-        data = fd.read(self.max_log_size)
-    except (IOError, OSError):
-      return
-
-    try:
-      if data:
-        return rdf_flows.GrrMessage.FromSerializedString(data)
-    except (message.Error, rdfvalue.Error):
-      return
 
   def GetNannyMessage(self):
     # Not implemented on Linux.
@@ -250,3 +199,56 @@ class NannyController(object):
         return fd.read(self.max_log_size)
     except (IOError, OSError):
       return None
+
+
+class TransactionLog(object):
+  """A class to manage a transaction log for client processing."""
+
+  max_log_size = 100000000
+
+  def __init__(self, logfile=None):
+    self.logfile = logfile or config.CONFIG["Client.transaction_log_file"]
+
+  def Write(self, grr_message):
+    """Write the message into the transaction log."""
+    grr_message = grr_message.SerializeToString()
+
+    try:
+      with open(self.logfile, "wb") as fd:
+        fd.write(grr_message)
+    except (IOError, OSError):
+      # Check if we're missing directories and try to create them.
+      if not os.path.isdir(os.path.dirname(self.logfile)):
+        try:
+          os.makedirs(os.path.dirname(self.logfile))
+          with open(self.logfile, "wb") as fd:
+            fd.write(grr_message)
+        except (IOError, OSError):
+          logging.exception("Couldn't write nanny transaction log to %s",
+                            self.logfile)
+
+  def Sync(self):
+    # Not implemented on Linux.
+    pass
+
+  def Clear(self):
+    """Wipes the transaction log."""
+    try:
+      with open(self.logfile, "wb") as fd:
+        fd.write("")
+    except (IOError, OSError):
+      pass
+
+  def Get(self):
+    """Return a GrrMessage instance from the transaction log or None."""
+    try:
+      with open(self.logfile, "rb") as fd:
+        data = fd.read(self.max_log_size)
+    except (IOError, OSError):
+      return
+
+    try:
+      if data:
+        return rdf_flows.GrrMessage.FromSerializedString(data)
+    except (message.Error, rdfvalue.Error):
+      return

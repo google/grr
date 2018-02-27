@@ -251,10 +251,7 @@ class ActionPlugin(object):
     # Prevent the machine from sleeping while the action is running.
     client_utils.KeepAlive()
 
-    if self.nanny_controller is None:
-      self.nanny_controller = client_utils.NannyController()
-
-    self.nanny_controller.Heartbeat()
+    self.grr_worker.Heartbeat()
 
     user_start = self.cpu_start.user
     system_start = self.cpu_start.system
@@ -275,10 +272,7 @@ class ActionPlugin(object):
     potential dangerous actions so the server can get notified in case
     the whole machine crashes.
     """
-
-    if self.nanny_controller is None:
-      self.nanny_controller = client_utils.NannyController()
-    self.nanny_controller.SyncTransactionLog()
+    self.grr_worker.SyncTransactionLog()
 
   def ChargeBytesToSession(self, length):
     self.grr_worker.ChargeBytesToSession(

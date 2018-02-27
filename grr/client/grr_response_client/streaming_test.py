@@ -52,6 +52,13 @@ class StreamerTestMixin(object):
     self.assertEqual(chunks[1].overlap, 1)
     self.assertEqual(chunks[2].overlap, 1)
 
+  def testZeroAmount(self):
+    streamer = streaming.Streamer(chunk_size=3, overlap_size=0)
+    method = self.Stream(streamer, "abcdef")
+    chunks = list(method(amount=0))
+
+    self.assertEqual(len(chunks), 0)
+
   def testSmallAmount(self):
     streamer = streaming.Streamer(chunk_size=1, overlap_size=0)
     method = self.Stream(streamer, "abc")
@@ -113,6 +120,25 @@ class StreamerTestMixin(object):
     self.assertEqual(chunks[0].overlap, 0)
     self.assertEqual(chunks[1].overlap, 2)
     self.assertEqual(chunks[2].overlap, 2)
+
+  def testUnbound(self):
+    streamer = streaming.Streamer(chunk_size=9, overlap_size=2)
+    method = self.Stream(streamer, "abcdefghijklmnopqrstuvwxyz")
+    chunks = list(method())
+
+    self.assertEqual(len(chunks), 4)
+    self.assertEqual(chunks[0].data, "abcdefghi")
+    self.assertEqual(chunks[1].data, "hijklmnop")
+    self.assertEqual(chunks[2].data, "opqrstuvw")
+    self.assertEqual(chunks[3].data, "vwxyz")
+    self.assertEqual(chunks[0].offset, 0)
+    self.assertEqual(chunks[1].offset, 7)
+    self.assertEqual(chunks[2].offset, 14)
+    self.assertEqual(chunks[3].offset, 21)
+    self.assertEqual(chunks[0].overlap, 0)
+    self.assertEqual(chunks[1].overlap, 2)
+    self.assertEqual(chunks[2].overlap, 2)
+    self.assertEqual(chunks[3].overlap, 2)
 
 
 class StreamFilePathTest(StreamerTestMixin, unittest.TestCase):

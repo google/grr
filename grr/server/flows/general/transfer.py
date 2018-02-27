@@ -797,8 +797,6 @@ class FileStoreCreateFile(flow.EventListener):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="FileStoreCreateFile")
 
-  CHUNK_SIZE = 512 * 1024
-
   @flow.EventHandler()
   def ProcessMessage(self, message=None, event=None):
     """Process the new file and add to the file store."""

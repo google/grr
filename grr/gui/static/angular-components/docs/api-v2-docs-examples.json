@@ -242,8 +242,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -275,8 +275,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -1494,8 +1494,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -1527,8 +1527,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -1574,8 +1574,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -1607,8 +1607,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -1647,8 +1647,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -1680,8 +1680,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -1716,8 +1716,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -1749,8 +1749,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -1825,8 +1825,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -1858,8 +1858,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -2163,8 +2163,8 @@
           "rules": [
             {
               "regex": {
-                "attributeName": "GRR client",
-                "attributeRegex": "GRR"
+                "attributeRegex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "ruleType": "REGEX"
             }
@@ -2196,8 +2196,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -2244,8 +2244,8 @@
           "rules": [
             {
               "regex": {
-                "attributeName": "GRR client",
-                "attributeRegex": "GRR"
+                "attributeRegex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "ruleType": "REGEX"
             }
@@ -2277,8 +2277,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -2323,8 +2323,8 @@
           "rules": [
             {
               "regex": {
-                "attributeName": "GRR client",
-                "attributeRegex": "GRR"
+                "attributeRegex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "ruleType": "REGEX"
             }
@@ -2356,8 +2356,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -5233,8 +5233,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -5266,8 +5266,8 @@
               "rules": [
                 {
                   "regex": {
-                    "attributeName": "GRR client",
-                    "attributeRegex": "GRR"
+                    "attributeRegex": "GRR",
+                    "field": "CLIENT_NAME"
                   },
                   "ruleType": "REGEX"
                 }
@@ -7088,8 +7088,8 @@
           "rules": [
             {
               "regex": {
-                "attributeName": "GRR client",
-                "attributeRegex": "GRR"
+                "attributeRegex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "ruleType": "REGEX"
             }
@@ -7122,8 +7122,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }
@@ -7160,8 +7160,8 @@
           "rules": [
             {
               "regex": {
-                "attributeName": "GRR client",
-                "attributeRegex": "GRR"
+                "attributeRegex": "GRR",
+                "field": "CLIENT_NAME"
               },
               "ruleType": "REGEX"
             }
@@ -7194,8 +7194,8 @@
             "rules": [
               {
                 "regex": {
-                  "attributeName": "GRR client",
-                  "attributeRegex": "GRR"
+                  "attributeRegex": "GRR",
+                  "field": "CLIENT_NAME"
                 },
                 "ruleType": "REGEX"
               }

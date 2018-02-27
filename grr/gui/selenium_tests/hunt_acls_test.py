@@ -11,7 +11,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server import access_control
 from grr.server import flow
-from grr.server import foreman as rdf_foreman
 from grr.server import output_plugin
 from grr.server.aff4_objects import security
 from grr.server.flows.general import file_finder
@@ -25,18 +24,12 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, token=None):
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
-    ])
 
     with implementation.GRRHunt.StartHunt(
         hunt_name=standard.SampleHunt.__name__,
         client_rate=100,
         filename="TestFilename",
-        client_rule_set=client_rule_set,
+        client_rule_set=self._CreateForemanClientRuleSet(),
         token=token or self.token) as hunt:
 
       return hunt.session_id
@@ -423,12 +416,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
     flow_runner_args = rdf_flows.FlowRunnerArgs(
         flow_name=file_finder.FileFinder.__name__)
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
-    ])
+    client_rule_set = self._CreateForemanClientRuleSet()
     source_h = self.CreateHunt(
         flow_args=flow_args,
         flow_runner_args=flow_runner_args,
@@ -439,7 +427,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
-    client_rule_set.rules[0].regex.attribute_name = "Something else"
+    client_rule_set.rules[0].regex.field = "FQDN"
     output_plugins = [
         output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
     ]
@@ -478,10 +466,10 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=td table.diff-removed:contains('Rule type'):"
-                   "contains('REGEX'):contains('GRR client')")
+                   "contains('REGEX'):contains('CLIENT_NAME')")
     self.WaitUntil(self.IsElementPresent,
                    "css=td table.diff-added:contains('Rule type'):"
-                   "contains('REGEX'):contains('Something else')")
+                   "contains('REGEX'):contains('FQDN')")
 
   def testOriginalHuntLinkIsShownIfHuntCreatedFromHunt(self):
     new_h, source_h = self._CreateHuntFromHunt()

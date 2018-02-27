@@ -37,9 +37,6 @@ class Streamer(object):
 
     Returns:
       Generator over `Chunk` instances.
-
-    Raises:
-      ValueError: If the amount of bytes is not specified.
     """
     reader = FileReader(filedesc, offset=offset)
     return self.Stream(reader, amount=amount)
@@ -54,9 +51,6 @@ class Streamer(object):
 
     Yields:
       `Chunk` instances.
-
-    Raises:
-      ValueError: If the amount of bytes is not specified.
     """
     with open(filepath, "rb") as filedesc:
       for chunk in self.StreamFile(filedesc, offset=offset, amount=amount):
@@ -72,9 +66,6 @@ class Streamer(object):
 
     Returns:
       Generator over `Chunk` instances.
-
-    Raises:
-      ValueError: If the amount of bytes is not specified.
     """
     reader = MemoryReader(process, offset=offset)
     return self.Stream(reader, amount=amount)
@@ -88,12 +79,9 @@ class Streamer(object):
 
     Yields:
       `Chunk` instances.
-
-    Raises:
-      ValueError: If the amount of bytes is not specified.
     """
     if amount is None:
-      raise ValueError("the amount of bytes to read must be specified")
+      amount = float("inf")
 
     data = reader.Read(min(self.chunk_size, amount))
     if not data:

@@ -84,11 +84,11 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="HUNT")),
+                field="CLIENT_NAME", attribute_regex="HUNT")),
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
             integer=rdf_foreman.ForemanIntegerClientRule(
-                attribute_name="Clock",
+                field="CLIENT_CLOCK",
                 operator=rdf_foreman.ForemanIntegerClientRule.Operator.
                 GREATER_THAN,
                 value=1336650631137737))
@@ -157,11 +157,11 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="HUNT")),
+                field="CLIENT_NAME", attribute_regex="HUNT")),
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
             integer=rdf_foreman.ForemanIntegerClientRule(
-                attribute_name="Clock",
+                field="CLIENT_CLOCK",
                 operator=rdf_foreman.ForemanIntegerClientRule.Operator.
                 GREATER_THAN,
                 value=1336650631137737))
@@ -206,13 +206,13 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       self.assertFalse(hunt.GetRunner().IsHuntStarted())
 
   def testInvalidRules(self):
-    """Tests the behavior when a wrong attribute name is passed in a rule."""
+    """Tests the behavior when the field is left UNSET in a rule."""
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="no such attribute", attribute_regex="HUNT"))
+                field="UNSET", attribute_regex="HUNT"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -234,7 +234,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -298,7 +298,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -337,7 +337,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -374,7 +374,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -420,7 +420,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -457,7 +457,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -497,7 +497,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
@@ -525,7 +525,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client", attribute_regex="GRR"))
+                field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
     with implementation.GRRHunt.StartHunt(
