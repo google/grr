@@ -29,6 +29,7 @@ matrix:
       script:
         - source "${HOME}/INSTALL/bin/activate"
         - pytest grr/ --ignore grr/gui/selenium_tests/
+        - (cd grr/gui/static/ && gulp test)
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
