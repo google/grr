@@ -384,15 +384,14 @@ describe('API service', () => {
     });
 
     it('does not allow API requests to overlap', () => {
-      let notificationCount = 0;
-      grrApiService.poll('some/path', 1000)
-          .then(undefined, undefined, (data) => {
-            notificationCount += 1;
-          });
-      expect(notificationCount).toBe(0);
+      const deferred = $q.defer();
+      spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+
+      grrApiService.poll('some/path', 1000);
+      expect(grrApiService.get).toHaveBeenCalledTimes(1);
 
       $interval.flush(2000);
-      expect(notificationCount).toBe(0);
+      expect(grrApiService.get).toHaveBeenCalledTimes(1);
     });
 
     it('does not resolve the promise after cancelPoll() call', () => {
