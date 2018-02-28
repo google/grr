@@ -17,7 +17,7 @@ module.exports = function(config) {
 
     // Available browser launchers:
     // https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome'],
+    browsers: ['ChromeNoSandbox'],
 
     // Available reporters:
     // https://npmjs.org/browse/keyword/karma-reporter
@@ -51,6 +51,13 @@ module.exports = function(config) {
 
     ngHtml2JsPreprocessor: {
       prependPrefix: '/',
+    },
+
+    customLaunchers: {
+      ChromeNoSandbox: {
+        base: 'Chrome',
+        flags: ['--no-sandbox'],
+      },
     },
 
     // Possible values:
