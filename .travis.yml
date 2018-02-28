@@ -13,6 +13,7 @@ matrix:
             - libffi-dev
             - libssl-dev
             - python-dev
+        chrome: stable
       env:
         - GCS_TAG=ubuntu_64bit
         - GCS_BUCKET=autobuilds.grr-response.com
