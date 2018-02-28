@@ -122,6 +122,9 @@ class HttpRequest(werkzeug_wrappers.Request):
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
+    self.method_metadata = None
+    self.parsed_args = None
+
   @property
   def user(self):
     if self._user is None:
@@ -309,9 +312,8 @@ window.location = '%s' + friendly_hash;
       return e
 
   def WSGIHandler(self):
-    return werkzeug_wsgi.SharedDataMiddleware(self, {
-        "/static": config.CONFIG["AdminUI.document_root"]
-    })
+    return werkzeug_wsgi.SharedDataMiddleware(
+        self, {"/static": config.CONFIG["AdminUI.document_root"]})
 
 
 class GuiPluginsInit(registry.InitHook):

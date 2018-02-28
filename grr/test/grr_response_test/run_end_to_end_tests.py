@@ -121,14 +121,14 @@ def RunTestsAgainstClient(grr_api, client):
     if client.data.os_info.system not in test_case.platforms:
       continue
 
-    if (flags.FLAGS.testnames and
-        test_case.__name__ not in flags.FLAGS.testnames):
-      logging.debug("Skipping test: %s", test_case.__name__)
-      continue
-
     test_suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
     for test in test_suite:
       test_name = "%s.%s" % (test.__class__.__name__, test._testMethodName)
+      if (flags.FLAGS.testnames and
+          test_case.__name__ not in flags.FLAGS.testnames and
+          test_name not in flags.FLAGS.testnames):
+        logging.debug("Skipping test: %s", test_name)
+        continue
       logging.info("Running %s on %s (%s: %s, %s, %s)", test_name,
                    client.client_id, client.data.os_info.fqdn,
                    client.data.os_info.system, client.data.os_info.version,

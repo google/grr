@@ -416,6 +416,9 @@ class HttpRequestHandler(object):
                                      message=str(e),
                                      traceBack=traceback.format_exc()))
 
+    request.method_metadata = method_metadata
+    request.parsed_args = args
+
     # SetUID() is called here so that ACL checks done by the router do not
     # clash with datastore ACL checks.
     # TODO(user): increase token expiry time.

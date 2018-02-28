@@ -66,11 +66,9 @@ setup_args = dict(
             "grr_config_updater = grr.server.distro_entry:ConfigUpdater",
             "grr_frontend = grr.server.distro_entry:GrrFrontend",
             "grr_server = grr.server.distro_entry:GrrServer",
-            "grr_end_to_end_tests = grr.server.distro_entry:EndToEndTests",
             "grr_worker = grr.server.distro_entry:Worker",
             "grr_admin_ui = grr.server.distro_entry:AdminUI",
             "grr_fuse = grr.server.distro_entry:GRRFuse",
-            "grr_dataserver = grr.server.distro_entry:DataServer",
         ]
     },
     install_requires=[

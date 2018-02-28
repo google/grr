@@ -316,6 +316,7 @@ gulp.task('watch', function() {
 gulp.task('test', ['compile'], function(done) {
   let config = {
     configFile: __dirname + '/karma.conf.js',
+    browsers: ['ChromeHeadlessNoSandbox'],
     singleRun: true,
   };
 
@@ -323,9 +324,10 @@ gulp.task('test', ['compile'], function(done) {
 });
 
 
-gulp.task('test-watch', ['compile'], function(done) {
+gulp.task('test-debug', ['compile'], function(done) {
   let config = {
     configFile: __dirname + '/karma.conf.js',
+    browsers: ['Chrome'],
   };
 
   new karma.Server(config, done).start();

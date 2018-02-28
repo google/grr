@@ -17,7 +17,7 @@ module.exports = function(config) {
 
     // Available browser launchers:
     // https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['ChromeNoSandbox'],
+    browsers: ['ChromeHeadlessNoSandbox'],
 
     // Available reporters:
     // https://npmjs.org/browse/keyword/karma-reporter
@@ -54,8 +54,8 @@ module.exports = function(config) {
     },
 
     customLaunchers: {
-      ChromeNoSandbox: {
-        base: 'Chrome',
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
         flags: ['--no-sandbox'],
       },
     },
