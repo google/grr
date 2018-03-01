@@ -73,7 +73,7 @@ class TestRecursiveListDirectoryLinuxDarwin(test_base.EndToEndTest):
     args.pathspec.pathtype = args.pathspec.OS
     args.max_depth = 1
 
-    with self.WaitForFileRefresh("/fs/os/usr/bin/less"):
+    with self.WaitForFileRefresh("fs/os/usr/bin/less"):
       self.RunFlowAndWait("RecursiveListDirectory", args=args)
 
 
@@ -129,7 +129,7 @@ class TestFindOSLinuxDarwin(test_base.EndToEndTest):
     args.findspec.pathspec.path = "/bin"
     args.findspec.pathspec.pathtype = args.findspec.pathspec.OS
 
-    with self.WaitForFileRefresh("/fs/os/bin/ls"):
+    with self.WaitForFileRefresh("fs/os/bin/ls"):
       self.RunFlowAndWait("FindFiles", args=args)
 
 

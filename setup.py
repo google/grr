@@ -115,7 +115,7 @@ setup_args = dict(
     install_requires=[
         "binplist==0.1.4",
         "cryptography==2.0.3",
-        "fleetspeak==0.0.6",
+        "fleetspeak==0.0.7",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipython==5.0.0",

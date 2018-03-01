@@ -202,7 +202,7 @@ class WindowsInstaller(installer.Installer):
     logging.info("Generating Fleetspeak service config.")
 
     fs_service_config = fs_system_pb2.ClientServiceConfig(
-        name=config.CONFIG["Client.name"],
+        name="GRR",
         factory="Daemon",
         required_labels=[
             fs_common_pb2.Label(
