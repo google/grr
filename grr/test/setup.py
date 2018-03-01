@@ -70,7 +70,7 @@ setup_args = dict(
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "grr_run_tests_api_e2e = "
+            "grr_end_to_end_tests = "
             "grr_response_test.distro_entry:EndToEndTests",
             "grr_api_regression_generate = "
             "grr_response_test.distro_entry:ApiRegressionTestsGenerate"
