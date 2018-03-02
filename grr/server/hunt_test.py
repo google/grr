@@ -229,7 +229,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
   def testCallback(self, client_limit=None):
     """Checks that the foreman uses the callback specified in the action."""
-    client_id = self.SetupClient(0)
+    client_urn = self.SetupClient(0)
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
@@ -247,20 +247,20 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
       hunt.GetRunner().Start()
 
     # Create a client that matches our regex.
-    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
-    info = client.Schema.CLIENT_INFO()
-    info.client_name = "GRR Monitor"
-    client.Set(client.Schema.CLIENT_INFO, info)
-    client.Close()
+    with aff4.FACTORY.Open(client_urn, mode="rw", token=self.token) as client:
+      info = client.Schema.CLIENT_INFO()
+      info.client_name = "GRR Monitor"
+      client.Set(client.Schema.CLIENT_INFO, info)
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     with utils.Stubber(standard.SampleHunt, "StartClients", self.Callback):
       self.called = []
 
-      foreman.AssignTasksToClient(client.urn)
+      client_id = client_urn.Basename()
+      foreman.AssignTasksToClient(client_id)
 
       self.assertEqual(len(self.called), 1)
-      self.assertEqual(self.called[0][1], [client.urn])
+      self.assertEqual(self.called[0][1], [client_id])
 
   def testStartClients(self):
     client_id = test_lib.TEST_CLIENT_ID
@@ -311,7 +311,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -350,7 +350,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     client_mock = hunt_test_lib.SampleHuntMock()
     # Just pass 8 clients to run, the other two went offline.
@@ -389,7 +389,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      num_tasks = foreman.AssignTasksToClient(client_id)
+      num_tasks = foreman.AssignTasksToClient(client_id.Basename())
       self.assertEqual(num_tasks, 1)
 
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -405,7 +405,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Recreating the foreman so that it updates list of rules.
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      num_tasks = foreman.AssignTasksToClient(client_id)
+      num_tasks = foreman.AssignTasksToClient(client_id.Basename())
       # No tasks should be assigned as this hunt ran on all the clients
       # before.
       self.assertEqual(num_tasks, 0)
@@ -433,7 +433,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -470,7 +470,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -511,7 +511,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -539,7 +539,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # clients..
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(client_id.Basename())
 
     self.assertEqual(len(DummyHunt.client_ids), 0)
 

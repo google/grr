@@ -88,6 +88,7 @@ class TestFindTSKLinux(test_base.EndToEndTest):
     # Cut down the number of files by specifying a partial regex
     # match, we just want to find /usr/bin/diff, when run on a real
     # system there are thousands which takes forever with TSK.
+    args.findspec.max_depth = 1
     args.findspec.path_regex = "di"
     args.findspec.pathspec.path = "/usr/bin"
     args.findspec.pathspec.pathtype = args.findspec.pathspec.TSK
@@ -99,7 +100,7 @@ class TestFindTSKLinux(test_base.EndToEndTest):
 
     diff_path = None
     for r in results:
-      path = "/fs/tsk"
+      path = "fs/tsk"
       pathspec = r.payload.pathspec
       while pathspec.path:
         path += pathspec.path

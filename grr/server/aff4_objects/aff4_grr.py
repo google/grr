@@ -22,6 +22,7 @@ from grr_response_proto import flows_pb2
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import data_store
+from grr.server import db
 from grr.server import flow
 from grr.server import foreman as rdf_foreman
 from grr.server import grr_collections
@@ -442,8 +443,10 @@ class GRRForeman(aff4.AFF4Object):
 
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
-    for _ in aff4.FACTORY.Stat(
-        [client_id.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())]):
+    client_urn = rdfvalue.RDFURN(client_id)
+    for _ in aff4.FACTORY.Stat([
+        client_urn.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())
+    ]):
       return True
 
     return False
@@ -496,6 +499,30 @@ class GRRForeman(aff4.AFF4Object):
 
     return actions_count
 
+  def _GetLastForemanRunRelational(self, client_id):
+    md = data_store.REL_DB.ReadClientMetadata(client_id)
+    return md.last_foreman_time or rdfvalue.RDFDatetime(0)
+
+  def _GetLastForemanRun(self, client_id):
+    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
+    try:
+      return (client.Get(client.Schema.LAST_FOREMAN_TIME) or
+              rdfvalue.RDFDatetime(0))
+    except AttributeError:
+      return rdfvalue.RDFDatetime(0)
+
+  def _SetLastForemanRun(self, client_id, latest_rule):
+    with aff4.FACTORY.Create(
+        client_id,
+        aff4_type=VFSGRRClient,
+        mode="w",
+        token=self.token,
+        force_new_version=False) as client:
+      client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
+
+  def _SetLastForemanRunRelational(self, client_id, latest_rule):
+    data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=latest_rule)
+
   def AssignTasksToClient(self, client_id):
     """Examines our rules and starts up flows based on the client.
 
@@ -505,26 +532,31 @@ class GRRForeman(aff4.AFF4Object):
     Returns:
       Number of assigned tasks.
     """
-    client_id = rdf_client.ClientURN(client_id)
-
     rules = self.Get(self.Schema.RULES)
     if not rules:
       return 0
 
-    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
-    try:
-      last_foreman_run = client.Get(client.Schema.LAST_FOREMAN_TIME) or 0
-    except AttributeError:
-      last_foreman_run = 0
+    if data_store.RelationalDBReadEnabled():
+      last_foreman_run = self._GetLastForemanRunRelational(client_id)
+    else:
+      last_foreman_run = self._GetLastForemanRun(client_id)
 
     latest_rule = max(rule.created for rule in rules)
 
-    if latest_rule <= int(last_foreman_run):
+    if latest_rule <= last_foreman_run:
       return 0
 
     # Update the latest checked rule on the client.
-    client.Set(client.Schema.LAST_FOREMAN_TIME(latest_rule))
-    client.Close()
+    if data_store.RelationalDBWriteEnabled():
+      try:
+        self._SetLastForemanRunRelational(client_id, latest_rule)
+      except db.UnknownClientError:
+        pass
+
+    # If the relational db is used for reads, we don't have to update the
+    # aff4 object.
+    if not data_store.RelationalDBReadEnabled():
+      self._SetLastForemanRun(client_id, latest_rule)
 
     relevant_rules = []
     expired_rules = False
@@ -540,11 +572,14 @@ class GRRForeman(aff4.AFF4Object):
 
       relevant_rules.append(rule)
 
-    client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
+    if data_store.RelationalDBReadEnabled():
+      client_data = data_store.REL_DB.ReadFullInfoClient(client_id)
+    else:
+      client_data = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
 
     actions_count = 0
     for rule in relevant_rules:
-      if self._EvaluateRules(rule, client):
+      if self._EvaluateRules(rule, client_data):
         actions_count += self._RunActions(rule, client_id)
 
     if expired_rules:

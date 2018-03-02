@@ -582,7 +582,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      tasks_assigned = foreman.AssignTasksToClient(client_id)
+      tasks_assigned = foreman.AssignTasksToClient(client_id.Basename())
       if client_id in [client_ids[1], client_ids[7]]:
         self.assertTrue(tasks_assigned)
       else:

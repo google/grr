@@ -203,7 +203,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     client_ids = client_ids or self.client_ids
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id)
+      foreman.AssignTasksToClient(rdf_client.ClientURN(client_id).Basename())
 
   def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
     client_mock = hunt_test_lib.SampleHuntMock(**mock_kwargs)
@@ -959,7 +959,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # clients (Note we have 10 clients here).
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
       for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
       # Run the hunt.
       client_mock = hunt_test_lib.SampleHuntMock()
@@ -1182,7 +1182,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # clients (Note we have 10 clients here).
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
       for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
       hunt_obj = aff4.FACTORY.Open(
           hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
@@ -1237,7 +1237,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with aff4.FACTORY.Open(
         "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
     # Run the hunt.
     client_mock = hunt_test_lib.SampleHuntMock()
@@ -1266,7 +1266,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with aff4.FACTORY.Open(
         "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
     hunt_test_lib.TestHuntHelper(client_mock, self.client_ids, False,
                                  self.token)
@@ -1298,7 +1298,7 @@ class StandardHuntTest(flow_test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with aff4.FACTORY.Open(
         "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
     client_mock = hunt_test_lib.SampleHuntMock()
     hunt_test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)

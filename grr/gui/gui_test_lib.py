@@ -629,7 +629,7 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
     with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token) as foreman:
 
       for client_id in self.client_ids:
-        foreman.AssignTasksToClient(client_id)
+        foreman.AssignTasksToClient(client_id.Basename())
 
     self.hunt_urn = hunt.urn
     return aff4.FACTORY.Open(

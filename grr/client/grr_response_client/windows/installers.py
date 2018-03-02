@@ -218,6 +218,7 @@ class WindowsInstaller(installer.Installer):
             config.CONFIG["Nanny.child_binary"],
             "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
         ],
+        memory_limit=2147483648,  # 2GB
         monitor_heartbeats=True,
         heartbeat_unresponsive_grace_period_seconds=600,
         heartbeat_unresponsive_kill_period_seconds=300,

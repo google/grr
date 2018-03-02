@@ -41,7 +41,7 @@ message Client {
       description: "When system was installed.",
     }]; // Called install_date in some legacy code.
   optional KnowledgeBase knowledge_base = 7 [(sem_type) = {
-      description: "Artifact Knowledge Base",
+      description: "Knowledge Base",
     }];
   repeated StringMapEntry grr_configuration = 8 [(sem_type) = {
       description: "Running configuration for the GRR client.",

@@ -333,16 +333,11 @@ class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
 
 class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     ApiLabelsRestrictedSearchClientsHandlerTestMixin,
-    api_test_lib.ApiCallHandlerTest):
+    test_lib.RelationalDBTestMixin, api_test_lib.ApiCallHandlerTest):
   """Tests ApiLabelsRestrictedSearchClientsHandler using the relational db."""
 
   def setUp(self):
     super(ApiLabelsRestrictedSearchClientsHandlerTestRelational, self).setUp()
-
-    self.enable_relational_db = test_lib.ConfigOverrider({
-        "Database.useForReads": True
-    })
-    self.enable_relational_db.Start()
 
     self.client_ids = sorted(self.SetupTestClientObjects(4))
 
@@ -360,11 +355,6 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
         labels_whitelist=["foo", "bar"],
         labels_owners_whitelist=["david", "peter"])
-
-  def tearDown(self):
-    self.enable_relational_db.Stop()
-    super(ApiLabelsRestrictedSearchClientsHandlerTestRelational,
-          self).tearDown()
 
 
 class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):

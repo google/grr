@@ -216,9 +216,15 @@ class ApiListClientCrashesHandlerRegressionTest(
   handler = client_plugin.ApiListClientCrashesHandler
 
   def Run(self):
-    client_ids = self.SetupClients(1)
-    client_id = client_ids[0]
-    client_mock = flow_test_lib.CrashClientMock(client_id, self.token)
+    if data_store.RelationalDBReadEnabled():
+      client = self.SetupTestClientObject(0)
+      client_id = client.client_id
+      client_ids = [rdf_client.ClientURN(client_id)]
+    else:
+      client_ids = self.SetupClients(1)
+      client_id = client_ids[0].Basename()
+    client_mock = flow_test_lib.CrashClientMock(
+        rdf_client.ClientURN(client_id), self.token)
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -230,25 +236,25 @@ class ApiListClientCrashesHandlerRegressionTest(
           client_id: client_mock
       }, False, self.token)
 
-    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id)
+    crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
+        rdf_client.ClientURN(client_id))
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
 
     self.Check(
         "ListClientCrashes",
-        args=client_plugin.ApiListClientCrashesArgs(
-            client_id=client_id.Basename()),
+        args=client_plugin.ApiListClientCrashesArgs(client_id=client_id),
         replace=replace)
     self.Check(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(
-            client_id=client_id.Basename(), count=1),
+            client_id=client_id, count=1),
         replace=replace)
     self.Check(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(
-            client_id=client_id.Basename(), offset=1, count=1),
+            client_id=client_id, offset=1, count=1),
         replace=replace)
 
 

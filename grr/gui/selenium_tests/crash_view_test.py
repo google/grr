@@ -89,7 +89,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
-      self.assertTrue(foreman.AssignTasksToClient(client_id))
+      self.assertTrue(foreman.AssignTasksToClient(client_id.Basename()))
     hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
                                                   self.token)
 

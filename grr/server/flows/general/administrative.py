@@ -598,9 +598,13 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
     logging.info(self.logline, client_id, message)
 
-    # Write crash data to AFF4.
-    client = aff4.FACTORY.Open(client_id, token=self.token)
-    client_info = client.Get(client.Schema.CLIENT_INFO)
+    # Write crash data.
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClient(client_id)
+      client_info = client.startup_info.client_info
+    else:
+      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client_info = client.Get(client.Schema.CLIENT_INFO)
 
     crash_details = rdf_client.ClientCrash(
         client_id=client_id,
@@ -711,8 +715,12 @@ P.S. The state of the failing flow was:
     stats.STATS.IncrementCounter("grr_client_crashes")
 
     # Write crash data to AFF4.
-    client = aff4.FACTORY.Open(client_id, token=self.token)
-    client_info = client.Get(client.Schema.CLIENT_INFO)
+    if data_store.RelationalDBReadEnabled():
+      client = data_store.REL_DB.ReadClient(client_id.Basename())
+      client_info = client.startup_info.client_info
+    else:
+      client = aff4.FACTORY.Open(client_id, token=self.token)
+      client_info = client.Get(client.Schema.CLIENT_INFO)
 
     crash_details.client_info = client_info
     crash_details.crash_type = self.well_known_session_id

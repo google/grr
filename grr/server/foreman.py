@@ -8,8 +8,10 @@ from grr.lib.rdfvalues import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr.server import aff4
+from grr.server import data_store
 
 
+# TODO(amoser): Rename client_obj once relational db becomes standard.
 class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
   """Abstract base class of foreman client rules."""
 
@@ -17,7 +19,9 @@ class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
     """Evaluates the rule represented by this object.
 
     Args:
-      client_obj: An aff4 client object.
+      client_obj: Either an aff4 client object or a client_info dict as returned
+                  by ReadFullInfoClient if the relational db is used for
+                  reading.
 
     Returns:
       A bool value of the evaluation.
@@ -33,7 +37,11 @@ class ForemanOsClientRule(ForemanClientRuleBase):
   protobuf = jobs_pb2.ForemanOsClientRule
 
   def Evaluate(self, client_obj):
-    value = client_obj.Get(client_obj.Schema.SYSTEM)
+    if data_store.RelationalDBReadEnabled():
+      value = client_obj["client"].knowledge_base.os
+    else:
+      value = client_obj.Get(client_obj.Schema.SYSTEM)
+
     if not value:
       return False
 
@@ -63,7 +71,10 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    client_label_names = set(client_obj.GetLabelsNames())
+    if data_store.RelationalDBReadEnabled():
+      client_label_names = [label.name for label in client_obj["labels"]]
+    else:
+      client_label_names = set(client_obj.GetLabelsNames())
 
     return quantifier((name in client_label_names) for name in self.label_names)
 
@@ -79,7 +90,7 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       standard.RegularExpression,
   ]
 
-  def _ResolveField(self, field, client_obj):
+  def _ResolveFieldAFF4(self, field, client_obj):
 
     fsf = ForemanRegexClientRule.ForemanStringField
 
@@ -123,8 +134,47 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       return ""
     return utils.SmartStr(res)
 
+  def _ResolveField(self, field, client_info):
+
+    fsf = ForemanRegexClientRule.ForemanStringField
+    client_obj = client_info["client"]
+    startup_info = client_info["last_startup_info"]
+
+    if field == fsf.UNSET:
+      raise ValueError(
+          "Received regex rule without a valid field specification.")
+    elif field == fsf.USERNAMES:
+      res = " ".join(user.username for user in client_obj.knowledge_base.users)
+    elif field == fsf.UNAME:
+      res = client_obj.Uname()
+    elif field == fsf.FQDN:
+      res = client_obj.knowledge_base.fqdn
+    elif field == fsf.HOST_IPS:
+      res = " ".join(client_obj.GetIPAddresses())
+    elif field == fsf.CLIENT_NAME:
+      res = startup_info and startup_info.client_info.client_name
+    elif field == fsf.CLIENT_DESCRIPTION:
+      res = startup_info and startup_info.client_info.client_description
+    elif field == fsf.SYSTEM:
+      res = client_obj.knowledge_base.os
+    elif field == fsf.MAC_ADDRESSES:
+      res = " ".join(client_obj.GetMacAddresses())
+    elif field == fsf.KERNEL_VERSION:
+      res = client_obj.kernel
+    elif field == fsf.OS_VERSION:
+      res = client_obj.os_version
+    elif field == fsf.OS_RELEASE:
+      res = client_obj.os_release
+
+    if res is None:
+      return ""
+    return utils.SmartStr(res)
+
   def Evaluate(self, client_obj):
-    value = self._ResolveField(self.field, client_obj)
+    if data_store.RelationalDBReadEnabled():
+      value = self._ResolveField(self.field, client_obj)
+    else:
+      value = self._ResolveFieldAFF4(self.field, client_obj)
 
     return self.attribute_regex.Search(value)
 
@@ -141,16 +191,16 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       aff4.AFF4Attribute,
   ]
 
-  def _ResolveField(self, field, client_obj):
+  def _ResolveFieldAFF4(self, field, client_obj):
     if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
       raise ValueError(
           "Received integer rule without a valid field specification.")
 
     if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
-      res = None
       info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
-      if info:
-        return int(info.client_version or 0)
+      if not info:
+        return info
+      return int(info.client_version or 0)
 
     elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
       res = client_obj.Get(client_obj.Schema.INSTALL_DATE)
@@ -163,8 +213,33 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return
     return res.AsSecondsFromEpoch()
 
+  def _ResolveField(self, field, client_info):
+    if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
+      raise ValueError(
+          "Received integer rule without a valid field specification.")
+
+    startup_info = client_info["last_startup_info"]
+    md = client_info["metadata"]
+    client_obj = client_info["client"]
+    if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
+      return startup_info.client_info.client_version
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
+      res = client_obj.install_time
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
+      res = client_obj.startup_info.boot_time
+    elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
+      res = md.clock
+
+    if res is None:
+      return
+    return res.AsSecondsFromEpoch()
+
   def Evaluate(self, client_obj):
-    value = self._ResolveField(self.field, client_obj)
+    if data_store.RelationalDBReadEnabled():
+      value = self._ResolveField(self.field, client_obj)
+    else:
+      value = self._ResolveFieldAFF4(self.field, client_obj)
+
     if value is None:
       return False
 
@@ -220,7 +295,9 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
     """Evaluates rules held in the rule set.
 
     Args:
-      client_obj: An aff4 client object.
+      client_obj: Either an aff4 client object or a client_info dict as returned
+                  by ReadFullInfoClient if the relational db is used for
+                  reading.
 
     Returns:
       A bool value of the evaluation.

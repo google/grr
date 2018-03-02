@@ -7,6 +7,7 @@ to work together.
 
 import logging
 import pdb
+import platform
 import Queue
 import struct
 import threading
@@ -54,12 +55,16 @@ class GRRFleetspeakClient(object):
 
     self._threads = {}
 
-    # TODO(amoser): Once the Fleetspeak nanny functionality is
-    # production ready, change this to
-    # internal_nanny_monitoring=False
-    # heart_beat_cb=self._fs.Heartbeat
-    internal_nanny_monitoring = True
-    heart_beat_cb = None
+    if platform.system() == "Windows":
+      internal_nanny_monitoring = False
+      heart_beat_cb = self._fs.Heartbeat
+    else:
+      # TODO(amoser): Once the Fleetspeak nanny functionality is
+      # production ready, change this to
+      # internal_nanny_monitoring=False
+      # heart_beat_cb=self._fs.Heartbeat
+      internal_nanny_monitoring = True
+      heart_beat_cb = None
 
     # The client worker does all the real work here.
     # In particular, we delegate sending messages to Fleetspeak to a separate

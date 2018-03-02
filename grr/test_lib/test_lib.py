@@ -304,6 +304,7 @@ class GRRBaseTest(unittest.TestCase):
                        client_nr,
                        index=None,
                        arch="x86_64",
+                       last_boot_time=None,
                        kernel="4.0.0",
                        os_version="buster/sid",
                        ping=None,
@@ -342,6 +343,9 @@ class GRRBaseTest(unittest.TestCase):
       if memory_size:
         fd.Set(fd.Schema.MEMORY_SIZE(memory_size))
 
+      if last_boot_time:
+        fd.Set(fd.Schema.LAST_BOOT_TIME(last_boot_time))
+
       kb = rdf_client.KnowledgeBase()
       kb.fqdn = "Host-%x.example.com" % client_nr
       kb.users = [
@@ -367,6 +371,7 @@ class GRRBaseTest(unittest.TestCase):
   def SetupClient(self,
                   client_nr,
                   arch="x86_64",
+                  last_boot_time=None,
                   kernel="4.0.0",
                   os_version="buster/sid",
                   ping=None,
@@ -379,6 +384,7 @@ class GRRBaseTest(unittest.TestCase):
       client_nr: int The GRR ID to be used. 0xABCD maps to C.100000000000abcd
                      in canonical representation.
       arch: string
+      last_boot_time: RDFDatetime
       kernel: string
       os_version: string
       ping: RDFDatetime
@@ -394,6 +400,7 @@ class GRRBaseTest(unittest.TestCase):
           client_nr,
           index=index,
           arch=arch,
+          last_boot_time=last_boot_time,
           kernel=kernel,
           os_version=os_version,
           ping=ping,
@@ -406,6 +413,7 @@ class GRRBaseTest(unittest.TestCase):
   def SetupClients(self,
                    nr_clients,
                    arch="x86_64",
+                   last_boot_time=None,
                    kernel="4.0.0",
                    os_version="buster/sid",
                    ping=None,
@@ -415,6 +423,7 @@ class GRRBaseTest(unittest.TestCase):
         self.SetupClient(
             client_nr,
             arch=arch,
+            last_boot_time=last_boot_time,
             kernel=kernel,
             os_version=os_version,
             ping=ping,
@@ -451,6 +460,7 @@ class GRRBaseTest(unittest.TestCase):
                              client_count,
                              add_cert=True,
                              arch="x86_64",
+                             last_boot_time=None,
                              fqdn=None,
                              kernel="4.0.0",
                              memory_size=None,
@@ -463,6 +473,7 @@ class GRRBaseTest(unittest.TestCase):
           client_nr,
           add_cert=add_cert,
           arch=arch,
+          last_boot_time=last_boot_time,
           fqdn=fqdn,
           kernel=kernel,
           memory_size=memory_size,
@@ -476,6 +487,7 @@ class GRRBaseTest(unittest.TestCase):
                             client_nr,
                             add_cert=True,
                             arch="x86_64",
+                            last_boot_time=None,
                             fqdn=None,
                             kernel="4.0.0",
                             memory_size=None,
@@ -488,6 +500,8 @@ class GRRBaseTest(unittest.TestCase):
 
     client = objects.Client(client_id=client_id)
     client.startup_info.client_info = self._TestClientInfo()
+    if last_boot_time is not None:
+      client.startup_info.boot_time = last_boot_time
 
     client.knowledge_base.fqdn = fqdn or "Host-%x.example.com" % client_nr
     client.knowledge_base.os = system
@@ -1002,6 +1016,18 @@ def GetClientId(writeback_file):
   pkey = rdf_crypto.RSAPrivateKey(serialized_pkey)
   client_urn = comms.ClientCommunicator(private_key=pkey).common_name
   return re.compile(r"^aff4:/").sub("", client_urn.SerializeToString())
+
+
+class RelationalDBTestMixin(object):
+
+  def setUp(self):
+    super(RelationalDBTestMixin, self).setUp()
+    self.enable_relational_db = ConfigOverrider({"Database.useForReads": True})
+    self.enable_relational_db.Start()
+
+  def tearDown(self):
+    super(RelationalDBTestMixin, self).tearDown()
+    self.enable_relational_db.Stop()
 
 
 def main(argv=None):
