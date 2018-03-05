@@ -69,6 +69,8 @@ Examples:
 """
 
 import base64
+import collections
+import itertools
 import logging
 import os
 import pdb
@@ -481,97 +483,6 @@ class CommsInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_sent_messages")
 
 
-class SizeQueue(object):
-  """A Queue which limits the total size of its elements.
-
-  The standard Queue implementations uses the total number of elements to block
-  on. In the client we want to limit the total memory footprint, hence we need
-  to use the total size as a measure of how full the queue is.
-
-  TODO(user): this class needs some attention to ensure it is thread safe.
-  """
-  total_size = 0
-
-  def __init__(self, maxsize=1024, heart_beat_cb=None):
-    self.lock = threading.RLock()
-    self.queue = []
-    self._reversed = []
-    self.total_size = 0
-    self.maxsize = maxsize
-    self.heart_beat_cb = heart_beat_cb
-
-  def Put(self,
-          item,
-          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-          block=True,
-          timeout=1000):
-    """Put an item on the queue, blocking if it is too full.
-
-    This is a slightly modified Queue.put method which blocks when the queue
-    contains more than the threshold.
-
-    Args:
-      item: The item to put - must have a __len__() method.
-      priority: The priority of this message.
-      block: If True we block indefinitely.
-      timeout: Maximum time we spend waiting on the queue (1 sec resolution).
-
-    Raises:
-      Queue.Full: if the queue is full and block is False, or
-        timeout is exceeded.
-    """
-    # We only queue already serialized objects so we know how large they are.
-    if isinstance(item, rdfvalue.RDFValue):
-      item = item.SerializeToString()
-
-    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
-      pass  # If high priority is set we dont care about the size of the queue.
-
-    elif not block:
-      if self.total_size >= self.maxsize:
-        raise Queue.Full
-
-    else:
-      count = 0
-      # Wait until the queue has more space. We do not hold the lock here to
-      # ensure that the posting thread can drain this queue while we block here.
-      while self.total_size >= self.maxsize:
-        time.sleep(1)
-        if self.heart_beat_cb:
-          self.heart_beat_cb()
-        count += 1
-
-        if timeout and count > timeout:
-          raise Queue.Full
-
-    with self.lock:
-      self.queue.append((-1 * priority, item))
-      self.total_size += len(item)
-
-  def Get(self):
-    """Retrieves the items from the queue."""
-    with self.lock:
-      if self._reversed:
-        # We have leftovers from a partial Get().
-        self._reversed.reverse()
-        self.queue = self._reversed + self.queue
-
-      self.queue.sort(key=lambda msg: msg[0])  # by priority only.
-      self.queue.reverse()
-      self._reversed, self.queue = self.queue, []
-
-      while self._reversed:
-        item = self._reversed.pop()[1]
-        self.total_size -= len(item)
-        yield item
-
-  def Size(self):
-    return self.total_size
-
-  def Full(self):
-    return self.total_size >= self.maxsize
-
-
 class GRRClientWorker(threading.Thread):
   """This client worker runs the main loop in another thread.
 
@@ -649,7 +560,7 @@ class GRRClientWorker(threading.Thread):
     else:
       # The size of the output queue controls the worker thread. Once this queue
       # is too large, the worker thread will block until the queue is drained.
-      self._out_queue = SizeQueue(
+      self._out_queue = SizeLimitedQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
           heart_beat_cb=heart_beat_cb)
 
@@ -658,6 +569,48 @@ class GRRClientWorker(threading.Thread):
     # Start our working thread.
     if start_worker_thread:
       self.start()
+
+  def QueueResponse(self,
+                    message,
+                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+                    blocking=True):
+    """Pushes the Serialized Message on the output queue."""
+    self._out_queue.Put(message, priority=priority, block=blocking)
+
+  def Drain(self, max_size=1024):
+    """Return a GrrQueue message list from the queue, draining it.
+
+    This is used to get the messages going _TO_ the server when the
+    client connects.
+
+    Args:
+       max_size: The size (in bytes) of the returned protobuf will be at most
+       one message length over this size.
+
+    Returns:
+       A MessageList protobuf
+    """
+    messages = self._out_queue.GetMessages(soft_size_limit=max_size)
+    stats.STATS.IncrementCounter(
+        "grr_client_sent_messages", delta=len(messages.job))
+
+    return messages
+
+  def QueueMessages(self, messages):
+    """Push messages to the input queue."""
+    # Push all the messages to our input queue
+    for message in messages:
+      self._in_queue.put(message, block=True)
+
+      stats.STATS.IncrementCounter("grr_client_received_messages")
+
+  def InQueueSize(self):
+    """Returns the number of protobufs ready to be sent in the queue."""
+    return self._in_queue.qsize()
+
+  def OutQueueSize(self):
+    """Returns the total size of messages ready to be sent."""
+    return self._out_queue.Size()
 
   def SyncTransactionLog(self):
     self.transaction_log.Sync()
@@ -919,54 +872,176 @@ class GRRClientWorker(threading.Thread):
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
-  def Drain(self, max_size=1024):
-    """Return a GrrQueue message list from the queue, draining it.
 
-    This is used to get the messages going _TO_ the server when the
-    client connects.
+class SizeLimitedQueue(object):
+  """A Queue which limits the total size of its elements.
+
+  The standard Queue implementations uses the total number of elements to block
+  on. In the client we want to limit the total memory footprint, hence we need
+  to use the total size as a measure of how full the queue is.
+  """
+
+  def __init__(self, heart_beat_cb, maxsize=1024):
+    self._queues = {
+        rdf_flows.GrrMessage.Priority.LOW_PRIORITY:
+            collections.deque(),
+        rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY:
+            collections.deque(),
+        rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
+            collections.deque(),
+        # ClientCommunicator uses messages with priority HIGH_PRIORITY+1
+        rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1:
+            collections.deque()
+    }
+
+    self._lock = threading.Lock()
+    self._total_size = 0
+    self._maxsize = maxsize
+    self._heart_beat_cb = heart_beat_cb
+
+  def Put(self,
+          message,
+          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+          block=True,
+          timeout=1000):
+    """Put a message on the queue, blocking if it is too full.
+
+    Blocks when the queue contains more than the threshold.
 
     Args:
-       max_size: The size (in bytes) of the returned protobuf will be at most
-       one message length over this size.
+      message: rdf_flows.GrrMessage The message to put.
+      priority: rdf_flows.GrrMessage.Priority The priority of this message.
+      block: bool If True, we block and wait for the queue to have more space.
+        Otherwise, if the queue is full, we raise.
+      timeout: int Maximum time (in seconds, with 1 sec resolution) we spend
+        waiting on the queue.
+
+    Raises:
+      Queue.Full: if the queue is full and block is False, or
+        timeout is exceeded.
+    """
+    # We only queue already serialized objects so we know how large they are.
+    message = message.SerializeToString()
+
+    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
+      pass  # If high priority is set we don't care about the size of the queue.
+
+    elif not block:
+      if self.Full():
+        raise Queue.Full
+
+    else:
+      t0 = time.time()
+      while self.Full():
+        time.sleep(1)
+        self._heart_beat_cb()
+
+        if time.time() - t0 > timeout:
+          raise Queue.Full
+
+    with self._lock:
+      self._queues[priority].appendleft(message)
+      self._total_size += len(message)
+
+  def _GeneratePriority(self, priority):
+    """Yields messages with given priority. Lock should be held by the caller.
+
+    Args:
+      priority: rdf_flows.GrrMessage.Priority
+    """
+    queue = self._queues[priority]
+    while queue:
+      yield queue.pop()
+
+  def _Generate(self):
+    """Yields messages in priority order. Lock should be held by the caller."""
+    return itertools.chain(
+        self._GeneratePriority(rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1),
+        self._GeneratePriority(rdf_flows.GrrMessage.Priority.HIGH_PRIORITY),
+        self._GeneratePriority(rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY),
+        self._GeneratePriority(rdf_flows.GrrMessage.Priority.LOW_PRIORITY))
+
+  def GetMessages(self, soft_size_limit=None):
+    """Retrieves and removes the messages from the queue in priority order.
+
+    Args:
+      soft_size_limit: int If there is more data in the queue than
+        soft_size_limit bytes, the returned list of messages will be
+        approximately this large. If None (default), returns all messages
+        currently on the queue.
 
     Returns:
-       A MessageList protobuf
+      rdf_flows.MessageList A list of messages that were .Put on the queue
+      earlier in priority order; messages with equivalent priority are returned
+      FIFO.
     """
-    queue = rdf_flows.MessageList()
-    length = 0
+    with self._lock:
+      ret = rdf_flows.MessageList()
+      ret_size = 0
+      for message in self._Generate():
+        ret.job.append(rdf_flows.GrrMessage.FromSerializedString(message))
+        ret_size += len(message)
+        if soft_size_limit is not None and ret_size > soft_size_limit:
+          break
 
-    for message in self._out_queue.Get():
-      queue.job.Append(rdf_flows.GrrMessage.FromSerializedString(message))
-      stats.STATS.IncrementCounter("grr_client_sent_messages")
-      length += len(message)
+      return ret
 
-      if length > max_size:
-        break
+  def Size(self):
+    return self._total_size
 
-    return queue
+  def Full(self):
+    return self._total_size >= self._maxsize
 
-  def QueueResponse(self,
-                    message,
-                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-                    blocking=True):
-    """Pushes the Serialized Message on the output queue."""
-    self._out_queue.Put(message, priority=priority, block=blocking)
 
-  def QueueMessages(self, messages):
-    """Push messages to the input queue."""
-    # Push all the messages to our input queue
-    for message in messages:
-      self._in_queue.put(message, block=True)
+class GRRThreadedWorker(GRRClientWorker, threading.Thread):
+  """This client worker runs the main loop in another thread.
 
-      stats.STATS.IncrementCounter("grr_client_received_messages")
+  The client which uses this worker is not blocked while queuing messages to be
+  worked on. There is only a single working thread though.
 
-  def InQueueSize(self):
-    """Returns the number of protobufs ready to be sent in the queue."""
-    return self._in_queue.qsize()
+  The overall effect is that the HTTP client is not blocked waiting for actions
+  to be executed, and at the same time, the client working thread is not blocked
+  waiting on network latency.
+  """
 
-  def OutQueueSize(self):
-    """Returns the total size of messages ready to be sent."""
-    return self._out_queue.Size()
+  def __init__(self, start_worker_thread=True, client=None, out_queue=None):
+    GRRClientWorker.__init__(self, client=client)
+    threading.Thread.__init__(self)
+
+    # This queue should never hit its maximum since the server will throttle
+    # messages before this.
+    self._in_queue = utils.HeartbeatQueue(
+        callback=self.nanny_controller.Heartbeat, maxsize=1024)
+
+    if out_queue is not None:
+      self._out_queue = out_queue
+    else:
+      # The size of the output queue controls the worker thread. Once this queue
+      # is too large, the worker thread will block until the queue is drained.
+      self._out_queue = SizeLimitedQueue(
+          maxsize=config.CONFIG["Client.max_out_queue"],
+          heart_beat_cb=self.nanny_controller.Heartbeat)
+
+    self.daemon = True
+
+    # Start our working thread.
+    if start_worker_thread:
+      self.start()
+
+  def Sleep(self, timeout):
+    """Sleeps the calling thread with heartbeat."""
+    self.nanny_controller.Heartbeat()
+
+    # Split a long sleep interval into 1 second intervals so we can heartbeat.
+    while timeout > 0:
+      time.sleep(min(1., timeout))
+      timeout -= 1
+      # If the output queue is full, we are ready to do a post - no
+      # point in waiting.
+      if self._out_queue.Full():
+        return
+
+      self.nanny_controller.Heartbeat()
 
   def OnStartup(self):
     """A handler that is called on client startup."""

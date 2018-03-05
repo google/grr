@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 """Test for client comms."""
 
+import Queue
 import time
-
+import mock
 import requests
 
 from grr_response_client import comms
 from grr.lib import flags
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 
 
@@ -149,8 +151,9 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     # The result is correct.
     self.assertEqual(result.data, "Good")
 
-    queries = [(x[1]["url"], x[1]["proxies"]["http"])
-               for x in instrumentor.actions]
+    queries = [
+        (x[1]["url"], x[1]["proxies"]["http"]) for x in instrumentor.actions
+    ]
 
     self.assertEqual(
         queries,
@@ -233,6 +236,82 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
       result = manager.OpenServerEndpoint("control")
 
     self.assertEqual(result.data, "Good")
+
+
+class SizeLimitedQueueTest(test_lib.GRRBaseTest):
+
+  def testSizeLimitedQueue(self):
+
+    queue = comms.SizeLimitedQueue(maxsize=10000000, heart_beat_cb=lambda: None)
+
+    msg_a = rdf_flows.GrrMessage(name="A")
+    msg_b = rdf_flows.GrrMessage(name="B")
+    msg_c = rdf_flows.GrrMessage(name="C")
+
+    for _ in xrange(10):
+      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+
+    result = queue.GetMessages()
+    self.assertEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
+
+    # Tests a partial Get().
+    for _ in xrange(7):
+      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+
+    result = queue.GetMessages(
+        soft_size_limit=len(msg_a.SerializeToString()) * 5 - 1)
+
+    self.assertEqual(list(result.job), [msg_c] * 5)
+
+    for _ in xrange(3):
+      queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+      queue.Put(msg_c, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+
+    # Append the remaining messages to the same result.
+    result.job.Extend(queue.GetMessages().job)
+    self.assertEqual(list(result.job), [msg_c] * 10 + [msg_a, msg_b] * 10)
+
+  def testSizeLimitedQueueOverflow(self):
+
+    msg_a = rdf_flows.GrrMessage(name="A")
+    msg_b = rdf_flows.GrrMessage(name="B")
+    msg_c = rdf_flows.GrrMessage(name="C")
+    msg_d = rdf_flows.GrrMessage(name="D")
+
+    queue = comms.SizeLimitedQueue(
+        maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=lambda: None)
+
+    queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+    queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+    queue.Put(msg_c, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+    with self.assertRaises(Queue.Full):
+      queue.Put(
+          msg_d, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, block=False)
+
+  def testSizeLimitedQueueHeartbeat(self):
+
+    msg_a = rdf_flows.GrrMessage(name="A")
+    msg_b = rdf_flows.GrrMessage(name="B")
+    msg_c = rdf_flows.GrrMessage(name="C")
+    msg_d = rdf_flows.GrrMessage(name="D")
+
+    heartbeat = mock.Mock()
+
+    queue = comms.SizeLimitedQueue(
+        maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=heartbeat)
+
+    queue.Put(msg_a, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+    queue.Put(msg_b, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+    queue.Put(msg_c, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY)
+    with self.assertRaises(Queue.Full):
+      queue.Put(msg_d, rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, timeout=1)
+
+    self.assertTrue(heartbeat.called)
 
 
 def main(argv):

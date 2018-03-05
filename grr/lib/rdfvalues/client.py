@@ -1303,3 +1303,17 @@ class ClientComponent(structs.RDFProtoStruct):
 class ListNetworkConnectionsArgs(structs.RDFProtoStruct):
   """Args for the ListNetworkConnections client action."""
   protobuf = flows_pb2.ListNetworkConnectionsArgs
+
+
+class BlobImageChunkDescriptor(structs.RDFProtoStruct):
+  """A descriptor of a file chunk stored in VFS blob image."""
+
+  protobuf = jobs_pb2.BlobImageChunkDescriptor
+  rdf_deps = []
+
+
+class BlobImageDescriptor(structs.RDFProtoStruct):
+  """A descriptor of a file stored as VFS blob image."""
+
+  protobuf = jobs_pb2.BlobImageDescriptor
+  rdf_deps = [BlobImageChunkDescriptor]

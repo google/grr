@@ -195,7 +195,7 @@ class GRRFleetspeakClient(object):
 
 
 class _FleetspeakQueueForwarder(object):
-  """Ducktyped replacement for comms.SizeQueue; forwards to _SenderThread."""
+  """Ducktyped replacement for SizeLimitedQueue; forwards to _SenderThread."""
 
   def __init__(self, sender_queue):
     """Constructor.

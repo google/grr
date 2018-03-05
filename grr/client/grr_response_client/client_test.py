@@ -9,7 +9,6 @@ from grr_response_client import actions
 # pylint: disable=unused-import
 from grr_response_client import client_actions
 # pylint: enable=unused-import
-from grr_response_client import comms
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -143,43 +142,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
                      [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
     self.assertEqual([m.require_fastpoll for m in message_list],
                      [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-
-  def testSizeQueue(self):
-
-    queue = comms.SizeQueue(maxsize=10000000, heart_beat_cb=lambda: None)
-
-    for _ in range(10):
-      queue.Put("A", 1)
-      queue.Put("B", 1)
-      queue.Put("C", 2)
-
-    result = []
-    for item in queue.Get():
-      result.append(item)
-    self.assertEqual(result, ["C"] * 10 + ["A", "B"] * 10)
-
-    # Tests a partial Get().
-    for _ in range(7):
-      queue.Put("A", 1)
-      queue.Put("B", 1)
-      queue.Put("C", 2)
-
-    result = []
-    for item in queue.Get():
-      result.append(item)
-      if len(result) == 5:
-        break
-
-    self.assertEqual(result, ["C"] * 5)
-
-    for _ in range(3):
-      queue.Put("A", 1)
-      queue.Put("B", 1)
-      queue.Put("C", 2)
-
-    for item in queue.Get():
-      result.append(item)
-    self.assertEqual(result, ["C"] * 10 + ["A", "B"] * 10)
 
 
 def main(argv):

@@ -3,17 +3,28 @@
 
 import getpass
 import logging
+import os
 import unittest
+
+# We need to import the server_plugins module before other server init modules.
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: disable=unused-import,g-bad-import-order
 
 from grr import config
 from grr_api_client import api
 from grr.config import contexts
+from grr.lib import config_lib
 from grr.lib import flags
+from grr.server import access_control
+from grr.server import data_store
+from grr.server import maintenance_utils
 from grr.server import server_startup
 from grr_response_test.end_to_end_tests import test_base
 # pylint: disable=unused-import
 from grr_response_test.end_to_end_tests import tests
 # pylint: enable=unused-import
+
 
 flags.DEFINE_string("api_endpoint", "http://localhost:8000",
                     "GRR API endpoint.")
@@ -37,6 +48,9 @@ flags.DEFINE_list("testnames", [],
 # We use a logging Filter to exclude noisy unwanted log output.
 flags.DEFINE_list("filenames_excluded_from_log", ["connectionpool.py"],
                   "Files whose log messages won't get printed.")
+
+flags.DEFINE_bool("upload_test_binaries", True,
+                  "Whether to upload executables needed by some e2e tests.")
 
 
 def RunEndToEndTests():
@@ -62,6 +76,13 @@ def RunEndToEndTests():
     raise RuntimeError(
         "No clients to test on. Either pass --client_ids or --hostnames "
         "or check that corresponding clients checked in recently.")
+
+  # Make sure binaries required by tests are uploaded to the datastore.
+  if flags.FLAGS.upload_test_binaries:
+    api_response = grr_api._context.SendRequest("ListGrrBinaries", None)
+    server_paths = {item.path for item in api_response.items}
+    UploadBinaryIfAbsent(server_paths, "hello", "linux/test/hello")
+    UploadBinaryIfAbsent(server_paths, "hello.exe", "windows/test/hello.exe")
 
   results_by_client = {}
   max_test_name_len = 0
@@ -97,6 +118,17 @@ def ValidateAllTests():
                          (p, cls.__name__))
 
 
+def UploadBinaryIfAbsent(server_paths, bin_name, server_path):
+  if server_path in server_paths:
+    return
+  logging.info("Binary %s not uploaded yet. Will upload.", server_path)
+  package_dir = config_lib.Resource().Filter(
+      "grr_response_test@grr-response-test")
+  with open(os.path.join(package_dir, "test_data", bin_name), "rb") as f:
+    maintenance_utils.UploadSignedConfigBlob(
+        f.read(), "aff4:/config/executables/%s" % server_path)
+
+
 def RunTestsAgainstClient(grr_api, client):
   """Runs all applicable end-to-end tests against a given client.
 
@@ -112,7 +144,7 @@ def RunTestsAgainstClient(grr_api, client):
   """
   if not client.data.os_info.system:
     raise RuntimeError("Unknown system type for client %s. Likely waiting "
-                       "on interrogate to complete.", client.client_id)
+                       "on interrogate to complete." % client.client_id)
 
   results = {}
   test_base.init_fn = lambda: (grr_api, client)
@@ -150,6 +182,8 @@ def main(argv):
   server_startup.Init()
   for handler in logging.getLogger().handlers:
     handler.addFilter(E2ELogFilter())
+  data_store.default_token = access_control.ACLToken(
+      username=getpass.getuser(), reason="End-to-end tests")
   return RunEndToEndTests()
 
 

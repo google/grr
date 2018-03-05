@@ -38,21 +38,7 @@ def GetProcessName(platform):
 def GetProcessNameRegex(platform):
   """Returns a regex that matches a process on the client under test."""
 
-  binary = GetProcessName(platform)
-
-  if platform == test_base.EndToEndTest.Platform.WINDOWS:
-    # GRRservice.exe -> GRRservice
-    binary = binary[:-4]
-  elif platform == test_base.EndToEndTest.Platform.LINUX:
-    # grrd -> grr
-    binary = binary[:-1]
-  elif platform == test_base.EndToEndTest.Platform.DARWIN:
-    # grr.
-    pass
-  else:
-    raise ValueError("Platform %s unknown" % platform)
-
-  return "^%s*" % binary
+  return "^%s$" % GetProcessName(platform)
 
 
 class TestYaraScan(test_base.EndToEndTest):
@@ -81,8 +67,8 @@ rule test_rule {
     f = self.RunFlowAndWait("YaraProcessScan", args=args)
 
     all_results = list(f.ListResults())
-    self.assertNotEmpty(all_results,
-                        "We expect results for at least one matching process.")
+    self.assertTrue(all_results,
+                    "We expect results for at least one matching process.")
 
     for flow_result in all_results:
       process_scan_match = flow_result.payload
@@ -124,19 +110,24 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
     f = self.RunFlowAndWait("YaraDumpProcessMemory", args=args)
 
     results = [x.payload for x in f.ListResults()]
-    self.assertGreater(len(results), 1)
-    self.assertEqual(len(results[0].dumped_processes), 1)
-    self.assertEqual(len(results[0].errors), 0)
-    dumped_proc = results[0].dumped_processes[0]
+    self.assertTrue(results, "Expected at least a YaraProcessDumpResponse.")
+    process_dump_response = results[0]
+    self.assertTrue(process_dump_response.dumped_processes,
+                    "Expected at least one dumped process.")
+    self.assertFalse(process_dump_response.errors)
 
-    self.assertEqual(dumped_proc.process.name, process_name)
+    dump_file_count = 0
+    paths_in_dump_response = set()
+    for dump_info in process_dump_response.dumped_processes:
+      self.assertEqual(dump_info.process.name, process_name)
+      paths_in_dump_response.update(
+          {f.path[f.path.find(process_name):]
+           for f in dump_info.dump_files})
+      self.assertTrue(dump_info.dump_files)
+      dump_file_count += len(dump_info.dump_files)
 
-    paths_to_collect = set(
-        [f.path[f.path.find(process_name):] for f in dumped_proc.dump_files])
-
-    dump_file_count = len(dumped_proc.dump_files)
-    self.assertGreater(dump_file_count, 0)
-
+    # There should be as many StatEntry responses as the total number of
+    # dump-file PathSpecs in the YaraProcessDumpResponse.
     self.assertEqual(len(results), dump_file_count + 1)
 
     paths_collected = set()
@@ -151,4 +142,4 @@ class TestYaraProcessDump(test_base.AbstractFileTransferTest):
         data = self.ReadFromFile("temp%s" % dump_file.pathspec.path, 10)
         self.assertEqual(len(data), 10)
 
-    self.assertEqual(paths_to_collect, paths_collected)
+    self.assertEqual(paths_in_dump_response, paths_collected)
