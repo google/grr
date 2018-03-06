@@ -872,6 +872,92 @@ class GRRClientWorker(threading.Thread):
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
+  def Sleep(self, timeout):
+    """Sleeps the calling thread with heartbeat."""
+    self.nanny_controller.Heartbeat()
+
+    # Split a long sleep interval into 1 second intervals so we can heartbeat.
+    while timeout > 0:
+      time.sleep(min(1., timeout))
+      timeout -= 1
+      # If the output queue is full, we are ready to do a post - no
+      # point in waiting.
+      if self._out_queue.Full():
+        return
+
+      self.nanny_controller.Heartbeat()
+
+  def OnStartup(self):
+    """A handler that is called on client startup."""
+    # We read the transaction log and fail any requests that are in it. If there
+    # is anything in the transaction log we assume its there because we crashed
+    # last time and let the server know.
+
+    last_request = self.transaction_log.Get()
+    if last_request:
+      status = rdf_flows.GrrStatus(
+          status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
+          error_message="Client killed during transaction")
+      nanny_status = self.nanny_controller.GetNannyStatus()
+      if nanny_status:
+        status.nanny_status = nanny_status
+
+      self.SendReply(
+          status,
+          request_id=last_request.request_id,
+          response_id=1,
+          session_id=last_request.session_id,
+          message_type=rdf_flows.GrrMessage.Type.STATUS)
+
+    self.transaction_log.Clear()
+
+    # Inform the server that we started.
+    action_cls = actions.ActionPlugin.classes.get("SendStartupInfo",
+                                                  actions.ActionPlugin)
+    action = action_cls(grr_worker=self)
+    action.Run(None, ttl=1)
+
+  def run(self):
+    """Main thread for processing messages."""
+
+    self.OnStartup()
+
+    try:
+      while True:
+        message = self._in_queue.get()
+
+        # A message of None is our terminal message.
+        if message is None:
+          break
+
+        try:
+          self.HandleMessage(message)
+          # Catch any errors and keep going here
+        except Exception as e:  # pylint: disable=broad-except
+          logging.warn("%s", e)
+          self.SendReply(
+              rdf_flows.GrrStatus(
+                  status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+                  error_message=utils.SmartUnicode(e)),
+              request_id=message.request_id,
+              response_id=1,
+              session_id=message.session_id,
+              task_id=message.task_id,
+              message_type=rdf_flows.GrrMessage.Type.STATUS)
+          if flags.FLAGS.debug:
+            pdb.post_mortem()
+
+    except Exception as e:  # pylint: disable=broad-except
+      logging.error("Exception outside of the processing loop: %r", e)
+    finally:
+      # There's no point in running the client if it's broken out of the
+      # processing loop and it should be restarted shortly anyway.
+      logging.fatal("The client has broken out of its processing loop.")
+
+      # The binary (Python threading library, perhaps) has proven in tests to be
+      # very persistent to termination calls, so we kill it with fire.
+      os.kill(os.getpid(), signal.SIGKILL)
+
 
 class SizeLimitedQueue(object):
   """A Queue which limits the total size of its elements.
@@ -991,128 +1077,6 @@ class SizeLimitedQueue(object):
 
   def Full(self):
     return self._total_size >= self._maxsize
-
-
-class GRRThreadedWorker(GRRClientWorker, threading.Thread):
-  """This client worker runs the main loop in another thread.
-
-  The client which uses this worker is not blocked while queuing messages to be
-  worked on. There is only a single working thread though.
-
-  The overall effect is that the HTTP client is not blocked waiting for actions
-  to be executed, and at the same time, the client working thread is not blocked
-  waiting on network latency.
-  """
-
-  def __init__(self, start_worker_thread=True, client=None, out_queue=None):
-    GRRClientWorker.__init__(self, client=client)
-    threading.Thread.__init__(self)
-
-    # This queue should never hit its maximum since the server will throttle
-    # messages before this.
-    self._in_queue = utils.HeartbeatQueue(
-        callback=self.nanny_controller.Heartbeat, maxsize=1024)
-
-    if out_queue is not None:
-      self._out_queue = out_queue
-    else:
-      # The size of the output queue controls the worker thread. Once this queue
-      # is too large, the worker thread will block until the queue is drained.
-      self._out_queue = SizeLimitedQueue(
-          maxsize=config.CONFIG["Client.max_out_queue"],
-          heart_beat_cb=self.nanny_controller.Heartbeat)
-
-    self.daemon = True
-
-    # Start our working thread.
-    if start_worker_thread:
-      self.start()
-
-  def Sleep(self, timeout):
-    """Sleeps the calling thread with heartbeat."""
-    self.nanny_controller.Heartbeat()
-
-    # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    while timeout > 0:
-      time.sleep(min(1., timeout))
-      timeout -= 1
-      # If the output queue is full, we are ready to do a post - no
-      # point in waiting.
-      if self._out_queue.Full():
-        return
-
-      self.nanny_controller.Heartbeat()
-
-  def OnStartup(self):
-    """A handler that is called on client startup."""
-    # We read the transaction log and fail any requests that are in it. If there
-    # is anything in the transaction log we assume its there because we crashed
-    # last time and let the server know.
-
-    last_request = self.transaction_log.Get()
-    if last_request:
-      status = rdf_flows.GrrStatus(
-          status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
-          error_message="Client killed during transaction")
-      nanny_status = self.nanny_controller.GetNannyStatus()
-      if nanny_status:
-        status.nanny_status = nanny_status
-
-      self.SendReply(
-          status,
-          request_id=last_request.request_id,
-          response_id=1,
-          session_id=last_request.session_id,
-          message_type=rdf_flows.GrrMessage.Type.STATUS)
-
-    self.transaction_log.Clear()
-
-    # Inform the server that we started.
-    action_cls = actions.ActionPlugin.classes.get("SendStartupInfo",
-                                                  actions.ActionPlugin)
-    action = action_cls(grr_worker=self)
-    action.Run(None, ttl=1)
-
-  def run(self):
-    """Main thread for processing messages."""
-
-    self.OnStartup()
-
-    try:
-      while True:
-        message = self._in_queue.get()
-
-        # A message of None is our terminal message.
-        if message is None:
-          break
-
-        try:
-          self.HandleMessage(message)
-          # Catch any errors and keep going here
-        except Exception as e:  # pylint: disable=broad-except
-          logging.warn("%s", e)
-          self.SendReply(
-              rdf_flows.GrrStatus(
-                  status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                  error_message=utils.SmartUnicode(e)),
-              request_id=message.request_id,
-              response_id=1,
-              session_id=message.session_id,
-              task_id=message.task_id,
-              message_type=rdf_flows.GrrMessage.Type.STATUS)
-          if flags.FLAGS.debug:
-            pdb.post_mortem()
-
-    except Exception as e:  # pylint: disable=broad-except
-      logging.error("Exception outside of the processing loop: %r", e)
-    finally:
-      # There's no point in running the client if it's broken out of the
-      # processing loop and it should be restarted shortly anyway.
-      logging.fatal("The client has broken out of its processing loop.")
-
-      # The binary (Python threading library, perhaps) has proven in tests to be
-      # very persistent to termination calls, so we kill it with fire.
-      os.kill(os.getpid(), signal.SIGKILL)
 
 
 class GRRHTTPClient(object):

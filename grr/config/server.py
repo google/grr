@@ -115,7 +115,8 @@ config_lib.DEFINE_integer("Frontend.message_expiry_time", 600,
 config_lib.DEFINE_string("Frontend.upload_store", "FileUploadFileStore",
                          "The implementation of the upload file store.")
 
-config_lib.DEFINE_string("FileUploadFileStore.root_dir", "/tmp/",
+config_lib.DEFINE_string("FileUploadFileStore.root_dir",
+                         "%(Config.prefix)/var/grr-filestore",
                          "Where to store files uploaded.")
 
 config_lib.DEFINE_bool("Server.initialized", False,

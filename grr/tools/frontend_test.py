@@ -47,7 +47,9 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
 
     cls.config_overrider = test_lib.ConfigOverrider({
         "Rekall.profile_server":
-            rekall_test_lib.TestRekallRepositoryProfileServer.__name__
+            rekall_test_lib.TestRekallRepositoryProfileServer.__name__,
+        "FileUploadFileStore.root_dir":
+            "/tmp",
     })
     cls.config_overrider.Start()
 
