@@ -40,5 +40,5 @@ class TestFingerprintFileOSWindows(test_base.EndToEndTest):
     args.pathspec.path = "C:\\Windows\\regedit.exe"
     args.pathspec.pathtype = args.pathspec.OS
 
-    with self.WaitForFileRefresh("/fs/os/C:/Windows/regedit.exe"):
+    with self.WaitForFileRefresh("fs/os/C:/Windows/regedit.exe"):
       self.RunFlowAndWait("FingerprintFile", args=args)

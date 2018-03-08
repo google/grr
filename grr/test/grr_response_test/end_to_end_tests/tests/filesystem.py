@@ -185,7 +185,7 @@ class TestListDirectoryTSKWindows(test_base.EndToEndTest):
 
     regedit_path = None
     for r in results:
-      path = "/fs/tsk"
+      path = "fs/tsk"
       pathspec = r.payload.pathspec
       while pathspec.path:
         path += pathspec.path

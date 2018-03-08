@@ -231,16 +231,14 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def testLiteralMatchCondition(self):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
-    literal = "pam_unix(ssh:session)"
 
-    clmc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
+    literal = "pam_unix(ssh:session)"
     bytes_before = 10
     bytes_after = 20
-    condition = rdf_file_finder.FileFinderCondition(
-        condition_type="CONTENTS_LITERAL_MATCH",
-        contents_literal_match=clmc(
-            literal=literal, bytes_before=bytes_before,
-            bytes_after=bytes_after))
+
+    condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+        literal=literal, bytes_before=bytes_before, bytes_after=bytes_after)
+
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition])
     relative_results = self._GetRelativeResults(
@@ -261,18 +259,15 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
-    clmc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
+    literal = "mydomain.com"
     bytes_before = 10
     bytes_after = 20
 
-    literal = "mydomain.com"
-    condition = rdf_file_finder.FileFinderCondition(
-        condition_type="CONTENTS_LITERAL_MATCH",
-        contents_literal_match=clmc(
-            literal=literal,
-            mode="ALL_HITS",
-            bytes_before=bytes_before,
-            bytes_after=bytes_after))
+    condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+        literal=literal,
+        mode="ALL_HITS",
+        bytes_before=bytes_before,
+        bytes_after=bytes_after)
 
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition])
@@ -284,19 +279,16 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def testLiteralMatchConditionLargeFile(self):
     paths = [os.path.join(self.base_path, "new_places.sqlite")]
-    literal = "RecentlyBookmarked"
 
-    clmc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
+    literal = "RecentlyBookmarked"
     bytes_before = 10
     bytes_after = 20
 
-    condition = rdf_file_finder.FileFinderCondition(
-        condition_type="CONTENTS_LITERAL_MATCH",
-        contents_literal_match=clmc(
-            literal=literal,
-            mode="ALL_HITS",
-            bytes_before=bytes_before,
-            bytes_after=bytes_after))
+    condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+        literal=literal,
+        mode="ALL_HITS",
+        bytes_before=bytes_before,
+        bytes_after=bytes_after)
 
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition])
@@ -312,18 +304,14 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def testRegexMatchCondition(self):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
-    regex = r"pa[nm]_o?unix\(s{2}h"
 
+    regex = r"pa[nm]_o?unix\(s{2}h"
     bytes_before = 10
     bytes_after = 20
-    crmc = rdf_file_finder.FileFinderContentsRegexMatchCondition
-    condition = rdf_file_finder.FileFinderCondition(
-        condition_type="CONTENTS_REGEX_MATCH",
-        contents_regex_match=crmc(
-            regex=regex,
-            bytes_before=bytes_before,
-            bytes_after=bytes_after,
-        ))
+
+    condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+        regex=regex, bytes_before=bytes_before, bytes_after=bytes_after)
+
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition])
     relative_results = self._GetRelativeResults(
@@ -341,19 +329,16 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     searching_path = os.path.join(self.base_path, "searching")
     paths = [searching_path + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
+    regex = r"mydo....\.com"
     bytes_before = 10
     bytes_after = 20
-    crmc = rdf_file_finder.FileFinderContentsRegexMatchCondition
 
-    regex = r"mydo....\.com"
-    condition = rdf_file_finder.FileFinderCondition(
-        condition_type="CONTENTS_REGEX_MATCH",
-        contents_regex_match=crmc(
-            regex=regex,
-            mode="ALL_HITS",
-            bytes_before=bytes_before,
-            bytes_after=bytes_after,
-        ))
+    condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+        regex=regex,
+        mode="ALL_HITS",
+        bytes_before=bytes_before,
+        bytes_after=bytes_after)
+
     raw_results = self._RunFileFinder(
         paths, self.stat_action, conditions=[condition])
     self.assertEqual(len(raw_results), 1)
@@ -366,8 +351,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
   def testHashAction(self):
     paths = [os.path.join(self.base_path, "hello.exe")]
 
-    hash_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.HASH)
+    hash_action = rdf_file_finder.FileFinderAction.Hash()
     results = self._RunFileFinder(paths, hash_action)
     self.assertEqual(len(results), 1)
     res = results[0]
@@ -380,19 +364,17 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertEqual(res.hash_entry.sha256.HexDigest(),
                      hashlib.sha256(data).hexdigest())
 
-    hash_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.HASH,
-        hash=rdf_file_finder.FileFinderHashActionOptions(
-            max_size=100, oversized_file_policy="SKIP"))
+    hash_action = rdf_file_finder.FileFinderAction.Hash(
+        max_size=100, oversized_file_policy="SKIP")
+
     results = self._RunFileFinder(paths, hash_action)
     self.assertEqual(len(results), 1)
     res = results[0]
     self.assertFalse(res.HasField("hash"))
 
-    hash_action = rdf_file_finder.FileFinderAction(
-        action_type=rdf_file_finder.FileFinderAction.Action.HASH,
-        hash=rdf_file_finder.FileFinderHashActionOptions(
-            max_size=100, oversized_file_policy="HASH_TRUNCATED"))
+    hash_action = rdf_file_finder.FileFinderAction.Hash(
+        max_size=100, oversized_file_policy="HASH_TRUNCATED")
+
     results = self._RunFileFinder(paths, hash_action)
     self.assertEqual(len(results), 1)
     res = results[0]
@@ -573,27 +555,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
 
       change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
 
-      modification_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="MODIFICATION_TIME",
-          modification_time=rdf_file_finder.FileFinderModificationTimeCondition(
-              max_last_modified_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.ModificationTime(
+          max_last_modified_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[modification_time_condition],
+          conditions=[condition],
           expected=["dpkg.log", "dpkg_false.log"],
           unexpected=["auth.log"],
           base_path=test_dir)
 
       # Now just the file from 2022.
-      modification_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="MODIFICATION_TIME",
-          modification_time=rdf_file_finder.FileFinderModificationTimeCondition(
-              min_last_modified_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.ModificationTime(
+          min_last_modified_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[modification_time_condition],
+          conditions=[condition],
           expected=["auth.log"],
           unexpected=["dpkg.log", "dpkg_false.log"],
           base_path=test_dir)
@@ -607,27 +585,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
 
       # Check we can get the normal files.
-      access_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="ACCESS_TIME",
-          access_time=rdf_file_finder.FileFinderAccessTimeCondition(
-              max_last_access_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.AccessTime(
+          max_last_access_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[access_time_condition],
+          conditions=[condition],
           expected=["dpkg.log", "dpkg_false.log"],
           unexpected=["auth.log"],
           base_path=test_dir)
 
       # Now just the file from 2022.
-      access_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="ACCESS_TIME",
-          access_time=rdf_file_finder.FileFinderAccessTimeCondition(
-              min_last_access_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.AccessTime(
+          min_last_access_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[access_time_condition],
+          conditions=[condition],
           expected=["auth.log"],
           unexpected=["dpkg.log", "dpkg_false.log"],
           base_path=test_dir)
@@ -642,27 +616,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       # Check we can get the auth log only (huge ctime).
       change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
 
-      ichange_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="INODE_CHANGE_TIME",
-          inode_change_time=rdf_file_finder.FileFinderInodeChangeTimeCondition(
-              min_last_inode_change_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.InodeChangeTime(
+          min_last_inode_change_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[ichange_time_condition],
+          conditions=[condition],
           expected=["auth.log"],
           unexpected=["dpkg.log", "dpkg_false.log"],
           base_path=test_dir)
 
       # Now just the others.
-      ichange_time_condition = rdf_file_finder.FileFinderCondition(
-          condition_type="INODE_CHANGE_TIME",
-          inode_change_time=rdf_file_finder.FileFinderInodeChangeTimeCondition(
-              max_last_inode_change_time=change_time))
+      condition = rdf_file_finder.FileFinderCondition.InodeChangeTime(
+          max_last_inode_change_time=change_time)
 
       self.RunAndCheck(
           paths,
-          conditions=[ichange_time_condition],
+          conditions=[condition],
           expected=["dpkg.log", "dpkg_false.log"],
           unexpected=["auth.log"],
           base_path=test_dir)
@@ -674,24 +644,20 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     paths = [test_dir + "/{dpkg.log,dpkg_false.log,auth.log}"]
 
     # Auth.log is 770 bytes, the other two ~620 each.
-    size_condition = rdf_file_finder.FileFinderCondition(
-        condition_type="SIZE",
-        size=rdf_file_finder.FileFinderSizeCondition(min_file_size=700))
+    condition = rdf_file_finder.FileFinderCondition.Size(min_file_size=700)
 
     self.RunAndCheck(
         paths,
-        conditions=[size_condition],
+        conditions=[condition],
         expected=["auth.log"],
         unexpected=["dpkg.log", "dpkg_false.log"],
         base_path=test_dir)
 
-    size_condition = rdf_file_finder.FileFinderCondition(
-        condition_type="SIZE",
-        size=rdf_file_finder.FileFinderSizeCondition(max_file_size=700))
+    condition = rdf_file_finder.FileFinderCondition.Size(max_file_size=700)
 
     self.RunAndCheck(
         paths,
-        conditions=[size_condition],
+        conditions=[condition],
         expected=["dpkg.log", "dpkg_false.log"],
         unexpected=["auth.log"],
         base_path=test_dir)

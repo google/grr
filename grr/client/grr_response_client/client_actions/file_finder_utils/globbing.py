@@ -7,6 +7,7 @@ import fnmatch
 import itertools
 import logging
 import os
+import platform
 import re
 
 
@@ -255,14 +256,13 @@ def ExpandGlobs(path, opts=None):
   if not path:
     raise ValueError("Path is empty")
 
-  root, path = os.path.splitdrive(path)
-  if not root:
-    if path[0] != "/":
-      raise ValueError("Path '%s' is not absolute" % path)
-    root, path = path[0], path[1:]
-
-  components = list(ParsePath(path, opts=opts))
-  return _ExpandComponents(root.upper(), components)
+  drive, tail = os.path.splitdrive(path)
+  if ((platform.system() == "Windows" and not drive) or
+      not (tail and tail[0] == os.path.sep)):
+    raise ValueError("Path '%s' is not absolute" % path)
+  root_dir = os.path.join(drive, os.path.sep).upper()
+  components = list(ParsePath(tail[1:], opts=opts))
+  return _ExpandComponents(root_dir, components)
 
 
 def _ExpandComponents(basepath, components, index=0):

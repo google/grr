@@ -55,6 +55,8 @@ class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
 
 
 class FileFinderCondition(rdf_structs.RDFProtoStruct):
+  """An RDF value representing file finder conditions."""
+
   protobuf = flows_pb2.FileFinderCondition
   rdf_deps = [
       FileFinderAccessTimeCondition,
@@ -65,6 +67,48 @@ class FileFinderCondition(rdf_structs.RDFProtoStruct):
       FileFinderSizeCondition,
       FileFinderExtFlagsCondition,
   ]
+
+  @classmethod
+  def AccessTime(cls, **kwargs):
+    condition_type = cls.Type.ACCESS_TIME
+    opts = FileFinderAccessTimeCondition(**kwargs)
+    return cls(condition_type=condition_type, access_time=opts)
+
+  @classmethod
+  def ModificationTime(cls, **kwargs):
+    condition_type = cls.Type.MODIFICATION_TIME
+    opts = FileFinderModificationTimeCondition(**kwargs)
+    return cls(condition_type=condition_type, modification_time=opts)
+
+  @classmethod
+  def InodeChangeTime(cls, **kwargs):
+    condition_type = cls.Type.INODE_CHANGE_TIME
+    opts = FileFinderInodeChangeTimeCondition(**kwargs)
+    return cls(condition_type=condition_type, inode_change_time=opts)
+
+  @classmethod
+  def Size(cls, **kwargs):
+    condition_type = cls.Type.SIZE
+    opts = FileFinderSizeCondition(**kwargs)
+    return cls(condition_type=condition_type, size=opts)
+
+  @classmethod
+  def ExtFlags(cls, **kwargs):
+    condition_type = cls.Type.EXT_FLAGS
+    opts = FileFinderExtFlagsCondition(**kwargs)
+    return cls(condition_type=condition_type, ext_flags=opts)
+
+  @classmethod
+  def ContentsLiteralMatch(cls, **kwargs):
+    condition_type = cls.Type.CONTENTS_LITERAL_MATCH
+    opts = FileFinderContentsLiteralMatchCondition(**kwargs)
+    return cls(condition_type=condition_type, contents_literal_match=opts)
+
+  @classmethod
+  def ContentsRegexMatch(cls, **kwargs):
+    condition_type = cls.Type.CONTENTS_REGEX_MATCH
+    opts = FileFinderContentsRegexMatchCondition(**kwargs)
+    return cls(condition_type=condition_type, contents_regex_match=opts)
 
 
 class FileFinderStatActionOptions(rdf_structs.RDFProtoStruct):

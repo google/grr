@@ -66,7 +66,7 @@ class TestTransferWindows(test_base.AbstractFileTransferTest):
     args.pathspec.path = "C:\\Windows\\regedit.exe"
     args.pathspec.pathtype = args.pathspec.OS
 
-    path = "/fs/os/C:/Windows/regedit.exe"
+    path = "fs/os/C:/Windows/regedit.exe"
     with self.WaitForFileCollection(path):
       self.RunFlowAndWait("GetFile", args=args)
 
