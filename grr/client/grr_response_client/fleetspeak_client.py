@@ -71,7 +71,6 @@ class GRRFleetspeakClient(object):
     # threading.Thread here.
     self._threads["Worker"] = comms.GRRClientWorker(
         out_queue=_FleetspeakQueueForwarder(self._sender_queue),
-        start_worker_thread=False,
         heart_beat_cb=heart_beat_cb,
         internal_nanny_monitoring=internal_nanny_monitoring,
         client=self)

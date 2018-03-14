@@ -64,7 +64,7 @@ matrix:
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
-    # 64-bit Centos docker container inside an Ubuntu host, for rpm builds
+    # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
     - os: linux
       dist: trusty
       sudo: required
@@ -116,6 +116,52 @@ matrix:
           travis/build_templates.sh
         # Test installing the built rpm (as root)
         - sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
+        - travis/deploy_to_gcs.sh
+
+    # Equivalent to the Centos job above, but builds templates that can be
+    # installed on Centos 6.
+    - os: linux
+      dist: trusty
+      sudo: required
+      services:
+        - docker
+      env:
+        - GCS_TAG=centos6_64bit
+        - GCS_BUCKET=autobuilds.grr-response.com
+        - DOCKER_IMG=grrdocker/centos6
+        - DOCKER_CONTAINER=centos6_64bit_container
+        - DOCKER_USER=grrbot
+        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
+        - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+      before_install:
+        - pip install google-compute-engine
+        - travis/set_up_gcs_auth.sh
+        # Create a Docker container which mounts the GRR repo in the
+        # /mnt directory
+        - >-
+          sudo docker run -dit
+          --volume "${PWD}:/mnt/grr"
+          --workdir /mnt/grr
+          --env DOCKER_USER="${DOCKER_USER}"
+          --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
+          --env PROTOC="/home/${DOCKER_USER}/protobuf/bin/protoc"
+          --name "${DOCKER_CONTAINER}"
+          "${DOCKER_IMG}"
+        - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          virtualenv "/home/${DOCKER_USER}/INSTALL"
+      install:
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          travis/install_client_only.sh
+      script:
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          travis/build_templates.sh
         - travis/deploy_to_gcs.sh
 
     # 32-bit Ubuntu docker container inside a 64-bit host, for 32-bit deb builds

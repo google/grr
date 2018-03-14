@@ -71,19 +71,26 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
       ("IPv6 address strings are cosmetically slightly different on OS X, "
        "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testEnumerateInterfaces(self):
-    # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1)
+    # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration()
     wmi_object = self.windows.wmi.WMI.return_value
     wmi_object.Win32_NetworkAdapterConfiguration.return_value = [
         client_test_lib.WMIWin32NetworkAdapterConfigurationMock()
     ]
 
     enumif = self.windows.EnumerateInterfaces()
-    interface_dict_list = list(enumif.RunNetAdapterWMIQuery())
 
-    self.assertEqual(len(interface_dict_list), 1)
-    interface = interface_dict_list[0]
-    self.assertEqual(len(interface["addresses"]), 4)
-    addresses = [x.human_readable_address for x in interface["addresses"]]
+    replies = []
+
+    def Collect(reply):
+      replies.append(reply)
+
+    enumif.SendReply = Collect
+    enumif.Run(None)
+
+    self.assertEqual(len(replies), 1)
+    interface = replies[0]
+    self.assertEqual(len(interface.addresses), 4)
+    addresses = [x.human_readable_address for x in interface.addresses]
     self.assertItemsEqual(addresses, [
         "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
         "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",

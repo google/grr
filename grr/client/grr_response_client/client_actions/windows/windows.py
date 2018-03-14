@@ -71,26 +71,24 @@ class EnumerateInterfaces(actions.ActionPlugin):
   """
   out_rdfvalues = [rdf_client.Interface]
 
-  def RunNetAdapterWMIQuery(self):
+  def Run(self, args):
+    del args  # Unused.
+
     pythoncom.CoInitialize()
-    for interface in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
+    for interface in wmi.WMI().Win32_NetworkAdapterConfiguration():
       addresses = []
       for ip_address in interface.IPAddress:
         addresses.append(
             rdf_client.NetworkAddress(human_readable_address=ip_address))
 
-      args = {"ifname": interface.Description}
-      args["mac_address"] = binascii.unhexlify(
-          interface.MACAddress.replace(":", ""))
+      response = rdf_client.Interface(ifname=interface.Description)
+      if interface.MACAddress:
+        response.mac_address = binascii.unhexlify(
+            interface.MACAddress.replace(":", ""))
       if addresses:
-        args["addresses"] = addresses
+        response.addresses = addresses
 
-      yield args
-
-  def Run(self, unused_args):
-    """Enumerate all MAC addresses."""
-    for interface_dict in self.RunNetAdapterWMIQuery():
-      self.SendReply(rdf_client.Interface(**interface_dict))
+      self.SendReply(response)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

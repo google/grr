@@ -49,7 +49,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         "Rekall.profile_server":
             rekall_test_lib.TestRekallRepositoryProfileServer.__name__,
         "FileUploadFileStore.root_dir":
-            "/tmp",
+            test_lib.TempDirPath()
     })
     cls.config_overrider.Start()
 

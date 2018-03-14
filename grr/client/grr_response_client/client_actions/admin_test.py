@@ -135,6 +135,9 @@ class MockClientWorker(object):
     self.stats_collector = MockStatsCollector()
     self.client = client
 
+  def start(self):  # pylint: disable=invalid-name
+    pass
+
 
 class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
   """Test GetClientStats client action."""

@@ -92,6 +92,7 @@ from grr import config
 from grr_response_client import actions
 from grr_response_client import client_stats
 from grr_response_client import client_utils
+from grr_response_client.client_actions import admin
 from grr.lib import communicator
 from grr.lib import flags
 from grr.lib import queues
@@ -496,8 +497,6 @@ class GRRClientWorker(threading.Thread):
 
   stats_collector = None
 
-  IDLE_THRESHOLD = 0.3
-
   sent_bytes_per_flow = {}
 
   # Client sends stats notifications at least every 50 minutes.
@@ -509,7 +508,6 @@ class GRRClientWorker(threading.Thread):
   UPLOAD_BUFFER_SIZE = 1024 * 1024
 
   def __init__(self,
-               start_worker_thread=True,
                client=None,
                out_queue=None,
                internal_nanny_monitoring=True,
@@ -565,10 +563,6 @@ class GRRClientWorker(threading.Thread):
           heart_beat_cb=heart_beat_cb)
 
     self.daemon = True
-
-    # Start our working thread.
-    if start_worker_thread:
-      self.start()
 
   def QueueResponse(self,
                     message,
@@ -628,9 +622,6 @@ class GRRClientWorker(threading.Thread):
     if not GRRClientWorker.stats_collector:
       GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
       GRRClientWorker.stats_collector.start()
-
-  def ClientMachineIsIdle(self):
-    return psutil.cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
 
   def SendReply(self,
                 rdf_value=None,
@@ -840,9 +831,7 @@ class GRRClientWorker(threading.Thread):
 
       logging.info("Sending back client statistics to the server.")
 
-      action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto",
-                                                    actions.ActionPlugin)
-      action = action_cls(grr_worker=self)
+      action = admin.GetClientStatsAuto(grr_worker=self)
       action.Run(
           rdf_client.GetClientStatsRequest(
               start_time=self.last_stats_sent_time))
@@ -912,9 +901,7 @@ class GRRClientWorker(threading.Thread):
     self.transaction_log.Clear()
 
     # Inform the server that we started.
-    action_cls = actions.ActionPlugin.classes.get("SendStartupInfo",
-                                                  actions.ActionPlugin)
-    action = action_cls(grr_worker=self)
+    action = admin.SendStartupInfo(grr_worker=self)
     action.Run(None, ttl=1)
 
   def run(self):
@@ -1157,6 +1144,10 @@ class GRRHTTPClient(object):
       self.client_worker = worker_cls(client=self)
     else:
       self.client_worker = GRRClientWorker(client=self)
+    # TODO(hanuszczak): Maybe we should start the thread in `GRRHTTPClient::Run`
+    # method instead? Starting threads in constructor is rarely a good idea, is
+    # it guaranteed that we call `GRRHTTPClient::Run` only once?
+    self.client_worker.start()
 
   def FleetspeakEnabled(self):
     return False
