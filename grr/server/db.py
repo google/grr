@@ -9,6 +9,8 @@ WIP, will eventually replace datastore.py.
 """
 import abc
 
+from grr.lib.rdfvalues import objects
+
 
 class Error(Exception):
   pass
@@ -64,7 +66,7 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReadClientMetadatas(self, client_ids):
+  def ReadClientsMetadata(self, client_ids):
     """Reads ClientMetadata records for a list of clients.
 
     Args:
@@ -84,7 +86,7 @@ class Database(object):
     Returns:
       An rdfvalues.object.ClientMetadata object.
     """
-    return self.ReadClientMetadatas([client_id]).get(client_id)
+    return self.ReadClientsMetadata([client_id]).get(client_id)
 
   @abc.abstractmethod
   def WriteClient(self, client):
@@ -125,7 +127,7 @@ class Database(object):
     return self.ReadClients([client_id])[client_id]
 
   @abc.abstractmethod
-  def ReadFullInfoClients(self, client_ids):
+  def ReadClientsFullInfo(self, client_ids):
     """Reads full client information for a list of clients.
 
     Args:
@@ -140,7 +142,11 @@ class Database(object):
         "labels": list of rdfvalues.objects.ClientLabel.
     """
 
-  def ReadFullInfoClient(self, client_id):
+  # TODO(hanuszczak): Why do we return a dict? Can't we declare a `namedtuple`
+  # instead? Doing so would make the code more idiomatic, obvious, type-safe,
+  # and in the docstring instead of using "as described in (...)" we can just
+  # use a concrete name.
+  def ReadClientFullInfo(self, client_id):
     """Reads full client information for a single client.
 
     Args:
@@ -150,7 +156,46 @@ class Database(object):
       The dict containing all information as described in ReadFullInfoClients
       for the indicated client.
     """
-    return self.ReadFullInfoClients([client_id])[client_id]
+    return self.ReadClientsFullInfo([client_id])[client_id]
+
+  # TODO(hanuszczak): Should abstract methods perform input validation?
+  #
+  # On one hand all database implementations should have uniform API and accept
+  # same arguments. Therefore validation code should be the same in every
+  # concrete implementation.
+  #
+  # On the other hand, abstract means abstract...
+  @abc.abstractmethod
+  def WriteClientHistory(self, clients):
+    """Writes the full history for a particular client.
+
+    Args:
+      clients: A list of client objects representing snapshots in time. Each
+               object should have a `timestamp` attribute specifying at which
+               point this snapshot was taken. All clients should have the same
+               client id.
+
+    Raises:
+      AttributeError: If some client does not have a `timestamp` attribute.
+      TypeError: If clients are not instances of `objects.Client`.
+      ValueError: If client list is empty or clients have non-uniform ids.
+    """
+    if not clients:
+      raise ValueError("Clients are empty")
+
+    client_id = None
+    for client in clients:
+      if not isinstance(client, objects.Client):
+        message = "Unexpected '%s' instead of client instance"
+        raise TypeError(message % client.__class__)
+
+      if client.timestamp is None:
+        raise AttributeError("Client without a `timestamp` attribute")
+
+      client_id = client_id or client.client_id
+      if client.client_id != client_id:
+        message = "Unexpected client id '%s' instead of '%s'"
+        raise ValueError(message % (client.client_id, client_id))
 
   @abc.abstractmethod
   def ReadClientHistory(self, client_id):
@@ -236,7 +281,7 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def WriteClientKeywords(self, client_id, keywords):
+  def AddClientKeywords(self, client_id, keywords):
     """Associates the provided keywords with the client.
 
     Args:
@@ -260,8 +305,8 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def DeleteClientKeyword(self, client_id, keyword):
-    """Deletes the association of a particular client to a keyword.
+  def RemoveClientKeyword(self, client_id, keyword):
+    """Removes the association of a particular client to a keyword.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
@@ -345,7 +390,7 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReadGRRUsers(self):
+  def ReadAllGRRUsers(self):
     """Reads all GRR users.
 
     Returns:

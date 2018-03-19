@@ -11,22 +11,22 @@ cache:
   - '%LOCALAPPDATA%\pip\Cache -> **\install_for_build.bat'
 
 install:
-  - C:\grr_src\vagrant\windows\install_for_build.bat
+  - C:\grr_src\appveyor\install_for_build.bat
   - nuget install secure-file -ExcludeVersion
   # See https://www.appveyor.com/docs/how-to/secure-files/
   - >-
     secure-file\tools\secure-file
-    -decrypt C:\grr_src\vagrant\windows\appveyor_uploader_service_account.json.enc
+    -decrypt C:\grr_src\appveyor\appveyor_uploader_service_account.json.enc
     -secret %GCS_ENCRYPTION_KEY%
 
 build_script:
   - >-
     C:\Python27-x64\python.exe
-    C:\grr_src\vagrant\windows\build_windows_templates.py
+    C:\grr_src\appveyor\build_windows_templates.py
     --grr_src=C:\grr_src
     --output_dir=C:\grr_src\output
     --test_repack_install
-  - powershell C:\grr_src\vagrant\windows\deploy_to_gcs.ps1
+  - powershell C:\grr_src\appveyor\deploy_to_gcs.ps1
 
 artifacts:
   - path: output

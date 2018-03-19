@@ -499,6 +499,31 @@ class RDFDatetime(RDFInteger):
     res.SetRaw(cls._ParseFromHumanReadable(value, eoy=eoy))
     return res
 
+  @classmethod
+  def Lerp(cls, t, start_time, end_time):
+    """Interpolates linearly between two datetime values.
+
+    Args:
+      t: An interpolation "progress" value.
+      start_time: A value for t = 0.
+      end_time: A value for t = 1.
+
+    Returns:
+      An interpolated `RDFDatetime` instance.
+
+    Raises:
+      TypeError: If given time values are not instances of `RDFDatetime`.
+      ValueError: If `t` parameter is not between 0 and 1.
+    """
+    if not (isinstance(start_time, RDFDatetime) and
+            isinstance(end_time, RDFDatetime)):
+      raise TypeError("Interpolation of non-datetime values")
+
+    if not 0.0 <= t <= 1.0:
+      raise ValueError("Interpolation progress does not belong to [0.0, 1.0]")
+
+    return RDFDatetime(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
+
   def ParseFromHumanReadable(self, string, eoy=False):
     self._value = self._ParseFromHumanReadable(string, eoy=eoy)
     return self

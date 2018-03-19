@@ -573,7 +573,7 @@ class GRRForeman(aff4.AFF4Object):
       relevant_rules.append(rule)
 
     if data_store.RelationalDBReadEnabled():
-      client_data = data_store.REL_DB.ReadFullInfoClient(client_id)
+      client_data = data_store.REL_DB.ReadClientFullInfo(client_id)
     else:
       client_data = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
 

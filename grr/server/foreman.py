@@ -20,7 +20,7 @@ class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
 
     Args:
       client_obj: Either an aff4 client object or a client_info dict as returned
-                  by ReadFullInfoClient if the relational db is used for
+                  by ReadClientFullInfo if the relational db is used for
                   reading.
 
     Returns:

@@ -257,7 +257,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
       clients = sorted(
           index.LookupClients(keywords))[args.offset:args.offset + end]
 
-      client_infos = data_store.REL_DB.ReadFullInfoClients(clients)
+      client_infos = data_store.REL_DB.ReadClientsFullInfo(clients)
       for client_info in client_infos.itervalues():
         api_clients.append(ApiClient().InitFromClientInfo(client_info))
 
@@ -324,7 +324,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
         label_filter = ["label:" + label] + keywords
         all_client_ids.update(index.LookupClients(label_filter))
 
-      client_infos = data_store.REL_DB.ReadFullInfoClients(all_client_ids)
+      client_infos = data_store.REL_DB.ReadClientsFullInfo(all_client_ids)
 
       index = 0
       for _, client_info in sorted(client_infos.items()):
@@ -383,7 +383,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime(args.timestamp)
 
     if data_store.RelationalDBReadEnabled():
-      info = data_store.REL_DB.ReadFullInfoClient(str(args.client_id))
+      info = data_store.REL_DB.ReadClientFullInfo(str(args.client_id))
       return ApiClient().InitFromClientInfo(info)
     else:
       client = aff4.FACTORY.Open(

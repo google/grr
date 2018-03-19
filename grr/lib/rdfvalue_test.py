@@ -39,6 +39,57 @@ class RDFValueTest(unittest.TestCase):
         "sed dictum volutp...')>")
 
 
+class RDFDateTimeTest(unittest.TestCase):
+
+  def testLerpMiddle(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
+    end_time = start_time + rdfvalue.Duration("10d")
+    lerped_time = rdfvalue.RDFDatetime.Lerp(
+        0.5, start_time=start_time, end_time=end_time)
+    self.assertEqual(lerped_time, start_time + rdfvalue.Duration("5d"))
+
+  def testLerpZero(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
+    end_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    lerped_time = rdfvalue.RDFDatetime.Lerp(
+        0.0, start_time=start_time, end_time=end_time)
+    self.assertEqual(lerped_time, start_time)
+
+  def testLerpOne(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
+    end_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+    lerped_time = rdfvalue.RDFDatetime.Lerp(
+        1.0, start_time=start_time, end_time=end_time)
+    self.assertEqual(lerped_time, end_time)
+
+  def testLerpQuarter(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
+    end_time = start_time + rdfvalue.Duration("4d")
+    lerped_time = rdfvalue.RDFDatetime.Lerp(
+        0.25, start_time=start_time, end_time=end_time)
+    self.assertEqual(lerped_time, start_time + rdfvalue.Duration("1d"))
+
+  def testLerpRaisesTypeErrorIfTimesAreNotRDFDatetime(self):
+    now = rdfvalue.RDFDatetime.Now()
+
+    with self.assertRaisesRegexp(TypeError, "non-datetime"):
+      rdfvalue.RDFDatetime.Lerp(0.0, start_time=10, end_time=now)
+
+    with self.assertRaisesRegexp(TypeError, "non-datetime"):
+      rdfvalue.RDFDatetime.Lerp(
+          0.0, start_time=now, end_time=rdfvalue.Duration("1d"))
+
+  def testLerpRaisesValueErrorIfProgressIsNotNormalized(self):
+    start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
+    end_time = rdfvalue.RDFDatetime.FromHumanReadable("2011-01-01")
+
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFDatetime.Lerp(1.5, start_time=start_time, end_time=end_time)
+
+    with self.assertRaises(ValueError):
+      rdfvalue.RDFDatetime.Lerp(-0.5, start_time=start_time, end_time=end_time)
+
+
 def main(argv):
   test_lib.main(argv)
 

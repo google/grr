@@ -241,7 +241,7 @@ class ForemanOsClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         os_windows=False, os_linux=False, os_darwin=False)
 
     client = self.SetupTestClientObject(0, system="Windows")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     self.assertFalse(r.Evaluate(info))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
@@ -253,7 +253,7 @@ class ForemanOsClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         os_windows=False, os_linux=True, os_darwin=False)
 
     client = self.SetupTestClientObject(0, system="Linux")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     self.assertFalse(r0.Evaluate(info))
     self.assertTrue(r1.Evaluate(info))
 
@@ -266,7 +266,7 @@ class ForemanOsClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         os_windows=True, os_linux=False, os_darwin=True)
 
     client = self.SetupTestClientObject(0, system="Darwin")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     self.assertFalse(r0.Evaluate(info))
     self.assertTrue(r1.Evaluate(info))
 
@@ -388,7 +388,7 @@ class ForemanLabelClientRuleTestRelational(test_lib.RelationalDBTestMixin,
     data_store.REL_DB.AddClientLabels(client.client_id, "GRR",
                                       ["hello", "world"])
 
-    client_info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    client_info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     return rule.Evaluate(client_info)
 
 
@@ -444,7 +444,7 @@ class ForemanRegexClientRuleTestRelational(test_lib.RelationalDBTestMixin,
   def testEvaluation(self):
     now = rdfvalue.RDFDatetime().Now()
     client = self.SetupTestClientObject(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     for f in rdf_foreman.ForemanRegexClientRule.ForemanStringField.enum_dict:
       if f == "UNSET":
@@ -459,7 +459,7 @@ class ForemanRegexClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         field="SYSTEM", attribute_regex="^Linux$")
 
     client = self.SetupTestClientObject(0, system="Linux")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
     self.assertTrue(r.Evaluate(info))
 
   def testEvaluatesAttributesSubstringToTrue(self):
@@ -468,7 +468,7 @@ class ForemanRegexClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         field="SYSTEM", attribute_regex="inu")
 
     client = self.SetupTestClientObject(0, system="Linux")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     # The system contains the substring inu
     self.assertTrue(r.Evaluate(info))
@@ -479,14 +479,14 @@ class ForemanRegexClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         field="SYSTEM", attribute_regex="foo")
 
     client = self.SetupTestClientObject(0, system="Linux")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     # The system doesn't contain foo
     self.assertFalse(r.Evaluate(info))
 
   def testUnsetFieldRaises(self):
     client = self.SetupTestClientObject(0, system="Linux")
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     r = rdf_foreman.ForemanRegexClientRule(attribute_regex="foo")
     with self.assertRaises(ValueError):
@@ -550,7 +550,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.RelationalDBTestMixin,
   def testEvaluation(self):
     now = rdfvalue.RDFDatetime().Now()
     client = self.SetupTestClientObject(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     for f in rdf_foreman.ForemanIntegerClientRule.ForemanIntegerField.enum_dict:
       if f == "UNSET":
@@ -565,7 +565,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.RelationalDBTestMixin,
   def testEvaluatesSizeLessThanEqualValueToFalse(self):
     now = rdfvalue.RDFDatetime().Now()
     client = self.SetupTestClientObject(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     # Instantiate an integer rule
     r = rdf_foreman.ForemanIntegerClientRule(
@@ -579,7 +579,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.RelationalDBTestMixin,
   def testEvaluatesSizeGreaterThanSmallerValueToTrue(self):
     now = rdfvalue.RDFDatetime().Now()
     client = self.SetupTestClientObject(0, last_boot_time=now)
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     before_boot = now - 1
 
@@ -597,7 +597,7 @@ class ForemanIntegerClientRuleTestRelational(test_lib.RelationalDBTestMixin,
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL, value=123)
 
     client = self.SetupTestClientObject(0)
-    info = data_store.REL_DB.ReadFullInfoClient(client.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client.client_id)
 
     with self.assertRaises(ValueError):
       r.Evaluate(info)

@@ -67,6 +67,36 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testClientHistory(self):
     pass
 
+  def testWriteClientHistory(self):
+    pass
+
+  def testWriteClientHistoryUpdatesLastTimestampIfNotSet(self):
+    pass
+
+  def testWriteClientHistoryUpdatesLastTimestampIfNewer(self):
+    pass
+
+  def testWriteClientHistoryDoesNotUpdateLastTimestampIfOlder(self):
+    pass
+
+  def testWriteClientHistoryUpdatesOnlyLastClientTimestamp(self):
+    pass
+
+  def testWriteClientHistoryRaiseTypeError(self):
+    pass
+
+  def testWriteClientHistoryRaiseValueErrorOnEmpty(self):
+    pass
+
+  def testWriteClientHistoryRaiseValueErrorOnNonUniformIds(self):
+    pass
+
+  def testWriteClientHistoryRaiseAttributeError(self):
+    pass
+
+  def testWriteClientHistoryRaiseOnNonExistingClient(self):
+    pass
+
   def testClientSummary(self):
     pass
 
@@ -88,7 +118,7 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testClientKeywordsTimeRanges(self):
     pass
 
-  def testDeleteClientKeyword(self):
+  def testRemoveClientKeyword(self):
     pass
 
   def testClientLabels(self):

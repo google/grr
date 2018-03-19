@@ -1,6 +1,6 @@
 $env:PATH += ';C:\grr_deps\google-cloud-sdk\bin'
 
-gcloud auth activate-service-account --key-file C:\grr_src\vagrant\windows\appveyor_uploader_service_account.json
+gcloud auth activate-service-account --key-file C:\grr_src\appveyor\appveyor_uploader_service_account.json
 
 if (!$?) {
   exit 1

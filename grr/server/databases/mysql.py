@@ -140,7 +140,7 @@ class MysqlDB(object):
       cursor.close()
       con.close()
 
-  def ReadClientMetadatas(self, client_ids):
+  def ReadClientsMetadata(self, client_ids):
     """Reads ClientMetadata records for a list of clients."""
     ids = [_ClientIDToInt(client_id) for client_id in client_ids]
     query = ("SELECT client_id, fleetspeak_enabled, certificate, last_ping, "

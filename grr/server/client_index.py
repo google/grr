@@ -487,7 +487,7 @@ class ClientIndex(object):
     keywords = self.AnalyzeClient(client)
     keywords.add(self._NormalizeKeyword(client_id))
 
-    data_store.REL_DB.WriteClientKeywords(client_id, keywords)
+    data_store.REL_DB.AddClientKeywords(client_id, keywords)
 
   def AddClientLabels(self, client_id, labels):
     keywords = set()
@@ -496,7 +496,7 @@ class ClientIndex(object):
       keywords.add(keyword_string)
       keywords.add("label:" + keyword_string)
 
-    data_store.REL_DB.WriteClientKeywords(client_id, keywords)
+    data_store.REL_DB.AddClientKeywords(client_id, keywords)
 
   def RemoveAllClientLabels(self, client_id):
     """Removes all labels for a given client.
@@ -519,8 +519,8 @@ class ClientIndex(object):
       keyword = self._NormalizeKeyword(utils.SmartStr(label))
       # This might actually delete a keyword with the same name as the label (if
       # there is one).
-      data_store.REL_DB.DeleteClientKeyword(client_id, keyword)
-      data_store.REL_DB.DeleteClientKeyword(client_id, "label:%s" % keyword)
+      data_store.REL_DB.RemoveClientKeyword(client_id, keyword)
+      data_store.REL_DB.RemoveClientKeyword(client_id, "label:%s" % keyword)
 
 
 def BulkLabel(label, hostnames, owner=None, token=None, client_index=None):
