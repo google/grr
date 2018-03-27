@@ -30,7 +30,7 @@ def SendGrrMessageThroughFleetspeak(grr_id, msg):
       destination=fs_common_pb2.Address(
           client_id=GRRIDToFleetspeakID(grr_id), service_name="GRR"))
   fs_msg.data.Pack(msg.AsPrimitiveProto())
-  fleetspeak_connector.CONN.Send(fs_msg)
+  fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
 def FleetspeakIDToGRRID(fs_id):

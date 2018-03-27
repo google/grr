@@ -29,10 +29,20 @@ from grr.tools import fleetspeak_frontend as fs_frontend_tool
 
 class _FakeGRPCServiceClient(fs_client.ServiceClient):
 
+  class _FakeConnection(object):
+
+    def __init__(self, send_callback=lambda _: None):
+      self._send_callback = send_callback
+
+    def InsertMessage(self, message, timeout=None):
+      del timeout
+      self._send_callback(message)
+
   def __init__(self, service_name, send_callback=lambda _: None):
     super(_FakeGRPCServiceClient, self).__init__(service_name)
     self._process = None
     self._send_callback = send_callback
+    self.outgoing = self._FakeConnection(send_callback)
 
   def Listen(self, process):
     self._process = process
@@ -241,7 +251,9 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
     fleetspeak_connector.Init(service_client=fake_service_client)
 
     with mock.patch.object(
-        fake_service_client, "Send", wraps=fake_service_client.Send):
+        fake_service_client.outgoing,
+        "InsertMessage",
+        wraps=fake_service_client.outgoing.InsertMessage):
       flow_urn = flow.GRRFlow.StartFlow(
           client_id=self.client_id,
           flow_name=flow_processes.ListProcesses.__name__,
@@ -250,7 +262,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
           flow_urn, client_mock, client_id=self.client_id, token=self.token):
         session_id = s
 
-      fleetspeak_connector.CONN.Send.assert_called()
+      fleetspeak_connector.CONN.outgoing.InsertMessage.assert_called()
 
     # Check the output collection
     processes = flow.GRRFlow.ResultCollectionForFID(session_id)

@@ -22,6 +22,7 @@ class YaraProcessScan(flow.GRRFlow):
   friendly_name = "Yara Process Scan"
 
   args_type = rdf_yara.YaraProcessScanRequest
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler()
   def Start(self):
@@ -97,6 +98,7 @@ class YaraDumpProcessMemory(flow.GRRFlow):
   friendly_name = "Yara Process Dump"
 
   args_type = rdf_yara.YaraProcessDumpArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler()
   def Start(self):
