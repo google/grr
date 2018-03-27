@@ -2,7 +2,6 @@
 """Unittest for grr http server."""
 
 import hashlib
-import logging
 import os
 import socket
 import threading
@@ -14,20 +13,15 @@ import requests
 
 from google.protobuf import json_format
 
-from grr import config
-from grr_response_client import comms
-from grr_response_client.client_actions import standard
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.server import aff4
-from grr.server import file_store
 from grr.server import flow
 from grr.server import front_end
+from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import filestore
 from grr.server.flows.general import file_finder
 from grr.test_lib import action_mocks
@@ -87,111 +81,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     self.assertEqual(req.status_code, 200)
     self.assertTrue("BEGIN CERTIFICATE" in req.content)
 
-  def _UploadFile(self, args):
-    with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
-      client = comms.GRRHTTPClient(
-          ca_cert=config.CONFIG["CA.certificate"],
-          private_key=config.CONFIG.Get("Client.private_key", default=None),
-          worker_cls=worker_mocks.DisabledNannyClientWorker)
-
-      client.server_certificate = config.CONFIG["Frontend.certificate"]
-
-      def MockSendReply(_, reply):
-        self.reply = reply
-
-      @classmethod
-      def FromPrivateKey(*_):
-        """Returns the correct client id.
-
-        The test framework does not generate valid client ids (which should be
-        related to the client's private key. We therefore need to mock it and
-        override.
-
-        Returns:
-          Correct client_id
-        """
-        return self.client_id
-
-      with utils.MultiStubber(
-          (standard.UploadFile, "SendReply", MockSendReply),
-          (rdf_client.ClientURN, "FromPrivateKey", FromPrivateKey)):
-        action = standard.UploadFile(client.client_worker)
-        action.Run(args)
-
-      return self.reply
-
-  def testUpload(self):
-    magic_string = "Hello world"
-
-    test_file = os.path.join(self.temp_dir, "sample.txt")
-    with open(test_file, "wb") as fd:
-      fd.write(magic_string)
-
-    args = rdf_client.UploadFileRequest()
-    args.pathspec.path = test_file
-    args.pathspec.pathtype = "OS"
-
-    # Errors are logged on the server but not always provided to the client. We
-    # check the server logs for the errors we inject.
-    with test_lib.Instrument(logging, "error") as logger:
-      # First do not provide a hmac at all.
-      with self.assertRaises(IOError):
-        self._UploadFile(args)
-
-      self.assertRegexpMatches("HMAC not provided", str(logger.args))
-      logger.args[:] = []
-
-      # Now pass a rubbish HMAC but forget to give a policy.
-      hmac = args.upload_token.GetHMAC()
-      args.upload_token.hmac = hmac.HMAC("This is the wrong filename")
-      with self.assertRaises(IOError):
-        self._UploadFile(args)
-
-      self.assertRegexpMatches("Policy not provided", str(logger.args))
-      logger.args[:] = []
-
-      # Ok - lets make an expired policy, Still wrong HMAC.
-      policy = rdf_client.UploadPolicy(client_id=self.client_id, expires=1000)
-      args.upload_token.SetPolicy(policy)
-
-      with self.assertRaises(IOError):
-        self._UploadFile(args)
-
-      self.assertRegexpMatches("Signature did not match digest", str(
-          logger.args))
-      logger.args[:] = []
-
-      # Ok lets hmac the policy now, but its still too old.
-      args.upload_token.SetPolicy(policy)
-      with self.assertRaises(IOError):
-        self._UploadFile(args)
-
-      # Make sure the file is not written yet.
-      rootdir = config.CONFIG["FileUploadFileStore.root_dir"]
-      target_filename = os.path.join(
-          rootdir,
-          self.client_id.Add(test_file).Path().lstrip(os.path.sep))
-
-      self.assertNotEqual(target_filename, test_file)
-
-      with self.assertRaises(IOError):
-        open(target_filename)
-
-      self.assertRegexpMatches("Client upload policy is too old",
-                               str(logger.args))
-      logger.args[:] = []
-
-      # Lets expire the policy in the future.
-      policy.expires = rdfvalue.RDFDatetime.Now() + 1000
-      args.upload_token.SetPolicy(policy)
-      args.upload_token.GenerateHMAC()
-      r = self._UploadFile(args)
-      fs = file_store.FileUploadFileStore()
-      # Make sure the file was uploaded correctly.
-      fd = fs.OpenForReading(r.file_id)
-      data = fd.read()
-      self.assertEqual(data, magic_string)
-
   def _RunClientFileFinder(self,
                            paths,
                            action,
@@ -199,17 +88,10 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
                            client_id=None):
     client_id = client_id or self.SetupClient(0)
     with test_lib.ConfigOverrider({"Client.server_urls": [self.base_url]}):
-      client = comms.GRRHTTPClient(
-          ca_cert=config.CONFIG["CA.certificate"],
-          private_key=config.CONFIG.Get("Client.private_key", default=None),
-          worker_cls=worker_mocks.DisabledNannyClientWorker)
-      client.client_worker = worker_mocks.FakeClientWorker(client=client)
-      client.server_certificate = config.CONFIG["Frontend.certificate"]
-
       for s in flow_test_lib.TestFlowHelper(
           file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(
-              client_worker=client.client_worker),
+              client_worker=worker_mocks.FakeClientWorker()),
           client_id=client_id,
           paths=paths,
           pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -244,21 +126,20 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
       data = open(r.stat_entry.pathspec.path, "rb").read()
       self.assertEqual(aff4_obj.Read(100), data[:100])
 
-      for hash_obj in [
-          r.uploaded_file.hash,
-          aff4_obj.Get(aff4_obj.Schema.HASH)
-      ]:
-        self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
-        self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())
-        self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
+      hash_obj = aff4_obj.Get(aff4_obj.Schema.HASH)
+      self.assertEqual(hash_obj.md5, hashlib.md5(data).hexdigest())
+      self.assertEqual(hash_obj.sha1, hashlib.sha1(data).hexdigest())
+      self.assertEqual(hash_obj.sha256, hashlib.sha256(data).hexdigest())
 
   def testClientFileFinderUploadLimit(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
     action = rdf_file_finder.FileFinderAction.Download()
 
-    with self.assertRaises(RuntimeError) as e:
-      self._RunClientFileFinder(paths, action, network_bytes_limit=2000)
-      self.assertIn("Action exceeded network send limit.", e.exception.message)
+    # TODO(hanuszczak): Instead of catching arbitrary runtime errors, we should
+    # catch specific instance that was thrown. Unfortunately, all errors are
+    # intercepted in the `MockWorker` class and converted to runtime errors.
+    with self.assertRaisesRegexp(RuntimeError, "exceeded network send limit"):
+      self._RunClientFileFinder(paths, action, network_bytes_limit=1500)
 
   def testClientFileFinderUploadBound(self):
     paths = [os.path.join(self.base_path, "{**,.}/*.plist")]
@@ -298,7 +179,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     skipped = []
     uploaded = []
     for result in results:
-      if result.uploaded_file.file_id:
+      if result.HasField("transferred_file"):
         uploaded.append(result)
       else:
         skipped.append(result)
@@ -348,9 +229,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         aff4_obj = aff4.FACTORY.Open(
             r.stat_entry.pathspec.AFF4Path(client_id), token=self.token)
 
-        # When files are uploaded to the server directly, we should get a
-        # FileStoreAFF4Object.
-        self.assertIsInstance(aff4_obj, file_store.FileStoreAFF4Object)
+        # When files are uploaded to the server they are stored as VFSBlobImage.
+        self.assertIsInstance(aff4_obj, aff4_grr.VFSBlobImage)
         # There is a STAT entry.
         self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
 
@@ -369,8 +249,8 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         # Open the file inside the file store.
         urn, _ = fs(None, token=self.token).CheckHashes(hashes).next()
         filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
-        # This is a FileStoreAFF4Object too.
-        self.assertIsInstance(filestore_fd, file_store.FileStoreAFF4Object)
+        # This is a VFSBlobImage too.
+        self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
         # No STAT object attached.
         self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
 

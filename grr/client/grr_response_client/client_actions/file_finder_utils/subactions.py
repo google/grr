@@ -5,6 +5,7 @@ import abc
 
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
+from grr_response_client.client_actions.file_finder_utils import uploading
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -117,11 +118,9 @@ class DownloadAction(Action):
     policy = self.opts.oversized_file_policy
     max_size = self.opts.max_size
     if stat.GetSize() <= max_size:
-      result.uploaded_file = self._UploadFilePath(filepath)
-      result.uploaded_file.stat_entry = result.stat_entry
+      result.transferred_file = self._UploadFilePath(filepath)
     elif policy == self.opts.OversizedFilePolicy.DOWNLOAD_TRUNCATED:
-      result.uploaded_file = self._UploadFilePath(filepath, truncate=True)
-      result.uploaded_file.stat_entry = result.stat_entry
+      result.transferred_file = self._UploadFilePath(filepath, truncate=True)
     elif policy == self.opts.OversizedFilePolicy.HASH_TRUNCATED:
       result.hash_entry = _HashEntry(stat, self.flow, max_size=max_size)
     elif policy == self.opts.OversizedFilePolicy.SKIP:
@@ -130,18 +129,11 @@ class DownloadAction(Action):
       raise ValueError("Unknown oversized file policy: %s" % policy)
 
   def _UploadFilePath(self, filepath, truncate=False):
-    with open(filepath, "rb") as fdesc:
-      return self._UploadFile(fdesc, truncate=truncate)
-
-  def _UploadFile(self, fdesc, truncate=False):
     max_size = self.opts.max_size if truncate else None
-    return self.flow.grr_worker.UploadFile(
-        fdesc,
-        self.opts.upload_token,
-        max_bytes=max_size,
-        network_bytes_limit=self.flow.network_bytes_limit,
-        session_id=self.flow.session_id,
-        progress_callback=self.flow.Progress)
+    chunk_size = self.opts.chunk_size
+
+    uploader = uploading.TransferStoreUploader(self.flow, chunk_size=chunk_size)
+    return uploader.UploadFilePath(filepath, amount=max_size)
 
 
 def _StatEntry(stat, ext_attrs):

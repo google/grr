@@ -620,7 +620,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
+    change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
     modification_time_condition = rdf_file_finder.FileFinderCondition(
         condition_type=rdf_file_finder.FileFinderCondition.Type.
         MODIFICATION_TIME,
@@ -638,7 +638,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
+    change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
     access_time_condition = rdf_file_finder.FileFinderCondition(
         condition_type=rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME,
         access_time=rdf_file_finder.FileFinderAccessTimeCondition(
@@ -655,7 +655,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
+    change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
     inode_change_time_condition = rdf_file_finder.FileFinderCondition(
         condition_type=rdf_file_finder.FileFinderCondition.Type.
         INODE_CHANGE_TIME,

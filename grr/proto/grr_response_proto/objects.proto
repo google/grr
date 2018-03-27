@@ -20,7 +20,7 @@ message StringMapEntry {
 }
 
 // Next field: 17
-message Client {
+message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
       description: "The client id of this client.",
     }];
@@ -121,4 +121,36 @@ message GRRUser {
     USER_TYPE_ADMIN = 2;
   }
   optional UserType user_type = 5;
+}
+
+message ApprovalRequest {
+  enum ApprovalType {
+    APPROVAL_TYPE_NONE = 0;
+    APPROVAL_TYPE_CLIENT = 1;
+    APPROVAL_TYPE_HUNT = 2;
+    APPROVAL_TYPE_CRON_JOB = 3;
+  }
+  optional ApprovalType approval_type = 1;
+  optional string approval_id = 2;
+  optional string subject_id = 3;
+  optional string requestor_username = 4;
+  optional string reason = 5;
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+  optional uint64 expiration_time = 7 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+
+  repeated string notified_users = 8;
+  repeated string email_cc_addresses = 9;
+
+  repeated ApprovalGrant grants = 10;
+}
+
+message ApprovalGrant {
+  optional string grantor_username = 1;
+  optional uint64 timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
 }

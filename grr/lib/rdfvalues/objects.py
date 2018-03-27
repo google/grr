@@ -22,7 +22,7 @@ class StringMapEntry(structs.RDFProtoStruct):
   protobuf = objects_pb2.StringMapEntry
 
 
-class Client(structs.RDFProtoStruct):
+class ClientSnapshot(structs.RDFProtoStruct):
   """The client object.
 
   Attributes:
@@ -31,7 +31,7 @@ class Client(structs.RDFProtoStruct):
       saved to the database. Should be present in every client object loaded
       from the database, but is not serialized with the rdfvalue fields.
   """
-  protobuf = objects_pb2.Client
+  protobuf = objects_pb2.ClientSnapshot
 
   rdf_deps = [
       StringMapEntry,
@@ -47,7 +47,7 @@ class Client(structs.RDFProtoStruct):
   ]
 
   def __init__(self, skip_verification=False, *args, **kwargs):
-    super(Client, self).__init__(*args, **kwargs)
+    super(ClientSnapshot, self).__init__(*args, **kwargs)
     if not skip_verification:
       self.ValidateClientId()
     self.timestamp = None
@@ -153,3 +153,22 @@ class GRRUser(structs.RDFProtoStruct):
   rdf_deps = [
       rdf_crypto.Password,
   ]
+
+
+class ApprovalGrant(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ApprovalGrant
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+
+class ApprovalRequest(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ApprovalRequest
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      ApprovalGrant,
+  ]
+
+  @property
+  def is_expired(self):
+    return self.expiration_time < rdfvalue.RDFDatetime.Now()

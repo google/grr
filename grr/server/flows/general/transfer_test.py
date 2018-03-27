@@ -6,14 +6,12 @@ import os
 import platform
 import unittest
 
-from grr_response_client import vfs
 from grr.lib import constants
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
-from grr.server import file_store
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import transfer
@@ -39,21 +37,6 @@ class ClientMock(object):
             data=return_data, offset=args.offset, length=len(return_data))
     ]
 
-  def UploadFile(self, args):
-    """Just copy the file into the filestore."""
-    file_fd = vfs.VFSOpen(args.pathspec)
-
-    fs = file_store.FileUploadFileStore()
-    fd = fs.CreateFileStoreFile()
-    while True:
-      data = file_fd.read(self.BUFFER_SIZE)
-      if not data:
-        break
-      fd.write(data)
-    file_id = fd.Finalize()
-
-    return [rdf_client.UploadedFile(stat_entry=file_fd.Stat(), file_id=file_id)]
-
 
 class TestTransfer(flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
@@ -75,39 +58,6 @@ class TestTransfer(flow_test_lib.FlowTestsBaseclass):
 
     transfer.GetFile.WINDOW_SIZE = self.old_window_size
     transfer.GetFile.CHUNK_SIZE = self.old_chunk_size
-
-  def testUploadFiles(self):
-    """Test the upload file flows."""
-    with test_lib.ConfigOverrider({
-        "FileUploadFileStore.root_dir": self.temp_dir
-    }):
-      test_data_path = os.path.join(self.base_path, "test_img.dd")
-
-      pathspec = rdf_paths.PathSpec(
-          pathtype=rdf_paths.PathSpec.PathType.OS, path=test_data_path)
-
-      session_id = None
-      for session_id in flow_test_lib.TestFlowHelper(
-          transfer.MultiUploadFile.__name__,
-          ClientMock(client_id=self.client_id),
-          token=self.token,
-          pathspecs=[pathspec],
-          client_id=self.client_id):
-        pass
-
-      results = flow.GRRFlow.ResultCollectionForFID(session_id)
-
-      self.assertEqual(len(results), 1)
-      for stat_entry in results:
-        # Make sure the AFF4 file is the same as the original test file we tried
-        # to upload.
-        fd1 = aff4.FACTORY.Open(
-            stat_entry.AFF4Path(self.client_id), token=self.token)
-        fd2 = open(test_data_path, "rb")
-        fd2.seek(0, 2)
-
-        self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
-        self.CompareFDs(fd1, fd2)
 
   def testGetMBR(self):
     """Test that the GetMBR flow works."""

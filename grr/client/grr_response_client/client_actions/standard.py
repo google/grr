@@ -534,32 +534,6 @@ class SendFile(actions.ActionPlugin):
     self.SendReply(fd.Stat())
 
 
-class UploadFile(actions.ActionPlugin):
-  """Upload a file to the server."""
-  in_rdfvalue = rdf_client.UploadFileRequest
-  out_rdfvalues = [rdf_client.UploadedFile]
-
-  BUFFER_SIZE = 1024 * 1024
-
-  def Run(self, args):
-    file_fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-
-    try:
-      uploaded_file = self.grr_worker.UploadFile(
-          file_fd,
-          args.upload_token,
-          session_id=self.session_id,
-          progress_callback=self.Progress)
-    except IOError as e:
-      raise IOError("Unable to upload %s: %s" % (args.pathspec.CollapsePath(),
-                                                 e))
-
-    logging.debug("Uploaded %s", args.pathspec)
-
-    uploaded_file.stat_entry = file_fd.Stat()
-    self.SendReply(uploaded_file)
-
-
 class StatFS(actions.ActionPlugin):
   """Call os.statvfs for a given list of paths. OS X and Linux only.
 

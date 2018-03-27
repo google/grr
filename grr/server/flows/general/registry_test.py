@@ -226,8 +226,8 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfModiciationTimeConditionMatchesNothing(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
-        min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
+        max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
 
     session_id = self.RunFlow([self.runkey], [
         registry.RegistryFinderCondition(
@@ -239,9 +239,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
-        min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+        min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
             1247546054 - 1),
-        max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+        max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
             1247546054 + 1))
 
     session_id = self.RunFlow([self.runkey], [
@@ -261,9 +261,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeyWithLiteralAndModificationTimeConditions(self):
     client_id = test_lib.TEST_CLIENT_ID
     modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
-        min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+        min_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
             1247546054 - 1),
-        max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+        max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
             1247546054 + 1))
 
     vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(

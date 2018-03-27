@@ -118,14 +118,14 @@ class ApiGetClientVersionsRegressionTestMixin(object):
           "GetClientVersions",
           args=client_plugin.ApiGetClientVersionsArgs(
               client_id=client_id,
-              end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
               mode=self.mode))
       self.Check(
           "GetClientVersions",
           args=client_plugin.ApiGetClientVersionsArgs(
               client_id=client_id,
-              start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(44),
-              end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(46),
+              start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(44),
+              end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(46),
               mode=self.mode))
 
 
@@ -343,15 +343,15 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
         args=client_plugin.ApiGetClientLoadStatsArgs(
             client_id=client_id.Basename(),
             metric="CPU_PERCENT",
-            start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10),
-            end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(21)))
+            start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10),
+            end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(21)))
     self.Check(
         "GetClientLoadStats",
         args=client_plugin.ApiGetClientLoadStatsArgs(
             client_id=client_id.Basename(),
             metric="IO_WRITE_BYTES",
-            start=rdfvalue.RDFDatetime().FromSecondsFromEpoch(10),
-            end=rdfvalue.RDFDatetime().FromSecondsFromEpoch(21)))
+            start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10),
+            end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(21)))
 
 
 def main(argv):

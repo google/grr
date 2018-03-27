@@ -312,8 +312,20 @@ window.location = '%s' + friendly_hash;
       return e
 
   def WSGIHandler(self):
-    return werkzeug_wsgi.SharedDataMiddleware(
-        self, {"/static": config.CONFIG["AdminUI.document_root"]})
+    """Returns GRR's WSGI handler."""
+    sdm = werkzeug_wsgi.SharedDataMiddleware(self, {
+        "/": config.CONFIG["AdminUI.document_root"],
+    })
+    # Use DispatcherMiddleware to make sure that SharedDataMiddleware is not
+    # used at all if the URL path doesn't start with "/static". This is a
+    # workaround for cases when unicode URLs are used on systems with
+    # non-unicode filesystems (as detected by Werkzeug). In this case
+    # SharedDataMiddleware may fail early while trying to convert the
+    # URL into the file path and not dispatch the call further to our own
+    # WSGI handler.
+    return werkzeug_wsgi.DispatcherMiddleware(self, {
+        "/static": sdm,
+    })
 
 
 class GuiPluginsInit(registry.InitHook):

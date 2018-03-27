@@ -64,37 +64,37 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testLabelWriteToUnknownClient(self):
     pass
 
-  def testClientHistory(self):
+  def testClientSnapshotHistory(self):
     pass
 
-  def testWriteClientHistory(self):
+  def testWriteClientSnapshotHistory(self):
     pass
 
-  def testWriteClientHistoryUpdatesLastTimestampIfNotSet(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNotSet(self):
     pass
 
-  def testWriteClientHistoryUpdatesLastTimestampIfNewer(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNewer(self):
     pass
 
-  def testWriteClientHistoryDoesNotUpdateLastTimestampIfOlder(self):
+  def testWriteClientSnapshotHistoryDoesNotUpdateLastTimestampIfOlder(self):
     pass
 
-  def testWriteClientHistoryUpdatesOnlyLastClientTimestamp(self):
+  def testWriteClientSnapshotHistoryUpdatesOnlyLastClientTimestamp(self):
     pass
 
-  def testWriteClientHistoryRaiseTypeError(self):
+  def testWriteClientSnapshotHistoryRaiseTypeError(self):
     pass
 
-  def testWriteClientHistoryRaiseValueErrorOnEmpty(self):
+  def testWriteClientSnapshotHistoryRaiseValueErrorOnEmpty(self):
     pass
 
-  def testWriteClientHistoryRaiseValueErrorOnNonUniformIds(self):
+  def testWriteClientSnapshotHistoryRaiseValueErrorOnNonUniformIds(self):
     pass
 
-  def testWriteClientHistoryRaiseAttributeError(self):
+  def testWriteClientSnapshotHistoryRaiseAttributeError(self):
     pass
 
-  def testWriteClientHistoryRaiseOnNonExistingClient(self):
+  def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):
     pass
 
   def testClientSummary(self):
@@ -140,6 +140,60 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
     pass
 
   def testFullInfo(self):
+    pass
+
+  def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
+    pass
+
+  def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
+    pass
+
+  def testGrantApprovalAddsNewGrantor(self):
+    pass
+
+  def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
+    pass
+
+  def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
+    pass
+
+  def testReadApprovalRequestsReturnsSingleApproval(self):
+    pass
+
+  def testReadApprovalRequestsReturnsMultipleApprovals(self):
+    pass
+
+  def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
+    pass
+
+  def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
+    pass
+
+  def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
+    pass
+
+  def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
     pass
 
 

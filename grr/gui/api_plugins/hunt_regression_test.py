@@ -65,7 +65,7 @@ class ApiListHuntResultsRegressionTest(
     with data_store.DB.GetMutationPool() as pool:
       result = rdf_flows.GrrMessage(
           payload=rdfvalue.RDFString("blah1"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+          age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
       results.Add(
           result,
           timestamp=result.age + rdfvalue.Duration("1s"),
@@ -73,7 +73,7 @@ class ApiListHuntResultsRegressionTest(
 
       result = rdf_flows.GrrMessage(
           payload=rdfvalue.RDFString("blah2-foo"),
-          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+          age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
       results.Add(
           result,
           timestamp=result.age + rdfvalue.Duration("1s"),

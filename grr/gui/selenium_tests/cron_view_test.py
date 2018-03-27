@@ -256,7 +256,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
-        rdfvalue.RDFDatetime().FromSecondsFromEpoch(2274264646),
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2274264646),
         increment=1e-6):
       self.Open("/")
       self.Click("css=a[grrtarget=crons]")

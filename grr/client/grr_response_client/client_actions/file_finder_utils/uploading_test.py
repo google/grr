@@ -23,6 +23,7 @@ class UploaderTest(unittest.TestCase):
       self.assertEqual(len(action.messages), 0)
 
       self.assertEqual(len(blobdesc.chunks), 0)
+      self.assertEqual(blobdesc.chunk_size, 3)
 
   def testSingleChunk(self):
     action = FakeAction()
@@ -39,6 +40,7 @@ class UploaderTest(unittest.TestCase):
       self.assertEqual(action.messages[0].item.data, zlib.compress("foobar"))
 
       self.assertEqual(len(blobdesc.chunks), 1)
+      self.assertEqual(blobdesc.chunk_size, 6)
       self.assertEqual(blobdesc.chunks[0].offset, 0)
       self.assertEqual(blobdesc.chunks[0].length, 6)
       self.assertEqual(blobdesc.chunks[0].digest, Sha256("foobar"))
@@ -61,6 +63,7 @@ class UploaderTest(unittest.TestCase):
       self.assertEqual(action.messages[3].item.data, zlib.compress("0"))
 
       self.assertEqual(len(blobdesc.chunks), 4)
+      self.assertEqual(blobdesc.chunk_size, 3)
       self.assertEqual(blobdesc.chunks[0].offset, 0)
       self.assertEqual(blobdesc.chunks[0].length, 3)
       self.assertEqual(blobdesc.chunks[0].digest, Sha256("123"))
@@ -90,6 +93,7 @@ class UploaderTest(unittest.TestCase):
       self.assertEqual(action.messages[1].item.data, zlib.compress("45"))
 
       self.assertEqual(len(blobdesc.chunks), 2)
+      self.assertEqual(blobdesc.chunk_size, 3)
       self.assertEqual(blobdesc.chunks[0].offset, 0)
       self.assertEqual(blobdesc.chunks[0].length, 3)
       self.assertEqual(blobdesc.chunks[0].digest, Sha256("123"))
@@ -114,6 +118,7 @@ class UploaderTest(unittest.TestCase):
       self.assertEqual(action.messages[2].item.data, zlib.compress("6"))
 
       self.assertEqual(len(blobdesc.chunks), 3)
+      self.assertEqual(blobdesc.chunk_size, 2)
       self.assertEqual(blobdesc.chunks[0].offset, 2)
       self.assertEqual(blobdesc.chunks[0].length, 2)
       self.assertEqual(blobdesc.chunks[0].digest, Sha256("23"))

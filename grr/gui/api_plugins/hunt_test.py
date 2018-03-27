@@ -644,7 +644,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testModifiesHuntCorrectly(self):
     self.args.client_rate = 100
     self.args.client_limit = 42
-    self.args.expires = rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)
+    self.args.expires = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
 
     self.handler.Handle(self.args, token=self.token)
 
@@ -653,7 +653,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
     self.assertEqual(after.expires,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
   def testDoesNotModifyHuntIfStateChangeFails(self):
     with self.assertRaises(hunt_plugin.InvalidHuntStateError):

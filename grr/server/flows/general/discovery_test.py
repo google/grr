@@ -43,7 +43,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def _OpenClient(self):
-    return data_store.REL_DB.ReadClient(self.client_id.Basename())
+    return data_store.REL_DB.ReadClientSnapshot(self.client_id.Basename())
 
   def _CheckUsers(self, all_users):
     """Check all user stores."""
@@ -64,7 +64,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(self.fd.Get(self.fd.Schema.SYSTEM), system)
     self.assertEqual(self.fd.Get(self.fd.Schema.INSTALL_DATE), install_date)
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     client = self._OpenClient()
     self.assertEqual(client.knowledge_base.fqdn, fqdn)
     self.assertEqual(client.knowledge_base.os, system)
@@ -78,7 +78,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
                      int(config.CONFIG["Source.version_numeric"]))
     self.assertEqual(info.build_time, config.CONFIG["Client.build_time"])
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     client = self._OpenClient()
     info = client.startup_info.client_info
     self.assertEqual(info.client_name, config.CONFIG["Client.name"])
@@ -94,7 +94,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
                      ["http://localhost:8001/"])
     self.assertEqual(config_info["Client.poll_min"], 1.0)
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     client = self._OpenClient()
     config_dict = {item.key: item.value for item in client.grr_configuration}
 
@@ -135,7 +135,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     summaries = []
     # AFF4 client.
     summaries.append(self.fd.GetSummary())
-    # objects.Client.
+    # objects.ClientSnapshot.
     client = self._OpenClient()
     summaries.append(client.GetSummary())
     for summary in summaries:

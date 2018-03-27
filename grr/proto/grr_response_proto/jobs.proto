@@ -736,42 +736,6 @@ message ListDirRequest {
   optional Iterator iterator = 2;
 };
 
-message UploadPolicy {
-  optional string client_id = 1 [(sem_type) = {type: "ClientURN"}];
-
-  optional uint64 expires = 2 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "When this upload expires."
-  }];
-};
-
-message UploadToken {
-  // Note: This must remain encoded because the hmac below must use the same
-  // message.
-  optional bytes encrypted_policy = 1
-      [(sem_type) = {description: "An encoded and encrypted UploadPolicy "
-                     "message."}];
-  optional bytes hmac = 2
-      [(sem_type) = {description: "The HMAC for the encoded policy message."}];
-
-  optional bytes iv = 3 [(sem_type) = {
-      type: "EncryptionKey",
-    }];
-}
-
-message UploadFileRequest {
-  optional PathSpec pathspec = 1;
-
-  optional UploadToken upload_token = 2;
-};
-
-message UploadedFile {
-  optional StatEntry stat_entry = 1;
-  optional string file_id = 2;
-  optional uint64 bytes_uploaded = 3;
-  optional Hash hash = 4;
-}
-
 // StatFS client action request
 message StatFSRequest {
   repeated string path_list = 1[(sem_type) = {
@@ -1589,6 +1553,7 @@ message ForemanRegexClientRule {
     KERNEL_VERSION = 9 [(description) = "Kernel version the machine is running (\"10.0.14393\" or \"4.9.0-5-amd64\")"];
     OS_VERSION = 10 [(description) = "OS version the machine is running (\"10.0.14393SP0\" or \"buster/sid\")"];
     OS_RELEASE = 11 [(description) = "OS release the machine is running (\"10\" or \"debian\")"];
+    CLIENT_LABELS = 12[(description) = "Space separated list of client labels (\"label1 label2\")"];
   }
   optional ForemanStringField field = 5;
 }
@@ -2178,16 +2143,6 @@ message PendingFlowTermination {
   optional string reason = 1;
 }
 
-message SignaturePart {
-  optional bytes signature = 1 [(sem_type) = {
-    description: "The signature covers the plain text of the encrypted "
-                 "cipher field."
-  }];
-
-  optional bytes encrypted_cipher = 2
-      [(sem_type) = {description: "The encrypted CipherProperties object."}];
-}
-
 message BlobImageChunkDescriptor {
   optional uint64 offset = 1;
   optional uint64 length = 2;
@@ -2196,4 +2151,5 @@ message BlobImageChunkDescriptor {
 
 message BlobImageDescriptor {
   repeated BlobImageChunkDescriptor chunks = 1;
+  optional uint64 chunk_size = 2;
 }

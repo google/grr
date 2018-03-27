@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """An in memory database implementation used for testing."""
 
+import os
+
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -23,24 +25,38 @@ class InMemoryDB(db.Database):
     self.users = {}
     self.startup_history = {}
     self.crash_history = {}
+    self.approvals_by_username = {}
 
   def ClearTestDB(self):
     self._Init()
 
-  def _ValidateClientId(self, client_id):
-    if not isinstance(client_id, basestring):
-      raise ValueError(
-          "Expected client_id as a string, got %s" % type(client_id))
+  def _ValidateStringId(self, id_type, id_value):
+    if not isinstance(id_value, basestring):
+      raise ValueError("Expected %s as a string, got %s" % (id_type,
+                                                            type(id_value)))
 
-    if not client_id:
-      raise ValueError("Expected client_id to be non-empty.")
+    if not id_value:
+      raise ValueError("Expected %s to be non-empty." % id_type)
+
+  def _ValidateClientId(self, client_id):
+    self._ValidateStringId("client_id", client_id)
+
+  def _ValidateHuntId(self, hunt_id):
+    self._ValidateStringId("hunt_id", hunt_id)
+
+  def _ValidateCronJobId(self, cron_job_id):
+    self._ValidateStringId("cron_job_id", cron_job_id)
+
+  def _ValidateApprovalId(self, approval_id):
+    self._ValidateStringId("approval_id", approval_id)
+
+  def _ValidateApprovalType(self, approval_type):
+    if (approval_type == objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE
+       ):
+      raise ValueError("Unexpected approval type: %s" % approval_type)
 
   def _ValidateUsername(self, username):
-    if not isinstance(username, basestring):
-      raise ValueError("Expected username as a string, got %s" % type(username))
-
-    if not username:
-      raise ValueError("Expected username to be non-empty.")
+    self._ValidateStringId("username", username)
 
   def WriteClientMetadata(self,
                           client_id,
@@ -107,11 +123,11 @@ class InMemoryDB(db.Database):
 
     return res
 
-  def WriteClient(self, client):
-    """Write new client snapshot."""
-    if not isinstance(client, objects.Client):
-      raise ValueError("WriteClient requires rdfvalues.objects.Client, got: %s"
-                       % type(client))
+  def WriteClientSnapshot(self, client):
+    """Writes new client snapshot."""
+    if not isinstance(client, objects.ClientSnapshot):
+      raise ValueError(
+          "Expected `rdfvalues.objects.ClientSnapshot`, got: %s" % type(client))
 
     client_id = client.client_id
     self._ValidateClientId(client_id)
@@ -131,7 +147,7 @@ class InMemoryDB(db.Database):
 
     client.startup_info = startup_info
 
-  def ReadClients(self, client_ids):
+  def ReadClientsSnapshot(self, client_ids):
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -141,7 +157,8 @@ class InMemoryDB(db.Database):
         res[client_id] = None
         continue
       last_timestamp = max(history)
-      client_obj = objects.Client.FromSerializedString(history[last_timestamp])
+      last_serialized = history[last_timestamp]
+      client_obj = objects.ClientSnapshot.FromSerializedString(last_serialized)
       client_obj.timestamp = last_timestamp
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
           self.startup_history[client_id][last_timestamp])
@@ -152,16 +169,15 @@ class InMemoryDB(db.Database):
     res = {}
     for client_id in client_ids:
       self._ValidateClientId(client_id)
-      data = {}
-      data["client"] = self.ReadClient(client_id)
-      data["metadata"] = self.ReadClientMetadata(client_id)
-      data["last_startup_info"] = self.ReadClientStartupInfo(client_id)
-      data["labels"] = self.ReadClientLabels(client_id)
-      res[client_id] = data
+      res[client_id] = db.ClientFullInfo(
+          metadata=self.ReadClientMetadata(client_id),
+          labels=self.ReadClientLabels(client_id),
+          last_snapshot=self.ReadClientSnapshot(client_id),
+          last_startup_info=self.ReadClientStartupInfo(client_id))
     return res
 
-  def WriteClientHistory(self, clients):
-    super(InMemoryDB, self).WriteClientHistory(clients)
+  def WriteClientSnapshotHistory(self, clients):
+    super(InMemoryDB, self).WriteClientSnapshotHistory(clients)
 
     if clients[0].client_id not in self.metadatas:
       raise db.UnknownClientError(clients[0].client_id)
@@ -178,7 +194,7 @@ class InMemoryDB(db.Database):
 
       client.startup_info = startup_info
 
-  def ReadClientHistory(self, client_id):
+  def ReadClientSnapshotHistory(self, client_id):
     """Reads the full history for a particular client."""
     self._ValidateClientId(client_id)
 
@@ -187,7 +203,7 @@ class InMemoryDB(db.Database):
       return []
     res = []
     for ts in sorted(history, reverse=True):
-      client_obj = objects.Client.FromSerializedString(history[ts])
+      client_obj = objects.ClientSnapshot.FromSerializedString(history[ts])
       client_obj.timestamp = ts
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
           self.startup_history[client_id][ts])
@@ -195,7 +211,6 @@ class InMemoryDB(db.Database):
     return res
 
   def AddClientKeywords(self, client_id, keywords):
-
     self._ValidateClientId(client_id)
 
     if client_id not in self.metadatas:
@@ -386,3 +401,72 @@ class InMemoryDB(db.Database):
       client_data.timestamp = ts
       res.append(client_data)
     return res
+
+  def WriteApprovalRequest(self, approval_request):
+    if not isinstance(approval_request, objects.ApprovalRequest):
+      raise ValueError("ApprovalRequest object expected, got %s",
+                       type(approval_request))
+
+    self._ValidateUsername(approval_request.requestor_username)
+    self._ValidateApprovalType(approval_request.approval_type)
+
+    approvals = self.approvals_by_username.setdefault(
+        approval_request.requestor_username, {})
+
+    approval_id = os.urandom(16).encode("hex")
+    cloned_request = approval_request.Copy()
+    cloned_request.timestamp = rdfvalue.RDFDatetime.Now()
+    cloned_request.approval_id = approval_id
+    approvals[approval_id] = cloned_request
+
+    return approval_id
+
+  def ReadApprovalRequest(self, requestor_username, approval_id):
+    self._ValidateUsername(requestor_username)
+    self._ValidateApprovalId(approval_id)
+
+    try:
+      return self.approvals_by_username[requestor_username][approval_id]
+    except KeyError:
+      raise db.UnknownApprovalRequestError(
+          "Can't find approval with id: %s" % approval_id)
+
+  def ReadApprovalRequests(self,
+                           requestor_username,
+                           approval_type,
+                           subject_id=None,
+                           include_expired=False):
+    self._ValidateUsername(requestor_username)
+    self._ValidateApprovalType(approval_type)
+
+    if subject_id:
+      self._ValidateStringId("approval subject id", subject_id)
+
+    now = rdfvalue.RDFDatetime.Now()
+    for approval in self.approvals_by_username.get(requestor_username,
+                                                   {}).values():
+      if approval.approval_type != approval_type:
+        continue
+
+      if subject_id and approval.subject_id != subject_id:
+        continue
+
+      if not include_expired and approval.expiration_time < now:
+        continue
+
+      yield approval
+
+  def GrantApproval(self, requestor_username, approval_id, grantor_username):
+    self._ValidateUsername(requestor_username)
+    self._ValidateApprovalId(approval_id)
+    self._ValidateUsername(grantor_username)
+
+    try:
+      approval = self.approvals_by_username[requestor_username][approval_id]
+      approval.grants.append(
+          objects.ApprovalGrant(
+              grantor_username=grantor_username,
+              timestamp=rdfvalue.RDFDatetime.Now()))
+    except KeyError:
+      raise db.UnknownApprovalRequestError(
+          "Can't find approval with id: %s" % approval_id)

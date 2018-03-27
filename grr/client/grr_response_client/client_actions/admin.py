@@ -291,9 +291,8 @@ class GetClientStats(actions.ActionPlugin):
 
     proc = psutil.Process(os.getpid())
     meminfo = proc.memory_info()
-    boot_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(psutil.boot_time())
-    create_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-        proc.create_time())
+    boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
+    create_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(proc.create_time())
     response = rdf_client.ClientStats(
         RSS_size=meminfo.rss,
         VMS_size=meminfo.vms,
@@ -303,22 +302,10 @@ class GetClientStats(actions.ActionPlugin):
         create_time=create_time,
         boot_time=boot_time)
 
-    samples = self.grr_worker.stats_collector.cpu_samples
-    for (timestamp, user, system, percent) in samples:
-      if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.CpuSample(
-            timestamp=timestamp,
-            user_cpu_time=user,
-            system_cpu_time=system,
-            cpu_percent=percent)
-        response.cpu_samples.Append(sample)
-
-    samples = self.grr_worker.stats_collector.io_samples
-    for (timestamp, read_bytes, write_bytes) in samples:
-      if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.IOSample(
-            timestamp=timestamp, read_bytes=read_bytes, write_bytes=write_bytes)
-        response.io_samples.Append(sample)
+    response.cpu_samples = self.grr_worker.stats_collector.CpuSamplesBetween(
+        start_time=arg.start_time, end_time=arg.end_time)
+    response.io_samples = self.grr_worker.stats_collector.IOSamplesBetween(
+        start_time=arg.start_time, end_time=arg.end_time)
 
     self.Send(response)
 
@@ -331,6 +318,8 @@ class GetClientStatsAuto(GetClientStats):
 
   def Send(self, response):
     if isinstance(response, rdf_client.ClientStats):
+      # TODO(hanuszczak): It seems like it is not doing anything. Downsampling
+      # method returns a new protobuf so this is a no-op.
       response.DownSample()
     self.grr_worker.SendReply(
         response,
@@ -352,7 +341,7 @@ class SendStartupInfo(actions.ActionPlugin):
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
-    boot_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(psutil.boot_time())
+    boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
     response = rdf_client.StartupInfo(
         boot_time=boot_time, client_info=GetClientInformation())
 

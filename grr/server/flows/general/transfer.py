@@ -16,7 +16,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server import aff4
 from grr.server import data_store
-from grr.server import file_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
@@ -727,58 +726,6 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
   def ReceiveFetchedFile(self, stat_entry, unused_hash_obj, request_data=None):
     """This method will be called for each new file successfully fetched."""
     _ = request_data
-    self.SendReply(stat_entry)
-
-
-class MultiUploadFileArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.MultiUploadFileArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class MultiUploadFile(flow.GRRFlow):
-  """Upload multiple files using direct HTTP uploads."""
-
-  args_type = MultiGetFileArgs
-
-  category = "/Filesystem/"
-
-  @flow.StateHandler()
-  def Start(self):
-    for pathspec in self.args.pathspecs:
-      # The AFF4 path under the client's namespace where we store the file.
-      filename = pathspec.AFF4Path(self.client_id).RelativeName(self.client_id)
-      policy = rdf_client.UploadPolicy(
-          client_id=self.client_id,
-          expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
-      upload_token = rdf_client.UploadToken()
-      upload_token.SetPolicy(policy)
-      upload_token.GenerateHMAC()
-
-      self.CallClient(
-          server_stubs.UploadFile,
-          pathspec=pathspec,
-          upload_token=upload_token,
-          next_state="ProcessFileUpload",
-          request_data=dict(path=filename))
-
-  @flow.StateHandler()
-  def ProcessFileUpload(self, responses):
-    if not responses.success:
-      self.Log("File upload failed: %s", responses.status)
-      return
-
-    upload_store = file_store.UploadFileStore.GetPlugin(
-        config.CONFIG["Frontend.upload_store"])()
-    response = responses.First()
-    urn = self.client_id.Add(responses.request_data["path"])
-    with upload_store.Aff4ObjectForFileId(
-        urn, response.file_id, token=self.token) as fd:
-      stat_entry = response.stat_entry
-      fd.Set(fd.Schema.STAT, stat_entry)
-      fd.Set(fd.Schema.SIZE(stat_entry.st_size))
-
     self.SendReply(stat_entry)
 
 

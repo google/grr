@@ -212,24 +212,50 @@ class ActionPlugin(object):
     if backtrace:
       self.status.backtrace = utils.SmartUnicode(backtrace)
 
+  # TODO(hanuszczak): It feels like this function is doing too much. `SendReply`
+  # should be able to send replies only to the parent flow and there should be
+  # some other method to communicate with well-known flows. The naming is also
+  # confusing since sending messages to well-knows flows is not really replying
+  # to anything.
   def SendReply(self,
                 rdf_value=None,
+                session_id=None,
                 message_type=rdf_flows.GrrMessage.Type.MESSAGE):
     """Send response back to the server."""
+    # TODO(hanuszczak): This is pretty bad. Here we assume that if the session
+    # id is not none we are "replying" to a well-known flow. If we are replying
+    # to a well-known flow we cannot increment the response id (since these are
+    # not really responses) because otherwise the parent flow will think it is
+    # missing some responses.
+    #
+    # Moreover, the message queue (at least in the flow test helper workflow)
+    # expects flow messages to have request id equal to 0. This is rather
+    # convoluted and should be untangled in the future.
+    #
+    # Once we have a separate method for communicating with well-known flows
+    # this if-statement should no longer be relevant (since setting custom
+    # session ids would become illegal).
+    if session_id is None:
+      response_id = self.response_id
+      request_id = self.message.request_id
+      session_id = self.message.session_id
+      self.response_id += 1
+    else:
+      response_id = 0
+      request_id = 0
+
     self.grr_worker.SendReply(
         rdf_value,
         # This is not strictly necessary but adds context
         # to this response.
         name=self.__class__.__name__,
-        session_id=self.message.session_id,
-        response_id=self.response_id,
-        request_id=self.message.request_id,
+        session_id=session_id,
+        response_id=response_id,
+        request_id=request_id,
         message_type=message_type,
         task_id=self.message.task_id,
         priority=self.priority,
         require_fastpoll=self.require_fastpoll)
-
-    self.response_id += 1
 
   def Progress(self):
     """Indicate progress of the client action.

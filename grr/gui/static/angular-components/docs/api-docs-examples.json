@@ -4675,10 +4675,10 @@
                     },
                     "type": {
                       "type": "unicode",
-                      "value": "Client"
+                      "value": "ClientSnapshot"
                     },
                     "value": {
-                      "type": "Client",
+                      "type": "ClientSnapshot",
                       "value": {
                         "client_id": {
                           "type": "unicode",
@@ -4888,10 +4888,10 @@
                     },
                     "type": {
                       "type": "unicode",
-                      "value": "Client"
+                      "value": "ClientSnapshot"
                     },
                     "value": {
-                      "type": "Client",
+                      "type": "ClientSnapshot",
                       "value": {
                         "client_id": {
                           "type": "unicode",

@@ -56,7 +56,8 @@ class Interrogate(flow.GRRFlow):
     # Create the objects we need to exist.
     self.Load()
 
-    self.state.client = objects.Client(client_id=self.client_id.Basename())
+    client_id = self.client_id.Basename()
+    self.state.client = objects.ClientSnapshot(client_id=client_id)
     self.state.fqdn = None
     self.state.os = None
 
@@ -101,7 +102,7 @@ class Interrogate(flow.GRRFlow):
               cloud.ConvertCloudMetadataResponsesToCloudInstance(
                   metadata_responses)))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     client = self.state.client
     client.cloud_instance = cloud.ConvertCloudMetadataResponsesToCloudInstance(
         metadata_responses)
@@ -115,7 +116,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.MEMORY_SIZE(responses.First()))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     self.state.client.memory_size = responses.First()
 
   @flow.StateHandler()
@@ -149,7 +150,7 @@ class Interrogate(flow.GRRFlow):
         # Update the client index
         client_index.CreateClientIndex(token=self.token).AddClient(client)
 
-      # objects.Client.
+      # objects.ClientSnapshot.
       client = self.state.client
       client.os_release = response.release
       client.os_version = response.version
@@ -189,7 +190,7 @@ class Interrogate(flow.GRRFlow):
       # We failed to get the Platform info, maybe there is a stored
       # system we can use to get at least some data.
       if data_store.RelationalDBReadEnabled():
-        client = data_store.REL_DB.ReadClient(self.client_id.Basename())
+        client = data_store.REL_DB.ReadClientSnapshot(self.client_id.Basename())
         known_system_type = client and client.knowledge_base.os
       else:
         client = self._OpenClient()
@@ -221,7 +222,7 @@ class Interrogate(flow.GRRFlow):
       install_date = response
     elif isinstance(response, rdf_protodict.DataBlob):
       # For backwards compatibility.
-      install_date = rdfvalue.RDFDatetime().FromSecondsFromEpoch(
+      install_date = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
           response.integer)
     else:
       self.Log("Unknown response type for InstallDate: %s" % type(response))
@@ -231,7 +232,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.INSTALL_DATE(install_date))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     self.state.client.install_time = install_date
 
   def CopyOSReleaseFromKnowledgeBase(self, kb, client):
@@ -265,7 +266,7 @@ class Interrogate(flow.GRRFlow):
     self.CopyOSReleaseFromKnowledgeBase(kb, client)
     client.Flush()
 
-    # objects.Client.
+    # objects.ClientSnapshot.
 
     # Information already present in the knowledge base takes precedence.
     if not kb.os:
@@ -289,7 +290,7 @@ class Interrogate(flow.GRRFlow):
 
     if data_store.RelationalDBWriteEnabled():
       try:
-        # Update the client index for the objects.Client.
+        # Update the client index for the objects.ClientSnapshot.
         client_index.ClientIndex().AddClient(self.client_id.Basename(),
                                              self.state.client)
       except db.UnknownClientError:
@@ -309,13 +310,13 @@ class Interrogate(flow.GRRFlow):
           # AFF4 client.
           new_volumes.append(response)
 
-          # objects.Client.
+          # objects.ClientSnapshot.
           self.state.client.volumes.append(response)
         elif isinstance(response, rdf_client.HardwareInfo):
           # AFF4 client.
           client.Set(client.Schema.HARDWARE_INFO, response)
 
-          # objects.Client.
+          # objects.ClientSnapshot.
           self.state.client.hardware_info = response
         else:
           raise ValueError("Unexpected response type: %s", type(response))
@@ -356,7 +357,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
       client.Set(client.Schema.INTERFACES(interface_list))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     self.state.client.interfaces = list(responses)
 
   @flow.StateHandler()
@@ -366,7 +367,7 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not enumerate file systems.")
       return
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     self.state.client.filesystems = responses
 
     # AFF4 client.
@@ -429,7 +430,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.CLIENT_INFO(response))
       client.AddLabels(response.labels, owner="GRR")
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     self.state.client.startup_info.client_info = response
 
   @flow.StateHandler()
@@ -444,7 +445,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.GRR_CONFIGURATION(response))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     for k, v in response.items():
       self.state.client.grr_configuration.Append(key=k, value=utils.SmartStr(v))
 
@@ -459,7 +460,7 @@ class Interrogate(flow.GRRFlow):
     with self._CreateClient() as client:
       client.Set(client.Schema.LIBRARY_VERSIONS(response))
 
-    # objects.Client.
+    # objects.ClientSnapshot.
     for k, v in response.items():
       self.state.client.library_versions.Append(key=k, value=utils.SmartStr(v))
 
@@ -473,15 +474,16 @@ class Interrogate(flow.GRRFlow):
 
     if data_store.RelationalDBWriteEnabled():
       try:
-        data_store.REL_DB.WriteClient(self.state.client)
+        data_store.REL_DB.WriteClientSnapshot(self.state.client)
       except db.UnknownClientError:
         pass
+
+    client = self._OpenClient()
 
     if data_store.RelationalDBReadEnabled():
       summary = self.state.client.GetSummary()
       summary.client_id = self.client_id
     else:
-      client = self._OpenClient()
       summary = client.GetSummary()
 
     self.Publish("Discovery", summary)

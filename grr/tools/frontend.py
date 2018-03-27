@@ -209,13 +209,6 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if not header:
         break
 
-  def HandleUploads(self):
-    """Receive file uploads from the client."""
-    file_id = self.server.frontend.HandleUpload(
-        self.headers.get("Transfer-Encoding"),
-        self.headers.get("x-grr-upload-token"), self.GenerateFileData())
-    self.Send(file_id)
-
   def do_POST(self):  # pylint: disable=g-bad-name
     """Process encrypted message bundles."""
 
@@ -223,7 +216,9 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if self.path.startswith("/upload"):
         stats.STATS.IncrementCounter(
             "frontend_http_requests", fields=["upload", "http"])
-        self.HandleUploads()
+
+        logging.error("Requested no longer supported file upload through HTTP.")
+        self.Send("File upload though HTTP is no longer supported", status=404)
       else:
         stats.STATS.IncrementCounter(
             "frontend_http_requests", fields=["control", "http"])

@@ -1203,15 +1203,19 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # Server should have received 10 messages this time.
       self.assertEqual(len(self.messages), 10)
 
+  # TODO(hanuszczak): We have a separate test suite for the stat collector.
+  # Most of these test methods are no longer required, especially that now they
+  # need to use implementation-specific methods instead of the public API.
+
   def testClientStatsCollection(self):
     """Tests that the client stats are collected automatically."""
     now = 1000000
     # Pretend we have already sent stats.
-    self.client_communicator.client_worker.last_stats_sent_time = (
-        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+    self.client_communicator.client_worker.stats_collector._last_send_time = (
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(now))
 
     with test_lib.FakeTime(now):
-      self.client_communicator.client_worker.CheckStats()
+      self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
     with utils.Stubber(admin.GetClientStatsAuto, "Run",
@@ -1219,18 +1223,18 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       # No stats collection after 10 minutes.
       with test_lib.FakeTime(now + 600):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 0)
 
       # Let one hour pass.
       with test_lib.FakeTime(now + 3600):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         # This time the client should collect stats.
         self.assertEqual(len(runs), 1)
 
       # Let one hour and ten minutes pass.
       with test_lib.FakeTime(now + 3600 + 600):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         # Again, there should be no stats collection, as last collection
         # happened less than an hour ago.
         self.assertEqual(len(runs), 1)
@@ -1239,12 +1243,12 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """Tests that client stats are collected more often when client is busy."""
     now = 1000000
     # Pretend we have already sent stats.
-    self.client_communicator.client_worker.last_stats_sent_time = (
-        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+    self.client_communicator.client_worker.stats_collector._last_send_time = (
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(now))
     self.client_communicator.client_worker._is_active = True
 
     with test_lib.FakeTime(now):
-      self.client_communicator.client_worker.CheckStats()
+      self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
     with utils.Stubber(admin.GetClientStatsAuto, "Run",
@@ -1252,35 +1256,35 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 0)
 
       # Let 61 seconds pass.
       with test_lib.FakeTime(now + 61):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         # This time the client should collect stats.
         self.assertEqual(len(runs), 1)
 
       # No stats collection within one minute from the last time.
       with test_lib.FakeTime(now + 61 + 59):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 1)
 
       # Stats collection happens as more than one minute has passed since the
       # last one.
       with test_lib.FakeTime(now + 61 + 61):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 2)
 
   def testClientStatsCollectionAlwaysHappensAfterHandleMessage(self):
     """Tests that client stats are collected more often when client is busy."""
     now = 1000000
     # Pretend we have already sent stats.
-    self.client_communicator.client_worker.last_stats_sent_time = (
-        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+    self.client_communicator.client_worker.stats_collector._last_send_time = (
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(now))
 
     with test_lib.FakeTime(now):
-      self.client_communicator.client_worker.CheckStats()
+      self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
     with utils.Stubber(admin.GetClientStatsAuto, "Run",
@@ -1288,7 +1292,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 0)
 
       msg = rdf_flows.GrrMessage(
@@ -1298,13 +1302,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # HandleMessage was called, but one minute hasn't passed, so
       # stats should not be sent.
       with test_lib.FakeTime(now + 59):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 0)
 
       # HandleMessage was called more than one minute ago, so stats
       # should be sent.
       with test_lib.FakeTime(now + 61):
-        self.client_communicator.client_worker.CheckStats()
+        self.client_communicator.client_worker.stats_collector._Send()
         self.assertEqual(len(runs), 1)
 
   def RaiseError(self, **_):

@@ -882,7 +882,7 @@ class ExportTest(ExportTestBase):
 
   def testGrrMessageConverter(self):
     payload = DummyRDFValue4(
-        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg = rdf_flows.GrrMessage(payload=payload)
     msg.source = self.client_id
     fixture_test_lib.ClientFixture(msg.source, token=self.token)
@@ -897,21 +897,21 @@ class ExportTest(ExportTestBase):
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].original_timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(2))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
     self.assertEqual(results[0].source_urn,
                      "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterWithOneMissingClient(self):
     payload1 = DummyRDFValue4(
-        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = rdf_client.ClientURN("C.0000000000000000")
     fixture_test_lib.ClientFixture(msg1.source, token=self.token)
 
     payload2 = DummyRDFValue4(
-        "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = rdf_client.ClientURN("C.0000000000000001")
 
@@ -930,21 +930,21 @@ class ExportTest(ExportTestBase):
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].original_timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(3))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
     self.assertEqual(results[0].source_urn,
                      "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterMultipleTypes(self):
     payload1 = DummyRDFValue3(
-        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = rdf_client.ClientURN("C.0000000000000000")
     fixture_test_lib.ClientFixture(msg1.source, token=self.token)
 
     payload2 = DummyRDFValue5(
-        "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+        "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = rdf_client.ClientURN("C.0000000000000000")
 
@@ -1335,7 +1335,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
         OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
-        datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+        datetime_value=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
 
     self.assertEqual(converted_value.string_value.__class__,
@@ -1361,7 +1361,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     self.assertTrue(
         isinstance(converted_value.datetime_value, rdfvalue.RDFDatetime))
     self.assertEqual(converted_value.datetime_value,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
   def testConvertedValuesCanBeSerializedAndDeserialized(self):
     original_value = export_test_lib.DataAgnosticConverterTestValue(
@@ -1371,7 +1371,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         enum_value=export_test_lib.DataAgnosticConverterTestValue.EnumOption.
         OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
-        datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+        datetime_value=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
 
     serialized = converted_value.SerializeToString()
@@ -1739,7 +1739,7 @@ class RekallResponseToExportedYaraSignatureMatchConverterTest(ExportTestBase):
 
     model_process = export.ExportedRekallProcess(
         commandline="python  yaratest.py",
-        creation_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1478513999),
+        creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1478513999),
         fullpath=r"C:\\python_27_amd64\\files\\python.exe",
         name="python.exe",
         parent_pid=2080,

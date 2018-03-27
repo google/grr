@@ -6,9 +6,9 @@ from grr_response_proto import objects_pb2
 
 
 def MakeClient():
-  client = objects.Client(client_id="C.0000000000000000")
+  client = objects.ClientSnapshot(client_id="C.0000000000000000")
 
-  base_pb = objects_pb2.Client()
+  base_pb = objects_pb2.ClientSnapshot()
   text_format.Merge("""
     os_release: "Ubuntu"
     os_version: "14.4"
@@ -63,16 +63,16 @@ class ObjectTest(unittest.TestCase):
 
     # No id.
     with self.assertRaises(ValueError):
-      objects.Client()
+      objects.ClientSnapshot()
 
     # One digit short.
     with self.assertRaises(ValueError):
-      objects.Client(client_id="C.000000000000000")
+      objects.ClientSnapshot(client_id="C.000000000000000")
 
     with self.assertRaises(ValueError):
-      objects.Client(client_id="not a real id")
+      objects.ClientSnapshot(client_id="not a real id")
 
-    objects.Client(client_id="C.0000000000000000")
+    objects.ClientSnapshot(client_id="C.0000000000000000")
 
   def testClientBasics(self):
     client = MakeClient()

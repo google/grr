@@ -479,12 +479,11 @@ class RDFDatetime(RDFInteger):
   def AsMicroSecondsFromEpoch(self):
     return self._value
 
-  def FromSecondsFromEpoch(self, value):
+  @classmethod
+  def FromSecondsSinceEpoch(cls, value):
     # Convert to int in case we get fractional seconds with higher
     # resolution than what this class supports.
-    self._value = int(value * self.converter)
-
-    return self
+    return cls(int(value * cls.converter))
 
   @classmethod
   def FromDatetime(cls, value):
@@ -716,7 +715,7 @@ class Duration(RDFInteger):
 
     base_time_sec = base_time.AsSecondsFromEpoch()
 
-    return base_time.FromSecondsFromEpoch(base_time_sec + self._value)
+    return RDFDatetime.FromSecondsSinceEpoch(base_time_sec + self._value)
 
   def ParseFromHumanReadable(self, timestring):
     """Parse a human readable string of a duration.

@@ -172,7 +172,7 @@ class GetInstallDate(actions.ActionPlugin):
 
   def Run(self, unused_args):
     ctime = os.stat("/lost+found").st_ctime
-    self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(ctime))
+    self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(ctime))
 
 
 class UtmpStruct(utils.Struct):

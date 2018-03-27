@@ -648,9 +648,9 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
     self.assertEqual(len(statuses), 2)
 
     self.assertEqual(statuses[0].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
     self.assertEqual(statuses[1].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(60))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(60))
     self.assertEqual(statuses[0].status,
                      rdf_cronjobs.CronJobRunStatus.Status.OK)
     self.assertEqual(statuses[1].status,

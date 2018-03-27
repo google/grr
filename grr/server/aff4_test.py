@@ -1381,7 +1381,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     children = list(fd.ListChildren())
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
     latest_time = 100 + aff4.FACTORY.intermediate_cache_age - 1
     with utils.Stubber(time, "time", lambda: latest_time):
@@ -1395,7 +1395,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     children = list(fd.ListChildren())
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
   def testIndexUpdatedWhenWrittenAfterIntemediateCacheAge(self):
     with utils.Stubber(time, "time", lambda: 100):
@@ -1409,7 +1409,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     children = list(fd.ListChildren())
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
     latest_time = 100 + aff4.FACTORY.intermediate_cache_age + 1
     with utils.Stubber(time, "time", lambda: latest_time):
@@ -1423,7 +1423,7 @@ class AFF4Test(aff4_test_lib.AFF4ObjectTest):
     children = list(fd.ListChildren())
     self.assertEqual(len(children), 1)
     self.assertEqual(children[0].age,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(latest_time))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(latest_time))
 
   def testClose(self):
     """Ensure that closed objects can not be used again."""
@@ -1978,8 +1978,8 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
   def testIntegerComparisons(self):
     """Tests that we can use integer matching rules on the foreman."""
 
-    base_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1336480583.077736)
-    boot_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1336300000.000000)
+    base_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1336480583.077736)
+    boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1336300000.000000)
 
     with aff4.FACTORY.Create(
         "C.0000000000000011", aff4_grr.VFSGRRClient, token=self.token) as fd:

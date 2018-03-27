@@ -410,7 +410,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -442,7 +442,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testKillNotificationsScheduledForFlows(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -472,7 +472,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -511,7 +511,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
     stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
 
     try:
@@ -553,7 +553,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testHeartBeatingFlowIsNotTreatedAsStuck(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
     lease_timeout = rdfvalue.Duration(worker.GRRWorker.flow_lease_time)
@@ -609,7 +609,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
+    initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
     stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
 
     with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):

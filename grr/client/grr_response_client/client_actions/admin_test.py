@@ -7,6 +7,7 @@ import psutil
 import requests
 
 from grr import config
+from grr_response_client import client_stats
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr.lib import flags
@@ -112,20 +113,45 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
     self.assertEqual(config.CONFIG["Client.server_urls"], location)
 
 
-class MockStatsCollector(object):
+class MockStatsCollector(client_stats.ClientStatsCollector):
   """Mock stats collector for GetClientStatsActionTest."""
 
-  # First value in every tuple is a timestamp (as if it was returned by
-  # time.time()).
-  cpu_samples = [
-      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(100), 0.1, 0.1, 10.0),
-      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(110), 0.1, 0.2, 15.0),
-      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(120), 0.1, 0.3, 20.0)
-  ]  # pyformat: disable
+  CPU_SAMPLES = [
+      rdf_client.CpuSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100),
+          user_cpu_time=0.1,
+          system_cpu_time=0.1,
+          cpu_percent=10.0),
+      rdf_client.CpuSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110),
+          user_cpu_time=0.1,
+          system_cpu_time=0.2,
+          cpu_percent=15.0),
+      rdf_client.CpuSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120),
+          user_cpu_time=0.1,
+          system_cpu_time=0.3,
+          cpu_percent=20.0),
+  ]
 
-  io_samples = [(rdfvalue.RDFDatetime().FromSecondsFromEpoch(100), 100, 100),
-                (rdfvalue.RDFDatetime().FromSecondsFromEpoch(110), 200, 200),
-                (rdfvalue.RDFDatetime().FromSecondsFromEpoch(120), 300, 300)]
+  IO_SAMPLES = [
+      rdf_client.IOSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100),
+          read_bytes=100,
+          write_bytes=100),
+      rdf_client.IOSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110),
+          read_bytes=200,
+          write_bytes=200),
+      rdf_client.IOSample(
+          timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120),
+          read_bytes=300,
+          write_bytes=300),
+  ]
+
+  def __init__(self):
+    self._cpu_samples = self.CPU_SAMPLES
+    self._io_samples = self.IO_SAMPLES
 
 
 class MockClientWorker(object):
@@ -171,9 +197,8 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
 
     self.assertEqual(len(response.cpu_samples), 3)
     for i in range(3):
-      self.assertEqual(
-          response.cpu_samples[i].timestamp,
-          rdfvalue.RDFDatetime().FromSecondsFromEpoch(100 + i * 10))
+      self.assertEqual(response.cpu_samples[i].timestamp,
+                       rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100 + i * 10))
       self.assertAlmostEqual(response.cpu_samples[i].user_cpu_time, 0.1)
       self.assertAlmostEqual(response.cpu_samples[i].system_cpu_time,
                              0.1 * (i + 1))
@@ -181,16 +206,15 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
 
     self.assertEqual(len(response.io_samples), 3)
     for i in range(3):
-      self.assertEqual(
-          response.io_samples[i].timestamp,
-          rdfvalue.RDFDatetime().FromSecondsFromEpoch(100 + i * 10))
+      self.assertEqual(response.io_samples[i].timestamp,
+                       rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100 + i * 10))
       self.assertEqual(response.io_samples[i].read_bytes, 100 * (i + 1))
       self.assertEqual(response.io_samples[i].write_bytes, 100 * (i + 1))
 
     self.assertEqual(response.boot_time, long(100 * 1e6))
 
   def testFiltersDataPointsByStartTime(self):
-    start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(117)
+    start_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(117)
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
@@ -199,14 +223,14 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
     self.assertEqual(response.cpu_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(120))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
 
     self.assertEqual(len(response.io_samples), 1)
     self.assertEqual(response.io_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(120))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(120))
 
   def testFiltersDataPointsByEndTime(self):
-    end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(102)
+    end_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(102)
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
@@ -215,15 +239,15 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
     self.assertEqual(response.cpu_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
     self.assertEqual(len(response.io_samples), 1)
     self.assertEqual(response.io_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100))
 
   def testFiltersDataPointsByStartAndEndTimes(self):
-    start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(109)
-    end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(113)
+    start_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(109)
+    end_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(113)
     results = self.RunAction(
         admin.GetClientStats,
         grr_worker=MockClientWorker(),
@@ -233,11 +257,11 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
     self.assertEqual(response.cpu_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(110))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110))
 
     self.assertEqual(len(response.io_samples), 1)
     self.assertEqual(response.io_samples[0].timestamp,
-                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(110))
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110))
 
 
 def main(argv):

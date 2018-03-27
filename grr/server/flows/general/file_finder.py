@@ -4,7 +4,6 @@
 
 import stat
 
-from grr import config
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -14,9 +13,9 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server import artifact_utils
 from grr.server import data_store
-from grr.server import file_store
 from grr.server import flow
 from grr.server import server_stubs
+from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import filesystem
 from grr.server.flows.general import fingerprint
 from grr.server.flows.general import transfer
@@ -362,16 +361,6 @@ class ClientFileFinder(flow.GRRFlow):
     if self.args.pathtype != "OS":
       raise ValueError("Only supported pathtype is OS.")
 
-    action = self.args.action
-    if action.action_type == "DOWNLOAD":
-      policy = rdf_client.UploadPolicy(
-          client_id=self.client_id,
-          expires=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("7d"))
-      upload_token = rdf_client.UploadToken()
-      upload_token.SetPolicy(policy)
-      upload_token.GenerateHMAC()
-      action.download.upload_token = upload_token
-
     self.args.paths = list(self._InterpolatePaths(self.args.paths))
 
     self.CallClient(
@@ -386,17 +375,6 @@ class ClientFileFinder(flow.GRRFlow):
       for path in artifact_utils.InterpolateKbAttributes(param_path, kb):
         yield path
 
-  def _CreateAFF4ObjectForUploadedFile(self, uploaded_file):
-    upload_store = file_store.UploadFileStore.GetPlugin(
-        config.CONFIG["Frontend.upload_store"])()
-    urn = uploaded_file.stat_entry.pathspec.AFF4Path(self.client_id)
-
-    with upload_store.Aff4ObjectForFileId(
-        urn, uploaded_file.file_id, token=self.token) as fd:
-      fd.Set(fd.Schema.STAT, uploaded_file.stat_entry)
-      fd.Set(fd.Schema.SIZE(uploaded_file.bytes_uploaded))
-      fd.Set(fd.Schema.HASH(uploaded_file.hash))
-
   @flow.StateHandler()
   def StoreResults(self, responses):
     if not responses.success:
@@ -405,15 +383,11 @@ class ClientFileFinder(flow.GRRFlow):
     self.state.files_found = len(responses)
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
-        if response.uploaded_file.file_id:
-          self._CreateAFF4ObjectForUploadedFile(response.uploaded_file)
-          # TODO(amoser): Make the export support UploadedFile directly.
-          # This fixes the export which expects the stat_entry in
-          # response.stat_entry only.
-          response.stat_entry = response.uploaded_file.stat_entry
-        elif response.stat_entry:
-          filesystem.CreateAFF4Object(
-              response.stat_entry, self.client_id, pool, token=self.token)
+        if response.HasField("transferred_file"):
+          self._CreateAff4BlobImage(response, mutation_pool=pool)
+        elif response.HasField("stat_entry"):
+          self._CreateAff4Stat(response, mutation_pool=pool)
+
         self.SendReply(response)
 
         if stat.S_ISREG(response.stat_entry.st_mode):
@@ -424,6 +398,32 @@ class ClientFileFinder(flow.GRRFlow):
               "FileStore.AddFileToStore",
               response.stat_entry.pathspec.AFF4Path(self.client_id),
               priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
+
+  def _CreateAff4BlobImage(self, response, mutation_pool=None):
+    urn = response.stat_entry.pathspec.AFF4Path(self.client_id)
+
+    filedesc = aff4.FACTORY.Create(
+        urn,
+        aff4_grr.VFSBlobImage,
+        token=self.token,
+        mutation_pool=mutation_pool)
+
+    with filedesc:
+      filedesc.SetChunksize(response.transferred_file.chunk_size)
+      filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
+
+      chunks = sorted(response.transferred_file.chunks, key=lambda _: _.offset)
+      for chunk in chunks:
+        filedesc.AddBlob(chunk.digest, chunk.length)
+
+      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+
+  def _CreateAff4Stat(self, response, mutation_pool=None):
+    filesystem.CreateAFF4Object(
+        response.stat_entry,
+        self.client_id,
+        token=self.token,
+        mutation_pool=mutation_pool)
 
   @flow.StateHandler()
   def End(self, responses):

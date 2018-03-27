@@ -1209,7 +1209,7 @@ class DataStoreTestMixin(object):
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Set(
         client.Schema.LEASED_UNTIL(
-            rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)))
+            rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)))
     client.Close()
 
     self.open_failures = 0

@@ -498,7 +498,7 @@ class GRRBaseTest(unittest.TestCase):
 
     client_id = "C.1%015x" % client_nr
 
-    client = objects.Client(client_id=client_id)
+    client = objects.ClientSnapshot(client_id=client_id)
     client.startup_info.client_info = self._TestClientInfo()
     if last_boot_time is not None:
       client.startup_info.boot_time = last_boot_time
@@ -530,7 +530,7 @@ class GRRBaseTest(unittest.TestCase):
 
     data_store.REL_DB.WriteClientMetadata(
         client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClient(client)
+    data_store.REL_DB.WriteClientSnapshot(client)
 
     client_index.ClientIndex().AddClient(client_id, client)
 
@@ -639,6 +639,150 @@ class FakeTime(object):
   def __exit__(self, unused_type, unused_value, unused_traceback):
     time.time = self.old_time
     time.strftime = self.old_strftime
+
+
+# TODO(hanuszczak): `FakeTime` and `FakeTimeline` serve a similar purpose,
+# although `FakeTimeline` (arguably) allows to write more sophisticated tests.
+# Therefore, it should be possible to rewrite existing test code to use
+# `FakeTimeline` instead of `FakeTime`. Once done, `FakeTime` should be removed.
+# TODO(hanuszczak): Write proper documentation.
+class FakeTimeline(object):
+  """A context manager for testing time-aware code.
+
+  This utility class overrides `time.sleep` and `time.time` methods so that the
+  code that uses them can be tested. It is assumed that the code that needs to
+  be tested runs on some thread. Using `Run` method one can simulate running
+  this thread for certain amount of time but without spending that time waiting
+  for anything.
+
+  While internally the simulation actually executes the code on a separate
+  thread, it can be thought as if the code was executed synchronously on the
+  current thread. However, the time flow is "immediate" and `time.sleep` calls
+  do not really block.
+
+  For example, it is possible to instantly simulate running a thread for half an
+  hour (assuming that most of that time the thread would be spent sleeping).
+
+  In order to reliably test flow of time-aware code, it is assumed that only the
+  `time.sleep` function causes the time flow. In other words, every non-`sleep`
+  line of code is assumed to be executed instantly. In particular, if there is
+  an infinite loop without any `time.sleep` calls the running the simulation
+  for any number of seconds will block indefinitely. This is not a big issue
+  since this class is intended to be used only for testing purposes.
+  """
+
+  class _WorkerThreadExit(BaseException):
+    pass
+
+  def __init__(self, thread, now=None):
+    """Initializes the timeline.
+
+    Args:
+      thread: A thread to perform controlled execution on.
+      now: An `RDFDatetime` object representing starting point of the timeline.
+           If no value is provided, current time is used.
+
+    Raises:
+      TypeError: If `thread` is not an instance of `Thread` or if `now` is not
+                 an instance of `RDFDatetime`.
+    """
+    if not isinstance(thread, threading.Thread):
+      raise TypeError("`thread` is not an instance of `threading.Thread`")
+    if now is not None and not isinstance(now, rdfvalue.RDFDatetime):
+      raise TypeError("`now` is not an instance of `rdfvalue.RDFDatetime`")
+
+    self._thread = thread
+
+    self._owner_thread_turn = threading.Event()
+    self._worker_thread_turn = threading.Event()
+
+    # Fake, "current" number of seconds since epoch.
+    self._time = (now or rdfvalue.RDFDatetime.Now()).AsSecondsFromEpoch()
+    # Number of seconds that the worker thread can sleep.
+    self._budget = 0
+
+    self._worker_thread_started = False
+    self._worker_thread_done = False
+    self._worker_thread_exception = None
+
+  def Run(self, duration):
+    """Simulated running the underlying thread for the specified duration.
+
+    Args:
+      duration: A `Duration` object describing for how long simulate the thread.
+
+    Raises:
+      TypeError: If `duration` is not an instance of `rdfvalue.Duration`.
+      AssertionError: If this method is called without automatic context.
+    """
+    if not isinstance(duration, rdfvalue.Duration):
+      raise TypeError("`duration` is not an instance of `rdfvalue.Duration")
+
+    if not self._worker_thread_started:
+      raise AssertionError("Worker thread hasn't been started (method was "
+                           "probably called without context initialization)")
+
+    if self._worker_thread_done:
+      return
+
+    self._budget += duration.seconds
+
+    with utils.Stubber(time, "time", self._Time),\
+         utils.Stubber(time, "sleep", self._Sleep):
+      self._owner_thread_turn.clear()
+      self._worker_thread_turn.set()
+      self._owner_thread_turn.wait()
+
+    if self._worker_thread_exception is not None:
+      # TODO(hanuszczak): Investigate why this linter warning is triggered.
+      raise self._worker_thread_exception  # pylint: disable=raising-bad-type
+
+  def __enter__(self):
+    if self._worker_thread_started:
+      raise AssertionError("Worker thread has been already started, context "
+                           "cannot be reused.")
+
+    def Worker():
+      self._worker_thread_turn.wait()
+
+      try:
+        if self._worker_thread_done:
+          raise FakeTimeline._WorkerThreadExit
+
+        self._thread.run()
+      except FakeTimeline._WorkerThreadExit:
+        pass
+      except Exception as exception:  # pylint: disable=broad-except
+        self._worker_thread_exception = exception
+
+      self._worker_thread_done = True
+      self._owner_thread_turn.set()
+
+    threading.Thread(target=Worker).start()
+    self._worker_thread_started = True
+
+    return self
+
+  def __exit__(self, exc_type, exc_value, exc_traceback):
+    del exc_type, exc_value, exc_traceback  # Unused.
+
+    self._worker_thread_done = True
+    self._worker_thread_turn.set()
+
+  def _Sleep(self, seconds):
+    self._time += seconds
+    self._budget -= seconds
+
+    while self._budget < 0:
+      self._worker_thread_turn.clear()
+      self._owner_thread_turn.set()
+      self._worker_thread_turn.wait()
+
+      if self._worker_thread_done:
+        raise FakeTimeline._WorkerThreadExit()
+
+  def _Time(self):
+    return self._time
 
 
 class FakeDateTimeUTC(object):

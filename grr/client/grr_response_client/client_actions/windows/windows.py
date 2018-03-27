@@ -60,7 +60,7 @@ class GetInstallDate(actions.ActionPlugin):
                              "Software\\Microsoft\\Windows NT\\CurrentVersion",
                              0, _winreg.KEY_READ)
     install_date = _winreg.QueryValueEx(subkey, "InstallDate")
-    self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(install_date[0]))
+    self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(install_date[0]))
 
 
 class EnumerateInterfaces(actions.ActionPlugin):

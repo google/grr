@@ -202,7 +202,7 @@ class InterrogatedClient(ActionMock):
 
   def GetInstallDate(self, _):
     self.response_count += 1
-    return [rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)]
+    return [rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)]
 
   def EnumerateInterfaces(self, _):
     self.response_count += 1

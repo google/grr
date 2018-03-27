@@ -66,9 +66,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
           cls_name,
           (mixin, cls, test_lib.GRRBaseTest),
           # pylint: disable=protected-access
-          {
-              "testForRegression": lambda x: x._testForRegression()
-          })
+          {"testForRegression": lambda x: x._testForRegression()})
       module = sys.modules[cls.__module__]
       setattr(module, cls_name, test_cls)
 
@@ -275,7 +273,7 @@ class ApiRegressionGoldenOutputGenerator(object):
                 test_instance.checks)
           finally:
             try:
-              t.tearDown()
+              test_instance.tearDown()
             except Exception as e:  # pylint: disable=broad-except
               logging.exception(e)
         finally:

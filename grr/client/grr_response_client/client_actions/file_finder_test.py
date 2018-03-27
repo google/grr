@@ -10,20 +10,19 @@ import shutil
 import stat
 import subprocess
 import unittest
+import zlib
 
-import mock
 import psutil
 
-from grr_response_client import comms
 from grr_response_client.client_actions import file_finder as client_file_finder
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import worker_mocks
 
 
 def MyStat(path):
@@ -407,54 +406,77 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertTrue(stat.S_ISDIR(results[0].stat_entry.st_mode))
     self.assertFalse(results[0].HasField("uploaded_file"))
 
-  def _RunFileFinderDownloadHello(self, upload, opts=None):
+  def testDownloadActionDefault(self):
     action = rdf_file_finder.FileFinderAction.Download()
-    action.download = opts
+    args = rdf_file_finder.FileFinderArgs(
+        action=action,
+        paths=[os.path.join(self.base_path, "hello.exe")],
+        process_non_regular_files=True)
 
-    upload.return_value = rdf_client.UploadedFile(
-        bytes_uploaded=42, file_id="foo", hash=rdf_crypto.Hash())
+    transfer_store = MockTransferStore()
+    executor = ClientActionExecutor()
+    executor.RegisterWellKnownFlow(transfer_store)
+    results = executor.Execute(client_file_finder.FileFinderOS, args)
 
-    hello_path = os.path.join(self.base_path, "hello.exe")
-    return self._RunFileFinder([hello_path], action)
+    self.assertEqual(len(results), 1)
+    with open(os.path.join(self.base_path, "hello.exe"), "rb") as filedesc:
+      actual = transfer_store.Retrieve(results[0].transferred_file)
+      expected = filedesc.read()
+      self.assertEqual(actual, expected)
 
-  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
-  def testDownloadActionDefault(self, upload):
-    results = self._RunFileFinderDownloadHello(upload)
-    self.assertEquals(len(results), 1)
-    self.assertTrue(upload.called_with(max_bytes=None))
-    self.assertTrue(results[0].HasField("uploaded_file"))
-    self.assertEquals(results[0].uploaded_file, upload.return_value)
-
-  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
-  def testDownloadActionSkip(self, upload):
-    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+  def testDownloadActionSkip(self):
+    action = rdf_file_finder.FileFinderAction.Download(
         max_size=0, oversized_file_policy="SKIP")
+    args = rdf_file_finder.FileFinderArgs(
+        action=action,
+        paths=[os.path.join(self.base_path, "hello.exe")],
+        process_non_regular_files=True)
 
-    results = self._RunFileFinderDownloadHello(upload, opts=opts)
-    self.assertEquals(len(results), 1)
-    self.assertFalse(upload.called)
-    self.assertFalse(results[0].HasField("uploaded_file"))
+    transfer_store = MockTransferStore()
+    executor = ClientActionExecutor()
+    executor.RegisterWellKnownFlow(transfer_store)
+    results = executor.Execute(client_file_finder.FileFinderOS, args)
 
-  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
-  def testDownloadActionTruncate(self, upload):
-    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+    self.assertEqual(len(transfer_store.blobs), 0)
+    self.assertEqual(len(results), 1)
+    self.assertFalse(results[0].HasField("transferred_file"))
+    self.assertTrue(results[0].HasField("stat_entry"))
+
+  def testDownloadActionTruncate(self):
+    action = rdf_file_finder.FileFinderAction.Download(
         max_size=42, oversized_file_policy="DOWNLOAD_TRUNCATED")
+    args = rdf_file_finder.FileFinderArgs(
+        action=action,
+        paths=[os.path.join(self.base_path, "hello.exe")],
+        process_non_regular_files=True)
 
-    results = self._RunFileFinderDownloadHello(upload, opts=opts)
-    self.assertEquals(len(results), 1)
-    self.assertTrue(upload.called_with(max_bytes=42))
-    self.assertTrue(results[0].HasField("uploaded_file"))
-    self.assertEquals(results[0].uploaded_file, upload.return_value)
+    transfer_store = MockTransferStore()
+    executor = ClientActionExecutor()
+    executor.RegisterWellKnownFlow(transfer_store)
+    results = executor.Execute(client_file_finder.FileFinderOS, args)
 
-  @mock.patch.object(comms.GRRClientWorker, "UploadFile")
-  def testDownloadActionHash(self, upload):
-    opts = rdf_file_finder.FileFinderDownloadActionOptions(
+    self.assertEqual(len(results), 1)
+    with open(os.path.join(self.base_path, "hello.exe"), "rb") as filedesc:
+      actual = transfer_store.Retrieve(results[0].transferred_file)
+      expected = filedesc.read(42)
+      self.assertEqual(actual, expected)
+
+  def testDownloadActionHash(self):
+    action = rdf_file_finder.FileFinderAction.Download(
         max_size=42, oversized_file_policy="HASH_TRUNCATED")
+    args = rdf_file_finder.FileFinderArgs(
+        action=action,
+        paths=[os.path.join(self.base_path, "hello.exe")],
+        process_non_regular_files=True)
 
-    results = self._RunFileFinderDownloadHello(upload, opts=opts)
-    self.assertEquals(len(results), 1)
-    self.assertFalse(upload.called)
-    self.assertFalse(results[0].HasField("uploaded_file"))
+    transfer_store = MockTransferStore()
+    executor = ClientActionExecutor()
+    executor.RegisterWellKnownFlow(transfer_store)
+    results = executor.Execute(client_file_finder.FileFinderOS, args)
+
+    self.assertEqual(len(transfer_store.blobs), 0)
+    self.assertEqual(len(results), 1)
+    self.assertFalse(results[0].HasField("transferred_file"))
     self.assertTrue(results[0].HasField("hash_entry"))
     self.assertTrue(results[0].HasField("stat_entry"))
     self.assertEqual(results[0].hash_entry.num_bytes, 42)
@@ -712,6 +734,107 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
           unexpected=["local_dev/local_file", "net_dev/net_file"],
           base_path=test_dir,
           xdev="NEVER")
+
+
+# TODO(hanuszczak): Revist this class after refactoring the GRR client worker
+# class. `SendReply` should be split into three methods (for replying, for
+# sending status and for communicating with well-known flows) and inspecting
+# session ids should no longer be relevant.
+class ClientActionExecutor(object):
+
+  def __init__(self):
+    self.wkfs = dict()
+
+  def RegisterWellKnownFlow(self, wkf):
+    session_id = rdfvalue.SessionID(flow_name=wkf.FLOW_NAME)
+    self.wkfs[str(session_id)] = wkf
+
+  def Execute(self, action_cls, args):
+    responses = list()
+
+    def SendReply(value,
+                  session_id=None,
+                  message_type=rdf_flows.GrrMessage.Type.MESSAGE):
+      if message_type != rdf_flows.GrrMessage.Type.MESSAGE:
+        return
+
+      if str(session_id) in self.wkfs:
+        message = rdf_flows.GrrMessage(
+            name=action_cls.__name__,
+            payload=value,
+            auth_state="AUTHENTICATED",
+            session_id=session_id)
+        self.wkfs[str(session_id)].ProcessMessage(message)
+      else:
+        responses.append(value)
+
+    message = rdf_flows.GrrMessage(
+        name=action_cls.__name__,
+        payload=args,
+        auth_state="AUTHENTICATED",
+        session_id=rdfvalue.SessionID())
+
+    action = action_cls(grr_worker=worker_mocks.FakeClientWorker())
+    action.SendReply = SendReply
+    action.Execute(message)
+
+    return responses
+
+
+# TODO(hanuszczak): Maybe it is possible to refactor the `FakeTransferStore`
+# class such that it can be used in tests directly (backed by some fake data
+# store).
+class MockTransferStore(object):
+
+  FLOW_NAME = "TransferStore"
+
+  def __init__(self):
+    self.blobs = dict()
+
+  def ProcessMessages(self, messages):
+    for message in messages:
+      self.ProcessMessage(message)
+
+  def ProcessMessage(self, message):
+    if message.auth_state != "AUTHENTICATED":
+      raise ValueError("message is not authenticated")
+
+    data_blob = message.payload
+    if data_blob.compression == "UNCOMPRESSED":
+      data = data_blob.data
+    elif data_blob.compression == "ZCOMPRESSION":
+      data = zlib.decompress(data_blob.data)
+    else:
+      raise ValueError("unknown blob compression: %s" % data_blob.compression)
+
+    digest = hashlib.sha256(data).digest()
+    self.blobs[digest] = data
+
+  def Retrieve(self, blobdesc):
+    # A rich blob is essentially the same as a chunk of fragmented file but with
+    # original data instead of its digest.
+    RichBlob = collections.namedtuple("RichBlob", ("data", "offset", "length"))  # pylint: disable=invalid-name
+
+    blobs = list()
+    for chunk in blobdesc.chunks:
+      blob = RichBlob(
+          data=self.blobs[chunk.digest],
+          offset=chunk.offset,
+          length=chunk.length)
+      blobs.append(blob)
+    blobs.sort(key=lambda blob: blob.offset)
+
+    data = bytes()
+    for blob in blobs:
+      if blob.offset != len(data):
+        message = "unexpected blob offset: expected %d but got %d"
+        raise ValueError(message % (len(data), blob.offset))
+      if blob.length != len(blob.data):
+        message = "unexpected blob length: expected %d but got %d"
+        raise ValueError(message % (len(blob.data), blob.length))
+      data += blob.data
+
+    return data
 
 
 def main(argv):

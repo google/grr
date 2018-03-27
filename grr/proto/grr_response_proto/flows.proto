@@ -1026,11 +1026,6 @@ message GetFileArgs {
     }];
 }
 
-message MultiUploadFileArgs {
-  repeated PathSpec pathspecs = 1
-      [(sem_type) = {description: "The pathspecs to upload"}];
-}
-
 // Next field ID: 2
 message GetMBRArgs {
   optional uint64 length = 1 [(sem_type) = {
@@ -1469,7 +1464,7 @@ message FileFinderHashActionOptions {
   ];
 }
 
-// Next field ID: 11
+// Next field ID: 12
 message FileFinderDownloadActionOptions {
   optional uint64 max_size = 5 [(sem_type) = {
       type: "ByteSize",
@@ -1505,15 +1500,30 @@ message FileFinderDownloadActionOptions {
     },
     default = true
   ];
-  optional UploadToken upload_token = 10 [(sem_type) = {
-    description: "An upload token to use with the direct upload "
-                 "functionality. This token contains the HMAC authenticated "
-                 "policy that determines for how long the client is allowed "
-                 "to upload files to the server. This is comparable to the "
-                 "policy document used by GCS: https://cloud.google.com/"
-                 "storage/docs/xml-api/post-object#policydocument",
-    label: HIDDEN,
-  }];
+
+  /*
+   * DEPRECATED: No longer required since file upload is done though Fleetspeak.
+   *
+   * optional UploadToken upload_token = 10 [(sem_type) = {
+   *   description: "An upload token to use with the direct upload "
+   *                "functionality. This token contains the HMAC authenticated "
+   *                "policy that determines for how long the client is allowed "
+   *                "to upload files to the server. This is comparable to the "
+   *                "policy document used by GCS: https://cloud.google.com/"
+   *                "storage/docs/xml-api/post-object#policydocument",
+   *   label: HIDDEN,
+   * }];
+   */
+
+  optional uint64 chunk_size = 11 [
+    (sem_type) = {
+      friendly_name: "Chunk size",
+      description: "Number of bytes per chunk that the downloaded file is "
+                   "divided into.",
+      label: HIDDEN,
+    },
+    default = 524288 /* 512 kiB. */
+  ];
 }
 
 message FileFinderStatActionOptions {
@@ -1612,15 +1622,25 @@ message FileFinderArgs {
 // TODO(amoser): This needs a bit more structure. There should be one
 // result per action and, if possible, they should be a
 // union_field.
-// Next field ID: 5
+// Next field ID: 6
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
   optional Hash hash_entry = 3;
-  optional UploadedFile uploaded_file = 4 [(sem_type) = {
-      description: "An uploaded file reference in case a file was collected "
-      "via the ClientFileFinder.",
-    }];
+
+  /*
+   * DEPRECATED: Files are now being sent through Fleetspeak in chunks.
+   *
+   * optional UploadedFile uploaded_file = 4 [(sem_type) = {
+   *    description: "An uploaded file reference in case a file was collected "
+   *    "via the ClientFileFinder.",
+   * }];
+   */
+
+  optional BlobImageDescriptor transferred_file = 5 [(sem_type) = {
+    description: "An descriptor for files uploaded as fragments to the "
+                 "transfer store flow."
+  }];
 }
 
 // Next field ID: 4

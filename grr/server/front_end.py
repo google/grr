@@ -11,7 +11,6 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib import uploads
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -21,7 +20,6 @@ from grr.server import client_index
 from grr.server import data_migration
 from grr.server import data_store
 from grr.server import events
-from grr.server import file_store
 from grr.server import flow
 from grr.server import queue_manager
 from grr.server import rekall_profile_server
@@ -389,7 +387,7 @@ class FrontEndServer(object):
       self._communicator.EncodeMessages(
           message_list,
           response_comms,
-          destination=str(source),
+          destination=source,
           timestamp=timestamp,
           api_version=request_comms.api_version)
     except communicator.UnknownClientCert:
@@ -636,47 +634,6 @@ class FrontEndServer(object):
   def _GetClientPublicKey(self, client_id):
     client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
     return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
-
-  def HandleUpload(self, encoding_header, encoded_upload_token, data_generator):
-    """Handles the upload of a file."""
-    if encoding_header != "chunked":
-      raise IOError("Only chunked uploads are allowed.")
-
-    # Extract request parameters.
-    if not encoded_upload_token:
-      raise IOError("Upload token not provided")
-
-    upload_token = rdf_client.UploadToken.FromSerializedString(
-        encoded_upload_token.decode("base64"))
-
-    if not upload_token.hmac:
-      raise IOError("HMAC not provided")
-
-    if not upload_token.encrypted_policy:
-      raise IOError("Policy not provided")
-
-    if not upload_token.iv:
-      raise IOError("IV not provided")
-
-    upload_token.VerifyHMAC()
-
-    policy = rdf_client.UploadPolicy.FromEncryptedPolicy(
-        upload_token.encrypted_policy, upload_token.iv)
-
-    if rdfvalue.RDFDatetime.Now() > policy.expires:
-      raise IOError("Client upload policy is too old.")
-
-    upload_store = file_store.UploadFileStore.GetPlugin(
-        config.CONFIG["Frontend.upload_store"])()
-
-    filestore_fd = upload_store.CreateFileStoreFile()
-    out_fd = uploads.GunzipWrapper(filestore_fd)
-    with uploads.DecryptStream(config.CONFIG["PrivateKeys.server_key"],
-                               self._GetClientPublicKey(policy.client_id),
-                               out_fd) as decrypt_fd:
-      for data in data_generator:
-        decrypt_fd.write(data)
-    return filestore_fd.Finalize()
 
   def _GetRekallProfileServer(self):
     try:

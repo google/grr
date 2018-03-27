@@ -84,7 +84,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     self.assertEquals(response.status_code, 200)
 
   def testPOSTRequestFailsIfCSRFTokenIsExpired(self):
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)):
       index_response = requests.get(self.base_url)
       csrf_token = index_response.cookies.get("csrftoken")
 
@@ -101,8 +101,9 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
 
     # This should still succeed as we use strict check in wsgiapp.py:
     # current_time - token_time > CSRF_TOKEN_DURATION.microseconds
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42) +
-                           wsgiapp.CSRF_TOKEN_DURATION.seconds):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42) +
+        wsgiapp.CSRF_TOKEN_DURATION.seconds):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,
@@ -110,8 +111,9 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
           cookies=cookies)
       self.assertEquals(response.status_code, 200)
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().FromSecondsFromEpoch(42) +
-                           wsgiapp.CSRF_TOKEN_DURATION.seconds + 1):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42) +
+        wsgiapp.CSRF_TOKEN_DURATION.seconds + 1):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,

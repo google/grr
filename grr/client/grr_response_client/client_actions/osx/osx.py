@@ -204,11 +204,11 @@ class GetInstallDate(actions.ActionPlugin):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
       try:
         ctime = os.stat(f).st_ctime
-        self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(ctime))
+        self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(ctime))
         return
       except OSError:
         pass
-    self.SendReply(rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
+    self.SendReply(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

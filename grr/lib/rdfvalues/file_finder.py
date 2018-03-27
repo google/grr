@@ -126,7 +126,6 @@ class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderDownloadActionOptions
   rdf_deps = [
       rdfvalue.ByteSize,
-      client.UploadToken,
   ]
 
 
@@ -174,5 +173,5 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
       client.BufferReference,
       crypto.Hash,
       client.StatEntry,
-      client.UploadedFile,
+      client.BlobImageDescriptor,
   ]

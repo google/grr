@@ -53,7 +53,8 @@ class TransferStoreUploader(object):
     for chunk in chunk_stream:
       chunks.append(self.UploadChunk(chunk))
 
-    return rdf_client.BlobImageDescriptor(chunks=chunks)
+    return rdf_client.BlobImageDescriptor(
+        chunks=chunks, chunk_size=self._streamer.chunk_size)
 
   def UploadChunk(self, chunk):
     """Uploads a single chunk to the transfer store flow.

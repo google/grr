@@ -364,7 +364,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Check that the boot time is accurate.
     self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
 
-    # objects.Client.
+    # objects.ClientSnapshot.
 
     si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
     self.assertIsNotNone(si)
@@ -380,7 +380,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
     self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
 
-    # objects.Client.
+    # objects.ClientSnapshot.
 
     new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
     self.assertEqual(new_si, si)
@@ -401,7 +401,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       self.assertEqual(
           int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
-      # objects.Client.
+      # objects.ClientSnapshot.
       new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
       self.assertIsNotNone(new_si)
       self.assertNotEqual(new_si.boot_time, si.boot_time)
@@ -419,7 +419,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
         self.assertNotEqual(
             int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
-        # objects.Client.
+        # objects.ClientSnapshot.
         new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
         self.assertIsNotNone(new_si)
         self.assertNotEqual(new_si.client_info, si.client_info)

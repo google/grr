@@ -9,6 +9,41 @@ from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import objects
 from grr.server import db
 
+CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
+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
+-----END CERTIFICATE-----""")
+
 
 class DatabaseTestMixin(object):
   """An abstract class for testing db.Database implementations.
@@ -50,7 +85,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
 
     with self.assertRaises(db.UnknownClientError):
-      d.WriteClient(objects.Client(client_id=client_id))
+      d.WriteClientSnapshot(objects.ClientSnapshot(client_id=client_id))
 
     # fleetspeak_enabled not set means update.
     with self.assertRaises(db.UnknownClientError):
@@ -152,50 +187,50 @@ class DatabaseTestMixin(object):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
 
-  def testClientHistory(self):
+  def testClientSnapshotHistory(self):
     d = self.db
 
     client_id = "C.fc413187fefa1dcf"
     self._InitializeClient(client_id)
 
-    client = objects.Client(client_id=client_id, kernel="12.3")
+    client = objects.ClientSnapshot(client_id=client_id, kernel="12.3")
     client.knowledge_base.fqdn = "test1234.examples.com"
-    d.WriteClient(client)
+    d.WriteClientSnapshot(client)
     client.kernel = "12.4"
-    d.WriteClient(client)
+    d.WriteClientSnapshot(client)
 
-    hist = d.ReadClientHistory(client_id)
+    hist = d.ReadClientSnapshotHistory(client_id)
     self.assertEqual(len(hist), 2)
-    self.assertIsInstance(hist[0], objects.Client)
-    self.assertIsInstance(hist[1], objects.Client)
+    self.assertIsInstance(hist[0], objects.ClientSnapshot)
+    self.assertIsInstance(hist[1], objects.ClientSnapshot)
     self.assertGreater(hist[0].timestamp, hist[1].timestamp)
     self.assertIsInstance(hist[0].timestamp, rdfvalue.RDFDatetime)
     self.assertEqual(hist[0].kernel, "12.4")
     self.assertEqual(hist[1].kernel, "12.3")
 
-  def testWriteClientHistory(self):
+  def testWriteClientSnapshotHistory(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client_a = objects.Client(client_id=client_id)
+    client_a = objects.ClientSnapshot(client_id=client_id)
     client_a.kernel = "1.2.3"
     client_a.startup_info.client_info.client_version = 42
     client_a.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
 
-    client_b = objects.Client(client_id=client_id)
+    client_b = objects.ClientSnapshot(client_id=client_id)
     client_b.kernel = "4.5.6"
     client_b.startup_info.client_info.client_version = 108
     client_b.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-02-01")
 
-    client_c = objects.Client(client_id=client_id)
+    client_c = objects.ClientSnapshot(client_id=client_id)
     client_c.kernel = "7.8.9"
     client_c.startup_info.client_info.client_version = 707
     client_c.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-03-01")
 
-    self.db.WriteClientHistory([client_a, client_b, client_c])
+    self.db.WriteClientSnapshotHistory([client_a, client_b, client_c])
 
     # Check whether the client history has been recorded correctly.
-    history = self.db.ReadClientHistory(client_id)
+    history = self.db.ReadClientSnapshotHistory(client_id)
     self.assertEqual(len(history), 3)
 
     self.assertEqual(history[0].kernel, "7.8.9")
@@ -229,72 +264,72 @@ class DatabaseTestMixin(object):
     self.assertEqual(history[2].timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01"))
 
-  def testWriteClientHistoryUpdatesLastTimestampIfNotSet(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNotSet(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client_new = objects.Client(client_id=client_id)
+    client_new = objects.ClientSnapshot(client_id=client_id)
     client_new.kernel = "1.0.0"
     client_new.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
-    self.db.WriteClientHistory([client_new])
+    self.db.WriteClientSnapshotHistory([client_new])
 
     info = self.db.ReadClientFullInfo(client_id)
-    self.assertEqual(info["client"].kernel, "1.0.0")
-    self.assertEqual(info["client"].timestamp,
+    self.assertEqual(info.last_snapshot.kernel, "1.0.0")
+    self.assertEqual(info.last_snapshot.timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01"))
-    self.assertEqual(info["last_startup_info"].timestamp,
+    self.assertEqual(info.last_startup_info.timestamp,
                      rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01"))
 
-  def testWriteClientHistoryUpdatesLastTimestampIfNewer(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNewer(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client_old = objects.Client(client_id=client_id)
+    client_old = objects.ClientSnapshot(client_id=client_id)
     client_old.kernel = "1.0.0"
-    self.db.WriteClient(client_old)
+    self.db.WriteClientSnapshot(client_old)
 
-    old_timestamp = self.db.ReadClient(client_id).timestamp
+    old_timestamp = self.db.ReadClientSnapshot(client_id).timestamp
 
-    client_new = objects.Client(client_id=client_id)
+    client_new = objects.ClientSnapshot(client_id=client_id)
     client_new.kernel = "2.0.0"
     client_new.timestamp = rdfvalue.RDFDatetime.Now()
-    self.db.WriteClientHistory([client_new])
+    self.db.WriteClientSnapshotHistory([client_new])
 
     info = self.db.ReadClientFullInfo(client_id)
-    self.assertEqual(info["client"].kernel, "2.0.0")
-    self.assertGreater(info["client"].timestamp, old_timestamp)
-    self.assertGreater(info["last_startup_info"].timestamp, old_timestamp)
+    self.assertEqual(info.last_snapshot.kernel, "2.0.0")
+    self.assertGreater(info.last_snapshot.timestamp, old_timestamp)
+    self.assertGreater(info.last_startup_info.timestamp, old_timestamp)
 
-  def testWriteClientHistoryDoesNotUpdateLastTimestampIfOlder(self):
+  def testWriteClientSnapshotHistoryDoesNotUpdateLastTimestampIfOlder(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client_new = objects.Client(client_id=client_id)
+    client_new = objects.ClientSnapshot(client_id=client_id)
     client_new.kernel = "2.0.0"
-    self.db.WriteClient(client_new)
+    self.db.WriteClientSnapshot(client_new)
 
-    new_timestamp = self.db.ReadClient(client_id).timestamp
+    new_timestamp = self.db.ReadClientSnapshot(client_id).timestamp
 
-    client_old = objects.Client(client_id=client_id)
+    client_old = objects.ClientSnapshot(client_id=client_id)
     client_old.kernel = "1.0.0"
     client_old.timestamp = new_timestamp - rdfvalue.Duration("1d")
-    self.db.WriteClientHistory([client_old])
+    self.db.WriteClientSnapshotHistory([client_old])
 
     info = self.db.ReadClientFullInfo(client_id)
-    self.assertEqual(info["client"].kernel, "2.0.0")
-    self.assertEqual(info["client"].timestamp, new_timestamp)
-    self.assertEqual(info["last_startup_info"].timestamp, new_timestamp)
+    self.assertEqual(info.last_snapshot.kernel, "2.0.0")
+    self.assertEqual(info.last_snapshot.timestamp, new_timestamp)
+    self.assertEqual(info.last_startup_info.timestamp, new_timestamp)
 
-  def testWriteClientHistoryUpdatesOnlyLastClientTimestamp(self):
+  def testWriteClientSnapshotHistoryUpdatesOnlyLastClientTimestamp(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client_old = objects.Client(client_id=client_id)
+    client_old = objects.ClientSnapshot(client_id=client_id)
     client_old.kernel = "1.0.0"
     client_old.startup_info.client_info.client_name = "foo"
-    self.db.WriteClient(client_old)
+    self.db.WriteClientSnapshot(client_old)
 
-    old_timestamp = self.db.ReadClient(client_id).timestamp
+    old_timestamp = self.db.ReadClientSnapshot(client_id).timestamp
 
     startup_info = rdf_client.StartupInfo()
     startup_info.client_info.client_name = "bar"
@@ -302,21 +337,23 @@ class DatabaseTestMixin(object):
 
     startup_timestamp = self.db.ReadClientStartupInfo(client_id).timestamp
 
-    client_new = objects.Client(client_id=client_id)
+    client_new = objects.ClientSnapshot(client_id=client_id)
     client_new.kernel = "2.0.0"
     client_new.startup_info.client_info.client_name = "baz"
     client_new.timestamp = rdfvalue.RDFDatetime.Lerp(
         0.5, start_time=old_timestamp, end_time=startup_timestamp)
-    self.db.WriteClientHistory([client_new])
+    self.db.WriteClientSnapshotHistory([client_new])
 
     info = self.db.ReadClientFullInfo(client_id)
-    self.assertEqual(info["client"].kernel, "2.0.0")
-    self.assertEqual(info["client"].startup_info.client_info.client_name, "baz")
-    self.assertEqual(info["client"].timestamp, client_new.timestamp)
-    self.assertEqual(info["last_startup_info"].client_info.client_name, "bar")
-    self.assertEqual(info["last_startup_info"].timestamp, startup_timestamp)
+    last_snapshot = info.last_snapshot
+    last_startup_info = info.last_startup_info
+    self.assertEqual(last_snapshot.kernel, "2.0.0")
+    self.assertEqual(last_snapshot.startup_info.client_info.client_name, "baz")
+    self.assertEqual(last_snapshot.timestamp, client_new.timestamp)
+    self.assertEqual(last_startup_info.client_info.client_name, "bar")
+    self.assertEqual(last_startup_info.timestamp, startup_timestamp)
 
-  def testWriteClientHistoryRaiseTypeError(self):
+  def testWriteClientSnapshotHistoryRaiseTypeError(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
@@ -325,47 +362,47 @@ class DatabaseTestMixin(object):
     client.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-04-10")
 
     with self.assertRaisesRegexp(TypeError, "client instance"):
-      self.db.WriteClientHistory([client])
+      self.db.WriteClientSnapshotHistory([client])
 
-  def testWriteClientHistoryRaiseValueErrorOnEmpty(self):
+  def testWriteClientSnapshotHistoryRaiseValueErrorOnEmpty(self):
     with self.assertRaisesRegexp(ValueError, "empty"):
-      self.db.WriteClientHistory([])
+      self.db.WriteClientSnapshotHistory([])
 
-  def testWriteClientHistoryRaiseValueErrorOnNonUniformIds(self):
+  def testWriteClientSnapshotHistoryRaiseValueErrorOnNonUniformIds(self):
     client_id_a = "C.000000000000000a"
     client_id_b = "C.000000000000000b"
     self._InitializeClient(client_id_a)
     self._InitializeClient(client_id_b)
 
-    client_a = objects.Client(client_id=client_id_a)
+    client_a = objects.ClientSnapshot(client_id=client_id_a)
     client_a.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-05-12")
 
-    client_b = objects.Client(client_id=client_id_b)
+    client_b = objects.ClientSnapshot(client_id=client_id_b)
     client_b.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-06-12")
 
     with self.assertRaisesRegexp(ValueError, "client id"):
-      self.db.WriteClientHistory([client_a, client_b])
+      self.db.WriteClientSnapshotHistory([client_a, client_b])
 
-  def testWriteClientHistoryRaiseAttributeError(self):
+  def testWriteClientSnapshotHistoryRaiseAttributeError(self):
     client_id = "C.0000000000000000"
     self._InitializeClient(client_id)
 
-    client = objects.Client(client_id=client_id)
+    client = objects.ClientSnapshot(client_id=client_id)
     client.kernel = "1.2.3"
     client.startup_info.client_info.client_version = 42
 
     with self.assertRaisesRegexp(AttributeError, "timestamp"):
-      self.db.WriteClientHistory([client])
+      self.db.WriteClientSnapshotHistory([client])
 
-  def testWriteClientHistoryRaiseOnNonExistingClient(self):
+  def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):
     client_id = "C.0000000000000000"
 
-    client = objects.Client(client_id=client_id)
+    client = objects.ClientSnapshot(client_id=client_id)
     client.kernel = "1.2.3"
     client.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2001-01-01")
 
     with self.assertRaises(db.UnknownClientError):
-      self.db.WriteClientHistory([client])
+      self.db.WriteClientSnapshotHistory([client])
 
   def testClientStartupInfo(self):
     """StartupInfo is written to a separate table, make sure the merge works."""
@@ -374,23 +411,23 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
     self._InitializeClient(client_id)
 
-    client = objects.Client(client_id=client_id, kernel="12.3")
+    client = objects.ClientSnapshot(client_id=client_id, kernel="12.3")
     client.startup_info = rdf_client.StartupInfo(boot_time=123)
     client.knowledge_base.fqdn = "test1234.examples.com"
-    d.WriteClient(client)
+    d.WriteClientSnapshot(client)
 
-    client = d.ReadClient(client_id)
+    client = d.ReadClientSnapshot(client_id)
     self.assertEqual(client.startup_info.boot_time, 123)
 
     client.kernel = "12.4"
     client.startup_info = rdf_client.StartupInfo(boot_time=124)
-    d.WriteClient(client)
+    d.WriteClientSnapshot(client)
 
     client.kernel = "12.5"
     client.startup_info = rdf_client.StartupInfo(boot_time=125)
-    d.WriteClient(client)
+    d.WriteClientSnapshot(client)
 
-    hist = d.ReadClientHistory(client_id)
+    hist = d.ReadClientSnapshotHistory(client_id)
     self.assertEqual(len(hist), 3)
     startup_infos = [cl.startup_info for cl in hist]
     self.assertEqual([si.boot_time for si in startup_infos], [125, 124, 123])
@@ -410,34 +447,34 @@ class DatabaseTestMixin(object):
     self._InitializeClient(client_id_2)
     self._InitializeClient(client_id_3)
 
-    d.WriteClient(
-        objects.Client(
+    d.WriteClientSnapshot(
+        objects.ClientSnapshot(
             client_id=client_id_1,
             knowledge_base=rdf_client.KnowledgeBase(
                 fqdn="test1234.examples.com"),
             kernel="12.3"))
-    d.WriteClient(
-        objects.Client(
+    d.WriteClientSnapshot(
+        objects.ClientSnapshot(
             client_id=client_id_1,
             knowledge_base=rdf_client.KnowledgeBase(
                 fqdn="test1234.examples.com"),
             kernel="12.4"))
 
-    d.WriteClient(
-        objects.Client(
+    d.WriteClientSnapshot(
+        objects.ClientSnapshot(
             client_id=client_id_2,
             knowledge_base=rdf_client.KnowledgeBase(
                 fqdn="test1235.examples.com"),
             kernel="12.4"))
 
-    hist = d.ReadClientHistory(client_id_1)
+    hist = d.ReadClientSnapshotHistory(client_id_1)
     self.assertEqual(len(hist), 2)
 
     # client_3 should be excluded - no snapshot yet
-    res = d.ReadClients([client_id_1, client_id_2, client_id_3])
+    res = d.ReadClientsSnapshot([client_id_1, client_id_2, client_id_3])
     self.assertEqual(len(res), 3)
-    self.assertIsInstance(res[client_id_1], objects.Client)
-    self.assertIsInstance(res[client_id_2], objects.Client)
+    self.assertIsInstance(res[client_id_1], objects.ClientSnapshot)
+    self.assertIsInstance(res[client_id_2], objects.ClientSnapshot)
     self.assertIsInstance(res[client_id_1].timestamp, rdfvalue.RDFDatetime)
     self.assertIsNotNone(res[client_id_2].timestamp)
     self.assertEqual(res[client_id_1].knowledge_base.fqdn,
@@ -454,7 +491,7 @@ class DatabaseTestMixin(object):
     client_id = "C.fc413187fefa1dcf"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
     with self.assertRaises(ValueError):
-      d.WriteClient("test1235.examples.com")
+      d.WriteClientSnapshot("test1235.examples.com")
 
   def testClientKeywords(self):
     d = self.db
@@ -715,56 +752,525 @@ class DatabaseTestMixin(object):
     client_id = "C.0000000050000001"
     self._InitializeClient(client_id)
 
-    cl = objects.Client(
+    cl = objects.ClientSnapshot(
         client_id=client_id,
         knowledge_base=rdf_client.KnowledgeBase(fqdn="test1234.examples.com"),
         kernel="12.3")
-    d.WriteClient(cl)
+    d.WriteClientSnapshot(cl)
     d.WriteClientMetadata(client_id, certificate=CERT)
     si = rdf_client.StartupInfo(boot_time=1)
     d.WriteClientStartupInfo(client_id, si)
     d.AddClientLabels(client_id, "test_owner", ["test_label"])
 
     full_info = d.ReadClientFullInfo(client_id)
-    self.assertEqual(full_info["client"], cl)
-    self.assertEqual(full_info["metadata"].certificate, CERT)
-    self.assertEqual(full_info["last_startup_info"], si)
+    self.assertEqual(full_info.last_snapshot, cl)
+    self.assertEqual(full_info.metadata.certificate, CERT)
+    self.assertEqual(full_info.last_startup_info, si)
     self.assertEqual(
-        full_info["labels"],
+        full_info.labels,
         [objects.ClientLabel(owner="test_owner", name="test_label")])
 
+  def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
+    d = self.db
 
-CERT = crypto.RDFX509Cert("""-----BEGIN CERTIFICATE-----
-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
------END CERTIFICATE-----""")
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    client_id = "C.0000000050000001"
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime(42))
+
+    approval_id = d.WriteApprovalRequest(approval_request)
+    self.assertTrue(approval_id)
+
+    read_request = d.ReadApprovalRequest("requestor", approval_id)
+
+    # Approval id and timestamp are generated in WriteApprovalRequest so we're
+    # filling them into our model object ot make sure that equality check works.
+    approval_request.approval_id = read_request.approval_id
+    approval_request.timestamp = read_request.timestamp
+    self.assertEqual(approval_request, read_request)
+
+  def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    client_id = "C.0000000050000001"
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime(42),
+        notified_users=["user1", "user2", "user3"],
+        email_cc_addresses=["a@b.com", "c@d.com"],
+        grants=[
+            objects.ApprovalGrant(grantor_username="user_foo"),
+            objects.ApprovalGrant(grantor_username="user_bar")
+        ])
+
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    read_request = d.ReadApprovalRequest("requestor", approval_id)
+
+    self.assertEqual(
+        sorted(approval_request.notified_users),
+        sorted(read_request.notified_users))
+    self.assertEqual(
+        sorted(approval_request.email_cc_addresses),
+        sorted(read_request.email_cc_addresses))
+    self.assertEqual(
+        sorted(g.grantor_username for g in approval_request.grants),
+        sorted(g.grantor_username for g in read_request.grants))
+
+  def testGrantApprovalAddsNewGrantor(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    client_id = "C.0000000050000001"
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime(42))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    read_request = d.ReadApprovalRequest("requestor", approval_id)
+    self.assertFalse(read_request.grants)
+
+    d.GrantApproval("requestor", approval_id, "grantor")
+    read_request = d.ReadApprovalRequest("requestor", approval_id)
+    self.assertEqual(len(read_request.grants), 1)
+    self.assertEqual(read_request.grants[0].grantor_username, "grantor")
+
+  def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    client_id = "C.0000000050000001"
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime(42))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    for _ in range(3):
+      d.GrantApproval("requestor", approval_id, "grantor")
+
+    read_request = d.ReadApprovalRequest("requestor", approval_id)
+    self.assertEqual(len(read_request.grants), 3)
+    self.assertEqual([g.grantor_username for g in read_request.grants],
+                     ["grantor"] * 3)
+
+  def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+    self.assertFalse(approvals)
+
+  def testReadApprovalRequestsReturnsSingleApproval(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].approval_id, approval_id)
+
+    # Approval id and timestamp are generated in WriteApprovalRequest so we're
+    # filling them into our model object ot make sure that equality check works.
+    approval_request.approval_id = approvals[0].approval_id
+    approval_request.timestamp = approvals[0].timestamp
+    self.assertEqual(approval_request, approvals[0])
+
+  def testReadApprovalRequestsReturnsMultipleApprovals(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+
+    approval_ids = set()
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id="C.000000005000000%d" % i,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=expiration_time)
+      approval_ids.add(d.WriteApprovalRequest(approval_request))
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+
+    self.assertEqual(len(approvals), 10)
+    self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
+
+  def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        grants=[
+            objects.ApprovalGrant(grantor_username="grantor1"),
+            objects.ApprovalGrant(grantor_username="grantor2")
+        ],
+        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].approval_id, approval_id)
+
+    self.assertEqual(
+        sorted(g.grantor_username for g in approvals[0].grants),
+        ["grantor1", "grantor2"])
+
+  def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id="C.00000000000000%d" % i,
+          requestor_username="requestor",
+          reason="some test reason %d" % i,
+          grants=[
+              objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
+              objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
+          ],
+          expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+      d.WriteApprovalRequest(approval_request)
+
+    approvals = sorted(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT),
+        key=lambda a: a.reason)
+
+    self.assertEqual(len(approvals), 10)
+
+    for i, approval in enumerate(approvals):
+      self.assertEqual(
+          sorted(g.grantor_username for g in approval.grants),
+          ["grantor_%d_1" % i, "grantor_%d_2" % i])
+
+  def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+
+    non_expired_approval_ids = set()
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id="C.000000005000000%d" % i,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=(time_future if i % 2 == 0 else time_past))
+
+      approval_id = d.WriteApprovalRequest(approval_request)
+      if i % 2 == 0:
+        non_expired_approval_ids.add(approval_id)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT))
+
+    self.assertEqual(len(approvals), 5)
+    self.assertEqual(
+        set(a.approval_id for a in approvals), non_expired_approval_ids)
+
+  def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+
+    approval_ids = set()
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id="C.000000005000000%d" % i,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=(time_future if i % 2 == 0 else time_past))
+
+      approval_ids.add(d.WriteApprovalRequest(approval_request))
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            include_expired=True))
+
+    self.assertEqual(len(approvals), 10)
+    self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
+
+  def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id))
+    self.assertFalse(approvals)
+
+  def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id))
+
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].approval_id, approval_id)
+
+    # Approval id and timestamp are generated in WriteApprovalRequest so we're
+    # filling them into our model object ot make sure that equality check works.
+    approval_request.approval_id = approvals[0].approval_id
+    approval_request.timestamp = approvals[0].timestamp
+    self.assertEqual(approval_request, approvals[0])
+
+  def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+
+    approval_ids = set()
+    for _ in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id=client_id,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=expiration_time)
+      approval_ids.add(d.WriteApprovalRequest(approval_request))
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id))
+
+    self.assertEqual(len(approvals), 10)
+    self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    approval_request = objects.ApprovalRequest(
+        approval_type=objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+        subject_id=client_id,
+        requestor_username="requestor",
+        reason="some test reason",
+        grants=[
+            objects.ApprovalGrant(grantor_username="grantor1"),
+            objects.ApprovalGrant(grantor_username="grantor2")
+        ],
+        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+    approval_id = d.WriteApprovalRequest(approval_request)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id))
+
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].approval_id, approval_id)
+
+    self.assertEqual(
+        sorted(g.grantor_username for g in approvals[0].grants),
+        ["grantor1", "grantor2"])
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
+    client_id = "C.000000000000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id=client_id,
+          requestor_username="requestor",
+          reason="some test reason %d" % i,
+          grants=[
+              objects.ApprovalGrant(grantor_username="grantor_%d_1" % i),
+              objects.ApprovalGrant(grantor_username="grantor_%d_2" % i)
+          ],
+          expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+      d.WriteApprovalRequest(approval_request)
+
+    approvals = sorted(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id),
+        key=lambda a: a.reason)
+
+    self.assertEqual(len(approvals), 10)
+
+    for i, approval in enumerate(approvals):
+      self.assertEqual(
+          sorted(g.grantor_username for g in approval.grants),
+          ["grantor_%d_1" % i, "grantor_%d_2" % i])
+
+  def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+
+    non_expired_approval_ids = set()
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id=client_id,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=(time_future if i % 2 == 0 else time_past))
+
+      approval_id = d.WriteApprovalRequest(approval_request)
+      if i % 2 == 0:
+        non_expired_approval_ids.add(approval_id)
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id))
+
+    self.assertEqual(len(approvals), 5)
+    self.assertEqual(
+        set(a.approval_id for a in approvals), non_expired_approval_ids)
+
+  def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
+    client_id = "C.0000000050000001"
+    d = self.db
+
+    # Ensure that the requestor user exists.
+    d.WriteGRRUser("requestor")
+
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+
+    approval_ids = set()
+    for i in range(10):
+      approval_request = objects.ApprovalRequest(
+          approval_type=objects.ApprovalRequest.ApprovalType.
+          APPROVAL_TYPE_CLIENT,
+          subject_id=client_id,
+          requestor_username="requestor",
+          reason="some test reason",
+          expiration_time=(time_future if i % 2 == 0 else time_past))
+
+      approval_ids.add(d.WriteApprovalRequest(approval_request))
+
+    approvals = list(
+        d.ReadApprovalRequests(
+            "requestor",
+            objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+            subject_id=client_id,
+            include_expired=True))
+
+    self.assertEqual(len(approvals), 10)
+    self.assertEqual(set(a.approval_id for a in approvals), approval_ids)

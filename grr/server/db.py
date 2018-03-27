@@ -8,19 +8,32 @@ WIP, will eventually replace datastore.py.
 
 """
 import abc
+import collections
 
 from grr.lib.rdfvalues import objects
+
+ClientFullInfo = collections.namedtuple(
+    "ClientFullInfo",
+    ("metadata", "labels", "last_snapshot", "last_startup_info"))
 
 
 class Error(Exception):
   pass
 
 
-class UnknownClientError(Error):
+class NotFoundError(Error):
   pass
 
 
-class UnknownGRRUserError(Error):
+class UnknownClientError(NotFoundError):
+  pass
+
+
+class UnknownGRRUserError(NotFoundError):
+  pass
+
+
+class UnknownApprovalRequestError(NotFoundError):
   pass
 
 
@@ -89,22 +102,22 @@ class Database(object):
     return self.ReadClientsMetadata([client_id]).get(client_id)
 
   @abc.abstractmethod
-  def WriteClient(self, client):
-    """Write new client snapshot.
+  def WriteClientSnapshot(self, client):
+    """Writes new client snapshot.
 
     Writes a new snapshot of the client to the client history, typically saving
     the results of an interrogate flow.
 
     Args:
-      client: An rdfvalues.objects.Client. Will be saved at the "current"
-        timestamp.
+      client: An rdfvalues.objects.ClientSnapshot. Will be saved at the
+              "current" timestamp.
 
     Raises:
       UnknownClientError: The client_id is not known yet.
     """
 
   @abc.abstractmethod
-  def ReadClients(self, client_ids):
+  def ReadClientsSnapshot(self, client_ids):
     """Reads the latest client snapshots for a list of clients.
 
     Args:
@@ -112,19 +125,19 @@ class Database(object):
         "C.ea3b2b71840d6fa8"]
 
     Returns:
-      A map from client_id to rdfvalues.objects.Client.
+      A map from client_id to rdfvalues.objects.ClientSnapshot.
     """
 
-  def ReadClient(self, client_id):
-    """Reads the latest client snapshots for a single client.
+  def ReadClientSnapshot(self, client_id):
+    """Reads the latest client snapshot for a single client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      An rdfvalues.objects.Client object.
+      An rdfvalues.objects.ClientSnapshot object.
     """
-    return self.ReadClients([client_id])[client_id]
+    return self.ReadClientsSnapshot([client_id])[client_id]
 
   @abc.abstractmethod
   def ReadClientsFullInfo(self, client_ids):
@@ -135,11 +148,7 @@ class Database(object):
         "C.ea3b2b71840d6fa8"]
 
     Returns:
-      A map from client_id to a dict containing:
-        "client": rdfvalues.objects.Client.
-        "metadata": rdfvalues.objects.ClientMetadata.
-        "last_startup_info": rdfvalues.client.StartupInfo.
-        "labels": list of rdfvalues.objects.ClientLabel.
+      A map from client ids to `ClientFullInfo` instance.
     """
 
   # TODO(hanuszczak): Why do we return a dict? Can't we declare a `namedtuple`
@@ -153,8 +162,7 @@ class Database(object):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      The dict containing all information as described in ReadFullInfoClients
-      for the indicated client.
+      A `ClientFullInfo` instance for given client.
     """
     return self.ReadClientsFullInfo([client_id])[client_id]
 
@@ -166,7 +174,7 @@ class Database(object):
   #
   # On the other hand, abstract means abstract...
   @abc.abstractmethod
-  def WriteClientHistory(self, clients):
+  def WriteClientSnapshotHistory(self, clients):
     """Writes the full history for a particular client.
 
     Args:
@@ -177,7 +185,7 @@ class Database(object):
 
     Raises:
       AttributeError: If some client does not have a `timestamp` attribute.
-      TypeError: If clients are not instances of `objects.Client`.
+      TypeError: If clients are not instances of `objects.ClientSnapshot`.
       ValueError: If client list is empty or clients have non-uniform ids.
     """
     if not clients:
@@ -185,7 +193,7 @@ class Database(object):
 
     client_id = None
     for client in clients:
-      if not isinstance(client, objects.Client):
+      if not isinstance(client, objects.ClientSnapshot):
         message = "Unexpected '%s' instead of client instance"
         raise TypeError(message % client.__class__)
 
@@ -198,14 +206,14 @@ class Database(object):
         raise ValueError(message % (client.client_id, client_id))
 
   @abc.abstractmethod
-  def ReadClientHistory(self, client_id):
+  def ReadClientSnapshotHistory(self, client_id):
     """Reads the full history for a particular client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
 
     Returns:
-      A list of rdfvalues.objects.Client, newest snapshot first.
+      A list of rdfvalues.objects.ClientSnapshot, newest snapshot first.
     """
 
   @abc.abstractmethod
@@ -395,4 +403,63 @@ class Database(object):
 
     Returns:
       A generator yielding objects.GRRUser objects.
+    """
+
+  @abc.abstractmethod
+  def WriteApprovalRequest(self, approval_request):
+    """Writes an approval request object.
+
+    Args:
+      approval_request: rdfvalues.objects.ApprovalRequest object. Note:
+                        approval_id and timestamps provided inside
+                        the argument object will be ignored. Values generated
+                        by the database will be used instead.
+    Returns:
+      approval_id: String identifying newly created approval request.
+                   Approval id is unique among approval ids for the same
+                   username. I.e. there can be no 2 approvals with the same id
+                   for the same username.
+    """
+
+  @abc.abstractmethod
+  def ReadApprovalRequest(self, requestor_username, approval_id):
+    """Reads an approval request object with a given id.
+
+    Args:
+      requestor_username: Username of the user who has requested the approval.
+      approval_id: String identifying approval request object.
+    Returns:
+      rdfvalues.objects.ApprovalRequest object.
+    Raises:
+      UnknownApprovalRequest: if there's no corresponding approval request
+                              object.
+    """
+
+  @abc.abstractmethod
+  def ReadApprovalRequests(self,
+                           requestor_username,
+                           approval_type,
+                           subject_id=None,
+                           include_expired=False):
+    """Reads approval requests of a given type for a given user.
+
+    Args:
+      requestor_username: Username of the user who has requested the approval.
+      approval_type: Type of approvals to list.
+      subject_id: String identifying the subject (client id, hunt id or
+                  cron job id). If not None, only approval requests for this
+                  subject will be returned.
+      include_expired: If True, will also yield already expired approvals.
+    Yields:
+      rdfvalues.objects.ApprovalRequest objects.
+    """
+
+  @abc.abstractmethod
+  def GrantApproval(self, requestor_username, approval_id, grantor_username):
+    """Grants approval for a given request using given username.
+
+    Args:
+      requestor_username: Username of the user who has requested the approval.
+      approval_id: String identifying approval request object.
+      grantor_username: String with a username of a user granting the approval.
     """

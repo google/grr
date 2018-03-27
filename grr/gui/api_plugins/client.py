@@ -199,10 +199,19 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     return self
 
   def InitFromClientInfo(self, client_info):
+    self.InitFromClientObject(client_info.last_snapshot)
 
-    self.InitFromClientObject(client_info["client"])
+    # If we have it, use the boot_time / agent info from the startup
+    # info which might be more recent than the interrogation
+    # results. At some point we should have a dedicated API for
+    # startup information instead of packing it into the API client
+    # object.
+    if client_info.last_startup_info.boot_time:
+      self.last_booted_at = client_info.last_startup_info.boot_time
+    if client_info.last_startup_info.client_info:
+      self.agent_info = client_info.last_startup_info.client_info
 
-    md = client_info["metadata"]
+    md = client_info.metadata
     if md:
       if md.first_seen:
         self.first_seen_at = md.first_seen
@@ -213,7 +222,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       if md.last_crash_timestamp:
         self.last_crash_at = md.last_crash_timestamp
 
-    self.labels = client_info["labels"]
+    self.labels = client_info.labels
 
     return self
 
@@ -328,7 +337,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
       index = 0
       for _, client_info in sorted(client_infos.items()):
-        if not self._VerifyLabels(client_info["labels"]):
+        if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:
           api_clients.append(ApiClient().InitFromClientInfo(client_info))
@@ -423,7 +432,7 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     items = []
 
     if data_store.RelationalDBReadEnabled():
-      history = data_store.REL_DB.ReadClientHistory(str(args.client_id))
+      history = data_store.REL_DB.ReadClientSnapshotHistory(str(args.client_id))
 
       for client in history[::-1]:
         # TODO(amoser): Filtering could be done at the db level and we
@@ -473,7 +482,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
       # faster. However, there is a chance that this will not be
       # needed anymore once we use the relational db everywhere, let's
       # decide later.
-      history = data_store.REL_DB.ReadClientHistory(str(args.client_id))
+      history = data_store.REL_DB.ReadClientSnapshotHistory(str(args.client_id))
       times = [h.timestamp for h in history]
     else:
       fd = aff4.FACTORY.Open(

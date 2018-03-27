@@ -23,7 +23,7 @@ class AFF4ObjectLabelTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     return aff4_rdfvalues.AFF4ObjectLabel(
         name="label%d" % number,
         owner="test",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
   def testAlphanumericCharactersAreAllowed(self):
     aff4_rdfvalues.AFF4ObjectLabel(name="label42", owner="test")
@@ -73,12 +73,12 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestMixin,
     label1 = aff4_rdfvalues.AFF4ObjectLabel(
         name="foo_%d" % number,
         owner="test",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
     label2 = aff4_rdfvalues.AFF4ObjectLabel(
         name="bar_%d" % number,
         owner="test",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
     return aff4_rdfvalues.AFF4ObjectLabelsList(labels=[label1, label2])
 

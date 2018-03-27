@@ -600,7 +600,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
     # Write crash data.
     if data_store.RelationalDBReadEnabled():
-      client = data_store.REL_DB.ReadClient(client_id)
+      client = data_store.REL_DB.ReadClientSnapshot(client_id)
       client_info = client.startup_info.client_info
     else:
       client = aff4.FACTORY.Open(client_id, token=self.token)
@@ -716,7 +716,7 @@ P.S. The state of the failing flow was:
 
     # Write crash data to AFF4.
     if data_store.RelationalDBReadEnabled():
-      client = data_store.REL_DB.ReadClient(client_id.Basename())
+      client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
       client_info = client.startup_info.client_info
     else:
       client = aff4.FACTORY.Open(client_id, token=self.token)
@@ -806,6 +806,7 @@ class ClientStartupHandler(flow.EventListener):
       # We write the updated record if the client_info has any changes
       # or the boot time is more than 5 minutes different.
       if (not current_si or current_si.client_info != new_si.client_info or
+          not current_si.boot_time or
           abs(current_si.boot_time - new_si.boot_time) > drift):
         data_store.REL_DB.WriteClientStartupInfo(client_id.Basename(), new_si)
 

@@ -1032,7 +1032,7 @@ You are about to rotate the server key. Note that:
       maintenance_utils.RotateServerKey(
           cn=flags.FLAGS.common_name, keylength=keylength)
   elif flags.FLAGS.subparser_name == "migrate_data":
-    data_migration.DataMigrationHelper().Migrate()
+    data_migration.Migrate()
 
 
 if __name__ == "__main__":

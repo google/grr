@@ -1364,9 +1364,9 @@
           "items": [
             {
               "key": "client",
-              "type": "Client",
+              "type": "ClientSnapshot",
               "value": {
-                "@type": "type.googleapis.com/Client",
+                "@type": "type.googleapis.com/ClientSnapshot",
                 "clientId": "C.1000000000000000"
               }
             },
@@ -1422,9 +1422,9 @@
           "items": [
             {
               "key": "client",
-              "type": "Client",
+              "type": "ClientSnapshot",
               "value": {
-                "@type": "type.googleapis.com/Client",
+                "@type": "type.googleapis.com/ClientSnapshot",
                 "clientId": "C.1000000000000000"
               }
             },

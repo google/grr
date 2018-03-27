@@ -291,7 +291,7 @@ class Communicator(object):
 
   def _ClearServerCipherCache(self):
     self.server_cipher = None
-    self.server_cipher_age = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    self.server_cipher_age = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
 
   def _GetServerCipher(self):
     """Returns the cipher for self.server_name."""

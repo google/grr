@@ -299,13 +299,6 @@ class SendFile(ClientActionStub):
   out_rdfvalues = [rdf_client.StatEntry]
 
 
-class UploadFile(ClientActionStub):
-  """Upload a file to the server."""
-
-  in_rdfvalue = rdf_client.UploadFileRequest
-  out_rdfvalues = [rdf_client.UploadedFile]
-
-
 class StatFS(ClientActionStub):
   """Call os.statvfs for a given list of paths. OS X and Linux only."""
 
