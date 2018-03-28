@@ -186,31 +186,16 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         token=access_control.ACLToken(username=self.token.username))
     self.CreateAdminUser("approver")
 
-    token = access_control.ACLToken(username="otheruser")
-    security.HuntApprovalRequestor(
-        subject_urn=hunt1_id,
+    self.RequestAndGrantHuntApproval(
+        hunt1_id.Basename(),
         reason=self.reason,
         approver="approver",
-        token=token).Request()
-    token = access_control.ACLToken(username=self.token.username)
-    security.HuntApprovalRequestor(
-        subject_urn=hunt2_id,
+        requestor="otheruser")
+    self.RequestAndGrantHuntApproval(
+        hunt2_id.Basename(),
         reason=self.reason,
         approver="approver",
-        token=token).Request()
-
-    token = access_control.ACLToken(username="approver")
-    security.HuntApprovalGrantor(
-        subject_urn=hunt1_id,
-        reason=self.reason,
-        delegate="otheruser",
-        token=token).Grant()
-    token = access_control.ACLToken(username="approver")
-    security.HuntApprovalGrantor(
-        subject_urn=hunt2_id,
-        reason=self.reason,
-        delegate=self.token.username,
-        token=token).Grant()
+        requestor=self.token.username)
 
   def testHuntApprovalsArePerHunt(self):
     self.Create2HuntsForDifferentUsers()
@@ -326,11 +311,11 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                    "css=button[name=ModifyHunt]:not([disabled])")
 
   def _RequestAndOpenApprovalFromSelf(self, hunt_id):
-    security.HuntApprovalRequestor(
-        subject_urn=hunt_id,
+    self.RequestHuntApproval(
+        hunt_id.Basename(),
         reason=self.reason,
         approver=self.token.username,
-        token=self.token).Request()
+        requestor=self.token.username)
 
     self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control
@@ -90,9 +89,9 @@ class CheckAccessHelperTest(test_lib.GRRBaseTest):
   def testFnmatchPatternCorrectlyMatchesFilesBelowDirectory(self):
     self.helper.Allow("aff4:/some/*")
     self.assertTrue(self.helper.CheckAccess(self.subject, self.token))
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      self.helper.CheckAccess,
-                      rdfvalue.RDFURN("aff4:/some"), self.token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess, self.helper.CheckAccess,
+        rdfvalue.RDFURN("aff4:/some"), self.token)
 
   def testCustomCheckWorksCorrectly(self):
 
@@ -294,11 +293,10 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
 
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")
-    token_with_reason = access_control.ACLToken(
-        username="unknown", reason="I have one!")
 
     client_id = "aff4:/C.0000000000000001"
-    self.RequestAndGrantClientApproval(client_id, token=token_with_reason)
+    self.RequestAndGrantClientApproval(
+        client_id, requestor="unknown", reason="I have one!")
 
     self.access_manager.CheckClientAccess(token_without_reason, client_id)
     # Check that token's reason got modified in the process:

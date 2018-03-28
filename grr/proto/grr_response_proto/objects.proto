@@ -108,6 +108,13 @@ message ClientMetadata {
     }];
 }
 
+message ClientFullInfo {
+  optional ClientMetadata metadata = 1;
+  optional ClientSnapshot last_snapshot = 2;
+  optional StartupInfo last_startup_info = 3;
+  repeated ClientLabel labels = 4;
+}
+
 // Next field id: 6
 message GRRUser {
   optional string username = 4;

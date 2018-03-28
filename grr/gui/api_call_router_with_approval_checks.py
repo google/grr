@@ -636,6 +636,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.GetGrrBinary(args, token=token)
 
+  def GetGrrBinaryBlob(self, args, token=None):
+    self.CheckIfUserIsAdmin(token=token)
+
+    return self.delegate.GetGrrBinaryBlob(args, token=token)
+
   # Reflection methods.
   # ==================
   #

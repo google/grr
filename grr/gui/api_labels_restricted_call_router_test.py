@@ -329,7 +329,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_urn)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"])
@@ -379,7 +379,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledAndApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_urn)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_vfs_access=True)
@@ -435,7 +435,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_urn)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_flows_access=True)

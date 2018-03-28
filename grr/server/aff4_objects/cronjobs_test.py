@@ -716,7 +716,19 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
         "Cron.disabled_system_jobs": ["NonExistent"]
     }):
       self.assertRaises(
-          KeyError, cronjobs.ScheduleSystemCronFlows, token=self.token)
+          ValueError, cronjobs.ScheduleSystemCronFlows, token=self.token)
+
+  def testSystemCronJobsGetScheduledWhenDisabledListInvalid(self):
+    with test_lib.ConfigOverrider({
+        "Cron.disabled_system_jobs": ["NonExistent"]
+    }):
+      with self.assertRaises(ValueError):
+        cronjobs.ScheduleSystemCronFlows(
+            names=[DummySystemCronJob.__name__], token=self.token)
+
+    jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
+    dummy_jobs = [j for j in jobs if j.Basename() == "DummySystemCronJob"]
+    self.assertTrue(dummy_jobs)
 
   def testStatefulSystemCronFlowRaisesWhenRunningWithoutCronJob(self):
     self.assertRaises(

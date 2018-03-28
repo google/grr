@@ -8,13 +8,8 @@ WIP, will eventually replace datastore.py.
 
 """
 import abc
-import collections
 
 from grr.lib.rdfvalues import objects
-
-ClientFullInfo = collections.namedtuple(
-    "ClientFullInfo",
-    ("metadata", "labels", "last_snapshot", "last_startup_info"))
 
 
 class Error(Exception):
@@ -165,6 +160,17 @@ class Database(object):
       A `ClientFullInfo` instance for given client.
     """
     return self.ReadClientsFullInfo([client_id])[client_id]
+
+  @abc.abstractmethod
+  def ReadAllClientsFullInfo(self, min_last_ping=None):
+    """Reads full client information for all clients matching the criteria.
+
+    Args:
+      min_last_ping: If not None, only the clients with last ping time bigger
+                     than min_last_ping will be returned.
+    Yields:
+      ClientFullInfo objects.
+    """
 
   # TODO(hanuszczak): Should abstract methods perform input validation?
   #

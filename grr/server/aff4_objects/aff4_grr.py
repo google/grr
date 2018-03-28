@@ -41,9 +41,6 @@ class SpaceSeparatedStringArray(rdfvalue.RDFString):
 class VFSGRRClient(standard.VFSDirectory):
   """A Remote client."""
 
-  # URN of the index for client labels.
-  labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/clients")
-
   class SchemaCls(standard.VFSDirectory.SchemaCls):
     """The schema for the client."""
     client_index = rdfvalue.RDFURN("aff4:/index/client")

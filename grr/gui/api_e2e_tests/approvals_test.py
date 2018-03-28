@@ -57,7 +57,10 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
     def ProcessApproval():
       time.sleep(1)
       self.GrantClientApproval(
-          client_id, self.token.username, reason="blah", approver="foo")
+          client_id.Basename(),
+          requestor=self.token.username,
+          reason="blah",
+          approver="foo")
 
     threading.Thread(target=ProcessApproval).start()
 

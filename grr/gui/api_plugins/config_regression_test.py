@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This modules contains regression tests for config API handler."""
 
-
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import config as config_plugin
 from grr.gui.api_plugins import config_test as config_plugin_test
@@ -38,6 +37,26 @@ class ApiGetGrrBinaryHandlerRegressionTest(
     self.Check(
         "GetGrrBinary",
         args=config_plugin.ApiGetGrrBinaryArgs(
+            type="EXECUTABLE", path="windows/test.exe"))
+
+
+class ApiGetGrrBinaryBlobHandlerRegressionTest(
+    config_plugin_test.ApiGrrBinaryTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
+
+  api_method = "GetGrrBinaryBlob"
+  handler = config_plugin.ApiGetGrrBinaryBlobHandler
+
+  def Run(self):
+    self.SetUpBinaries()
+
+    self.Check(
+        "GetGrrBinaryBlob",
+        args=config_plugin.ApiGetGrrBinaryBlobArgs(
+            type="PYTHON_HACK", path="test"))
+    self.Check(
+        "GetGrrBinaryBlob",
+        args=config_plugin.ApiGetGrrBinaryBlobArgs(
             type="EXECUTABLE", path="windows/test.exe"))
 
 

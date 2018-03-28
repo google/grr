@@ -38,6 +38,10 @@ class GlobalNotificationNotFoundError(
   """Raised when a specific global notification could not be found."""
 
 
+class ApprovalNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when a specific approval object could not be found."""
+
+
 class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiNotificationDiscoveryReference
   rdf_deps = [
@@ -494,11 +498,15 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     approval_urn = args.BuildApprovalObjUrn()
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=self.__class__.approval_aff4_type,
-        age=aff4.ALL_TIMES,
-        token=token)
+    try:
+      approval_obj = aff4.FACTORY.Open(
+          approval_urn,
+          aff4_type=self.__class__.approval_aff4_type,
+          age=aff4.ALL_TIMES,
+          token=token)
+    except IOError as e:
+      raise ApprovalNotFoundError(e)
+
     return self.__class__.result_type().InitFromAff4Object(approval_obj)
 
 
@@ -590,7 +598,7 @@ class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
   args_type = ApiGetClientApprovalArgs
   result_type = ApiClientApproval
 
-  approval_obj_type = aff4_security.ClientApproval
+  approval_aff4_type = aff4_security.ClientApproval
 
 
 class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):

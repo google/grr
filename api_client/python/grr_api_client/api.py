@@ -2,6 +2,7 @@
 """Main file of GRR API client library."""
 
 from grr_api_client import client
+from grr_api_client import config
 from grr_api_client import context
 from grr_api_client import hunt
 from grr_api_client import root
@@ -40,6 +41,13 @@ class GrrApi(object):
 
   def ListHuntApprovals(self):
     return hunt.ListHuntApprovals(context=self._context)
+
+  def ListGrrBinaries(self):
+    return config.ListGrrBinaries(context=self._context)
+
+  def GrrBinary(self, binary_type, path):
+    return config.GrrBinaryRef(
+        binary_type=binary_type, path=path, context=self._context)
 
   @property
   def username(self):

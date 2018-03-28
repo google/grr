@@ -33,7 +33,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       security.Approval.GetApprovalForObject(self.client_id, token=self.token)
 
   def testGetApprovalForObjectRaisesIfSingleAvailableApprovalExpired(self):
-    self.RequestAndGrantClientApproval(self.client_id, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     # Make sure approval is expired by the time we call GetApprovalForObject.
     now = rdfvalue.RDFDatetime.Now()
@@ -46,13 +46,8 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def testGetApprovalForObjectRaisesIfAllAvailableApprovalsExpired(self):
     # Set up 2 approvals with different reasons.
-    token1 = access_control.ACLToken(
-        username=self.token.username, reason="reason1")
-    self.RequestAndGrantClientApproval(self.client_id, token=token1)
-
-    token2 = access_control.ACLToken(
-        username=self.token.username, reason="reason2")
-    self.RequestAndGrantClientApproval(self.client_id, token=token2)
+    self.RequestAndGrantClientApproval(self.client_id, reason="reason1")
+    self.RequestAndGrantClientApproval(self.client_id, reason="reason2")
 
     # Make sure that approvals are expired by the time we call
     # GetApprovalForObject.
@@ -65,22 +60,18 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         security.Approval.GetApprovalForObject(self.client_id, token=self.token)
 
   def testGetApprovalForObjectReturnsSingleAvailableApproval(self):
-    self.RequestAndGrantClientApproval(self.client_id, token=self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     approved_token = security.Approval.GetApprovalForObject(
         self.client_id, token=self.token)
     self.assertEqual(approved_token.reason, self.token.reason)
 
   def testGetApprovalForObjectReturnsNonExpiredApprovalFromMany(self):
-    token1 = access_control.ACLToken(
-        username=self.token.username, reason="reason1")
-    self.RequestAndGrantClientApproval(self.client_id, token=token1)
+    self.RequestAndGrantClientApproval(self.client_id, reason="reason1")
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration, increment=1e-6):
-      token2 = access_control.ACLToken(
-          username=self.token.username, reason="reason2")
-      self.RequestAndGrantClientApproval(self.client_id, token=token2)
+      self.RequestAndGrantClientApproval(self.client_id, reason="reason2")
 
     # Make sure only the first approval is expired by the time
     # GetApprovalForObject is called.
@@ -88,7 +79,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         now + self.approval_expiration + rdfvalue.Duration("1h")):
       approved_token = security.Approval.GetApprovalForObject(
           self.client_id, token=self.token)
-      self.assertEqual(approved_token.reason, token2.reason)
+      self.assertEqual(approved_token.reason, "reason2")
 
   def testGetApprovalForObjectRaisesIfApprovalsAreOfWrongType(self):
     # Create AFF4Volume object where Approval is expected to be.

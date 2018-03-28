@@ -1546,9 +1546,6 @@ class AFF4Object(object):
   def behaviours(cls):  # pylint: disable=g-bad-name
     return cls._behaviours
 
-  # URN of the index for labels for generic AFF4Objects.
-  labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/generic")
-
   # We define the parts of the schema for each AFF4 Object as an internal
   # class. As new objects extend this, they can add more attributes to their
   # schema by extending their parents. Note that the class must be named

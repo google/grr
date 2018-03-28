@@ -395,6 +395,18 @@ class GRRBaseTest(unittest.TestCase):
     Returns:
       rdf_client.ClientURN
     """
+    # Make it possible to use SetupClient for both REL_DB and legacy tests.
+    self.SetupTestClientObject(
+        client_nr,
+        add_cert=add_cert,
+        arch=arch,
+        last_boot_time=last_boot_time,
+        kernel=kernel,
+        memory_size=memory_size,
+        os_version=os_version,
+        ping=ping or rdfvalue.RDFDatetime.Now(),
+        system=system)
+
     with client_index.CreateClientIndex(token=self.token) as index:
       client_id_urn = self._SetupClientImpl(
           client_nr,
@@ -493,9 +505,9 @@ class GRRBaseTest(unittest.TestCase):
                             memory_size=None,
                             os_version="buster/sid",
                             ping=None,
-                            system="Linux"):
+                            system="Linux",
+                            labels=None):
     """Prepares a test client object."""
-
     client_id = "C.1%015x" % client_nr
 
     client = objects.ClientSnapshot(client_id=client_id)
@@ -533,6 +545,9 @@ class GRRBaseTest(unittest.TestCase):
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client_index.ClientIndex().AddClient(client_id, client)
+
+    if labels:
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
 
     return client
 
@@ -1160,18 +1175,6 @@ def GetClientId(writeback_file):
   pkey = rdf_crypto.RSAPrivateKey(serialized_pkey)
   client_urn = comms.ClientCommunicator(private_key=pkey).common_name
   return re.compile(r"^aff4:/").sub("", client_urn.SerializeToString())
-
-
-class RelationalDBTestMixin(object):
-
-  def setUp(self):
-    super(RelationalDBTestMixin, self).setUp()
-    self.enable_relational_db = ConfigOverrider({"Database.useForReads": True})
-    self.enable_relational_db.Start()
-
-  def tearDown(self):
-    super(RelationalDBTestMixin, self).tearDown()
-    self.enable_relational_db.Stop()
 
 
 def main(argv=None):

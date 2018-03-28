@@ -7,7 +7,6 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control
-from grr.server.aff4_objects import security
 from grr.test_lib import test_lib
 
 
@@ -94,13 +93,9 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(
-        client_id,
-        token=access_control.ACLToken(
-            username=self.token.username, reason="foo-reason"))
+        client_id, requestor=self.token.username, reason="foo-reason")
     self.RequestAndGrantClientApproval(
-        client_id,
-        token=access_control.ACLToken(
-            username=self.token.username, reason="bar-reason"))
+        client_id, requestor=self.token.username, reason="bar-reason")
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
@@ -141,11 +136,11 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
   def testNonValidApprovalIsMarked(self):
     client_id = self.SetupClient(0)
-    security.ClientApprovalRequestor(
+    self.RequestClientApproval(
+        client_id.Basename(),
         reason=self.token.reason,
-        subject_urn=client_id,
         approver="approver",
-        token=self.token).Request()
+        requestor=self.token.username)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "

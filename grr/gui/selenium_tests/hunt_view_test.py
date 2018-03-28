@@ -232,7 +232,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt = self.CreateSampleHunt(
         path=os.path.join(self.base_path, "test.plist"))
 
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     self.Open("/")
 

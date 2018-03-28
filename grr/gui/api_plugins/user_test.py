@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """This module contains tests for user API handlers."""
 
+from grr.gui import api_call_handler_base
+
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import user as user_plugin
 
@@ -207,7 +209,8 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
                      ("approver", self.token.username, "test@example.com"))
 
 
-class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
+                                      api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
 
   def setUp(self):
@@ -216,13 +219,12 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = user_plugin.ApiGetClientApprovalHandler()
 
   def testRendersRequestedClientApproval(self):
-    approval_urn = aff4_security.ClientApprovalRequestor(
+    approval_id = self.RequestClientApproval(
+        self.client_id.Basename(),
+        requestor=self.token.username,
         reason="blah",
-        subject_urn=self.client_id,
         approver="approver",
-        email_cc_address="test@example.com",
-        token=self.token).Request()
-    approval_id = approval_urn.Basename()
+        email_cc_address="test@example.com")
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
@@ -243,19 +245,11 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(result.approvers, [self.token.username])
 
   def testIncludesApproversInResultWhenApprovalIsGranted(self):
-    approval_urn = aff4_security.ClientApprovalRequestor(
+    approval_id = self.RequestAndGrantClientApproval(
+        self.client_id.Basename(),
         reason="blah",
-        subject_urn=self.client_id,
         approver="approver",
-        token=self.token).Request()
-    approval_id = approval_urn.Basename()
-
-    approver_token = access_control.ACLToken(username="approver")
-    aff4_security.ClientApprovalGrantor(
-        reason="blah",
-        delegate=self.token.username,
-        subject_urn=self.client_id,
-        token=approver_token).Grant()
+        requestor=self.token.username)
 
     args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
@@ -265,8 +259,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertTrue(result.is_valid)
     self.assertEqual(
-        sorted(result.approvers),
-        sorted([approver_token.username, self.token.username]))
+        sorted(result.approvers), sorted([self.token.username, "approver"]))
 
   def testRaisesWhenApprovalIsNotFound(self):
     args = user_plugin.ApiGetClientApprovalArgs(
@@ -274,9 +267,7 @@ class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
         approval_id="approval:112233",
         username=self.token.username)
 
-    # TODO(user): throw some standard exception that can be converted to
-    # HTTP 404 status code.
-    with self.assertRaises(IOError):
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.handler.Handle(args, token=self.token)
 
 
@@ -325,7 +316,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def _RequestClientApprovals(self):
     for client_id in self.client_ids:
-      self.RequestClientApproval(client_id, token=self.token)
+      self.RequestClientApproval(client_id.Basename())
 
   def testRendersRequestedClientApprovals(self):
     self._RequestClientApprovals()
@@ -360,7 +351,9 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Grant access to one client. Now all but one should be invalid.
     self.GrantClientApproval(
-        self.client_ids[0], self.token.username, reason=self.token.reason)
+        self.client_ids[0].Basename(),
+        requestor=self.token.username,
+        reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), self.CLIENT_COUNT - 1)
 
@@ -377,7 +370,9 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Grant access to one client. Now exactly one approval should be valid.
     self.GrantClientApproval(
-        self.client_ids[0], self.token.username, reason=self.token.reason)
+        self.client_ids[0].Basename(),
+        requestor=self.token.username,
+        reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
     self.assertEqual(result.items[0].subject.client_id, self.client_ids[0])
@@ -389,7 +384,9 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Grant approval to a certain client.
     self.GrantClientApproval(
-        client_id, self.token.username, reason=self.token.reason)
+        client_id.Basename(),
+        requestor=self.token.username,
+        reason=self.token.reason)
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id,
@@ -411,8 +408,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     # Create five approval requests without granting them.
     for i in range(10):
       with test_lib.FakeTime(42 + i):
-        self.token.reason = "Request reason %d" % i
-        self.RequestClientApproval(client_id, token=self.token)
+        self.RequestClientApproval(
+            client_id.Basename(), reason="Request reason %d" % i)
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id, offset=0, count=5)
@@ -457,7 +454,8 @@ class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
+                                      api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
   def setUp(self):
@@ -469,11 +467,11 @@ class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
         hunt_name=standard.SampleHunt.__name__, token=self.token) as hunt:
       pass
 
-    aff4_security.HuntApprovalRequestor(
+    self.RequestHuntApproval(
+        hunt.urn.Basename(),
         reason=self.token.reason,
-        subject_urn=hunt.urn,
         approver="approver",
-        token=self.token).Request()
+        requestor=self.token.username)
 
     args = user_plugin.ApiListHuntApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
@@ -481,8 +479,10 @@ class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(len(result.items), 1)
 
 
-class ApiCreateCronJobApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                          ApiCreateApprovalHandlerTestMixin):
+class ApiCreateCronJobApprovalHandlerTest(
+    ApiCreateApprovalHandlerTestMixin,
+    api_test_lib.ApiCallHandlerTest,
+):
   """Test for ApiCreateCronJobApprovalHandler."""
 
   APPROVAL_TYPE = aff4_security.CronJobApproval
@@ -507,7 +507,8 @@ class ApiCreateCronJobApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListCronJobApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
+                                         api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""
 
   def setUp(self):
@@ -521,11 +522,11 @@ class ApiListCronJobApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
     cron_job_urn = cron_manager.ScheduleFlow(
         cron_args=cron_args, token=self.token)
 
-    aff4_security.CronJobApprovalRequestor(
+    self.RequestCronJobApproval(
+        cron_job_urn.Basename(),
         reason=self.token.reason,
-        subject_urn=cron_job_urn,
         approver="approver",
-        token=self.token).Request()
+        requestor=self.token.username)
 
     args = user_plugin.ApiListCronJobApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)

@@ -139,7 +139,13 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testReadingMultipleGRRUsersEntriesWorks(self):
     pass
 
-  def testFullInfo(self):
+  def testReadClientFullFullInfoReturnsCorrectResult(self):
+    pass
+
+  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
+    pass
+
+  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
     pass
 
   def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):

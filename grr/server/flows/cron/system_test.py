@@ -5,13 +5,16 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
+from grr.server import data_store
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.cron import system
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test system cron flows."""
 
@@ -25,10 +28,13 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.SetupClients(10, system="Windows", ping=client_ping_time)
 
     for i in range(0, 10):
-      with aff4.FACTORY.Open(
-          "C.1%015x" % i, mode="rw", token=self.token) as client:
+      client_id = "C.1%015x" % i
+      with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
         client.AddLabels(["Label1", "Label2"], owner="GRR")
         client.AddLabel("UserLabel", owner="jim")
+
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", ["Label1", "Label2"])
+      data_store.REL_DB.AddClientLabels(client_id, "jim", ["UserLabel"])
 
   def _CheckVersionStats(self, label, attribute, counts):
 

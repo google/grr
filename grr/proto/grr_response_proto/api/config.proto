@@ -13,7 +13,7 @@ message ApiGrrBinary {
   enum Type {
     PYTHON_HACK = 1;
     EXECUTABLE = 2;
-    COMPONENT = 3;
+    COMPONENT_DEPRECATED = 3;
   };
   optional Type type = 1 [(sem_type) = {
       description: "Binary type. Together with path it identifies the binary."
@@ -29,6 +29,9 @@ message ApiGrrBinary {
   optional uint64 timestamp = 4 [(sem_type) = {
       type: "RDFDatetime",
       description: "Binary upload timestamp."
+    }];
+  optional bool has_valid_signature = 5 [(sem_type) = {
+      description: "True, if the binary is correctly signed."
     }];
 }
 
@@ -73,6 +76,15 @@ message ApiListGrrBinariesResult {
 }
 
 message ApiGetGrrBinaryArgs {
+  optional ApiGrrBinary.Type type = 1 [(sem_type) = {
+      description: "Binary type."
+    }];
+  optional string path = 2 [(sem_type) = {
+      description: "Binary path."
+    }];
+}
+
+message ApiGetGrrBinaryBlobArgs {
   optional ApiGrrBinary.Type type = 1 [(sem_type) = {
       description: "Binary type."
     }];

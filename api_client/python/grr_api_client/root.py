@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 """Root (i.e. administrative) actions support in GRR API client library."""
 
+import hashlib
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import rsa
+
 from grr_api_client import utils
 from grr_response_proto.api import user_pb2
+from grr_response_proto.api.root import binary_management_pb2
 from grr_response_proto.api.root import user_management_pb2
 
 
@@ -60,6 +67,69 @@ class GrrUser(GrrUserBase):
     self.data = data
 
 
+class GrrBinaryRef(object):
+  """Reference class pointing at GrrBinary."""
+
+  CHUNK_SIZE = 512 * 1024
+
+  def __init__(self, binary_type=None, path=None, context=None):
+    super(GrrBinaryRef, self).__init__()
+
+    self.binary_type = binary_type
+    self.path = path
+    self._context = context
+
+  def _DefaultBlobSign(self, blob_bytes, private_key=None):
+    if not private_key:
+      raise ValueError("private_key can't be empty.")
+
+    padding_algorithm = padding.PKCS1v15()
+    signer = private_key.signer(padding_algorithm, hashes.SHA256())
+    signer.update(blob_bytes)
+    return signer.finalize()
+
+  def DefaultUploadSigner(self, private_key):
+    if not private_key:
+      raise ValueError("private_key can't be empty.")
+
+    if not isinstance(private_key, rsa.RSAPrivateKey):
+      raise ValueError("private_key has to be cryptography.io's RSAPrivateKey")
+
+    return lambda b: self._DefaultBlobSign(b, private_key=private_key)
+
+  def Upload(self, fd, sign_fn=None):
+    """Uploads data from a given stream and signs them with a given key."""
+
+    if not sign_fn:
+      raise ValueError("sign_fn can't be empty. "
+                       "See DefaultUploadSigner as a possible option.")
+
+    args = binary_management_pb2.ApiUploadGrrBinaryArgs(
+        type=self.binary_type, path=self.path)
+
+    while True:
+      data = fd.read(self.__class__.CHUNK_SIZE)
+      if not data:
+        break
+
+      blob = args.blobs.add()
+
+      blob.signature = sign_fn(data)
+      blob.signature_type = blob.RSA_PKCS1v15
+
+      blob.digest = hashlib.sha256(data).digest()
+      blob.digest_type = blob.SHA256
+
+      blob.data = data
+
+    self._context.SendRequest("UploadGrrBinary", args)
+
+  def Delete(self):
+    args = binary_management_pb2.ApiDeleteGrrBinaryArgs(
+        type=self.binary_type, path=self.path)
+    self._context.SendRequest("DeleteGrrBinary", args)
+
+
 class RootGrrApi(object):
   """Object providing access to root-level access GRR methods."""
 
@@ -98,3 +168,7 @@ class RootGrrApi(object):
     items = self._context.SendIteratorRequest("ListGrrUsers", args)
     return utils.MapItemsIterator(
         lambda data: GrrUser(data=data, context=self._context), items)
+
+  def GrrBinary(self, binary_type, path):
+    return GrrBinaryRef(
+        binary_type=binary_type, path=path, context=self._context)

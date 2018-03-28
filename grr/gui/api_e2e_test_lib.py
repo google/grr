@@ -15,8 +15,10 @@ import portpicker
 from grr_api_client import api as grr_api
 from grr_api_client import utils as grr_api_utils
 from grr.gui import api_auth_manager
+from grr.gui import api_call_router_without_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp_testlib
+from grr.gui.root import api_root_router
 from grr.lib import utils
 from grr.test_lib import acl_test_lib
 from grr.test_lib import test_lib
@@ -63,3 +65,29 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
         ApiE2ETest.trd.StartAndWaitUntilServing()
 
         ApiE2ETest._api_set_up_done = True
+
+
+class RootApiBinaryManagementTestRouter(
+    api_root_router.ApiRootRouter,
+    api_call_router_without_checks.ApiCallRouterWithoutChecks):
+  """Root router combined with an unrestricted router for easier testing."""
+
+
+class RootApiE2ETest(ApiE2ETest):
+  """Base class for tests dealing with root API calls."""
+
+  def setUp(self):
+    super(RootApiE2ETest, self).setUp()
+
+    self.root_api_config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": RootApiBinaryManagementTestRouter.__name__
+    })
+    self.root_api_config_overrider.Start()
+
+    # Force creation of new APIAuthorizationManager, so that configuration
+    # changes are picked up.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
+
+  def tearDown(self):
+    super(RootApiE2ETest, self).tearDown()
+    self.root_api_config_overrider.Stop()

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Router classes route API requests to particular handlers."""
 
-
 import inspect
 import re
 
@@ -168,7 +167,9 @@ class ApiCallRouter(object):
 
     result = {}
 
-    for i_cls in inspect.getmro(cls):
+    # We want methods with the highest call-order to be processed last,
+    # so that their annotations have precedence.
+    for i_cls in reversed(inspect.getmro(cls)):
       for name in dir(i_cls):
         cls_method = getattr(i_cls, name)
 
@@ -1173,10 +1174,20 @@ class ApiCallRouterStub(ApiCallRouter):
 
   @Category("Settings")
   @ArgsType(api_config.ApiGetGrrBinaryArgs)
-  @ResultBinaryStream()
+  @ResultType(api_config.ApiGrrBinary)
   @Http("GET", "/api/config/binaries/<type>/<path:path>")
   @NoAuditLogRequired()
   def GetGrrBinary(self, args, token=None):
+    """Get information about GRR binary with the following type and path."""
+
+    raise NotImplementedError()
+
+  @Category("Settings")
+  @ArgsType(api_config.ApiGetGrrBinaryBlobArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/config/binaries-blobs/<type>/<path:path>")
+  @NoAuditLogRequired()
+  def GetGrrBinaryBlob(self, args, token=None):
     """Get contents of a GRR binary (uploaded with grr_config_updater)."""
 
     raise NotImplementedError()

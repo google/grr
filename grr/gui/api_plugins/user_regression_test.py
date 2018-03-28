@@ -8,13 +8,11 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import objects as rdf_objects
-from grr.server import access_control
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import flow
 
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.aff4_objects import security
 from grr.server.aff4_objects import users as aff4_users
 from grr.server.flows.general import discovery
 from grr.server.hunts import implementation
@@ -45,28 +43,25 @@ class ApiGetClientApprovalHandlerRegressionTest(
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      approval_urn = security.ClientApprovalRequestor(
+      approval1_id = self.RequestClientApproval(
+          clients[0].Basename(),
           reason="foo",
-          subject_urn=clients[0],
           approver="approver",
-          token=self.token).Request()
-      approval1_id = approval_urn.Basename()
+          requestor=self.token.username)
 
     with test_lib.FakeTime(45):
-      approval_urn = security.ClientApprovalRequestor(
+      approval2_id = self.RequestClientApproval(
+          clients[1].Basename(),
           reason="bar",
-          subject_urn=clients[1],
           approver="approver",
-          token=self.token).Request()
-      approval2_id = approval_urn.Basename()
+          requestor=self.token.username)
 
     with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      security.ClientApprovalGrantor(
+      self.GrantClientApproval(
+          clients[1].Basename(),
           reason="bar",
-          delegate=self.token.username,
-          subject_urn=clients[1],
-          token=approver_token).Grant()
+          approver="approver",
+          requestor=self.token.username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -75,18 +70,14 @@ class ApiGetClientApprovalHandlerRegressionTest(
               client_id=clients[0].Basename(),
               approval_id=approval1_id,
               username=self.token.username),
-          replace={
-              approval1_id: "approval:111111"
-          })
+          replace={approval1_id: "approval:111111"})
       self.Check(
           "GetClientApproval",
           args=user_plugin.ApiGetClientApprovalArgs(
               client_id=clients[1].Basename(),
               approval_id=approval2_id,
               username=self.token.username),
-          replace={
-              approval2_id: "approval:222222"
-          })
+          replace={approval2_id: "approval:222222"})
 
 
 class ApiGrantClientApprovalHandlerRegressionTest(
@@ -108,13 +99,11 @@ class ApiGrantClientApprovalHandlerRegressionTest(
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      requestor_token = access_control.ACLToken(username="requestor")
-      approval_urn = security.ClientApprovalRequestor(
+      approval_id = self.RequestClientApproval(
+          client_id.Basename(),
           reason="foo",
-          subject_urn=client_id,
           approver=self.token.username,
-          token=requestor_token).Request()
-      approval_id = approval_urn.Basename()
+          requestor="requestor")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -123,9 +112,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
               client_id=client_id.Basename(),
               approval_id=approval_id,
               username="requestor"),
-          replace={
-              approval_id: "approval:111111"
-          })
+          replace={approval_id: "approval:111111"})
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(
@@ -187,28 +174,25 @@ class ApiListClientApprovalsHandlerRegressionTest(
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      approval_urn = security.ClientApprovalRequestor(
+      approval1_id = self.RequestClientApproval(
+          clients[0].Basename(),
           reason=self.token.reason,
-          subject_urn=clients[0],
           approver="approver",
-          token=self.token).Request()
-      approval1_id = approval_urn.Basename()
+          requestor=self.token.username)
 
     with test_lib.FakeTime(45):
-      approval_urn = security.ClientApprovalRequestor(
+      approval2_id = self.RequestClientApproval(
+          clients[1].Basename(),
           reason=self.token.reason,
-          subject_urn=clients[1],
           approver="approver",
-          token=self.token).Request()
-      approval2_id = approval_urn.Basename()
+          requestor=self.token.username)
 
     with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      security.ClientApprovalGrantor(
+      self.GrantClientApproval(
+          clients[1].Basename(),
+          requestor=self.token.username,
           reason=self.token.reason,
-          delegate=self.token.username,
-          subject_urn=clients[1],
-          token=approver_token).Grant()
+          approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -241,36 +225,21 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser("approver")
 
       with self.CreateHunt(description="hunt1") as hunt_obj:
-        hunt1_urn = hunt_obj.urn
-        hunt1_id = hunt1_urn.Basename()
+        hunt1_id = hunt_obj.urn.Basename()
 
       with self.CreateHunt(description="hunt2") as hunt_obj:
-        hunt2_urn = hunt_obj.urn
-        hunt2_id = hunt2_urn.Basename()
+        hunt2_id = hunt_obj.urn.Basename()
 
     with test_lib.FakeTime(44):
-      approval_urn = security.HuntApprovalRequestor(
-          reason="foo",
-          subject_urn=hunt1_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval1_id = approval_urn.Basename()
+      approval1_id = self.RequestHuntApproval(
+          hunt1_id, approver="approver", reason="foo")
 
     with test_lib.FakeTime(45):
-      approval_urn = security.HuntApprovalRequestor(
-          reason="bar",
-          subject_urn=hunt2_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval2_id = approval_urn.Basename()
+      approval2_id = self.RequestHuntApproval(
+          hunt2_id, approver="approver", reason="bar")
 
     with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      security.HuntApprovalGrantor(
-          reason="bar",
-          delegate=self.token.username,
-          subject_urn=hunt2_urn,
-          token=approver_token).Grant()
+      self.GrantHuntApproval(hunt2_id, approver="approver", reason="bar")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -309,12 +278,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
         hunt2_id = hunt2_urn.Basename()
 
     with test_lib.FakeTime(44):
-      approval_urn = security.HuntApprovalRequestor(
-          reason="foo",
-          subject_urn=hunt2_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval_id = approval_urn.Basename()
+      approval_id = self.RequestHuntApproval(
+          hunt2_id, reason="foo", approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -348,12 +313,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
         hunt_id = hunt_urn.Basename()
 
     with test_lib.FakeTime(44):
-      approval_urn = security.HuntApprovalRequestor(
-          reason="foo",
-          subject_urn=hunt_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval_id = approval_urn.Basename()
+      approval_id = self.RequestHuntApproval(
+          hunt_id, reason="foo", approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -391,13 +352,11 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
         hunt_id = hunt_urn.Basename()
 
     with test_lib.FakeTime(44):
-      requestor_token = access_control.ACLToken(username="requestor")
-      approval_urn = security.HuntApprovalRequestor(
+      approval_id = self.RequestHuntApproval(
+          hunt_id,
+          requestor="requestor",
           reason="foo",
-          subject_urn=hunt_urn,
-          approver=self.token.username,
-          token=requestor_token).Request()
-      approval_id = approval_urn.Basename()
+          approver=self.token.username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -446,7 +405,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
 
 class ApiListHuntApprovalsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
   api_method = "ListHuntApprovals"
@@ -460,12 +419,11 @@ class ApiListHuntApprovalsHandlerRegressionTest(
           hunt_name=standard.GenericHunt.__name__, token=self.token)
 
     with test_lib.FakeTime(43):
-      approval_urn = security.HuntApprovalRequestor(
+      approval_id = self.RequestHuntApproval(
+          hunt.urn.Basename(),
           reason=self.token.reason,
-          subject_urn=hunt.urn,
           approver="approver",
-          token=self.token).Request()
-      approval_id = approval_urn.Basename()
+          requestor=self.token.username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -496,28 +454,16 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
           cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
-      approval_urn = security.CronJobApprovalRequestor(
-          reason="foo",
-          subject_urn=cron1_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval1_id = approval_urn.Basename()
+      approval1_id = self.RequestCronJobApproval(
+          cron1_urn.Basename(), reason="foo", approver="approver")
 
     with test_lib.FakeTime(45):
-      approval_urn = security.CronJobApprovalRequestor(
-          reason="bar",
-          subject_urn=cron2_urn,
-          approver="approver",
-          token=self.token).Request()
-      approval2_id = approval_urn.Basename()
+      approval2_id = self.RequestCronJobApproval(
+          cron2_urn.Basename(), reason="bar", approver="approver")
 
     with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      security.CronJobApprovalGrantor(
-          reason="bar",
-          delegate=self.token.username,
-          subject_urn=cron2_urn,
-          token=approver_token).Grant()
+      self.GrantCronJobApproval(
+          cron2_urn.Basename(), reason="bar", approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -560,13 +506,11 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
           cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
-      requestor_token = access_control.ACLToken(username="requestor")
-      approval_urn = security.CronJobApprovalRequestor(
-          reason="foo",
-          subject_urn=cron_urn,
+      approval_id = self.RequestCronJobApproval(
+          cron_urn.Basename(),
           approver=self.token.username,
-          token=requestor_token).Request()
-      approval_id = approval_urn.Basename()
+          requestor="requestor",
+          reason="foo")
 
     with test_lib.FakeTime(126):
       self.Check(

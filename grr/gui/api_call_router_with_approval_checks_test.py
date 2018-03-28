@@ -305,7 +305,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   ACCESS_CHECKED_METHODS.extend([
       "ListGrrBinaries",
-      "GetGrrBinary"])  # pyformat: disable
+      "GetGrrBinary",
+      "GetGrrBinaryBlob",
+  ])
 
   def testListGrrBinariesIsAccessChecked(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
@@ -320,6 +322,13 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
     self.CreateAdminUser(self.token.username)
     self.router.GetGrrBinary(None, token=self.token)
+
+  def testGetGrrBinaryBlobIsAccessChecked(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.router.GetGrrBinaryBlob(None, token=self.token)
+
+    self.CreateAdminUser(self.token.username)
+    self.router.GetGrrBinaryBlob(None, token=self.token)
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlowDescriptors",

@@ -7,6 +7,7 @@ from grr.lib.rdfvalues import test_base
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import foreman as rdf_foreman
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -227,7 +228,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestMixin,
         r1.Evaluate(aff4.FACTORY.Open(client_id_dar, token=self.token)))
 
 
-class ForemanOsClientRuleTestRelational(test_lib.RelationalDBTestMixin,
+class ForemanOsClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
                                         test_lib.GRRBaseTest):
 
   def testWindowsClientDoesNotMatchRuleWithNoOsSelected(self):
@@ -361,7 +362,7 @@ class ForemanLabelClientRuleTest(test_base.RDFValueTestMixin,
     self.assertTrue(self._Evaluate(r))
 
 
-class ForemanLabelClientRuleTestRelational(test_lib.RelationalDBTestMixin,
+class ForemanLabelClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
                                            ForemanLabelClientRuleTest):
 
   def _Evaluate(self, rule):
@@ -428,7 +429,7 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestMixin,
     self.assertTrue(r.Evaluate(client))
 
 
-class ForemanRegexClientRuleTestRelational(test_lib.RelationalDBTestMixin,
+class ForemanRegexClientRuleTestRelational(db_test_lib.RelationalDBEnabledMixin,
                                            test_lib.GRRBaseTest):
 
   def testEvaluation(self):
@@ -551,8 +552,8 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
       r.Evaluate(aff4.FACTORY.Open(client_id, token=self.token))
 
 
-class ForemanIntegerClientRuleTestRelational(test_lib.RelationalDBTestMixin,
-                                             test_lib.GRRBaseTest):
+class ForemanIntegerClientRuleTestRelational(
+    db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
 
   def testEvaluation(self):
     now = rdfvalue.RDFDatetime().Now()

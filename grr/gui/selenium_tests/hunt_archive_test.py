@@ -48,8 +48,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                       "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     self.CreateGenericHuntWithCollection(values=values)
@@ -63,8 +64,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForArtifactDownloaderHunt(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
@@ -80,8 +82,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                    "Files referenced in this collection can be downloaded")
 
   def testExportCommandIsShownForStatEntryResults(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     hunt_urn = self.CreateGenericHuntWithCollection(values=values)
@@ -114,8 +117,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
 
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     self.CreateGenericHuntWithCollection(values=values)
@@ -129,12 +133,13 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     hunt_urn = self.CreateGenericHuntWithCollection(values=values)
-    self.GrantHuntApproval(hunt_urn)
+    self.RequestAndGrantHuntApproval(hunt_urn.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -147,7 +152,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -163,7 +168,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -182,7 +187,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
     hunt = self._CreateHuntWithDownloadedFile()
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield "foo"
@@ -219,8 +224,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForFileFinderHunt(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     self.CreateGenericHuntWithCollection(values=values)
@@ -235,8 +241,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testShowsPerFileDownloadButtonForArtifactDownloaderHunt(self):
-    stat_entry = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
+    stat_entry = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
@@ -269,7 +276,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     fd = aff4.FACTORY.Open(
         flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -289,7 +296,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:
       pass
 
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")

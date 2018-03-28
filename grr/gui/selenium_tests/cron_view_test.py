@@ -141,7 +141,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.RequestAndGrantCronJobApproval("OSBreakDown")
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
@@ -184,7 +184,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.RequestAndGrantCronJobApproval("OSBreakDown")
 
     # Click on Disable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
@@ -227,7 +227,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    self.RequestAndGrantCronJobApproval("OSBreakDown")
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
@@ -275,7 +275,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       # Wait for dialog to disappear.
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-      self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      self.RequestAndGrantCronJobApproval("OSBreakDown")
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")

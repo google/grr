@@ -4,32 +4,14 @@
 
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import root as grr_api_root
-from grr.gui import api_auth_manager
 from grr.gui import api_e2e_test_lib
-from grr.gui.root import api_root_router
 from grr.lib import flags
 from grr.server import aff4
 from grr.test_lib import test_lib
 
 
-class RootApiUserManagementTest(api_e2e_test_lib.ApiE2ETest):
+class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
-
-  def setUp(self):
-    super(RootApiUserManagementTest, self).setUp()
-
-    self.config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": api_root_router.ApiRootRouter.__name__
-    })
-    self.config_overrider.Start()
-
-    # Force creation of new APIAuthorizationManager, so that configuration
-    # changes are picked up.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def tearDown(self):
-    super(RootApiUserManagementTest, self).tearDown()
-    self.config_overrider.Stop()
 
   def testStandardUserIsCorrectlyAdded(self):
     user = self.api.root.CreateGrrUser(username="user_foo")

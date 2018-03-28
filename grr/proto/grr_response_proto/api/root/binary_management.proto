@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+import "grr_response_proto/api/config.proto";
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+
+
+message ApiUploadGrrBinaryArgs {
+  optional ApiGrrBinary.Type type = 1 [(sem_type) = {
+      description: "Binary type. Together with path it identifies the binary."
+    }];
+  optional string path = 2 [(sem_type) = {
+      description: "Binary path. Together with binary type it identifies the "
+      "binary."
+    }];
+  repeated SignedBlob blobs = 3 [(sem_type) = {
+      description: "Signed blobs representing the binary."
+    }];
+}
+
+message ApiDeleteGrrBinaryArgs {
+  optional ApiGrrBinary.Type type = 1 [(sem_type) = {
+      description: "Binary type. Together with path it identifies the binary."
+    }];
+  optional string path = 2 [(sem_type) = {
+      description: "Binary path. Together with binary type it identifies the "
+      "binary."
+    }];
+};

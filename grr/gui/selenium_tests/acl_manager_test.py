@@ -143,9 +143,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Open("/")
 
     test_reason = u"ástæða"
-    token = access_control.ACLToken(
-        username=self.token.username, reason=test_reason)
-    self.RequestAndGrantClientApproval("C.0000000000000006", token=token)
+    self.RequestAndGrantClientApproval("C.0000000000000006", reason=test_reason)
 
     self.Type("client_query", "C.0000000000000006")
     self.Click("client_query_submit")

@@ -169,12 +169,20 @@ class InMemoryDB(db.Database):
     res = {}
     for client_id in client_ids:
       self._ValidateClientId(client_id)
-      res[client_id] = db.ClientFullInfo(
+      res[client_id] = objects.ClientFullInfo(
           metadata=self.ReadClientMetadata(client_id),
           labels=self.ReadClientLabels(client_id),
           last_snapshot=self.ReadClientSnapshot(client_id),
           last_startup_info=self.ReadClientStartupInfo(client_id))
     return res
+
+  def ReadAllClientsFullInfo(self, min_last_ping=None):
+    client_ids = self.clients.keys()
+    for c in self.ReadClientsFullInfo(client_ids).values():
+      if min_last_ping and c.metadata.ping < min_last_ping:
+        continue
+
+      yield c
 
   def WriteClientSnapshotHistory(self, clients):
     super(InMemoryDB, self).WriteClientSnapshotHistory(clients)

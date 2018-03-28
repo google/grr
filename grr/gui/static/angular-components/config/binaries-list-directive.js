@@ -80,7 +80,7 @@ BinariesListController.prototype.onBinariesChange_ = function() {
  * @param {Object} binary
  */
 BinariesListController.prototype.onBinaryClicked = function(binary) {
-  var url = '/config/binaries' + '/' + binary['value']['type']['value'] + '/' +
+  var url = '/config/binaries-blobs/' + binary['value']['type']['value'] + '/' +
       binary['value']['path']['value'];
   this.grrApiService_.downloadFile(url);
 };

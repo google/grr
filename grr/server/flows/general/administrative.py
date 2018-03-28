@@ -403,7 +403,7 @@ class Foreman(flow.WellKnownFlow):
         self.foreman_cache.age = now
 
     if message.source:
-      self.foreman_cache.AssignTasksToClient(message.source)
+      self.foreman_cache.AssignTasksToClient(message.source.Basename())
 
 
 class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):

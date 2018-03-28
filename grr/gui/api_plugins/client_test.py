@@ -12,6 +12,7 @@ from grr.server import client_index
 from grr.server import data_store
 from grr.server import events
 from grr.server.flows.general import audit
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
@@ -333,7 +334,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
 
 class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     ApiLabelsRestrictedSearchClientsHandlerTestMixin,
-    test_lib.RelationalDBTestMixin, api_test_lib.ApiCallHandlerTest):
+    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest):
   """Tests ApiLabelsRestrictedSearchClientsHandler using the relational db."""
 
   def setUp(self):

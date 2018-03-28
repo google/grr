@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementations of various collections."""
 
-
 import cStringIO
 
 from grr.lib.rdfvalues import client as rdf_client

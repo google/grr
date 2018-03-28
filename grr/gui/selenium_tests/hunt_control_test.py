@@ -83,7 +83,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.GrantHuntApproval(hunt.urn)
+    self.RequestAndGrantHuntApproval(hunt.urn.Basename())
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
@@ -132,7 +132,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.GrantHuntApproval(hunt.session_id)
+    self.RequestAndGrantHuntApproval(hunt.session_id.Basename())
 
     # Click on Stop and wait for dialog again.
     self.Click("css=button[name=StopHunt]")
@@ -191,7 +191,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
-    self.GrantHuntApproval(hunt.session_id)
+    self.RequestAndGrantHuntApproval(hunt.session_id.Basename())
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
@@ -251,7 +251,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # Now create an approval.
-    self.GrantHuntApproval(hunt.session_id)
+    self.RequestAndGrantHuntApproval(hunt.session_id.Basename())
 
     # Select a hunt again, as it's deselected after approval dialog
     # disappears. TODO(user): if this behavior is not convenient, fix it.

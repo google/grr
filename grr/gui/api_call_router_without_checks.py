@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Implementation of a router class that does no ACL checks."""
 
-
 from grr.gui import api_call_router
 
 from grr.gui.api_plugins import artifact as api_artifact
@@ -347,6 +346,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def GetGrrBinary(self, args, token=None):
     return api_config.ApiGetGrrBinaryHandler()
+
+  def GetGrrBinaryBlob(self, args, token=None):
+    return api_config.ApiGetGrrBinaryBlobHandler()
 
   # Reflection methods.
   # ==================

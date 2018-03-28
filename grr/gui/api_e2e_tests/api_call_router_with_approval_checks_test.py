@@ -44,7 +44,13 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
     api_router.ApiCallRouterWithApprovalChecks.ClearCache()
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
-  def RevokeClientApproval(self, approval_urn, token, remove_from_cache=True):
+  def RevokeClientApproval(self,
+                           client_id,
+                           approval_id,
+                           token,
+                           remove_from_cache=True):
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
+        token.username).Add(approval_id)
     with aff4.FACTORY.Open(
         approval_urn, mode="rw", token=self.token.SetUID()) as approval_request:
       approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
@@ -93,7 +99,8 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
                       self.api.Client(client_id).File("fs/os/foo").Get)
 
     with test_lib.FakeTime(100.0, increment=1e-3):
-      self.RequestAndGrantClientApproval(client_id, self.token)
+      self.RequestAndGrantClientApproval(
+          client_id, requestor=self.token.username)
 
       # This should work now.
       self.api.Client(client_id).File("fs/os/foo").Get()
@@ -123,10 +130,11 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Client(client_id).File("fs/os/foo").Get)
 
-    approval_urn = self.RequestAndGrantClientApproval(client_id, self.token)
+    approval_id = self.RequestAndGrantClientApproval(
+        client_id, requestor=self.token.username)
     self.api.Client(client_id).File("fs/os/foo").Get()
 
-    self.RevokeClientApproval(approval_urn, self.token)
+    self.RevokeClientApproval(client_id, approval_id, self.token)
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Client(client_id).File("fs/os/foo").Get)
 
@@ -155,16 +163,17 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
         self.api.Client(client_id).CreateFlow,
         name=flow_test_lib.SendingFlow.__name__)
 
-    approval_urn = self.RequestAndGrantClientApproval(client_id, self.token)
+    approval_id = self.RequestAndGrantClientApproval(
+        client_id, requestor=self.token.username)
     f = self.api.Client(client_id).CreateFlow(
         name=flow_test_lib.SendingFlow.__name__)
 
-    self.RevokeClientApproval(approval_urn, self.token)
+    self.RevokeClientApproval(client_id, approval_id, self.token)
 
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Client(client_id).Flow(f.flow_id).Get)
 
-    self.RequestAndGrantClientApproval(client_id, self.token)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
     self.api.Client(client_id).Flow(f.flow_id).Get()
 
   def testCaches(self):
@@ -172,14 +181,16 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     client_id = "C." + "b" * 16
 
-    approval_urn = self.RequestAndGrantClientApproval(client_id, self.token)
+    approval_id = self.RequestAndGrantClientApproval(
+        client_id, requestor=self.token.username)
 
     f = self.api.Client(client_id).CreateFlow(
         name=flow_test_lib.SendingFlow.__name__)
 
     # Remove the approval from the data store, but it should still exist in the
     # security manager cache.
-    self.RevokeClientApproval(approval_urn, self.token, remove_from_cache=False)
+    self.RevokeClientApproval(
+        client_id, approval_id, self.token, remove_from_cache=False)
 
     # If this doesn't raise now, all answers were cached.
     self.api.Client(client_id).Flow(f.flow_id).Get()
@@ -192,7 +203,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testNonAdminsCanNotStartAdminOnlyFlow(self):
     client_id = self.SetupClient(0).Basename()
-    self.RequestAndGrantClientApproval(client_id, token=self.token)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
@@ -201,14 +212,14 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
   def testAdminsCanStartAdminOnlyFlow(self):
     client_id = self.SetupClient(0).Basename()
     self.CreateAdminUser(self.token.username)
-    self.RequestAndGrantClientApproval(client_id, token=self.token)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     self.api.Client(client_id).CreateFlow(
         name=user_managers_test.AdminOnlyFlow.__name__)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     client_id = self.SetupClient(0).Basename()
-    self.RequestAndGrantClientApproval(client_id, token=self.token)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
@@ -216,7 +227,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     client_id = self.SetupClient(0).Basename()
-    self.RequestAndGrantClientApproval(client_id, token=self.token)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     self.api.Client(client_id).CreateFlow(
         name=user_managers_test.ClientFlowWithCategory.__name__)

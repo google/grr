@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """API handlers for accessing config."""
 
-import itertools
 import logging
 
 from grr import config
@@ -11,6 +10,7 @@ from grr.gui import api_call_handler_utils
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto.api import config_pb2
@@ -165,20 +165,22 @@ def _GetSignedBlobsRoots():
   }
 
 
+def _ValidateSignedBlobSignature(fd):
+  public_key = config.CONFIG["Client.executable_signing_public_key"]
+
+  for blob in fd:
+    try:
+      blob.Verify(public_key)
+    except rdf_crypto.Error:
+      return False
+
+  return True
+
+
 class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
   """Renders a list of available GRR binaries."""
 
   result_type = ApiListGrrBinariesResult
-
-  def _GetBinarySize(self, fd, components_blobs_map):
-    if isinstance(fd, aff4_collects.ComponentObject):
-      try:
-        blob_fd = components_blobs_map[fd.blob_urn]
-      except KeyError:
-        return 0
-      return blob_fd.size
-    else:
-      return fd.size
 
   def _ListSignedBlobs(self, token=None):
     roots = _GetSignedBlobsRoots()
@@ -203,54 +205,14 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
               path=rel_name,
               type=binary_type,
               size=fd.size,
-              timestamp=fd.Get(fd.Schema.TYPE).age)
+              timestamp=fd.Get(fd.Schema.TYPE).age,
+              has_valid_signature=_ValidateSignedBlobSignature(fd))
           items.append(api_binary)
 
     return items
 
-  def _ListComponents(self, token=None):
-    components_urns = aff4.FACTORY.ListChildren(
-        aff4.FACTORY.GetComponentSummariesRoot())
-
-    blobs_root_urns = []
-    components_fds = aff4.FACTORY.MultiOpen(
-        components_urns, aff4_type=aff4_collects.ComponentObject, token=token)
-    components_by_seed = {}
-    for fd in components_fds:
-      desc = fd.Get(fd.Schema.COMPONENT)
-      if not desc:
-        continue
-
-      components_by_seed[desc.seed] = fd
-      blobs_root_urns.append(aff4.FACTORY.GetComponentRoot().Add(desc.seed))
-
-    blobs_urns = []
-    for _, children in aff4.FACTORY.MultiListChildren(blobs_root_urns):
-      blobs_urns.extend(children)
-    blobs_fds = aff4.FACTORY.MultiOpen(
-        blobs_urns, aff4_type=aff4.AFF4Stream, token=token)
-
-    items = []
-    for fd in sorted(blobs_fds, key=lambda f: f.urn):
-      seed = fd.urn.Split()[-2]
-      component_fd = components_by_seed[seed]
-
-      items.append(
-          ApiGrrBinary(
-              path="%s/%s" %
-              (component_fd.urn.Basename(),
-               fd.urn.RelativeName(aff4.FACTORY.GetComponentRoot())),
-              type=ApiGrrBinary.Type.COMPONENT,
-              size=fd.size,
-              timestamp=fd.Get(fd.Schema.TYPE).age))
-
-    return items
-
   def Handle(self, unused_args, token=None):
-    return ApiListGrrBinariesResult(
-        items=itertools.chain(
-            self._ListSignedBlobs(token=token),
-            self._ListComponents(token=token)))
+    return ApiListGrrBinariesResult(items=self._ListSignedBlobs(token=token))
 
 
 class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
@@ -261,6 +223,30 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   """Streams a given GRR binary."""
 
   args_type = ApiGetGrrBinaryArgs
+  result_type = ApiGrrBinary
+
+  def Handle(self, args, token=None):
+    root_urn = _GetSignedBlobsRoots()[args.type]
+    urn = root_urn.Add(args.path)
+
+    fd = aff4.FACTORY.Open(
+        urn, aff4_type=aff4_collects.GRRSignedBlob, token=token)
+    return ApiGrrBinary(
+        path=args.path,
+        type=args.type,
+        size=fd.size,
+        timestamp=fd.Get(fd.Schema.TYPE).age,
+        has_valid_signature=_ValidateSignedBlobSignature(fd))
+
+
+class ApiGetGrrBinaryBlobArgs(rdf_structs.RDFProtoStruct):
+  protobuf = config_pb2.ApiGetGrrBinaryBlobArgs
+
+
+class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
+  """Streams a given GRR binary."""
+
+  args_type = ApiGetGrrBinaryBlobArgs
 
   CHUNK_SIZE = 1024 * 1024 * 4
 
@@ -275,33 +261,12 @@ class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
         yield cipher.Decrypt(chunk)
 
   def Handle(self, args, token=None):
-    if args.type == ApiGrrBinary.Type.COMPONENT:
-      # First path component of the identifies the component summary, the
-      # rest identifies the data blob.
-      path_components = args.path.split("/")
-      binary_urn = aff4.FACTORY.GetComponentRoot().Add("/".join(
-          path_components[1:]))
+    root_urn = _GetSignedBlobsRoots()[args.type]
+    binary_urn = root_urn.Add(args.path)
 
-      component_fd = aff4.FACTORY.Open(
-          aff4.FACTORY.GetComponentSummariesRoot().Add(path_components[0]),
-          aff4_type=aff4_collects.ComponentObject,
-          token=token)
-      summary = component_fd.Get(component_fd.Schema.COMPONENT)
-
-      file_obj = aff4.FACTORY.Open(
-          binary_urn, aff4_type=aff4.AFF4Stream, token=token)
-
-      return api_call_handler_base.ApiBinaryStream(
-          filename=component_fd.urn.Basename(),
-          content_generator=self._GenerateStreamContent(
-              file_obj, cipher=summary.cipher))
-    else:
-      root_urn = _GetSignedBlobsRoots()[args.type]
-      binary_urn = root_urn.Add(args.path)
-
-      file_obj = aff4.FACTORY.Open(
-          binary_urn, aff4_type=aff4.AFF4Stream, token=token)
-      return api_call_handler_base.ApiBinaryStream(
-          filename=file_obj.urn.Basename(),
-          content_generator=self._GenerateStreamContent(file_obj),
-          content_length=file_obj.size)
+    file_obj = aff4.FACTORY.Open(
+        binary_urn, aff4_type=aff4.AFF4Stream, token=token)
+    return api_call_handler_base.ApiBinaryStream(
+        filename=file_obj.urn.Basename(),
+        content_generator=self._GenerateStreamContent(file_obj),
+        content_length=file_obj.size)

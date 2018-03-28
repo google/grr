@@ -83,7 +83,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     # approvers.yaml rules don't get checked because this client has no
     # labels. Regular approvals still required.
-    self.RequestAndGrantClientApproval(self.client_nolabel, self.token)
+    self.RequestAndGrantClientApproval(
+        self.client_nolabel.Basename(), requestor=self.token.username)
 
     # Check we now have access
     self.api.Client(self.client_nolabel_id).File("fs/os/foo").Get()
@@ -94,7 +95,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
                       self.api.Client(
                           self.client_legal_id).File("fs/os/foo").Get)
 
-    self.RequestAndGrantClientApproval(self.client_legal, self.token)
+    self.RequestAndGrantClientApproval(
+        self.client_legal.Basename(), requestor=self.token.username)
     # This approval isn't enough, we need one from legal, so it should still
     # fail.
     self.assertRaises(grr_api_errors.AccessForbiddenError,
@@ -104,8 +106,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
     self.GrantClientApproval(
-        self.client_legal,
-        self.token.username,
+        self.client_legal.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="legal1")
 
@@ -126,7 +128,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
                       self.api.Client(
                           self.client_prod_id).File("fs/os/foo").Get)
 
-    self.RequestAndGrantClientApproval(self.client_prod, self.token)
+    self.RequestAndGrantClientApproval(
+        self.client_prod.Basename(), requestor=self.token.username)
 
     # This approval from "approver" isn't enough.
     self.assertRaises(grr_api_errors.AccessForbiddenError,
@@ -136,8 +139,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="legal1")
 
@@ -149,8 +152,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     # Grant an approval from a user in the prod_admin_approval list in
     # approvers.yaml
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="prod2")
 
@@ -160,8 +163,8 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
                           self.client_prod_id).File("fs/os/foo").Get)
 
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="prod3")
 
@@ -177,20 +180,21 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
                           self.client_prod_id).File("fs/os/foo").Get)
 
     # Grant all the necessary approvals
-    self.RequestAndGrantClientApproval(self.client_prod, self.token)
+    self.RequestAndGrantClientApproval(
+        self.client_prod.Basename(), requestor=self.token.username)
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="legal1")
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="prod2")
     self.GrantClientApproval(
-        self.client_prod,
-        self.token.username,
+        self.client_prod.Basename(),
+        requestor=self.token.username,
         reason=self.token.reason,
         approver="prod3")
 

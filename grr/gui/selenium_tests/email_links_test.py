@@ -11,10 +11,8 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.server import access_control
 from grr.server import email_alerts
 from grr.server.aff4_objects import cronjobs
-from grr.server.aff4_objects import security
 from grr.server.flows.cron import system as cron_system
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
@@ -23,8 +21,7 @@ from grr.server.hunts import standard
 class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
-  GRANTOR_TOKEN = access_control.ACLToken(
-      username="igrantapproval", reason="test")
+  GRANTOR_USERNAME = "igrantapproval"
 
   def setUp(self):
     super(TestEmailLinks, self).setUp()
@@ -62,11 +59,11 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
     client_id = self.SetupClient(0)
 
-    security.ClientApprovalRequestor(
+    self.RequestClientApproval(
+        client_id.Basename(),
         reason="Please please let me",
-        subject_urn=client_id,
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
@@ -87,16 +84,11 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailClientApprovalGrantNotificationLinkLeadsToACorrectPage(self):
     client_id = self.SetupClient(0)
 
-    security.ClientApprovalRequestor(
+    self.RequestAndGrantClientApproval(
+        client_id,
         reason=self.APPROVAL_REASON,
-        subject_urn=client_id,
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
-    security.ClientApprovalGrantor(
-        reason=self.APPROVAL_REASON,
-        subject_urn=client_id,
-        token=self.GRANTOR_TOKEN,
-        delegate=self.token.username).Grant()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -105,7 +97,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     message = self.messages_sent[1]
 
     self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+    self.assertTrue(self.GRANTOR_USERNAME in message)
     self.assertTrue(client_id.Basename() in message)
 
     self.Open(self._ExtractLinkFromMessage(message))
@@ -120,12 +112,12 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
     hunt_id = self.CreateSampleHunt()
 
-    # Request client approval, it will trigger an email message.
-    security.HuntApprovalRequestor(
+    # Request hunt approval, it will trigger an email message.
+    self.RequestHuntApproval(
+        hunt_id.Basename(),
         reason=self.APPROVAL_REASON,
-        subject_urn=hunt_id,
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
@@ -146,16 +138,11 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   def testEmailHuntApprovalGrantNotificationLinkLeadsToCorrectPage(self):
     hunt_id = self.CreateSampleHunt()
 
-    security.HuntApprovalRequestor(
+    self.RequestAndGrantHuntApproval(
+        hunt_id.Basename(),
         reason=self.APPROVAL_REASON,
-        subject_urn=hunt_id,
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
-    security.HuntApprovalGrantor(
-        reason=self.APPROVAL_REASON,
-        subject_urn=hunt_id,
-        token=self.GRANTOR_TOKEN,
-        delegate=self.token.username).Grant()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -163,7 +150,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     message = self.messages_sent[1]
     self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+    self.assertTrue(self.GRANTOR_USERNAME in message)
     self.assertTrue(hunt_id.Basename() in message)
 
     self.Open(self._ExtractLinkFromMessage(message))
@@ -176,11 +163,11 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         names=[cron_system.OSBreakDown.__name__], token=self.token)
     cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
-    security.CronJobApprovalRequestor(
+    self.RequestCronJobApproval(
+        "OSBreakDown",
         reason=self.APPROVAL_REASON,
-        subject_urn="aff4:/cron/OSBreakDown",
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     self.assertEqual(len(self.messages_sent), 1)
     message = self.messages_sent[0]
@@ -206,23 +193,18 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         names=[cron_system.OSBreakDown.__name__], token=self.token)
     cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
-    security.CronJobApprovalRequestor(
+    self.RequestAndGrantCronJobApproval(
+        "OSBreakDown",
         reason=self.APPROVAL_REASON,
-        subject_urn="aff4:/cron/OSBreakDown",
-        approver=self.GRANTOR_TOKEN.username,
-        token=self.token).Request()
-    security.CronJobApprovalGrantor(
-        reason=self.APPROVAL_REASON,
-        subject_urn="aff4:/cron/OSBreakDown",
-        token=self.GRANTOR_TOKEN,
-        delegate=self.token.username).Grant()
+        approver=self.GRANTOR_USERNAME,
+        requestor=self.token.username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
     self.assertEqual(len(self.messages_sent), 2)
     message = self.messages_sent[1]
     self.assertTrue(self.APPROVAL_REASON in message)
-    self.assertTrue(self.GRANTOR_TOKEN.username in message)
+    self.assertTrue(self.GRANTOR_USERNAME in message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 

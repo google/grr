@@ -8,7 +8,7 @@ import time
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import stats as rdfstats
+from grr.lib.rdfvalues import stats as rdf_stats
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import export_utils
@@ -69,7 +69,7 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       for label in self.categories[active_time].keys():
         histograms.setdefault(label, self.attribute())
-        graph = rdfstats.Graph(title="%s day actives for %s label" % (
+        graph = rdf_stats.Graph(title="%s day actives for %s label" % (
             active_time, label))
         for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
@@ -95,18 +95,18 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
   def BeginProcessing(self):
     pass
 
-  def ProcessClient(self, client):
+  def ProcessLegacyClient(self, client):
+    raise NotImplementedError()
+
+  def ProcessClientFullInfo(self, client_full_info):
     raise NotImplementedError()
 
   def FinishProcessing(self):
     pass
 
-  def GetClientLabelsList(self, client):
+  def _GetClientLabelsList(self, client):
     """Get set of labels applied to this client."""
-    client_labels = [aff4_grr.ALL_CLIENTS_LABEL]
-    label_set = client.GetLabelsNames(owner="GRR")
-    client_labels.extend(label_set)
-    return client_labels
+    return set(["All"] + list(client.GetLabelsNames(owner="GRR")))
 
   def _StatsForLabel(self, label):
     if label not in self.stats:
@@ -117,6 +117,20 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
           token=self.token)
     return self.stats[label]
 
+  def _IterateLegacyClients(self):
+    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
+    children_urns = list(root.ListChildren())
+    logging.debug("Found %d children.", len(children_urns))
+
+    for child in aff4.FACTORY.MultiOpen(
+        children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
+      if isinstance(child, aff4_grr.VFSGRRClient):
+        yield child
+
+  def _IterateClients(self):
+    for c in data_store.REL_DB.ReadAllClientsFullInfo():
+      yield c
+
   @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
@@ -126,16 +140,18 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
 
       self.BeginProcessing()
 
-      root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
-      children_urns = list(root.ListChildren())
-      logging.debug("Found %d children.", len(children_urns))
+      if data_store.RelationalDBReadEnabled():
+        clients = self._IterateClients()
+      else:
+        clients = self._IterateLegacyClients()
 
       processed_count = 0
-      for child in aff4.FACTORY.MultiOpen(
-          children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
-        if isinstance(child, aff4_grr.VFSGRRClient):
-          self.ProcessClient(child)
-          processed_count += 1
+      for c in clients:
+        if data_store.RelationalDBReadEnabled():
+          self.ProcessClientFullInfo(c)
+        else:
+          self.ProcessLegacyClient(c)
+        processed_count += 1
 
         # This flow is not dead: we don't want to run out of lease time.
         self.HeartBeat()
@@ -163,18 +179,31 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   def FinishProcessing(self):
     self.counter.Save(self)
 
-  def ProcessClient(self, client):
+  def _Process(self, labels, c_info, ping):
+    if not (c_info and ping):
+      return
+
+    category = " ".join([
+        c_info.client_description or c_info.client_name,
+        str(c_info.client_version)
+    ])
+
+    for label in labels:
+      self.counter.Add(category, label, ping)
+
+  def ProcessLegacyClient(self, client):
     ping = client.Get(client.Schema.PING)
     c_info = client.Get(client.Schema.CLIENT_INFO)
+    labels = self._GetClientLabelsList(client)
 
-    if c_info and ping:
-      category = " ".join([
-          c_info.client_description or c_info.client_name,
-          str(c_info.client_version)
-      ])
+    self._Process(labels, c_info, ping)
 
-      for label in self.GetClientLabelsList(client):
-        self.counter.Add(category, label, ping)
+  def ProcessClientFullInfo(self, client_full_info):
+    c_info = client_full_info.last_startup_info.client_info
+    ping = client_full_info.metadata.ping
+    labels = self._GetClientLabelsList(client_full_info)
+
+    self._Process(labels, c_info, ping)
 
 
 class OSBreakDown(AbstractClientStatsCronFlow):
@@ -191,21 +220,34 @@ class OSBreakDown(AbstractClientStatsCronFlow):
     for counter in self.counters:
       counter.Save(self)
 
-  def ProcessClient(self, client):
-    """Update counters for system, version and release attributes."""
-    ping = client.Get(client.Schema.PING)
+  def _Process(self, labels, ping, system, uname):
     if not ping:
       return
-    system = client.Get(client.Schema.SYSTEM, "Unknown")
-    uname = client.Get(client.Schema.UNAME, "Unknown")
 
-    for label in self.GetClientLabelsList(client):
+    for label in labels:
       # Windows, Linux, Darwin
       self.counters[0].Add(system, label, ping)
 
       # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
       # Darwin-OSX-10.9.3
       self.counters[1].Add(uname, label, ping)
+
+  def ProcessLegacyClient(self, client):
+    """Update counters for system, version and release attributes."""
+    labels = self._GetClientLabelsList(client)
+    ping = client.Get(client.Schema.PING)
+    system = client.Get(client.Schema.SYSTEM, "Unknown")
+    uname = client.Get(client.Schema.UNAME, "Unknown")
+
+    self._Process(labels, ping, system, uname)
+
+  def ProcessClientFullInfo(self, client_full_info):
+    labels = self._GetClientLabelsList(client_full_info)
+    ping = client_full_info.metadata.ping
+    system = client_full_info.last_snapshot.knowledge_base.os
+    uname = client_full_info.last_snapshot.Uname()
+
+    self._Process(labels, ping, system, uname)
 
 
 class LastAccessStats(AbstractClientStatsCronFlow):
@@ -235,20 +277,32 @@ class LastAccessStats(AbstractClientStatsCronFlow):
 
       self._StatsForLabel(label).AddAttribute(graph)
 
-  def ProcessClient(self, client):
+  def _Process(self, labels, ping):
+    if not ping:
+      return
+
     now = rdfvalue.RDFDatetime.Now()
+    for label in labels:
+      time_ago = now - ping
+      pos = bisect.bisect(self._bins, time_ago.microseconds)
 
+      # If clients are older than the last bin forget them.
+      try:
+        self._ValuesForLabel(label)[pos] += 1
+      except IndexError:
+        pass
+
+  def ProcessLegacyClient(self, client):
+    labels = self._GetClientLabelsList(client)
     ping = client.Get(client.Schema.PING)
-    if ping:
-      for label in self.GetClientLabelsList(client):
-        time_ago = now - ping
-        pos = bisect.bisect(self._bins, time_ago.microseconds)
 
-        # If clients are older than the last bin forget them.
-        try:
-          self._ValuesForLabel(label)[pos] += 1
-        except IndexError:
-          pass
+    self._Process(labels, ping)
+
+  def ProcessClientFullInfo(self, client_full_info):
+    labels = self._GetClientLabelsList(client_full_info)
+    ping = client_full_info.metadata.ping
+
+    self._Process(labels, ping)
 
 
 class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
@@ -284,6 +338,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         token=self.token) as hunt:
 
       runner = hunt.GetRunner()
+      runner.runner_args.crash_limit = 500
       runner.runner_args.client_rate = 50
       runner.runner_args.expiry_time = "1w"
       runner.runner_args.description = ("Interrogate run by cron to keep host"

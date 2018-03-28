@@ -145,7 +145,7 @@ describe('grr-binaries-list directive', () => {
     browserTriggerEvent(element.find('tr:contains("foo")'), 'click');
 
     expect(grrApiService.downloadFile).toHaveBeenCalledWith(
-        '/config/binaries/PYTHON_HACK/foo/bar');
+        '/config/binaries-blobs/PYTHON_HACK/foo/bar');
   });
 });
 

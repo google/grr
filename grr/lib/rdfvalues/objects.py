@@ -148,6 +148,21 @@ class ClientMetadata(structs.RDFProtoStruct):
   ]
 
 
+class ClientFullInfo(structs.RDFProtoStruct):
+  """ClientFullInfo object."""
+  protobuf = objects_pb2.ClientFullInfo
+
+  rdf_deps = [
+      ClientMetadata,
+      ClientSnapshot,
+      ClientLabel,
+      rdf_client.StartupInfo,
+  ]
+
+  def GetLabelsNames(self, owner=None):
+    return set(l.name for l in self.labels if not owner or l.owner == owner)
+
+
 class GRRUser(structs.RDFProtoStruct):
   protobuf = objects_pb2.GRRUser
   rdf_deps = [

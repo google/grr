@@ -4996,18 +4996,46 @@
       "url": "/api/clients/C.1000000000000000/flows/F:ABCDEF/results/export-command"
     }
   ],
+  "ApiGetGrrBinaryBlobHandler": [
+    {
+      "api_method": "GetGrrBinaryBlob",
+      "method": "GET",
+      "response": "I'm a python hack",
+      "test_class": "ApiGetGrrBinaryBlobHandlerRegressionTest_http_v1",
+      "url": "/api/config/binaries-blobs/python_hack/test"
+    },
+    {
+      "api_method": "GetGrrBinaryBlob",
+      "method": "GET",
+      "response": "I am a binary file",
+      "test_class": "ApiGetGrrBinaryBlobHandlerRegressionTest_http_v1",
+      "url": "/api/config/binaries-blobs/executable/windows/test.exe"
+    }
+  ],
   "ApiGetGrrBinaryHandler": [
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "I'm a python hack",
+      "response": {
+        "has_valid_signature": true,
+        "path": "test",
+        "size": 17,
+        "timestamp": 43000000,
+        "type": "PYTHON_HACK"
+      },
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/python_hack/test"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "I am a binary file",
+      "response": {
+        "has_valid_signature": true,
+        "path": "windows/test.exe",
+        "size": 18,
+        "timestamp": 42000000,
+        "type": "EXECUTABLE"
+      },
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v1",
       "url": "/api/config/binaries/executable/windows/test.exe"
     }
@@ -15783,6 +15811,10 @@
           {
             "type": "ApiGrrBinary",
             "value": {
+              "has_valid_signature": {
+                "type": "RDFBool",
+                "value": true
+              },
               "path": {
                 "type": "unicode",
                 "value": "windows/test.exe"
@@ -15804,6 +15836,10 @@
           {
             "type": "ApiGrrBinary",
             "value": {
+              "has_valid_signature": {
+                "type": "RDFBool",
+                "value": true
+              },
               "path": {
                 "type": "unicode",
                 "value": "test"
@@ -15828,12 +15864,14 @@
       "type_stripped_response": {
         "items": [
           {
+            "has_valid_signature": true,
             "path": "windows/test.exe",
             "size": 18,
             "timestamp": 42000000,
             "type": "EXECUTABLE"
           },
           {
+            "has_valid_signature": true,
             "path": "test",
             "size": 17,
             "timestamp": 43000000,

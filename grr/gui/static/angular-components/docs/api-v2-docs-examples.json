@@ -1455,18 +1455,46 @@
       "url": "/api/v2/clients/C.1000000000000000/flows/F:ABCDEF/results/export-command"
     }
   ],
+  "ApiGetGrrBinaryBlobHandler": [
+    {
+      "api_method": "GetGrrBinaryBlob",
+      "method": "GET",
+      "response": "I'm a python hack",
+      "test_class": "ApiGetGrrBinaryBlobHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/binaries-blobs/python_hack/test"
+    },
+    {
+      "api_method": "GetGrrBinaryBlob",
+      "method": "GET",
+      "response": "I am a binary file",
+      "test_class": "ApiGetGrrBinaryBlobHandlerRegressionTest_http_v2",
+      "url": "/api/v2/config/binaries-blobs/executable/windows/test.exe"
+    }
+  ],
   "ApiGetGrrBinaryHandler": [
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "I'm a python hack",
+      "response": {
+        "hasValidSignature": true,
+        "path": "test",
+        "size": "17",
+        "timestamp": "43000000",
+        "type": "PYTHON_HACK"
+      },
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/python_hack/test"
     },
     {
       "api_method": "GetGrrBinary",
       "method": "GET",
-      "response": "I am a binary file",
+      "response": {
+        "hasValidSignature": true,
+        "path": "windows/test.exe",
+        "size": "18",
+        "timestamp": "42000000",
+        "type": "EXECUTABLE"
+      },
       "test_class": "ApiGetGrrBinaryHandlerRegressionTest_http_v2",
       "url": "/api/v2/config/binaries/executable/windows/test.exe"
     }
@@ -6213,12 +6241,14 @@
       "response": {
         "items": [
           {
+            "hasValidSignature": true,
             "path": "windows/test.exe",
             "size": "18",
             "timestamp": "42000000",
             "type": "EXECUTABLE"
           },
           {
+            "hasValidSignature": true,
             "path": "test",
             "size": "17",
             "timestamp": "43000000",

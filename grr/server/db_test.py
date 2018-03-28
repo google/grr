@@ -746,7 +746,7 @@ class DatabaseTestMixin(object):
     self.assertIsNone(d.ReadClientCrashInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientCrashInfoHistory("C.0000000000000000"), [])
 
-  def testFullInfo(self):
+  def testReadClientFullFullInfoReturnsCorrectResult(self):
     d = self.db
 
     client_id = "C.0000000050000001"
@@ -769,6 +769,64 @@ class DatabaseTestMixin(object):
     self.assertEqual(
         full_info.labels,
         [objects.ClientLabel(owner="test_owner", name="test_label")])
+
+  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
+    d = self.db
+
+    for i in range(10):
+      client_id = "C.000000005000000%d" % i
+      self._InitializeClient(client_id)
+
+      cl = objects.ClientSnapshot(
+          client_id=client_id,
+          knowledge_base=rdf_client.KnowledgeBase(
+              fqdn="test%d.examples.com" % i),
+          kernel="12.3.%d" % i)
+      d.WriteClientSnapshot(cl)
+      d.WriteClientMetadata(client_id, certificate=CERT)
+      si = rdf_client.StartupInfo(boot_time=i)
+      d.WriteClientStartupInfo(client_id, si)
+      d.AddClientLabels(
+          client_id, "test_owner",
+          ["test_label-a-%d" % i, "test_label-b-%d" % i])
+
+    c_infos = sorted(
+        d.ReadAllClientsFullInfo(), key=lambda c: c.last_snapshot.client_id)
+    for i, full_info in enumerate(c_infos):
+      self.assertEqual(full_info.last_snapshot.client_id,
+                       "C.000000005000000%d" % i)
+      self.assertEqual(full_info.metadata.certificate, CERT)
+      self.assertEqual(full_info.last_startup_info.boot_time, i)
+      self.assertEqual(
+          sorted(full_info.labels, key=lambda l: l.name), [
+              objects.ClientLabel(
+                  owner="test_owner", name="test_label-a-%d" % i),
+              objects.ClientLabel(
+                  owner="test_owner", name="test_label-b-%d" % i)
+          ])
+
+  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
+    d = self.db
+
+    now = rdfvalue.RDFDatetime.Now()
+    time_past = now - rdfvalue.Duration("1d")
+
+    expected_client_ids = set()
+    for i in range(10):
+      client_id = "C.000000005000000%d" % i
+      self._InitializeClient(client_id)
+
+      d.WriteClientSnapshot(objects.ClientSnapshot(client_id=client_id))
+      d.WriteClientMetadata(
+          client_id, last_ping=(time_past if i % 2 == 0 else now))
+
+      if i % 2 != 0:
+        expected_client_ids.add(client_id)
+
+    c_ids = set(
+        c.last_snapshot.client_id for c in d.ReadAllClientsFullInfo(
+            min_last_ping=now - rdfvalue.Duration("1s")))
+    self.assertEqual(expected_client_ids, c_ids)
 
   def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
     d = self.db

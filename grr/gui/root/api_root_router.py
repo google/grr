@@ -10,6 +10,7 @@ from grr.gui import api_call_router
 
 from grr.gui.api_plugins import reflection as api_reflection
 from grr.gui.api_plugins import user as api_user
+from grr.gui.root.api_plugins import binary_management as api_binary_management
 from grr.gui.root.api_plugins import user_management as api_user_management
 
 
@@ -17,7 +18,7 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   """Root router definition."""
 
   # User management.
-  # =================
+  # ================
   #
   @api_call_router.Category("User management")
   @api_call_router.ArgsType(api_user_management.ApiCreateGrrUserArgs)
@@ -53,6 +54,21 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("GET", "/api/root/grr-users/<username>")
   def GetGrrUser(self, args, token=None):
     return api_user_management.ApiGetGrrUserHandler()
+
+  # Binary management.
+  # ====================
+  #
+  @api_call_router.Category("Binary management")
+  @api_call_router.ArgsType(api_binary_management.ApiUploadGrrBinaryArgs)
+  @api_call_router.Http("POST", "/api/root/grr-binaries/<type>/<path:path>")
+  def UploadGrrBinary(self, args, token=None):
+    return api_binary_management.ApiUploadGrrBinaryHandler()
+
+  @api_call_router.Category("Binary management")
+  @api_call_router.ArgsType(api_binary_management.ApiDeleteGrrBinaryArgs)
+  @api_call_router.Http("DELETE", "/api/root/grr-binaries/<type>/<path:path>")
+  def DeleteGrrBinary(self, args, token=None):
+    return api_binary_management.ApiDeleteGrrBinaryHandler()
 
   # Reflection methiods (needed for client libraries to work).
   # ===========================================================
