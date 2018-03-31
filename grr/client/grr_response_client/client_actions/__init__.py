@@ -24,3 +24,5 @@ from grr_response_client.client_actions import yara_actions
 
 # Former GRR component, now a built-in part of the client.
 from grr_response_client.components.rekall_support import grr_rekall
+
+from grr_response_client.client_actions import osquery_actions

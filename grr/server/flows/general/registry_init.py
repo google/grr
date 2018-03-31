@@ -31,3 +31,5 @@ from grr.server.flows.general import transfer
 from grr.server.flows.general import webhistory
 from grr.server.flows.general import windows_vsc
 from grr.server.flows.general import yara_flows
+
+from grr.server.flows.osquery import runquery
