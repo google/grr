@@ -14,3 +14,5 @@ grr.egg-info/
 get-pip.py
 grr/artifacts/*.yaml
 *.egg-info/
+/.project
+/.pydevproject
