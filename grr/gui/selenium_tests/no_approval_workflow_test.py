@@ -7,16 +7,20 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 
+from grr.test_lib import db_test_lib
 
+
+@db_test_lib.DualDBTest
 class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   """Tests acl policies when approvals system is not used."""
 
   def setUp(self):
     super(TestWorkflowWithoutApprovals, self).setUp()
+    self.client_id = self.SetupClient(0).Basename()
     self.UninstallACLChecks()
 
   def testHostInformationDoesNotAskForApproval(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Make sure "Host Information" tab got shown.
     self.WaitUntil(self.IsTextPresent, "Last Local Clock")
@@ -26,20 +30,21 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
   def testBrowseVirtualFileSystemDoesNotAskForApproval(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.vfs']")
 
     # Make sure "Browse Virtual Filesystem" pane is displayed.
-    self.WaitUntil(self.IsTextPresent, "Please select a file or a folder to "
-                   "see its details here.")
+    self.WaitUntil(
+        self.IsTextPresent, "Please select a file or a folder to "
+        "see its details here.")
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=h3:contains('Create a new approval')")
 
   def testStartFlowDoesNotAskForApproval(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.launchFlows']")
@@ -51,7 +56,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
   def testManageLaunchedFlowsDoesNotAskForApproval(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.flows']")

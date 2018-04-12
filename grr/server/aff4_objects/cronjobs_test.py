@@ -251,8 +251,8 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
         start1 = cronjobs.GetStartTime(TestSystemCron)
         start2 = cronjobs.GetStartTime(TestSystemCron)
 
-      self.assertEqual(start1.AsSecondsFromEpoch(), 100)
-      self.assertEqual(start2.AsSecondsFromEpoch(), 123)
+      self.assertEqual(start1.AsSecondsSinceEpoch(), 100)
+      self.assertEqual(start2.AsSecondsSinceEpoch(), 123)
 
       self.assertTrue(now <= start1 <= (now + TestSystemCron.frequency))
       self.assertTrue(now <= start2 <= (now + TestSystemCron.frequency))
@@ -262,8 +262,9 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
       start1 = cronjobs.GetStartTime(NoRandom)
       start2 = cronjobs.GetStartTime(NoRandom)
 
-      self.assertEqual(start1.AsSecondsFromEpoch(), now.AsSecondsFromEpoch())
-      self.assertEqual(start1.AsSecondsFromEpoch(), start2.AsSecondsFromEpoch())
+      self.assertEqual(start1.AsSecondsSinceEpoch(), now.AsSecondsSinceEpoch())
+      self.assertEqual(start1.AsSecondsSinceEpoch(),
+                       start2.AsSecondsSinceEpoch())
 
   def testSystemCronJobSetsStartTime(self):
     with test_lib.FakeTime(100):

@@ -291,9 +291,10 @@ class EmbeddedRDFValueTest(test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(embedded.payload.age, original_age)
 
     new_log = rdf_protodict.EmbeddedRDFValue(embedded).payload
-    self.assertEqual(new_log.age, original_age, "Age not preserved: %s != %s" %
-                     (new_log.age.AsMicroSecondsFromEpoch(),
-                      original_age.AsMicroSecondsFromEpoch()))
+    self.assertEqual(
+        new_log.age, original_age, "Age not preserved: %s != %s" %
+        (new_log.age.AsMicrosecondsSinceEpoch(),
+         original_age.AsMicrosecondsSinceEpoch()))
 
 
 def main(argv):

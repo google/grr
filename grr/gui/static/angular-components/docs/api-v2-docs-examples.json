@@ -33,6 +33,7 @@
         "emailCcAddresses": [
           "test@example.com"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -41,6 +42,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "age": "42000000",
           "agentInfo": {
@@ -135,6 +137,7 @@
         "emailCcAddresses": [
           "test@example.com"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -143,6 +146,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
           "cronJobId": "CronJob_123456",
@@ -226,6 +230,7 @@
         "emailCcAddresses": [
           "test@example.com"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -234,6 +239,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -346,6 +352,7 @@
         "approvers": [
           "api_test_user"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -353,6 +360,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "age": "42000000",
           "agentInfo": {
@@ -431,12 +439,14 @@
           "api_test_user",
           "approver"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:222222",
         "isValid": true,
         "notifiedUsers": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "age": "42000000",
           "agentInfo": {
@@ -1184,6 +1194,7 @@
         "approvers": [
           "api_test_user"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1191,6 +1202,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
           "cronJobId": "CronJob_123456",
@@ -1214,12 +1226,14 @@
           "api_test_user",
           "approver"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:222222",
         "isValid": true,
         "notifiedUsers": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "allowOverruns": false,
           "cronJobId": "CronJob_567890",
@@ -1507,6 +1521,7 @@
         "approvers": [
           "api_test_user"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1514,6 +1529,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -1588,12 +1604,14 @@
           "api_test_user",
           "approver"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:222222",
         "isValid": true,
         "notifiedUsers": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -1729,6 +1747,7 @@
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:556677"
         },
+        "emailMessageId": "<message id stub>",
         "id": "approval:333333",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1736,6 +1755,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -1838,6 +1858,7 @@
           "state": "RUNNING",
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
+        "emailMessageId": "<message id stub>",
         "id": "approval:444444",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1845,6 +1866,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -2684,7 +2706,8 @@
           "uploadBinaryActionEnabled": true
         },
         "settings": {
-          "canaryMode": true
+          "canaryMode": true,
+          "mode": "ADVANCED"
         },
         "userType": "USER_TYPE_STANDARD",
         "username": "api_test_user"
@@ -2715,7 +2738,8 @@
           "uploadBinaryActionEnabled": true
         },
         "settings": {
-          "canaryMode": true
+          "canaryMode": true,
+          "mode": "ADVANCED"
         },
         "userType": "USER_TYPE_ADMIN",
         "username": "api_test_user"
@@ -5130,12 +5154,14 @@
           "api_test_user",
           "requestor"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "age": "42000000",
           "agentInfo": {
@@ -5216,12 +5242,14 @@
           "api_test_user",
           "requestor"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "allowOverruns": false,
           "cronJobId": "CronJob_123456",
@@ -5247,12 +5275,14 @@
           "api_test_user",
           "requestor"
         ],
+        "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -5522,12 +5552,14 @@
               "api_test_user",
               "approver"
             ],
+            "emailMessageId": "<message id stub>",
             "id": "approval:222222",
             "isValid": true,
             "notifiedUsers": [
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": "42000000",
               "agentInfo": {
@@ -5599,6 +5631,7 @@
             "approvers": [
               "api_test_user"
             ],
+            "emailMessageId": "<message id stub>",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -5606,6 +5639,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": "42000000",
               "agentInfo": {
@@ -5687,6 +5721,7 @@
             "approvers": [
               "api_test_user"
             ],
+            "emailMessageId": "<message id stub>",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -5694,6 +5729,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": "42000000",
               "agentInfo": {
@@ -6270,6 +6306,7 @@
             "approvers": [
               "api_test_user"
             ],
+            "emailMessageId": "<message id stub>",
             "id": "approval:112233",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -6277,6 +6314,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "allClientsCount": "0",
               "clientLimit": "100",

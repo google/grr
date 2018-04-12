@@ -22,6 +22,7 @@ from grr.server import front_end_test
 from grr.server import queue_manager
 from grr.server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.tools import fleetspeak_frontend as fs_frontend_tool
@@ -65,6 +66,7 @@ def SetAFF4FSEnabledFlag(grr_id, token):
     client.Set(client.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
 
 
+@db_test_lib.DualDBTest
 class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
   """Tests the Fleetspeak based GRRFEServer."""
 
@@ -96,9 +98,9 @@ class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
 
     fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
     # fs_client_id should be equivalent to grr_client_id_urn
-    self.assertEqual(fs_client_id,
-                     fleetspeak_utils.GRRIDToFleetspeakID(
-                         grr_client_id_urn.Basename()))
+    self.assertEqual(
+        fs_client_id,
+        fleetspeak_utils.GRRIDToFleetspeakID(grr_client_id_urn.Basename()))
 
     fs_messages = [
         fs_common_pb2.Message(
@@ -164,9 +166,9 @@ class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
 
     fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
     # fs_client_id should be equivalent to grr_client_id_urn
-    self.assertEqual(fs_client_id,
-                     fleetspeak_utils.GRRIDToFleetspeakID(
-                         grr_client_id_urn.Basename()))
+    self.assertEqual(
+        fs_client_id,
+        fleetspeak_utils.GRRIDToFleetspeakID(grr_client_id_urn.Basename()))
 
     message_list = rdf_flows.PackedMessageList()
     communicator.Communicator.EncodeMessageList(
@@ -202,6 +204,52 @@ class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
       stored_message.timestamp = None
       self.assertRDFValuesEqual(stored_message, want_message)
 
+  def testPingIsRecorded(self):
+    service_name = "GRR"
+    fake_service_client = _FakeGRPCServiceClient(service_name)
+
+    fleetspeak_connector.Reset()
+    fleetspeak_connector.Init(service_client=fake_service_client)
+
+    fsd = fs_frontend_tool.GRRFSServer()
+
+    grr_client_nr = 0xab
+    grr_client = self.SetupTestClientObject(grr_client_nr)
+    self.SetupClient(grr_client_nr)
+
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=1,
+            session_id="F:123456",
+            payload=rdfvalue.RDFInteger(1))
+    ]
+
+    fs_client_id = "\x10\x00\x00\x00\x00\x00\x00\xab"
+    # fs_client_id should be equivalent to grr_client_id_urn
+    self.assertEqual(fs_client_id,
+                     fleetspeak_utils.GRRIDToFleetspeakID(grr_client.client_id))
+
+    message_list = rdf_flows.PackedMessageList()
+    communicator.Communicator.EncodeMessageList(
+        rdf_flows.MessageList(job=messages), message_list)
+
+    fs_message = fs_common_pb2.Message(
+        message_type="MessageList",
+        source=fs_common_pb2.Address(
+            client_id=fs_client_id, service_name=service_name))
+    fs_message.data.Pack(message_list.AsPrimitiveProto())
+
+    fake_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
+    with test_lib.FakeTime(fake_time):
+      fsd.Process(fs_message, None)
+
+    md = data_store.REL_DB.ReadClientMetadata(grr_client.client_id)
+    self.assertEqual(md.ping, fake_time)
+
+    with aff4.FACTORY.Open(grr_client.client_id) as client:
+      self.assertEqual(client.Get(client.Schema.PING), fake_time)
+
 
 class ListProcessesMock(action_mocks.FileFinderClientMock):
   """Client with real file actions and mocked-out ListProcesses."""
@@ -216,6 +264,7 @@ class ListProcessesMock(action_mocks.FileFinderClientMock):
     return self.processes_list
 
 
+@db_test_lib.DualDBTest
 class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow w/ Fleetspeak."""
 
@@ -224,6 +273,8 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
 
     self.client_id = self.SetupClient(0)
     SetAFF4FSEnabledFlag(self.client_id, token=self.token)
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id.Basename(), fleetspeak_enabled=True)
 
   def testProcessListingOnlyFleetspeak(self):
     """Test that the ListProcesses flow works with Fleetspeak."""

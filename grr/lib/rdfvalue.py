@@ -473,10 +473,10 @@ class RDFDatetime(RDFInteger):
     """Return the time as a python datetime object."""
     return datetime.datetime.utcfromtimestamp(self._value / self.converter)
 
-  def AsSecondsFromEpoch(self):
+  def AsSecondsSinceEpoch(self):
     return self._value / self.converter
 
-  def AsMicroSecondsFromEpoch(self):
+  def AsMicrosecondsSinceEpoch(self):
     return self._value
 
   @classmethod
@@ -557,7 +557,7 @@ class RDFDatetime(RDFInteger):
       return self.__class__(self._value - other * self.converter)
 
     if isinstance(other, RDFDatetime):
-      return Duration(self.AsSecondsFromEpoch() - other.AsSecondsFromEpoch())
+      return Duration(self.AsSecondsSinceEpoch() - other.AsSecondsSinceEpoch())
 
     return NotImplemented
 
@@ -599,6 +599,13 @@ class RDFDatetime(RDFInteger):
     timestamp = parser.parse(string, default=default)
 
     return calendar.timegm(timestamp.utctimetuple()) * cls.converter
+
+  def Floor(self, interval):
+    if not isinstance(interval, Duration):
+      raise TypeError("Expected `Duration`, got `%s`" % interval.__class__)
+
+    seconds = self.AsSecondsSinceEpoch() // interval.seconds * interval.seconds
+    return self.FromSecondsSinceEpoch(seconds)
 
 
 class RDFDatetimeSeconds(RDFDatetime):
@@ -713,7 +720,7 @@ class Duration(RDFInteger):
     else:
       base_time = base_time.Copy()
 
-    base_time_sec = base_time.AsSecondsFromEpoch()
+    base_time_sec = base_time.AsSecondsSinceEpoch()
 
     return RDFDatetime.FromSecondsSinceEpoch(base_time_sec + self._value)
 

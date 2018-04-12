@@ -20,6 +20,10 @@ config_lib.DEFINE_bool(
     "Database.useForReads", False,
     "Use relational database for reading as well as for writing.")
 
+config_lib.DEFINE_bool(
+    "Database.useForReads.approvals", False,
+    "Use relational database for reading approvals information.")
+
 DATASTORE_PATHING = [
     r"%{(?P<path>files/hash/generic/sha256/...).*}",
     r"%{(?P<path>files/hash/generic/sha1/...).*}",

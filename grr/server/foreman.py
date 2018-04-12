@@ -218,7 +218,7 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
 
     if res is None:
       return
-    return res.AsSecondsFromEpoch()
+    return res.AsSecondsSinceEpoch()
 
   def _ResolveField(self, field, client_info):
     if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
@@ -239,7 +239,7 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
 
     if res is None:
       return
-    return res.AsSecondsFromEpoch()
+    return res.AsSecondsSinceEpoch()
 
   def Evaluate(self, client_obj):
     if data_store.RelationalDBReadEnabled():

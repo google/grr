@@ -65,6 +65,29 @@ class BuildTests(test_lib.GRRBaseTest):
 
       self.assertIn("Client.deploy_time", raw_data)
 
+  def testGenClientConfig_ignoreBuilderContext(self):
+    with test_lib.PreserveConfig():
+      # Define a secondary config with special values for the ClientBuilder
+      # context.
+      str_override = """
+        Test Context:
+          Client.labels: [label0, label1]
+          ClientBuilder Context:
+            Client.labels: [build-label0, build-label1]
+      """
+      override = config_lib.YamlParser(data=str_override).RawData()
+      config.CONFIG.MergeData(override)
+      # Sanity-check that the secondary config was merged into the global
+      # config.
+      self.assertEqual(config.CONFIG["Client.labels"], ["label0", "label1"])
+      repacker = build.ClientRepacker()
+      context = ["Test Context", "ClientBuilder Context", "Client Context"]
+      str_client_config = repacker.GetClientConfig(context)
+      client_config = config_lib.YamlParser(data=str_client_config).RawData()
+      # Settings particular to the ClientBuilder context should not carry over
+      # into the generated client config.
+      self.assertEqual(client_config["Client.labels"], ["label0", "label1"])
+
   def testRepackerDummyClientConfig(self):
     """Ensure our dummy client config can pass validation.
 

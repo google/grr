@@ -52,13 +52,15 @@ config_lib.DEFINE_string(
     help="Set this to a class name that sanity checks your client "
     "config at repacking time.")
 
-config_lib.DEFINE_bool("Client.fleetspeak_enabled", False,
-                       "Whether the client uses Fleetspeak to communicate "
-                       "with the server.")
+config_lib.DEFINE_bool(
+    "Client.fleetspeak_enabled", False,
+    "Whether the client uses Fleetspeak to communicate "
+    "with the server.")
 
-config_lib.DEFINE_bool("ClientBuilder.fleetspeak_enabled", False,
-                       "Whether the client will use Fleetspeak to communicate "
-                       "with the server.")
+config_lib.DEFINE_bool(
+    "ClientBuilder.fleetspeak_enabled", False,
+    "Whether the client will use Fleetspeak to communicate "
+    "with the server.")
 
 config_lib.DEFINE_string(
     "Client.fleetspeak_service_name", "FleetspeakService",
@@ -91,8 +93,8 @@ class PathTypeInfo(type_info.String):
   def Validate(self, value):
     value = super(PathTypeInfo, self).Validate(value)
     if self.must_exist and not os.access(value, os.R_OK):
-      raise type_info.TypeValueError("Path %s does not exist for %s" %
-                                     (value, self.name))
+      raise type_info.TypeValueError(
+          "Path %s does not exist for %s" % (value, self.name))
 
     return value
 
@@ -427,22 +429,6 @@ config_lib.DEFINE_string(
     default="%(Client.name)",
     help="The debian package name.")
 
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.components_source_dir",
-        default=(
-            "%(grr_response_client.components"
-            "|module_path)"),
-        help="The directory that contains the component source."))
-
-config_lib.DEFINE_option(
-    PathTypeInfo(
-        name="ClientBuilder.components_dir",
-        must_exist=False,
-        default=("%(grr-response-templates@grr-response-templates|resource)"
-                 "/components"),
-        help="The directory that contains the components."))
-
 config_lib.DEFINE_string(
     name="ClientBuilder.build_time",
     default=time.ctime(),
@@ -613,15 +599,15 @@ config_lib.DEFINE_integer("Template.version_revision", None,
 config_lib.DEFINE_integer("Template.version_release", None,
                           "Release number of client template.")
 
-config_lib.DEFINE_string("Template.version_string",
-                         "%(version_major).%(version_minor)."
-                         "%(version_revision).%(version_release)",
-                         "Version string of the client template.")
+config_lib.DEFINE_string(
+    "Template.version_string", "%(version_major).%(version_minor)."
+    "%(version_revision).%(version_release)",
+    "Version string of the client template.")
 
-config_lib.DEFINE_integer("Template.version_numeric",
-                          "%(version_major)%(version_minor)"
-                          "%(version_revision)%(version_release)",
-                          "Version string of the template as an integer.")
+config_lib.DEFINE_integer(
+    "Template.version_numeric", "%(version_major)%(version_minor)"
+    "%(version_revision)%(version_release)",
+    "Version string of the template as an integer.")
 
 config_lib.DEFINE_string("Template.arch", None,
                          "The architecture of the client template.")

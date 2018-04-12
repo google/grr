@@ -537,23 +537,31 @@ class CpuSample(structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  # The total number of samples this sample represents - used for running
-  # averages.
-  _total_samples = 1
+  @classmethod
+  def FromMany(cls, samples):
+    """Constructs a single sample that best represents a list of samples.
 
-  def Average(self, sample):
-    """Updates this sample from the new sample."""
-    # For now we only average the cpu_percent
-    self.timestamp = sample.timestamp
-    self.user_cpu_time = sample.user_cpu_time
-    self.system_cpu_time = sample.system_cpu_time
+    Args:
+      samples: An iterable collection of `CpuSample` instances.
 
-    # Update the average from the new sample point.
-    self.cpu_percent = (
-        self.cpu_percent * self._total_samples + sample.cpu_percent) / (
-            self._total_samples + 1)
+    Returns:
+      A `CpuSample` instance representing `samples`.
 
-    self._total_samples += 1
+    Raises:
+      ValueError: If `samples` is empty.
+    """
+    if not samples:
+      raise ValueError("Empty `samples` argument")
+
+    # It only makes sense to average the CPU percentage. For all other values
+    # we simply take the biggest of them.
+    cpu_percent = sum(sample.cpu_percent for sample in samples) / len(samples)
+
+    return CpuSample(
+        timestamp=max(sample.timestamp for sample in samples),
+        cpu_percent=cpu_percent,
+        user_cpu_time=max(sample.user_cpu_time for sample in samples),
+        system_cpu_time=max(sample.system_cpu_time for sample in samples))
 
 
 class IOSample(structs.RDFProtoStruct):
@@ -562,12 +570,26 @@ class IOSample(structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def Average(self, sample):
-    """Updates this sample from the new sample."""
-    # For now we just copy the new sample to ourselves.
-    self.timestamp = sample.timestamp
-    self.read_bytes = sample.read_bytes
-    self.write_bytes = sample.write_bytes
+  @classmethod
+  def FromMany(cls, samples):
+    """Constructs a single sample that best represents a list of samples.
+
+    Args:
+      samples: An iterable collection of `IOSample` instances.
+
+    Returns:
+      An `IOSample` instance representing `samples`.
+
+    Raises:
+      ValueError: If `samples` is empty.
+    """
+    if not samples:
+      raise ValueError("Empty `samples` argument")
+
+    return IOSample(
+        timestamp=max(sample.timestamp for sample in samples),
+        read_bytes=max(sample.read_bytes for sample in samples),
+        write_bytes=max(sample.write_bytes for sample in samples))
 
 
 class ClientStats(structs.RDFProtoStruct):
@@ -579,58 +601,37 @@ class ClientStats(structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def DownsampleList(self, samples, interval):
-    """Reduces samples at different timestamps into interval time bins."""
-    # The current bin we are calculating (initializes to the first bin).
-    current_bin = None
+  DEFAULT_SAMPLING_INTERVAL = rdfvalue.Duration("60s")
 
-    # The last sample we see in the current bin. We always emit the last sample
-    # in the current bin.
-    last_sample_seen = None
-
-    for sample in samples:
-      timestamp = sample.timestamp.AsSecondsFromEpoch()
-
-      # The time bin this sample belongs to.
-      time_bin = timestamp - (timestamp % interval)
-
-      # Initialize to the first bin, but do not emit anything yet until we
-      # switch bins.
-      if current_bin is None:
-        current_bin = time_bin
-        last_sample_seen = sample
-
-      # If the current sample is not in the current bin we switch bins.
-      elif current_bin != time_bin and last_sample_seen:
-        # Emit the last seen bin.
-        yield last_sample_seen
-
-        # Move to the next bin.
-        current_bin = time_bin
-        last_sample_seen = sample
-
-      else:
-        # Update the last_sample_seen with the new sample taking averages if
-        # needed.
-        last_sample_seen.Average(sample)
-
-    # Emit the last sample especially as part of the last bin.
-    if last_sample_seen:
-      yield last_sample_seen
-
-  def DownSample(self, sampling_interval=60):
-    """Downsamples the data to save space.
+  @classmethod
+  def Downsampled(cls, stats, interval=None):
+    """Constructs a copy of given stats but downsampled to given interval.
 
     Args:
-      sampling_interval: The sampling interval in seconds.
+      stats: A `ClientStats` instance.
+      interval: A downsampling interval.
+
     Returns:
-      New ClientStats object with cpu and IO samples downsampled.
+      A downsampled `ClientStats` instance.
     """
-    result = ClientStats(self)
-    result.cpu_samples = self.DownsampleList(self.cpu_samples,
-                                             sampling_interval)
-    result.io_samples = self.DownsampleList(self.io_samples, sampling_interval)
+    interval = interval or cls.DEFAULT_SAMPLING_INTERVAL
+
+    result = cls(stats)
+    result.cpu_samples = cls._Downsample(
+        kind=CpuSample, samples=stats.cpu_samples, interval=interval)
+    result.io_samples = cls._Downsample(
+        kind=IOSample, samples=stats.io_samples, interval=interval)
     return result
+
+  @classmethod
+  def _Downsample(cls, kind, samples, interval):
+    buckets = {}
+    for sample in samples:
+      bucket = buckets.setdefault(sample.timestamp.Floor(interval), [])
+      bucket.append(sample)
+
+    for bucket in buckets.itervalues():
+      yield kind.FromMany(bucket)
 
 
 class BufferReference(structs.RDFProtoStruct):
@@ -1004,10 +1005,9 @@ class Uname(structs.RDFProtoStruct):
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:
-      pep425tag = "%s%s-%s-%s" % (pep425tags.get_abbr_impl(),
-                                  pep425tags.get_impl_ver(),
-                                  str(pep425tags.get_abi_tag()).lower(),
-                                  pep425tags.get_platform())
+      pep425tag = "%s%s-%s-%s" % (
+          pep425tags.get_abbr_impl(), pep425tags.get_impl_ver(),
+          str(pep425tags.get_abi_tag()).lower(), pep425tags.get_platform())
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)
@@ -1206,31 +1206,6 @@ class VersionString(rdfvalue.RDFString):
         break
 
     return result
-
-
-class ClientComponentSummary(structs.RDFProtoStruct):
-  """A client component summary."""
-  protobuf = jobs_pb2.ClientComponentSummary
-  rdf_deps = [
-      rdf_crypto.SymmetricCipher,
-  ]
-
-
-class LoadComponent(structs.RDFProtoStruct):
-  """Request to launch a client action through a component."""
-  protobuf = jobs_pb2.LoadComponent
-  rdf_deps = [
-      ClientComponentSummary,
-  ]
-
-
-class ClientComponent(structs.RDFProtoStruct):
-  """A client component."""
-  protobuf = jobs_pb2.ClientComponent
-  rdf_deps = [
-      ClientComponentSummary,
-      Uname,
-  ]
 
 
 class ListNetworkConnectionsArgs(structs.RDFProtoStruct):

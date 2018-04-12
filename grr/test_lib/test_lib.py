@@ -326,11 +326,11 @@ class GRRBaseTest(unittest.TestCase):
       fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
       fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
       fd.Set(
-          fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (client_nr,
-                                                                    client_nr)))
+          fd.Schema.MAC_ADDRESS(
+              "aabbccddee%02x\nbbccddeeff%02x" % (client_nr, client_nr)))
       fd.Set(
-          fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (client_nr,
-                                                              client_nr)))
+          fd.Schema.HOST_IPS(
+              "192.168.0.%d\n2001:abcd::%x" % (client_nr, client_nr)))
 
       if system:
         fd.Set(fd.Schema.SYSTEM(system))
@@ -544,7 +544,7 @@ class GRRBaseTest(unittest.TestCase):
         client_id, last_ping=ping, certificate=cert, fleetspeak_enabled=False)
     data_store.REL_DB.WriteClientSnapshot(client)
 
-    client_index.ClientIndex().AddClient(client_id, client)
+    client_index.ClientIndex().AddClient(client)
 
     if labels:
       data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
@@ -712,7 +712,7 @@ class FakeTimeline(object):
     self._worker_thread_turn = threading.Event()
 
     # Fake, "current" number of seconds since epoch.
-    self._time = (now or rdfvalue.RDFDatetime.Now()).AsSecondsFromEpoch()
+    self._time = (now or rdfvalue.RDFDatetime.Now()).AsSecondsSinceEpoch()
     # Number of seconds that the worker thread can sleep.
     self._budget = 0
 

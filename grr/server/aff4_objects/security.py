@@ -3,7 +3,6 @@
 
 import email
 
-import jinja2
 
 from grr import config
 from grr.lib import rdfvalue
@@ -11,7 +10,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import access_control
 from grr.server import aff4
-from grr.server import email_alerts
 from grr.server import events
 from grr.server.aff4_objects import aff4_grr
 from grr.server.aff4_objects import users as aff4_users
@@ -45,28 +43,30 @@ class Approval(aff4.AFF4Object):
     APPROVER = aff4.Attribute("aff4:approval/approver", rdfvalue.RDFString,
                               "An approver for the request.", "approver")
 
-    SUBJECT = aff4.Attribute("aff4:approval/subject", rdfvalue.RDFURN,
-                             "Subject of the approval. I.e. the resource that "
-                             "requires approved access.")
+    SUBJECT = aff4.Attribute(
+        "aff4:approval/subject", rdfvalue.RDFURN,
+        "Subject of the approval. I.e. the resource that "
+        "requires approved access.")
 
     REASON = aff4.Attribute("aff4:approval/reason",
                             rdfvalue.RDFString,
                             "The reason for requesting access to this client.")
 
-    EMAIL_MSG_ID = aff4.Attribute("aff4:approval/email_msg_id",
-                                  rdfvalue.RDFString,
-                                  "The email thread message ID for this"
-                                  "approval. Storing this allows for "
-                                  "conversation threading.")
+    EMAIL_MSG_ID = aff4.Attribute(
+        "aff4:approval/email_msg_id", rdfvalue.RDFString,
+        "The email thread message ID for this"
+        "approval. Storing this allows for "
+        "conversation threading.")
 
-    EMAIL_CC = aff4.Attribute("aff4:approval/email_cc", rdfvalue.RDFString,
-                              "Comma separated list of email addresses to "
-                              "CC on approval emails.")
+    EMAIL_CC = aff4.Attribute(
+        "aff4:approval/email_cc", rdfvalue.RDFString,
+        "Comma separated list of email addresses to "
+        "CC on approval emails.")
 
-    NOTIFIED_USERS = aff4.Attribute("aff4:approval/notified_users",
-                                    rdfvalue.RDFString,
-                                    "Comma-separated list of GRR users "
-                                    "notified about this approval.")
+    NOTIFIED_USERS = aff4.Attribute(
+        "aff4:approval/notified_users", rdfvalue.RDFString,
+        "Comma-separated list of GRR users "
+        "notified about this approval.")
 
   def CheckAccess(self, token):
     """Check that this approval applies to the given token.
@@ -260,10 +260,7 @@ class ApprovalWithApproversAndReason(Approval):
       if len(approvers_with_label) < self.min_approvers_with_label:
         missing = self.min_approvers_with_label - len(approvers_with_label)
         raise access_control.UnauthorizedAccess(
-            "Need at least %d additional approver%s "
-            "with the '%s' label for access." % (missing, "s"
-                                                 if missing > 1 else "",
-                                                 self.checked_approvers_label),
+            "Need at least 1 admin approver for access.",
             subject=subject_urn,
             requested_access=token.requested_access)
 
@@ -392,10 +389,6 @@ class AbstractApprovalBase(object):
     """Builds a list of symlinks to the approval object."""
     return []
 
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    raise NotImplementedError()
-
   @staticmethod
   def ApprovalUrnBuilder(subject, user, approval_id):
     """Encode an approval URN."""
@@ -447,7 +440,6 @@ class ApprovalRequestor(AbstractApprovalBase):
     approval_id = "approval:%X" % utils.PRNG.GetULong()
     approval_urn = self.BuildApprovalUrn(approval_id)
 
-    subject_title = self.BuildSubjectTitle()
     email_msg_id = email.utils.make_msgid()
 
     with aff4.FACTORY.Create(
@@ -486,71 +478,6 @@ class ApprovalRequestor(AbstractApprovalBase):
       with aff4.FACTORY.Create(
           link_urn, aff4.AFF4Symlink, mode="w", token=self.token) as link:
         link.Set(link.Schema.SYMLINK_TARGET(approval_urn))
-
-    # Notify to the users.
-    for user in self.approver.split(","):
-      user = user.strip()
-      try:
-        fd = aff4.FACTORY.Open(
-            aff4.ROOT_URN.Add("users").Add(user),
-            aff4_type=aff4_users.GRRUser,
-            mode="rw",
-            token=self.token)
-      except aff4.InstantiationError:
-        continue
-
-      fd.Notify("GrantAccess", approval_urn,
-                "Please grant access to %s" % subject_title, "")
-      fd.Close()
-
-    if not config.CONFIG.Get("Email.send_approval_emails"):
-      return approval_urn
-
-    subject_template = jinja2.Template(
-        "Approval for {{ user }} to access {{ client }}.", autoescape=True)
-    subject = subject_template.render(
-        user=utils.SmartUnicode(self.token.username),
-        client=utils.SmartUnicode(subject_title))
-
-    template = jinja2.Template(
-        """
-<html><body><h1>Approval to access
-<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
-requested.</h1>
-
-The user "{{ username }}" has requested access to
-<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
-for the purpose of <em>{{ reason }}</em>.
-
-Please click <a href='{{ admin_ui }}/#/{{ approval_url }}'>
-here
-</a> to review this request and then grant access.
-
-<p>Thanks,</p>
-<p>{{ signature }}</p>
-<p>{{ image|safe }}</p>
-</body></html>""",
-        autoescape=True)
-
-    body = template.render(
-        username=utils.SmartUnicode(self.token.username),
-        reason=utils.SmartUnicode(self.reason),
-        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
-        subject_title=utils.SmartUnicode(subject_title),
-        approval_url=utils.SmartUnicode(
-            self.BuildApprovalReviewUrlPath(approval_id)),
-        # If you feel like it, add a funny cat picture here :)
-        image=utils.SmartUnicode(config.CONFIG["Email.approval_signature"]),
-        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
-
-    email_alerts.EMAIL_ALERTER.SendEmail(
-        self.approver,
-        utils.SmartStr(self.token.username),
-        utils.SmartStr(subject),
-        utils.SmartStr(body),
-        is_html=True,
-        cc_addresses=email_cc,
-        message_id=email_msg_id)
 
     return approval_urn
 
@@ -593,20 +520,17 @@ class ApprovalGrantor(AbstractApprovalBase):
     found_approval_urn = None
     for approval in approvals:
       approval_reason = approval.Get(approval.Schema.REASON)
-      if (utils.SmartUnicode(approval_reason) == utils.SmartUnicode(
-          self.reason) and (not found_approval_urn or
-                            approval_reason.age > found_approval_urn.age)):
+      if (utils.SmartUnicode(approval_reason) == utils.SmartUnicode(self.reason)
+          and (not found_approval_urn or
+               approval_reason.age > found_approval_urn.age)):
         found_approval_urn = approval.urn
         found_approval_urn.age = approval_reason.age
 
     if not found_approval_urn:
       raise access_control.UnauthorizedAccess(
-          "No approval with reason '%s' found for user %s" %
-          (utils.SmartStr(self.reason), utils.SmartStr(self.token.username)),
+          "No approval with reason '%s' found for user %s" % (utils.SmartStr(
+              self.reason), utils.SmartStr(self.token.username)),
           subject=self.subject_urn)
-
-    subject_title = self.BuildSubjectTitle()
-    access_url = self.BuildAccessUrl()
 
     # This object must already exist.
     try:
@@ -623,65 +547,6 @@ class ApprovalGrantor(AbstractApprovalBase):
       # We are now an approver for this request.
       approval_request.AddAttribute(
           approval_request.Schema.APPROVER(self.token.username))
-      email_msg_id = utils.SmartStr(
-          approval_request.Get(approval_request.Schema.EMAIL_MSG_ID))
-      email_cc = utils.SmartStr(
-          approval_request.Get(approval_request.Schema.EMAIL_CC))
-
-    # Notify to the user.
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.delegate),
-        aff4_users.GRRUser,
-        mode="rw",
-        token=self.token) as fd:
-      fd.Notify("ViewObject", self.subject_urn,
-                "%s has granted you access to %s." % (self.token.username,
-                                                      subject_title), "")
-
-    if not config.CONFIG.Get("Email.send_approval_emails"):
-      return found_approval_urn
-
-    subject_template = jinja2.Template(
-        "Approval for {{ user }} to access {{ client }}.", autoescape=True)
-    subject = subject_template.render(
-        user=utils.SmartUnicode(self.delegate),
-        client=utils.SmartUnicode(subject_title))
-
-    template = jinja2.Template(
-        """
-<html><body><h1>Access to
-<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a>
-granted.</h1>
-
-The user {{ username }} has granted access to
-<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a> for the
-purpose of <em>{{ reason }}</em>.
-
-Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
-
-<p>Thanks,</p>
-<p>{{ signature }}</p>
-</body></html>""",
-        autoescape=True)
-    body = template.render(
-        subject_title=utils.SmartUnicode(subject_title),
-        username=utils.SmartUnicode(self.token.username),
-        reason=utils.SmartUnicode(self.reason),
-        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"].strip("/")),
-        subject_url=utils.SmartUnicode(access_url.strip("/")),
-        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
-
-    # Email subject should match approval request, and we add message id
-    # references so they are grouped together in a thread by gmail.
-    headers = {"In-Reply-To": email_msg_id, "References": email_msg_id}
-    email_alerts.EMAIL_ALERTER.SendEmail(
-        utils.SmartStr(self.delegate),
-        utils.SmartStr(self.token.username),
-        utils.SmartStr(subject),
-        utils.SmartStr(body),
-        is_html=True,
-        cc_addresses=email_cc,
-        headers=headers)
 
     return found_approval_urn
 
@@ -715,12 +580,6 @@ class ClientApprovalRequestor(ApprovalRequestor):
                                        self.token.username, approval_id)
     ]
 
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    client = aff4.FACTORY.Open(self.subject_urn, token=self.token)
-    hostname = client.Get(client.Schema.HOSTNAME)
-    return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
-
   def BuildApprovalReviewUrlPath(self, approval_id):
     return "/".join([
         "users", self.token.username, "approvals", "client",
@@ -750,12 +609,6 @@ class ClientApprovalGrantor(ApprovalGrantor):
     """Builds the urn to access this object."""
     return "/clients/%s" % self.subject_urn.Basename()
 
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    client = aff4.FACTORY.Open(self.subject_urn, token=self.token)
-    hostname = client.Get(client.Schema.HOSTNAME)
-    return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
-
 
 class HuntApprovalRequestor(ApprovalRequestor):
   """A flow to request approval to access a client."""
@@ -783,10 +636,6 @@ class HuntApprovalRequestor(ApprovalRequestor):
                                        self.token.username, approval_id)
     ]
 
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    return u"hunt %s" % self.subject_urn.Basename()
-
   def BuildApprovalReviewUrlPath(self, approval_id):
     return "/".join([
         "users", self.token.username, "approvals", "hunt",
@@ -812,10 +661,6 @@ class HuntApprovalGrantor(ApprovalGrantor):
 
     return self.ApprovalUrnBuilder(self.subject_urn.Path(), self.delegate,
                                    approval_id)
-
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    return u"hunt %s" % self.subject_urn.Basename()
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
@@ -848,10 +693,6 @@ class CronJobApprovalRequestor(ApprovalRequestor):
                                        self.token.username, approval_id)
     ]
 
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    return u"a cron job"
-
   def BuildApprovalReviewUrlPath(self, approval_id):
     return "/".join([
         "users", self.token.username, "approvals", "cron-job",
@@ -876,10 +717,6 @@ class CronJobApprovalGrantor(ApprovalGrantor):
 
     return self.ApprovalUrnBuilder(self.subject_urn.Path(), self.delegate,
                                    self.reason)
-
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    return u"a cron job"
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""

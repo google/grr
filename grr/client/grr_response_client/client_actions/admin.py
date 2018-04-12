@@ -317,12 +317,8 @@ class GetClientStatsAuto(GetClientStats):
   """This class is used to send the reply to a well known flow on the server."""
 
   def Send(self, response):
-    if isinstance(response, rdf_client.ClientStats):
-      # TODO(hanuszczak): It seems like it is not doing anything. Downsampling
-      # method returns a new protobuf so this is a no-op.
-      response.DownSample()
     self.grr_worker.SendReply(
-        response,
+        rdf_client.ClientStats.Downsampled(response),
         session_id=rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
         response_id=0,
         request_id=0,

@@ -68,13 +68,10 @@ class Database(object):
         ip address for the client.
       last_foreman: And rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
-
-    Raises:
-      UnknownClientError: The client_id is not known yet.
     """
 
   @abc.abstractmethod
-  def ReadClientsMetadata(self, client_ids):
+  def MultiReadClientMetadata(self, client_ids):
     """Reads ClientMetadata records for a list of clients.
 
     Args:
@@ -94,7 +91,7 @@ class Database(object):
     Returns:
       An rdfvalues.object.ClientMetadata object.
     """
-    return self.ReadClientsMetadata([client_id]).get(client_id)
+    return self.MultiReadClientMetadata([client_id]).get(client_id)
 
   @abc.abstractmethod
   def WriteClientSnapshot(self, client):
@@ -112,7 +109,7 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReadClientsSnapshot(self, client_ids):
+  def MultiReadClientSnapshot(self, client_ids):
     """Reads the latest client snapshots for a list of clients.
 
     Args:
@@ -132,10 +129,10 @@ class Database(object):
     Returns:
       An rdfvalues.objects.ClientSnapshot object.
     """
-    return self.ReadClientsSnapshot([client_id])[client_id]
+    return self.MultiReadClientSnapshot([client_id])[client_id]
 
   @abc.abstractmethod
-  def ReadClientsFullInfo(self, client_ids):
+  def MultiReadClientFullInfo(self, client_ids):
     """Reads full client information for a list of clients.
 
     Args:
@@ -146,10 +143,6 @@ class Database(object):
       A map from client ids to `ClientFullInfo` instance.
     """
 
-  # TODO(hanuszczak): Why do we return a dict? Can't we declare a `namedtuple`
-  # instead? Doing so would make the code more idiomatic, obvious, type-safe,
-  # and in the docstring instead of using "as described in (...)" we can just
-  # use a concrete name.
   def ReadClientFullInfo(self, client_id):
     """Reads full client information for a single client.
 
@@ -159,7 +152,7 @@ class Database(object):
     Returns:
       A `ClientFullInfo` instance for given client.
     """
-    return self.ReadClientsFullInfo([client_id])[client_id]
+    return self.MultiReadClientFullInfo([client_id])[client_id]
 
   @abc.abstractmethod
   def ReadAllClientsFullInfo(self, min_last_ping=None):
@@ -170,6 +163,18 @@ class Database(object):
                      than min_last_ping will be returned.
     Yields:
       ClientFullInfo objects.
+    """
+
+  # TODO(hanuszczak): This name is not grammatically correct but changing it to
+  # something else would make it inconsistent with naming scheme. Method names
+  # across this file should be redesigned to be readable, grammatically sound
+  # and consistent with each other.
+  @abc.abstractmethod
+  def ReadAllClientsID(self):
+    """Reads client ids for all clients in the database.
+
+    Yields:
+      A string representing client id.
     """
 
   # TODO(hanuszczak): Should abstract methods perform input validation?
@@ -212,11 +217,18 @@ class Database(object):
         raise ValueError(message % (client.client_id, client_id))
 
   @abc.abstractmethod
-  def ReadClientSnapshotHistory(self, client_id):
+  def ReadClientSnapshotHistory(self, client_id, timerange=None):
     """Reads the full history for a particular client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      timerange: Should be either a tuple of (from, to) or None.
+                 "from" and to" should be rdfvalue.RDFDatetime or None values
+                 (from==None means "all record up to 'to'", to==None means
+                 all records from 'from'). If both "to" and "from" are
+                 None or the timerange itself is None, all history
+                 items are fetched. Note: "from" and "to" are inclusive:
+                 i.e. a from <= time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.objects.ClientSnapshot, newest snapshot first.
@@ -247,11 +259,18 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReadClientStartupInfoHistory(self, client_id):
+  def ReadClientStartupInfoHistory(self, client_id, timerange=None):
     """Reads the full startup history for a particular client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
+      timerange: Should be either a tuple of (from, to) or None.
+                 "from" and to" should be rdfvalue.RDFDatetime or None values
+                 (from==None means "all record up to 'to'", to==None means
+                 all records from 'from'). If both "to" and "from" are
+                 None or the timerange itself is None, all history
+                 items are fetched. Note: "from" and "to" are inclusive:
+                 i.e. a from <= time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.client.StartupInfo objects sorted by timestamp,
@@ -338,7 +357,7 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def ReadClientsLabels(self, client_ids):
+  def MultiReadClientLabels(self, client_ids):
     """Reads the user labels for a list of clients.
 
     Args:
@@ -360,7 +379,7 @@ class Database(object):
       A list of rdfvalue.objects.ClientLabel for the given client,
       sorted by owner, label name.
     """
-    return self.ReadClientsLabels([client_id])[client_id]
+    return self.MultiReadClientLabels([client_id])[client_id]
 
   @abc.abstractmethod
   def RemoveClientLabels(self, client_id, owner, labels):

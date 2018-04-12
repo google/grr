@@ -1,21 +1,13 @@
 #!/usr/bin/env python
 """This file contains utility classes related to maintenance used by GRR."""
 
-
 import getpass
 import hashlib
 import logging
-import os
-import StringIO
 import sys
-import time
-import zipfile
 
 
 from grr import config
-from grr.lib import utils
-from grr.lib.builders import signing
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.server import access_control
 from grr.server import aff4
@@ -134,172 +126,6 @@ def CreateBinaryConfigPaths(token=None):
     return
 
 
-def _SignWindowsComponent(component, output_filename):
-  print "Enter passphrase for code signing cert:"
-  passwd = getpass.getpass()
-  cert = config.CONFIG.Get("ClientBuilder.windows_signing_cert")
-  key = config.CONFIG.Get("ClientBuilder.windows_signing_key")
-  app_name = config.CONFIG.Get("ClientBuilder.windows_signing_application_name")
-
-  signer = signing.WindowsOsslsigncodeCodeSigner(cert, key, passwd, app_name)
-  with utils.TempDirectory() as temp_dir:
-    zip_file = zipfile.ZipFile(StringIO.StringIO(component.raw_data))
-    zip_file.extractall(temp_dir)
-
-    new_data = StringIO.StringIO()
-    new_zipfile = zipfile.ZipFile(
-        new_data, mode="w", compression=zipfile.ZIP_DEFLATED)
-
-    for root, _, files in os.walk(temp_dir):
-      for basename in files:
-        basename = basename.lstrip("\\/")
-        filename = os.path.join(root, basename)
-
-        # The relative filename to the root of the zip file.
-        relative_filename = filename[len(temp_dir):].lstrip("/")
-
-        extension = os.path.splitext(filename)[1].lower()
-        if extension in [".sys", ".exe", ".dll", ".pyd"]:
-          out_filename = filename + ".signed"
-          signer.SignFile(filename, out_filename=out_filename)
-          new_zipfile.write(out_filename, arcname=relative_filename)
-        else:
-          new_zipfile.write(filename, arcname=relative_filename)
-
-    # Flush the Zip file.
-    new_zipfile.close()
-    component.raw_data = new_data.getvalue()
-
-    with open(output_filename, "wb") as out_fd:
-      out_fd.write(component.SerializeToString())
-
-
-def SignComponentContent(component_filename, output_filename):
-  """Some OSs require the contents of a component to be signed as well.
-
-  Specifically this action unzips the component and authenticode signs all
-  binaries. The component is then repacked.
-
-  Args:
-    component_filename: The filename of the component.
-    output_filename: We write the new signed component here.
-
-  Raises:
-    RuntimeError: If called for any other OS than windows.
-  """
-  component = rdf_client.ClientComponent.FromSerializedString(
-      open(component_filename, "rb").read())
-  EPrint("Opened component %s." % component.summary.name)
-
-  if component.build_system.system == "Windows":
-    _SignWindowsComponent(component, output_filename)
-    return
-
-  raise RuntimeError("Component signing is not implemented for OS %s." %
-                     component.build_system.system)
-
-
-def SignComponent(component_filename, overwrite=False, token=None):
-  """Sign and upload the component to the data store."""
-
-  EPrint("Signing and uploading component %s" % component_filename)
-  serialized_component = open(component_filename, "rb").read()
-  component = rdf_client.ClientComponent.FromSerializedString(
-      serialized_component)
-  EPrint("Opened component %s." % component.summary.name)
-
-  client_context = [
-      "Platform:%s" % component.build_system.system.title(),
-      "Arch:%s" % component.build_system.arch
-  ]
-
-  sig_key = config.CONFIG.Get(
-      "PrivateKeys.executable_signing_private_key", context=client_context)
-
-  ver_key = config.CONFIG.Get(
-      "Client.executable_signing_public_key", context=client_context)
-
-  # For each platform specific component, we have a component summary object
-  # which contains high level information in common to all components of this
-  # specific version.
-  component_urn = config.CONFIG.Get("Config.aff4_root").Add("components").Add(
-      "%s_%s" % (component.summary.name, component.summary.version))
-
-  component_fd = aff4.FACTORY.Create(
-      component_urn, collects.ComponentObject, mode="rw", token=token)
-
-  component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
-  if overwrite or component_summary is None:
-    EPrint("Storing component summary at %s" % component_urn)
-
-    component_summary = component.summary
-    component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
-    component_summary.url = ("/static/components/" + component_summary.seed)
-
-    component_fd.Set(component_fd.Schema.COMPONENT, component_summary)
-    component_fd.Close()
-
-  else:
-    EPrint("Using seed from stored component summary at %s" % component_urn)
-    component.summary.url = component_summary.url
-    component.summary.seed = component_summary.seed
-
-  # Sign the component, encrypt it and store it at the static aff4 location.
-  signed_component = rdf_crypto.SignedBlob()
-  signed_component.Sign(component.SerializeToString(), sig_key, ver_key)
-
-  aff4_urn = aff4.FACTORY.GetComponentRoot().Add(component.summary.seed).Add(
-      component.build_system.signature())
-
-  EPrint("Storing signed component at %s" % aff4_urn)
-  with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:
-    fd.Write(
-        component_summary.cipher.Encrypt(signed_component.SerializeToString()))
-
-  return component
-
-
-def SignAllComponents(overwrite=False, token=None):
-
-  components_dir = config.CONFIG["ClientBuilder.components_dir"]
-  for root, _, files in os.walk(components_dir):
-    for f in files:
-      if os.path.splitext(f)[1] != ".bin":
-        continue
-
-      component_filename = os.path.join(root, f)
-      try:
-        SignComponent(component_filename, overwrite=overwrite, token=token)
-      except Exception as e:  # pylint: disable=broad-except
-        EPrint("Could not sign component %s: %s" % (component_filename, e))
-
-
-def ListComponents(token=None):
-
-  component_root = aff4.FACTORY.Open("aff4:/config/components", token=token)
-  for component in component_root.OpenChildren():
-    if not isinstance(component, collects.ComponentObject):
-      continue
-
-    desc = component.Get(component.Schema.COMPONENT)
-    if not desc:
-      continue
-
-    EPrint("* Component %s (version %s)" % (desc.name, desc.version))
-
-    versions = []
-    base_urn = "aff4:/web%s" % desc.url
-    for urn, _, _ in data_store.DB.ScanAttribute(base_urn, "aff4:type"):
-      versions.append(urn.split("/")[-1])
-
-    if not versions:
-      EPrint("No platform signatures available.")
-    else:
-      EPrint("Available platform signatures:")
-      for v in sorted(versions):
-        EPrint("- %s" % v)
-
-
 def ShowUser(username, token=None):
   """Implementation of the show_user command."""
   if username is None:
@@ -331,8 +157,8 @@ def AddUser(username, password=None, labels=None, token=None):
   fd = aff4.FACTORY.Create(user_urn, users.GRRUser, mode="rw", token=token)
   # Note this accepts blank passwords as valid.
   if password is None:
-    password = getpass.getpass(
-        prompt="Please enter password for user '%s': " % username)
+    password = getpass.getpass(prompt="Please enter password for user '%s': " %
+                               username)
   fd.SetPassword(password)
 
   if labels:

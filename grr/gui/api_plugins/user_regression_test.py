@@ -59,7 +59,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
           clients[1].Basename(),
-          reason="bar",
+          approval_id=approval2_id,
           approver="approver",
           requestor=self.token.username)
 
@@ -135,12 +135,8 @@ class ApiCreateClientApprovalHandlerRegressionTest(
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     def ReplaceApprovalId():
-      approvals = list(
-          aff4.FACTORY.ListChildren(
-              aff4.ROOT_URN.Add("ACL").Add(client_id.Basename()).Add(
-                  self.token.username)))
-
-      return {approvals[0].Basename(): "approval:112233"}
+      approvals = self.ListClientApprovals()
+      return {approvals[0].id: "approval:112233"}
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -191,7 +187,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
       self.GrantClientApproval(
           clients[1].Basename(),
           requestor=self.token.username,
-          reason=self.token.reason,
+          approval_id=approval2_id,
           approver="approver")
 
     with test_lib.FakeTime(126):
@@ -239,7 +235,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           hunt2_id, approver="approver", reason="bar")
 
     with test_lib.FakeTime(84):
-      self.GrantHuntApproval(hunt2_id, approver="approver", reason="bar")
+      self.GrantHuntApproval(
+          hunt2_id, approver="approver", approval_id=approval2_id)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -385,12 +382,8 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
         hunt_id = hunt_obj.urn.Basename()
 
     def ReplaceHuntAndApprovalIds():
-      approvals = list(
-          aff4.FACTORY.ListChildren(
-              aff4.ROOT_URN.Add("ACL").Add("hunts").Add(hunt_id).Add(
-                  self.token.username)))
-
-      return {approvals[0].Basename(): "approval:112233", hunt_id: "H:123456"}
+      approvals = self.ListHuntApprovals()
+      return {approvals[0].id: "approval:112233", hunt_id: "H:123456"}
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -463,7 +456,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
     with test_lib.FakeTime(84):
       self.GrantCronJobApproval(
-          cron2_urn.Basename(), reason="bar", approver="approver")
+          cron2_urn.Basename(), approval_id=approval2_id, approver="approver")
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -543,15 +536,8 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     cron_id = cron_urn.Basename()
 
     def ReplaceCronAndApprovalIds():
-      approvals = list(
-          aff4.FACTORY.ListChildren(
-              aff4.ROOT_URN.Add("ACL").Add("cron").Add(cron_id).Add(
-                  self.token.username)))
-
-      return {
-          approvals[0].Basename(): "approval:112233",
-          cron_id: "CronJob_123456"
-      }
+      approvals = self.ListCronJobApprovals()
+      return {approvals[0].id: "approval:112233", cron_id: "CronJob_123456"}
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -578,13 +564,12 @@ class ApiGetOwnGrrUserHandlerRegresstionTest(
       with aff4.FACTORY.Create(
           user_urn, aff4_type=aff4_users.GRRUser, mode="w",
           token=self.token) as user_fd:
-        user_fd.Set(
-            user_fd.Schema.GUI_SETTINGS,
-            aff4_users.GUISettings(canary_mode=True))
+        user_fd.Set(user_fd.Schema.GUI_SETTINGS,
+                    aff4_users.GUISettings(mode="ADVANCED", canary_mode=True))
 
     # Setup relational DB.
     data_store.REL_DB.WriteGRRUser(
-        username=self.token.username, canary_mode=True)
+        username=self.token.username, ui_mode="ADVANCED", canary_mode=True)
 
     self.Check("GetGrrUser")
 
@@ -748,8 +733,8 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
               show_from=self.TIME_TOO_EARLY))
 
     replace = {
-        ("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
-        ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"
+        ("%d" % self.TIME_0.AsMicrosecondsSinceEpoch()): "0",
+        ("%d" % self.TIME_1.AsMicrosecondsSinceEpoch()): "0"
     }
 
     self.Check("ListPendingGlobalNotifications", replace=replace)

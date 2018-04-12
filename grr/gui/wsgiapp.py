@@ -34,7 +34,7 @@ CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
 
 def GenerateCSRFToken(user_id, time):
   """Generates a CSRF token based on a secret key, id and time."""
-  time = time or rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+  time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
   secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
   # TODO(amoser): Django is deprecated. Remove this at some point.
@@ -101,7 +101,7 @@ def ValidateCSRFTokenOrRaise(request):
     logging.info("Non-matching CSRF token for: %s", request.path)
     raise werkzeug_exceptions.Forbidden("Non-matching CSRF token")
 
-  current_time = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+  current_time = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
   if current_time - token_time > CSRF_TOKEN_DURATION.microseconds:
     logging.info("Expired CSRF token for: %s", request.path)
     raise werkzeug_exceptions.Forbidden("Expired CSRF token")
@@ -120,7 +120,7 @@ class HttpRequest(werkzeug_wrappers.Request):
     self._user = None
     self.token = None
 
-    self.timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+    self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
     self.method_metadata = None
     self.parsed_args = None

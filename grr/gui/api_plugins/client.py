@@ -266,7 +266,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
       clients = sorted(
           index.LookupClients(keywords))[args.offset:args.offset + end]
 
-      client_infos = data_store.REL_DB.ReadClientsFullInfo(clients)
+      client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
       for client_info in client_infos.itervalues():
         api_clients.append(ApiClient().InitFromClientInfo(client_info))
 
@@ -333,7 +333,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
         label_filter = ["label:" + label] + keywords
         all_client_ids.update(index.LookupClients(label_filter))
 
-      client_infos = data_store.REL_DB.ReadClientsFullInfo(all_client_ids)
+      client_infos = data_store.REL_DB.MultiReadClientFullInfo(all_client_ids)
 
       index = 0
       for _, client_info in sorted(client_infos.items()):
@@ -393,6 +393,15 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
     if data_store.RelationalDBReadEnabled():
       info = data_store.REL_DB.ReadClientFullInfo(str(args.client_id))
+      if args.timestamp:
+        # Assume that a snapshot for this particular timestamp exists.
+        snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
+            str(args.client_id), timerange=(args.timestamp, args.timestamp))
+
+        if snapshots:
+          info.last_snapshot = snapshots[0]
+          info.last_startup_info = snapshots[0].startup_info
+
       return ApiClient().InitFromClientInfo(info)
     else:
       client = aff4.FACTORY.Open(
@@ -432,20 +441,17 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     items = []
 
     if data_store.RelationalDBReadEnabled():
-      history = data_store.REL_DB.ReadClientSnapshotHistory(str(args.client_id))
+      history = data_store.REL_DB.ReadClientSnapshotHistory(
+          str(args.client_id), timerange=(start_time, end_time))
 
       for client in history[::-1]:
-        # TODO(amoser): Filtering could be done at the db level and we
-        # wouldn't have to read all the versions always.
-        if client.timestamp < start_time or client.timestamp > end_time:
-          continue
         items.append(ApiClient().InitFromClientObject(client))
     else:
       all_clients = aff4.FACTORY.OpenDiscreteVersions(
           args.client_id.ToClientURN(),
           mode="r",
-          age=(start_time.AsMicroSecondsFromEpoch(),
-               end_time.AsMicroSecondsFromEpoch()),
+          age=(start_time.AsMicrosecondsSinceEpoch(),
+               end_time.AsMicrosecondsSinceEpoch()),
           diffs_only=diffs_only,
           token=token)
 

@@ -112,7 +112,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(), token=self.token)
-    create_times = [r.created.AsMicroSecondsFromEpoch() for r in result.items]
+    create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
     self.assertEqual(len(create_times), 10)
     for index, expected_time in enumerate(reversed(range(1, 11))):
@@ -125,7 +125,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(offset=2, count=2), token=self.token)
-    create_times = [r.created.AsMicroSecondsFromEpoch() for r in result.items]
+    create_times = [r.created.AsMicrosecondsSinceEpoch() for r in result.items]
 
     self.assertEqual(len(create_times), 2)
     self.assertEqual(create_times[0], 8 * 1000000000)

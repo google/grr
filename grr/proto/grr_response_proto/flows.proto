@@ -1785,10 +1785,7 @@ message DumpFlashImageArgs {
       "syslog before running the action. This can be used for debugging in "
       "case the client crashes during the image dumping process.",
     }];
-  optional string component_version = 4 [(sem_type) = {
-      description: "Version of Chipsec component to be used.",
-      label: ADVANCED
-    }, default="1.2.4.1"];
+  reserved 4;
 }
 
 // Next field ID: 4
@@ -1800,10 +1797,7 @@ message DumpACPITableArgs {
   repeated string table_signature_list = 2 [(sem_type) = {
       description: "Signature of ACPI tables to be dumped."
     }];
-  optional string component_version = 3 [(sem_type) = {
-      description: "Version of Chipsec component to be used.",
-      label: ADVANCED
-    }, default="1.2.4.1"];
+  reserved 3;
 }
 
 // Next field ID: 17

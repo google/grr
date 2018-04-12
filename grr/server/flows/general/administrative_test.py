@@ -305,7 +305,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with utils.Stubber(data_store, "RelationalDBReadEnabled", lambda: True):
       rel_client_id = client_id.Basename()
       data_store.REL_DB.WriteClientMetadata(
-          rel_client_id, fleetspeak_enabled=True)
+          rel_client_id, fleetspeak_enabled=False)
 
       self._RunSendStartupInfo(client_id)
 
@@ -362,7 +362,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                      config.CONFIG["Client.description"])
 
     # Check that the boot time is accurate.
-    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
+    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsSinceEpoch())
 
     # objects.ClientSnapshot.
 

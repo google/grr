@@ -30,10 +30,6 @@ class DumpFlashImageMock(action_mocks.ActionMock):
     response = chipsec_types.DumpFlashImageResponse(path=flash_path, logs=logs)
     return [response]
 
-  def LoadComponent(self, args):
-    """Just assume that we can load the component during testing."""
-    return [args]
-
 
 class UnknownChipsetDumpMock(DumpFlashImageMock):
 
@@ -121,10 +117,6 @@ class DumpACPITableMock(action_mocks.ActionMock):
               table_address=0x2234567890ABCDEF, table_blob="\xDD" * 0xFF)
       ]
   }
-
-  def LoadComponent(self, args):
-    """Just assume that we can load the component during testing."""
-    return [args]
 
   def DumpACPITable(self, args):
     acpi_tables = []

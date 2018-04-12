@@ -14,7 +14,7 @@ import "grr_response_proto/semantic.proto";
 // Entities.
 //
 
-// Next message id: 11
+// Next message id: 13
 message ApiHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {
       description: "A hunt that has to be accessed after this approval "
@@ -24,6 +24,10 @@ message ApiHuntApproval {
   optional string id = 8 [(sem_type) = {
       description: "Approval id. Approval is identified by the hunt id, "
       "requestor's username and the approval id."
+    }];
+
+  optional string requestor = 12 [(sem_type) = {
+      description: "Username of the user requesting this approval."
     }];
 
   optional string reason = 2 [(sem_type) = {
@@ -36,6 +40,11 @@ message ApiHuntApproval {
   optional string is_valid_message = 4 [(sem_type) = {
       description: "If is_valid is False, is_valid_message will contain "
       "a human-readable description of why the approval is not valid."
+    }];
+
+  optional string email_message_id = 11 [(sem_type) = {
+      description: "Email msg id used to group all messages related to this "
+      "approval."
     }];
 
   repeated string notified_users = 5 [(sem_type) = {
@@ -62,6 +71,7 @@ message ApiHuntApproval {
     }];
 }
 
+// Next message id: 11
 message ApiCronJobApproval {
   optional ApiCronJob subject = 1 [(sem_type) = {
       description: "A cron job that has to be accessed after this approval "
@@ -71,6 +81,10 @@ message ApiCronJobApproval {
   optional string id = 8 [(sem_type) = {
       description: "Approval id. Approval is identified by the cron job id, "
       "requestor's username and the approval id."
+    }];
+
+  optional string requestor = 10 [(sem_type) = {
+      description: "Username of the user requesting this approval."
     }];
 
   optional string reason = 2 [(sem_type) = {
@@ -83,6 +97,11 @@ message ApiCronJobApproval {
   optional string is_valid_message = 4 [(sem_type) = {
       description: "If is_valid is False, is_valid_message will contain "
       "a human-readable description of why the approval is not valid."
+    }];
+
+  optional string email_message_id = 9 [(sem_type) = {
+      description: "Email msg id used to group all messages related to this "
+      "approval."
     }];
 
   repeated string notified_users = 5 [(sem_type) = {
@@ -100,6 +119,7 @@ message ApiCronJobApproval {
     }];
 }
 
+// Next message id: 11
 message ApiClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
       description: "A client that has to be accessed after this approval "
@@ -109,6 +129,10 @@ message ApiClientApproval {
   optional string id = 8 [(sem_type) = {
       description: "Approval id. Approval is identified by the client id, "
       "requestor's username and the approval id."
+    }];
+
+  optional string requestor = 10 [(sem_type) = {
+      description: "Username of the user requesting this approval."
     }];
 
   optional string reason = 2 [(sem_type) = {
@@ -121,6 +145,11 @@ message ApiClientApproval {
   optional string is_valid_message = 4 [(sem_type) = {
       description: "If is_valid is False, is_valid_message will contain "
       "a human-readable description of why the approval is not valid."
+    }];
+
+  optional string email_message_id = 9 [(sem_type) = {
+      description: "Email msg id used to group all messages related to this "
+      "approval."
     }];
 
   repeated string notified_users = 5 [(sem_type) = {

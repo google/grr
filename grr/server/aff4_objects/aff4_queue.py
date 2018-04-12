@@ -37,7 +37,7 @@ class Queue(aff4.AFF4Object):
     if mutation_pool is None:
       raise ValueError("Mutation pool can't be none.")
 
-    timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+    timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
     if not isinstance(queue_urn, rdfvalue.RDFURN):
       queue_urn = rdfvalue.RDFURN(queue_urn)

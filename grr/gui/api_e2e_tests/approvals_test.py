@@ -9,12 +9,12 @@ from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import api_e2e_test_lib
 from grr.lib import flags
-from grr.server import access_control
-from grr.server.aff4_objects import security
 from grr.server.hunts import standard_test
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
                                 standard_test.StandardHuntTestMixin):
 
@@ -59,7 +59,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
       self.GrantClientApproval(
           client_id.Basename(),
           requestor=self.token.username,
-          reason="blah",
+          approval_id=approval.approval_id,
           approver="foo")
 
     threading.Thread(target=ProcessApproval).start()
@@ -86,13 +86,11 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
 
     def ProcessApproval():
       time.sleep(1)
-      self.CreateAdminUser("approver")
-      approver_token = access_control.ACLToken(username="approver")
-      security.HuntApprovalGrantor(
-          subject_urn=h.urn,
-          reason="blah",
-          delegate=self.token.username,
-          token=approver_token).Grant()
+      self.GrantHuntApproval(
+          h.urn.Basename(),
+          requestor=self.token.username,
+          approval_id=approval.approval_id,
+          approver="approver")
 
     ProcessApproval()
     threading.Thread(target=ProcessApproval).start()

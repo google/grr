@@ -19,6 +19,7 @@ from grr.server import aff4
 from grr.server import client_index
 from grr.server import data_migration
 from grr.server import data_store
+from grr.server import db
 from grr.server import events
 from grr.server import flow
 from grr.server import queue_manager
@@ -161,12 +162,15 @@ class ServerCommunicator(communicator.Communicator):
           last_ip = None
 
         if ping or clock or last_ip:
-          data_store.REL_DB.WriteClientMetadata(
-              client_id.Basename(),
-              last_ip=last_ip,
-              last_clock=clock,
-              last_ping=ping,
-              fleetspeak_enabled=False)
+          try:
+            data_store.REL_DB.WriteClientMetadata(
+                client_id.Basename(),
+                last_ip=last_ip,
+                last_clock=clock,
+                last_ping=ping,
+                fleetspeak_enabled=False)
+          except db.UnknownClientError:
+            pass
 
     except communicator.UnknownClientCert:
       pass
@@ -467,15 +471,18 @@ class FrontEndServer(object):
     client_urn = rdf_client.ClientURN(client_id)
 
     # If already enrolled, return.
-    if aff4.FACTORY.ExistsWithType(
-        client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
-      return
+    if data_store.RelationalDBReadEnabled():
+      if data_store.REL_DB.ReadClientMetadata(client_id):
+        return
+    else:
+      if aff4.FACTORY.ExistsWithType(
+          client_urn, aff4_type=aff4_grr.VFSGRRClient, token=self.token):
+        return
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
     if data_store.RelationalDBWriteEnabled():
-      data_store.REL_DB.WriteClientMetadata(
-          client_id.Basename(), fleetspeak_enabled=True)
+      data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
 
     # TODO(fleetspeak-team,grr-team): If aff4 isn't reliable enough, we can
     # catch exceptions from it and forward them to Fleetspeak by failing its
@@ -493,8 +500,7 @@ class FrontEndServer(object):
       index.AddClient(client)
       if data_store.RelationalDBWriteEnabled():
         index = client_index.ClientIndex()
-        index.AddClient(client_urn.Basename(),
-                        data_migration.ConvertVFSGRRClient(client))
+        index.AddClient(data_migration.ConvertVFSGRRClient(client))
 
     enrollment_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")
@@ -513,13 +519,17 @@ class FrontEndServer(object):
 
   def RecordFleetspeakClientPing(self, client_id):
     """Records the last client contact in the datastore."""
+    ping = rdfvalue.RDFDatetime.Now()
     with aff4.FACTORY.Create(
-        client_id,
+        rdf_client.ClientURN(client_id),
         aff4_type=aff4_grr.VFSGRRClient,
         mode="w",
         token=self.token,
         force_new_version=False) as client:
-      client.Set(client.Schema.PING, rdfvalue.RDFDatetime.Now())
+      client.Set(client.Schema.PING, ping)
+
+    if data_store.RelationalDBWriteEnabled():
+      data_store.REL_DB.WriteClientMetadata(client_id, last_ping=ping)
 
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages from the source.

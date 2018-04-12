@@ -513,7 +513,7 @@ class StatsStoreWorker(object):
       # Maximum time we keep stats store data is three days.
       stats_store_ttl = 60 * 60 * 24 * 3
       try:
-        now = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+        now = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
         self.stats_store.DeleteStats(
             process_id=self.process_id,
             timestamp=(0, now - stats_store_ttl * 1000000))

@@ -67,11 +67,31 @@ REL_DB = None
 
 
 def RelationalDBWriteEnabled():
+  """Returns True if write to a relational database are enabled."""
   return bool(REL_DB)
 
 
-def RelationalDBReadEnabled():
-  return config.CONFIG["Database.useForReads"]
+READ_CATEGORY_APPROVALS = "approvals"
+
+
+def RelationalDBReadEnabled(category=None):
+  """Returns True if reads from a relational database are enabled.
+
+  Args:
+    category: string identifying the category. Useful when a large piece
+              of functionality gets converted to REL_DB iteratively, step
+              by step and when enabling already implemented steps may
+              break the rest of the system (example: reading single approvals
+              is implemented, but listing them is not).
+  Returns:
+    True if reads are enabled, False otherwise.
+  """
+  flag = config.CONFIG["Database.useForReads"]
+
+  if category:
+    return flag and config.CONFIG["Database.useForReads.%s" % category]
+
+  return flag
 
 
 # There are stub methods that don't return/yield as indicated by the docstring.
@@ -276,7 +296,7 @@ class MutationPool(object):
     after_urn = None
     if start_time:
       after_urn, _, _ = DataStore.CollectionMakeURN(
-          queue_id, start_time.AsMicroSecondsFromEpoch(), 0, subpath="Records")
+          queue_id, start_time.AsMicrosecondsSinceEpoch(), 0, subpath="Records")
     results = []
 
     filtered_count = 0
@@ -1275,7 +1295,7 @@ class DataStore(object):
     return urn.Add(keyword)
 
   def IndexAddKeywordsForName(self, index_urn, name, keywords):
-    timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
+    timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
     with self.GetMutationPool() as mutation_pool:
       for keyword in set(keywords):
         mutation_pool.Set(

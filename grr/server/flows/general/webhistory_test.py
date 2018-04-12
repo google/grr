@@ -213,7 +213,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
           use_tsk=True)
 
     self.assertEqual(len(fd), 5)
-    self.assertEqual(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)
+    self.assertEqual(fd[0].access_time.AsSecondsSinceEpoch(), 1340623334)
     self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))

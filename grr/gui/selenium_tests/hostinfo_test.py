@@ -10,15 +10,33 @@ from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import config as rdf_config
 from grr.server import aff4
+from grr.server import data_store
 from grr.server.flows.general import discovery
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   """Test the host information interface."""
+
+  def _WriteClientSnapshot(self, timestamp, version, hostname, memory):
+    with test_lib.FakeTime(timestamp):
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString(version))
+        fd.Set(fd.Schema.HOSTNAME(hostname))
+        fd.Set(fd.Schema.MEMORY_SIZE(memory))
+
+    if data_store.RelationalDBReadEnabled():
+      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      with test_lib.FakeTime(timestamp):
+        snapshot.os_version = version
+        snapshot.knowledge_base.fqdn = hostname
+        snapshot.memory_size = memory
+        data_store.REL_DB.WriteClientSnapshot(snapshot)
 
   def setUp(self):
     super(TestHostInformation, self).setUp()
@@ -27,26 +45,15 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
     self.RequestAndGrantClientApproval(self.client_id)
 
-    with test_lib.FakeTime(gui_test_lib.TIME_0):
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
-        fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
-        fd.Set(fd.Schema.MEMORY_SIZE(4294967296))
-
-    with test_lib.FakeTime(gui_test_lib.TIME_1):
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
-        fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
-        fd.Set(fd.Schema.MEMORY_SIZE(8589934592))
-
-    with test_lib.FakeTime(gui_test_lib.TIME_2):
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
-        fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
-        fd.Set(fd.Schema.MEMORY_SIZE(12884901888))
+    self._WriteClientSnapshot(gui_test_lib.TIME_0, "6.1.7000", "Hostname T0",
+                              4294967296)
+    self._WriteClientSnapshot(gui_test_lib.TIME_1, "6.1.8000", "Hostname T1",
+                              8589934592)
+    self._WriteClientSnapshot(gui_test_lib.TIME_2, "7.0.0000", "Hostname T2",
+                              12884901888)
 
   def testClickingOnInterrogateStartsInterrogateFlow(self):
-    self.Open("/#c=" + self.client_id)
+    self.Open("/#/clients/%s" % self.client_id)
 
     # A click on the Interrogate button starts a flow, disables the button and
     # shows a loading icon within the button.
@@ -78,12 +85,13 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     # Check if an Interrogate flow was started.
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('Interrogate')")
-    self.WaitUntilContains(discovery.Interrogate.__name__, self.GetText,
-                           "css=table td.proto_key:contains('Flow name') "
-                           "~ td.proto_value")
+    self.WaitUntilContains(
+        discovery.Interrogate.__name__, self.GetText,
+        "css=table td.proto_key:contains('Flow name') "
+        "~ td.proto_value")
 
   def testChangingVersionDropdownChangesClientInformation(self):
-    self.Open("/#c=" + self.client_id)
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Check that the newest version is selected.
     self.WaitUntilContains(
@@ -128,9 +136,10 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h4:contains('os_info.fqdn history')")
     # Check that hostnames are listed in the right order.
-    self.WaitUntil(self.IsElementPresent, "css=tr:contains('Hostname T2') ~ "
-                   "tr:contains('Hostname T1') ~ "
-                   "tr:contains('Hostname T0')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr:contains('Hostname T2') ~ "
+        "tr:contains('Hostname T1') ~ "
+        "tr:contains('Hostname T0')")
 
     # Check that the dialog is successfully closed.
     self.Click(
@@ -138,11 +147,10 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=h4:contains('os_info.node history')")
 
-  WARNINGS_OPTION = rdf_config.AdminUIClientWarningsConfigOption(
-      rules=[
-          rdf_config.AdminUIClientWarningRule(
-              with_labels=["blah"], message="*a big warning message*")
-      ])
+  WARNINGS_OPTION = rdf_config.AdminUIClientWarningsConfigOption(rules=[
+      rdf_config.AdminUIClientWarningRule(
+          with_labels=["blah"], message="*a big warning message*")
+  ])
 
   def testSidebarWarningIsNotShownIfClientHasNoLabels(self):
     with test_lib.ConfigOverrider({
@@ -160,6 +168,10 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
         self.client_id, mode="rw", token=self.token) as client_obj:
       client_obj.AddLabel("another", owner=self.token.username)
 
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.AddClientLabels(self.client_id, self.token.username,
+                                        ["another"])
+
     with test_lib.ConfigOverrider({
         "AdminUI.client_warnings": self.WARNINGS_OPTION
     }):
@@ -174,6 +186,10 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client_obj:
       client_obj.AddLabel("blah", owner=self.token.username)
+
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.AddClientLabels(self.client_id, self.token.username,
+                                        ["blah"])
 
     with test_lib.ConfigOverrider({
         "AdminUI.client_warnings": self.WARNINGS_OPTION

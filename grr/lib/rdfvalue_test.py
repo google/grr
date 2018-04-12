@@ -89,6 +89,25 @@ class RDFDateTimeTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       rdfvalue.RDFDatetime.Lerp(-0.5, start_time=start_time, end_time=end_time)
 
+  def testFloorToMinutes(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
+    expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("60s")), expected)
+
+  def testFloorToHours(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
+    expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:00")
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1h")), expected)
+
+  def testFloorToDays(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
+    expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11")
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1d")), expected)
+
+  def testFloorExact(self):
+    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1s")), datetime)
+
 
 def main(argv):
   test_lib.main(argv)

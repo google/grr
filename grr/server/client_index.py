@@ -95,12 +95,12 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
       last_seen_map = {}
 
     # TODO(user): Make keyword index datetime aware so that
-    # AsMicroSecondsFromEpoch is unnecessary.
+    # AsMicrosecondsSinceEpoch is unnecessary.
 
     raw_results = self.Lookup(
         map(self._NormalizeKeyword, filtered_keywords),
-        start_time=start_time.AsMicroSecondsFromEpoch(),
-        end_time=end_time.AsMicroSecondsFromEpoch(),
+        start_time=start_time.AsMicrosecondsSinceEpoch(),
+        end_time=end_time.AsMicrosecondsSinceEpoch(),
         last_seen_map=last_seen_map)
     if not raw_results:
       return []
@@ -109,8 +109,8 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
       universal_last_seen_raw = {}
       self.ReadPostingLists(
           map(self._NormalizeKeyword, raw_results),
-          start_time=start_time.AsMicroSecondsFromEpoch(),
-          end_time=end_time.AsMicroSecondsFromEpoch(),
+          start_time=start_time.AsMicrosecondsSinceEpoch(),
+          end_time=end_time.AsMicrosecondsSinceEpoch(),
           last_seen_map=universal_last_seen_raw)
 
       universal_last_seen = {}
@@ -138,11 +138,11 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     start_time, end_time, filtered_keywords, _ = self._AnalyzeKeywords(keywords)
 
     # TODO(user): Make keyword index datetime aware so that
-    # AsMicroSecondsFromEpoch is unecessary.
+    # AsMicrosecondsSinceEpoch is unecessary.
     return self.ReadPostingLists(
         filtered_keywords,
-        start_time=start_time.AsMicroSecondsFromEpoch(),
-        end_time=end_time.AsMicroSecondsFromEpoch())
+        start_time=start_time.AsMicrosecondsSinceEpoch(),
+        end_time=end_time.AsMicrosecondsSinceEpoch())
 
   def AnalyzeClient(self, client):
     """Finds the client_id and keywords for a client.
@@ -175,7 +175,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
       TryAppend(prefix, keyword)
-      segments = str(keyword).split(delimiter)
+      segments = utils.SmartStr(keyword).split(delimiter)
       for i in range(1, len(segments)):
         TryAppend(prefix, delimiter.join(segments[0:i]))
       return len(segments)
@@ -419,7 +419,7 @@ class ClientIndex(object):
 
     def TryAppendPrefixes(prefix, keyword, delimiter):
       TryAppend(prefix, keyword)
-      segments = str(keyword).split(delimiter)
+      segments = utils.SmartStr(keyword).split(delimiter)
       for i in range(1, len(segments)):
         TryAppend(prefix, delimiter.join(segments[0:i]))
       return len(segments)
@@ -477,17 +477,16 @@ class ClientIndex(object):
 
     return keywords
 
-  def AddClient(self, client_id, client):
+  def AddClient(self, client):
     """Adds a client to the index.
 
     Args:
-      client_id: The client_id of the client to index.
       client: A Client object record.
     """
     keywords = self.AnalyzeClient(client)
-    keywords.add(self._NormalizeKeyword(client_id))
+    keywords.add(self._NormalizeKeyword(client.client_id))
 
-    data_store.REL_DB.AddClientKeywords(client_id, keywords)
+    data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
   def AddClientLabels(self, client_id, labels):
     keywords = set()

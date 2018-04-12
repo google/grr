@@ -11,6 +11,8 @@ from grr.server import aff4
 from grr.server import artifact
 from grr.server import client_fixture
 from grr.server import client_index
+from grr.server import data_migration
+from grr.server import data_store
 from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import test_lib
 
@@ -18,7 +20,7 @@ from grr.test_lib import test_lib
 FIXTURE_TIME = test_lib.FIXED_TIME
 
 
-class ClientFixture(object):
+class LegacyClientFixture(object):
   """A tool to create a client fixture.
 
   This will populate the AFF4 object tree in the data store with a mock client
@@ -41,7 +43,7 @@ class ClientFixture(object):
     """
     self.args = kwargs
     self.token = token
-    self.age = age or FIXTURE_TIME.AsSecondsFromEpoch()
+    self.age = age or FIXTURE_TIME.AsSecondsSinceEpoch()
     self.client_id = rdf_client.ClientURN(client_id)
     self.args["client_id"] = self.client_id.Basename()
     self.args["age"] = self.age
@@ -123,3 +125,20 @@ class ClientFixture(object):
         if aff4_type == aff4_grr.VFSGRRClient:
           index = client_index.CreateClientIndex(token=self.token)
           index.AddClient(aff4_object)
+
+
+def ClientFixture(client_id, token=None, age=None):
+  """Creates a client fixture with a predefined VFS tree."""
+
+  if hasattr(client_id, "Basename"):
+    client_id = client_id.Basename()
+
+  LegacyClientFixture(client_id, age=age, token=token)
+
+  if not data_store.RelationalDBReadEnabled():
+    return
+
+  data_migration.Migrate(thread_count=1)
+
+  db_client_snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+  client_index.ClientIndex().AddClient(db_client_snapshot)

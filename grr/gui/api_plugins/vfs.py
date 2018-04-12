@@ -784,7 +784,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
     for start in range(0, len(items), self.CHUNK_SIZE):
       for item in items[start:start + self.CHUNK_SIZE]:
         writer.writerow([
-            item.timestamp.AsMicroSecondsFromEpoch(), item.timestamp,
+            item.timestamp.AsMicrosecondsSinceEpoch(), item.timestamp,
             utils.SmartStr(item.file_path), item.action
         ])
 

@@ -12,11 +12,13 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.server import aff4
 from grr.server import data_store
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   """Test the Cron view GUI."""
 
@@ -252,9 +254,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, client_id.Basename())
-      self.WaitUntil(self.IsTextPresent,
-                     "File %s transferred successfully." % str(
-                         client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntil(
+          self.IsTextPresent, "File %s transferred successfully." % str(
+              client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabGetsAutoRefreshed(self):
     h = self.CreateSampleHunt()
@@ -291,15 +293,15 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-hunt-log button:contains('Filter')")
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[-1].Basename())
-    self.WaitUntil(self.IsTextPresent,
-                   "File %s transferred successfully." % str(
-                       self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
+    self.WaitUntil(
+        self.IsTextPresent, "File %s transferred successfully." % str(
+            self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, client_id.Basename())
-      self.WaitUntilNot(self.IsTextPresent,
-                        "File %s transferred successfully." % str(
-                            client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntilNot(
+          self.IsTextPresent, "File %s transferred successfully." % str(
+              client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     with self.CreateSampleHunt() as hunt:
@@ -514,9 +516,10 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     # hunts logs.
     # Click the Log Tab.
     self.Click("css=li[heading=Log]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Hunt %s reached the crashes limit of 3 and was stopped." %
-                   hunt.urn.Basename())
+    self.WaitUntil(
+        self.IsTextPresent,
+        "Hunt %s reached the crashes limit of 3 and was stopped." %
+        hunt.urn.Basename())
 
 
 def main(argv):

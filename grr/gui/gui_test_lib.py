@@ -22,6 +22,7 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import webauth
 from grr.gui import wsgiapp_testlib
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -50,6 +51,16 @@ from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
+
+flags.DEFINE_string(
+    "chrome_driver_path", None,
+    "Path to the chrome driver binary. If not set, webdriver "
+    "will search on PATH for the binary.")
+
+flags.DEFINE_bool(
+    "use_headless_chrome", False, "If set, run Chrome driver in "
+    "headless mode. Useful when running tests in a window-manager-less "
+    "environment.")
 
 # A increasing sequence of times.
 TIME_0 = test_lib.FIXED_TIME
@@ -155,7 +166,14 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
-    GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
+    if flags.FLAGS.use_headless_chrome:
+      options.add_argument("--headless")
+
+    if flags.FLAGS.chrome_driver_path:
+      GRRSeleniumTest.driver = webdriver.Chrome(
+          flags.FLAGS.chrome_driver_path, chrome_options=options)
+    else:
+      GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
     # pylint: enable=unreachable
 
   _selenium_set_up_lock = threading.RLock()
@@ -372,8 +390,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def IsUserNotificationPresent(self, contains_string):
     self.Click("css=#notification_button")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-notification-dialog")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-user-notification-dialog:contains('Loading...')")
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-user-notification-dialog:contains('Loading...')")
 
     notifications_text = self.GetText("css=grr-user-notification-dialog")
     self.Click("css=grr-user-notification-dialog button:contains('Close')")
@@ -502,8 +521,8 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition not met. got: %r, does not contain: %s" % (data,
-                                                                    target))
+    self.fail(
+        "condition not met. got: %r, does not contain: %s" % (data, target))
 
   def _MakeFixtures(self):
     token = access_control.ACLToken(username="test", reason="Make fixtures.")
@@ -641,7 +660,8 @@ class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
     if values is None:
       values = [
           rdfvalue.RDFURN("aff4:/sample/1"),
-          rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
+          rdfvalue.RDFURN(
+              "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename()),
           rdfvalue.RDFURN("aff4:/sample/3")
       ]
 

@@ -1170,59 +1170,6 @@ message ExecutePythonResponse {
   optional int32 time_used = 2;
 }
 
-
-// The summary describes important information about the component.
-message ClientComponentSummary {
-  optional string name = 1 [(sem_type) = {
-      description: "The name of the component."
-    }];
-
-  optional string version = 2 [(sem_type) = {
-      description: "The version string of the component."
-    }];
-
-  optional string seed = 4 [(sem_type) = {
-      description: "A ramdom seed for this component."
-    }];
-
-  repeated string modules = 5 [(sem_type) = {
-      description: "The modules which will be imported."
-    }];
-
-  optional string url = 6 [(sem_type) = {
-      description: "The URL that a signed blob of this component can be "
-      "downloaded from."
-    }];
-
-  optional SymmetricCipher cipher = 7 [(sem_type) = {
-      description: "This cipher will be used to encrypt the ClientComponent."
-    }];
-}
-
-// This is the actual component data. It is stored inside a SignedBlob which is
-// encrypted using the cipher in the summary.
-message ClientComponent {
-  optional ClientComponentSummary summary = 1 [(sem_type) = {
-      description: "Information about the component."
-    }];
-
-  optional bytes raw_data = 2 [(sem_type) = {
-      description: "The raw ZIP file which will be installed. "
-    }];
-
-  optional Uname build_system = 3 [(sem_type) = {
-      // This should ideally be the same as the client.
-      description: "The platform this component was built on."
-    }];
-};
-
-// Used to launch a client action from a component.
-message LoadComponent {
-  optional ClientComponentSummary summary = 1 [(sem_type) = {
-      description: "The component to load."
-    }];
-}
-
 // Requests and responses to allow for executing an arbitrary binary.
 // This differs from ExecuteRequest as it includes sending the binary.
 message ExecuteBinaryRequest {

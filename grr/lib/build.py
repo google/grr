@@ -27,6 +27,7 @@ except ImportError:
   pass
 
 from grr import config
+from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import config_validator_base
 from grr.lib import rdfvalue
@@ -45,7 +46,7 @@ class BuilderBase(object):
 
   def __init__(self, context=None):
     self.context = context or config.CONFIG.context[:]
-    self.context = ["ClientBuilder Context"] + self.context
+    self.context = [contexts.CLIENT_BUILD_CONTEXT] + self.context
 
   def GenerateDirectory(self,
                         input_dir=None,
@@ -275,13 +276,16 @@ class ClientRepacker(BuilderBase):
       # defined options and then resolve those from the config in the
       # client's context. The result is the raw option as if the
       # client read our config file.
+      client_context = context[:]
+      while contexts.CLIENT_BUILD_CONTEXT in client_context:
+        client_context.remove(contexts.CLIENT_BUILD_CONTEXT)
       for descriptor in sorted(config.CONFIG.type_infos, key=lambda x: x.name):
         if descriptor.name in self.SKIP_OPTION_LIST:
           continue
 
         if descriptor.section in self.CONFIG_SECTIONS:
           value = config.CONFIG.GetRaw(
-              descriptor.name, context=context, default=None)
+              descriptor.name, context=client_context, default=None)
 
           if value is not None:
             logging.debug("Copying config option to client: %s",

@@ -4,7 +4,6 @@
 import logging
 import zlib
 
-from grr import config
 from grr.lib import constants
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -19,7 +18,6 @@ from grr.server import data_store
 from grr.server import flow
 from grr.server import server_stubs
 from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import collects
 from grr.server.aff4_objects import filestore
 
 
@@ -162,8 +160,7 @@ class GetFile(flow.GRRFlow):
       self.Notify("ViewObject", self.urn, "File transfer failed.")
     else:
       stat_entry = self.state.stat_entry
-      self.Notify("ViewObject",
-                  stat_entry.AFF4Path(self.client_id),
+      self.Notify("ViewObject", stat_entry.AFF4Path(self.client_id),
                   "File transferred successfully.")
 
   @flow.StateHandler()
@@ -893,55 +890,3 @@ class SendFile(flow.GRRFlow):
     if not responses.success:
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
-
-
-class LoadComponentMixin(object):
-  """A mixin which loads components on the client.
-
-  Use this mixin to force the client to load the required components prior to
-  launching client actions implemented by those components.
-  """
-
-  # We handle client exits by ourselves.
-  handles_crashes = True
-
-  def LoadComponentOnClient(self, name=None, version=None, next_state=None):
-    """Load the component with the specified name and version."""
-    if next_state is None:
-      raise TypeError("next_state not specified.")
-
-    # Get the component summary.
-    component_urn = config.CONFIG.Get("Config.aff4_root").Add("components").Add(
-        "%s_%s" % (name, version))
-
-    try:
-      fd = aff4.FACTORY.Open(
-          component_urn,
-          aff4_type=collects.ComponentObject,
-          mode="r",
-          token=self.token)
-    except IOError as e:
-      logging.info("Component not found: %s", e)
-      self.CallStateInline(next_state=next_state)
-      return
-
-    component_summary = fd.Get(fd.Schema.COMPONENT)
-    if component_summary is None:
-      raise RuntimeError("Component %s (%s) does not exist in data store." %
-                         (name, version))
-
-    self.CallClient(
-        server_stubs.LoadComponent,
-        summary=component_summary,
-        next_state="ComponentLoaded",
-        request_data=dict(next_state=next_state))
-
-  @flow.StateHandler()
-  def ComponentLoaded(self, responses):
-    if not responses.success:
-      self.Log(responses.status.error_message)
-    else:
-      self.Log("Loaded component %s %s",
-               responses.First().summary.name,
-               responses.First().summary.version)
-    self.CallStateInline(next_state=responses.request_data["next_state"])

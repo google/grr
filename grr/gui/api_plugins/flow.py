@@ -929,9 +929,9 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListFlowDescriptorsResult
 
-  def __init__(self, legacy_security_manager=None):
+  def __init__(self, access_check_fn=None):
     super(ApiListFlowDescriptorsHandler, self).__init__()
-    self.legacy_security_manager = legacy_security_manager
+    self.access_check_fn = access_check_fn
 
   def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
@@ -946,8 +946,8 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
 
       # Only show flows that the user is allowed to start.
       try:
-        if self.legacy_security_manager:
-          self.legacy_security_manager.CheckIfCanStartFlow(token, name)
+        if self.access_check_fn:
+          self.access_check_fn(token.username, name)
       except access_control.UnauthorizedAccess:
         continue
 

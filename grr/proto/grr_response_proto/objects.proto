@@ -130,6 +130,7 @@ message GRRUser {
   optional UserType user_type = 5;
 }
 
+// Next message id: 12
 message ApprovalRequest {
   enum ApprovalType {
     APPROVAL_TYPE_NONE = 0;
@@ -148,6 +149,8 @@ message ApprovalRequest {
   optional uint64 expiration_time = 7 [(sem_type) = {
       type: "RDFDatetime"
     }];
+
+  optional string email_message_id = 11;
 
   repeated string notified_users = 8;
   repeated string email_cc_addresses = 9;

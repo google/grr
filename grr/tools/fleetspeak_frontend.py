@@ -13,7 +13,6 @@ from grr import config
 from grr.lib import communicator
 from grr.lib import flags
 from grr.lib import stats
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import fleetspeak_connector
 from grr.server import fleetspeak_utils
@@ -73,8 +72,7 @@ class GRRFSServer(object):
 
   def _ProcessMessageList(self, fs_msg):
     """Process a FS message when message_type is MessageList."""
-    grr_id = rdf_client.ClientURN(
-        fleetspeak_utils.FleetspeakIDToGRRID(fs_msg.source.client_id))
+    grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_msg.source.client_id)
 
     msg_list = rdf_flows.PackedMessageList.FromSerializedString(
         fs_msg.data.value)

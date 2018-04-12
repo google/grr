@@ -47,15 +47,48 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
     # pylint: enable=unreachable
 
   # These are tests defined by the Mixin which we don't (yet) expect to pass.
+  # Generate them with the following IPython snippet:
+  #
+  # from grr.server import db_test
+  # methods = dir(db_test.DatabaseTestMixin)
+  # for m in methods:
+  #   if not m.startswith("test"):
+  #     continue
+  #   print "  def %s(self):\n    pass\n" % m
+  #
   # TODO(user): finish the implementation and enable these.
+
+  def testClientKeywords(self):
+    pass
+
+  def testClientKeywordsTimeRanges(self):
+    pass
+
+  def testClientLabels(self):
+    pass
+
+  def testClientLabelsUnicode(self):
+    pass
+
+  def testClientStartupInfo(self):
+    pass
+
+  def testCrashHistory(self):
+    pass
 
   def testDatabaseType(self):
     pass
 
-  def testClientMetadataSubsecond(self):
+  def testEmptyGRRUserReadWrite(self):
     pass
 
-  def testClientWriteToUnknownClient(self):
+  def testFilledGRRUserReadWrite(self):
+    pass
+
+  def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
+    pass
+
+  def testGrantApprovalAddsNewGrantor(self):
     pass
 
   def testKeywordWriteToUnknownClient(self):
@@ -64,22 +97,100 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testLabelWriteToUnknownClient(self):
     pass
 
-  def testClientSnapshotHistory(self):
+  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
+    pass
+
+  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
+    pass
+
+  def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
+    pass
+
+  def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
+    pass
+
+  def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
+    pass
+
+  def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
+    pass
+
+  def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
+    pass
+
+  def testReadApprovalRequestsReturnsMultipleApprovals(self):
+    pass
+
+  def testReadApprovalRequestsReturnsSingleApproval(self):
+    pass
+
+  def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
+    pass
+
+  def testReadClientFullFullInfoReturnsCorrectResult(self):
+    pass
+
+  def testReadClientStartupInfoHistory(self):
+    pass
+
+  def testReadClientStartupInfoHistoryWithEmptyTimerange(self):
+    pass
+
+  def testReadClientStartupInfoHistoryWithTimerangeEdgeCases(self):
+    pass
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithBothFromTo(self):
+    pass
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithFromOnly(self):
+    pass
+
+  def testReadClientStartupInfoHistoryWithTimerangeWithToOnly(self):
+    pass
+
+  def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
+    pass
+
+  def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
+    pass
+
+  def testReadingMultipleGRRUsersEntriesWorks(self):
+    pass
+
+  def testReadingUnknownGRRUserFails(self):
+    pass
+
+  def testRemoveClientKeyword(self):
     pass
 
   def testWriteClientSnapshotHistory(self):
     pass
 
-  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNotSet(self):
-    pass
-
-  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNewer(self):
-    pass
-
   def testWriteClientSnapshotHistoryDoesNotUpdateLastTimestampIfOlder(self):
     pass
 
-  def testWriteClientSnapshotHistoryUpdatesOnlyLastClientTimestamp(self):
+  def testWriteClientSnapshotHistoryRaiseAttributeError(self):
+    pass
+
+  def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):
     pass
 
   def testWriteClientSnapshotHistoryRaiseTypeError(self):
@@ -91,115 +202,13 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
   def testWriteClientSnapshotHistoryRaiseValueErrorOnNonUniformIds(self):
     pass
 
-  def testWriteClientSnapshotHistoryRaiseAttributeError(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNewer(self):
     pass
 
-  def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):
+  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNotSet(self):
     pass
 
-  def testClientSummary(self):
-    pass
-
-  def testClientValidates(self):
-    pass
-
-  def testClientStartupInfo(self):
-    pass
-
-  def testStartupHistory(self):
-    pass
-
-  def testCrashHistory(self):
-    pass
-
-  def testClientKeywords(self):
-    pass
-
-  def testClientKeywordsTimeRanges(self):
-    pass
-
-  def testRemoveClientKeyword(self):
-    pass
-
-  def testClientLabels(self):
-    pass
-
-  def testClientLabelsUnicode(self):
-    pass
-
-  def testFilledGRRUserReadWrite(self):
-    pass
-
-  def testEmptyGRRUserReadWrite(self):
-    pass
-
-  def testReadingUnknownGRRUserFails(self):
-    pass
-
-  def testReadingMultipleGRRUsersEntriesWorks(self):
-    pass
-
-  def testReadClientFullFullInfoReturnsCorrectResult(self):
-    pass
-
-  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
-    pass
-
-  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
-    pass
-
-  def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
-    pass
-
-  def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
-    pass
-
-  def testGrantApprovalAddsNewGrantor(self):
-    pass
-
-  def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
-    pass
-
-  def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
-    pass
-
-  def testReadApprovalRequestsReturnsSingleApproval(self):
-    pass
-
-  def testReadApprovalRequestsReturnsMultipleApprovals(self):
-    pass
-
-  def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
-    pass
-
-  def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
-    pass
-
-  def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
-    pass
-
-  def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
+  def testWriteClientSnapshotHistoryUpdatesOnlyLastClientTimestamp(self):
     pass
 
 

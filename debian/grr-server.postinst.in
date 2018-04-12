@@ -26,5 +26,5 @@ esac
 echo "#################################################################"
 echo "Install complete."
 echo "If upgrading, make sure you read the release notes:"
-echo "https://github.com/google/grr-doc/blob/master/releasenotes.adoc"
+echo "https://grr-doc.readthedocs.io/en/latest/release-notes.html"
 echo "#################################################################"

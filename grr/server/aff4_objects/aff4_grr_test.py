@@ -258,7 +258,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         empty_summary = fd.GetSummary()
         self.assertEqual(empty_summary.client_id, "C.0000000000000000")
         self.assertFalse(empty_summary.system_info.version)
-        self.assertEqual(empty_summary.timestamp.AsSecondsFromEpoch(), 1)
+        self.assertEqual(empty_summary.timestamp.AsSecondsSinceEpoch(), 1)
 
         # This will cause TYPE to be written with current time = 101 when the
         # object is closed
@@ -292,7 +292,7 @@ class AFF4GRRTest(aff4_test_lib.AFF4ObjectTest):
         self.assertItemsEqual(summary.interfaces, [interface])
         self.assertFalse(summary.client_info)
 
-        self.assertEqual(summary.timestamp.AsSecondsFromEpoch(), 101)
+        self.assertEqual(summary.timestamp.AsSecondsSinceEpoch(), 101)
         self.assertEqual(summary.cloud_type, "GOOGLE")
         self.assertEqual(summary.cloud_instance_id,
                          "us-central1-a/myproject/1771384456894610289")

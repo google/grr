@@ -280,7 +280,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         source_ip = source_ip.ipv4_mapped or source_ip
 
       request_comms.orig_request = rdf_flows.HttpRequest(
-          timestamp=rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch(),
+          timestamp=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
           raw_headers=utils.SmartStr(self.headers),
           source_ip=utils.SmartStr(source_ip))
 

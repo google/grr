@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """Test classes for ACL-related testing."""
 
-from grr.lib import rdfvalue
+from grr.gui.api_plugins import user as api_user
+
+from grr.lib.rdfvalues import objects as rdf_objects
+
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import data_store
 
-from grr.server.aff4_objects import security
 from grr.server.aff4_objects import users
 
 
@@ -14,6 +17,9 @@ class AclTestMixin(object):
 
   def CreateUser(self, username):
     """Creates a user."""
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.WriteGRRUser(username)
+
     user = aff4.FACTORY.Create(
         "aff4:/users/%s" % username, users.GRRUser, token=self.token.SetUID())
     user.Flush()
@@ -21,6 +27,10 @@ class AclTestMixin(object):
 
   def CreateAdminUser(self, username):
     """Creates a user and makes it an admin."""
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.WriteGRRUser(
+          username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+
     with self.CreateUser(username) as user:
       user.SetLabel("admin", owner="GRR")
 
@@ -40,63 +50,92 @@ class AclTestMixin(object):
     if not reason:
       reason = self.token.reason
 
-    requestor = security.ClientApprovalRequestor(
-        subject_urn=client_id,
-        reason=reason,
-        approver=approver,
-        email_cc_address=email_cc_address,
-        token=access_control.ACLToken(username=requestor))
-    return requestor.Request().Basename()
+    self.CreateUser(requestor)
+    self.CreateUser(approver)
+
+    args = api_user.ApiCreateClientApprovalArgs(
+        client_id=client_id,
+        approval=api_user.ApiClientApproval(
+            reason=reason,
+            notified_users=[approver],
+            email_cc_addresses=([email_cc_address]
+                                if email_cc_address else [])))
+    handler = api_user.ApiCreateClientApprovalHandler()
+    result = handler.Handle(
+        args, token=access_control.ACLToken(username=requestor))
+
+    return result.id
 
   def GrantClientApproval(self,
                           client_id,
-                          reason=None,
                           requestor=None,
-                          approver="approver"):
+                          approval_id=None,
+                          approver="approver",
+                          admin=True):
     """Grant an approval from approver to delegate.
 
     Args:
       client_id: ClientURN
-      reason: reason for approval request.
       requestor: username string of the user receiving approval.
+      approval_id: id of the approval to grant.
       approver: username string of the user granting approval.
+      admin: If True, make approver an admin user.
+    Raises:
+      ValueError: if approval_id is empty.
     """
+    if not approval_id:
+      raise ValueError("approval_id can't be empty.")
+
     if hasattr(client_id, "Basename"):
       client_id = client_id.Basename()
-
-    self.CreateAdminUser(approver)
 
     if not requestor:
       requestor = self.token.username
 
-    if not reason:
-      reason = self.token.reason
+    self.CreateUser(requestor)
+    if admin:
+      self.CreateAdminUser(approver)
+    else:
+      self.CreateUser(approver)
 
-    approver_token = access_control.ACLToken(username=approver)
-    grantor = security.ClientApprovalGrantor(
-        subject_urn=client_id,
-        reason=reason,
-        delegate=requestor,
-        token=approver_token)
-    grantor.Grant()
+    if not requestor:
+      requestor = self.token.username
+
+    args = api_user.ApiGrantClientApprovalArgs(
+        client_id=client_id, username=requestor, approval_id=approval_id)
+    handler = api_user.ApiGrantClientApprovalHandler()
+    handler.Handle(args, token=access_control.ACLToken(username=approver))
 
   def RequestAndGrantClientApproval(self,
                                     client_id,
                                     requestor=None,
                                     reason=None,
-                                    approver="approver"):
+                                    approver="approver",
+                                    admin=True):
     """Request and grant client approval for a given client."""
 
     approval_id = self.RequestClientApproval(
         client_id, requestor=requestor, approver=approver, reason=reason)
     self.GrantClientApproval(
-        client_id, requestor=requestor, reason=reason, approver=approver)
+        client_id,
+        requestor=requestor,
+        approval_id=approval_id,
+        approver=approver,
+        admin=admin)
     return approval_id
+
+  def ListClientApprovals(self, requestor=None):
+    requestor = requestor or self.token.username
+    handler = api_user.ApiListClientApprovalsHandler()
+    return handler.Handle(
+        api_user.ApiListClientApprovalsArgs(),
+        token=access_control.ACLToken(username=requestor)).items
 
   def RequestHuntApproval(self,
                           hunt_id,
                           requestor=None,
                           reason=None,
+                          email_cc_address=None,
                           approver="approver"):
     """Request hunt approval for a given hunt."""
 
@@ -106,50 +145,82 @@ class AclTestMixin(object):
     if not reason:
       reason = self.token.reason
 
-    token = access_control.ACLToken(username=requestor)
-    requestor = security.HuntApprovalRequestor(
-        subject_urn=rdfvalue.RDFURN("hunts").Add(hunt_id),
-        reason=reason,
-        approver=approver,
-        token=token)
-    return requestor.Request().Basename()
+    self.CreateUser(requestor)
+    self.CreateUser(approver)
+
+    args = api_user.ApiCreateHuntApprovalArgs(
+        hunt_id=hunt_id,
+        approval=api_user.ApiHuntApproval(
+            reason=reason,
+            notified_users=[approver],
+            email_cc_addresses=([email_cc_address]
+                                if email_cc_address else [])))
+    handler = api_user.ApiCreateHuntApprovalHandler()
+    result = handler.Handle(
+        args, token=access_control.ACLToken(username=requestor))
+
+    return result.id
 
   def GrantHuntApproval(self,
                         hunt_id,
                         requestor=None,
-                        reason=None,
-                        approver="approver"):
+                        approval_id=None,
+                        approver="approver",
+                        admin=True):
     """Grants an approval for a given hunt."""
+
+    if not approval_id:
+      raise ValueError("approval_id can't be empty.")
+
     if not requestor:
       requestor = self.token.username
 
-    if not reason:
-      reason = self.token.reason
+    self.CreateUser(requestor)
+    if admin:
+      self.CreateAdminUser(approver)
+    else:
+      self.CreateUser(approver)
 
-    self.CreateAdminUser(approver)
-
-    approver_token = access_control.ACLToken(username=approver)
-    security.HuntApprovalGrantor(
-        subject_urn=rdfvalue.RDFURN("hunts").Add(hunt_id),
-        reason=reason,
-        delegate=requestor,
-        token=approver_token).Grant()
+    args = api_user.ApiGrantHuntApprovalArgs(
+        hunt_id=hunt_id, username=requestor, approval_id=approval_id)
+    handler = api_user.ApiGrantHuntApprovalHandler()
+    handler.Handle(args, token=access_control.ACLToken(username=approver))
 
   def RequestAndGrantHuntApproval(self,
                                   hunt_id,
                                   requestor=None,
                                   reason=None,
-                                  approver="approver"):
+                                  email_cc_address=None,
+                                  approver="approver",
+                                  admin=True):
+    """Requests and grants hunt approval for a given hunt."""
+
     approval_id = self.RequestHuntApproval(
-        hunt_id, requestor=requestor, reason=reason, approver=approver)
+        hunt_id,
+        requestor=requestor,
+        reason=reason,
+        email_cc_address=email_cc_address,
+        approver=approver)
     self.GrantHuntApproval(
-        hunt_id, requestor=requestor, reason=reason, approver=approver)
+        hunt_id,
+        requestor=requestor,
+        approval_id=approval_id,
+        approver=approver,
+        admin=admin)
     return approval_id
+
+  def ListHuntApprovals(self, requestor=None):
+    requestor = requestor or self.token.username
+    handler = api_user.ApiListHuntApprovalsHandler()
+    return handler.Handle(
+        api_user.ApiListHuntApprovalsArgs(),
+        token=access_control.ACLToken(username=requestor)).items
 
   def RequestCronJobApproval(self,
                              cron_job_id,
                              requestor=None,
                              reason=None,
+                             email_cc_address=None,
                              approver="approver"):
     """Request cron job approval for a given cron job."""
 
@@ -159,41 +230,71 @@ class AclTestMixin(object):
     if not reason:
       reason = self.token.reason
 
-    requestor = security.CronJobApprovalRequestor(
-        subject_urn=rdfvalue.RDFURN("cron").Add(cron_job_id),
-        reason=reason,
-        approver=approver,
-        token=access_control.ACLToken(username=requestor))
-    return requestor.Request().Basename()
+    self.CreateUser(requestor)
+    self.CreateUser(approver)
+
+    args = api_user.ApiCreateCronJobApprovalArgs(
+        cron_job_id=cron_job_id,
+        approval=api_user.ApiCronJobApproval(
+            reason=reason,
+            notified_users=[approver],
+            email_cc_addresses=([email_cc_address]
+                                if email_cc_address else [])))
+    handler = api_user.ApiCreateCronJobApprovalHandler()
+    result = handler.Handle(
+        args, token=access_control.ACLToken(username=requestor))
+
+    return result.id
 
   def GrantCronJobApproval(self,
                            cron_job_id,
                            requestor=None,
-                           reason=None,
-                           approver="approver"):
+                           approval_id=None,
+                           approver="approver",
+                           admin=True):
     """Grants an approval for a given cron job."""
     if not requestor:
       requestor = self.token.username
 
-    if not reason:
-      reason = self.token.reason
+    if not approval_id:
+      raise ValueError("approval_id can't be empty.")
 
-    self.CreateAdminUser(approver)
+    self.CreateUser(requestor)
+    if admin:
+      self.CreateAdminUser(approver)
+    else:
+      self.CreateUser(approver)
 
-    approver_token = access_control.ACLToken(username=approver)
-    security.CronJobApprovalGrantor(
-        subject_urn=rdfvalue.RDFURN("cron").Add(cron_job_id),
-        reason=reason,
-        delegate=requestor,
-        token=approver_token).Grant()
+    args = api_user.ApiGrantCronJobApprovalArgs(
+        cron_job_id=cron_job_id, username=requestor, approval_id=approval_id)
+    handler = api_user.ApiGrantCronJobApprovalHandler()
+    handler.Handle(args, token=access_control.ACLToken(username=approver))
 
   def RequestAndGrantCronJobApproval(self,
                                      cron_job_id,
                                      requestor=None,
                                      reason=None,
-                                     approver="approver"):
+                                     email_cc_address=None,
+                                     approver="approver",
+                                     admin=True):
+    """Requests and grants an approval for a given cron job."""
     approval_id = self.RequestCronJobApproval(
-        cron_job_id, requestor=requestor, reason=reason, approver=approver)
+        cron_job_id,
+        requestor=requestor,
+        reason=reason,
+        email_cc_address=email_cc_address,
+        approver=approver)
     self.GrantCronJobApproval(
-        cron_job_id, requestor=requestor, reason=reason, approver=approver)
+        cron_job_id,
+        requestor=requestor,
+        approval_id=approval_id,
+        approver=approver,
+        admin=admin)
     return approval_id
+
+  def ListCronJobApprovals(self, requestor=None):
+    requestor = requestor or self.token.username
+    handler = api_user.ApiListCronJobApprovalsHandler()
+    return handler.Handle(
+        api_user.ApiListCronJobApprovalsArgs(),
+        token=access_control.ACLToken(username=requestor)).items

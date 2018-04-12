@@ -73,7 +73,7 @@ class SequentialCollection(object):
     if timestamp is None:
       timestamp = rdfvalue.RDFDatetime.Now()
     if isinstance(timestamp, rdfvalue.RDFDatetime):
-      timestamp = timestamp.AsMicroSecondsFromEpoch()
+      timestamp = timestamp.AsMicrosecondsSinceEpoch()
 
     if not rdf_value.age:
       rdf_value.age = rdfvalue.RDFDatetime.Now()
@@ -279,7 +279,7 @@ class IndexedSequentialCollection(SequentialCollection):
       # We only write the index if the timestamp is more than 5 minutes in the
       # past: hacky defense against a late write changing the count.
       if ts[0] < (rdfvalue.RDFDatetime.Now() -
-                  self.INDEX_WRITE_DELAY).AsMicroSecondsFromEpoch():
+                  self.INDEX_WRITE_DELAY).AsMicrosecondsSinceEpoch():
         mutation_pool.CollectionAddIndex(self.collection_id, i, ts[0], ts[1])
         self._index[i] = ts
         self._max_indexed = max(i, self._max_indexed)

@@ -242,48 +242,11 @@ parser_upload_exe = subparsers.add_parser(
     help="Sign and upload an executable which can be used to execute code on "
     "a client.")
 
-parser_sign_component = subparsers.add_parser(
-    "sign_component", parents=[], help="Authenticode Sign the component.")
-
-parser_sign_component.add_argument(
-    "component_filename", help="Path to the compiled component to upload.")
-
-parser_sign_component.add_argument(
-    "output_filename", help="Path to write the signed component file.")
-
-parser_upload_component = subparsers.add_parser(
-    "upload_component", parents=[], help="Sign and upload a client component.")
-
-parser_upload_component.add_argument(
-    "component_filename", help="Path to the compiled component to upload.")
-
-parser_upload_component.add_argument(
-    "--overwrite_component",
-    default=False,
-    action="store_true",
-    help="Allow overwriting of the component path.")
-
-parser_upload_components = subparsers.add_parser(
-    "upload_components",
-    parents=[],
-    help="Sign and upload all client components.")
-
-parser_upload_components.add_argument(
-    "--overwrite_component",
-    default=False,
-    action="store_true",
-    help="Allow overwriting of the component path.")
-
 subparsers.add_parser(
     "download_missing_rekall_profiles",
     parents=[],
     help="Downloads all Rekall profiles from the repository that are not "
     "currently present in the database.")
-
-parser_list_components = subparsers.add_parser(
-    "list_components",
-    parents=[],
-    help="Lists all available client components.")
 
 set_global_notification = subparsers.add_parser(
     "set_global_notification",
@@ -447,8 +410,9 @@ def ConfigureHostnames(config):
     except (OSError, IOError):
       print "Sorry, we couldn't guess your hostname.\n"
 
-    hostname = RetryQuestion("Please enter your hostname e.g. "
-                             "grr.example.com", "^[\\.A-Za-z0-9-]+$", hostname)
+    hostname = RetryQuestion(
+        "Please enter your hostname e.g. "
+        "grr.example.com", "^[\\.A-Za-z0-9-]+$", hostname)
 
   print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
@@ -728,9 +692,6 @@ def ManageBinaries(config=None, token=None):
   if repack_templates:
     repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
 
-    print "\nStep 5: Signing and uploading client components."
-    maintenance_utils.SignAllComponents(token=token)
-
   print "\nInitialization complete, writing configuration."
   config.Write()
   print "Please restart the service for it to take effect.\n\n"
@@ -935,23 +896,6 @@ def main(argv):
         content, aff4_path=dest_path, client_context=context, token=token)
 
     print "Uploaded to %s" % dest_path
-
-  elif flags.FLAGS.subparser_name == "sign_component":
-    maintenance_utils.SignComponentContent(flags.FLAGS.component_filename,
-                                           flags.FLAGS.output_filename)
-
-  elif flags.FLAGS.subparser_name == "upload_component":
-    maintenance_utils.SignComponent(
-        flags.FLAGS.component_filename,
-        overwrite=flags.FLAGS.overwrite_component,
-        token=token)
-
-  elif flags.FLAGS.subparser_name == "upload_components":
-    maintenance_utils.SignAllComponents(
-        overwrite=flags.FLAGS.overwrite_component, token=token)
-
-  elif flags.FLAGS.subparser_name == "list_components":
-    maintenance_utils.ListComponents(token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = grr_config.CONFIG

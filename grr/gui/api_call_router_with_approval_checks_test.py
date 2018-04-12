@@ -37,10 +37,10 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     self.client_id = test_lib.TEST_CLIENT_ID
 
     self.delegate_mock = mock.MagicMock()
-    self.legacy_manager_mock = mock.MagicMock()
+    self.access_checker_mock = mock.MagicMock()
 
     self.router = api_router.ApiCallRouterWithApprovalChecks(
-        delegate=self.delegate_mock, legacy_manager=self.legacy_manager_mock)
+        delegate=self.delegate_mock, access_checker=self.access_checker_mock)
 
   def CheckMethodIsAccessChecked(self,
                                  method,
@@ -52,52 +52,53 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     # Check that legacy access control manager is called and that the method
     # is then delegated.
     method(args, token=token)
-    self.assertTrue(getattr(self.legacy_manager_mock, access_type).called)
+    self.assertTrue(getattr(self.access_checker_mock, access_type).called)
     getattr(self.delegate_mock, method.__name__).assert_called_with(
         args, token=token)
 
     self.delegate_mock.reset_mock()
-    self.legacy_manager_mock.reset_mock()
+    self.access_checker_mock.reset_mock()
 
     try:
       # Check that when exception is raised by legacy manager, the delegate
       # method is not called.
-      getattr(self.legacy_manager_mock,
+      getattr(self.access_checker_mock,
               access_type).side_effect = access_control.UnauthorizedAccess("")
 
       with self.assertRaises(access_control.UnauthorizedAccess):
         method(args, token=token)
 
-      self.assertTrue(getattr(self.legacy_manager_mock, access_type).called)
+      self.assertTrue(getattr(self.access_checker_mock, access_type).called)
       self.assertFalse(getattr(self.delegate_mock, method.__name__).called)
 
     finally:
-      getattr(self.legacy_manager_mock, access_type).side_effect = None
+      getattr(self.access_checker_mock, access_type).side_effect = None
       self.delegate_mock.reset_mock()
-      self.legacy_manager_mock.reset_mock()
+      self.access_checker_mock.reset_mock()
 
   def CheckMethodIsNotAccessChecked(self, method, args=None, token=None):
     token = token or self.token
 
     method(args, token=token)
 
-    self.assertFalse(self.legacy_manager_mock.CheckClientAccess.called)
-    self.assertFalse(self.legacy_manager_mock.CheckHuntAccess.called)
-    self.assertFalse(self.legacy_manager_mock.CheckCronJob.called)
-    self.assertFalse(self.legacy_manager_mock.CheckIfCanStartFlow.called)
-    self.assertFalse(self.legacy_manager_mock.CheckDataStoreAccess.called)
+    self.assertFalse(self.access_checker_mock.CheckClientAccess.called)
+    self.assertFalse(self.access_checker_mock.CheckHuntAccess.called)
+    self.assertFalse(self.access_checker_mock.CheckCronJob.called)
+    self.assertFalse(self.access_checker_mock.CheckIfCanStartClientFlow.called)
+    self.assertFalse(self.access_checker_mock.CheckDataStoreAccess.called)
 
     getattr(self.delegate_mock, method.__name__).assert_called_with(
         args, token=token)
 
     self.delegate_mock.reset_mock()
-    self.legacy_manager_mock.reset_mock()
+    self.access_checker_mock.reset_mock()
 
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
       "ListClientCrashes",
       "ListClientActionRequests",
-      "GetClientLoadStats"])  # pyformat: disable
+      "GetClientLoadStats",
+  ])
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
@@ -123,8 +124,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "CreateVfsRefreshOperation",
       "GetVfsTimeline",
       "GetVfsTimelineAsCsv",
-      "UpdateVfsFileContent"
-  ])  # pyformat: disable
+      "UpdateVfsFileContent",
+  ])
 
   def testVfsMethodsAreAccessChecked(self):
     args = api_vfs.ApiListFilesArgs(client_id=self.client_id)
@@ -184,8 +185,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "ListFlowOutputPlugins",
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
-      "ListFlowLogs"
-  ])  # pyformat: disable
+      "ListFlowLogs",
+  ])
 
   def testAllClientFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiListFlowsArgs(client_id=self.client_id)
@@ -200,7 +201,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     self.CheckMethodIsAccessChecked(
         self.router.CreateFlow, "CheckClientAccess", args=args)
     self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckIfCanStartFlow", args=args)
+        self.router.CreateFlow, "CheckIfCanStartClientFlow", args=args)
 
     args = api_flow.ApiCancelFlowArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
@@ -245,7 +246,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ACCESS_CHECKED_METHODS.extend([
       "ForceRunCronJob",
       "ModifyCronJob",
-      "DeleteCronJob"])  # pyformat: disable
+      "DeleteCronJob",
+  ])
 
   def testCronJobMethodsAreAccessChecked(self):
     args = api_cron.ApiForceRunCronJobArgs(cron_job_id="TestCronJob")
@@ -264,7 +266,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "ModifyHunt",
       "DeleteHunt",
       "GetHuntFilesArchive",
-      "GetHuntFile"])  # pyformat: disable
+      "GetHuntFile",
+  ])
 
   def testModifyHuntIsAccessChecked(self):
     args = api_hunt.ApiModifyHuntArgs(hunt_id="H:123456")
@@ -310,25 +313,16 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ])
 
   def testListGrrBinariesIsAccessChecked(self):
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      self.router.ListGrrBinaries(None, token=self.token)
-
-    self.CreateAdminUser(self.token.username)
-    self.router.ListGrrBinaries(None, token=self.token)
+    self.CheckMethodIsAccessChecked(self.router.ListGrrBinaries,
+                                    "CheckIfUserIsAdmin")
 
   def testGetGrrBinaryIsAccessChecked(self):
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      self.router.GetGrrBinary(None, token=self.token)
-
-    self.CreateAdminUser(self.token.username)
-    self.router.GetGrrBinary(None, token=self.token)
+    self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
+                                    "CheckIfUserIsAdmin")
 
   def testGetGrrBinaryBlobIsAccessChecked(self):
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      self.router.GetGrrBinaryBlob(None, token=self.token)
-
-    self.CreateAdminUser(self.token.username)
-    self.router.GetGrrBinaryBlob(None, token=self.token)
+    self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
+                                    "CheckIfUserIsAdmin")
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlowDescriptors",
@@ -336,21 +330,23 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testListFlowDescriptorsIsAccessChecked(self):
     handler = self.router.ListFlowDescriptors(None, token=self.token)
-    # Check that correct security manager got passed into the handler.
-    self.assertEqual(handler.legacy_security_manager,
-                     self.router.legacy_manager)
+    # Check that router's access_checker's method got passed into the handler.
+    self.assertEqual(handler.access_check_fn,
+                     self.router.access_checker.CheckIfCanStartClientFlow)
 
   ACCESS_CHECKED_METHODS.extend([
-      "GetGrrUser"])  # pyformat: disable
+      "GetGrrUser",
+  ])
 
   def testGetGrrUserReturnsFullTraitsForAdminUser(self):
-    self.CreateAdminUser(self.token.username)
     handler = self.router.GetGrrUser(None, token=self.token)
 
     self.assertEqual(handler.interface_traits,
                      api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
   def testGetGrrUserReturnsRestrictedTraitsForNonAdminUser(self):
+    error = access_control.UnauthorizedAccess("some error")
+    self.access_checker_mock.CheckIfUserIsAdmin.side_effect = error
     handler = self.router.GetGrrUser(None, token=self.token)
 
     self.assertNotEqual(handler.interface_traits,

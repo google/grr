@@ -370,7 +370,7 @@ class ApiStatsStoreMetricDataPointRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     if value.timestamp:
-      timestamp = value.timestamp.AsMicroSecondsFromEpoch() / 1000.0
+      timestamp = value.timestamp.AsMicrosecondsSinceEpoch() / 1000.0
     else:
       timestamp = 0
     return [timestamp, value.value]

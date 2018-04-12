@@ -4,56 +4,161 @@
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
+from grr.gui import approval_checks
 
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import user as api_user
 
+from grr.lib import stats
+from grr.lib import utils
+from grr.lib.rdfvalues import objects as rdf_objects
+
 from grr.server import access_control
 from grr.server import aff4
+from grr.server import data_store
+from grr.server import flow
 
 from grr.server.aff4_objects import user_managers
 
 from grr.server.hunts import implementation
 
 
+class LegacyChecker(object):
+  """Legacy access checker implementation."""
+
+  def __init__(self):
+    super(LegacyChecker, self).__init__()
+    self.legacy_manager = user_managers.FullAccessControlManager()
+
+  def CheckClientAccess(self, username, client_id):
+    token = access_control.ACLToken(username=username)
+    self.legacy_manager.CheckClientAccess(token, client_id.ToClientURN())
+
+  def CheckHuntAccess(self, username, hunt_id):
+    token = access_control.ACLToken(username=username)
+    self.legacy_manager.CheckHuntAccess(token, hunt_id.ToURN())
+
+  def CheckCronJobAccess(self, username, cron_job_id):
+    token = access_control.ACLToken(username=username)
+    self.legacy_manager.CheckCronJobAccess(token, cron_job_id.ToURN())
+
+  def CheckIfCanStartClientFlow(self, username, flow_name):
+    token = access_control.ACLToken(username=username)
+    self.legacy_manager.CheckIfCanStartFlow(token, flow_name)
+
+  def CheckIfUserIsAdmin(self, username):
+    user_managers.CheckUserForLabels(username, ["admin"])
+
+
+class RelDBChecker(object):
+  """Relational DB-based access checker implementation."""
+
+  def __init__(self):
+    self.approval_cache_time = 60
+    self.acl_cache = utils.AgeBasedCache(
+        max_size=10000, max_age=self.approval_cache_time)
+
+  def _CheckAccess(self, username, subject_id, approval_type):
+    """Checks access to a given subject by a given user."""
+    cache_key = (username, subject_id, approval_type)
+    try:
+      self.acl_cache.Get(cache_key)
+      stats.STATS.IncrementCounter("approval_searches", fields=["-", "cache"])
+      return True
+    except KeyError:
+      stats.STATS.IncrementCounter("approval_searches", fields=["-", "reldb"])
+
+    approvals = data_store.REL_DB.ReadApprovalRequests(
+        utils.SmartStr(username),
+        approval_type,
+        subject_id=subject_id,
+        include_expired=False)
+
+    errors = []
+    for approval in approvals:
+      try:
+        approval_checks.CheckApprovalRequest(approval)
+        self.acl_cache.Put(cache_key, True)
+        return
+      except access_control.UnauthorizedAccess as e:
+        errors.append(e)
+
+    subject = approval_checks.BuildLegacySubject(subject_id, approval_type)
+    if not errors:
+      raise access_control.UnauthorizedAccess(
+          "No approval found.", subject=subject)
+    else:
+      raise access_control.UnauthorizedAccess(
+          " ".join(utils.SmartStr(e) for e in errors), subject=subject)
+
+  def CheckClientAccess(self, username, client_id):
+    """Checks whether a given user can access given client."""
+    self._CheckAccess(
+        username, utils.SmartStr(client_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT)
+
+  def CheckHuntAccess(self, username, hunt_id):
+    """Checks whether a given user can access given hunt."""
+
+    self._CheckAccess(
+        username, utils.SmartStr(hunt_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT)
+
+  def CheckCronJobAccess(self, username, cron_job_id):
+    """Checks whether a given user can access given cron job."""
+
+    self._CheckAccess(
+        username, utils.SmartStr(cron_job_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+
+  def CheckIfCanStartClientFlow(self, username, flow_name):
+    """Checks whether a given user can start a given flow."""
+
+    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+
+    if not flow_cls.category:
+      raise access_control.UnauthorizedAccess(
+          "Flow %s can't be started on a client by non-suid users." % flow_name)
+
+    if flow_cls.AUTHORIZED_LABELS:
+      self.CheckIfUserIsAdmin(username)
+
+  def CheckIfUserIsAdmin(self, username):
+    """Checks whether the user is an admin."""
+
+    user_obj = data_store.REL_DB.ReadGRRUser(username)
+    if user_obj.user_type != user_obj.UserType.USER_TYPE_ADMIN:
+      raise access_control.UnauthorizedAccess(
+          "User %s is not an admin." % username)
+
+
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   """Router that uses approvals-based ACL checks."""
 
-  full_access_control_manager = None
+  access_checker = None
 
   @staticmethod
   def ClearCache():
     cls = ApiCallRouterWithApprovalChecks
-    cls.full_access_control_manager = None
+    cls.access_checker = None
 
-  def _GetFullAccessControlManager(self):
+  def _GetAccessChecker(self):
     cls = ApiCallRouterWithApprovalChecks
-    if cls.full_access_control_manager is None:
-      cls.full_access_control_manager = user_managers.FullAccessControlManager()
-    return cls.full_access_control_manager
 
-  def CheckClientAccess(self, client_id, token=None):
-    self.legacy_manager.CheckClientAccess(token.RealUID(),
-                                          client_id.ToClientURN())
+    if cls.access_checker is None:
+      if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+        cls.access_checker = RelDBChecker()
+      else:
+        cls.access_checker = LegacyChecker()
 
-  def CheckHuntAccess(self, hunt_id, token=None):
-    self.legacy_manager.CheckHuntAccess(token.RealUID(), hunt_id.ToURN())
+    return cls.access_checker
 
-  def CheckCronJobAccess(self, cron_job_id, token=None):
-    self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_id.ToURN())
-
-  def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name)
-
-  def CheckIfUserIsAdmin(self, token=None):
-    user_managers.CheckUserForLabels(token.username, ["admin"], token=token)
-
-  def __init__(self, params=None, legacy_manager=None, delegate=None):
+  def __init__(self, params=None, access_checker=None, delegate=None):
     super(ApiCallRouterWithApprovalChecks, self).__init__(params=params)
 
-    if not legacy_manager:
-      legacy_manager = self._GetFullAccessControlManager()
-    self.legacy_manager = legacy_manager
+    if not access_checker:
+      access_checker = self._GetAccessChecker()
+    self.access_checker = access_checker
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -101,7 +206,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetClientVersionTimes(args, token=token)
 
   def InterrogateClient(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.InterrogateClient(args, token=token)
 
@@ -117,17 +222,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetLastClientIPAddress(args, token=token)
 
   def ListClientCrashes(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListClientCrashes(args, token=token)
 
   def ListClientActionRequests(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListClientActionRequests(args, token=token)
 
   def GetClientLoadStats(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetClientLoadStats(args, token=token)
 
@@ -135,42 +240,42 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # ============================
   #
   def ListFiles(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFiles(args, token=token)
 
   def GetVfsFilesArchive(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetVfsFilesArchive(args, token=token)
 
   def GetFileDetails(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFileDetails(args, token=token)
 
   def GetFileText(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFileText(args, token=token)
 
   def GetFileBlob(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFileBlob(args, token=token)
 
   def GetFileVersionTimes(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFileVersionTimes(args, token=token)
 
   def GetFileDownloadCommand(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFileDownloadCommand(args, token=token)
 
   def CreateVfsRefreshOperation(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.CreateVfsRefreshOperation(args, token=token)
 
@@ -181,17 +286,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetVfsRefreshOperationState(args, token=token)
 
   def GetVfsTimeline(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetVfsTimeline(args, token=token)
 
   def GetVfsTimelineAsCsv(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetVfsTimelineAsCsv(args, token=token)
 
   def UpdateVfsFileContent(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.UpdateVfsFileContent(args, token=token)
 
@@ -225,69 +330,69 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # =====================
   #
   def ListFlows(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlows(args, token=token)
 
   def GetFlow(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFlow(args, token=token)
 
   def CreateFlow(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
-    self.CheckIfCanStartClientFlow(
-        args.flow.name or args.flow.runner_args.flow_name, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
+    self.access_checker.CheckIfCanStartClientFlow(
+        token.username, args.flow.name or args.flow.runner_args.flow_name)
 
     return self.delegate.CreateFlow(args, token=token)
 
   def CancelFlow(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.CancelFlow(args, token=token)
 
   def ListFlowRequests(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowRequests(args, token=token)
 
   def ListFlowResults(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowResults(args, token=token)
 
   def GetExportedFlowResults(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetExportedFlowResults(args, token=token)
 
   def GetFlowResultsExportCommand(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFlowResultsExportCommand(args, token=token)
 
   def GetFlowFilesArchive(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.GetFlowFilesArchive(args, token=token)
 
   def ListFlowOutputPlugins(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowOutputPlugins(args, token=token)
 
   def ListFlowOutputPluginLogs(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowOutputPluginLogs(args, token=token)
 
   def ListFlowOutputPluginErrors(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowOutputPluginErrors(args, token=token)
 
   def ListFlowLogs(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
 
     return self.delegate.ListFlowLogs(args, token=token)
 
@@ -310,12 +415,12 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetCronJob(args, token=token)
 
   def ForceRunCronJob(self, args, token=None):
-    self.CheckCronJobAccess(args.cron_job_id, token=token)
+    self.access_checker.CheckCronJobAccess(token.username, args.cron_job_id)
 
     return self.delegate.ForceRunCronJob(args, token=token)
 
   def ModifyCronJob(self, args, token=None):
-    self.CheckCronJobAccess(args.cron_job_id, token=token)
+    self.access_checker.CheckCronJobAccess(token.username, args.cron_job_id)
 
     return self.delegate.ModifyCronJob(args, token=token)
 
@@ -330,7 +435,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetCronJobFlow(args, token=token)
 
   def DeleteCronJob(self, args, token=None):
-    self.CheckCronJobAccess(args.cron_job_id, token=token)
+    self.access_checker.CheckCronJobAccess(token.username, args.cron_job_id)
 
     return self.delegate.DeleteCronJob(args, token=token)
 
@@ -419,7 +524,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def ModifyHunt(self, args, token=None):
     # Starting/stopping hunt or modifying its attributes requires an approval.
-    self.CheckHuntAccess(args.hunt_id, token=token)
+    self.access_checker.CheckHuntAccess(token.username, args.hunt_id)
 
     return self.delegate.ModifyHunt(args, token=token)
 
@@ -437,17 +542,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     # Hunt's creator is allowed to delete the hunt.
     if token.username != hunt_obj.creator:
-      self.CheckHuntAccess(args.hunt_id, token=token)
+      self.access_checker.CheckHuntAccess(token.username, args.hunt_id)
 
     return self.delegate.DeleteHunt(args, token=token)
 
   def GetHuntFilesArchive(self, args, token=None):
-    self.CheckHuntAccess(args.hunt_id, token=token)
+    self.access_checker.CheckHuntAccess(token.username, args.hunt_id)
 
     return self.delegate.GetHuntFilesArchive(args, token=token)
 
   def GetHuntFile(self, args, token=None):
-    self.CheckHuntAccess(args.hunt_id, token=token)
+    self.access_checker.CheckHuntAccess(token.username, args.hunt_id)
 
     return self.delegate.GetHuntFile(args, token=token)
 
@@ -592,7 +697,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
     try:
-      self.CheckIfUserIsAdmin(token=token)
+      self.access_checker.CheckIfUserIsAdmin(token.username)
     except access_control.UnauthorizedAccess:
       interface_traits.manage_binaries_nav_item_enabled = False
 
@@ -627,17 +732,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetConfigOption(args, token=token)
 
   def ListGrrBinaries(self, args, token=None):
-    self.CheckIfUserIsAdmin(token=token)
+    self.access_checker.CheckIfUserIsAdmin(token.username)
 
     return self.delegate.ListGrrBinaries(args, token=token)
 
   def GetGrrBinary(self, args, token=None):
-    self.CheckIfUserIsAdmin(token=token)
+    self.access_checker.CheckIfUserIsAdmin(token.username)
 
     return self.delegate.GetGrrBinary(args, token=token)
 
   def GetGrrBinaryBlob(self, args, token=None):
-    self.CheckIfUserIsAdmin(token=token)
+    self.access_checker.CheckIfUserIsAdmin(token.username)
 
     return self.delegate.GetGrrBinaryBlob(args, token=token)
 
@@ -653,7 +758,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can list flow descritors.
 
     return api_flow.ApiListFlowDescriptorsHandler(
-        legacy_security_manager=self.legacy_manager)
+        self.access_checker.CheckIfCanStartClientFlow)
 
   def ListAff4AttributeDescriptors(self, args, token=None):
     # Everybody can list aff4 attribute descriptors.

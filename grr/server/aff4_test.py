@@ -2014,16 +2014,15 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
 
       # Matches the old client
       one_hour_ago = base_time - rdfvalue.Duration("1h")
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
-          rules=[
-              rdf_foreman.ForemanClientRule(
-                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-                  integer=rdf_foreman.ForemanIntegerClientRule(
-                      field="INSTALL_TIME",
-                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                      LESS_THAN,
-                      value=one_hour_ago.AsSecondsFromEpoch()))
-          ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  field="INSTALL_TIME",
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                  LESS_THAN,
+                  value=one_hour_ago.AsSecondsSinceEpoch()))
+      ])
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
@@ -2039,16 +2038,15 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(new)")
 
       # Matches the newer clients
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
-          rules=[
-              rdf_foreman.ForemanClientRule(
-                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-                  integer=rdf_foreman.ForemanIntegerClientRule(
-                      field="INSTALL_TIME",
-                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                      GREATER_THAN,
-                      value=one_hour_ago.AsSecondsFromEpoch()))
-          ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  field="INSTALL_TIME",
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                  GREATER_THAN,
+                  value=one_hour_ago.AsSecondsSinceEpoch()))
+      ])
 
       new_flow = "Test flow for newer clients"
 
@@ -2063,16 +2061,14 @@ class ForemanTests(aff4_test_lib.AFF4ObjectTest):
           created=int(now), expires=int(expires), description="Test rule(eq)")
 
       # Note that this also tests the handling of nonexistent attributes.
-      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(
-          rules=[
-              rdf_foreman.ForemanClientRule(
-                  rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-                  integer=rdf_foreman.ForemanIntegerClientRule(
-                      field="LAST_BOOT_TIME",
-                      operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                      EQUAL,
-                      value=boot_time.AsSecondsFromEpoch()))
-          ])
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  field="LAST_BOOT_TIME",
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
+                  value=boot_time.AsSecondsSinceEpoch()))
+      ])
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
 

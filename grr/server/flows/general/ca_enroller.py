@@ -49,8 +49,8 @@ class CAEnroler(flow.GRRFlow):
     # to a client URN.
     self.cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
     if self.cn != csr.GetCN():
-      raise ValueError("CSR CN %s does not match public key %s." % (csr.GetCN(),
-                                                                    self.cn))
+      raise ValueError(
+          "CSR CN %s does not match public key %s." % (csr.GetCN(), self.cn))
 
     logging.info("Will sign CSR for: %s", self.cn)
 
@@ -82,8 +82,7 @@ class CAEnroler(flow.GRRFlow):
       index.AddClient(client)
       if data_store.RelationalDBWriteEnabled():
         index = client_index.ClientIndex()
-        index.AddClient(self.client_id.Basename(),
-                        data_migration.ConvertVFSGRRClient(client))
+        index.AddClient(data_migration.ConvertVFSGRRClient(client))
 
     # Publish the client enrollment message.
     self.Publish("ClientEnrollment", self.client_id)

@@ -724,12 +724,13 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         if i == 4:  # The first row includes the column headings.
           self.assertEqual(
               next_chunk, "Timestamp,Datetime,Message,Timestamp_desc\r\n"
-              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicroSecondsFromEpoch(),
+              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicrosecondsSinceEpoch(),
                                          str(timestamp), self.file_path))
         else:
-          self.assertEqual(next_chunk, "%d,%s,%s,MODIFICATION" %
-                           (timestamp.AsMicroSecondsFromEpoch(), str(timestamp),
-                            self.file_path))
+          self.assertEqual(
+              next_chunk,
+              "%d,%s,%s,MODIFICATION" % (timestamp.AsMicrosecondsSinceEpoch(),
+                                         str(timestamp), self.file_path))
 
   def testEmptyTimelineIsReturnedOnNonexistantPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(

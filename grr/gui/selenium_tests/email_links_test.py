@@ -16,8 +16,10 @@ from grr.server.aff4_objects import cronjobs
 from grr.server.flows.cron import system as cron_system
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"

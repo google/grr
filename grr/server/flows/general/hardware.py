@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """These are low-level related flows."""
 
-
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server import aff4
@@ -17,7 +16,7 @@ class DumpFlashImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DumpFlashImageArgs
 
 
-class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
+class DumpFlashImage(flow.GRRFlow):
   """Dump Flash image (BIOS)."""
 
   category = "/Collectors/"
@@ -26,14 +25,6 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    """Load grr_chipsec component on the client."""
-    self.LoadComponentOnClient(
-        name="grr-chipsec-component",
-        version=self.args.component_version,
-        next_state="CollectDebugInfo")
-
-  @flow.StateHandler()
-  def CollectDebugInfo(self, responses):
     """Start by collecting general hardware information."""
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
@@ -118,7 +109,7 @@ class DumpACPITableArgs(rdf_structs.RDFProtoStruct):
       raise ValueError("No ACPI table to dump.")
 
 
-class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
+class DumpACPITable(flow.GRRFlow):
   """Flow to retrieve ACPI tables."""
 
   category = "/Collectors/"
@@ -127,14 +118,6 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    """Load grr-chipsec component on the client."""
-    self.LoadComponentOnClient(
-        name="grr-chipsec-component",
-        version=self.args.component_version,
-        next_state="StartCollection")
-
-  @flow.StateHandler()
-  def StartCollection(self, responses):
     """Start collecting tables with listed signature."""
     for table_signature in self.args.table_signature_list:
       self.CallClient(

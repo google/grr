@@ -9,8 +9,10 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt start/stop/delete functionality."""
 

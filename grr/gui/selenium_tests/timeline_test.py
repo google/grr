@@ -13,10 +13,12 @@ from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server.aff4_objects import aff4_grr
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestTimeline(gui_test_lib.GRRSeleniumTest):
   """Test the timeline view interface."""
 
@@ -42,9 +44,9 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
       with aff4.FACTORY.Create(
           file_path, aff4_grr.VFSFile, mode="w", token=token) as fd:
         stats = rdf_client.StatEntry(
-            st_atime=gui_test_lib.TIME_0.AsSecondsFromEpoch() + 1000,
-            st_mtime=gui_test_lib.TIME_0.AsSecondsFromEpoch(),
-            st_ctime=gui_test_lib.TIME_0.AsSecondsFromEpoch() - 1000)
+            st_atime=gui_test_lib.TIME_0.AsSecondsSinceEpoch() + 1000,
+            st_mtime=gui_test_lib.TIME_0.AsSecondsSinceEpoch(),
+            st_ctime=gui_test_lib.TIME_0.AsSecondsSinceEpoch() - 1000)
         fd.Set(fd.Schema.STAT, stats)
 
     # Add a version with a stat entry, but without timestamps.

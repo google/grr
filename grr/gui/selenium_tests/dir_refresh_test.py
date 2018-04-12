@@ -13,11 +13,13 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import filesystem
 from grr.server.flows.general import transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
@@ -134,9 +136,10 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
         "css=.version-dropdown > option:nth(1)")
 
     # The file table should also update and display the new timestamp.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-file-table tbody > tr td:contains(\"%s\")" %
-                   (gui_test_lib.DateTimeString(time_in_future)))
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-file-table tbody > tr td:contains(\"%s\")" %
+        (gui_test_lib.DateTimeString(time_in_future)))
 
     # Make sure the file content has changed.
     self.Click("css=li[heading=TextView]")

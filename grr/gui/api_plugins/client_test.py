@@ -393,9 +393,9 @@ class ApiGetClientVersionTimesTestMixin(object):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.times), 3)
-    self.assertEqual(result.times[0].AsSecondsFromEpoch(), 100)
-    self.assertEqual(result.times[1].AsSecondsFromEpoch(), 45)
-    self.assertEqual(result.times[2].AsSecondsFromEpoch(), 42)
+    self.assertEqual(result.times[0].AsSecondsSinceEpoch(), 100)
+    self.assertEqual(result.times[1].AsSecondsSinceEpoch(), 45)
+    self.assertEqual(result.times[2].AsSecondsSinceEpoch(), 42)
 
 
 class ApiGetClientVersionTimesTestRelational(ApiGetClientVersionTimesTestMixin,

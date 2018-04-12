@@ -5,7 +5,6 @@ import socket
 
 from grr import config
 from grr_response_client.client_actions import admin
-from grr_response_client.client_actions import components
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
@@ -101,8 +100,8 @@ class MemoryClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
     super(MemoryClientMock, self).__init__(
-        components.LoadComponent, standard.HashBuffer, standard.HashFile,
-        standard.StatFile, standard.TransferBuffer, *args, **kwargs)
+        standard.HashBuffer, standard.HashFile, standard.StatFile,
+        standard.TransferBuffer, *args, **kwargs)
 
 
 class GetFileClientMock(ActionMock):
@@ -132,10 +131,10 @@ class ClientFileFinderClientMock(ActionMock):
 class MultiGetFileClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(MultiGetFileClientMock,
-          self).__init__(standard.HashFile, standard.StatFile,
-                         standard.HashBuffer, standard.TransferBuffer,
-                         file_fingerprint.FingerprintFile, *args, **kwargs)
+    super(MultiGetFileClientMock, self).__init__(
+        standard.HashFile, standard.StatFile, standard.HashBuffer,
+        standard.TransferBuffer, file_fingerprint.FingerprintFile, *args,
+        **kwargs)
 
 
 class ListDirectoryClientMock(ActionMock):

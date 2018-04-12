@@ -68,8 +68,9 @@ class FlowThrottler(object):
     dup_boundary = now - self.dup_interval
 
     flow_count = 0
-    flow_list = flows_dir.ListChildren(age=(earlier.AsMicroSecondsFromEpoch(),
-                                            now.AsMicroSecondsFromEpoch()))
+    flow_list = flows_dir.ListChildren(
+        age=(earlier.AsMicrosecondsSinceEpoch(),
+             now.AsMicrosecondsSinceEpoch()))
 
     # Save DB roundtrips by checking both conditions at once. This means the dup
     # interval has a maximum of 1 day.

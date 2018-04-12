@@ -5,8 +5,10 @@ SCHEMA_SETUP = [
     """
 CREATE TABLE IF NOT EXISTS clients(
     client_id BIGINT UNSIGNED PRIMARY KEY,
-    last_timestamp DATETIME(6),
-    fleetspeak_enabled BOOL NOT NULL,
+    last_client_timestamp DATETIME(6),
+    last_startup_timestamp DATETIME(6),
+    last_crash_timestamp DATETIME(6),
+    fleetspeak_enabled BOOL,
     certificate BLOB,
     last_ping DATETIME(6),
     last_clock DATETIME(6),
@@ -21,17 +23,31 @@ CREATE TABLE IF NOT EXISTS client_labels(
     PRIMARY KEY (client_id, owner, label),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
-CREATE TABLE IF NOT EXISTS client_history(
+CREATE TABLE IF NOT EXISTS client_snapshot_history(
     client_id BIGINT UNSIGNED,
-    timestamp DATETIME,
+    timestamp DATETIME(6),
     client_snapshot MEDIUMBLOB,
+    PRIMARY KEY (client_id, timestamp),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
+)""", """
+CREATE TABLE IF NOT EXISTS client_startup_history(
+    client_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    startup_info MEDIUMBLOB,
+    PRIMARY KEY (client_id, timestamp),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id)
+)""", """
+CREATE TABLE IF NOT EXISTS client_crash_history(
+    client_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    crash_info MEDIUMBLOB,
     PRIMARY KEY (client_id, timestamp),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
 CREATE TABLE IF NOT EXISTS client_keywords(
     client_id BIGINT UNSIGNED,
     keyword VARCHAR(255),
-    timestamp DATETIME,
+    timestamp DATETIME(6),
     PRIMARY KEY (client_id, keyword),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
@@ -40,7 +56,30 @@ CREATE INDEX IF NOT EXISTS keyword_client_idx ON client_keywords(keyword(64))
 CREATE TABLE IF NOT EXISTS grr_users(
     username VARCHAR(128) PRIMARY KEY,
     password VARBINARY(255),
-    ui_mode BIGINT UNSIGNED,
-    canary_mode BOOL
+    ui_mode INT UNSIGNED,
+    canary_mode BOOL,
+    user_type INT UNSIGNED
+)""", """
+CREATE TABLE IF NOT EXISTS approval_request(
+    username VARCHAR(128),
+    approval_type INT UNSIGNED,
+    subject_id VARCHAR(128),
+    approval_id BIGINT UNSIGNED,
+    timestamp DATETIME(6),
+    expiration_time DATETIME(6),
+    approval_request MEDIUMBLOB,
+    PRIMARY KEY (username, approval_id),
+    FOREIGN KEY (username) REFERENCES grr_users (username)
+)""", """
+CREATE INDEX IF NOT EXISTS by_username_type_subject
+ON approval_request(username, approval_type, subject_id)
+""", """
+CREATE TABLE IF NOT EXISTS approval_grant(
+    username VARCHAR(128),
+    approval_id BIGINT UNSIGNED,
+    grantor_username VARCHAR(128),
+    timestamp DATETIME(6),
+    PRIMARY KEY (username, approval_id, grantor_username, timestamp),
+    FOREIGN KEY (username) REFERENCES grr_users (username)
 )"""
 ]

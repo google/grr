@@ -33,7 +33,7 @@ class Timeseries(object):
   def _NormalizeTime(self, time):
     """Normalize a time to be an int measured in microseconds."""
     if isinstance(time, rdfvalue.RDFDatetime):
-      return time.AsMicroSecondsFromEpoch()
+      return time.AsMicrosecondsSinceEpoch()
     if isinstance(time, rdfvalue.Duration):
       return time.microseconds
     return int(time)

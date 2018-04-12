@@ -2,6 +2,7 @@
 """An in memory database implementation used for testing."""
 
 import os
+import sys
 
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -32,8 +33,8 @@ class InMemoryDB(db.Database):
 
   def _ValidateStringId(self, id_type, id_value):
     if not isinstance(id_value, basestring):
-      raise ValueError("Expected %s as a string, got %s" % (id_type,
-                                                            type(id_value)))
+      raise ValueError(
+          "Expected %s as a string, got %s" % (id_type, type(id_value)))
 
     if not id_value:
       raise ValueError("Expected %s to be non-empty." % id_type)
@@ -58,6 +59,29 @@ class InMemoryDB(db.Database):
   def _ValidateUsername(self, username):
     self._ValidateStringId("username", username)
 
+  def _ParseTimeRange(self, timerange):
+    """Parses a timerange argument and always returns non-None timerange."""
+
+    if timerange is None:
+      timerange = (None, None)
+    else:
+      if len(timerange) != 2:
+        raise ValueError("Timerange should be a sequence with 2 items.")
+
+      for i in timerange:
+        if not (i is None or isinstance(i, rdfvalue.RDFDatetime)):
+          raise ValueError(
+              "Timerange items should be None or rdfvalue.RDFDatetime")
+
+    from_time, to_time = timerange
+    if not from_time:
+      from_time = rdfvalue.RDFDatetime().FromSecondsSinceEpoch(0)
+
+    if not to_time:
+      to_time = rdfvalue.RDFDatetime().FromSecondsSinceEpoch(sys.maxint)
+
+    return (from_time, to_time)
+
   def WriteClientMetadata(self,
                           client_id,
                           certificate=None,
@@ -75,11 +99,6 @@ class InMemoryDB(db.Database):
 
     if fleetspeak_enabled is not None:
       md["fleetspeak_enabled"] = fleetspeak_enabled
-    else:
-      # This is an update to an existing client. Raise if the client
-      # is not known.
-      if client_id not in self.metadatas:
-        raise db.UnknownClientError()
 
     if first_seen is not None:
       md["first_seen"] = first_seen
@@ -104,7 +123,7 @@ class InMemoryDB(db.Database):
 
     self.metadatas.setdefault(client_id, {}).update(md)
 
-  def ReadClientsMetadata(self, client_ids):
+  def MultiReadClientMetadata(self, client_ids):
     """Reads ClientMetadata records for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -147,7 +166,7 @@ class InMemoryDB(db.Database):
 
     client.startup_info = startup_info
 
-  def ReadClientsSnapshot(self, client_ids):
+  def MultiReadClientSnapshot(self, client_ids):
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -165,7 +184,7 @@ class InMemoryDB(db.Database):
       res[client_id] = client_obj
     return res
 
-  def ReadClientsFullInfo(self, client_ids):
+  def MultiReadClientFullInfo(self, client_ids):
     res = {}
     for client_id in client_ids:
       self._ValidateClientId(client_id)
@@ -178,11 +197,14 @@ class InMemoryDB(db.Database):
 
   def ReadAllClientsFullInfo(self, min_last_ping=None):
     client_ids = self.clients.keys()
-    for c in self.ReadClientsFullInfo(client_ids).values():
+    for c in self.MultiReadClientFullInfo(client_ids).values():
       if min_last_ping and c.metadata.ping < min_last_ping:
         continue
 
       yield c
+
+  def ReadAllClientsID(self):
+    return self.metadatas.iterkeys()
 
   def WriteClientSnapshotHistory(self, clients):
     super(InMemoryDB, self).WriteClientSnapshotHistory(clients)
@@ -202,15 +224,19 @@ class InMemoryDB(db.Database):
 
       client.startup_info = startup_info
 
-  def ReadClientSnapshotHistory(self, client_id):
+  def ReadClientSnapshotHistory(self, client_id, timerange=None):
     """Reads the full history for a particular client."""
     self._ValidateClientId(client_id)
+    from_time, to_time = self._ParseTimeRange(timerange)
 
     history = self.clients.get(client_id)
     if not history:
       return []
     res = []
     for ts in sorted(history, reverse=True):
+      if ts < from_time or ts > to_time:
+        continue
+
       client_obj = objects.ClientSnapshot.FromSerializedString(history[ts])
       client_obj.timestamp = ts
       client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
@@ -267,7 +293,7 @@ class InMemoryDB(db.Database):
     for l in labels:
       labelset.add(utils.SmartUnicode(l))
 
-  def ReadClientsLabels(self, client_ids):
+  def MultiReadClientLabels(self, client_ids):
     res = {}
     for client_id in client_ids:
       self._ValidateClientId(client_id)
@@ -356,14 +382,18 @@ class InMemoryDB(db.Database):
     res.timestamp = ts
     return res
 
-  def ReadClientStartupInfoHistory(self, client_id):
+  def ReadClientStartupInfoHistory(self, client_id, timerange=None):
     self._ValidateClientId(client_id)
+    from_time, to_time = self._ParseTimeRange(timerange)
 
     history = self.startup_history.get(client_id)
     if not history:
       return []
     res = []
     for ts in sorted(history, reverse=True):
+      if ts < from_time or ts > to_time:
+        continue
+
       client_data = rdf_client.StartupInfo.FromSerializedString(history[ts])
       client_data.timestamp = ts
       res.append(client_data)

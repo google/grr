@@ -14,10 +14,12 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server.aff4_objects import aff4_grr
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFileView(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
@@ -299,11 +301,12 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Download]:not(:disabled)")
 
     # Check that export tool download hint is displayed.
-    self.WaitUntil(self.IsTextPresent, "/usr/bin/grr_api_shell "
-                   "'http://localhost:8000/' "
-                   "--exec_code 'grrapi.Client(\"C.0000000000000001\")."
-                   "File(r\"\"\"fs/os/c/Downloads/a.txt\"\"\").GetBlob()."
-                   "WriteToFile(\"./a.txt\")'")
+    self.WaitUntil(
+        self.IsTextPresent, "/usr/bin/grr_api_shell "
+        "'http://localhost:8000/' "
+        "--exec_code 'grrapi.Client(\"C.0000000000000001\")."
+        "File(r\"\"\"fs/os/c/Downloads/a.txt\"\"\").GetBlob()."
+        "WriteToFile(\"./a.txt\")'")
 
 
 def main(argv):

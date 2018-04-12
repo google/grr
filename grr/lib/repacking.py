@@ -2,6 +2,7 @@
 """Client repacking library."""
 
 import getpass
+import logging
 import os
 import platform
 import sys
@@ -172,8 +173,8 @@ class TemplateRepacker(object):
         builder_obj.signed_template = signed_template
         result_path = builder_obj.MakeDeployableBinary(template_path,
                                                        output_path)
-      except Exception as e:  # pylint: disable=broad-except
-        print "Repacking template %s failed: %s" % (template_path, e)
+      except Exception:  # pylint: disable=broad-except
+        logging.exception("Repacking template %s failed:", template_path)
 
       if result_path:
         print "Repacked into %s" % result_path

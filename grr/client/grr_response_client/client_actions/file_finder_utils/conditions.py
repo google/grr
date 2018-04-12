@@ -61,8 +61,8 @@ class ModificationTimeCondition(MetadataCondition):
     self.params = params.modification_time
 
   def Check(self, stat):
-    min_mtime = self.params.min_last_modified_time.AsSecondsFromEpoch()
-    max_mtime = self.params.max_last_modified_time.AsSecondsFromEpoch()
+    min_mtime = self.params.min_last_modified_time.AsSecondsSinceEpoch()
+    max_mtime = self.params.max_last_modified_time.AsSecondsSinceEpoch()
     return min_mtime <= stat.GetModificationTime() <= max_mtime
 
 
@@ -74,8 +74,8 @@ class AccessTimeCondition(MetadataCondition):
     self.params = params.access_time
 
   def Check(self, stat):
-    min_atime = self.params.min_last_access_time.AsSecondsFromEpoch()
-    max_atime = self.params.max_last_access_time.AsSecondsFromEpoch()
+    min_atime = self.params.min_last_access_time.AsSecondsSinceEpoch()
+    max_atime = self.params.max_last_access_time.AsSecondsSinceEpoch()
     return min_atime <= stat.GetAccessTime() <= max_atime
 
 
@@ -87,8 +87,8 @@ class InodeChangeTimeCondition(MetadataCondition):
     self.params = params.inode_change_time
 
   def Check(self, stat):
-    min_ctime = self.params.min_last_inode_change_time.AsSecondsFromEpoch()
-    max_ctime = self.params.max_last_inode_change_time.AsSecondsFromEpoch()
+    min_ctime = self.params.min_last_inode_change_time.AsSecondsSinceEpoch()
+    max_ctime = self.params.max_last_inode_change_time.AsSecondsSinceEpoch()
     return min_ctime <= stat.GetChangeTime() <= max_ctime
 
 

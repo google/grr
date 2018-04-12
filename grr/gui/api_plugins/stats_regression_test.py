@@ -142,7 +142,7 @@ class ApiGetReportRegressionTest(api_regression_test_lib.ApiRegressionTest):
           args=stats_plugin.ApiGetReportArgs(
               name="BarReportPlugin",
               start_time=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")
-              .AsMicroSecondsFromEpoch(),
+              .AsMicrosecondsSinceEpoch(),
               duration="4d"))
 
 

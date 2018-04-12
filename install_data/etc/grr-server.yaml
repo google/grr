@@ -230,12 +230,6 @@ Platform:Windows:
     - "%(install_path)"
   Client.grr_tempdir: "Temp"
 
-  # Older clients have keys in different places.
-  Installer.old_key_map: >
-      %(Client.config_hive)\\%(Client.config_key)\\certificate->Client.private_key,
-      %(Client.config_hive)\\%(Client.config_key)\\Client\\private_key->Client.private_key,
-      %(Client.config_hive)\\%(Client.config_key)\\server_serial_number->Client.server_serial_number
-
   Logging.engines: file,stderr,event_log
 
   Logging.filename: |

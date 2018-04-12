@@ -523,7 +523,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
-        value=now.AsSecondsFromEpoch())
+        value=now.AsSecondsSinceEpoch())
 
     # The values are the same, less than should not trigger.
     self.assertFalse(r.Evaluate(client))
@@ -538,7 +538,7 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestMixin,
     r = rdf_foreman.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
-        value=before_boot.AsSecondsFromEpoch())
+        value=before_boot.AsSecondsSinceEpoch())
 
     self.assertTrue(r.Evaluate(client))
 
@@ -567,7 +567,7 @@ class ForemanIntegerClientRuleTestRelational(
       r = rdf_foreman.ForemanIntegerClientRule(
           field=f,
           operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
-          value=now.AsSecondsFromEpoch())
+          value=now.AsSecondsSinceEpoch())
       r.Evaluate(info)
 
   def testEvaluatesSizeLessThanEqualValueToFalse(self):
@@ -578,7 +578,7 @@ class ForemanIntegerClientRuleTestRelational(
     r = rdf_foreman.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.LESS_THAN,
-        value=now.AsSecondsFromEpoch())
+        value=now.AsSecondsSinceEpoch())
 
     # The values are the same, less than should not trigger.
     self.assertFalse(r.Evaluate(info))
@@ -593,7 +593,7 @@ class ForemanIntegerClientRuleTestRelational(
     r = rdf_foreman.ForemanIntegerClientRule(
         field="LAST_BOOT_TIME",
         operator=rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN,
-        value=before_boot.AsSecondsFromEpoch())
+        value=before_boot.AsSecondsSinceEpoch())
 
     self.assertTrue(r.Evaluate(info))
 

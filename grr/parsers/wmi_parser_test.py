@@ -49,9 +49,9 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
             [x.human_readable_address
              for x in result.dhcp_server_list], ["192.168.1.1"])
 
-        self.assertEqual(result.dhcp_lease_expires.AsMicroSecondsFromEpoch(),
+        self.assertEqual(result.dhcp_lease_expires.AsMicrosecondsSinceEpoch(),
                          1409008979123456)
-        self.assertEqual(result.dhcp_lease_obtained.AsMicroSecondsFromEpoch(),
+        self.assertEqual(result.dhcp_lease_obtained.AsMicrosecondsSinceEpoch(),
                          1408994579123456)
 
       elif isinstance(result, rdf_client.DNSClientConfiguration):

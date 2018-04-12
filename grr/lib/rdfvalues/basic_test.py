@@ -309,12 +309,12 @@ class RDFDatetimeTest(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(rdfvalue.RDFDatetime.FromDatetime(date).AsDatetime(), date)
     date = datetime.utcfromtimestamp(99999)
     self.assertEqual(
-        rdfvalue.RDFDatetime.FromDatetime(date).AsSecondsFromEpoch(), 99999)
+        rdfvalue.RDFDatetime.FromDatetime(date).AsSecondsSinceEpoch(), 99999)
 
     # Test microsecond support
-    date = datetime(1970, 1, 1, 0, 0, 0, 1000)
+    date = datetime(1970, 1, 1, 0, 0, 0, 567)
     self.assertEqual(
-        rdfvalue.RDFDatetime.FromDatetime(date).AsMicroSecondsFromEpoch(), 1000)
+        rdfvalue.RDFDatetime.FromDatetime(date).AsMicrosecondsSinceEpoch(), 567)
 
   def testAddNumber(self):
     date = rdfvalue.RDFDatetime(1e9)

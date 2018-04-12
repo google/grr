@@ -741,8 +741,8 @@ class Factory(object):
       try:
         result = result.Upgrade(AFF4Object.classes[existing_type])
       except KeyError:
-        raise InstantiationError("Unable to open %s, type %s unknown." %
-                                 (urn, existing_type))
+        raise InstantiationError(
+            "Unable to open %s, type %s unknown." % (urn, existing_type))
 
     if aff4_type is not None and not isinstance(result, aff4_type):
       raise InstantiationError(
@@ -1197,8 +1197,6 @@ class Factory(object):
   def _InitWellKnownPaths(self):
     self._python_hack_root = rdfvalue.RDFURN("aff4:/config/python_hacks")
     self._executables_root = rdfvalue.RDFURN("aff4:/config/executables")
-    self._component_summaries_root = rdfvalue.RDFURN("aff4:/config/components")
-    self._component_root = rdfvalue.RDFURN("aff4:/web/static/components")
     self._static_content_path = rdfvalue.RDFURN("aff4:/web/static")
 
   def GetPythonHackRoot(self):
@@ -1206,12 +1204,6 @@ class Factory(object):
 
   def GetExecutablesRoot(self):
     return self._executables_root
-
-  def GetComponentSummariesRoot(self):
-    return self._component_summaries_root
-
-  def GetComponentRoot(self):
-    return self._component_root
 
   def GetStaticContentPath(self):
     return self._static_content_path
@@ -2499,9 +2491,10 @@ class AFF4Stream(AFF4Object):
         "size",
         default=0)
 
-    HASH = Attribute("aff4:hashobject", rdf_crypto.Hash,
-                     "Hash object containing all known hash digests for"
-                     " the object.")
+    HASH = Attribute(
+        "aff4:hashobject", rdf_crypto.Hash,
+        "Hash object containing all known hash digests for"
+        " the object.")
 
   MULTI_STREAM_CHUNK_SIZE = 1024 * 1024 * 8
 
@@ -2872,8 +2865,7 @@ class AFF4ImageBase(AFF4Stream):
 
   def _ReadChunks(self, chunks):
     chunk_names = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk
-        for chunk in chunks
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk for chunk in chunks
     }
     for child in FACTORY.MultiOpen(
         chunk_names, mode="rw", token=self.token, age=self.age_policy):
@@ -3126,7 +3118,7 @@ AUDIT_ROLLOVER_TIME = rdfvalue.Duration("2w")
 
 def CurrentAuditLog():
   """Get the rdfurn of the current audit log."""
-  now_sec = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
+  now_sec = rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch()
   rollover_seconds = AUDIT_ROLLOVER_TIME.seconds
   # This gives us a filename that only changes every
   # AUDIT_ROLLOVER_TIME seconds, but is still a valid timestamp.

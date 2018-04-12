@@ -3,7 +3,7 @@
 
 from __future__ import division
 
-import multiprocessing.pool
+from multiprocessing import pool
 import sys
 import threading
 
@@ -16,7 +16,7 @@ from grr.server import aff4
 from grr.server import data_store
 from grr.server.aff4_objects import aff4_grr
 
-_CLIENT_BATCH_SIZE = 50
+_CLIENT_BATCH_SIZE = 200
 _CLIENT_VERSION_THRESHOLD = rdfvalue.Duration("24h")
 _PROGRESS_INTERVAL = rdfvalue.Duration("1s")
 
@@ -38,6 +38,7 @@ class Migrator(object):
 
     self._total_count = 0
     self._migrated_count = 0
+    self._start_time = None
     self._last_progress_time = None
 
   def Execute(self, thread_count):
@@ -61,12 +62,13 @@ class Migrator(object):
 
     self._total_count = len(client_urns)
     self._migrated_count = 0
+    self._start_time = rdfvalue.RDFDatetime.Now()
 
     batches = utils.Grouper(client_urns, _CLIENT_BATCH_SIZE)
 
     self._Progress()
-    pool = multiprocessing.pool.ThreadPool(processes=thread_count)
-    pool.map(self._MigrateBatch, list(batches))
+    tp = pool.ThreadPool(processes=thread_count)
+    tp.map(self._MigrateBatch, list(batches))
     self._Progress()
 
     if self._migrated_count == self._total_count:
@@ -90,9 +92,16 @@ class Migrator(object):
           self._Progress()
 
   def _Progress(self):
+    """Prints the migration progress."""
+    elapsed = rdfvalue.RDFDatetime.Now() - self._start_time
+    if elapsed.seconds > 0:
+      cps = self._migrated_count / elapsed.seconds
+    else:
+      cps = 0.0
+
     fraction = self._migrated_count / self._total_count
-    message = "\rMigrating clients... {:>9}/{} ({:.2%})".format(
-        self._migrated_count, self._total_count, fraction)
+    message = "\rMigrating clients... {:>9}/{} ({:.2%}, cps: {:.2f})".format(
+        self._migrated_count, self._total_count, fraction, cps)
     sys.stdout.write(message)
     sys.stdout.flush()
 

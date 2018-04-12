@@ -14,7 +14,6 @@ from grr.server import aff4
 from grr.server import data_store
 from grr.server import email_alerts
 from grr.server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.aff4_objects import security as aff4_security
 
 from grr.server.aff4_objects import users as aff4_users
 from grr.server.flows.general import administrative
@@ -24,6 +23,7 @@ from grr.server.hunts import standard
 
 from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -91,8 +91,9 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testClientApprovalNotificationIsParsedCorrectly(self):
-    n = self.InitFromObj_("GrantAccess", "aff4:/ACL/%s/%s/foo-bar" %
-                          (self.client_id.Basename(), self.token.username))
+    n = self.InitFromObj_(
+        "GrantAccess", "aff4:/ACL/%s/%s/foo-bar" % (self.client_id.Basename(),
+                                                    self.token.username))
     self.assertEqual(n.reference.type, "CLIENT_APPROVAL")
     self.assertEqual(n.reference.client_approval.client_id, self.client_id)
     self.assertEqual(n.reference.client_approval.username, self.token.username)
@@ -130,33 +131,23 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
 class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
   """Base class for tests testing Create*ApprovalHandlers."""
 
-  APPROVAL_TYPE = None
-
   def SetUpApprovalTest(self):
     self.CreateUser("test")
     self.CreateUser("approver")
 
     self.handler = None
     self.args = None
-    self.subject_urn = None
 
-    if not self.APPROVAL_TYPE:
-      raise ValueError("APPROVAL_TYPE has to be set.")
+  def ReadApproval(self, approval_id):
+    raise NotImplementedError()
 
   def testCreatesAnApprovalWithGivenAttributes(self):
-    result = self.handler.Handle(self.args, token=self.token)
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
-        self.token.username).Add(result.id)
+    approval_id = self.handler.Handle(self.args, token=self.token).id
+    approval_obj = self.ReadApproval(approval_id)
 
-    fd = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=self.APPROVAL_TYPE,
-        age=aff4.ALL_TIMES,
-        token=self.token)
-    self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.subject_urn)
-    self.assertEqual(fd.Get(fd.Schema.REASON), self.token.reason)
-    self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
-    self.assertEqual(fd.Get(fd.Schema.EMAIL_CC), "approver,test@example.com")
+    self.assertEqual(approval_obj.reason, self.token.reason)
+    self.assertEqual(approval_obj.approvers, [self.token.username])
+    self.assertEqual(approval_obj.email_cc_addresses, ["test@example.com"])
 
   def testApproversFromArgsAreIgnored(self):
     # It shouldn't be possible to specify list of approvers when creating
@@ -164,16 +155,10 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
     # approved the approval.
     self.args.approval.approvers = [self.token.username, "approver"]
 
-    result = self.handler.Handle(self.args, token=self.token)
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
-        self.token.username).Add(result.id)
+    approval_id = self.handler.Handle(self.args, token=self.token).id
+    approval_obj = self.ReadApproval(approval_id)
 
-    fd = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=self.APPROVAL_TYPE,
-        age=aff4.ALL_TIMES,
-        token=self.token)
-    self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
+    self.assertEqual(approval_obj.approvers, [self.token.username])
 
   def testRaisesOnEmptyReason(self):
     self.args.approval.reason = ""
@@ -181,6 +166,7 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
     with self.assertRaises(ValueError):
       self.handler.Handle(self.args, token=self.token)
 
+  @db_test_lib.LegacyDataStoreOnly
   def testNotifiesGrrUsers(self):
     self.handler.Handle(self.args, token=self.token)
 
@@ -209,6 +195,7 @@ class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):
                      ("approver", self.token.username, "test@example.com"))
 
 
+@db_test_lib.DualDBTest
 class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
@@ -271,11 +258,16 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
       self.handler.Handle(args, token=self.token)
 
 
+@db_test_lib.DualDBTest
 class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
 
-  APPROVAL_TYPE = aff4_security.ClientApproval
+  def ReadApproval(self, approval_id):
+    approvals = self.ListClientApprovals(requestor=self.token.username)
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].id, approval_id)
+    return approvals[0]
 
   def setUp(self):
     super(ApiCreateClientApprovalHandlerTest, self).setUp()
@@ -303,6 +295,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(len(keep_alive_flow), 1)
 
 
+@db_test_lib.DualDBTest
 class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         acl_test_lib.AclTestMixin):
   """Test for ApiListApprovalsHandler."""
@@ -315,8 +308,10 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.client_ids = self.SetupClients(self.CLIENT_COUNT)
 
   def _RequestClientApprovals(self):
+    approval_ids = []
     for client_id in self.client_ids:
-      self.RequestClientApproval(client_id.Basename())
+      approval_ids.append(self.RequestClientApproval(client_id.Basename()))
+    return approval_ids
 
   def testRendersRequestedClientApprovals(self):
     self._RequestClientApprovals()
@@ -340,7 +335,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(result.items[0].subject.client_id, client_id)
 
   def testFiltersApprovalsByInvalidState(self):
-    self._RequestClientApprovals()
+    approval_ids = self._RequestClientApprovals()
 
     # We only requested approvals so far, so all of them should be invalid.
     args = user_plugin.ApiListClientApprovalsArgs(
@@ -351,14 +346,14 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Grant access to one client. Now all but one should be invalid.
     self.GrantClientApproval(
-        self.client_ids[0].Basename(),
+        self.client_ids[0],
         requestor=self.token.username,
-        reason=self.token.reason)
+        approval_id=approval_ids[0])
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), self.CLIENT_COUNT - 1)
 
   def testFiltersApprovalsByValidState(self):
-    self._RequestClientApprovals()
+    approval_ids = self._RequestClientApprovals()
 
     # We only requested approvals so far, so none of them is valid.
     args = user_plugin.ApiListClientApprovalsArgs(
@@ -372,7 +367,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.GrantClientApproval(
         self.client_ids[0].Basename(),
         requestor=self.token.username,
-        reason=self.token.reason)
+        approval_id=approval_ids[0])
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
     self.assertEqual(result.items[0].subject.client_id, self.client_ids[0])
@@ -380,13 +375,13 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testFiltersApprovalsByClientIdAndState(self):
     client_id = self.client_ids[0]
 
-    self._RequestClientApprovals()
+    approval_ids = self._RequestClientApprovals()
 
     # Grant approval to a certain client.
     self.GrantClientApproval(
         client_id.Basename(),
         requestor=self.token.username,
-        reason=self.token.reason)
+        approval_id=approval_ids[0])
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id,
@@ -425,17 +420,22 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id, offset=7)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result.items), 4)
-    for item, i in zip(result.items, reversed(range(0, 4))):
+    self.assertEqual(len(result.items), 3)
+    for item, i in zip(result.items, reversed(range(0, 3))):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
+@db_test_lib.DualDBTest
 class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                        ApiCreateApprovalHandlerTestMixin,
                                        standard_test.StandardHuntTestMixin):
   """Test for ApiCreateHuntApprovalHandler."""
 
-  APPROVAL_TYPE = aff4_security.HuntApproval
+  def ReadApproval(self, approval_id):
+    approvals = self.ListHuntApprovals(requestor=self.token.username)
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].id, approval_id)
+    return approvals[0]
 
   def setUp(self):
     super(ApiCreateHuntApprovalHandlerTest, self).setUp()
@@ -443,8 +443,7 @@ class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.SetUpApprovalTest()
 
     with self.CreateHunt(description="foo") as hunt_obj:
-      self.subject_urn = hunt_urn = hunt_obj.urn
-      hunt_id = hunt_urn.Basename()
+      hunt_id = hunt_obj.urn.Basename()
 
     self.handler = user_plugin.ApiCreateHuntApprovalHandler()
 
@@ -454,6 +453,7 @@ class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
+@db_test_lib.DualDBTest
 class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
@@ -479,13 +479,18 @@ class ApiListHuntApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.assertEqual(len(result.items), 1)
 
 
+@db_test_lib.DualDBTest
 class ApiCreateCronJobApprovalHandlerTest(
     ApiCreateApprovalHandlerTestMixin,
     api_test_lib.ApiCallHandlerTest,
 ):
   """Test for ApiCreateCronJobApprovalHandler."""
 
-  APPROVAL_TYPE = aff4_security.CronJobApproval
+  def ReadApproval(self, approval_id):
+    approvals = self.ListCronJobApprovals(requestor=self.token.username)
+    self.assertEqual(len(approvals), 1)
+    self.assertEqual(approvals[0].id, approval_id)
+    return approvals[0]
 
   def setUp(self):
     super(ApiCreateCronJobApprovalHandlerTest, self).setUp()
@@ -495,8 +500,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     cron_manager = aff4_cronjobs.CronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
         periodicity="1d", allow_overruns=False)
-    self.subject_urn = cron_urn = cron_manager.ScheduleFlow(
-        cron_args=cron_args, token=self.token)
+    cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args, token=self.token)
     cron_id = cron_urn.Basename()
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
@@ -507,6 +511,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
+@db_test_lib.DualDBTest
 class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
                                          api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""

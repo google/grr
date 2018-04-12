@@ -560,8 +560,9 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
           self.assertEqual(len(notifications), 1)
           # This notification was first queued and last queued at time 1000.
           notification = notifications[0]
-          self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1000)
-          self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
+          self.assertEqual(notification.timestamp.AsSecondsSinceEpoch(), 1000)
+          self.assertEqual(notification.first_queued.AsSecondsSinceEpoch(),
+                           1000)
           # Now requeue the same notification.
           manager.DeleteNotification(session_id)
           manager.QueueNotification(notification)
@@ -572,8 +573,9 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
           self.assertEqual(len(notifications), 1)
           notification = notifications[0]
           # Now the last queue time is 1100, the first queue time is still 1000.
-          self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1100)
-          self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
+          self.assertEqual(notification.timestamp.AsSecondsSinceEpoch(), 1100)
+          self.assertEqual(notification.first_queued.AsSecondsSinceEpoch(),
+                           1000)
           # Again requeue the same notification.
           manager.DeleteNotification(session_id)
           manager.QueueNotification(notification)

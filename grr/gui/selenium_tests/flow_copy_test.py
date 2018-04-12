@@ -20,9 +20,11 @@ from grr.server.flows.general import file_finder as flows_file_finder
 from grr.server.flows.general import processes as flows_processes
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import email_plugin
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    standard_test.StandardHuntTestMixin):
 
@@ -63,8 +65,9 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual("test[a-z]*", self.GetValue,
                         "css=label:contains('Filename Regex') ~ * input")
 
-    self.WaitUntil(self.IsChecked, "css=label:contains('Fetch Binaries') "
-                   "~ * input[type=checkbox]")
+    self.WaitUntil(
+        self.IsChecked, "css=label:contains('Fetch Binaries') "
+        "~ * input[type=checkbox]")
 
     # Check that output plugin info is also copied.
     self.WaitUntilEqual("string:EmailOutputPlugin", self.GetValue,
@@ -100,8 +103,9 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(
         self.IsElementPresent,
         "css=grr-client-flows-list tr:contains('ListProcesses'):nth(1)")
-    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
-                   "tr:contains('ListProcesses'):nth(0).row-selected")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-client-flows-list "
+        "tr:contains('ListProcesses'):nth(0).row-selected")
 
   def testAddingOutputPluginToCopiedFlowWorks(self):
     args = flows_processes.ListProcessesArgs(
@@ -147,12 +151,12 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
 
     # Change output plugin and add another one.
     self.Click("css=label:contains('Output Plugins') ~ * button")
-    self.Select("css=grr-output-plugin-descriptor-form "
-                "label:contains('Plugin') ~ * select:eq(0)",
-                "DummyOutputPlugin")
-    self.Type("css=grr-output-plugin-descriptor-form "
-              "label:contains('Filename Regex'):eq(0) ~ * input:text",
-              "foobar!")
+    self.Select(
+        "css=grr-output-plugin-descriptor-form "
+        "label:contains('Plugin') ~ * select:eq(0)", "DummyOutputPlugin")
+    self.Type(
+        "css=grr-output-plugin-descriptor-form "
+        "label:contains('Filename Regex'):eq(0) ~ * input:text", "foobar!")
 
     self.Click("css=button:contains('Launch')")
 
@@ -160,17 +164,18 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(
         self.IsElementPresent,
         "css=grr-client-flows-list tr:contains('ListProcesses'):nth(1)")
-    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
-                   "tr:contains('ListProcesses'):nth(0).row-selected")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-client-flows-list "
+        "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
     fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
     flows = sorted(fd.ListChildren(), key=lambda x: x.age)
     fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
 
-    self.assertEqual(fobj.args,
-                     flows_processes.ListProcessesArgs(
-                         filename_regex="somethingElse*",))
+    self.assertEqual(
+        fobj.args,
+        flows_processes.ListProcessesArgs(filename_regex="somethingElse*",))
     self.assertListEqual(
         list(fobj.runner_args.output_plugins), [
             output_plugin.OutputPluginDescriptor(
@@ -196,8 +201,9 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     # Check that flows list got updated and that the new flow is selected.
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-client-flows-list tr:contains('GetFile'):nth(1)")
-    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
-                   "tr:contains('GetFile'):nth(0).row-selected")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-client-flows-list "
+        "tr:contains('GetFile'):nth(0).row-selected")
 
   def testCopyingFlowWithRawBytesWithNonAsciiCharsInArgumentsWorks(self):
     # Literal is defined simply as "bytes" in its proto definition. We make sure
@@ -223,10 +229,12 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.Click("css=button:contains('Launch')")
 
     # Check that flows list got updated and that the new flow is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-client-flows-list tr:contains('FileFinder'):nth(1)")
-    self.WaitUntil(self.IsElementPresent, "css=grr-client-flows-list "
-                   "tr:contains('FileFinder'):nth(0).row-selected")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-client-flows-list tr:contains('FileFinder'):nth(1)")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-client-flows-list "
+        "tr:contains('FileFinder'):nth(0).row-selected")
 
   def testCopyACLErrorIsCorrectlyDisplayed(self):
     args = rdf_file_finder.FileFinderArgs(paths=["a/b/*"])

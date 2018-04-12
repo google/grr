@@ -41,6 +41,10 @@
               "value": "test@example.com"
             }
           ],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:112233"
@@ -66,6 +70,10 @@
           "reason": {
             "type": "unicode",
             "value": "really important reason!"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiClient",
@@ -270,6 +278,7 @@
         "email_cc_addresses": [
           "test@example.com"
         ],
+        "email_message_id": "<message id stub>",
         "id": "approval:112233",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -278,6 +287,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "age": 42000000,
           "agent_info": {
@@ -380,6 +390,10 @@
               "value": "test@example.com"
             }
           ],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:112233"
@@ -405,6 +419,10 @@
           "reason": {
             "type": "unicode",
             "value": "really important reason!"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiCronJob",
@@ -457,6 +475,7 @@
         "email_cc_addresses": [
           "test@example.com"
         ],
+        "email_message_id": "<message id stub>",
         "id": "approval:112233",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -465,6 +484,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "allow_overruns": false,
           "cron_job_id": "CronJob_123456",
@@ -843,6 +863,10 @@
               "value": "test@example.com"
             }
           ],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:112233"
@@ -868,6 +892,10 @@
           "reason": {
             "type": "unicode",
             "value": "really important reason!"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiHunt",
@@ -1081,6 +1109,7 @@
         "email_cc_addresses": [
           "test@example.com"
         ],
+        "email_message_id": "<message id stub>",
         "id": "approval:112233",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -1089,6 +1118,7 @@
           "approver2"
         ],
         "reason": "really important reason!",
+        "requestor": "api_test_user",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -1205,6 +1235,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -1226,6 +1260,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiClient",
@@ -1428,6 +1466,7 @@
           "api_test_user"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -1435,6 +1474,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "age": 42000000,
           "agent_info": {
@@ -1522,6 +1562,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:222222"
@@ -1539,6 +1583,10 @@
           "reason": {
             "type": "unicode",
             "value": "bar"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiClient",
@@ -1742,12 +1790,14 @@
           "approver"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:222222",
         "is_valid": true,
         "notified_users": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "age": 42000000,
           "agent_info": {
@@ -4174,6 +4224,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -4195,6 +4249,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiCronJob",
@@ -4245,6 +4303,7 @@
           "api_test_user"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -4252,6 +4311,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "allow_overruns": false,
           "cron_job_id": "CronJob_123456",
@@ -4283,6 +4343,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:222222"
@@ -4300,6 +4364,10 @@
           "reason": {
             "type": "unicode",
             "value": "bar"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiCronJob",
@@ -4351,12 +4419,14 @@
           "approver"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:222222",
         "is_valid": true,
         "notified_users": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "allow_overruns": false,
           "cron_job_id": "CronJob_567890",
@@ -5054,6 +5124,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -5075,6 +5149,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiHunt",
@@ -5286,6 +5364,7 @@
           "api_test_user"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -5293,6 +5372,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -5374,6 +5454,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:222222"
@@ -5391,6 +5475,10 @@
           "reason": {
             "type": "unicode",
             "value": "bar"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiHunt",
@@ -5603,12 +5691,14 @@
           "approver"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:222222",
         "is_valid": true,
         "notified_users": [
           "approver"
         ],
         "reason": "bar",
+        "requestor": "api_test_user",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -5888,6 +5978,10 @@
             }
           },
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:333333"
@@ -5909,6 +6003,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiHunt",
@@ -6213,6 +6311,7 @@
           "urn": "aff4:/hunts/H:556677"
         },
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:333333",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -6220,6 +6319,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -6366,6 +6466,10 @@
             }
           },
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:444444"
@@ -6387,6 +6491,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "api_test_user"
           },
           "subject": {
             "type": "ApiHunt",
@@ -6654,6 +6762,7 @@
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:444444",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -6661,6 +6770,7 @@
           "approver"
         ],
         "reason": "foo",
+        "requestor": "api_test_user",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -8876,6 +8986,10 @@
               "canary_mode": {
                 "type": "RDFBool",
                 "value": true
+              },
+              "mode": {
+                "type": "EnumNamedValue",
+                "value": "ADVANCED"
               }
             }
           },
@@ -8910,7 +9024,8 @@
           "upload_binary_action_enabled": true
         },
         "settings": {
-          "canary_mode": true
+          "canary_mode": true,
+          "mode": "ADVANCED"
         },
         "user_type": "USER_TYPE_STANDARD",
         "username": "api_test_user"
@@ -8998,6 +9113,10 @@
               "canary_mode": {
                 "type": "RDFBool",
                 "value": true
+              },
+              "mode": {
+                "type": "EnumNamedValue",
+                "value": "ADVANCED"
               }
             }
           },
@@ -9032,7 +9151,8 @@
           "upload_binary_action_enabled": true
         },
         "settings": {
-          "canary_mode": true
+          "canary_mode": true,
+          "mode": "ADVANCED"
         },
         "user_type": "USER_TYPE_ADMIN",
         "username": "api_test_user"
@@ -11849,6 +11969,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -11866,6 +11990,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "requestor"
           },
           "subject": {
             "type": "ApiClient",
@@ -12069,12 +12197,14 @@
           "requestor"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "age": 42000000,
           "agent_info": {
@@ -12164,6 +12294,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -12181,6 +12315,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "requestor"
           },
           "subject": {
             "type": "ApiCronJob",
@@ -12232,12 +12370,14 @@
           "requestor"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "allow_overruns": false,
           "cron_job_id": "CronJob_123456",
@@ -12271,6 +12411,10 @@
             }
           ],
           "email_cc_addresses": [],
+          "email_message_id": {
+            "type": "unicode",
+            "value": "<message id stub>"
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -12288,6 +12432,10 @@
           "reason": {
             "type": "unicode",
             "value": "foo"
+          },
+          "requestor": {
+            "type": "unicode",
+            "value": "requestor"
           },
           "subject": {
             "type": "ApiHunt",
@@ -12500,12 +12648,14 @@
           "requestor"
         ],
         "email_cc_addresses": [],
+        "email_message_id": "<message id stub>",
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
           "api_test_user"
         ],
         "reason": "foo",
+        "requestor": "requestor",
         "subject": {
           "all_clients_count": 0,
           "client_limit": 100,
@@ -13145,6 +13295,10 @@
                 }
               ],
               "email_cc_addresses": [],
+              "email_message_id": {
+                "type": "unicode",
+                "value": "<message id stub>"
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:222222"
@@ -13162,6 +13316,10 @@
               "reason": {
                 "type": "unicode",
                 "value": "Running tests"
+              },
+              "requestor": {
+                "type": "unicode",
+                "value": "api_test_user"
               },
               "subject": {
                 "type": "ApiClient",
@@ -13368,6 +13526,10 @@
                 }
               ],
               "email_cc_addresses": [],
+              "email_message_id": {
+                "type": "unicode",
+                "value": "<message id stub>"
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:111111"
@@ -13389,6 +13551,10 @@
               "reason": {
                 "type": "unicode",
                 "value": "Running tests"
+              },
+              "requestor": {
+                "type": "unicode",
+                "value": "api_test_user"
               },
               "subject": {
                 "type": "ApiClient",
@@ -13596,12 +13762,14 @@
               "approver"
             ],
             "email_cc_addresses": [],
+            "email_message_id": "<message id stub>",
             "id": "approval:222222",
             "is_valid": true,
             "notified_users": [
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": 42000000,
               "agent_info": {
@@ -13675,6 +13843,7 @@
               "api_test_user"
             ],
             "email_cc_addresses": [],
+            "email_message_id": "<message id stub>",
             "id": "approval:111111",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -13682,6 +13851,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": 42000000,
               "agent_info": {
@@ -13769,6 +13939,10 @@
                 }
               ],
               "email_cc_addresses": [],
+              "email_message_id": {
+                "type": "unicode",
+                "value": "<message id stub>"
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:111111"
@@ -13790,6 +13964,10 @@
               "reason": {
                 "type": "unicode",
                 "value": "Running tests"
+              },
+              "requestor": {
+                "type": "unicode",
+                "value": "api_test_user"
               },
               "subject": {
                 "type": "ApiClient",
@@ -13996,6 +14174,7 @@
               "api_test_user"
             ],
             "email_cc_addresses": [],
+            "email_message_id": "<message id stub>",
             "id": "approval:111111",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -14003,6 +14182,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "age": 42000000,
               "agent_info": {
@@ -15898,6 +16078,10 @@
                 }
               ],
               "email_cc_addresses": [],
+              "email_message_id": {
+                "type": "unicode",
+                "value": "<message id stub>"
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:112233"
@@ -15919,6 +16103,10 @@
               "reason": {
                 "type": "unicode",
                 "value": "Running tests"
+              },
+              "requestor": {
+                "type": "unicode",
+                "value": "api_test_user"
               },
               "subject": {
                 "type": "ApiHunt",
@@ -16062,6 +16250,7 @@
               "api_test_user"
             ],
             "email_cc_addresses": [],
+            "email_message_id": "<message id stub>",
             "id": "approval:112233",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -16069,6 +16258,7 @@
               "approver"
             ],
             "reason": "Running tests",
+            "requestor": "api_test_user",
             "subject": {
               "all_clients_count": 0,
               "client_limit": 100,

@@ -231,8 +231,8 @@ def GetStartTime(cron_cls):
   now = rdfvalue.RDFDatetime.Now()
   window_ms = cron_cls.frequency.microseconds
 
-  start_time_ms = random.randint(now.AsMicroSecondsFromEpoch(),
-                                 now.AsMicroSecondsFromEpoch() + window_ms)
+  start_time_ms = random.randint(now.AsMicrosecondsSinceEpoch(),
+                                 now.AsMicrosecondsSinceEpoch() + window_ms)
   return rdfvalue.RDFDatetime(start_time_ms)
 
 
@@ -438,7 +438,7 @@ class CronJob(aff4.AFF4Volume):
     if self.IsRunning():
       start_time = self.Get(self.Schema.LAST_RUN_TIME)
       lifetime = self.Get(self.Schema.CRON_ARGS).lifetime
-      elapsed = time.time() - start_time.AsSecondsFromEpoch()
+      elapsed = time.time() - start_time.AsSecondsSinceEpoch()
 
       if lifetime and elapsed > lifetime.seconds:
         self.StopCurrentRun()
@@ -488,7 +488,7 @@ class CronJob(aff4.AFF4Volume):
                   status=rdf_cronjobs.CronJobRunStatus.Status.OK))
 
           start_time = self.Get(self.Schema.LAST_RUN_TIME)
-          elapsed = time.time() - start_time.AsSecondsFromEpoch()
+          elapsed = time.time() - start_time.AsSecondsSinceEpoch()
           stats.STATS.RecordEvent(
               "cron_job_latency", elapsed, fields=[self.urn.Basename()])
 

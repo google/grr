@@ -345,7 +345,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
     clients = self._SetupClients(2)
     for client_id, client in clients.items():
       data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
-      index.AddClient(client_id, client)
+      index.AddClient(client)
 
     # Check unique identifiers.
     self.assertEqual(
@@ -392,7 +392,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
       for client_id, client in clients.items():
         data_store.REL_DB.WriteClientMetadata(
             client_id, fleetspeak_enabled=False)
-        index.AddClient(client_id, client)
+        index.AddClient(client)
 
     self.assertEqual(
         len(index.LookupClients([".", "start_date:2014-10-20"])), 5)
@@ -428,7 +428,7 @@ class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
 
   def _HostsHaveLabel(self, expected_hosts, label, index):
     client_ids = index.LookupClients(["label:%s" % label])
-    client_data = data_store.REL_DB.ReadClientsSnapshot(client_ids)
+    client_data = data_store.REL_DB.MultiReadClientSnapshot(client_ids)
     labelled_hosts = []
 
     for client_id in client_ids:

@@ -29,14 +29,6 @@ class ClientActionStub(object):
   out_rdfvalues = [None]
 
 
-# from components.py
-class LoadComponent(ClientActionStub):
-  """Launches an external client action through a component."""
-
-  in_rdfvalue = rdf_client.LoadComponent
-  out_rdfvalues = [rdf_client.LoadComponent]
-
-
 # from windows/windows.py, osx/osx.py and linux/linux.py
 class GetInstallDate(ClientActionStub):
   """Estimate the install date of this system."""

@@ -10,7 +10,6 @@ from grr.lib import rdfvalues
 from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import cloud
-from grr_response_client.client_actions import components
 from grr_response_client.client_actions import enrol
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint

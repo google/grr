@@ -7,12 +7,12 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.server import access_control
 from grr.server.aff4_objects import cronjobs
-from grr.server.aff4_objects import security
 from grr.server.flows.cron import system as cron_system
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
@@ -97,12 +97,13 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Lets add another approver.
-    token = access_control.ACLToken(username="approver")
-    security.CronJobApprovalGrantor(
-        subject_urn=rdfvalue.RDFURN("aff4:/cron/OSBreakDown"),
-        reason=self.reason,
-        delegate=self.token.username,
-        token=token).Grant()
+    approval_id = self.ListCronJobApprovals(requestor=self.token.username)[0].id
+    self.GrantCronJobApproval(
+        "OSBreakDown",
+        approval_id=approval_id,
+        approver="approver",
+        requestor=self.token.username,
+        admin=False)
 
     # Now test starts up
     self.Open("/")
@@ -125,9 +126,8 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # This is still insufficient - one of the approvers should have
     # "admin" label.
-    self.WaitUntilContains(
-        "Need at least 1 additional approver with the 'admin' label for access",
-        self.GetText, "css=grr-request-approval-dialog")
+    self.WaitUntilContains("Need at least 1 admin approver for access",
+                           self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
     self.CreateAdminUser("approver")

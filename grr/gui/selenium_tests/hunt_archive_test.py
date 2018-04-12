@@ -16,8 +16,10 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import aff4
 from grr.server.flows.general import collectors
 from grr.server.flows.general import export as flow_export
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt archive download functionality."""
 
@@ -92,11 +94,11 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
     self.Click("link=Show export command")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "/usr/bin/grr_api_shell 'http://localhost:8000/' "
-                   "--exec_code 'grrapi.Hunt(\"%s\").GetFilesArchive()."
-                   "WriteToFile(\"./hunt_results_%s.zip\")'" %
-                   (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
+    self.WaitUntil(
+        self.IsTextPresent, "/usr/bin/grr_api_shell 'http://localhost:8000/' "
+        "--exec_code 'grrapi.Hunt(\"%s\").GetFilesArchive()."
+        "WriteToFile(\"./hunt_results_%s.zip\")'" %
+        (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
 
   def testExportCommandIsNotShownWhenNoResults(self):
     hunt_urn = self.CreateGenericHuntWithCollection([])

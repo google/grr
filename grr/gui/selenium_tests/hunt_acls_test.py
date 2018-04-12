@@ -12,12 +12,13 @@ from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.server import access_control
 from grr.server import flow
 from grr.server import output_plugin
-from grr.server.aff4_objects import security
 from grr.server.flows.general import file_finder
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
@@ -114,12 +115,13 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Lets add another approver.
-    token = access_control.ACLToken(username="approver")
-    security.HuntApprovalGrantor(
-        subject_urn=hunt_id,
-        reason=self.reason,
-        delegate=self.token.username,
-        token=token).Grant()
+    approval_id = self.ListHuntApprovals(requestor=self.token.username)[0].id
+    self.GrantHuntApproval(
+        hunt_id.Basename(),
+        approval_id=approval_id,
+        approver="approver",
+        requestor=self.token.username,
+        admin=False)
 
     self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
@@ -142,9 +144,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     # This is still insufficient - one of the approvers should have
     # "admin" label.
-    self.WaitUntilContains(
-        "Need at least 1 additional approver with the 'admin' label for access",
-        self.GetText, "css=grr-request-approval-dialog")
+    self.WaitUntilContains("Need at least 1 admin approver for access",
+                           self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
     self.CreateAdminUser("approver")
@@ -381,9 +382,10 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(
         self.IsElementPresent,
         "css=tr.diff-changed:contains('Action'):contains('DOWNLOAD')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.diff-added:contains('Conditions'):contains('Size')"
-                   ":contains('42')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr.diff-added:contains('Conditions'):contains('Size')"
+        ":contains('42')")
 
   def testOriginalFlowLinkIsShownIfHuntCreatedFromFlow(self):
     h, flow_urn = self._CreateHuntFromFlow()
@@ -445,16 +447,17 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr.diff-changed:contains('bar-description')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.diff-added:contains('Output Plugins'):"
-                   "contains('TestOutputPlugin')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=tr.diff-added:contains('Output Plugins'):"
+        "contains('TestOutputPlugin')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td table.diff-removed:contains('Rule type'):"
-                   "contains('REGEX'):contains('CLIENT_NAME')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td table.diff-added:contains('Rule type'):"
-                   "contains('REGEX'):contains('FQDN')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=td table.diff-removed:contains('Rule type'):"
+        "contains('REGEX'):contains('CLIENT_NAME')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=td table.diff-added:contains('Rule type'):"
+        "contains('REGEX'):contains('FQDN')")
 
   def testOriginalHuntLinkIsShownIfHuntCreatedFromHunt(self):
     new_h, source_h = self._CreateHuntFromHunt()

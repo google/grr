@@ -111,7 +111,7 @@ class ClientStatsCollector(threading.Thread):
     self._should_send = False
     self._last_send_time = rdfvalue.RDFDatetime.Now()
     stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
-                              self._last_send_time.AsSecondsFromEpoch())
+                              self._last_send_time.AsSecondsSinceEpoch())
 
   def _ShouldSend(self):
     delta = rdfvalue.RDFDatetime.Now() - self._last_send_time

@@ -107,7 +107,7 @@ class GetClientStatsProcessResponseMixin(object):
     """Actually processes the contents of the response."""
     urn = client_id.Add("stats")
 
-    downsampled = response.DownSample()
+    downsampled = rdf_client.ClientStats.Downsampled(response)
     with aff4.FACTORY.Create(
         urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.

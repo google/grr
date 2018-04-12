@@ -11,9 +11,11 @@ from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.server import aff4
 from grr.server.aff4_objects import cronjobs
 from grr.server.flows.cron import system as cron_system
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
@@ -246,8 +248,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "
-                   "td:contains('GRRVersionBreakDown')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-cron-jobs-list "
+        "td:contains('GRRVersionBreakDown')")
     self.WaitUntilNot(self.IsElementPresent, "css=grr-cron-jobs-list "
                       "td:contains('OSBreakDown')")
 
@@ -295,8 +298,9 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
       # View should be refreshed automatically. The last run date should appear.
-      self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "
-                     "tr:contains('OSBreakDown') td:contains('2042')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=grr-cron-jobs-list "
+          "tr:contains('OSBreakDown') td:contains('2042')")
 
   def testStuckCronJobIsHighlighted(self):
     # Make sure a lot of time has passed since the last

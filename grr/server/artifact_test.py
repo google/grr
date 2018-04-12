@@ -692,7 +692,7 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertItemsEqual([x.username for x in kb.users],
                           ["user1", "user2", "user3", "yagharek"])
     user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
 
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
@@ -713,11 +713,11 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertItemsEqual([x.username for x in kb.users],
                           ["user1", "user2", "user3"])
     user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552099)
     self.assertEqual(user.homedir, "/home/user1")
 
     user = kb.GetUser(username="user2")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552102)
+    self.assertEqual(user.last_logon.AsSecondsSinceEpoch(), 1296552102)
     self.assertEqual(user.homedir, "/home/user2")
 
     self.assertFalse(kb.GetUser(username="buguser3"))

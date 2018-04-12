@@ -3,20 +3,10 @@
 
 import cStringIO
 
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.server import aff4
 from grr.server import data_store
 from grr.server import grr_collections
-
-
-class ComponentObject(aff4.AFF4Object):
-  """An object holding a component."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    COMPONENT = aff4.Attribute("aff4:component",
-                               rdf_client.ClientComponentSummary,
-                               "The component of the client.")
 
 
 class GRRSignedBlob(aff4.AFF4Stream):

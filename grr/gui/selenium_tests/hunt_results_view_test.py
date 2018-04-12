@@ -12,8 +12,10 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import data_store
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntResultsView(self):
@@ -31,12 +33,12 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
     self.WaitUntil(self.IsTextPresent,
-                   "aff4:/C.0000000000000001/fs/os/c/bin/bash")
+                   "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename())
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(self.client_ids[0].Basename())
 
-    self.Click("link=aff4:/C.0000000000000001/fs/os/c/bin/bash")
+    self.Click("link=aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename())
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 

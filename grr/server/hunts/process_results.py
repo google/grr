@@ -66,8 +66,9 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
 
   def CheckIfRunningTooLong(self):
     if self.args.max_running_time:
-      elapsed = (rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch() -
-                 self.start_time.AsSecondsFromEpoch())
+      elapsed = (
+          rdfvalue.RDFDatetime.Now().AsSecondsSinceEpoch() -
+          self.start_time.AsSecondsSinceEpoch())
       if elapsed > self.args.max_running_time:
         return True
     return False

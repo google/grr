@@ -294,7 +294,7 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")
 
-    client_id = "aff4:/C.0000000000000001"
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(
         client_id, requestor="unknown", reason="I have one!")
 

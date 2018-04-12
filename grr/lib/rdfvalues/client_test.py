@@ -3,6 +3,8 @@
 
 import socket
 
+import unittest
+
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -208,6 +210,153 @@ class UnameTests(test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # We do not support old protos without a signature.
     sample.pep425tag = None
     self.assertRaises(ValueError, sample.signature)
+
+
+class CpuSampleTest(unittest.TestCase):
+
+  def testFromMany(self):
+    samples = [
+        rdf_client.CpuSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2001-01-01"),
+            cpu_percent=0.2,
+            user_cpu_time=0.1,
+            system_cpu_time=0.5),
+        rdf_client.CpuSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2001-02-01"),
+            cpu_percent=0.1,
+            user_cpu_time=2.5,
+            system_cpu_time=1.2),
+        rdf_client.CpuSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2001-03-01"),
+            cpu_percent=0.6,
+            user_cpu_time=3.4,
+            system_cpu_time=2.4),
+    ]
+
+    expected = rdf_client.CpuSample(
+        timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2001-03-01"),
+        cpu_percent=0.3,
+        user_cpu_time=3.4,
+        system_cpu_time=2.4)
+
+    self.assertEqual(rdf_client.CpuSample.FromMany(samples), expected)
+
+  def testFromManyRaisesOnEmpty(self):
+    with self.assertRaises(ValueError):
+      rdf_client.CpuSample.FromMany([])
+
+
+class IOSampleTest(unittest.TestCase):
+
+  def testFromMany(self):
+    samples = [
+        rdf_client.IOSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2001-01-01"),
+            read_bytes=0,
+            write_bytes=0),
+        rdf_client.IOSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2002-01-01"),
+            read_bytes=512,
+            write_bytes=1024),
+        rdf_client.IOSample(
+            timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2003-01-01"),
+            read_bytes=2048,
+            write_bytes=4096),
+    ]
+
+    expected = rdf_client.IOSample(
+        timestamp=rdfvalue.RDFDatetime.FromHumanReadable("2003-01-01"),
+        read_bytes=2048,
+        write_bytes=4096)
+
+    self.assertEqual(rdf_client.IOSample.FromMany(samples), expected)
+
+  def testFromManyRaisesOnEmpty(self):
+    with self.assertRaises(ValueError):
+      rdf_client.IOSample.FromMany([])
+
+
+class ClientStatsTest(unittest.TestCase):
+
+  def testDownsampled(self):
+    timestamp = rdfvalue.RDFDatetime.FromHumanReadable
+
+    stats = rdf_client.ClientStats(
+        cpu_samples=[
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:00"),
+                user_cpu_time=2.5,
+                system_cpu_time=3.2,
+                cpu_percent=0.5),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:05"),
+                user_cpu_time=2.6,
+                system_cpu_time=4.7,
+                cpu_percent=0.6),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:10"),
+                user_cpu_time=10.0,
+                system_cpu_time=14.2,
+                cpu_percent=0.9),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:12"),
+                user_cpu_time=12.3,
+                system_cpu_time=14.9,
+                cpu_percent=0.1),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:21"),
+                user_cpu_time=16.1,
+                system_cpu_time=22.3,
+                cpu_percent=0.4)
+        ],
+        io_samples=[
+            rdf_client.IOSample(
+                timestamp=timestamp("2001-01-01 00:00"),
+                read_count=0,
+                write_count=0),
+            rdf_client.IOSample(
+                timestamp=timestamp("2001-01-01 00:02"),
+                read_count=3,
+                write_count=5),
+            rdf_client.IOSample(
+                timestamp=timestamp("2001-01-01 00:12"),
+                read_count=6,
+                write_count=8),
+        ])
+
+    expected = rdf_client.ClientStats(
+        cpu_samples=[
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:05"),
+                user_cpu_time=2.6,
+                system_cpu_time=4.7,
+                cpu_percent=0.55),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:12"),
+                user_cpu_time=12.3,
+                system_cpu_time=14.9,
+                cpu_percent=0.5),
+            rdf_client.CpuSample(
+                timestamp=timestamp("2001-01-01 00:21"),
+                user_cpu_time=16.1,
+                system_cpu_time=22.3,
+                cpu_percent=0.4),
+        ],
+        io_samples=[
+            rdf_client.IOSample(
+                timestamp=timestamp("2001-01-01 00:02"),
+                read_count=3,
+                write_count=5),
+            rdf_client.IOSample(
+                timestamp=timestamp("2001-01-01 00:12"),
+                read_count=6,
+                write_count=8),
+        ])
+
+    actual = rdf_client.ClientStats.Downsampled(
+        stats, interval=rdfvalue.Duration("10m"))
+
+    self.assertEqual(actual, expected)
 
 
 def main(argv):

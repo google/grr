@@ -102,6 +102,9 @@ class ClientSnapshot(structs.RDFProtoStruct):
       ValueError: on bad cloud type
     """
     summary = rdf_client.ClientSummary()
+    summary.client_id = self.client_id
+    summary.timestamp = self.age
+
     summary.system_info.release = self.os_release
     summary.system_info.version = str(self.os_version or "")
     summary.system_info.kernel = self.kernel
@@ -125,7 +128,7 @@ class ClientSnapshot(structs.RDFProtoStruct):
       summary.serial_number = hwi.serial_number
       summary.system_manufacturer = hwi.system_manufacturer
       summary.system_uuid = hwi.system_uuid
-    summary.timestamp = self.age
+
     cloud_instance = self.cloud_instance
     if cloud_instance:
       summary.cloud_type = cloud_instance.cloud_type

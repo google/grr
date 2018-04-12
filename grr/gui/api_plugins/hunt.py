@@ -1008,7 +1008,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     # If the entry corresponding to a given path is not found within
     # MAX_RECORDS_TO_CHECK from a given timestamp, we report a 404.
     for _, item in results.Scan(
-        after_timestamp=timestamp.AsMicroSecondsFromEpoch(),
+        after_timestamp=timestamp.AsMicrosecondsSinceEpoch(),
         max_records=self.MAX_RECORDS_TO_CHECK):
       try:
         # Do not pass the client id we got from the caller. This will

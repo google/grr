@@ -164,8 +164,7 @@ class Interrogate(flow.GRRFlow):
       if data_store.RelationalDBWriteEnabled():
         try:
           # Update the client index
-          client_index.ClientIndex().AddClient(self.client_id.Basename(),
-                                               client)
+          client_index.ClientIndex().AddClient(client)
         except db.UnknownClientError:
           pass
 
@@ -174,9 +173,10 @@ class Interrogate(flow.GRRFlow):
             self.client_id.Add("registry"),
             standard.VFSDirectory,
             token=self.token) as fd:
-          fd.Set(fd.Schema.PATHSPEC,
-                 fd.Schema.PATHSPEC(
-                     path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+          fd.Set(
+              fd.Schema.PATHSPEC,
+              fd.Schema.PATHSPEC(
+                  path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # No support for OS X cloud machines as yet.
       if response.system in ["Linux", "Windows"]:
@@ -291,8 +291,7 @@ class Interrogate(flow.GRRFlow):
     if data_store.RelationalDBWriteEnabled():
       try:
         # Update the client index for the objects.ClientSnapshot.
-        client_index.ClientIndex().AddClient(self.client_id.Basename(),
-                                             self.state.client)
+        client_index.ClientIndex().AddClient(self.state.client)
       except db.UnknownClientError:
         pass
 
@@ -358,7 +357,7 @@ class Interrogate(flow.GRRFlow):
       client.Set(client.Schema.INTERFACES(interface_list))
 
     # objects.ClientSnapshot.
-    self.state.client.interfaces = list(responses)
+    self.state.client.interfaces = sorted(responses, key=lambda i: i.ifname)
 
   @flow.StateHandler()
   def EnumerateFilesystems(self, responses):
@@ -494,7 +493,7 @@ class Interrogate(flow.GRRFlow):
     if data_store.RelationalDBWriteEnabled():
       try:
         index = client_index.ClientIndex()
-        index.AddClient(self.client_id.Basename(), self.state.client)
+        index.AddClient(self.state.client)
       except db.UnknownClientError:
         # TODO(amoser): Remove after data migration.
         pass

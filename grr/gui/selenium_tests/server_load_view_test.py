@@ -37,7 +37,7 @@ class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
                    (5, now - rdfvalue.Duration("5m")),
                    (0, now)]  # pyformat: disable
 
-    handle_data = [(value, timestamp.AsMicroSecondsFromEpoch())
+    handle_data = [(value, timestamp.AsMicrosecondsSinceEpoch())
                    for value, timestamp in handle_data]
     for value, timestamp in handle_data:
       with test_lib.FakeTime(timestamp / 1e6):

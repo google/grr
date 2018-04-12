@@ -7,12 +7,10 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
-from grr.server import access_control
-from grr.server import aff4
-from grr.server.aff4_objects import security
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
@@ -20,8 +18,13 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"
 
+  def setUp(self):
+    super(TestACLWorkflow, self).setUp()
+    self.client_id_1 = self.SetupClient(0).Basename()
+    self.client_id_2 = self.SetupClient(1).Basename()
+
   def testNavigatorLinksDisabledForClientWithoutApproval(self):
-    self.Open("/#/clients/C.0000000000000001?navigator-test")
+    self.Open("/#/clients/%s?navigator-test" % self.client_id_1)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=a[grrtarget='client.vfs'].disabled")
@@ -35,13 +38,13 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "css=a[grrtarget='client.hostInfo']:not(.disabled)")
 
   def testApprovalNotificationIsShownInHostInfoForUnapprovedClient(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id_1)
 
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
   def testClickingOnRequestApprovalShowsApprovalDialog(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id_1)
 
     self.Click("css=button[name=requestApproval]")
 
@@ -51,14 +54,14 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   def testClientACLWorkflow(self):
     self.Open("/")
 
-    self.Type("client_query", "C.0000000000000001")
+    self.Type("client_query", self.client_id_1)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+    self.WaitUntilEqual(self.client_id_1, self.GetText,
                         "css=span[type=subject]")
 
     # Choose client 1
-    self.Click("css=td:contains('0001')")
+    self.Click("css=td:contains('%s')" % self.client_id_1)
 
     # We do not have an approval, so we need to request one.
     self.WaitUntil(self.IsElementPresent, "css=div.no-approval")
@@ -108,12 +111,12 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "You do not have an approval for this client.")
 
     # Lets add another approver.
-    token = access_control.ACLToken(username="approver")
-    security.ClientApprovalGrantor(
-        reason=self.reason,
-        delegate=self.token.username,
-        subject_urn=rdf_client.ClientURN("C.0000000000000001"),
-        token=token).Grant()
+    approval_id = self.ListClientApprovals(requestor=self.token.username)[0].id
+    self.GrantClientApproval(
+        self.client_id_1,
+        approval_id=approval_id,
+        requestor=self.token.username,
+        approver="approver")
 
     # Check if we see that the approval has already been granted.
     self.Open("/")
@@ -143,29 +146,29 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.Open("/")
 
     test_reason = u"ástæða"
-    self.RequestAndGrantClientApproval("C.0000000000000006", reason=test_reason)
+    self.RequestAndGrantClientApproval(self.client_id_2, reason=test_reason)
 
-    self.Type("client_query", "C.0000000000000006")
+    self.Type("client_query", self.client_id_2)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000006", self.GetText,
+    self.WaitUntilEqual(self.client_id_2, self.GetText,
                         "css=span[type=subject]")
 
     # Choose client 6
-    self.Click("css=td:contains('0006')")
+    self.Click("css=td:contains('%s')" % self.client_id_2)
 
     self.WaitUntil(self.IsTextPresent, u"Access reason: %s" % test_reason)
 
     # By now we should have a recent reason set, let's see if it shows up in the
     # ACL dialog.
-    self.Type("client_query", "C.0000000000000001")
+    self.Type("client_query", self.client_id_1)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+    self.WaitUntilEqual(self.client_id_1, self.GetText,
                         "css=span[type=subject]")
 
     # Choose client 1
-    self.Click("css=td:contains('0001')")
+    self.Click("css=td:contains('%s')" % self.client_id_1)
 
     # We do not have an approval, so check that the hint is shown, that the
     # interrogate button is disabled and that the menu is disabled.
@@ -179,16 +182,17 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
-    self.WaitUntilEqual(2, self.GetCssCount, "css=grr-request-approval-dialog "
-                        "select[name=acl_recent_reasons] option")
-    self.assertEqual("Enter New Reason...",
-                     self.GetText(
-                         "css=grr-request-approval-dialog "
-                         "select[name=acl_recent_reasons] option:nth(0)"))
-    self.assertEqual(test_reason,
-                     self.GetText(
-                         "css=grr-request-approval-dialog "
-                         "select[name=acl_recent_reasons] option:nth(1)"))
+    self.WaitUntilEqual(
+        2, self.GetCssCount, "css=grr-request-approval-dialog "
+        "select[name=acl_recent_reasons] option")
+    self.assertEqual(
+        "Enter New Reason...",
+        self.GetText("css=grr-request-approval-dialog "
+                     "select[name=acl_recent_reasons] option:nth(0)"))
+    self.assertEqual(
+        test_reason,
+        self.GetText("css=grr-request-approval-dialog "
+                     "select[name=acl_recent_reasons] option:nth(1)"))
 
     # The reason text box should be there and enabled.
     element = self.GetElement(
@@ -215,18 +219,15 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # And make sure the approval was created...
     def GetApprovals():
-      fd = aff4.FACTORY.Open(
-          "aff4:/ACL/C.0000000000000001/%s" % self.token.username,
-          token=self.token)
-      return list(fd.ListChildren())
+      approvals = self.ListClientApprovals(requestor=self.token.username)
+      return list(
+          a for a in approvals if a.subject.client_id == self.client_id_1)
 
     self.WaitUntilEqual(1, lambda: len(GetApprovals()))
 
     # ... using the correct reason.
     approvals = GetApprovals()
-    approval = aff4.FACTORY.Open(approvals[0], token=self.token)
-    self.assertEqual(
-        utils.SmartUnicode(approval.Get(approval.Schema.REASON)), test_reason)
+    self.assertEqual(utils.SmartUnicode(approvals[0].reason), test_reason)
 
 
 def main(argv):

@@ -115,7 +115,7 @@ class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
+class AnalyzeClientMemory(flow.GRRFlow):
   """Runs client side analysis using Rekall.
 
   This flow takes a list of Rekall plugins to run. It then sends the list of
@@ -134,21 +134,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
                          "Add 'Rekall.enabled: True' to the config to enable "
                          "them.")
 
-    # Load all the components we will be needing on the client.
-    self.LoadComponentOnClient(
-        name="grr-rekall",
-        version=self.args.component_version,
-        next_state="StartAnalysis")
-
-  @flow.StateHandler()
-  def ComponentLoaded(self, responses):
-    # We no longer support old clients with no components installed.
-    if not responses.success:
-      raise flow.FlowError(
-          "Component load failed: %s" % responses.status.error_message)
-
-    self.state.component_version = responses.First().summary.version
-    self.CallStateInline(next_state=responses.request_data["next_state"])
+    self.CallStateInline(next_state="StartAnalysis")
 
   @flow.StateHandler()
   def StartAnalysis(self, responses):
@@ -206,10 +192,11 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
               profile,
               next_state="UpdateProfile")
         else:
-          self.Log("Needed profile %s not found! See "
-                   "https://github.com/google/grr-doc/blob/master/"
-                   "troubleshooting.adoc#missing-rekall-profiles",
-                   response.missing_profile)
+          self.Log(
+              "Needed profile %s not found! See "
+              "https://github.com/google/grr-doc/blob/master/"
+              "troubleshooting.adoc#missing-rekall-profiles",
+              response.missing_profile)
 
       if response.json_messages:
         response.client_urn = self.client_id

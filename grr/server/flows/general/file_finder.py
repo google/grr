@@ -127,27 +127,27 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
                                 condition_index):
     """Applies modification time condition to responses."""
     settings = condition_options.modification_time
-    if (settings.min_last_modified_time.AsSecondsFromEpoch() <=
+    if (settings.min_last_modified_time.AsSecondsSinceEpoch() <=
         response.stat_entry.st_mtime <=
-        settings.max_last_modified_time.AsSecondsFromEpoch()):
+        settings.max_last_modified_time.AsSecondsSinceEpoch()):
 
       self.ApplyCondition(response, condition_index + 1)
 
   def AccessTimeCondition(self, response, condition_options, condition_index):
     """Applies access time condition to responses."""
     settings = condition_options.access_time
-    if (settings.min_last_access_time.AsSecondsFromEpoch() <=
+    if (settings.min_last_access_time.AsSecondsSinceEpoch() <=
         response.stat_entry.st_atime <=
-        settings.max_last_access_time.AsSecondsFromEpoch()):
+        settings.max_last_access_time.AsSecondsSinceEpoch()):
       self.ApplyCondition(response, condition_index + 1)
 
   def InodeChangeTimeCondition(self, response, condition_options,
                                condition_index):
     """Applies inode change time condition to responses."""
     settings = condition_options.inode_change_time
-    if (settings.min_last_inode_change_time.AsSecondsFromEpoch() <=
+    if (settings.min_last_inode_change_time.AsSecondsSinceEpoch() <=
         response.stat_entry.st_ctime <=
-        settings.max_last_inode_change_time.AsSecondsFromEpoch()):
+        settings.max_last_inode_change_time.AsSecondsSinceEpoch()):
       self.ApplyCondition(response, condition_index + 1)
 
   def SizeCondition(self, response, condition_options, condition_index):
@@ -352,6 +352,7 @@ class ClientFileFinder(flow.GRRFlow):
   friendly_name = "Client Side File Finder"
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler()
   def Start(self):

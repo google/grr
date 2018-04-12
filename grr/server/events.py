@@ -169,7 +169,7 @@ class Events(object):
           timestamp = None
           if delay:
             timestamp = (
-                rdfvalue.RDFDatetime.Now() + delay).AsMicroSecondsFromEpoch()
+                rdfvalue.RDFDatetime.Now() + delay).AsMicrosecondsSinceEpoch()
 
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:
