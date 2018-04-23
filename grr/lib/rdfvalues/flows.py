@@ -56,7 +56,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   def GenerateTaskID(self):
     """Generates a new, unique task_id."""
     # Random number can not be zero since next_id_base must increment.
-    random_number = utils.PRNG.GetUShort() + 1
+    random_number = utils.PRNG.GetUInt16() + 1
 
     # 16 bit random numbers
     with GrrMessage.lock:

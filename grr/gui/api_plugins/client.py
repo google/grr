@@ -315,8 +315,11 @@ class ApiLabelsRestrictedSearchClientsHandler(
   def Handle(self, args, token=None):
     if args.count:
       end = args.offset + args.count
+      # Read <count> clients ahead in case some of them fail to open / verify.
+      batch_size = end + args.count
     else:
       end = sys.maxint
+      batch_size = end
 
     keywords = shlex.split(args.query)
     api_clients = []
@@ -333,17 +336,18 @@ class ApiLabelsRestrictedSearchClientsHandler(
         label_filter = ["label:" + label] + keywords
         all_client_ids.update(index.LookupClients(label_filter))
 
-      client_infos = data_store.REL_DB.MultiReadClientFullInfo(all_client_ids)
-
       index = 0
-      for _, client_info in sorted(client_infos.items()):
-        if not self._VerifyLabels(client_info.labels):
-          continue
-        if index >= args.offset and index < end:
-          api_clients.append(ApiClient().InitFromClientInfo(client_info))
-        index += 1
-        if index >= end:
-          break
+      for cid_batch in utils.Grouper(sorted(all_client_ids), batch_size):
+        client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
+
+        for _, client_info in sorted(client_infos.items()):
+          if not self._VerifyLabels(client_info.labels):
+            continue
+          if index >= args.offset and index < end:
+            api_clients.append(ApiClient().InitFromClientInfo(client_info))
+          index += 1
+          if index >= end:
+            return ApiSearchClientsResult(items=api_clients)
 
     else:
       index = client_index.CreateClientIndex(token=token)
@@ -353,12 +357,10 @@ class ApiLabelsRestrictedSearchClientsHandler(
         all_urns.update(index.LookupClients(label_filter))
 
       all_objs = aff4.FACTORY.MultiOpen(
-          sorted(all_urns, key=str),
-          aff4_type=aff4_grr.VFSGRRClient,
-          token=token)
+          all_urns, aff4_type=aff4_grr.VFSGRRClient, token=token)
 
       index = 0
-      for client_obj in all_objs:
+      for client_obj in sorted(all_objs):
         if not self._CheckClientLabels(client_obj):
           continue
         if index >= args.offset and index < end:
@@ -393,6 +395,9 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
     if data_store.RelationalDBReadEnabled():
       info = data_store.REL_DB.ReadClientFullInfo(str(args.client_id))
+      if info is None:
+        raise api_call_handler_base.ResourceNotFoundError()
+
       if args.timestamp:
         # Assume that a snapshot for this particular timestamp exists.
         snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
@@ -769,7 +774,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListClientsLabelsResult
 
-  def Handle(self, args, token=None):
+  def HandleLegacy(self, args, token=None):
     labels_index = aff4.FACTORY.Create(
         standard.LabelSet.CLIENT_LABELS_URN,
         standard.LabelSet,
@@ -780,6 +785,22 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       label_objects.append(objects.ClientLabel(name=label))
 
     return ApiListClientsLabelsResult(items=label_objects)
+
+  def HandleRelationalDB(self, args, token=None):
+    labels = data_store.REL_DB.ReadAllClientLabels()
+
+    label_objects = []
+    for name in set(l.name for l in labels):
+      label_objects.append(objects.ClientLabel(name=name))
+
+    return ApiListClientsLabelsResult(
+        items=sorted(label_objects, key=lambda l: l.name))
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBReadEnabled(data_store.READ_CATEGORY_APPROVALS):
+      return self.HandleRelationalDB(args, token=token)
+    else:
+      return self.HandleLegacy(args, token=token)
 
 
 class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):

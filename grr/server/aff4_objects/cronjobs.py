@@ -75,7 +75,7 @@ class CronManager(object):
       URN of the cron job created.
     """
     if not job_name:
-      uid = utils.PRNG.GetUShort()
+      uid = utils.PRNG.GetUInt16()
       job_name = "%s_%s" % (cron_args.flow_runner_args.flow_name, uid)
 
     cron_job_urn = self.CRON_JOBS_PATH.Add(job_name)

@@ -8,8 +8,10 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.server import foreman
 from grr.server.hunts import standard
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestCronCreation(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
@@ -21,8 +23,9 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Cron Job properties")
 
     # Select daily periodicity
-    self.Type("css=grr-new-cron-job-wizard-form "
-              "label:contains('Periodicity') ~ * input", "1d")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form "
+        "label:contains('Periodicity') ~ * input", "1d")
 
     # Click on "Next" button
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -37,12 +40,14 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Click("link=File Finder")
 
     # Change "path" and "pathtype" values
-    self.Type("css=grr-new-cron-job-wizard-form "
-              "grr-form-proto-repeated-field:has(label:contains('Paths')) "
-              "input", "/tmp")
-    self.Select("css=grr-new-cron-job-wizard-form "
-                "grr-form-proto-single-field:has(label:contains('Pathtype')) "
-                "select", "TSK")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form "
+        "grr-form-proto-repeated-field:has(label:contains('Paths')) "
+        "input", "/tmp")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Pathtype')) "
+        "select", "TSK")
 
     # Click on "Next" button
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -67,21 +72,26 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Regex")
     rule = foreman.ForemanRegexClientRule
     label = rule.ForemanStringField.SYSTEM.description
-    self.Select("css=grr-new-cron-job-wizard-form div.well "
-                "label:contains('Field') ~ * select", label)
-    self.Type("css=grr-new-cron-job-wizard-form div.well "
-              "label:contains('Attribute regex') ~ * input", "Linux")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Field') ~ * select", label)
+    self.Type(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Attribute regex') ~ * input", "Linux")
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Select("css=grr-new-cron-job-wizard-form div.well select", "Integer")
     rule = foreman.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
-    self.Select("css=grr-new-cron-job-wizard-form div.well "
-                "label:contains('Field') ~ * select", label)
-    self.Select("css=grr-new-cron-job-wizard-form div.well "
-                "label:contains('Operator') ~ * select", "GREATER_THAN")
-    self.Type("css=grr-new-cron-job-wizard-form div.well "
-              "label:contains('Value') ~ * input", "1336650631137737")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Field') ~ * select", label)
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Operator') ~ * select", "GREATER_THAN")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form div.well "
+        "label:contains('Value') ~ * input", "1336650631137737")
 
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
     self.Click("css=grr-new-cron-job-wizard-form div.well "

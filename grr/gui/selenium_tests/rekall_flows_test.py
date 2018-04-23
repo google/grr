@@ -4,21 +4,22 @@
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.lib.rdfvalues import client as rdf_client
 from grr.server.flows.general import memory
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
   """Tests the Rekall flows UI."""
 
   def setUp(self):
     super(TestRekallFlows, self).setUp()
-    self.RequestAndGrantClientApproval(
-        rdf_client.ClientURN("C.0000000000000001"))
+    self.client_id = self.SetupClient(0).Basename()
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testRekallFlowsAreShownInDebugUIByDefault(self):
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
     self.Click("css=#_Memory")
     self.Click("css=#_Filesystem")
@@ -43,7 +44,7 @@ class TestRekallFlows(gui_test_lib.GRRSeleniumTest):
       memory.MemoryFlowsInit().RunOnce()
 
     try:
-      self.Open("/#/clients/C.0000000000000001/launch-flow")
+      self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
       self.Click("css=#_Memory")
       self.WaitUntilNot(self.IsElementPresent,

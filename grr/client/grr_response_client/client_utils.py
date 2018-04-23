@@ -83,7 +83,7 @@ def StatEntryFromStat(stat, pathspec, ext_attrs=False):
     # TODO(hanuszczak): Can we somehow incorporate extended attribute getter to
     # the `Stat` class? That would make the code a lot prettier but would force
     # `utils` to depend on `xattrs`.
-    result.ext_atrs = list(GetExtAttrs(stat.GetPath()))
+    result.ext_attrs = list(GetExtAttrs(stat.GetPath()))
 
   return result
 

@@ -7,8 +7,10 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.server import aff4
 from grr.server.aff4_objects import users as aff4_users
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestContentView(gui_test_lib.SearchClientTestBase):
   """Tests the main content view."""
 

@@ -11,6 +11,7 @@ from grr.server import flow
 from grr.server import queue_manager
 from grr.server.flows.general import discovery as flow_discovery
 from grr.server.flows.general import processes
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 
 
@@ -18,12 +19,21 @@ class TestInspectViewBase(gui_test_lib.GRRSeleniumTest):
   pass
 
 
+@db_test_lib.DualDBTest
 class TestClientLoadView(TestInspectViewBase):
   """Tests for ClientLoadView."""
 
+  def setUp(self):
+    super(TestClientLoadView, self).setUp()
+    self.client_id = self.SetupClient(0).Basename()
+
   @staticmethod
-  def CreateLeasedClientRequest(
-      client_id=rdf_client.ClientURN("C.0000000000000001"), token=None):
+  def CreateLeasedClientRequest(client_id=None, token=None):
+
+    if not client_id:
+      client_id = rdf_client.ClientURN("C.0000000000000001")
+    else:
+      client_id = rdf_client.ClientURN(client_id)
 
     flow.GRRFlow.StartFlow(
         client_id=client_id,
@@ -33,32 +43,33 @@ class TestClientLoadView(TestInspectViewBase):
       manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
 
   def testNoClientActionIsDisplayed(self):
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(self.client_id)
 
-    self.Open("/#/clients/C.0000000000000001/load-stats")
+    self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
   def testNoClientActionIsDisplayedWhenFlowIsStarted(self):
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(self.client_id)
 
-    self.Open("/#/clients/C.0000000000000001/load-stats")
+    self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
     flow.GRRFlow.StartFlow(
-        client_id=rdf_client.ClientURN("C.0000000000000001"),
+        client_id=rdf_client.ClientURN(self.client_id),
         flow_name=processes.ListProcesses.__name__,
         token=self.token)
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
-    self.RequestAndGrantClientApproval("C.0000000000000001")
-    self.CreateLeasedClientRequest(token=self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
+    self.CreateLeasedClientRequest(client_id=self.client_id, token=self.token)
 
-    self.Open("/#/clients/C.0000000000000001/load-stats")
+    self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "Task id")
     self.WaitUntil(self.IsTextPresent, "Task eta")
 
 
+@db_test_lib.DualDBTest
 class TestDebugClientRequestsView(TestInspectViewBase):
   """Test the inspect interface."""
 
@@ -69,7 +80,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.RequestAndGrantClientApproval(client_id)
 
     flow.GRRFlow.StartFlow(
-        client_id=client_id,
+        client_id=rdf_client.ClientURN(client_id),
         flow_name=flow_discovery.Interrogate.__name__,
         token=self.token)
     mock = flow_test_lib.MockClient(client_id, None, token=self.token)

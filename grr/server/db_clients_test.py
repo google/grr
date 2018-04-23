@@ -730,6 +730,37 @@ class DatabaseTestClientsMixin(object):
             objects.ClientLabel(name=u"⛄࿄2", owner="owner2")
         ])
 
+  def testReadAllLabelsReturnsLabelsFromSingleClient(self):
+    d = self.db
+
+    client_id = "C.0000000000000001"
+    self._InitializeClient(client_id)
+
+    d.AddClientLabels(client_id, "owner1", [u"foo"])
+
+    all_labels = d.ReadAllClientLabels()
+    self.assertEqual(all_labels,
+                     [objects.ClientLabel(name="foo", owner="owner1")])
+
+  def testReadAllLabelsReturnsLabelsFromMultipleClients(self):
+    d = self.db
+
+    client_id_1 = "C.0000000000000001"
+    self._InitializeClient(client_id_1)
+    client_id_2 = "C.0000000000000002"
+    self._InitializeClient(client_id_2)
+
+    d.AddClientLabels(client_id_1, "owner1", [u"foo"])
+    d.AddClientLabels(client_id_2, "owner1", [u"foo"])
+    d.AddClientLabels(client_id_1, "owner2", [u"bar"])
+    d.AddClientLabels(client_id_2, "owner2", [u"bar"])
+
+    all_labels = sorted(d.ReadAllClientLabels(), key=lambda l: l.name)
+    self.assertEqual(all_labels, [
+        objects.ClientLabel(name="bar", owner="owner2"),
+        objects.ClientLabel(name="foo", owner="owner1")
+    ])
+
   def testReadClientStartupInfoHistory(self):
     d = self.db
 
@@ -919,7 +950,17 @@ class DatabaseTestClientsMixin(object):
     self.assertIsNone(d.ReadClientCrashInfo("C.0000000000000000"))
     self.assertEqual(d.ReadClientCrashInfoHistory("C.0000000000000000"), [])
 
-  def testReadClientFullFullInfoReturnsCorrectResult(self):
+  def testEmptyCrashHistory(self):
+    client_id = "C.0000000050000001"
+    self.assertIsNone(self.db.ReadClientCrashInfo(client_id))
+    self.assertEqual(self.db.ReadClientCrashInfoHistory(client_id), [])
+
+  def testReadClientFullInfoPartialReads(self):
+    client_id = "C.0000000050000001"
+    self._InitializeClient(client_id)
+    self.assertIsNotNone(self.db.ReadClientFullInfo(client_id))
+
+  def testReadClientFullInfoReturnsCorrectResult(self):
     d = self.db
 
     client_id = "C.0000000050000001"
@@ -943,9 +984,7 @@ class DatabaseTestClientsMixin(object):
         full_info.labels,
         [objects.ClientLabel(owner="test_owner", name="test_label")])
 
-  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
-    d = self.db
-
+  def _SetupFullInfoClients(self):
     for i in range(10):
       client_id = "C.000000005000000%d" % i
       self._InitializeClient(client_id)
@@ -955,16 +994,23 @@ class DatabaseTestClientsMixin(object):
           knowledge_base=rdf_client.KnowledgeBase(fqdn="test%d.examples.com" %
                                                   i),
           kernel="12.3.%d" % i)
-      d.WriteClientSnapshot(cl)
-      d.WriteClientMetadata(client_id, certificate=CERT)
+      self.db.WriteClientSnapshot(cl)
+      self.db.WriteClientMetadata(client_id, certificate=CERT)
       si = rdf_client.StartupInfo(boot_time=i)
-      d.WriteClientStartupInfo(client_id, si)
-      d.AddClientLabels(
+      self.db.WriteClientStartupInfo(client_id, si)
+      self.db.AddClientLabels(
           client_id, "test_owner",
           ["test_label-a-%d" % i, "test_label-b-%d" % i])
 
-    c_infos = sorted(
-        d.ReadAllClientsFullInfo(), key=lambda c: c.last_snapshot.client_id)
+  def _VerifySnapshots(self, snapshots):
+    snapshots = sorted(snapshots, key=lambda s: s.client_id)
+    self.assertEqual(len(snapshots), 10)
+    for i, s in enumerate(snapshots):
+      self.assertEqual(s.client_id, "C.000000005000000%d" % i)
+      self.assertEqual(s.knowledge_base.fqdn, "test%d.examples.com" % i)
+
+  def _VerifyFullInfos(self, c_infos):
+    c_infos = sorted(c_infos, key=lambda c: c.last_snapshot.client_id)
     for i, full_info in enumerate(c_infos):
       self.assertEqual(full_info.last_snapshot.client_id,
                        "C.000000005000000%d" % i)
@@ -978,26 +1024,50 @@ class DatabaseTestClientsMixin(object):
                   owner="test_owner", name="test_label-b-%d" % i)
           ])
 
-  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
-    d = self.db
+  def testIterateAllClientsFullInfo(self):
+    self._SetupFullInfoClients()
+    self._VerifyFullInfos(self.db.IterateAllClientsFullInfo())
 
-    now = rdfvalue.RDFDatetime.Now()
+  def testIterateAllClientsFullInfoSmallBatches(self):
+    self._SetupFullInfoClients()
+    self._VerifyFullInfos(self.db.IterateAllClientsFullInfo(batch_size=2))
+
+  def testIterateAllClientSnapshots(self):
+    self._SetupFullInfoClients()
+    snapshots = self.db.IterateAllClientSnapshots()
+    self._VerifySnapshots(snapshots)
+
+  def testIterateAllClientSnapshotsSmallBatches(self):
+    self._SetupFullInfoClients()
+    snapshots = self.db.IterateAllClientSnapshots(batch_size=2)
+    self._VerifySnapshots(snapshots)
+
+  def _SetupLastPingClients(self, now):
     time_past = now - rdfvalue.Duration("1d")
 
-    expected_client_ids = set()
+    client_ids_to_ping = {}
     for i in range(10):
       client_id = "C.000000005000000%d" % i
       self._InitializeClient(client_id)
 
-      d.WriteClientSnapshot(objects.ClientSnapshot(client_id=client_id))
-      d.WriteClientMetadata(
-          client_id, last_ping=(time_past if i % 2 == 0 else now))
+      self.db.WriteClientSnapshot(objects.ClientSnapshot(client_id=client_id))
+      ping = (time_past if i % 2 == 0 else now)
+      self.db.WriteClientMetadata(client_id, last_ping=ping)
 
-      if i % 2 != 0:
-        expected_client_ids.add(client_id)
+      client_ids_to_ping[client_id] = ping
 
-    c_ids = set(
-        c.last_snapshot.client_id
-        for c in d.ReadAllClientsFullInfo(min_last_ping=now -
-                                          rdfvalue.Duration("1s")))
-    self.assertEqual(expected_client_ids, c_ids)
+    return client_ids_to_ping
+
+  def testMultiReadClientsFullInfoFiltersClientsByLastPingTime(self):
+    d = self.db
+
+    base_time = rdfvalue.RDFDatetime.Now()
+    cutoff_time = base_time - rdfvalue.Duration("1s")
+    client_ids_to_ping = self._SetupLastPingClients(base_time)
+
+    expected_client_ids = [
+        cid for cid, ping in client_ids_to_ping.items() if ping == base_time
+    ]
+    full_infos = d.MultiReadClientFullInfo(
+        client_ids_to_ping, min_last_ping=cutoff_time)
+    self.assertItemsEqual(expected_client_ids, full_infos)

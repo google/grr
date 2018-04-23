@@ -12,6 +12,7 @@ https://launchpadlibrarian.net/134750748/pyqtgraph_subprocess.patch
 We also set shell=True because that seems to avoid having an extra cmd.exe
 window pop up.
 """
+import errno
 import logging
 import os
 import shutil
@@ -23,12 +24,6 @@ import pywintypes
 import win32process
 import win32service
 import win32serviceutil
-
-from google.protobuf import text_format
-
-from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
-from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
-from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
 from grr import config
 from grr_response_client import installer
@@ -116,6 +111,8 @@ class CopyToSystemDir(installer.Installer):
     StopService(
         service_name=config.CONFIG["Nanny.service_name"],
         service_binary_name=config.CONFIG["Nanny.service_binary_name"])
+    if config.CONFIG["Client.fleetspeak_enabled"]:
+      StopService(service_name=config.CONFIG["Client.fleetspeak_service_name"])
 
   def RunOnce(self):
     """Copy the binaries from the temporary unpack location.
@@ -130,18 +127,13 @@ class CopyToSystemDir(installer.Installer):
     install_path = config.CONFIG["Client.install_path"]
     logging.info("Installing binaries %s -> %s", executable_directory,
                  config.CONFIG["Client.install_path"])
-
-    try:
+    if os.path.exists(install_path):
       shutil.rmtree(install_path)
-    except OSError:
-      pass
+    os.makedirs(install_path)
 
-    # Create the installation directory.
-    try:
-      os.makedirs(install_path)
-    except OSError:
-      pass
-
+    fleetspeak_unsigned_config_path = os.path.join(
+        executable_directory,
+        config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
     # Recursively copy the temp directory to the installation directory.
     for root, dirs, files in os.walk(executable_directory):
       for name in dirs:
@@ -151,11 +143,17 @@ class CopyToSystemDir(installer.Installer):
 
         try:
           os.mkdir(dest_path)
-        except OSError:
-          pass
+        except OSError as e:
+          # Ignore already-exists exceptions.
+          if e.errno != errno.EEXIST:
+            raise
 
       for name in files:
         src_path = os.path.join(root, name)
+        # The Fleetspeak config will be written to the registry, so
+        # no need to copy it to the installation directory.
+        if src_path == fleetspeak_unsigned_config_path:
+          continue
         relative_path = os.path.relpath(src_path, executable_directory)
         dest_path = os.path.join(install_path, relative_path)
 
@@ -197,55 +195,23 @@ class WindowsInstaller(installer.Installer):
         args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     logging.debug("%s", output)
 
-  def GenerateFleetspeakServiceConfig(self):
-    """Generate a service config, used to register the GRR client with FS."""
-    logging.info("Generating Fleetspeak service config.")
-
-    fs_service_config = fs_system_pb2.ClientServiceConfig(
-        name="GRR",
-        factory="Daemon",
-        required_labels=[
-            fs_common_pb2.Label(
-                service_name="client",
-                label="windows",
-            ),
-        ],
-    )
-    daemonservice_config = fs_config_pb2.Config(
-        argv=[
-            # Note this is an argv list, so we can't use
-            # config.CONFIG["Nanny.child_command_line"] directly.
-            config.CONFIG["Nanny.child_binary"],
-            "--config=%s.yaml" % config.CONFIG["Nanny.child_binary"],
-        ],
-        memory_limit=2147483648,  # 2GB
-        monitor_heartbeats=True,
-        heartbeat_unresponsive_grace_period_seconds=600,
-        heartbeat_unresponsive_kill_period_seconds=300,
-    )
-    fs_service_config.config.Pack(daemonservice_config)
-
-    str_fs_service_config = text_format.MessageToString(
-        fs_service_config, as_one_line=True)
-
-    return str_fs_service_config
-
-  def WriteFleetspeakServiceConfigToRegistry(self, str_fs_service_config):
+  @classmethod
+  def WriteFleetspeakServiceConfigToRegistry(cls):
     """Register the GRR client to be run by Fleetspeak."""
     logging.info("Writing Fleetspeak service config to registry.")
 
-    regkey = _winreg.CreateKey(
-        _winreg.HKEY_LOCAL_MACHINE,
-        r"SOFTWARE\Fleetspeak\textservices",
-    )
+    fleetspeak_unsigned_config_path = os.path.join(
+        os.path.dirname(sys.executable),
+        config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
 
-    _winreg.SetValueEx(
-        regkey,
-        config.CONFIG["Client.name"],
-        0,
-        _winreg.REG_SZ,
-        str_fs_service_config,
-    )
+    full_key_path = config.CONFIG["Client.fleetspeak_unsigned_services_regkey"]
+    hive_name, key_path = full_key_path.split("\\", 1)
+    hive = getattr(_winreg, hive_name)
+    regkey = _winreg.CreateKey(hive, key_path)
+
+    with open(fleetspeak_unsigned_config_path) as f:
+      _winreg.SetValueEx(regkey, config.CONFIG["Client.name"], 0,
+                         _winreg.REG_SZ, f.read())
 
   def RestartFleetspeakService(self):
     """Restart the Fleetspeak service so that config changes are applied."""
@@ -254,8 +220,7 @@ class WindowsInstaller(installer.Installer):
 
   def Run(self):
     if config.CONFIG["Client.fleetspeak_enabled"]:
-      str_fs_service_config = self.GenerateFleetspeakServiceConfig()
-      self.WriteFleetspeakServiceConfigToRegistry(str_fs_service_config)
+      self.WriteFleetspeakServiceConfigToRegistry()
 
       logging.info(
           "Restarting Fleetspeak service. Note it is OK that this step fails "

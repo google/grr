@@ -24,10 +24,12 @@ from grr.server.hunts import implementation
 from grr.server.hunts import standard
 from grr.server.hunts import standard_test
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                          standard_test.StandardHuntTestMixin):
   """Test the flow management GUI."""
@@ -35,19 +37,31 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def setUp(self):
     super(TestFlowManagement, self).setUp()
 
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.client_id = self.SetupClient(0).Basename()
+
+    hostname = "Host000011112222"
+    if data_store.RelationalDBReadEnabled():
+      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      snapshot.knowledge_base.fqdn = hostname
+      data_store.REL_DB.WriteClientSnapshot(snapshot)
+    else:
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+        kb.fqdn = hostname
+        fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
+        fd.Set(fd.Schema.HOSTNAME(hostname))
+        fd.Set(fd.Schema.FQDN(hostname))
+
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
-    self.Open("/#/clients/C.0000000000000002/flows/")
+    client_id = self.SetupClient(1).Basename()
+    self.Open("/#/clients/%s/flows/" % client_id)
 
-    # As we don't have an approval for C.0000000000000002, we should be
+    # As we don't have an approval for the client, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+    self.WaitUntilEqual("/#/clients/%s/host-info" % client_id,
                         self.GetCurrentUrlPath)
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
@@ -62,33 +76,31 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         pathspec=pathspec,
         token=self.token)
 
-    self.Open("/#/clients/C.0000000000000001/flows/")
-    self.WaitUntilEqual("GRR | C.0000000000000001 | Flows", self.GetPageTitle)
+    self.Open("/#/clients/%s/flows/" % self.client_id)
+    self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
 
     self.Click("css=td:contains('GetFile')")
-    self.WaitUntilEqual("GRR | C.0000000000000001 | " + flow_urn.Basename(),
+    self.WaitUntilEqual("GRR | %s | %s" % (self.client_id, flow_urn.Basename()),
                         self.GetPageTitle)
 
   def testFlowManagement(self):
     """Test that scheduling flows works."""
     self.Open("/")
 
-    self.Type("client_query", "C.0000000000000001")
+    self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(self.client_id, self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    self.Click("css=td:contains('0001')")
+    self.Click("css=td:contains('%s')" % self.client_id)
 
     # First screen should be the Host Information already.
-    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.WaitUntil(self.IsTextPresent, "Host000011112222")
 
     self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Processes")
     self.Click("link=" + flows_processes.ListProcesses.__name__)
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
     self.WaitUntil(self.IsTextPresent, "List running processes on a system.")
 
@@ -119,7 +131,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     # Test that recursive tests are shown in a tree table.
     flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001",
+        client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
@@ -128,17 +140,20 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Some rows are present in the DOM but hidden because parent flow row
     # wasn't expanded yet. Due to this, we have to explicitly filter rows
     # with "visible" jQuery filter.
-    self.WaitUntilEqual(gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
-                        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
+    self.WaitUntilEqual(
+        gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
 
-    self.WaitUntilEqual(flows_transfer.GetFile.__name__, self.GetText,
-                        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
+    self.WaitUntilEqual(
+        flows_transfer.GetFile.__name__, self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Click on the first tree_closed to open it.
     self.Click("css=grr-client-flows-list tr:visible:nth(1) .tree_closed")
 
-    self.WaitUntilEqual(gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
-                        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
+    self.WaitUntilEqual(
+        gui_test_lib.RecursiveTestFlow.__name__, self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Select the requests tab
     self.Click("css=td:contains(GetFile)")
@@ -159,7 +174,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # There should be a RecursiveTestFlow in the list. Expand nested flows.
@@ -178,7 +193,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.assertTrue("/" in flow_id)
 
   def testNestedFlowsAppearCorrectlyAfterAutoRefresh(self):
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -206,28 +221,31 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=tr:contains('%s')" % flow_2.Basename())
 
     # Check that flow_2 is the row 1 (row 0 is the table header).
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-client-flows-list tr:nth(1):contains('%s')" %
-                   flow_2.Basename())
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" %
+        flow_2.Basename())
 
     # Click on a nested flow.
     self.Click("css=tr:contains('%s') span.tree_branch" % flow_2.Basename())
 
     # Check that flow_2 is still row 1 and that nested flows occupy next
     # rows.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-client-flows-list tr:nth(1):contains('%s')" %
-                   flow_2.Basename())
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-client-flows-list tr:nth(1):contains('%s')" %
+        flow_2.Basename())
 
     flow_data = api_flow.ApiGetFlowHandler().Handle(
         api_flow.ApiGetFlowArgs(
-            client_id=self.client_id.Basename(), flow_id=flow_2.Basename()),
+            client_id=self.client_id, flow_id=flow_2.Basename()),
         token=self.token)
 
     for index, nested_flow in enumerate(flow_data.nested_flows):
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-client-flows-list tr:nth(%d):contains('%s')" %
-                     (index + 2, nested_flow.flow_id))
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=grr-client-flows-list tr:nth(%d):contains('%s')" %
+          (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
     with implementation.GRRHunt.StartHunt(
@@ -241,7 +259,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.AssignTasksToClients(client_ids=[self.client_id])
     self.RunHunt(client_ids=[self.client_id])
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # There should be a RecursiveTestFlow in the list. Expand nested flows.
@@ -268,7 +286,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
@@ -284,7 +302,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           token=self.token):
         pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
@@ -299,13 +317,13 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent,
-                   "aff4:/C.0000000000000001/fs/os/some/unique/path")
+                   "aff4:/%s/fs/os/some/unique/path" % self.client_id)
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
     flow.GRRFlow.StartFlow(
@@ -314,7 +332,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         sync=False,
         token=self.token)
 
-    self.Open("/#c=" + self.client_id.Basename())
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
@@ -330,14 +348,15 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneHashEntryResult')")
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-                   "e4f06017acdb5")
+    self.WaitUntil(
+        self.IsTextPresent,
+        "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+        "e4f06017acdb5")
     self.WaitUntil(self.IsTextPresent,
                    "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
@@ -365,7 +384,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     flow_id = flow_urn.Basename()
     broken_flow_id = broken_flow_urn.Basename()
 
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/#/clients/%s/flows" % self.client_id)
 
     # Both flows are shown in the list even though one is broken.
     self.WaitUntil(self.IsTextPresent, flow_id)
@@ -383,7 +402,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token)
 
     flow_id = flow_urn.Basename()
-    self.Open("/#/clients/C.0000000000000001/flows/%s/api" % flow_id)
+    self.Open("/#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
 
     self.WaitUntil(self.IsTextPresent,
                    "HTTP (authentication details are omitted)")
@@ -401,7 +420,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token)
 
     flow_id = flow_urn.Basename()
-    base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id
+    base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url)
 
@@ -427,7 +446,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         token=self.token)
 
     flow_id = flow_urn.Basename()
-    base_url = "/#/clients/C.0000000000000001/flows/%s" % flow_id
+    base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url + "/requests")
     self.WaitUntil(self.IsElementPresent, "css=li.active[heading=Requests]")
@@ -458,11 +477,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Open client and find the flow
     self.Open("/")
 
-    self.Type("client_query", "C.0000000000000001")
+    self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(self.client_id, self.GetText, "css=span[type=subject]")
     self.Click("css=td:contains('0001')")
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -478,7 +496,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -506,7 +524,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -531,7 +549,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowOverviewDirective.setAutoRefreshInterval(1000);")
@@ -544,16 +562,18 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Check that the flow is running.
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-inspector dd:contains('RUNNING')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-flow-inspector "
-                   "tr:contains('Status'):contains('Subflow call 1')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-inspector "
+        "tr:contains('Status'):contains('Subflow call 1')")
 
     # Cancel the flow and check that the flow state gets updated.
     flow.GRRFlow.TerminateFlow(
         f, "Because I said so", token=self.token, force=True)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-flow-inspector dd:contains('ERROR')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-flow-inspector "
-                   "tr:contains('Status'):contains('Because I said so')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-flow-inspector "
+        "tr:contains('Status'):contains('Because I said so')")
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
     f = flow.GRRFlow.StartFlow(
@@ -564,7 +584,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     with aff4.FACTORY.Open(f, token=self.token) as fd:
       fd.Log("foo-log")
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowLogDirective.setAutoRefreshInterval(1000);")
@@ -596,7 +616,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
       flow.GRRFlow.ResultCollectionForFID(f).Add(
           rdfvalue.RDFString("foo-result"), mutation_pool=pool)
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
@@ -628,7 +648,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
       flow.GRRFlow.ResultCollectionForFID(f).Add(
           rdfvalue.RDFString("foo-result"), mutation_pool=pool)
 
-    self.Open("/#/clients/C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")

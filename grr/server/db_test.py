@@ -4,11 +4,15 @@ import abc
 
 from grr.server import db
 from grr.server import db_clients_test
+from grr.server import db_paths_test
 from grr.server import db_users_test
 
 
-class DatabaseTestMixin(db_clients_test.DatabaseTestClientsMixin,
-                        db_users_test.DatabaseTestUsersMixin):
+class DatabaseTestMixin(
+    db_clients_test.DatabaseTestClientsMixin,
+    db_paths_test.DatabaseTestPathsMixin,
+    db_users_test.DatabaseTestUsersMixin,
+):
   """An abstract class for testing db.Database implementations.
 
   Implementations should override CreateDatabase in order to produce

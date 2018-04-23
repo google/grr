@@ -7,33 +7,39 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   """Tests for user dashboard shown on the home page."""
 
   def testShowsNothingByDefault(self):
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients]:contains('None')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyCreatedHunts]:contains('None')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients]:contains('None')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testShowsHuntCreatedByCurrentUser(self):
     self.CreateSampleHunt("foo-description", token=self.token)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyCreatedHunts]:contains('foo-description')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyCreatedHunts]:contains('foo-description')")
 
   def testDoesNotShowHuntCreatedByAnotherUser(self):
     self.CreateSampleHunt(
         "foo", token=access_control.ACLToken(username="another"))
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyCreatedHunts]:contains('None')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testClickingOnTheHuntRedirectsToThisHunt(self):
     self.CreateSampleHunt("foo-description", token=self.token)
@@ -59,11 +65,13 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
     self.Open("/")
     for i in range(11, 20, 2):
-      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                     "div[name=RecentlyCreatedHunts]:contains('bar-%d')" % i)
+      self.WaitUntil(
+          self.IsElementPresent, "css=grr-user-dashboard "
+          "div[name=RecentlyCreatedHunts]:contains('bar-%d')" % i)
 
-    self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
-                      "div[name=RecentlyCreatedHunts]:contains('foo')")
+    self.WaitUntilNot(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyCreatedHunts]:contains('foo')")
 
   def testDoesNotShowHuntsOlderThan31Days(self):
     now = rdfvalue.RDFDatetime.Now()
@@ -75,20 +83,23 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
     with test_lib.FakeTime(now):
       self.Open("/")
-      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                     "div[name=RecentlyCreatedHunts]:contains('foo')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=grr-user-dashboard "
+          "div[name=RecentlyCreatedHunts]:contains('foo')")
 
-      self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
-                        "div[name=RecentlyCreatedHunts]:contains('bar')")
+      self.WaitUntilNot(
+          self.IsElementPresent, "css=grr-user-dashboard "
+          "div[name=RecentlyCreatedHunts]:contains('bar')")
 
   def testShowsClientWithRequestedApproval(self):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients]"
-                   ":contains('%s')" % client_id.Basename())
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients]"
+        ":contains('%s')" % client_id.Basename())
 
   def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
     client_id = self.SetupClient(0)
@@ -98,10 +109,12 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
         client_id, requestor=self.token.username, reason="bar-reason")
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients]:contains('foo-reason')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients]:contains('bar-reason')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients]:contains('foo-reason')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients]:contains('bar-reason')")
 
   def testShowsMaxOf7Clients(self):
     client_ids = self.SetupClients(10)
@@ -112,23 +125,26 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
     self.Open("/")
     for c in client_ids[3:]:
-      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                     "div[name=RecentlyAccessedClients]"
-                     ":contains('%s')" % c.Basename())
+      self.WaitUntil(
+          self.IsElementPresent, "css=grr-user-dashboard "
+          "div[name=RecentlyAccessedClients]"
+          ":contains('%s')" % c.Basename())
 
     for c in client_ids[:3]:
-      self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
-                        "div[name=RecentlyAccessedClients]"
-                        ":contains('%s')" % c.Basename())
+      self.WaitUntilNot(
+          self.IsElementPresent, "css=grr-user-dashboard "
+          "div[name=RecentlyAccessedClients]"
+          ":contains('%s')" % c.Basename())
 
   def testValidApprovalIsNotMarked(self):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients] "
-                   "tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients] "
+        "tr:contains('%s')" % client_id.Basename())
     self.WaitUntilNot(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
@@ -143,9 +159,10 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
         requestor=self.token.username)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
-                   "div[name=RecentlyAccessedClients] "
-                   "tr:contains('%s').half-transparent" % client_id.Basename())
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients] "
+        "tr:contains('%s').half-transparent" % client_id.Basename())
 
   def testClickingOnApprovalRedirectsToClient(self):
     client_id = self.SetupClient(0)

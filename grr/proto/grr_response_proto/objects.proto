@@ -164,3 +164,9 @@ message ApprovalGrant {
       type: "RDFDatetime",
     }];
 }
+
+message PathInfo {
+  repeated string components = 1;
+  optional uint64 last_path_history_timestamp = 2 [(sem_type) = { type: "RDFDatetime" }];
+  optional bool directory = 3;
+}

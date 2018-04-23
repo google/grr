@@ -149,9 +149,9 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     event = self._FindAuditEvent()
     self.assertIsNotNone(event)
     self.assertEqual(event.user, self.token.username)
-    self.assertEqual(event.description, "%s.drei,%s.ein,%s.zwei" %
-                     (self.token.username, self.token.username,
-                      self.token.username))
+    self.assertEqual(
+        event.description, "%s.drei,%s.ein,%s.zwei" %
+        (self.token.username, self.token.username, self.token.username))
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -303,6 +303,25 @@ class ApiLabelsRestrictedSearchClientsHandlerTestMixin(object):
         token=self.token)
     self.assertFalse(result.items)
 
+  def testSearchOrder(self):
+    self._Setup100Clients()
+
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(
+            query="label:foo", offset=0, count=1000),
+        token=self.token)
+    self.assertEqual([str(res.client_id) for res in result.items],
+                     self.client_ids)
+
+    result = []
+    for offset, count in [(0, 10), (10, 40), (50, 25), (75, 500)]:
+      result.extend(
+          self.handler.Handle(
+              client_plugin.ApiSearchClientsArgs(
+                  query="label:foo", offset=offset, count=count),
+              token=self.token).items)
+    self.assertEqual([str(res.client_id) for res in result], self.client_ids)
+
 
 class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
     ApiLabelsRestrictedSearchClientsHandlerTestMixin,
@@ -331,6 +350,16 @@ class ApiLabelsRestrictedSearchClientsHandlerTestAFF4(
         labels_whitelist=["foo", "bar"],
         labels_owners_whitelist=["david", "peter"])
 
+  def _Setup100Clients(self):
+    self.client_urns = self.SetupClients(100)
+    self.client_ids = [u.Basename() for u in self.client_urns]
+    index = client_index.CreateClientIndex(token=self.token)
+    for client in aff4.FACTORY.MultiOpen(
+        self.client_urns, mode="rw", token=self.token):
+      with client:
+        client.AddLabel("foo", owner="david")
+        index.AddClient(client)
+
 
 class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     ApiLabelsRestrictedSearchClientsHandlerTestMixin,
@@ -356,6 +385,13 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
         labels_whitelist=["foo", "bar"],
         labels_owners_whitelist=["david", "peter"])
+
+  def _Setup100Clients(self):
+    self.client_ids = sorted(self.SetupTestClientObjects(100))
+    index = client_index.ClientIndex()
+    for client_id in self.client_ids:
+      data_store.REL_DB.AddClientLabels(client_id, "david", ["foo"])
+      index.AddClientLabels(client_id, ["foo"])
 
 
 class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):

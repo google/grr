@@ -4,8 +4,8 @@
   <ul ng-switch-when="SOME">
     <li ng-repeat="flag in ::controller.flags track by $index">
       <span ng-if="flag === null">-</span>
-      <abbr ng-if="flag !== null" title="{$ ::flag.description $}">
-        {$ ::flag.symbol $}
+      <abbr ng-if="flag !== null" title="{$ flag.description $}">
+        {$ ::flag.identifier $}
       </abbr>
     </li>
   </ul>

@@ -31,10 +31,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server import access_control
 from grr.server import aff4
 from grr.server import artifact_registry
-from grr.server import client_index
 from grr.server import data_store
 from grr.server import flow
 from grr.server import foreman as rdf_foreman
@@ -76,17 +74,17 @@ def DateTimeString(t):
   return t.Format("%Y-%m-%d %H:%M:%S")
 
 
-def CreateFileVersions(token):
+def CreateFileVersions(client_id, token):
   """Add new versions for a file."""
   # This file already exists in the fixture at TIME_0, we write a
   # later version.
   CreateFileVersion(
-      "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+      "aff4:/%s/fs/os/c/Downloads/a.txt" % client_id,
       "Hello World",
       timestamp=TIME_1,
       token=token)
   CreateFileVersion(
-      "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+      "aff4:/%s/fs/os/c/Downloads/a.txt" % client_id,
       "Goodbye World",
       timestamp=TIME_2,
       token=token)
@@ -260,6 +258,16 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     self.fail("condition not met, body is: %s" %
               self.driver.find_element_by_tag_name("body").text)
+
+  def _FindElements(self, selector):
+    selector_type, effective_selector = selector.split("=", 1)
+    if selector_type != "css":
+      raise ValueError(
+          "Only CSS selector is supported for querying multiple elements.")
+
+    elems = self.driver.execute_script(
+        "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
+    return [e for e in elems if e.is_displayed()]
 
   def _FindElement(self, selector):
     try:
@@ -481,7 +489,7 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     if not target.startswith("css="):
       raise ValueError("invalid target for GetCssCount: " + target)
 
-    return len(self.driver.find_elements_by_css_selector(target[4:]))
+    return len(self._FindElements(target))
 
   def WaitUntilEqual(self, target, condition_cb, *args):
     for _ in xrange(int(self.duration / self.sleep_time)):
@@ -524,18 +532,6 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     self.fail(
         "condition not met. got: %r, does not contain: %s" % (data, target))
 
-  def _MakeFixtures(self):
-    token = access_control.ACLToken(username="test", reason="Make fixtures.")
-    token = token.SetUID()
-
-    for i in range(10):
-      client_id = rdf_client.ClientURN("C.%016X" % i)
-      with aff4.FACTORY.Create(
-          client_id, aff4_grr.VFSGRRClient, mode="rw",
-          token=token) as client_obj:
-        index = client_index.CreateClientIndex(token=token)
-        index.AddClient(client_obj)
-
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
 
@@ -553,7 +549,9 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
-    self._MakeFixtures()
+    if data_store.RelationalDBReadEnabled():
+      data_store.REL_DB.WriteGRRUser(
+          self.token.username, ui_mode=users.GUISettings.UIMode.ADVANCED)
 
     # TODO(hanuszczak): Once again, this is a very messy way of dealing with
     # registry cleanup issues. This should be refactored in the future.

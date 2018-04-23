@@ -482,6 +482,7 @@ class Interrogate(flow.GRRFlow):
     if data_store.RelationalDBReadEnabled():
       summary = self.state.client.GetSummary()
       summary.client_id = self.client_id
+      summary.timestamp = rdfvalue.RDFDatetime.Now()
     else:
       summary = client.GetSummary()
 
@@ -494,6 +495,10 @@ class Interrogate(flow.GRRFlow):
       try:
         index = client_index.ClientIndex()
         index.AddClient(self.state.client)
+        labels = self.state.client.startup_info.client_info.labels
+        if labels:
+          data_store.REL_DB.AddClientLabels(self.state.client.client_id, "GRR",
+                                            labels)
       except db.UnknownClientError:
         # TODO(amoser): Remove after data migration.
         pass

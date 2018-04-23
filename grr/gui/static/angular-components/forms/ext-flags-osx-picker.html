@@ -1,0 +1,14 @@
+<table>
+  <tr>
+    <th ng-repeat="flag in controller.flags.children">
+      <span class="label label-default" title="{$ flag.description $}">
+        {$ flag.identifier $}
+      </span>
+    </th>
+  </tr>
+  <tr>
+    <td ng-repeat="flag in controller.flags.children">
+      <grr-troggle ng-model="flag.state" />
+    </td>
+  </tr>
+</table>

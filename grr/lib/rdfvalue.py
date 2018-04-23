@@ -1046,7 +1046,7 @@ class SessionID(RDFURN):
     if initializer is None:
       # This SessionID is being constructed from scratch.
       if flow_name is None:
-        flow_name = utils.PRNG.GetULong()
+        flow_name = utils.PRNG.GetUInt32()
 
       if isinstance(flow_name, int):
         initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))

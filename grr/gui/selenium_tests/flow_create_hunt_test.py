@@ -6,25 +6,22 @@ import unittest
 from grr.gui import gui_test_lib
 
 from grr.lib import flags
-from grr.lib.rdfvalues import client as rdf_client
-from grr.server import aff4
 from grr.server import flow
 from grr.server import output_plugin
 from grr.server.flows.general import processes as flows_processes
 from grr.server.hunts import standard_test
 from grr.server.output_plugins import email_plugin
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
                          standard_test.StandardHuntTestMixin):
 
   def setUp(self):
     super(TestFlowCreateHunt, self).setUp()
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -45,7 +42,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         token=self.token)
 
     # Navigate to client and select newly created flow.
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('ListProcesses')")
 
@@ -55,8 +52,9 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntilEqual("test[a-z]*", self.GetValue,
                         "css=label:contains('Filename Regex') ~ * input")
 
-    self.WaitUntil(self.IsChecked, "css=label:contains('Fetch Binaries') "
-                   "~ * input[type=checkbox]")
+    self.WaitUntil(
+        self.IsChecked, "css=label:contains('Fetch Binaries') "
+        "~ * input[type=checkbox]")
 
     # Go to output plugins page and check that we did not copy the output
     # plugins.
@@ -96,7 +94,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         token=self.token)
 
     # Open client and find the flow.
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # No flow selected, so the button should be disabled.

@@ -20,6 +20,7 @@ from grr.server import data_store
 from grr.server import flow
 from grr.server.flows.general import discovery
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -39,6 +40,7 @@ class DiscoveryTestEventListener(flow.EventListener):
     DiscoveryTestEventListener.event = event
 
 
+@db_test_lib.DualDBTest
 class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
@@ -160,6 +162,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(DiscoveryTestEventListener.event.client_id, self.client_id)
     self.assertEqual(DiscoveryTestEventListener.event.interfaces[0].mac_address,
                      "123456")
+    self.assertTrue(DiscoveryTestEventListener.event.timestamp)
 
   def _CheckNetworkInfo(self):
     interfaces = list(self.fd.Get(self.fd.Schema.INTERFACES))
@@ -195,17 +198,29 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
+  def _CheckLabels(self):
+    expected_labels = ["GRRLabel1", "Label2"]
+
+    # AFF4.
+    labels = [label.name for label in self.fd.GetLabels()]
+    self.assertEqual(labels, expected_labels)
+
+    # Relational.
+    labels = data_store.REL_DB.ReadClientLabels(self.client_id.Basename())
+    self.assertEqual([label.name for label in labels], expected_labels)
+
   def _CheckLabelIndex(self):
     """Check that label indexes are updated."""
     index = client_index.CreateClientIndex(token=self.token)
 
     # AFF4 index.
-    self.assertEqual(
+    self.assertItemsEqual(
         list(index.LookupClients(["label:Label2"])), [self.client_id])
 
     # Relational index.
-    self.assertEqual(client_index.ClientIndex().LookupClients(["label:Label2"]),
-                     [self.client_id.Basename()])
+    self.assertItemsEqual(
+        client_index.ClientIndex().LookupClients(["label:Label2"]),
+        [self.client_id.Basename()])
 
   def _CheckWindowsDiskInfo(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -352,6 +367,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
         self._CheckUsers(["yagharek", "isaac", "user1", "user2", "user3"])
         self._CheckNetworkInfo()
         self._CheckVFS()
+        self._CheckLabels()
         self._CheckLabelIndex()
         self._CheckClientKwIndex(["Linux"], 1)
         self._CheckClientKwIndex(["Label2"], 1)
@@ -398,6 +414,7 @@ class TestClientInterrogate(flow_test_lib.FlowTestsBaseclass):
         self._CheckUsers(["jim", "kovacs"])
         self._CheckNetworkInfo()
         self._CheckVFS()
+        self._CheckLabels()
         self._CheckLabelIndex()
         self._CheckWindowsDiskInfo()
         self._CheckRegistryPathspec()

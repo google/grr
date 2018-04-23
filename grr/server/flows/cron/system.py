@@ -128,7 +128,7 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
         yield child
 
   def _IterateClients(self):
-    for c in data_store.REL_DB.ReadAllClientsFullInfo():
+    for c in data_store.REL_DB.IterateAllClientsFullInfo():
       yield c
 
   @flow.StateHandler()

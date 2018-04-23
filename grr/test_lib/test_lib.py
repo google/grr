@@ -478,7 +478,8 @@ class GRRBaseTest(unittest.TestCase):
                              memory_size=None,
                              os_version="buster/sid",
                              ping=None,
-                             system="Linux"):
+                             system="Linux",
+                             labels=None):
     res = {}
     for client_nr in range(client_count):
       client = self.SetupTestClientObject(
@@ -491,7 +492,8 @@ class GRRBaseTest(unittest.TestCase):
           memory_size=memory_size,
           os_version=os_version,
           ping=ping,
-          system=system)
+          system=system,
+          labels=labels)
       res[client.client_id] = client
     return res
 
@@ -548,8 +550,25 @@ class GRRBaseTest(unittest.TestCase):
 
     if labels:
       data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
+      client_index.ClientIndex().AddClientLabels(
+          client_id, data_store.REL_DB.ReadClientLabels(client_id))
 
     return client
+
+  def AddClientLabel(self, client_id, owner, name):
+    if data_store.RelationalDBReadEnabled():
+      if hasattr(client_id, "Basename"):
+        client_id = client_id.Basename()
+
+      data_store.REL_DB.AddClientLabels(client_id, owner, [name])
+      client_index.ClientIndex().AddClientLabels(client_id, [name])
+    else:
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as client_obj:
+        client_obj.AddLabel(name, owner=owner)
+
+        with client_index.CreateClientIndex(token=self.token) as index:
+          index.AddClient(client_obj)
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)
@@ -865,60 +884,6 @@ class Instrument(object):
     return self.stubber.__exit__(t, value, tb)
 
 
-class GRRTestLoader(unittest.TestLoader):
-  """A test suite loader which searches for tests in all the plugins."""
-
-  # This should be overridden by derived classes. We load all tests extending
-  # this class.
-  base_class = None
-
-  def __init__(self, labels=None):
-    super(GRRTestLoader, self).__init__()
-    if labels is None:
-      labels = set(flags.FLAGS.labels)
-
-    self.labels = set(labels)
-
-  def getTestCaseNames(self, testCaseClass):
-    """Filter the test methods according to the labels they have."""
-    result = []
-    for test_name in super(GRRTestLoader, self).getTestCaseNames(testCaseClass):
-      test_method = getattr(testCaseClass, test_name)
-      # If the method is not tagged, it will be labeled "small".
-      test_labels = getattr(test_method, "labels", set(["small"]))
-      if self.labels and not self.labels.intersection(test_labels):
-        continue
-
-      result.append(test_name)
-
-    return result
-
-  def loadTestsFromModule(self, _):
-    """Just return all the tests as if they were in the same module."""
-    test_cases = [
-        self.loadTestsFromTestCase(x)
-        for x in self.base_class.classes.values()
-        if issubclass(x, self.base_class)
-    ]
-
-    return self.suiteClass(test_cases)
-
-  def loadTestsFromName(self, name, module=None):
-    """Load the tests named."""
-    parts = name.split(".")
-    try:
-      test_cases = self.loadTestsFromTestCase(self.base_class.classes[parts[0]])
-    except KeyError:
-      raise RuntimeError("Unable to find test %r - is it registered?" % name)
-
-    # Specifies the whole test suite.
-    if len(parts) == 1:
-      return self.suiteClass(test_cases)
-    elif len(parts) == 2:
-      cls = self.base_class.classes[parts[0]]
-      return unittest.TestSuite([cls(parts[1])])
-
-
 def RequiresPackage(package_name):
   """Skip this test if required package isn't present.
 
@@ -945,32 +910,6 @@ def RequiresPackage(package_name):
     return Wrapper
 
   return Decorator
-
-
-class GrrTestProgram(unittest.TestProgram):
-  """A Unit test program which is compatible with conf based args parsing.
-
-  This program ignores the testLoader passed to it and implements its
-  own test loading behavior in case the --tests argument was specified
-  when the program is ran. It magically reads from the --tests argument.
-
-  In case no --tests argument was specified, the program uses the test
-  loader to load the tests.
-  """
-
-  def __init__(self, labels=None, **kw):
-    self.labels = labels
-    super(GrrTestProgram, self).__init__(**kw)
-
-  def parseArgs(self, argv):
-    """Delegate arg parsing to the conf subsystem."""
-    # Give the same behaviour as regular unittest
-    if not flags.FLAGS.tests:
-      self.test = self.testLoader.loadTestsFromModule(self.module)
-      return
-
-    self.testNames = flags.FLAGS.tests
-    self.createTests()
 
 
 class RemotePDB(pdb.Pdb):

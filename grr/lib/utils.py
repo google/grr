@@ -813,11 +813,11 @@ class PRNG(object):
   random_list = []
 
   @classmethod
-  def GetUShort(cls):
-    return cls.GetULong() & 0xFFFF
+  def GetUInt16(cls):
+    return cls.GetUInt32() & 0xFFFF
 
   @classmethod
-  def GetULong(cls):
+  def GetUInt32(cls):
     while True:
       try:
         return cls.random_list.pop()
@@ -825,6 +825,10 @@ class PRNG(object):
         PRNG.random_list = list(
             struct.unpack("=" + "L" * 1000,
                           os.urandom(struct.calcsize("=L") * 1000)))
+
+  @classmethod
+  def GetUInt64(cls):
+    return (cls.GetUInt32() << 32) + cls.GetUInt32()
 
 
 def FormatNumberAsString(num):

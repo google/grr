@@ -4,9 +4,11 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
+import hashlib
 import re
 
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -103,7 +105,7 @@ class ClientSnapshot(structs.RDFProtoStruct):
     """
     summary = rdf_client.ClientSummary()
     summary.client_id = self.client_id
-    summary.timestamp = self.age
+    summary.timestamp = self.timestamp
 
     summary.system_info.release = self.os_release
     summary.system_info.version = str(self.os_version or "")
@@ -190,3 +192,68 @@ class ApprovalRequest(structs.RDFProtoStruct):
   @property
   def is_expired(self):
     return self.expiration_time < rdfvalue.RDFDatetime.Now()
+
+
+class PathInfo(structs.RDFProtoStruct):
+  """Basic metadata about a path which has been observed on a client."""
+  protobuf = objects_pb2.PathInfo
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+  @classmethod
+  def MakePathID(cls, path_components):
+    """Returns the path_id for some path.
+
+    Args:
+      path_components: A list of path components, e.g. ["usr", "sbin", "grr"]
+    Returns:
+      The path_id for the given path components.
+    """
+    # We need a string to hash, based on components. If we simply concatenated
+    # them, or used a separator that could appear in some component, odd data
+    # could force a hash collision. So we explicitly include the lengths of the
+    # components.
+    components = map(utils.SmartStr, path_components)
+    return hashlib.sha256(",".join([str(len(c)) for c in components]) + ":" +
+                          "/".join(components)).digest()
+
+  @classmethod
+  def MakeAncestorPathIDs(cls, path_components):
+    """Returns the path_ids of a path and all of its ancestors.
+
+    Args:
+      path_components: A list of path components.
+
+    Returns:
+      A list of (path_ids, components) one for every ancestor of the given
+      path.
+    """
+    return [(cls.MakePathID(path_components[:idx + 1]),
+             path_components[:idx + 1]) for idx in range(len(path_components))]
+
+  @property
+  def path_id(self):
+    return self.MakePathID(self.components)
+
+  def UpdateFrom(self, src):
+    """Merge path info records.
+
+    Merges src into self.
+    Args:
+      src: An rdfvalues.objects.PathInfo record, will be merged into self.
+    Raises:
+      ValueError: If src does not represent the same path.
+    """
+    if not isinstance(src, PathInfo):
+      raise ValueError("src is not a PathInfo")
+    if self.components != src.components:
+      raise ValueError("src [%s] does not represent the same path as self [%s]"
+                       % (str(src.components), str(self.components)))
+
+    if src.last_path_history_timestamp and (
+        not self.last_path_history_timestamp or
+        src.last_path_history_timestamp > self.last_path_history_timestamp):
+      self.last_path_history_timestamp = src.last_path_history_timestamp
+    if src.directory:
+      self.directory = True

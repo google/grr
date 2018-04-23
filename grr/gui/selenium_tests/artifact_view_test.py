@@ -12,6 +12,7 @@ from grr.lib import parsers
 from grr.server import artifact
 from grr.server import artifact_registry
 from grr.server.flows.general import collectors
+from grr.test_lib import db_test_lib
 
 
 class TestCmdProcessor(parsers.CommandParser):
@@ -20,6 +21,7 @@ class TestCmdProcessor(parsers.CommandParser):
   supported_artifacts = ["TestCmdArtifact"]
 
 
+@db_test_lib.DualDBTest
 class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
@@ -79,8 +81,9 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
     self.Click("css=grr-artifacts-list-form button:contains('Add')")
     # Selected artifacts should be highlighted in bold.
-    self.WaitUntil(self.IsElementPresent, "css=grr-artifacts-list-form "
-                   "strong:contains('TestCmdArtifact')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-artifacts-list-form "
+        "strong:contains('TestCmdArtifact')")
 
     # Check the artifact description loaded.
     self.WaitUntil(self.IsTextPresent, "Test command artifact for dpkg.")
@@ -94,8 +97,9 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("link=ArtifactCollectorFlow")
 
     self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
     self._UploadCustomArtifacts()
@@ -104,8 +108,9 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
 
-    self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact') > "
-                   "span[title~='Custom Uploaded Artifact'] > i.fa-user")
+    self.WaitUntil(
+        self.IsElementPresent, "css=*:contains('TestCmdArtifact') > "
+        "span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
@@ -119,8 +124,9 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button.Launch")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-artifact-name:contains('TestCmdArtifact')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
   def testCustomArtifactsAreMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
@@ -132,9 +138,10 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.DoubleClick(
         "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
     self.Click("css=button.Launch")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-artifact-name:contains('TestCmdArtifact') "
-                   "span[title~='Custom Uploaded Artifact'] > i.fa-user")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-artifact-name:contains('TestCmdArtifact') "
+        "span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
 
 def main(argv):

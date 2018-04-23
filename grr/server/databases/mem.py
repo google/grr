@@ -27,6 +27,11 @@ class InMemoryDB(db.Database):
     self.startup_history = {}
     self.crash_history = {}
     self.approvals_by_username = {}
+    # Maps each client_id to a dict mapping path_id to objects.PathInfo.
+    self.path_info_map_by_client_id = {}
+    # Maps each client_id to a dict mapping path_id to a set of direct children
+    # of path_id.
+    self.path_child_map_by_client_id = {}
 
   def ClearTestDB(self):
     self._Init()
@@ -58,6 +63,11 @@ class InMemoryDB(db.Database):
 
   def _ValidateUsername(self, username):
     self._ValidateStringId("username", username)
+
+  def _ValidatePathInfo(self, path_info):
+    if not isinstance(path_info, objects.PathInfo):
+      raise ValueError(
+          "Expected `rdfvalues.objects.PathInfo`, got: %s" % type(path_info))
 
   def _ParseTimeRange(self, timerange):
     """Parses a timerange argument and always returns non-None timerange."""
@@ -184,27 +194,22 @@ class InMemoryDB(db.Database):
       res[client_id] = client_obj
     return res
 
-  def MultiReadClientFullInfo(self, client_ids):
+  def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
     res = {}
     for client_id in client_ids:
       self._ValidateClientId(client_id)
+      md = self.ReadClientMetadata(client_id)
+      if md and min_last_ping and md.ping < min_last_ping:
+        continue
       res[client_id] = objects.ClientFullInfo(
-          metadata=self.ReadClientMetadata(client_id),
+          metadata=md,
           labels=self.ReadClientLabels(client_id),
           last_snapshot=self.ReadClientSnapshot(client_id),
           last_startup_info=self.ReadClientStartupInfo(client_id))
     return res
 
-  def ReadAllClientsFullInfo(self, min_last_ping=None):
-    client_ids = self.clients.keys()
-    for c in self.MultiReadClientFullInfo(client_ids).values():
-      if min_last_ping and c.metadata.ping < min_last_ping:
-        continue
-
-      yield c
-
   def ReadAllClientsID(self):
-    return self.metadatas.iterkeys()
+    return self.metadatas.keys()
 
   def WriteClientSnapshotHistory(self, clients):
     super(InMemoryDB, self).WriteClientSnapshotHistory(clients)
@@ -315,6 +320,15 @@ class InMemoryDB(db.Database):
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
       labelset.discard(utils.SmartUnicode(l))
+
+  def ReadAllClientLabels(self):
+    result = set()
+    for labels_dict in self.labels.values():
+      for owner, names in labels_dict.items():
+        for name in names:
+          result.add(objects.ClientLabel(owner=owner, name=name))
+
+    return list(result)
 
   def WriteGRRUser(self,
                    username,
@@ -508,3 +522,49 @@ class InMemoryDB(db.Database):
     except KeyError:
       raise db.UnknownApprovalRequestError(
           "Can't find approval with id: %s" % approval_id)
+
+  def FindPathInfosByPathIDs(self, client_id, path_ids):
+    """Returns path info records for a client."""
+    self._ValidateClientId(client_id)
+    ret = {}
+    info_dict = self.path_info_map_by_client_id.get(client_id, {})
+    for path_id in path_ids:
+      if path_id in info_dict:
+        ret[path_id] = info_dict[path_id]
+    return ret
+
+  def WritePathInfosRaw(self, client_id, path_infos):
+    """Writes a collection of path_info records for a client."""
+    self._ValidateClientId(client_id)
+    for info in path_infos:
+      self._ValidatePathInfo(info)
+
+    info_dict = self.path_info_map_by_client_id.setdefault(client_id, {})
+    child_dict = self.path_child_map_by_client_id.setdefault(client_id, {})
+    for info in path_infos:
+      if info.path_id in info_dict:
+        info_dict.UpdateFrom(info)
+      else:
+        info_dict[info.path_id] = info
+      if len(info.components) > 1:
+        siblings = child_dict.setdefault(
+            objects.PathInfo.MakePathID(info.components[:-1]), set())
+        siblings.add(info.path_id)
+
+  def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
+    """Finds all path_ids seen on a client descent from path_id."""
+    self._ValidateClientId(client_id)
+    child_dict = self.path_child_map_by_client_id.setdefault(client_id, {})
+    children = list(child_dict.get(path_id, set()))
+
+    next_depth = None
+    if max_depth is not None:
+      if max_depth == 1:
+        return children
+      next_depth = max_depth - 1
+
+    descendents = []
+    for child_id in children:
+      descendents += self.FindDescendentPathIDs(
+          client_id, child_id, max_depth=next_depth)
+    return children + descendents

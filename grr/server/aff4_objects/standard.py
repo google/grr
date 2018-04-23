@@ -381,7 +381,7 @@ class TempMemoryFile(aff4.AFF4MemoryStream):
 
   def __init__(self, urn, **kwargs):
     if urn is None:
-      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetULong())
+      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetUInt32())
 
     super(TempMemoryFile, self).__init__(urn, **kwargs)
 
@@ -391,6 +391,6 @@ class TempImageFile(aff4.AFF4Image):
 
   def __init__(self, urn, **kwargs):
     if urn is None:
-      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetULong())
+      urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" % utils.PRNG.GetUInt32())
 
     super(TempImageFile, self).__init__(urn, **kwargs)

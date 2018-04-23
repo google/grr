@@ -40,6 +40,7 @@ const {SplitterDirective, SplitterPaneDirective} = goog.require('grrUi.core.spli
 const {TimeService} = goog.require('grrUi.core.timeService');
 const {TimeSinceFilter} = goog.require('grrUi.core.timeSinceFilter');
 const {TimestampFilter} = goog.require('grrUi.core.timestampFilter');
+const {TroggleDirective} = goog.require('grrUi.core.troggleDirective');
 const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
 const {WizardFormDirective} = goog.require('grrUi.core.wizardFormDirective');
 const {WizardFormPageDirective} = goog.require('grrUi.core.wizardFormPageDirective');
@@ -118,6 +119,8 @@ exports.coreModule.directive(
     ServerErrorPreviewDirective.directive_name, ServerErrorPreviewDirective);
 exports.coreModule.directive(
     GlobalNotificationsDirective.directive_name, GlobalNotificationsDirective);
+
+exports.coreModule.directive(TroggleDirective.directive_name, TroggleDirective);
 
 exports.coreModule.service(ApiService.service_name, ApiService);
 exports.coreModule.service(FirebaseService.service_name, FirebaseService);

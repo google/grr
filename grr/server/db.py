@@ -9,6 +9,7 @@ WIP, will eventually replace datastore.py.
 """
 import abc
 
+from grr.lib import utils
 from grr.lib.rdfvalues import objects
 
 
@@ -129,15 +130,17 @@ class Database(object):
     Returns:
       An rdfvalues.objects.ClientSnapshot object.
     """
-    return self.MultiReadClientSnapshot([client_id])[client_id]
+    return self.MultiReadClientSnapshot([client_id]).get(client_id)
 
   @abc.abstractmethod
-  def MultiReadClientFullInfo(self, client_ids):
+  def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
     """Reads full client information for a list of clients.
 
     Args:
       client_ids: a collection of GRR client ids, e.g. ["C.ea3b2b71840d6fa7",
         "C.ea3b2b71840d6fa8"]
+      min_last_ping: If not None, only the clients with last ping time bigger
+                     than min_last_ping will be returned.
 
     Returns:
       A map from client ids to `ClientFullInfo` instance.
@@ -152,18 +155,7 @@ class Database(object):
     Returns:
       A `ClientFullInfo` instance for given client.
     """
-    return self.MultiReadClientFullInfo([client_id])[client_id]
-
-  @abc.abstractmethod
-  def ReadAllClientsFullInfo(self, min_last_ping=None):
-    """Reads full client information for all clients matching the criteria.
-
-    Args:
-      min_last_ping: If not None, only the clients with last ping time bigger
-                     than min_last_ping will be returned.
-    Yields:
-      ClientFullInfo objects.
-    """
+    return self.MultiReadClientFullInfo([client_id]).get(client_id)
 
   # TODO(hanuszczak): This name is not grammatically correct but changing it to
   # something else would make it inconsistent with naming scheme. Method names
@@ -383,12 +375,20 @@ class Database(object):
 
   @abc.abstractmethod
   def RemoveClientLabels(self, client_id, owner, labels):
-    """Removes a user label from a given client.
+    """Removes a list of user labels from a given client.
 
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       owner: Username string that owns the labels that should be removed.
       labels: The labels to remove as a list of strings.
+    """
+
+  @abc.abstractmethod
+  def ReadAllClientLabels(self):
+    """Lists all client labels known to the system.
+
+    Returns:
+      A list of rdfvalue.objects.ClientLabel values.
     """
 
   @abc.abstractmethod
@@ -488,3 +488,99 @@ class Database(object):
       approval_id: String identifying approval request object.
       grantor_username: String with a username of a user granting the approval.
     """
+
+  def IterateAllClientsFullInfo(self, batch_size=50000, min_last_ping=None):
+    """Iterates over all available clients and yields full info protobufs.
+
+    Args:
+      batch_size: Always reads <batch_size> client full infos at a time.
+      min_last_ping: If not None, only the clients with last ping time bigger
+                     than min_last_ping will be returned.
+    Yields:
+      An rdfvalues.objects.ClientFullInfo object for each client in the db.
+    """
+    all_client_ids = self.ReadAllClientsID()
+
+    for batch in utils.Grouper(all_client_ids, batch_size):
+      res = self.MultiReadClientFullInfo(batch, min_last_ping=min_last_ping)
+      for full_info in res.values():
+        yield full_info
+
+  def IterateAllClientSnapshots(self, batch_size=50000):
+    """Iterates over all available clients and yields client snapshot objects.
+
+    Args:
+      batch_size: Always reads <batch_size> snapshots at a time.
+    Yields:
+      An rdfvalues.objects.ClientSnapshot object for each client in the db.
+    """
+    all_client_ids = self.ReadAllClientsID()
+
+    for batch in utils.Grouper(all_client_ids, batch_size):
+      res = self.MultiReadClientSnapshot(batch)
+      for snapshot in res.values():
+        if snapshot:
+          yield snapshot
+
+  @abc.abstractmethod
+  def FindPathInfosByPathIDs(self, client_id, path_ids):
+    """Returns path info records for a client.
+
+    Args:
+      client_id: The client of interest.
+
+      path_ids: A list of path_ids of interest. A path_id can be computed by
+        db_path_utils.MakePathID.
+
+    Returns: a map from path_id to rdfvalues.objects.PathInfo records, set only
+      for paths which have been observed on the client.
+    """
+
+  @abc.abstractmethod
+  def WritePathInfosRaw(self, client_id, path_infos):
+    """Writes a collection of path_info records for a client.
+
+    Note that this method should only be used when all ancestors of path_infos
+    are already present in the database (or part of path_infos). In most cases,
+    users of a Database implementation will WritePathInfos, defined below, while
+    this is the method that Database implementations will need to provide.
+
+    If any records are already present in the database, they will be merged -
+    see db_path_utils.MergePathInfo.
+
+    Args:
+      client_id: The client of interest.
+      path_infos: A list of rdfvalue.objects.PathInfo records.
+    """
+
+  @abc.abstractmethod
+  def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
+    """Finds all path_ids seen on a client descendent from path_id.
+
+    Args:
+      client_id: The client of interest.
+      path_id: The path_id to find descendents of.
+      max_depth: If set, the maximum number of generations to descend, otherwise
+        unlimited.
+
+    Returns: A list of path_id.
+    """
+
+  def WritePathInfos(self, client_id, path_infos):
+    """Writes a collection of path_info records for a client.
+
+    If any records are already present in the database, they will be merged -
+    see db_path_utils.MergePathInfo.
+
+    Args:
+      client_id: The client of interest.
+      path_infos: A list of rdfvalue.objects.PathInfo records.
+    """
+    infos_by_id = {info.path_id: info for info in path_infos}
+    for info in path_infos:
+      for path_id, components in objects.PathInfo.MakeAncestorPathIDs(
+          info.components):
+        if path_id not in infos_by_id:
+          infos_by_id[path_id] = objects.PathInfo(
+              components=components, directory=True)
+    self.WritePathInfosRaw(client_id, infos_by_id.values())

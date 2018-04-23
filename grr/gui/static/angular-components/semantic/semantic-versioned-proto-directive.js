@@ -10,9 +10,9 @@ const {buildNonUnionItems} = goog.require('grrUi.semantic.semanticProtoDirective
 /**
  * Controller for SemanticVersionedProtoDirective.
  *
+ * @constructor
  * @param {!angular.Scope} $scope Directive's scope.
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @return {!angular.Directive} Directive definition object.
  * @ngInject
  */
 var SemanticVersionedProtoController = function($scope, grrReflectionService) {

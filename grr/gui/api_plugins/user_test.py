@@ -9,6 +9,7 @@ from grr.gui.api_plugins import user as user_plugin
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import access_control
 from grr.server import aff4
 from grr.server import data_store
@@ -126,6 +127,12 @@ class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
     n = self.InitFromObj_("FlowStatus", "foo/bar")
     self.assertEqual(n.reference.type, "UNKNOWN")
     self.assertEqual(n.reference.unknown.subject_urn, "foo/bar")
+
+  def testNotificationWithoutSubject(self):
+    notification = rdf_flows.Notification(type="ViewObject")
+
+    result = user_plugin.ApiNotification().InitFromNotification(notification)
+    self.assertEqual(result.reference.type, "UNKNOWN")
 
 
 class ApiCreateApprovalHandlerTestMixin(acl_test_lib.AclTestMixin):

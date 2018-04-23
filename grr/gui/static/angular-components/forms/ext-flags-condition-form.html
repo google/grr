@@ -1,0 +1,31 @@
+<dl class="dl-horizontal">
+  <dt>
+    <button type="button" class="btn btn-link"
+         ng-click="controller.linuxPickerShown = !controller.linuxPickerShown">
+      Linux extended flags
+      <i class="glyphicon"
+         ng-class="{ 'glyphicon-chevron-down': controller.linuxPickerShown, 'glyphicon-chevron-right': !controller.linuxPickerShown }"></i>
+    </button>
+  </dt>
+  <dd>
+    <grr-ext-flags-linux-picker-short ng-if="controller.linuxPickerShown"
+      bits-set="value.value.linux_bits_set"
+      bits-unset="value.value.linux_bits_unset" />
+    <grr-ext-flags-linux-picker-long ng-if="controller.linuxPickerShown"
+      bits-set="value.value.linux_bits_set"
+      bits-unset="value.value.linux_bits_unset" />
+  </dd>
+  <dt>
+    <button type="button" class="btn btn-link"
+         ng-click="controller.osxPickerShown = !controller.osxPickerShown">
+      macOS extended flags
+      <i class="glyphicon"
+         ng-class="{ 'glyphicon-chevron-down': controller.osxPickerShown, 'glyphicon-chevron-right': !controller.osxPickerShown }"></i>
+    </button>
+  </dt>
+  <dd>
+    <grr-ext-flags-osx-picker ng-if="controller.osxPickerShown"
+      bits-set="value.value.osx_bits_set"
+      bits-unset="value.value.osx_bits_unset" />
+  </dd>
+</dl>

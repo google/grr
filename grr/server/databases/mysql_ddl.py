@@ -19,10 +19,12 @@ CREATE TABLE IF NOT EXISTS clients(
 CREATE TABLE IF NOT EXISTS client_labels(
     client_id BIGINT UNSIGNED,
     owner VARCHAR(64),
-    label VARCHAR(64),
+    label VARCHAR(64) CHARACTER SET utf8,
     PRIMARY KEY (client_id, owner, label),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)
 )""", """
+CREATE INDEX IF NOT EXISTS owner_label_idx ON client_labels(owner, label)
+""", """
 CREATE TABLE IF NOT EXISTS client_snapshot_history(
     client_id BIGINT UNSIGNED,
     timestamp DATETIME(6),
@@ -46,7 +48,7 @@ CREATE TABLE IF NOT EXISTS client_crash_history(
 )""", """
 CREATE TABLE IF NOT EXISTS client_keywords(
     client_id BIGINT UNSIGNED,
-    keyword VARCHAR(255),
+    keyword VARCHAR(255) CHARACTER SET utf8,
     timestamp DATETIME(6),
     PRIMARY KEY (client_id, keyword),
     FOREIGN KEY (client_id) REFERENCES clients(client_id)

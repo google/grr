@@ -15,8 +15,10 @@ from grr.server.flows.general import file_finder
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt copying GUI."""
 
@@ -52,57 +54,64 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Check that non-default values of sample hunt are prefilled.
-    self.WaitUntilEqual("/tmp/evil.txt", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
-                        "label:contains('Path') ~ * input:text")
+    self.WaitUntilEqual(
+        "/tmp/evil.txt", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Path') ~ * input:text")
 
-    self.WaitUntilEqual("TSK", self.GetText, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Pathtype') ~ * select option:selected")
+    self.WaitUntilEqual(
+        "TSK", self.GetText, "css=grr-new-hunt-wizard-form "
+        "label:contains('Pathtype') ~ * select option:selected")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Hunt parameters')")
 
-    self.WaitUntilEqual("model hunt (copy)", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
-                        "label:contains('Description') ~ * input:text")
+    self.WaitUntilEqual(
+        "model hunt (copy)", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Description') ~ * input:text")
 
-    self.WaitUntilEqual("60", self.GetValue, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Client rate') ~ * input")
+    self.WaitUntilEqual(
+        "60", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Client rate') ~ * input")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "How to process results")
 
     # Check that output plugins list is prefilled.
-    self.WaitUntilEqual("DummyOutputPlugin", self.GetText,
-                        "css=grr-new-hunt-wizard-form "
-                        "label:contains('Plugin') ~ * select option:selected")
+    self.WaitUntilEqual(
+        "DummyOutputPlugin", self.GetText, "css=grr-new-hunt-wizard-form "
+        "label:contains('Plugin') ~ * select option:selected")
 
-    self.WaitUntilEqual("blah!", self.GetValue, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Filename Regex') ~ * input:text")
+    self.WaitUntilEqual(
+        "blah!", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Filename Regex') ~ * input:text")
 
-    self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
-                   "label:contains('Fetch Binaries') ~ * input:checked")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+        "label:contains('Fetch Binaries') ~ * input:checked")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
     # Check that rules list is prefilled.
-    self.WaitUntilEqual("Regex", self.GetText, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Rule type') "
-                        "~ * select option:selected")
+    self.WaitUntilEqual(
+        "Regex", self.GetText, "css=grr-new-hunt-wizard-form "
+        "label:contains('Rule type') "
+        "~ * select option:selected")
 
     rule = rdf_foreman.ForemanRegexClientRule
     label = rule.ForemanStringField.CLIENT_NAME.description
-    self.WaitUntilEqual(label, self.GetText, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Field') "
-                        "~ * select option:selected")
+    self.WaitUntilEqual(
+        label, self.GetText, "css=grr-new-hunt-wizard-form "
+        "label:contains('Field') "
+        "~ * select option:selected")
 
-    self.WaitUntilEqual("GRR", self.GetValue, "css=grr-new-hunt-wizard-form "
-                        "label:contains('Attribute regex') ~ * input:text")
+    self.WaitUntilEqual(
+        "GRR", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Attribute regex') ~ * input:text")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -184,22 +193,26 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Change values in the flow configuration.
-    self.Type("css=grr-new-hunt-wizard-form label:contains('Path') "
-              "~ * input:text", "/tmp/very-evil.txt")
+    self.Type(
+        "css=grr-new-hunt-wizard-form label:contains('Path') "
+        "~ * input:text", "/tmp/very-evil.txt")
 
-    self.Select("css=grr-new-hunt-wizard-form label:contains('Pathtype') "
-                "~ * select", "OS")
+    self.Select(
+        "css=grr-new-hunt-wizard-form label:contains('Pathtype') "
+        "~ * select", "OS")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Hunt parameters')")
 
-    self.Type("css=grr-new-hunt-wizard-form label:contains('Description') "
-              "~ * input:text", "my personal copy")
+    self.Type(
+        "css=grr-new-hunt-wizard-form label:contains('Description') "
+        "~ * input:text", "my personal copy")
 
-    self.Type("css=grr-new-hunt-wizard-form label:contains('Client rate') "
-              "~ * input", "42")
+    self.Type(
+        "css=grr-new-hunt-wizard-form label:contains('Client rate') "
+        "~ * input", "42")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -209,9 +222,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
     self.Select("css=grr-configure-output-plugins-page select:eq(0)",
                 "DummyOutputPlugin")
-    self.Type("css=grr-configure-output-plugins-page "
-              "label:contains('Filename Regex'):eq(0) ~ * input:text",
-              "foobar!")
+    self.Type(
+        "css=grr-configure-output-plugins-page "
+        "label:contains('Filename Regex'):eq(0) ~ * input:text", "foobar!")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -309,9 +322,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Check that non-default values of sample hunt are prefilled.
-    self.WaitUntilEqual("foo\\x0d\\xc8bar", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
-                        "label:contains('Literal') ~ * input:text")
+    self.WaitUntilEqual(
+        "foo\\x0d\\xc8bar", self.GetValue, "css=grr-new-hunt-wizard-form "
+        "label:contains('Literal') ~ * input:text")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -346,8 +359,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     # Check that the hunt was created with a correct literal value.
     self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(last_hunt.args.flow_args.conditions[0]
-                     .contents_literal_match.literal, "foo\x0d\xc8bar")
+    self.assertEqual(
+        last_hunt.args.flow_args.conditions[0].contents_literal_match.literal,
+        "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     implementation.GRRHunt.StartHunt(
@@ -360,12 +374,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                 path="/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.TSK,
             )),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(
-            rules=[
-                rdf_foreman.ForemanClientRule(
-                    rule_type=rdf_foreman.ForemanClientRule.Type.OS,
-                    os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
-            ]),
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+                os=rdf_foreman.ForemanOsClientRule(os_darwin=True))
+        ]),
         token=self.token)
 
     self.Open("/#main=ManageHunts")
@@ -384,8 +397,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
-    self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
-                   "label:contains('Os darwin') ~ * input:checked")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+        "label:contains('Os darwin') ~ * input:checked")
 
   def testRuleTypeChangeClearsItsProto(self):
     # Open up and click on View Hunts.
@@ -422,8 +436,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                 "Integer")
     rule = rdf_foreman.ForemanIntegerClientRule
     label = rule.ForemanIntegerField.CLIENT_CLOCK.description
-    self.Select("css=grr-configure-rules-page div.well:nth(0) "
-                "label:contains('Field') ~ * select", label)
+    self.Select(
+        "css=grr-configure-rules-page div.well:nth(0) "
+        "label:contains('Field') ~ * select", label)
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")

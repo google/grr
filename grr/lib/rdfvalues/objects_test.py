@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
+
 from google.protobuf import text_format
 import unittest
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import objects
 from grr_response_proto import objects_pb2
 
@@ -95,6 +98,112 @@ class ObjectTest(unittest.TestCase):
                      "us-central1-a/myproject/1771384456894610289")
     self.assertEqual(
         sorted([u.username for u in summary.users]), ["fred", "joe"])
+
+  def testClientSummaryTimestamp(self):
+    client = MakeClient()
+    client.timestamp = rdfvalue.RDFDatetime.Now()
+    summary = client.GetSummary()
+    self.assertEqual(client.timestamp, summary.timestamp)
+
+
+class PathInfoTest(unittest.TestCase):
+
+  def testPathInfoMakePathID(self):
+    # Even if the path components have unlikely/uncommon characters, we
+    # shouldn't have any id collisions.
+    test_paths = [
+        ["usr", "local", "bin", "protoc"],
+        ["usr", "home", "user"],
+        ["usr", "home", "user\n"],
+        ["usr", "home", "user\00"],
+        ["usr", "home", "user", u"⛄࿄"],
+        ["usr", "home", "user", "odd", "path"],
+        ["usr", "home", "user", "odd/path"],
+        ["usr", "home", "user", "odd\\path"],
+    ]
+    hashes_seen = set()
+    for path in test_paths:
+      self.assertNotIn(objects.PathInfo.MakePathID(path), hashes_seen)
+      hashes_seen.add(objects.PathInfo.MakePathID(path))
+      # Check that the result is stable.
+      self.assertIn(objects.PathInfo.MakePathID(path), hashes_seen)
+    self.assertEqual(len(hashes_seen), len(test_paths))
+
+  def testAncestorPathIDs(self):
+    hashes_seen = set()
+    for path_id, _ in objects.PathInfo.MakeAncestorPathIDs(
+        ["usr", "home", "user", "has", "a", "long", "long", "path"]):
+      hashes_seen.add(path_id)
+    self.assertEqual(len(hashes_seen), 8)
+
+    self.assertIn(objects.PathInfo.MakePathID(["usr"]), hashes_seen)
+    self.assertIn(
+        objects.PathInfo.MakePathID(["usr", "home", "user", "has"]),
+        hashes_seen)
+    self.assertIn(
+        objects.PathInfo.MakePathID(
+            ["usr", "home", "user", "has", "a", "long", "long"]), hashes_seen)
+    # We consider a path to be an ancestor of itself.
+    self.assertIn(
+        objects.PathInfo.MakePathID(
+            ["usr", "home", "user", "has", "a", "long", "long", "path"]),
+        hashes_seen)
+
+  def testUpdateFromValidates(self):
+    # cannot merge from a string
+    with self.assertRaises(ValueError):
+      objects.PathInfo(
+          components=["usr", "local", "bin"],).UpdateFrom("/usr/local/bin")
+    # both must refer to the same path
+    with self.assertRaises(ValueError):
+      objects.PathInfo(components=["usr", "local", "bin"]).UpdateFrom(
+          objects.PathInfo(components=["usr", "local", "bin", "protoc"]))
+
+  def testUpdateFromDirectory(self):
+    dest = objects.PathInfo(components=["usr", "local", "bin"])
+    self.assertFalse(dest.directory)
+    dest.UpdateFrom(
+        objects.PathInfo(components=["usr", "local", "bin"], directory=True))
+    self.assertTrue(dest.directory)
+
+  def testMergePathInfoLastUpdate(self):
+    components = ["usr", "local", "bin"]
+    dest = objects.PathInfo(components=components)
+    self.assertIsNone(dest.last_path_history_timestamp)
+
+    dest.UpdateFrom(
+        objects.PathInfo(
+            components=components,
+            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2017-01-01")))
+    self.assertEqual(dest.last_path_history_timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+
+    # Merging in a record without last_path_history_timestamp shouldn't change
+    # it.
+    dest.UpdateFrom(objects.PathInfo(components=components))
+    self.assertEqual(dest.last_path_history_timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+
+    # Merging in a record with an earlier last_path_history_timestamp shouldn't
+    # change it.
+    dest.UpdateFrom(
+        objects.PathInfo(
+            components=components,
+            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2016-01-01")))
+    self.assertEqual(dest.last_path_history_timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("2017-01-01"))
+
+    # Merging in a record with a later last_path_history_timestamp should change
+    # it.
+    dest.UpdateFrom(
+        objects.PathInfo(
+            components=components,
+            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2018-01-01")))
+    self.assertEqual(dest.last_path_history_timestamp,
+                     rdfvalue.RDFDatetime.FromHumanReadable("2018-01-01"))
 
 
 if __name__ == "__main__":

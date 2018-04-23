@@ -59,7 +59,7 @@ describe('stat ext-flags for Mac directive', () => {
 
   it('indicates immutable files', () => {
     const element = render({value: 2});
-    expect(element.text().trim()).toBe('uchg');
+    expect(element.text().trim()).toBe('uimmutable');
   });
 
   it('indicates files with nodump flag', () => {
@@ -71,8 +71,8 @@ describe('stat ext-flags for Mac directive', () => {
     const element = render({value: 196616});
     const text = element.text().trim();
     expect(text).toContain('opaque');
-    expect(text).toContain('arch');
-    expect(text).toContain('schg');
+    expect(text).toContain('archived');
+    expect(text).toContain('simmutable');
   });
 
   it('ignores flags with unknown keywords', () => {

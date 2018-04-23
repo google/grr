@@ -6,9 +6,11 @@ from grr.gui import gui_test_lib
 from grr.gui.api_plugins import config_test as api_config_test
 
 from grr.lib import flags
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+@db_test_lib.DualDBTest
 class TestSettingsView(gui_test_lib.GRRSeleniumTest):
   """Test the settings GUI."""
 
@@ -29,6 +31,7 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsTextPresent, "127.0.0.1")
 
 
+@db_test_lib.DualDBTest
 class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                              api_config_test.ApiGrrBinaryTestMixin):
   """Test the Manage Binaries GUI."""
@@ -40,8 +43,9 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
   def testNotAccessibleForNonAdmins(self):
     self.Open("/")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
 
   def testEachBinaryIsCorrectlyShown(self):
     self.CreateAdminUser("gui_user")
@@ -54,21 +58,27 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
         self.IsElementPresent,
         "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
 
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Python Hacks') tr:contains('test')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Python Hacks') tr:contains('17B')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Python Hacks') "
-                   "tr:contains('1970-01-01 00:00:43 UTC')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Python Hacks') tr:contains('test')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Python Hacks') tr:contains('17B')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Python Hacks') "
+        "tr:contains('1970-01-01 00:00:43 UTC')")
 
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Executables') tr:contains('test.exe')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Executables') tr:contains('18B')")
-    self.WaitUntil(self.IsElementPresent, "css=grr-config-binaries-view "
-                   "div.panel:contains('Executables') "
-                   "tr:contains('1970-01-01 00:00:42 UTC')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Executables') tr:contains('test.exe')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Executables') tr:contains('18B')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=grr-config-binaries-view "
+        "div.panel:contains('Executables') "
+        "tr:contains('1970-01-01 00:00:42 UTC')")
 
 
 def main(argv):

@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import string
+import threading
 import unittest
 
 # TODO(hanuszczak): This should be imported conditionally.
@@ -21,6 +22,11 @@ def _GetEnvironOrSkip(key):
 
 
 class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
+  """Test the mysql.MysqlDB class.
+
+  Most of the tests in this suite are general blackbox tests of the db.Database
+  interface brought in by the db_test.DatabaseTestMixin.
+  """
 
   def CreateDatabase(self):
     # pylint: disable=unreachable
@@ -46,169 +52,112 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
         host=host, port=port, user=user, passwd=passwd, db=dbname), Fin
     # pylint: enable=unreachable
 
-  # These are tests defined by the Mixin which we don't (yet) expect to pass.
-  # Generate them with the following IPython snippet:
-  #
-  # from grr.server import db_test
-  # methods = dir(db_test.DatabaseTestMixin)
-  # for m in methods:
-  #   if not m.startswith("test"):
-  #     continue
-  #   print "  def %s(self):\n    pass\n" % m
-  #
-  # TODO(user): finish the implementation and enable these.
+  def testIsRetryable(self):
+    self.assertFalse(mysql._IsRetryable(Exception("Some general error.")))
+    self.assertFalse(
+        mysql._IsRetryable(
+            MySQLdb.OperationalError(
+                1416, "Cannot get geometry object from data...")))
+    self.assertTrue(
+        mysql._IsRetryable(
+            MySQLdb.OperationalError(
+                1205, "Lock wait timeout exceeded; try restarting...")))
+    self.assertTrue(
+        mysql._IsRetryable(
+            MySQLdb.OperationalError(
+                1213,
+                "Deadlock found when trying to get lock; try restarting...")))
+    self.assertTrue(
+        mysql._IsRetryable(
+            MySQLdb.OperationalError(
+                1637, "Too many active concurrent transactions")))
 
-  def testClientKeywords(self):
+  def AddUser(self, connection, user, passwd):
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO grr_users (username, password) VALUES (%s, %s)",
+                   (user, bytes(passwd)))
+    cursor.close()
+
+  def ListUsers(self, connection):
+    cursor = connection.cursor()
+    cursor.execute("SELECT username, password FROM grr_users")
+    ret = cursor.fetchall()
+    cursor.close()
+    return ret
+
+  def testRunInTransaction(self):
+
+    self.db._RunInTransaction(
+        lambda con: self.AddUser(con, "AzureDiamond", "hunter2"))
+
+    users = self.db._RunInTransaction(self.ListUsers, readonly=True)
+    self.assertEqual(users, ((u"AzureDiamond", "hunter2"),))
+
+  def testRunInTransactionDeadlock(self):
+    """A deadlock error should be retried."""
+
+    self.db._RunInTransaction(lambda con: self.AddUser(con, "user1", "pw1"))
+    self.db._RunInTransaction(lambda con: self.AddUser(con, "user2", "pw2"))
+
+    # We'll start two transactions which read/modify rows in different orders.
+    # This should force (at least) one to fail with a deadlock, which should be
+    # retried.
+    t1_halfway = threading.Event()
+    t2_halfway = threading.Event()
+
+    # Number of times each transaction is attempted.
+    counts = [0, 0]
+
+    def Transaction1(connection):
+      counts[0] += 1
+      cursor = connection.cursor()
+      cursor.execute(
+          "SELECT password FROM grr_users WHERE username = 'user1' FOR UPDATE;")
+      t1_halfway.set()
+      self.assertTrue(t2_halfway.wait(5))
+      cursor.execute("UPDATE grr_users SET password = 'pw2-updated' "
+                     "WHERE username = 'user2';")
+      cursor.close()
+
+    def Transaction2(connection):
+      counts[1] += 1
+      cursor = connection.cursor()
+      cursor.execute(
+          "SELECT password FROM grr_users WHERE username = 'user2' FOR UPDATE;")
+      t2_halfway.set()
+      self.assertTrue(t1_halfway.wait(5))
+      cursor.execute("UPDATE grr_users SET password = 'pw1-updated' "
+                     "WHERE username = 'user1';")
+      cursor.close()
+
+    thread_1 = threading.Thread(
+        target=lambda: self.db._RunInTransaction(Transaction1))
+    thread_2 = threading.Thread(
+        target=lambda: self.db._RunInTransaction(Transaction2))
+
+    thread_1.start()
+    thread_2.start()
+
+    thread_1.join()
+    thread_2.join()
+
+    # Both transaction should have succeeded
+    users = self.db._RunInTransaction(self.ListUsers, readonly=True)
+    self.assertEqual(users, ((u"user1", "pw1-updated"),
+                             (u"user2", "pw2-updated")))
+
+    # At least one should have been retried.
+    self.assertGreater(sum(counts), 2)
+
+  # Tests that we don't expect to pass yet.
+  # TODO(user): Finish implementation and enable these tests.
+  def testWritePathInfosRawValidates(self):
     pass
 
-  def testClientKeywordsTimeRanges(self):
+  def testWritePathInfos(self):
     pass
 
-  def testClientLabels(self):
-    pass
-
-  def testClientLabelsUnicode(self):
-    pass
-
-  def testClientStartupInfo(self):
-    pass
-
-  def testCrashHistory(self):
-    pass
-
-  def testDatabaseType(self):
-    pass
-
-  def testEmptyGRRUserReadWrite(self):
-    pass
-
-  def testFilledGRRUserReadWrite(self):
-    pass
-
-  def testGrantApprovalAddsMultipleGrantorsWithSameName(self):
-    pass
-
-  def testGrantApprovalAddsNewGrantor(self):
-    pass
-
-  def testKeywordWriteToUnknownClient(self):
-    pass
-
-  def testLabelWriteToUnknownClient(self):
-    pass
-
-  def testReadAllClientsFullInfoFiltersClientsByLastPingTime(self):
-    pass
-
-  def testReadAllClientsFullInfoReadsMultipleClientsWithMultipleLabels(self):
-    pass
-
-  def testReadApprovalRequestsFiltersOutExpiredApprovals(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
-    pass
-
-  def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
-    pass
-
-  def testReadApprovalRequestsIncludesGrantsIntoMultipleResults(self):
-    pass
-
-  def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
-    pass
-
-  def testReadApprovalRequestsKeepsExpiredApprovalsWhenAsked(self):
-    pass
-
-  def testReadApprovalRequestsReturnsMultipleApprovals(self):
-    pass
-
-  def testReadApprovalRequestsReturnsSingleApproval(self):
-    pass
-
-  def testReadApprovalRequeststReturnsNothingWhenNoApprovals(self):
-    pass
-
-  def testReadClientFullFullInfoReturnsCorrectResult(self):
-    pass
-
-  def testReadClientStartupInfoHistory(self):
-    pass
-
-  def testReadClientStartupInfoHistoryWithEmptyTimerange(self):
-    pass
-
-  def testReadClientStartupInfoHistoryWithTimerangeEdgeCases(self):
-    pass
-
-  def testReadClientStartupInfoHistoryWithTimerangeWithBothFromTo(self):
-    pass
-
-  def testReadClientStartupInfoHistoryWithTimerangeWithFromOnly(self):
-    pass
-
-  def testReadClientStartupInfoHistoryWithTimerangeWithToOnly(self):
-    pass
-
-  def testReadWriteApprovalRequestWithEmptyNotifiedUsersEmailsAndGrants(self):
-    pass
-
-  def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
-    pass
-
-  def testReadingMultipleGRRUsersEntriesWorks(self):
-    pass
-
-  def testReadingUnknownGRRUserFails(self):
-    pass
-
-  def testRemoveClientKeyword(self):
-    pass
-
-  def testWriteClientSnapshotHistory(self):
-    pass
-
-  def testWriteClientSnapshotHistoryDoesNotUpdateLastTimestampIfOlder(self):
-    pass
-
-  def testWriteClientSnapshotHistoryRaiseAttributeError(self):
-    pass
-
-  def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):
-    pass
-
-  def testWriteClientSnapshotHistoryRaiseTypeError(self):
-    pass
-
-  def testWriteClientSnapshotHistoryRaiseValueErrorOnEmpty(self):
-    pass
-
-  def testWriteClientSnapshotHistoryRaiseValueErrorOnNonUniformIds(self):
-    pass
-
-  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNewer(self):
-    pass
-
-  def testWriteClientSnapshotHistoryUpdatesLastTimestampIfNotSet(self):
-    pass
-
-  def testWriteClientSnapshotHistoryUpdatesOnlyLastClientTimestamp(self):
+  def testFindDescendentPathIDs(self):
     pass
 
 

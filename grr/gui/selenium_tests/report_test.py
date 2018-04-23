@@ -4,8 +4,8 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.server import aff4
 from grr.server import events
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -21,6 +21,7 @@ def AddFakeAuditLog(description=None,
       token=token)
 
 
+@db_test_lib.DualDBTest
 class TestReports(gui_test_lib.GRRSeleniumTest):
   """Test the reports interface."""
 
@@ -63,8 +64,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
   def testReportsDontIncludeTimerangesInUrlsOfReportsThatDontUseThem(self):
     client_id = self.SetupClient(0)
 
-    with aff4.FACTORY.Open(client_id, mode="rw", token=self.token) as client:
-      client.AddLabel("bar", owner="owner")
+    self.AddClientLabel(client_id, "owner", "bar")
 
     self.Open("/#/stats/")
 

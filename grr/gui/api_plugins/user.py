@@ -192,14 +192,15 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
         self.reference.type = reference_type_enum.DISCOVERY
         self.reference.discovery.client_id = components[0]
       else:
-        path = notification.subject.Path()
-        for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
-          part = "/%s%s" % (components[0], prefix)
-          if path.startswith(part):
-            self.reference.type = reference_type_enum.VFS
-            self.reference.vfs.client_id = components[0]
-            self.reference.vfs.vfs_path = prefix + path[len(part):]
-            break
+        if notification.subject:
+          path = notification.subject.Path()
+          for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
+            part = "/%s%s" % (components[0], prefix)
+            if path.startswith(part):
+              self.reference.type = reference_type_enum.VFS
+              self.reference.vfs.client_id = components[0]
+              self.reference.vfs.vfs_path = prefix + path[len(part):]
+              break
 
         if self.reference.type != reference_type_enum.VFS:
           self.reference.type = reference_type_enum.UNKNOWN
@@ -779,7 +780,7 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   def HandleRelationalDB(self, args, token=None):
     try:
       approval_obj = data_store.REL_DB.ReadApprovalRequest(
-          token.username, args.approval_id)
+          args.username, args.approval_id)
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
           "No approval with id=%s, type=%s, subject=%s could be found."

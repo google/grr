@@ -5,18 +5,21 @@ import unittest
 from grr.gui import gui_test_lib
 
 from grr.lib import flags
-from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
   """Tests the crash view."""
 
-  client_id = rdf_client.ClientURN("C.0000000000000001")
+  def setUp(self):
+    super(TestCrashView, self).setUp()
+    self.client_id = self.SetupClient(0).Basename()
 
   def SetUpCrashedFlow(self):
     client = flow_test_lib.CrashClientMock(self.client_id, self.token)
@@ -29,30 +32,30 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
       pass
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
-    self.Open("/#/clients/C.0000000000000002/crashes")
+    client_id = self.SetupClient(0).Basename()
+    self.Open("/#/clients/%s/crashes" % client_id)
 
-    # As we don't have an approval for C.0000000000000002, we should be
+    # As we don't have an approval for the client, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+    self.WaitUntilEqual("/#/clients/%s/host-info" % client_id,
                         self.GetCurrentUrlPath)
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
   def testClientCrashedFlow(self):
     self.SetUpCrashedFlow()
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(self.client_id)
 
     self.Open("/")
 
-    self.Type("client_query", "C.0000000000000001")
+    self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(self.client_id, self.GetText, "css=span[type=subject]")
 
     # Choose client 1
-    self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
+    self.Click("css=td:contains('%s')" % self.client_id)
+    self.WaitUntil(self.IsTextPresent, self.client_id)
 
     self.Click("css=a[grrtarget='client.flows']")
     self.WaitUntil(self.IsTextPresent,
@@ -66,12 +69,12 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [
-        "CLIENT_CRASHED", "aff4:/C.0000000000000001/flows/",
-        "Reason: Client crashed."
+        "CLIENT_CRASHED",
+        "aff4:/%s/flows/" % self.client_id, "Reason: Client crashed."
     ])
 
   def SetUpCrashedFlowInHunt(self):
-    client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
+    client_ids = self.SetupClients(10)
     client_mocks = dict([(client_id,
                           flow_test_lib.CrashClientMock(client_id, self.token))
                          for client_id in client_ids])
@@ -96,7 +99,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     return client_ids
 
   def testClientCrashedFlowInHunt(self):
-    client_ids = self.SetUpCrashedFlowInHunt()
+    client_ids = [c.Basename() for c in self.SetUpCrashedFlowInHunt()]
 
     self.Open("/")
 
@@ -109,19 +112,17 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=li[heading=Crashes]")
 
     # Check that all crashes were registered for this hunt.
-    self.WaitUntil(self.AllTextsPresent,
-                   [client_id.Basename() for client_id in client_ids])
+    self.WaitUntil(self.AllTextsPresent, client_ids)
 
-    # Search for the C.0000000000000001 and select it.
-    self.Type("client_query", "C.0000000000000001")
+    # Search for the client and select it.
+    self.Type("client_query", client_ids[0])
     self.Click("client_query_submit")
 
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.RequestAndGrantClientApproval(client_ids[0])
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
-    self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
+    self.WaitUntilEqual(client_ids[0], self.GetText, "css=span[type=subject]")
+    self.Click("css=td:contains('%s')" % client_ids[0])
+    self.WaitUntil(self.IsTextPresent, client_ids[0])
 
     # Open the "Advanced" dropdown.
     self.Click("css=li#HostAdvanced > a")
@@ -130,7 +131,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget='client.crashes']")
 
     self.WaitUntil(self.AllTextsPresent, [
-        "C.0000000000000001", "Crash type", "aff4:/flows/", "CrashHandler",
+        client_ids[0], "Crash type", "aff4:/flows/", "CrashHandler",
         "Crash message", "Client killed during transaction"
     ])
 

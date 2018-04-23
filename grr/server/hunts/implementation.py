@@ -804,7 +804,7 @@ class HuntRunner(object):
     # flow. Randomize the request_id so we do not overwrite other messages in
     # the queue.
     request_state = rdf_flows.RequestState(
-        id=utils.PRNG.GetULong(),
+        id=utils.PRNG.GetUInt32(),
         session_id=self.context.session_id,
         client_id=client_id,
         next_state=next_state)
@@ -1221,7 +1221,7 @@ class GRRHunt(flow.FlowBase):
         # flow. Randomize the request_id so we do not overwrite other messages
         # in the queue.
         state = rdf_flows.RequestState(
-            id=utils.PRNG.GetULong(),
+            id=utils.PRNG.GetUInt32(),
             session_id=hunt_id,
             client_id=client_id,
             next_state="AddClient")

@@ -10,8 +10,10 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.server import artifact
 from grr.server import artifact_registry
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
@@ -64,10 +66,11 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
                    "TestDrivers: system artifact cannot be overwritten")
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    client_id = self.SetupClient(0).Basename()
+    self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have no TestDrivers.
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % client_id)
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
@@ -120,10 +123,12 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   def testArtifactRemovedFromFormsImmediatelyAfterDeletion(self):
     with open(self.json_file, "rb") as fd:
       artifact.UploadArtifactYamlFile(fd.read())
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+
+    client_id = self.SetupClient(0).Basename()
+    self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have TestDrivers available.
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % client_id)
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "TestDrivers")

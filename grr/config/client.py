@@ -232,3 +232,15 @@ config_lib.DEFINE_string(
     default="%(Logging.path)/%(Client.name)_installer.txt",
     help=("A specific log file which is used for logging the "
           "installation process."))
+
+config_lib.DEFINE_string(
+    "Client.fleetspeak_unsigned_services_regkey",
+    "HKEY_LOCAL_MACHINE\\Software\\Fleetspeak\\textservices",
+    "Registry key (on Windows) where Fleetspeak expects services "
+    "to write their unsigned configs to.")
+
+config_lib.DEFINE_string(
+    "Client.fleetspeak_unsigned_config_fname",
+    "%(Client.name)_fleetspeak_service_config.txt",
+    "File-name for the Fleetspeak service config generated "
+    "when repacking templates.")

@@ -11,7 +11,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server.aff4_objects import aff4_grr
 from grr.test_lib import db_test_lib
@@ -26,36 +25,39 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    self.client_id, self.unapproved_client_id = [
+        u.Basename() for u in self.SetupClients(2)
+    ]
+
     fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.token)
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    gui_test_lib.CreateFileVersions(self.client_id, self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
-    self.Open("/#/clients/C.0000000000000002/vfs/")
+    self.Open("/#/clients/%s/vfs/" % self.unapproved_client_id)
 
-    # As we don't have an approval for C.0000000000000002, we should be
+    # As we don't have an approval for unapproved_client_id, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+    self.WaitUntilEqual("/#/clients/%s/host-info" % self.unapproved_client_id,
                         self.GetCurrentUrlPath)
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
   def testPageTitleChangesAccordingToSelectedFile(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/")
-    self.WaitUntilEqual("GRR | C.0000000000000001 | /", self.GetPageTitle)
+    self.Open("/#/clients/%s/vfs/" % self.client_id)
+    self.WaitUntilEqual("GRR | %s | /" % self.client_id, self.GetPageTitle)
 
     # Select a folder in the tree.
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
     self.Click("css=#_fs-os-c i.jstree-icon")
     self.Click("link=Downloads")
-    self.WaitUntilEqual("GRR | C.0000000000000001 | /fs/os/c/Downloads/",
+    self.WaitUntilEqual("GRR | %s | /fs/os/c/Downloads/" % self.client_id,
                         self.GetPageTitle)
 
     # Select a file from the table.
     self.Click("css=tr:contains(\"a.txt\")")
-    self.WaitUntilEqual("GRR | C.0000000000000001 | /fs/os/c/Downloads/a.txt",
+    self.WaitUntilEqual("GRR | %s | /fs/os/c/Downloads/a.txt" % self.client_id,
                         self.GetPageTitle)
 
   def testSwitchingBetweenFilesRefreshesFileHashes(self):
@@ -63,18 +65,17 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # Note that a string passed to fd.Schema.HASH constructor will be
     # printed as a hexademical bytestring. Thus "111" will become "313131"
     # and "222" will become "323232".
-    urn_a = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/a.txt")
+    urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
     with aff4.FACTORY.Open(urn_a, mode="rw") as fd:
       fd.Set(fd.Schema.HASH(sha256="111"))
 
-    urn_b = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/b.txt")
+    urn_b = rdfvalue.RDFURN("%s/fs/os/c/Downloads/b.txt" % self.client_id)
     with aff4.FACTORY.Open(urn_b, mode="rw") as fd:
       fd.Set(fd.Schema.HASH(sha256="222"))
 
     # Open a URL pointing to file "a".
-    self.Open(
-        "/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/a.txt?tab=download"
-    )
+    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
+              self.client_id)
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('Sha256') td:contains('313131')")
 
@@ -86,7 +87,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
                    "css=tr:contains('Sha256') td:contains('323232')")
 
   def testSwitchingBetweenFileVersionsRefreshesDownloadTab(self):
-    urn_a = rdfvalue.RDFURN("C.0000000000000001/fs/os/c/Downloads/a.txt")
+    urn_a = rdfvalue.RDFURN("%s/fs/os/c/Downloads/a.txt" % self.client_id)
 
     # Test files are set up using self.CreateFileVersions call in test's
     # setUp method. Amend created file versions by adding different
@@ -111,9 +112,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
         fd.Set(fd.Schema.HASH(sha256="222"))
 
     # Open a URL corresponding to a HEAD version of the file.
-    self.Open(
-        "/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/a.txt?tab=download"
-    )
+    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
+              self.client_id)
     # Make sure displayed hash value is correct.
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('Sha256') td:contains('323232')")
@@ -128,16 +128,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
 
-    self.Open("/")
-
-    self.Type("client_query", "C.0000000000000001")
-    self.Click("client_query_submit")
-
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
-
-    # Choose client 1.
-    self.Click("css=td:contains('0001')")
+    self.Open("/#/clients/%s" % self.client_id)
 
     # Go to Browse VFS.
     self.Click("css=a[grrtarget='client.vfs']")
@@ -208,9 +199,9 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
     # Both files should be the same...
     self.assertEqual(downloaded_files[0][0],
-                     u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
+                     u"aff4:/%s/fs/os/c/Downloads/a.txt" % self.client_id)
     self.assertEqual(downloaded_files[2][0],
-                     u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
+                     u"aff4:/%s/fs/os/c/Downloads/a.txt" % self.client_id)
     # But from different times. The downloaded file timestamp is only accurate
     # to the nearest second. Also, the HEAD version of the file is downloaded
     # with age=NEWEST_TIME.
@@ -227,7 +218,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Hello World", self.GetText, "css=div.monospace pre")
 
   def testHexViewer(self):
-    self.Open("/#clients/C.0000000000000001/vfs/fs/os/proc/10/")
+    self.Open("/#clients/%s/vfs/fs/os/proc/10/" % self.client_id)
 
     self.Click("css=td:contains(\"cmdline\")")
     self.Click("css=li[heading=HexView]:not(.disabled)")
@@ -249,10 +240,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
   def testSearchInputFiltersFileList(self):
     # Open VFS view for client 1.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
+    self.Open("/#c=%s&main=VirtualFileSystemView&t=_fs-os-c" % self.client_id)
 
     # Navigate to the bin C.0000000000000001 directory
-    self.Click("link=bin C.0000000000000001")
+    self.Click("link=bin %s" % self.client_id)
 
     # We need to await the initial file listing for the current directory,
     # since the infinite table will only issue one request at a time.
@@ -289,7 +280,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=button:contains(\"Collect from the client\")")
 
   def testExportToolHintIsDisplayed(self):
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
+    self.Open("/#/clients/%s/vfs/" % self.client_id)
 
     self.Click("css=li#_fs i.jstree-icon")
     self.Click("css=li#_fs-os i.jstree-icon")
@@ -304,9 +295,9 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(
         self.IsTextPresent, "/usr/bin/grr_api_shell "
         "'http://localhost:8000/' "
-        "--exec_code 'grrapi.Client(\"C.0000000000000001\")."
+        "--exec_code 'grrapi.Client(\"%s\")."
         "File(r\"\"\"fs/os/c/Downloads/a.txt\"\"\").GetBlob()."
-        "WriteToFile(\"./a.txt\")'")
+        "WriteToFile(\"./a.txt\")'" % self.client_id)
 
 
 def main(argv):

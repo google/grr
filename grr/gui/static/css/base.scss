@@ -17,6 +17,7 @@
 @import 'grr/gui/static/angular-components/artifact/artifacts-list-form';
 @import 'grr/gui/static/angular-components/artifact/artifact-name';
 @import 'grr/gui/static/angular-components/core/download-collection-as';
+@import 'grr/gui/static/angular-components/core/troggle';
 @import 'grr/gui/static/angular-components/client/check-client-access';
 @import 'grr/gui/static/angular-components/client/host-info';
 @import 'grr/gui/static/angular-components/client/virtual-file-system/breadcrumbs';
@@ -31,6 +32,10 @@
 @import 'grr/gui/static/angular-components/core/version-dropdown';
 @import 'grr/gui/static/angular-components/core/wizard-form';
 @import 'grr/gui/static/angular-components/flow/start-flow-view';
+@import 'grr/gui/static/angular-components/forms/ext-flags-condition-form';
+@import 'grr/gui/static/angular-components/forms/ext-flags-linux-picker-long';
+@import 'grr/gui/static/angular-components/forms/ext-flags-linux-picker-short';
+@import 'grr/gui/static/angular-components/forms/ext-flags-osx-picker';
 @import 'grr/gui/static/angular-components/forms/foreman-label-rule-form';
 @import 'grr/gui/static/angular-components/forms/semantic-proto-form';
 @import 'grr/gui/static/angular-components/forms/semantic-proto-union-form';

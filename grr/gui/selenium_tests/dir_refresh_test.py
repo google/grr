@@ -27,7 +27,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Prepare our fixture.
     self.client_id = rdf_client.ClientURN("C.0000000000000001")
     fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.token)
+    gui_test_lib.CreateFileVersions(self.client_id, self.token)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def _RunUpdateFlow(self, client_id):

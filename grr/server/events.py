@@ -27,7 +27,7 @@ class AuditEvent(rdf_structs.RDFProtoStruct):
 
     super(AuditEvent, self).__init__(initializer=initializer, age=age, **kwargs)
     if not self.id:
-      self.id = utils.PRNG.GetULong()
+      self.id = utils.PRNG.GetUInt32()
     if not self.timestamp:
       self.timestamp = rdfvalue.RDFDatetime.Now()
 

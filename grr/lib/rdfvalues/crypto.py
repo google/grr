@@ -777,7 +777,7 @@ class Password(rdf_structs.RDFProtoStruct):
     return kdf.derive(password)
 
   def SetPassword(self, password):
-    self.salt = "%08x%08x" % (utils.PRNG.GetULong(), utils.PRNG.GetULong())
+    self.salt = "%016x" % utils.PRNG.GetUInt64()
     self.iteration_count = 100000
     self.hashed_pwd = self._CalculateHash(password, self.salt,
                                           self.iteration_count)

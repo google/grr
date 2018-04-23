@@ -15,10 +15,62 @@ from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server import aff4
 from grr.server import data_store
 from grr.server.aff4_objects import aff4_grr
+from grr.server.aff4_objects import users as aff4_users
 
 _CLIENT_BATCH_SIZE = 200
 _CLIENT_VERSION_THRESHOLD = rdfvalue.Duration("24h")
 _PROGRESS_INTERVAL = rdfvalue.Duration("1s")
+
+
+class UsersMigrator(object):
+  """Migrates users objects from AFF4 to REL_DB."""
+
+  def __init__(self):
+    self._lock = threading.Lock()
+
+    self._total_count = 0
+    self._migrated_count = 0
+    self._start_time = None
+    self._last_progress_time = None
+
+  def _GetUsers(self):
+    urns = aff4.FACTORY.ListChildren("aff4:/users")
+    return sorted(
+        aff4.FACTORY.MultiOpen(urns, aff4_type=aff4_users.GRRUser),
+        key=lambda u: u.urn.Basename())
+
+  def Execute(self):
+    """Runs the migration procedure."""
+    if not data_store.RelationalDBWriteEnabled():
+      raise ValueError("No relational database available.")
+
+    sys.stdout.write("Collecting clients...\n")
+    users = self._GetUsers()
+
+    sys.stdout.write("Users to migrate: {}\n".format(len(users)))
+    for u in users:
+      self._MigrateUser(u)
+
+  def _MigrateUser(self, u):
+    """Migrates individual AFF4 user object to REL_DB."""
+
+    sys.stdout.write("Migrating user {}\n".format(u.urn.Basename()))
+
+    password = u.Get(u.Schema.PASSWORD, None)
+    gui_settings = u.Get(u.Schema.GUI_SETTINGS)
+    if "admin" in u.GetLabelsNames():
+      user_type = rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN
+    else:
+      user_type = rdf_objects.GRRUser.UserType.USER_TYPE_STANDARD
+
+    data_store.REL_DB.WriteGRRUser(
+        u.urn.Basename(),
+        password=password,
+        ui_mode=gui_settings.mode,
+        canary_mode=gui_settings.canary_mode,
+        user_type=user_type)
+    sys.stdout.write("User migration success for the user {}\n".format(
+        u.urn.Basename()))
 
 
 def Migrate(thread_count=300):
@@ -27,10 +79,11 @@ def Migrate(thread_count=300):
   Args:
     thread_count: A number of threads to execute thr migration with.
   """
-  Migrator().Execute(thread_count)
+  ClientsMigrator().Execute(thread_count)
+  UsersMigrator().Execute()
 
 
-class Migrator(object):
+class ClientsMigrator(object):
   """A simple worker class that uses thread pool to drive the migration."""
 
   def __init__(self):

@@ -7,6 +7,7 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 import cStringIO
 import logging
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -26,6 +27,12 @@ except ImportError:
   # their own clients will need PyInstaller installed.
   pass
 
+from google.protobuf import descriptor_pool
+from google.protobuf import text_format
+
+from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as fs_config_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
+
 from grr import config
 from grr.config import contexts
 from grr.lib import config_lib
@@ -39,6 +46,10 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto
 
 # pylint: enable=g-import-not-at-top,unused-import
+
+
+class BuildError(Exception):
+  pass
 
 
 class BuilderBase(object):
@@ -450,6 +461,9 @@ class WindowsClientRepacker(ClientRepacker):
         "Nanny.service_binary_name", context=context)
     output_zip.writestr(service_bin_name, z_template.read(service_template))
 
+    if config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+      self._GenerateFleetspeakServiceConfig(output_zip)
+
     if self.signed_template:
       # If the template libs were already signed we can skip signing
       CreateNewZipWithSignedLibs(
@@ -463,6 +477,55 @@ class WindowsClientRepacker(ClientRepacker):
     output_zip.close()
 
     return self.MakeSelfExtractingZip(zip_data.getvalue(), output_path)
+
+  def _GenerateFleetspeakServiceConfig(self, zip_file):
+    orig_fs_config_path = config.CONFIG["ClientBuilder.fleetspeak_config_path"]
+    final_fs_config_fname = config.CONFIG[
+        "Client.fleetspeak_unsigned_config_fname"]
+    if orig_fs_config_path.endswith(".in"):
+      logging.info("Interpolating %s", orig_fs_config_path)
+      logging.warning("Backslashes will be naively re-escaped after "
+                      "interpolation. If this is not desired, use a file "
+                      "without the '.in' extension.")
+      with utils.TempDirectory() as temp_dir:
+        temp_fs_config_path = os.path.join(temp_dir, final_fs_config_fname)
+        with open(orig_fs_config_path, "rb") as source:
+          with open(temp_fs_config_path, "wb") as dest:
+            interpolated = config.CONFIG.InterpolateValue(
+                source.read(), context=self.context)
+            dest.write(re.sub(r"\\", r"\\\\", interpolated))
+        self._ValidateFleetspeakServiceConfig(temp_fs_config_path)
+        zip_file.write(temp_fs_config_path, final_fs_config_fname)
+    else:
+      self._ValidateFleetspeakServiceConfig(orig_fs_config_path)
+      zip_file.write(orig_fs_config_path, final_fs_config_fname)
+
+  def _ValidateFleetspeakServiceConfig(self, config_path):
+    """Validates a Fleetspeak service config.
+
+    Checks that the given file is a valid TextFormat representation of
+    a Fleetspeak service config proto.
+
+    Args:
+      config_path: Path to the config file.
+
+    Raises:
+      BuildError: If the config is not valid.
+    """
+    with open(config_path, "rb") as f:
+      pool = descriptor_pool.DescriptorPool()
+      pool.AddDescriptor(fs_config_pb2.Config.DESCRIPTOR)
+      parsed_config = text_format.Parse(
+          f.read(), fs_system_pb2.ClientServiceConfig(), descriptor_pool=pool)
+      if parsed_config.factory != "Daemon":
+        raise BuildError(
+            "Fleetspeak config does not have the expected factory type.")
+      daemon_cfg = fs_config_pb2.Config()
+      parsed_config.config.Unpack(daemon_cfg)
+      if not daemon_cfg.argv:
+        raise BuildError(
+            "Fleetspeak daemon service config does not specify command line "
+            "args.")
 
   def MakeSelfExtractingZip(self, payload_data, output_path):
     """Repack the installer into the payload.

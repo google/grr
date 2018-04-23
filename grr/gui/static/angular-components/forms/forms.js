@@ -10,6 +10,10 @@ const {ClientLabelFormDirective} = goog.require('grrUi.forms.clientLabelFormDire
 const {DatetimeFormDirective} = goog.require('grrUi.forms.datetimeFormDirective');
 const {DictFormDirective} = goog.require('grrUi.forms.dictFormDirective');
 const {DurationFormDirective} = goog.require('grrUi.forms.durationFormDirective');
+const {ExtFlagsConditionFormDirective} = goog.require('grrUi.forms.extFlagsConditionFormDirective');
+const {ExtFlagsLinuxPickerLongDirective} = goog.require('grrUi.forms.extFlagsLinuxPickerLongDirective');
+const {ExtFlagsLinuxPickerShortDirective} = goog.require('grrUi.forms.extFlagsLinuxPickerShortDirective');
+const {ExtFlagsOsxPickerDirective} = goog.require('grrUi.forms.extFlagsOsxPickerDirective');
 const {ForemanLabelRuleFormDirective} = goog.require('grrUi.forms.foremanLabelRuleFormDirective');
 const {GlobExpressionFormDirective} = goog.require('grrUi.forms.globExpressionFormDirective');
 const {GlobExpressionsListFormDirective} = goog.require('grrUi.forms.globExpressionsListFormDirective');
@@ -66,6 +70,17 @@ exports.formsModule.directive(
 exports.formsModule.directive(
     SemanticEnumFormDirective.directive_name, SemanticEnumFormDirective);
 exports.formsModule.directive(
+    ExtFlagsConditionFormDirective.directive_name,
+    ExtFlagsConditionFormDirective);
+exports.formsModule.directive(
+    ExtFlagsLinuxPickerLongDirective.directive_name,
+    ExtFlagsLinuxPickerLongDirective);
+exports.formsModule.directive(
+    ExtFlagsLinuxPickerShortDirective.directive_name,
+    ExtFlagsLinuxPickerShortDirective);
+exports.formsModule.directive(
+    ExtFlagsOsxPickerDirective.directive_name, ExtFlagsOsxPickerDirective);
+exports.formsModule.directive(
     ForemanLabelRuleFormDirective.directive_name,
     ForemanLabelRuleFormDirective);
 exports.formsModule.directive(
@@ -108,6 +123,10 @@ exports.formsModule.run(function(grrSemanticFormDirectivesRegistryService) {
 
   registry.registerDirective(
       DurationFormDirective.semantic_type, DurationFormDirective);
+
+  registry.registerDirective(
+      ExtFlagsConditionFormDirective.semantic_type,
+      ExtFlagsConditionFormDirective);
 
   registry.registerDirective(
       GlobExpressionFormDirective.semantic_type, GlobExpressionFormDirective);

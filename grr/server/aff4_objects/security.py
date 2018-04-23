@@ -437,7 +437,7 @@ class ApprovalRequestor(AbstractApprovalBase):
   def Request(self):
     """Create the Approval object and notify the Approval Granter."""
 
-    approval_id = "approval:%X" % utils.PRNG.GetULong()
+    approval_id = "approval:%X" % utils.PRNG.GetUInt32()
     approval_urn = self.BuildApprovalUrn(approval_id)
 
     email_msg_id = email.utils.make_msgid()

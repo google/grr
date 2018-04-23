@@ -82,6 +82,12 @@ config_lib.DEFINE_string(
     "Path where the Fleetspeak client installs its plist file. Only applies "
     "if ClientBuilder.fleetspeak_enabled is true.")
 
+config_lib.DEFINE_string(
+    "ClientBuilder.fleetspeak_config_path",
+    "%(install_data/fleetspeak/%(Client.platform)/"
+    "grr_service_config.txt.in|resource)",
+    "Path to GRR's Fleetspeak service configuration.")
+
 
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""

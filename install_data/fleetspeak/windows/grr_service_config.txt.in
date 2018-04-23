@@ -1,0 +1,19 @@
+# Default [unsigned] service config for integration with Fleetspeak.
+
+name: "GRR"
+factory: "Daemon"
+required_labels {
+  service_name: "client"
+  label: "windows"
+}
+config {
+  [type.googleapis.com/fleetspeak.daemonservice.Config] {
+    argv: "%(Client.install_path)\\%(Client.binary_name)"
+    argv: "--config=%(Client.install_path)\\%(Client.binary_name).yaml"
+
+    memory_limit: 2147483648 # 2GB
+    monitor_heartbeats: true
+    heartbeat_unresponsive_grace_period_seconds: 600
+    heartbeat_unresponsive_kill_period_seconds: %(Nanny.unresponsive_kill_period)
+  }
+}

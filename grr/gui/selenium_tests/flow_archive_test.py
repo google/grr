@@ -13,24 +13,21 @@ from grr.gui.api_plugins import flow as api_flow
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
 from grr.server import flow
 from grr.server.flows.general import transfer as flows_transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowArchive, self).setUp()
 
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -42,7 +39,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("link=Results")
@@ -59,7 +56,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("link=Results")
@@ -80,7 +77,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
@@ -100,7 +97,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
@@ -128,7 +125,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
                        "Generate", RaisingStub):
-      self.Open("/#c=C.0000000000000001")
+      self.Open("/#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
@@ -175,7 +172,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
-    self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
+    self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
     self.Click("link=Results")
     self.Select("id=plugin-select", plugin_display_name)
     self.Click("css=grr-download-collection-as button[name='download-as']")
@@ -184,7 +181,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
       try:
         mock_method.assert_called_once_with(
             api_flow.ApiGetExportedFlowResultsArgs(
-                client_id=self.client_id.Basename(),
+                client_id=self.client_id,
                 flow_id=flow_urn.Basename(),
                 plugin_name=plugin),
             token=mock.ANY)
@@ -204,7 +201,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
-    self.Open("/#/clients/C.0000000000000001/flows/%s" % flow_urn.Basename())
+    self.Open("/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()))
     self.Click("link=Results")
 
     self.WaitUntil(self.IsTextPresent, "Value")

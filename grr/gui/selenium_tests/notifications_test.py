@@ -12,8 +12,10 @@ from grr.server import aff4
 from grr.server import flow
 from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import discovery
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestNotifications(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 

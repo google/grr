@@ -127,7 +127,7 @@ class CryptedPassword(rdfvalue.RDFString):
 
   def SetPassword(self, password, salt=None):
     if salt is None:
-      salt = "%08x" % utils.PRNG.GetULong()
+      salt = "%08x" % utils.PRNG.GetUInt32()
 
     self._value = self._CalculateHash(password, salt)
     return self

@@ -233,7 +233,6 @@ class ApiRegressionGoldenOutputGenerator(object):
     super(ApiRegressionGoldenOutputGenerator, self).__init__()
 
     self.connection_type = connection_type
-    self.loader = test_lib.GRRTestLoader()
 
   def _GroupRegressionTestsByHandler(self):
     result = {}

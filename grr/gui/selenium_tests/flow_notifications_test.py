@@ -9,24 +9,21 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
 from grr.server import flow
 from grr.server.flows.general import transfer as flows_transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
   """Test flow notifications."""
 
   def setUp(self):
     super(TestFlowNotifications, self).setUp()
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
+    self.client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -56,9 +53,9 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     # Check that clicking on a notification changes the location and shows
     # the flow page.
-    self.WaitUntilEqual("/#/clients/%s/flows/%s" % (self.client_id.Basename(),
-                                                    flow_urn.Basename()),
-                        self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        "/#/clients/%s/flows/%s" % (self.client_id, flow_urn.Basename()),
+        self.GetCurrentUrlPath)
     self.WaitUntil(self.IsTextPresent, utils.SmartStr(flow_urn))
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
@@ -82,7 +79,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
                        "Generate", RaisingStub):
-      self.Open("/#c=C.0000000000000001")
+      self.Open("/#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
@@ -111,7 +108,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         flow_urn, self.action_mock, client_id=self.client_id, token=self.token):
       pass
 
-    self.Open("/#c=C.0000000000000001")
+    self.Open("/#/clients/%s" % self.client_id)
 
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")

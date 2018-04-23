@@ -10,20 +10,22 @@ from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import data_store
 from grr.server import flow
+from grr.test_lib import db_test_lib
 
 
+@db_test_lib.DualDBTest
 class TestFlowResults(gui_test_lib.GRRSeleniumTest):
   """Test the flow results UI."""
 
   def setUp(self):
     super(TestFlowResults, self).setUp()
 
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    self.client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testLaunchBinaryFlowResultsHaveReadableStdOutAndStdErr(self):
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001",
+        client_id=self.client_id,
         flow_name=gui_test_lib.RecursiveTestFlow.__name__,
         token=self.token)
 
@@ -34,14 +36,14 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
       flow.GRRFlow.ResultCollectionForFID(flow_urn).Add(
           response, mutation_pool=pool)
 
-    self.Open("/#/clients/%s/flows/%s/results" % (self.client_id.Basename(),
+    self.Open("/#/clients/%s/flows/%s/results" % (self.client_id,
                                                   flow_urn.Basename()))
     # jQuery treats the backslash ('\') character as a special one, hence we
     # have to escape it twice: once for Javascript itself and second time
     # for jQuery.
-    self.WaitUntil(self.IsElementPresent,
-                   r"css=grr-flow-inspector:contains('Oh, ok, "
-                   r"this is just a string \\\\xe6\\\\x98\\\\xa8')")
+    self.WaitUntil(
+        self.IsElementPresent, r"css=grr-flow-inspector:contains('Oh, ok, "
+        r"this is just a string \\\\xe6\\\\x98\\\\xa8')")
     self.WaitUntil(
         self.IsElementPresent,
         r"css=grr-flow-inspector:contains('\\\\x00\\\\x00\\\\x00\\\\x00')")

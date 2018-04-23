@@ -630,7 +630,7 @@ class FrontEndServer(object):
         # Well known flows have a response_id==0, but if we queue up the state
         # as that it will overwrite some other message that is queued. So we
         # change it to a random number here.
-        msg.response_id = utils.PRNG.GetULong()
+        msg.response_id = utils.PRNG.GetUInt32()
 
         # Queue the message in the data store.
         result.append(msg)
