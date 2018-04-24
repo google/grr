@@ -17,9 +17,9 @@ from grr_response_client.vfs_handlers import files  # pylint: disable=unused-imp
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import client_fixture
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import standard as aff4_standard
+from grr.server.grr_response_server import client_fixture
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
 
 
 class VFSOverrider(object):

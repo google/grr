@@ -3,7 +3,7 @@
 
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import stats_pb2
-from grr.server import events
+from grr.server.grr_response_server import events
 
 
 class ApiReportDescriptor(rdf_structs.RDFProtoStruct):

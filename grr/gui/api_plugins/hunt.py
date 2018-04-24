@@ -22,17 +22,17 @@ from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import hunt_pb2
-from grr.server import aff4
-from grr.server import events
-from grr.server import flow
-from grr.server import foreman
-from grr.server import instant_output_plugin
-from grr.server import output_plugin
-from grr.server.aff4_objects import users as aff4_users
-from grr.server.flows.general import export
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import events
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server import instant_output_plugin
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server.flows.general import export
 
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 

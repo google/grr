@@ -6,7 +6,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import tests_pb2
 
-from grr.server import export
+from grr.server.grr_response_server import export
 
 
 class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):

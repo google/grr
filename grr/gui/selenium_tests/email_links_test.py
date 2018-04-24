@@ -11,11 +11,11 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.server import email_alerts
-from grr.server.aff4_objects import cronjobs
-from grr.server.flows.cron import system as cron_system
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import email_alerts
+from grr.server.grr_response_server.aff4_objects import cronjobs
+from grr.server.grr_response_server.flows.cron import system as cron_system
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 

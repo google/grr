@@ -10,7 +10,7 @@ from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.parsers import registry_init
 # pylint: enable=unused-import
-from grr.server import artifact_registry
+from grr.server.grr_response_server import artifact_registry
 from grr.test_lib import test_lib
 
 

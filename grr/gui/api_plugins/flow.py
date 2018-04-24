@@ -17,15 +17,15 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import flow_pb2
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import flow
-from grr.server import instant_output_plugin
-from grr.server import output_plugin
-from grr.server import queue_manager
-from grr.server.aff4_objects import aff4_grr
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import instant_output_plugin
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.aff4_objects import aff4_grr
 
-from grr.server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
 
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):

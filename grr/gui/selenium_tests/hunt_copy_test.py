@@ -8,13 +8,13 @@ from grr.lib import flags
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
-from grr.server import foreman as rdf_foreman
-from grr.server import output_plugin
-from grr.server.flows.general import file_finder
-from grr.server.flows.general import transfer
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.flows.general import transfer
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 

@@ -8,15 +8,15 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import objects as rdf_objects
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
 
-from grr.server.aff4_objects import cronjobs as aff4_cronjobs
-from grr.server.aff4_objects import users as aff4_users
-from grr.server.flows.general import discovery
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server.flows.general import discovery
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib

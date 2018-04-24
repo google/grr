@@ -15,11 +15,11 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server import aff4
-from grr.server import events
-from grr.server import flow
-from grr.server import queue_manager
-from grr.server import server_stubs
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import events
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server import server_stubs
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 

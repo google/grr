@@ -14,16 +14,16 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
-from grr.server import flow_runner
-from grr.server import front_end
-from grr.server import queue_manager
-from grr.server import worker
-from grr.server.flows.general import administrative
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import flow_runner
+from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server import worker
+from grr.server.grr_response_server.flows.general import administrative
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib

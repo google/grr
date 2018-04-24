@@ -13,15 +13,15 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
-from grr.server.flows.general import filesystem as flows_filesystem
-from grr.server.flows.general import processes as flows_processes
-from grr.server.flows.general import transfer as flows_transfer
-from grr.server.flows.general import webhistory as flows_webhistory
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.flows.general import filesystem as flows_filesystem
+from grr.server.grr_response_server.flows.general import processes as flows_processes
+from grr.server.grr_response_server.flows.general import transfer as flows_transfer
+from grr.server.grr_response_server.flows.general import webhistory as flows_webhistory
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib

@@ -12,9 +12,9 @@ from grr.gui import api_e2e_test_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server import flow
-from grr.server.flows.general import file_finder
-from grr.server.flows.general import processes
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.flows.general import processes
 
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib

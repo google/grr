@@ -6,14 +6,14 @@ import time
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
-from grr.server import flow
-from grr.server import foreman as rdf_foreman
-from grr.server import output_plugin
-from grr.server.flows.general import transfer
-from grr.server.hunts import implementation
-from grr.server.hunts import process_results
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.flows.general import transfer
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import process_results
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import worker_test_lib

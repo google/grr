@@ -14,8 +14,8 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import cloud
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.server import client_fixture
-from grr.server import server_stubs
+from grr.server.grr_response_server import client_fixture
+from grr.server.grr_response_server import server_stubs
 from grr.test_lib import client_test_lib
 from grr.test_lib import worker_mocks
 

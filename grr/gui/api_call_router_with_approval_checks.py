@@ -13,14 +13,14 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import objects as rdf_objects
 
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
 
-from grr.server.aff4_objects import user_managers
+from grr.server.grr_response_server.aff4_objects import user_managers
 
-from grr.server.hunts import implementation
+from grr.server.grr_response_server.hunts import implementation
 
 
 class LegacyChecker(object):

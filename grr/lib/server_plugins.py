@@ -15,4 +15,4 @@ from grr.lib import stats
 from grr.lib.local import plugins
 from grr.parsers import registry_init
 
-from grr.server import server_plugins
+from grr.server.grr_response_server import server_plugins

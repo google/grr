@@ -8,8 +8,8 @@ import unittest
 from grr import config
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.server import artifact
-from grr.server import artifact_registry
+from grr.server.grr_response_server import artifact
+from grr.server.grr_response_server import artifact_registry
 from grr.test_lib import db_test_lib
 
 

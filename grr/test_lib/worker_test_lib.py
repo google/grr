@@ -7,11 +7,11 @@ import logging
 
 from grr.lib import queues as queue_config
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.server import aff4
-from grr.server import flow
-from grr.server import queue_manager
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import queue_manager
 
-from grr.server import worker
+from grr.server.grr_response_server import worker
 
 
 class MockThreadPool(object):

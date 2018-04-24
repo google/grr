@@ -9,12 +9,12 @@ from grr.lib import flags
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
-from grr.server import access_control
-from grr.server import flow
-from grr.server import output_plugin
-from grr.server.flows.general import file_finder
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 

@@ -3,7 +3,7 @@
 """Tests for stat checks."""
 
 from grr.lib import flags
-from grr.server.checks import checks_test_lib
+from grr.server.grr_response_server.checks import checks_test_lib
 from grr.test_lib import test_lib
 
 

@@ -17,20 +17,20 @@ from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import client_pb2
-from grr.server import aff4
-from grr.server import client_index
-from grr.server import data_store
-from grr.server import db
-from grr.server import events
-from grr.server import flow
-from grr.server import ip_resolver
-from grr.server import queue_manager
-from grr.server import timeseries
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import standard
-from grr.server.aff4_objects import stats as aff4_stats
-from grr.server.flows.general import audit
-from grr.server.flows.general import discovery
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import client_index
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import db
+from grr.server.grr_response_server import events
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import ip_resolver
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server import timeseries
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import standard
+from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
+from grr.server.grr_response_server.flows.general import audit
+from grr.server.grr_response_server.flows.general import discovery
 
 
 class InterrogateOperationNotFoundError(

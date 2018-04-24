@@ -6,9 +6,9 @@ from grr.gui.api_plugins import config as api_config
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import binary_management_pb2
-from grr.server import aff4
-from grr.server import data_store
-from grr.server.aff4_objects import collects
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server.aff4_objects import collects
 
 
 class GrrBinaryNotFoundError(api_call_handler_base.ResourceNotFoundError):

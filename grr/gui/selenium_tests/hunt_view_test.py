@@ -10,8 +10,8 @@ import unittest
 
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.server import aff4
-from grr.server import data_store
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

@@ -7,8 +7,8 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server import flow
-from grr.server.flows.general import file_finder as flows_file_finder
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.flows.general import file_finder as flows_file_finder
 from grr.test_lib import db_test_lib
 
 

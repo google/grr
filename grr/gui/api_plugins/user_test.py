@@ -10,17 +10,17 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import email_alerts
-from grr.server.aff4_objects import cronjobs as aff4_cronjobs
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import email_alerts
+from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 
-from grr.server.aff4_objects import users as aff4_users
-from grr.server.flows.general import administrative
-from grr.server.hunts import implementation
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server.flows.general import administrative
+from grr.server.grr_response_server.hunts import implementation
 
-from grr.server.hunts import standard
+from grr.server.grr_response_server.hunts import standard
 
 from grr.test_lib import acl_test_lib
 from grr.test_lib import db_test_lib

@@ -10,11 +10,11 @@ from grr.lib import server_plugins
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import server_startup
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import server_startup
 
-from grr.server.aff4_objects import filestore
+from grr.server.grr_response_server.aff4_objects import filestore
 
 flags.DEFINE_string("filename", "", "File with hashes.")
 flags.DEFINE_integer("start", None, "Start row in the file.")

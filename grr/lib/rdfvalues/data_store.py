@@ -7,7 +7,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import protodict
 from grr.lib.rdfvalues import structs
 from grr_response_proto import data_store_pb2
-from grr.server import access_control
+from grr.server.grr_response_server import access_control
 
 
 class TimestampSpec(structs.RDFProtoStruct):

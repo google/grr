@@ -20,7 +20,7 @@ from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import reflection_pb2
 
-from grr.server import aff4
+from grr.server.grr_response_server import aff4
 
 
 class Error(Exception):

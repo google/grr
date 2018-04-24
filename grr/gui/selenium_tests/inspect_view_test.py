@@ -7,10 +7,10 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server import flow
-from grr.server import queue_manager
-from grr.server.flows.general import discovery as flow_discovery
-from grr.server.flows.general import processes
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.flows.general import discovery as flow_discovery
+from grr.server.grr_response_server.flows.general import processes
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 

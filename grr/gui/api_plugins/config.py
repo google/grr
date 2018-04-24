@@ -15,9 +15,9 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto.api import config_pb2
 
-from grr.server import aff4
+from grr.server.grr_response_server import aff4
 
-from grr.server.aff4_objects import collects as aff4_collects
+from grr.server.grr_response_server.aff4_objects import collects as aff4_collects
 
 # TODO(user): sensitivity of config options and sections should
 # probably be defined together with the options themselves. Keeping

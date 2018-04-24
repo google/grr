@@ -20,7 +20,7 @@ from grr.gui import webauth
 from grr.gui import wsgiapp_testlib
 from grr.lib import flags
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.server.flows.general import processes
+from grr.server.grr_response_server.flows.general import processes
 from grr.test_lib import acl_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib

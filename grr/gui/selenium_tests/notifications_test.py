@@ -8,10 +8,10 @@ from grr.gui.api_plugins.client import ApiSearchClientsHandler
 
 from grr.lib import flags
 from grr.lib import utils
-from grr.server import aff4
-from grr.server import flow
-from grr.server.aff4_objects import aff4_grr
-from grr.server.flows.general import discovery
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.flows.general import discovery
 from grr.test_lib import db_test_lib
 
 

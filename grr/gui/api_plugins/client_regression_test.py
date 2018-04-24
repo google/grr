@@ -11,14 +11,14 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
-from grr.server import queue_manager
-from grr.server.aff4_objects import aff4_grr
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import queue_manager
+from grr.server.grr_response_server.aff4_objects import aff4_grr
 
-from grr.server.aff4_objects import stats as aff4_stats
-from grr.server.flows.general import processes
+from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
+from grr.server.grr_response_server.flows.general import processes
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

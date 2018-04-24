@@ -6,7 +6,7 @@ import sys
 
 import mock
 
-from grr.server import data_store
+from grr.server.grr_response_server import data_store
 
 
 class RelationalDBEnabledMixin(object):

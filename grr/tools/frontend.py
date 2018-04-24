@@ -27,11 +27,11 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.server import aff4
-from grr.server import front_end
-from grr.server import master
-from grr.server import server_logging
-from grr.server import server_startup
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server import master
+from grr.server.grr_response_server import server_logging
+from grr.server.grr_response_server import server_startup
 
 
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):

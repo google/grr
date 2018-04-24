@@ -25,9 +25,9 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.server import access_control
-from grr.server import data_store
-from grr.server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
 
 
 class Error(Exception):

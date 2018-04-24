@@ -19,13 +19,13 @@ from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
-from grr.server import aff4
-from grr.server import flow
-from grr.server.flows.general import file_finder
-from grr.server.flows.general import processes
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
-from grr.server.output_plugins import test_plugins
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.flows.general import processes
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
+from grr.server.grr_response_server.output_plugins import test_plugins
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib

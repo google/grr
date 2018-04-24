@@ -10,7 +10,7 @@ from grr import config
 from grr.gui import api_regression_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
 from grr.lib import flags
-from grr.server import artifact_registry
+from grr.server.grr_response_server import artifact_registry
 
 
 class ApiListArtifactsHandlerRegressionTest(

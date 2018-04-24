@@ -21,7 +21,7 @@ from grr.gui import http_api
 from grr.gui import wsgiapp_testlib
 from grr.lib import flags
 from grr.lib import utils
-from grr.server import data_store
+from grr.server.grr_response_server import data_store
 from grr.test_lib import test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")

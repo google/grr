@@ -10,7 +10,7 @@ from grr.gui import api_call_router
 from grr.lib import flags
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server.authorization import groups
+from grr.server.grr_response_server.authorization import groups
 from grr.test_lib import test_lib
 
 

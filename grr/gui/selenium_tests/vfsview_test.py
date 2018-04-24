@@ -11,7 +11,7 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server import aff4
+from grr.server.grr_response_server import aff4
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 

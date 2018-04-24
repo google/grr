@@ -8,7 +8,7 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import config as config_plugin
 from grr.lib import flags
 from grr.lib import utils
-from grr.server import maintenance_utils
+from grr.server.grr_response_server import maintenance_utils
 from grr.test_lib import test_lib
 
 

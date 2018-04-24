@@ -6,8 +6,8 @@
 import unittest
 from grr.gui import gui_test_lib
 from grr.lib import flags
-from grr.server import foreman
-from grr.server.hunts import standard
+from grr.server.grr_response_server import foreman
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import db_test_lib
 
 

@@ -9,11 +9,11 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import registry
 from grr.lib import stats
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import server_logging
-from grr.server.blob_stores import memory_stream_bs
-from grr.server.data_stores import fake_data_store
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import server_logging
+from grr.server.grr_response_server.blob_stores import memory_stream_bs
+from grr.server.grr_response_server.data_stores import fake_data_store
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False

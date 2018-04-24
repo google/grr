@@ -12,7 +12,7 @@ from grr.gui import api_e2e_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr_response_proto.api import vfs_pb2
-from grr.server import aff4
+from grr.server.grr_response_server import aff4
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib

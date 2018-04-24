@@ -10,7 +10,7 @@ import sys
 
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.server.flows.general import filesystem
+from grr.server.grr_response_server.flows.general import filesystem
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
@@ -22,12 +22,12 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow_utils
-from grr.server import server_startup
-from grr.server.aff4_objects import standard
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow_utils
+from grr.server.grr_response_server import server_startup
+from grr.server.grr_response_server.aff4_objects import standard
 
 # Check if fuse is installed. If it's not, set it to None so we know to mock it
 # out later.

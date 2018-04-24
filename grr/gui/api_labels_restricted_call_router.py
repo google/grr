@@ -13,12 +13,12 @@ from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
 
-from grr.server import access_control
-from grr.server import aff4
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
 
-from grr.server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import aff4_grr
 
-from grr.server.aff4_objects import user_managers
+from grr.server.grr_response_server.aff4_objects import user_managers
 
 
 def CheckClientLabels(client_id,

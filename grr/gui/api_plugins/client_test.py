@@ -7,11 +7,11 @@ from grr.gui.api_plugins import client as client_plugin
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
-from grr.server import aff4
-from grr.server import client_index
-from grr.server import data_store
-from grr.server import events
-from grr.server.flows.general import audit
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import client_index
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import events
+from grr.server.grr_response_server.flows.general import audit
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib

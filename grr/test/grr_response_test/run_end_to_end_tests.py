@@ -16,10 +16,10 @@ from grr_api_client import api
 from grr.config import contexts
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.server import access_control
-from grr.server import data_store
-from grr.server import maintenance_utils
-from grr.server import server_startup
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import maintenance_utils
+from grr.server.grr_response_server import server_startup
 from grr_response_test.end_to_end_tests import test_base
 # pylint: disable=unused-import
 from grr_response_test.end_to_end_tests import tests

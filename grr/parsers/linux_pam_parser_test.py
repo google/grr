@@ -6,7 +6,7 @@
 from grr.lib import flags
 from grr.lib.rdfvalues import config_file as rdf_config
 from grr.parsers import linux_pam_parser
-from grr.server.checks import checks_test_lib
+from grr.server.grr_response_server.checks import checks_test_lib
 from grr.test_lib import test_lib
 
 ETC_PAM_CONF_EMPTY = """

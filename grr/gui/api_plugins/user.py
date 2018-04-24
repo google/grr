@@ -25,22 +25,22 @@ from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import user_pb2
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import db
-from grr.server import email_alerts
-from grr.server import flow
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import db
+from grr.server.grr_response_server import email_alerts
+from grr.server.grr_response_server import flow
 
-from grr.server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import aff4_grr
 
-from grr.server.aff4_objects import cronjobs as aff4_cronjobs
+from grr.server.grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 
-from grr.server.aff4_objects import security as aff4_security
-from grr.server.aff4_objects import users as aff4_users
-from grr.server.flows.general import administrative
+from grr.server.grr_response_server.aff4_objects import security as aff4_security
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server.flows.general import administrative
 
-from grr.server.hunts import implementation
+from grr.server.grr_response_server.hunts import implementation
 
 
 class GlobalNotificationNotFoundError(

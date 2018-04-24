@@ -4,9 +4,9 @@
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import objects as rdf_objects
-from grr.server import access_control
-from grr.server import data_store
-from grr.server.authorization import client_approval_auth
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server.authorization import client_approval_auth
 
 
 def BuildLegacySubject(subject_id, approval_type):

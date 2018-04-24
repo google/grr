@@ -10,7 +10,7 @@ import yaml
 from grr import config
 from grr.gui import api_call_router
 from grr.lib import registry
-from grr.server.authorization import auth_manager
+from grr.server.grr_response_server.authorization import auth_manager
 
 
 class Error(Exception):

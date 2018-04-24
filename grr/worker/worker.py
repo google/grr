@@ -12,10 +12,10 @@ from grr.lib import server_plugins
 from grr import config
 from grr.config import contexts
 from grr.lib import flags
-from grr.server import access_control
-from grr.server import fleetspeak_connector
-from grr.server import server_startup
-from grr.server import worker
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import fleetspeak_connector
+from grr.server.grr_response_server import server_startup
+from grr.server.grr_response_server import worker
 
 
 def main(argv):

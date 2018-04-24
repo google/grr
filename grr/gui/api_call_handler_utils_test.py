@@ -18,9 +18,9 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import sequential_collection
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import sequential_collection
 from grr.test_lib import test_lib
 
 

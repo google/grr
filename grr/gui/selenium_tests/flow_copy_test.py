@@ -12,13 +12,13 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import flow
-from grr.server import output_plugin
-from grr.server.flows.general import file_finder as flows_file_finder
-from grr.server.flows.general import processes as flows_processes
-from grr.server.output_plugins import email_plugin
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.flows.general import file_finder as flows_file_finder
+from grr.server.grr_response_server.flows.general import processes as flows_processes
+from grr.server.grr_response_server.output_plugins import email_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import hunt_test_lib

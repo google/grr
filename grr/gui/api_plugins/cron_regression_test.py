@@ -11,12 +11,12 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
-from grr.server import aff4
-from grr.server import foreman as rdf_foreman
-from grr.server.aff4_objects import cronjobs
-from grr.server.flows.cron import system as cron_system
-from grr.server.flows.general import file_finder
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server.aff4_objects import cronjobs
+from grr.server.grr_response_server.flows.cron import system as cron_system
+from grr.server.grr_response_server.flows.general import file_finder
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import test_lib
 
 

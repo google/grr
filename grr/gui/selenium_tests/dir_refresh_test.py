@@ -8,10 +8,10 @@ from grr.gui import gui_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server import aff4
-from grr.server.aff4_objects import aff4_grr
-from grr.server.flows.general import filesystem
-from grr.server.flows.general import transfer
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.flows.general import filesystem
+from grr.server.grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib

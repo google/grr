@@ -8,9 +8,9 @@ from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import flow as api_flow
 
 from grr.lib import flags
-from grr.server import access_control
-from grr.server import aff4
-from grr.server.flows.general import processes
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server.flows.general import processes
 from grr.test_lib import acl_test_lib
 
 from grr.test_lib import test_lib

@@ -8,9 +8,9 @@ from grr.gui.api_plugins import cron as cron_plugin
 
 from grr.lib import flags
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.server.aff4_objects import cronjobs
-from grr.server.flows.cron import system as cron_system
-from grr.server.hunts import standard
+from grr.server.grr_response_server.aff4_objects import cronjobs
+from grr.server.grr_response_server.flows.cron import system as cron_system
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import test_lib
 
 

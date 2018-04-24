@@ -19,14 +19,14 @@ from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import vfs_pb2
-from grr.server import aff4
-from grr.server import data_store
-from grr.server import flow
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import standard as aff4_standard
-from grr.server.flows.general import filesystem
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
+from grr.server.grr_response_server.flows.general import filesystem
 
-from grr.server.flows.general import transfer
+from grr.server.grr_response_server.flows.general import transfer
 
 # Files can only be accessed if their first path component is from this list.
 ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]

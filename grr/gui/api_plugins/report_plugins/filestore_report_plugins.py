@@ -7,8 +7,8 @@ import math
 from grr.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr.gui.api_plugins.report_plugins import report_plugin_base
 
-from grr.server import aff4
-from grr.server.aff4_objects import stats as aff4_stats
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server.aff4_objects import stats as aff4_stats
 
 TYPE = rdf_report_plugins.ApiReportDescriptor.ReportType.FILE_STORE
 

@@ -8,8 +8,8 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
-from grr.server import data_store
-from grr.server import flow
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
 from grr.test_lib import db_test_lib
 
 

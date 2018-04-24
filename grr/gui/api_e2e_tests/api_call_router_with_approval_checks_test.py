@@ -12,9 +12,9 @@ from grr.gui import api_e2e_test_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 
-from grr.server.aff4_objects import user_managers
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server.aff4_objects import user_managers
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib

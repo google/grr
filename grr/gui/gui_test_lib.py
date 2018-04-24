@@ -31,19 +31,19 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr.server import aff4
-from grr.server import artifact_registry
-from grr.server import data_store
-from grr.server import flow
-from grr.server import foreman as rdf_foreman
-from grr.server import output_plugin
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import standard as aff4_standard
-from grr.server.aff4_objects import users
-from grr.server.flows.general import processes
-from grr.server.flows.general import transfer
-from grr.server.hunts import implementation
-from grr.server.hunts import standard
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import artifact_registry
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import foreman as rdf_foreman
+from grr.server.grr_response_server import output_plugin
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import standard as aff4_standard
+from grr.server.grr_response_server.aff4_objects import users
+from grr.server.grr_response_server.flows.general import processes
+from grr.server.grr_response_server.flows.general import transfer
+from grr.server.grr_response_server.hunts import implementation
+from grr.server.grr_response_server.hunts import standard
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import hunt_test_lib

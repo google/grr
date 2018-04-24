@@ -8,7 +8,7 @@ from grr.gui import gui_test_lib
 
 from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.server import access_control
+from grr.server.grr_response_server import access_control
 from grr.test_lib import db_test_lib
 
 

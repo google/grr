@@ -28,16 +28,16 @@ from grr.lib import rdfvalue
 from grr.lib import repacking
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import artifact
-from grr.server import artifact_registry
-from grr.server import data_migration
-from grr.server import key_utils
-from grr.server import maintenance_utils
-from grr.server import rekall_profile_server
-from grr.server import server_startup
-from grr.server.aff4_objects import users as aff4_users
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import artifact
+from grr.server.grr_response_server import artifact_registry
+from grr.server.grr_response_server import data_migration
+from grr.server.grr_response_server import key_utils
+from grr.server.grr_response_server import maintenance_utils
+from grr.server.grr_response_server import rekall_profile_server
+from grr.server.grr_response_server import server_startup
+from grr.server.grr_response_server.aff4_objects import users as aff4_users
 
 parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."

@@ -38,20 +38,20 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import objects
 
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import artifact
-from grr.server import client_index
-from grr.server import data_store
-from grr.server import email_alerts
-from grr.server import flow
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import filestore
-from grr.server.aff4_objects import users
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import artifact
+from grr.server.grr_response_server import client_index
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import email_alerts
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import filestore
+from grr.server.grr_response_server.aff4_objects import users
 
-from grr.server.flows.general import audit
-from grr.server.flows.general import discovery
-from grr.server.hunts import results as hunts_results
+from grr.server.grr_response_server.flows.general import audit
+from grr.server.grr_response_server.flows.general import discovery
+from grr.server.grr_response_server.hunts import results as hunts_results
 
 from grr.test_lib import testing_startup
 
@@ -735,7 +735,7 @@ class FakeTimeline(object):
     # Number of seconds that the worker thread can sleep.
     self._budget = 0
 
-    self._worker_thread_started = False
+    self._worker_thread = None
     self._worker_thread_done = False
     self._worker_thread_exception = None
 
@@ -752,7 +752,7 @@ class FakeTimeline(object):
     if not isinstance(duration, rdfvalue.Duration):
       raise TypeError("`duration` is not an instance of `rdfvalue.Duration")
 
-    if not self._worker_thread_started:
+    if self._worker_thread is None:
       raise AssertionError("Worker thread hasn't been started (method was "
                            "probably called without context initialization)")
 
@@ -760,6 +760,9 @@ class FakeTimeline(object):
       return
 
     self._budget += duration.seconds
+
+    self._original_time = time.time
+    self._original_sleep = time.sleep
 
     with utils.Stubber(time, "time", self._Time),\
          utils.Stubber(time, "sleep", self._Sleep):
@@ -772,7 +775,7 @@ class FakeTimeline(object):
       raise self._worker_thread_exception  # pylint: disable=raising-bad-type
 
   def __enter__(self):
-    if self._worker_thread_started:
+    if self._worker_thread is not None:
       raise AssertionError("Worker thread has been already started, context "
                            "cannot be reused.")
 
@@ -792,8 +795,8 @@ class FakeTimeline(object):
       self._worker_thread_done = True
       self._owner_thread_turn.set()
 
-    threading.Thread(target=Worker).start()
-    self._worker_thread_started = True
+    self._worker_thread = threading.Thread(target=Worker)
+    self._worker_thread.start()
 
     return self
 
@@ -804,6 +807,9 @@ class FakeTimeline(object):
     self._worker_thread_turn.set()
 
   def _Sleep(self, seconds):
+    if threading.current_thread() is not self._worker_thread:
+      return self._original_sleep(seconds)
+
     self._time += seconds
     self._budget -= seconds
 
@@ -816,6 +822,9 @@ class FakeTimeline(object):
         raise FakeTimeline._WorkerThreadExit()
 
   def _Time(self):
+    if threading.current_thread() is not self._worker_thread:
+      return self._original_time()
+
     return self._time
 
 

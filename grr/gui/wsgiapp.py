@@ -25,8 +25,8 @@ from grr.gui import webauth
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
-from grr.server import access_control
-from grr.server import server_logging
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import server_logging
 
 CSRF_DELIMITER = ":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")

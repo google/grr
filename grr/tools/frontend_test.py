@@ -18,12 +18,12 @@ from grr.lib import utils
 from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
-from grr.server import aff4
-from grr.server import flow
-from grr.server import front_end
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import filestore
-from grr.server.flows.general import file_finder
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import front_end
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import filestore
+from grr.server.grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib

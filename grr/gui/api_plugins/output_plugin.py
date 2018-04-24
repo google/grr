@@ -10,8 +10,8 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import output_plugin_pb2
 from grr_response_proto.api import reflection_pb2
 
-from grr.server import instant_output_plugin
-from grr.server import output_plugin
+from grr.server.grr_response_server import instant_output_plugin
+from grr.server.grr_response_server import output_plugin
 
 
 class ApiOutputPlugin(rdf_structs.RDFProtoStruct):

@@ -11,7 +11,7 @@ from grr.gui.api_plugins import hunt as api_hunt
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.server import data_store
+from grr.server.grr_response_server import data_store
 from grr.test_lib import db_test_lib
 
 

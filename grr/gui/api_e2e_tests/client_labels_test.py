@@ -5,8 +5,8 @@
 from grr.gui import api_e2e_test_lib
 from grr.lib import flags
 from grr_response_proto import objects_pb2
-from grr.server import aff4
-from grr.server.aff4_objects import aff4_grr
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.test_lib import test_lib
 
 

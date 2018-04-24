@@ -26,31 +26,31 @@ from grr.config import contexts
 from grr.lib import flags
 from grr.lib import type_info
 from grr.lib import utils
-from grr.server import access_control
-from grr.server import aff4
-from grr.server import artifact
-from grr.server import artifact_utils
-from grr.server import console_utils
-from grr.server import data_store
-from grr.server import export_utils
-from grr.server import fleetspeak_connector
-from grr.server import flow
-from grr.server import flow_runner
-from grr.server import flow_utils
-from grr.server import hunts
-from grr.server import ipshell
-from grr.server import maintenance_utils
-from grr.server import server_startup
-from grr.server import worker
-from grr.server.aff4_objects import aff4_grr
-from grr.server.aff4_objects import security
+from grr.server.grr_response_server import access_control
+from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import artifact
+from grr.server.grr_response_server import artifact_utils
+from grr.server.grr_response_server import console_utils
+from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import export_utils
+from grr.server.grr_response_server import fleetspeak_connector
+from grr.server.grr_response_server import flow
+from grr.server.grr_response_server import flow_runner
+from grr.server.grr_response_server import flow_utils
+from grr.server.grr_response_server import hunts
+from grr.server.grr_response_server import ipshell
+from grr.server.grr_response_server import maintenance_utils
+from grr.server.grr_response_server import server_startup
+from grr.server.grr_response_server import worker
+from grr.server.grr_response_server.aff4_objects import aff4_grr
+from grr.server.grr_response_server.aff4_objects import security
 
 # All the functions in this lib we want in local namespace.
 # pylint: disable=wildcard-import
-from grr.server.console_utils import *
+from grr.server.grr_response_server.console_utils import *
 # pylint: enable=wildcard-import
 
-from grr.server.flows.general import memory
+from grr.server.grr_response_server.flows.general import memory
 # pylint: enable=unused-import
 
 flags.DEFINE_string("client", None,
