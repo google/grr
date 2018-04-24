@@ -32,14 +32,15 @@ from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 
 # Default is set in distro_entry.py to be taken from package resource.
-flags.DEFINE_string("config", None,
-                    "Primary Configuration file to use. This is normally "
-                    "taken from the installed package and should rarely "
-                    "be specified.")
+flags.DEFINE_string(
+    "config", None, "Primary Configuration file to use. This is normally "
+    "taken from the installed package and should rarely "
+    "be specified.")
 
-flags.DEFINE_list("secondary_configs", [],
-                  "Secondary configuration files to load (These override "
-                  "previous configuration files.).")
+flags.DEFINE_list(
+    "secondary_configs", [],
+    "Secondary configuration files to load (These override "
+    "previous configuration files.).")
 
 flags.DEFINE_bool("config_help", False, "Print help about the configuration.")
 
@@ -752,6 +753,7 @@ class GrrConfigManager(object):
     self.context = []
     self.raw_data = OrderedYamlDict()
     self.files = []
+    self.secondary_config_parsers = []
     self.writeback = None
     self.writeback_data = OrderedYamlDict()
     self.global_override = dict()
@@ -774,10 +776,11 @@ class GrrConfigManager(object):
 
   def DeclareBuiltIns(self):
     """Declare built in options internal to the config system."""
-    self.DEFINE_list("Config.includes", [],
-                     "List of additional config files to include. Files are "
-                     "processed recursively depth-first, later values "
-                     "override earlier ones.")
+    self.DEFINE_list(
+        "Config.includes", [],
+        "List of additional config files to include. Files are "
+        "processed recursively depth-first, later values "
+        "override earlier ones.")
 
   def __str__(self):
     # List all the files we read from.
@@ -829,6 +832,8 @@ class GrrConfigManager(object):
     newconf = self.MakeNewConfig()
     newconf.raw_data = copy.deepcopy(self.raw_data)
     newconf.files = copy.deepcopy(self.files)
+    newconf.secondary_config_parsers = copy.deepcopy(
+        self.secondary_config_parsers)
     newconf.writeback = copy.deepcopy(self.writeback)
     newconf.writeback_data = copy.deepcopy(self.writeback_data)
     newconf.global_override = copy.deepcopy(self.global_override)
@@ -1019,6 +1024,29 @@ class GrrConfigManager(object):
       raise RuntimeError("Attempting to write a configuration without a "
                          "writeback location.")
 
+  def Persist(self, config_option):
+    """Stores <config_option> in the writeback."""
+    if not self.writeback:
+      raise RuntimeError("Attempting to write a configuration without a "
+                         "writeback location.")
+
+    writeback_raw_value = dict(self.writeback.RawData()).get(config_option)
+    for parser in [self.parser] + self.secondary_config_parsers:
+      if parser == self.writeback:
+        continue
+
+      config_raw_data = dict(parser.RawData())
+      raw_value = config_raw_data.get(config_option)
+      if raw_value is None:
+        continue
+      break
+
+    if writeback_raw_value == raw_value:
+      return
+
+    self.SetRaw(config_option, raw_value)
+    self.Write()
+
   def AddOption(self, descriptor, constant=False):
     """Registers an option with the configuration system.
 
@@ -1061,8 +1089,8 @@ class GrrConfigManager(object):
       try:
         result += "   Current Value: %s\n" % self.Get(descriptor.name)
       except Exception as e:  # pylint:disable=broad-except
-        result += "   Current Value: %s (Error: %s)\n" % (
-            self.GetRaw(descriptor.name), e)
+        result += "   Current Value: %s (Error: %s)\n" % (self.GetRaw(
+            descriptor.name), e)
     return result
 
   def PrintHelp(self):
@@ -1156,6 +1184,7 @@ class GrrConfigManager(object):
       parser_cls = self.GetParserFromFilename(filename)
       parser = parser_cls(filename=filename)
       logging.debug("Loading configuration from %s", filename)
+      self.secondary_config_parsers.append(parser)
 
     clone = self.MakeNewConfig()
     clone.MergeData(parser.RawData())
@@ -1409,10 +1438,10 @@ class GrrConfigManager(object):
         # the one in A,B,C. This warning is for if you have a value in context
         # A,B and one in A,C. The config doesn't know which one to pick so picks
         # one and displays this warning.
-        logging.warn("Ambiguous configuration for key %s: "
-                     "Contexts of equal length: %s (%s) and %s (%s)", name,
-                     matches[-1][2], matches[-1][1], matches[-2][2],
-                     matches[-2][1])
+        logging.warn(
+            "Ambiguous configuration for key %s: "
+            "Contexts of equal length: %s (%s) and %s (%s)", name,
+            matches[-1][2], matches[-1][1], matches[-2][2], matches[-2][1])
 
     # If there is a writeback location this overrides any previous
     # values.

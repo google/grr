@@ -24,27 +24,23 @@ config_lib.DEFINE_string(
     "Source.version_string", "%(version_major).%(version_minor)."
     "%(version_revision).%(version_release)", "Version string of the client.")
 
-config_lib.DEFINE_integer("Source.version_numeric",
-                          "%(version_major)%(version_minor)"
-                          "%(version_revision)%(version_release)",
-                          "Version string of the client as an integer.")
+config_lib.DEFINE_integer(
+    "Source.version_numeric", "%(version_major)%(version_minor)"
+    "%(version_revision)%(version_release)",
+    "Version string of the client as an integer.")
 
 # Note: Each thread adds about 8mb for stack space.
 config_lib.DEFINE_integer("Threadpool.size", 50,
                           "Number of threads in the shared thread pool.")
 
-config_lib.DEFINE_integer("Worker.queue_shards", 5,
-                          "Queue notifications will be sharded across "
-                          "this number of datastore subjects.")
+config_lib.DEFINE_integer(
+    "Worker.queue_shards", 5, "Queue notifications will be sharded across "
+    "this number of datastore subjects.")
 
-config_lib.DEFINE_list("Frontend.well_known_flows", ["TransferStore", "Stats"],
-                       "Allow these well known flows to run directly on the "
-                       "frontend. Other flows are scheduled as normal.")
-
-config_lib.DEFINE_list("Frontend.DEBUG_well_known_flows_blacklist", [],
-                       "Drop these well known flows requests without "
-                       "processing. Useful as an emergency tool to reduce "
-                       "the load on the system.")
+config_lib.DEFINE_list(
+    "Frontend.well_known_flows", ["TransferStore", "Stats"],
+    "Allow these well known flows to run directly on the "
+    "frontend. Other flows are scheduled as normal.")
 
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
@@ -84,33 +80,38 @@ config_lib.DEFINE_semantic_value(
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
-config_lib.DEFINE_list("Cron.disabled_system_jobs", [],
-                       "Normally, all subclasses of SystemCronFlow are "
-                       "considered system jobs and run automatically. System "
-                       "jobs listed here will not be run. Many system jobs are "
-                       "important. Leave empty unless you are sure that you "
-                       "know what you are doing.")
+config_lib.DEFINE_list(
+    "Cron.disabled_system_jobs", [],
+    "Normally, all subclasses of SystemCronFlow are "
+    "considered system jobs and run automatically. System "
+    "jobs listed here will not be run. Many system jobs are "
+    "important. Leave empty unless you are sure that you "
+    "know what you are doing.")
 
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 
 config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
 
-config_lib.DEFINE_integer("Frontend.port_max", None,
-                          "If set and Frontend.bind_port is in use, attempt to "
-                          "use ports between Frontend.bind_port and "
-                          "Frontend.port_max.")
+config_lib.DEFINE_integer(
+    "Frontend.port_max", None,
+    "If set and Frontend.bind_port is in use, attempt to "
+    "use ports between Frontend.bind_port and "
+    "Frontend.port_max.")
 
-config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
-                          "Maximum number of messages to queue for the client.")
+config_lib.DEFINE_integer(
+    "Frontend.max_queue_size", 500,
+    "Maximum number of messages to queue for the client.")
 
-config_lib.DEFINE_integer("Frontend.max_retransmission_time", 10,
-                          "Maximum number of times we are allowed to "
-                          "retransmit a request until it fails.")
+config_lib.DEFINE_integer(
+    "Frontend.max_retransmission_time", 10,
+    "Maximum number of times we are allowed to "
+    "retransmit a request until it fails.")
 
-config_lib.DEFINE_integer("Frontend.message_expiry_time", 600,
-                          "Maximum time messages remain valid within the "
-                          "system.")
+config_lib.DEFINE_integer(
+    "Frontend.message_expiry_time", 600,
+    "Maximum time messages remain valid within the "
+    "system.")
 
 config_lib.DEFINE_string("Frontend.upload_store", "FileUploadFileStore",
                          "The implementation of the upload file store.")
@@ -119,9 +120,9 @@ config_lib.DEFINE_string("FileUploadFileStore.root_dir",
                          "%(Config.prefix)/var/grr-filestore",
                          "Where to store files uploaded.")
 
-config_lib.DEFINE_bool("Server.initialized", False,
-                       "True once config_updater initialize has been "
-                       "run at least once.")
+config_lib.DEFINE_bool(
+    "Server.initialized", False, "True once config_updater initialize has been "
+    "run at least once.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
@@ -282,12 +283,13 @@ config_lib.DEFINE_integer(
     "If the average network usage per client becomes "
     "greater than this limit, the hunt gets stopped.")
 
-config_lib.DEFINE_bool("Rekall.enabled", False,
-                       "If True then Rekall-based flows (AnalyzeClientMemory, "
-                       "MemoryCollector, ListVADBinaries) will be enabled in "
-                       "the system. Rekall is disabled by default since it's "
-                       "in the maintenance mode and may not work correctly or "
-                       "may not be stable enough.")
+config_lib.DEFINE_bool(
+    "Rekall.enabled", False,
+    "If True then Rekall-based flows (AnalyzeClientMemory, "
+    "MemoryCollector, ListVADBinaries) will be enabled in "
+    "the system. Rekall is disabled by default since it's "
+    "in the maintenance mode and may not work correctly or "
+    "may not be stable enough.")
 
 # Fleetspeak server-side integration flags.
 config_lib.DEFINE_string(

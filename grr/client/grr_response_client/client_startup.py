@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Client startup routines."""
 
+from grr import config
 from grr_response_client import client_logging
 from grr.lib import config_lib
 from grr.lib import registry
@@ -17,3 +18,7 @@ def ClientInit():
 
   client_logging.LogInit()
   registry.Init()
+
+  config.CONFIG.Persist("Client.labels")
+  config.CONFIG.Persist("Client.proxy_servers")
+  config.CONFIG.Persist("Client.tempdir_roots")

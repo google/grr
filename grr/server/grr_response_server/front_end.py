@@ -336,15 +336,19 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = (
-        flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token))
-    well_known_flow_names = self.well_known_flows.keys()
-    for well_known_flow in well_known_flow_names:
-      if well_known_flow not in config.CONFIG["Frontend.well_known_flows"]:
-        del self.well_known_flows[well_known_flow]
+    available_wkfs = flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token)
+    whitelist = set(config.CONFIG["Frontend.well_known_flows"])
 
-    self.well_known_flows_blacklist = set(
-        config.CONFIG["Frontend.DEBUG_well_known_flows_blacklist"])
+    available_wkf_set = set(available_wkfs)
+    unknown_flows = whitelist - available_wkf_set
+    if unknown_flows:
+      raise ValueError("Unknown flows in Frontend.well_known_flows: %s" %
+                       ",".join(unknown_flows))
+
+    self.well_known_flows = {
+        flow_name: available_wkfs[flow_name]
+        for flow_name in whitelist & available_wkf_set
+    }
 
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
@@ -611,8 +615,6 @@ class FrontEndServer(object):
 
       # Well known flows:
       flow_name = msg.session_id.FlowName()
-      if flow_name in self.well_known_flows_blacklist:
-        continue
 
       if flow_name in self.well_known_flows:
         # This message should be processed directly on the front end.

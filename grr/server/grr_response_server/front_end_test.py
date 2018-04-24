@@ -183,35 +183,6 @@ class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
     self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
                      list(range(1, 10)))
 
-  def testWellKnownFlowsBlacklist(self):
-    """Make sure that well known flows can run on the front end."""
-    with test_lib.ConfigOverrider({
-        "Frontend.DEBUG_well_known_flows_blacklist": [
-            utils.SmartStr(flow_test_lib.WellKnownSessionTest.
-                           well_known_session_id.FlowName())
-        ]
-    }):
-      self.InitTestServer()
-
-      flow_test_lib.WellKnownSessionTest.messages = []
-      session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
-
-      messages = [
-          rdf_flows.GrrMessage(
-              request_id=0,
-              response_id=0,
-              session_id=session_id,
-              payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
-      ]
-
-      self.server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-      # Wait for async actions to complete
-      self.server.thread_pool.Join()
-
-      # Check that no processing took place.
-      self.assertFalse(flow_test_lib.WellKnownSessionTest.messages)
-
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
     flow_test_lib.WellKnownSessionTest.messages = []
@@ -553,9 +524,10 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(1, 11):
-      self.assertEqual(decoded_messages[i - 1].session_id,
-                       rdfvalue.SessionID(
-                           base="aff4:/flows", queue=queues.FLOWS, flow_name=i))
+      self.assertEqual(
+          decoded_messages[i - 1].session_id,
+          rdfvalue.SessionID(
+              base="aff4:/flows", queue=queues.FLOWS, flow_name=i))
 
     return decoded_messages
 

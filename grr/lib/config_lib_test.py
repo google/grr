@@ -320,6 +320,52 @@ Platform:Windows:
 
     self.assertEqual(new_conf["NewSection1.new_option1"], "New Value1")
 
+  def _SetupConfig(self, value):
+    conf = config_lib.GrrConfigManager()
+    config_file = os.path.join(self.temp_dir, "config.yaml")
+    with open(config_file, "wb") as fd:
+      fd.write("Section1.option1: %s" % value)
+    conf.DEFINE_string("Section1.option1", "Default Value", "Help")
+    conf.Initialize(filename=config_file)
+    return conf
+
+  def testPersist(self):
+    writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
+
+    conf = self._SetupConfig("Value1")
+    conf.SetWriteBack(writeback_file)
+
+    self.assertEqual(conf["Section1.option1"], "Value1")
+
+    conf.Persist("Section1.option1")
+
+    conf = self._SetupConfig("Value2")
+    # This should give the persisted value back.
+    conf.SetWriteBack(writeback_file)
+
+    self.assertEqual(conf["Section1.option1"], "Value1")
+
+    # Now overwrite the writeback from the config ("Value2").
+    conf.Persist("Section1.option1")
+
+    conf = self._SetupConfig("Value3")
+    conf.SetWriteBack(writeback_file)
+
+    self.assertEqual(conf["Section1.option1"], "Value2")
+
+    # This new config has the same value as the current writeback file.
+    conf = self._SetupConfig("Value2")
+    conf.SetWriteBack(writeback_file)
+
+    self.assertEqual(conf["Section1.option1"], "Value2")
+
+    def DontCall():
+      raise NotImplementedError("Write was called!")
+
+    # If the value in config and writeback are the same, nothing is written.
+    with utils.Stubber(conf, "Write", DontCall):
+      conf.Persist("Section1.option1")
+
   def testErrorDetection(self):
     """Check that invalid config files are detected immediately."""
     test_conf = """
