@@ -121,6 +121,17 @@ class FileFinderClientMock(ActionMock):
         standard.TransferBuffer, *args, **kwargs)
 
 
+class ListProcessesMock(FileFinderClientMock):
+  """Client with real file actions and mocked-out ListProcesses."""
+
+  def __init__(self, processes_list):
+    super(ListProcessesMock, self).__init__()
+    self.processes_list = processes_list
+
+  def ListProcesses(self, _):
+    return self.processes_list
+
+
 class ClientFileFinderClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):

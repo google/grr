@@ -27,7 +27,6 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import file_finder
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
-from grr.server.hunts import standard_test
 from grr.server.output_plugins import test_plugins
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -70,7 +69,7 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
 
 class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               standard_test.StandardHuntTestMixin):
+                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiCreateHuntHandler."""
 
   def setUp(self):
@@ -86,7 +85,7 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                              standard_test.StandardHuntTestMixin):
+                              hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntsHandler."""
 
   def setUp(self):
@@ -239,7 +238,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                        standard_test.StandardHuntTestMixin):
+                                        hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(ApiGetHuntFilesArchiveHandlerTest, self).setUp()
@@ -316,7 +315,7 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                standard_test.StandardHuntTestMixin):
+                                hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(ApiGetHuntFileHandlerTest, self).setUp()
@@ -491,7 +490,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(
-    api_test_lib.ApiCallHandlerTest, standard_test.StandardHuntTestMixin):
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -575,7 +574,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
 
 class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               standard_test.StandardHuntTestMixin):
+                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiModifyHuntHandler."""
 
   def setUp(self):
@@ -667,7 +666,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
-                               standard_test.StandardHuntTestMixin):
+                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
 
   def setUp(self):
@@ -700,7 +699,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
-                                           standard_test.StandardHuntTestMixin):
+                                           hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(ApiGetExportedHuntResultsHandlerTest, self).setUp()

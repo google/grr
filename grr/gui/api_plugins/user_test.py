@@ -22,9 +22,9 @@ from grr.server.hunts import implementation
 
 from grr.server.hunts import standard
 
-from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
@@ -435,7 +435,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
 @db_test_lib.DualDBTest
 class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                        ApiCreateApprovalHandlerTestMixin,
-                                       standard_test.StandardHuntTestMixin):
+                                       hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiCreateHuntApprovalHandler."""
 
   def ReadApproval(self, approval_id):

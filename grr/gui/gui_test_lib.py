@@ -44,7 +44,6 @@ from grr.server.flows.general import processes
 from grr.server.flows.general import transfer
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
-from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import hunt_test_lib
@@ -592,7 +591,7 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     self.fail("Notification for user %s never sent." % user)
 
 
-class GRRSeleniumHuntTest(GRRSeleniumTest, standard_test.StandardHuntTestMixin):
+class GRRSeleniumHuntTest(GRRSeleniumTest, hunt_test_lib.StandardHuntTestMixin):
   """Common functionality for hunt gui tests."""
 
   def _CreateForemanClientRuleSet(self):

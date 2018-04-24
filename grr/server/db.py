@@ -157,12 +157,8 @@ class Database(object):
     """
     return self.MultiReadClientFullInfo([client_id]).get(client_id)
 
-  # TODO(hanuszczak): This name is not grammatically correct but changing it to
-  # something else would make it inconsistent with naming scheme. Method names
-  # across this file should be redesigned to be readable, grammatically sound
-  # and consistent with each other.
   @abc.abstractmethod
-  def ReadAllClientsID(self):
+  def ReadAllClientIDs(self):
     """Reads client ids for all clients in the database.
 
     Yields:
@@ -499,7 +495,7 @@ class Database(object):
     Yields:
       An rdfvalues.objects.ClientFullInfo object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientsID()
+    all_client_ids = self.ReadAllClientIDs()
 
     for batch in utils.Grouper(all_client_ids, batch_size):
       res = self.MultiReadClientFullInfo(batch, min_last_ping=min_last_ping)
@@ -514,7 +510,7 @@ class Database(object):
     Yields:
       An rdfvalues.objects.ClientSnapshot object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientsID()
+    all_client_ids = self.ReadAllClientIDs()
 
     for batch in utils.Grouper(all_client_ids, batch_size):
       res = self.MultiReadClientSnapshot(batch)

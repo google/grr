@@ -18,12 +18,12 @@ from grr.server import data_store
 from grr.server import fleetspeak_connector
 from grr.server import fleetspeak_utils
 from grr.server import flow
-from grr.server import front_end_test
 from grr.server import queue_manager
 from grr.server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import front_end_test_lib
 from grr.test_lib import test_lib
 from grr.tools import fleetspeak_frontend as fs_frontend_tool
 
@@ -67,7 +67,7 @@ def SetAFF4FSEnabledFlag(grr_id, token):
 
 
 @db_test_lib.DualDBTest
-class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
+class FleetspeakGRRFEServerTest(front_end_test_lib.FrontEndServerTest):
   """Tests the Fleetspeak based GRRFEServer."""
 
   def testReceiveMessagesFleetspeak(self):
@@ -251,19 +251,6 @@ class FleetspeakGRRFEServerTest(front_end_test.GRRFEServerTestBase):
       self.assertEqual(client.Get(client.Schema.PING), fake_time)
 
 
-class ListProcessesMock(action_mocks.FileFinderClientMock):
-  """Client with real file actions and mocked-out ListProcesses."""
-
-  def __init__(self, processes_list):
-    super(ListProcessesMock, self).__init__()
-    self.processes_list = processes_list
-
-    self.mock_task_queue = []
-
-  def ListProcesses(self, _):
-    return self.processes_list
-
-
 @db_test_lib.DualDBTest
 class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow w/ Fleetspeak."""
@@ -278,7 +265,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
 
   def testProcessListingOnlyFleetspeak(self):
     """Test that the ListProcesses flow works with Fleetspeak."""
-    client_mock = ListProcessesMock([
+    client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
             pid=2,
             ppid=1,
@@ -286,6 +273,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
             exe=r"c:\windows\cmd.exe",
             ctime=1333718907167083L)
     ])
+    client_mock.mock_task_queue = []
 
     def SendCallback(fs_msg):
       pb_msg = jobs_pb2.GrrMessage()

@@ -9,14 +9,14 @@ from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import api_e2e_test_lib
 from grr.lib import flags
-from grr.server.hunts import standard_test
 from grr.test_lib import db_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
 class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
-                                standard_test.StandardHuntTestMixin):
+                                hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(ApiClientLibApprovalsTest, self).setUp()

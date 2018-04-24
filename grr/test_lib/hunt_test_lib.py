@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 """Classes for hunt-related testing."""
 
+import time
+
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import aff4
+from grr.server import flow
+from grr.server import foreman as rdf_foreman
+from grr.server import output_plugin
+from grr.server.flows.general import transfer
+from grr.server.hunts import implementation
+from grr.server.hunts import process_results
+from grr.server.hunts import standard
+from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import worker_test_lib
 
@@ -162,3 +173,184 @@ def TestHuntHelper(client_mock,
       check_flow_errors=check_flow_errors,
       iteration_limit=iteration_limit,
       token=token)
+
+
+class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
+  """Mixin with helper methods for hunt tests."""
+
+  def _CreateForemanClientRuleSet(self):
+    return rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                field="CLIENT_NAME", attribute_regex="GRR"))
+    ])
+
+  def CreateHunt(self,
+                 flow_runner_args=None,
+                 flow_args=None,
+                 client_rule_set=None,
+                 original_object=None,
+                 token=None,
+                 **kwargs):
+    # Only initialize default flow_args value if default flow_runner_args value
+    # is to be used.
+    if not flow_runner_args:
+      flow_args = (
+          flow_args or transfer.GetFileArgs(
+              pathspec=rdf_paths.PathSpec(
+                  path="/tmp/evil.txt",
+                  pathtype=rdf_paths.PathSpec.PathType.OS)))
+
+    flow_runner_args = (
+        flow_runner_args or
+        rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
+
+    client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
+    return implementation.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=flow_runner_args,
+        flow_args=flow_args,
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        original_object=original_object,
+        token=token or self.token,
+        **kwargs)
+
+  def StartHunt(self, **kwargs):
+    with self.CreateHunt(**kwargs) as hunt:
+      hunt.Run()
+
+    return hunt.urn
+
+  def AssignTasksToClients(self, client_ids=None):
+    # Pretend to be the foreman now and dish out hunting jobs to all the
+    # clients..
+    client_ids = client_ids or self.client_ids
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      foreman.AssignTasksToClient(rdf_client.ClientURN(client_id).Basename())
+
+  def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
+    client_mock = SampleHuntMock(**mock_kwargs)
+    TestHuntHelper(
+        client_mock,
+        client_ids or self.client_ids,
+        check_flow_errors=False,
+        iteration_limit=iteration_limit,
+        token=self.token)
+
+  def StopHunt(self, hunt_urn):
+    # Stop the hunt now.
+    with aff4.FACTORY.Open(
+        hunt_urn, age=aff4.ALL_TIMES, mode="rw", token=self.token) as hunt_obj:
+      hunt_obj.Stop()
+
+  def ProcessHuntOutputPlugins(self, **flow_args):
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
+        token=self.token,
+        **flow_args)
+    for _ in flow_test_lib.TestFlowHelper(flow_urn, token=self.token):
+      pass
+    return flow_urn
+
+
+class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
+  num_calls = 0
+  num_responses = 0
+
+  def ProcessResponses(self, responses):
+    DummyHuntOutputPlugin.num_calls += 1
+    DummyHuntOutputPlugin.num_responses += len(list(responses))
+
+
+class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    raise RuntimeError("Oh no!")
+
+
+class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+  def Flush(self):
+    raise RuntimeError("Flush, oh no!")
+
+
+class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+  data = []
+
+  def InitializeState(self):
+    super(StatefulDummyHuntOutputPlugin, self).InitializeState()
+    self.state.index = 0
+
+  def ProcessResponses(self, unused_responses):
+    StatefulDummyHuntOutputPlugin.data.append(self.state.index)
+    self.state.index += 1
+
+
+class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+  num_calls = 0
+
+  def ProcessResponses(self, unused_responses):
+    LongRunningDummyHuntOutputPlugin.num_calls += 1
+    # TODO(hanuszczak): This is terrible. Figure out why it has been put here
+    # delete it as soon as possible.
+    time.time = lambda: 100
+
+
+class VerifiableDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+
+class VerifiableDummyHuntOutputPluginVerfier(
+    output_plugin.OutputPluginVerifier):
+  """One of the dummy hunt output plugins."""
+  plugin_name = VerifiableDummyHuntOutputPlugin.__name__
+
+  num_calls = 0
+
+  def VerifyHuntOutput(self, plugin, hunt):
+    # Check that we get the plugin object we expected to get.
+    # Actual verifiers implementations don't have to do this check.
+    if not isinstance(plugin, VerifiableDummyHuntOutputPlugin):
+      raise ValueError(
+          "Passed plugin must be an "
+          "VerifiableDummyHuntOutputPlugin, got: " % plugin.__class__.__name__)
+
+    VerifiableDummyHuntOutputPluginVerfier.num_calls += 1
+    return output_plugin.OutputPluginVerificationResult(
+        status="SUCCESS", status_message="yo")
+
+  def VerifyFlowOutput(self, plugin, hunt):
+    pass
+
+
+class DummyHuntOutputPluginWithRaisingVerifier(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+
+class DummyHuntOutputPluginWithRaisingVerifierVerifier(
+    output_plugin.OutputPluginVerifier):
+  """One of the dummy hunt output plugins."""
+  plugin_name = DummyHuntOutputPluginWithRaisingVerifier.__name__
+
+  def VerifyHuntOutput(self, plugin, hunt):
+    # Check that we get the plugin object we expected to get.
+    # Actual verifiers implementations don't have to do this check.
+    if not isinstance(plugin, DummyHuntOutputPluginWithRaisingVerifier):
+      raise ValueError(
+          "Passed plugin must be an "
+          "VerifiableDummyHuntOutputPlugin, got: " % plugin.__class__.__name__)
+
+    raise RuntimeError("foobar")
+
+  def VerifyFlowOutput(self, plugin, hunt):
+    pass

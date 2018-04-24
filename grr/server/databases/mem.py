@@ -208,7 +208,7 @@ class InMemoryDB(db.Database):
           last_startup_info=self.ReadClientStartupInfo(client_id))
     return res
 
-  def ReadAllClientsID(self):
+  def ReadAllClientIDs(self):
     return self.metadatas.keys()
 
   def WriteClientSnapshotHistory(self, clients):

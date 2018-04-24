@@ -19,7 +19,6 @@ from grr.server.aff4_objects import aff4_grr
 
 from grr.server.aff4_objects import stats as aff4_stats
 from grr.server.flows.general import processes
-from grr.server.hunts import standard_test
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -205,7 +204,7 @@ class ApiListKbFieldsHandlerTest(api_regression_test_lib.ApiRegressionTest):
 
 class ApiListClientCrashesHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListClientCrashes"
   handler = client_plugin.ApiListClientCrashesHandler
@@ -255,7 +254,7 @@ class ApiListClientCrashesHandlerRegressionTest(
 
 class ApiListClientActionRequestsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListClientActionRequests"
   handler = client_plugin.ApiListClientActionRequestsHandler

@@ -14,7 +14,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server import flow
 from grr.server.flows.general import processes
-from grr.server.flows.general import processes_test
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -110,7 +110,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
         RSS_size=42)
 
     client_urn = self.SetupClient(0)
-    client_mock = processes_test.ListProcessesMock([process])
+    client_mock = action_mocks.ListProcessesMock([process])
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_urn,
@@ -140,7 +140,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
     def ProcessFlow():
       time.sleep(1)
-      client_mock = processes_test.ListProcessesMock([])
+      client_mock = action_mocks.ListProcessesMock([])
       for _ in flow_test_lib.TestFlowHelper(
           flow_urn, client_mock, client_id=client_urn, token=self.token):
         pass

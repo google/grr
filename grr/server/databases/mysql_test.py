@@ -10,8 +10,10 @@ import unittest
 import MySQLdb
 
 import unittest
-from grr.server import db_test
+from grr.server import db_test_mixin
+from grr.server import db_utils
 from grr.server.databases import mysql
+from grr.test_lib import stats_test_lib
 
 
 def _GetEnvironOrSkip(key):
@@ -21,7 +23,8 @@ def _GetEnvironOrSkip(key):
   return value
 
 
-class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
+class TestMysqlDB(stats_test_lib.StatsTestMixin,
+                  db_test_mixin.DatabaseTestMixin, unittest.TestCase):
   """Test the mysql.MysqlDB class.
 
   Most of the tests in this suite are general blackbox tests of the db.Database
@@ -84,6 +87,10 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
     ret = cursor.fetchall()
     cursor.close()
     return ret
+
+  def setUp(self):
+    super(TestMysqlDB, self).setUp()
+    db_utils.DBMetricsInit().RunOnce()
 
   def testRunInTransaction(self):
 
@@ -148,6 +155,11 @@ class TestMysqlDB(db_test.DatabaseTestMixin, unittest.TestCase):
 
     # At least one should have been retried.
     self.assertGreater(sum(counts), 2)
+
+  def testSuccessfulCallsAreCorrectlyAccounted(self):
+    with self.assertStatsCounterDelta(
+        1, "db_request_latency", fields=["ReadAllGRRUsers"]):
+      self.db.ReadAllGRRUsers()
 
   # Tests that we don't expect to pass yet.
   # TODO(user): Finish implementation and enable these tests.

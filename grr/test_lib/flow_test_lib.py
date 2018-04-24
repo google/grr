@@ -27,6 +27,23 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
 
 
+class AdminOnlyFlow(flow.GRRFlow):
+  AUTHORIZED_LABELS = ["admin"]
+
+  # Flow has to have a category otherwise FullAccessControlManager won't
+  # let non-supervisor users to run it at all (it will be considered
+  # externally inaccessible).
+  category = "/Test/"
+
+
+class ClientFlowWithoutCategory(flow.GRRFlow):
+  pass
+
+
+class ClientFlowWithCategory(flow.GRRFlow):
+  category = "/Test/"
+
+
 class CPULimitFlow(flow.GRRFlow):
   """This flow is used to test the cpu limit."""
 

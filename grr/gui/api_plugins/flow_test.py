@@ -25,15 +25,15 @@ from grr.server.flows.general import file_finder
 from grr.server.flows.general import processes
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
-from grr.server.hunts import standard_test
 from grr.server.output_plugins import test_plugins
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
-                    standard_test.StandardHuntTestMixin, test_lib.GRRBaseTest):
+                    hunt_test_lib.StandardHuntTestMixin, test_lib.GRRBaseTest):
   """Test for ApiFlowId."""
 
   rdfvalue_class = flow_plugin.ApiFlowId

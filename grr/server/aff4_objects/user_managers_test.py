@@ -3,11 +3,11 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.server import access_control
 from grr.server import aff4
-from grr.server import flow
 from grr.server.aff4_objects import user_managers
 from grr.server.aff4_objects import users
 from grr.test_lib import acl_test_lib
 from grr.test_lib import aff4_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
@@ -123,23 +123,6 @@ class CheckAccessHelperTest(test_lib.GRRBaseTest):
                       self.helper.CheckAccess,
                       rdfvalue.RDFURN("aff4:/some/other/path"), self.token)
     self.assertTrue(self.helper.CheckAccess(self.subject, self.token))
-
-
-class AdminOnlyFlow(flow.GRRFlow):
-  AUTHORIZED_LABELS = ["admin"]
-
-  # Flow has to have a category otherwise FullAccessControlManager won't
-  # let non-supervisor users to run it at all (it will be considered
-  # externally inaccessible).
-  category = "/Test/"
-
-
-class ClientFlowWithoutCategory(flow.GRRFlow):
-  pass
-
-
-class ClientFlowWithCategory(flow.GRRFlow):
-  category = "/Test/"
 
 
 class FullAccessControlManagerTest(test_lib.GRRBaseTest,
@@ -284,12 +267,12 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
   def testCheckIfCanStartFlowReturnsTrueForClientFlowOnClient(self):
     self.assertTrue(
         self.access_manager.CheckIfCanStartFlow(
-            self.token, ClientFlowWithCategory.__name__))
+            self.token, flow_test_lib.ClientFlowWithCategory.__name__))
 
   def testCheckIfCanStartFlowRaisesForClientFlowWithoutCategoryOnClient(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
       self.access_manager.CheckIfCanStartFlow(
-          self.token, ClientFlowWithoutCategory.__name__)
+          self.token, flow_test_lib.ClientFlowWithoutCategory.__name__)
 
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")

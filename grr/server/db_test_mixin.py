@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+"""Mixin class to be used in tests for DB implementations."""
+
 import abc
 
 from grr.server import db
@@ -34,11 +35,13 @@ class DatabaseTestMixin(
     """
 
   def setUp(self):
+    super(DatabaseTestMixin, self).setUp()
     self.db, self.cleanup = self.CreateDatabase()
 
   def tearDown(self):
     if self.cleanup:
       self.cleanup()
+    super(DatabaseTestMixin, self).tearDown()
 
   def testDatabaseType(self):
     d = self.db

@@ -9,7 +9,6 @@ from grr.gui import api_e2e_test_lib
 from grr.lib import flags
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
-from grr.server.hunts import standard_test
 from grr.server.output_plugins import csv_plugin
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -17,7 +16,7 @@ from grr.test_lib import test_lib
 
 
 class ApiClientLibHuntTest(api_e2e_test_lib.ApiE2ETest,
-                           standard_test.StandardHuntTestMixin):
+                           hunt_test_lib.StandardHuntTestMixin):
   """Tests flows-related part of GRR Python API client library."""
 
   def setUp(self):

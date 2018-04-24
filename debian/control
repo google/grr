@@ -2,7 +2,7 @@ Source: grr-server
 Section: misc
 Priority: extra
 Maintainer: GRR developers <grr-dev@googlegroups.com>
-Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), dh-virtualenv (>= 0.6), lib32z1, libc6-i386, python2.7-dev
+Build-Depends: debhelper (>= 9), dh-make, dh-systemd (>= 1.5), dh-virtualenv (>= 0.6), lib32z1, libc6-i386, python2.7-dev
 Standards-Version: 3.8.3
 Homepage: https://github.com/google/grr
 
@@ -10,6 +10,6 @@ Package: grr-server
 Section: python
 Architecture: any
 Pre-Depends:
-Depends: debhelper, dpkg (>= 1.16.1), dpkg-dev, python-mysqldb, python2.7-dev, rpm, systemd, zip
+Depends: debhelper, dh-make, dpkg (>= 1.16.1), dpkg-dev, python-mysqldb, python2.7-dev, rpm, systemd, zip
 Description: GRR Rapid Response is an Incident Response Framework
  GRR Rapid Response is an Incident Response Framework.

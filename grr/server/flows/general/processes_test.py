@@ -12,17 +12,6 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ListProcessesMock(action_mocks.FileFinderClientMock):
-  """Client with real file actions and mocked-out ListProcesses."""
-
-  def __init__(self, processes_list):
-    super(ListProcessesMock, self).__init__()
-    self.processes_list = processes_list
-
-  def ListProcesses(self, _):
-    return self.processes_list
-
-
 class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
@@ -30,7 +19,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     """Test that the ListProcesses flow works."""
     client_id = test_lib.TEST_CLIENT_ID
 
-    client_mock = ListProcessesMock([
+    client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
             pid=2,
             ppid=1,
@@ -58,7 +47,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     """Test that the ListProcesses flow works with filter."""
     client_id = test_lib.TEST_CLIENT_ID
 
-    client_mock = ListProcessesMock([
+    client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
             pid=2,
             ppid=1,
@@ -129,7 +118,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6),
         connections=rdf_client.NetworkConnection(
             family="INET", state="ESTABLISHED"))
-    client_mock = ListProcessesMock([p1, p2, p3])
+    client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=client_id,
@@ -164,7 +153,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         connections=rdf_client.NetworkConnection(
             family="INET", state="ESTABLISHED"))
 
-    client_mock = ListProcessesMock([p1, p2])
+    client_mock = action_mocks.ListProcessesMock([p1, p2])
 
     for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
@@ -187,7 +176,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         exe=os.path.join(self.base_path, "test_img.dd"),
         ctime=long(1333718907.167083 * 1e6))
 
-    client_mock = ListProcessesMock([process])
+    client_mock = action_mocks.ListProcessesMock([process])
 
     for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
@@ -218,7 +207,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         exe=os.path.join(self.base_path, "test_img.dd"),
         ctime=long(1333718907.167083 * 1e6))
 
-    client_mock = ListProcessesMock([process1, process2])
+    client_mock = action_mocks.ListProcessesMock([process1, process2])
 
     for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
@@ -246,7 +235,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         exe=os.path.join(self.base_path, "file_that_does_not_exist"),
         ctime=long(1333718907.167083 * 1e6))
 
-    client_mock = ListProcessesMock([process1, process2])
+    client_mock = action_mocks.ListProcessesMock([process1, process2])
 
     for s in flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,

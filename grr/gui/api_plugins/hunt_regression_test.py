@@ -17,7 +17,6 @@ from grr.server import data_store
 from grr.server import output_plugin
 from grr.server.hunts import implementation
 from grr.server.hunts import process_results
-from grr.server.hunts import standard_test
 from grr.server.output_plugins import test_plugins
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -26,7 +25,7 @@ from grr.test_lib import test_lib
 
 class ApiListHuntsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHunts"
   handler = hunt_plugin.ApiListHuntsHandler
@@ -96,7 +95,7 @@ class ApiListHuntResultsRegressionTest(
 
 
 class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
-                                      standard_test.StandardHuntTestMixin):
+                                      hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHunt"
   handler = hunt_plugin.ApiGetHuntHandler
@@ -118,7 +117,7 @@ class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
 
 class ApiGetHuntHandlerHuntCopyRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHunt"
   handler = hunt_plugin.ApiGetHuntHandler
@@ -144,7 +143,7 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
 
 class ApiGetHuntHandlerFlowCopyRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHunt"
   handler = hunt_plugin.ApiGetHuntHandler
@@ -171,7 +170,7 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
 
 class ApiListHuntLogsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntLogs"
   handler = hunt_plugin.ApiListHuntLogsHandler
@@ -204,7 +203,7 @@ class ApiListHuntLogsHandlerRegressionTest(
 
 class ApiListHuntErrorsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntErrors"
   handler = hunt_plugin.ApiListHuntErrorsHandler
@@ -240,7 +239,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
 
 class ApiListHuntCrashesHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntCrashes"
   handler = hunt_plugin.ApiListHuntCrashesHandler
@@ -289,7 +288,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
 class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHuntClientCompletionStats"
   handler = hunt_plugin.ApiGetHuntClientCompletionStatsHandler
@@ -335,7 +334,7 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
 
 class ApiGetHuntResultsExportCommandHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHuntResultsExportCommand"
   handler = hunt_plugin.ApiGetHuntResultsExportCommandHandler
@@ -354,7 +353,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
 
 class ApiListHuntOutputPluginsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntOutputPlugins"
   handler = hunt_plugin.ApiListHuntOutputPluginsHandler
@@ -386,7 +385,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
 
 class ApiListHuntOutputPluginLogsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntOutputPluginLogs"
   handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler
@@ -425,7 +424,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
 
 class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntOutputPluginErrors"
   handler = hunt_plugin.ApiListHuntOutputPluginErrorsHandler
@@ -437,14 +436,12 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
   uses_legacy_dynamic_protos = True
 
   def Run(self):
+    failing_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
+
     with test_lib.FakeTime(42, increment=1):
       hunt_urn = self.StartHunt(
-          description="the hunt",
-          output_plugins=[
-              output_plugin.OutputPluginDescriptor(
-                  plugin_name=standard_test.FailingDummyHuntOutputPlugin.
-                  __name__)
-          ])
+          description="the hunt", output_plugins=[failing_descriptor])
 
       self.client_ids = self.SetupClients(2)
       for index, client_id in enumerate(self.client_ids):
@@ -467,7 +464,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
 
 class ApiGetHuntStatsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "GetHuntStats"
   handler = hunt_plugin.ApiGetHuntStatsHandler
@@ -500,7 +497,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
 
 class ApiListHuntClientsHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListHuntClients"
   handler = hunt_plugin.ApiListHuntClientsHandler
@@ -544,7 +541,7 @@ class ApiListHuntClientsHandlerRegressionTest(
 
 class ApiModifyHuntHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ModifyHunt"
   handler = hunt_plugin.ApiModifyHuntHandler
@@ -572,7 +569,7 @@ class ApiModifyHuntHandlerRegressionTest(
 
 class ApiDeleteHuntHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin):
+    hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "DeleteHunt"
   handler = hunt_plugin.ApiDeleteHuntHandler

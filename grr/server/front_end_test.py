@@ -32,6 +32,7 @@ from grr.server.aff4_objects import aff4_grr
 from grr.server.flows.general import ca_enroller
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import front_end_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
@@ -49,43 +50,7 @@ class SendingTestFlow(flow.GRRFlow):
           next_state="Incoming")
 
 
-class GRRFEServerTestBase(flow_test_lib.FlowTestsBaseclass):
-  """Base for GRRFEServer tests."""
-  string = "Test String"
-
-  message_expiry_time = 100
-
-  def InitTestServer(self):
-    prefix = "pool-%s" % self._testMethodName
-    self.server = front_end.FrontEndServer(
-        certificate=config.CONFIG["Frontend.certificate"],
-        private_key=config.CONFIG["PrivateKeys.server_key"],
-        message_expiry_time=self.message_expiry_time,
-        threadpool_prefix=prefix)
-
-  def setUp(self):
-    """Setup the server."""
-    super(GRRFEServerTestBase, self).setUp()
-
-    self.config_overrider = test_lib.ConfigOverrider({
-        # Whitelist test flow.
-        "Frontend.well_known_flows": [
-            utils.SmartStr(flow_test_lib.WellKnownSessionTest.
-                           well_known_session_id.FlowName())
-        ],
-        # For tests, small pools are ok.
-        "Threadpool.size":
-            10
-    })
-    self.config_overrider.Start()
-    self.InitTestServer()
-
-  def tearDown(self):
-    super(GRRFEServerTestBase, self).tearDown()
-    self.config_overrider.Stop()
-
-
-class GRRFEServerTest(GRRFEServerTestBase):
+class GRRFEServerTest(front_end_test_lib.FrontEndServerTest):
   """Tests the GRRFEServer."""
 
   def testReceiveMessages(self):
@@ -464,7 +429,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
           token=self.token)
 
     for i in range(default_ttl):
-      with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
+      with test_lib.FakeTime(base_time + i * (self.MESSAGE_EXPIRY_TIME + 1)):
 
         tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)
@@ -492,7 +457,7 @@ class GRRFEServerTest(GRRFEServerTestBase):
       if i == 2:
         self._ScheduleResponseAndStatus(client_id, flow_id)
 
-      with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
+      with test_lib.FakeTime(base_time + i * (self.MESSAGE_EXPIRY_TIME + 1)):
 
         tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)

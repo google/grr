@@ -18,8 +18,8 @@ from grr.server.flows.general import discovery
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 
-from grr.server.hunts import standard_test
 from grr.test_lib import acl_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
@@ -210,7 +210,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
 
 class ApiGetHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
+    hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetHuntApprovalHandler."""
 
   api_method = "GetHuntApproval"
@@ -334,7 +334,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
 class ApiGrantHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
+    hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantHuntApprovalHandler."""
 
   api_method = "GrantHuntApproval"
@@ -368,7 +368,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
 class ApiCreateHuntApprovalHandlerRegressionTest(
     api_regression_test_lib.ApiRegressionTest,
-    standard_test.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
+    hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateHuntApprovalHandler."""
 
   api_method = "CreateHuntApproval"

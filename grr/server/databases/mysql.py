@@ -21,6 +21,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import objects
 from grr.server import db as db_module
+from grr.server import db_utils
 from grr.server.databases import mysql_ddl
 from grr.server.databases import mysql_pool
 
@@ -182,7 +183,7 @@ class WithTransaction(object):
 
       return self._RunInTransaction(Closure, readonly)
 
-    return Decorated
+    return db_utils.CallLoggedAndAccounted(Decorated)
 
 
 class MysqlDB(db_module.Database):
@@ -684,7 +685,7 @@ class MysqlDB(db_module.Database):
     return ret
 
   @WithTransaction(readonly=True)
-  def ReadAllClientsID(self, cursor=None):
+  def ReadAllClientIDs(self, cursor=None):
     """Reads client ids for all clients in the database."""
     cursor.execute("SELECT client_id FROM clients")
     return [_IntToClientID(res[0]) for res in cursor.fetchall()]

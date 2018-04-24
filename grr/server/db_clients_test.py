@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-import abc
-
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -49,31 +47,7 @@ class DatabaseTestClientsMixin(object):
   """An abstract class for testing db.Database implementations.
 
   This mixin adds methods to test the handling of client data.
-
-  Implementations should override CreateDatabase in order to produce
-  a test suite for a particular implementation of db.Database.
-
-  This class does not inherit from `TestCase` to prevent the test runner from
-  executing its method. Instead it should be mixed into the actual test classes.
   """
-  __metaclass__ = abc.ABCMeta
-
-  @abc.abstractmethod
-  def CreateDatabase(self):
-    """Create a test database.
-
-    Returns:
-      A pair (db, cleanup), where db is an instance of db.Database to be tested
-      and cleanup is a function which destroys db, releasing any resources held
-      by it.
-    """
-
-  def setUp(self):
-    self.db, self.cleanup = self.CreateDatabase()
-
-  def tearDown(self):
-    if self.cleanup:
-      self.cleanup()
 
   def _InitializeClient(self, client_id):
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
@@ -181,16 +155,16 @@ class DatabaseTestClientsMixin(object):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
 
-  def testReadAllClientsIDEmpty(self):
-    result = list(self.db.ReadAllClientsID())
+  def testReadAllClientIDsEmpty(self):
+    result = list(self.db.ReadAllClientIDs())
     self.assertItemsEqual(result, [])
 
-  def testReadAllClientsIDSome(self):
+  def testReadAllClientIDsSome(self):
     self._InitializeClient("C.aaaaaaaaaaaaaaaa")
     self._InitializeClient("C.bbbbbbbbbbbbbbbb")
     self._InitializeClient("C.cccccccccccccccc")
 
-    result = list(self.db.ReadAllClientsID())
+    result = list(self.db.ReadAllClientIDs())
     self.assertItemsEqual(result, [
         "C.aaaaaaaaaaaaaaaa",
         "C.bbbbbbbbbbbbbbbb",

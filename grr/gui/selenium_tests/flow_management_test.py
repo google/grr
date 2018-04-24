@@ -22,16 +22,16 @@ from grr.server.flows.general import transfer as flows_transfer
 from grr.server.flows.general import webhistory as flows_webhistory
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
-from grr.server.hunts import standard_test
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
 class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
-                         standard_test.StandardHuntTestMixin):
+                         hunt_test_lib.StandardHuntTestMixin):
   """Test the flow management GUI."""
 
   def setUp(self):

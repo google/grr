@@ -9,13 +9,13 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import aff4
 from grr.server import client_index
 from grr.server import data_store
-from grr.server.hunts import standard_test
 from grr.test_lib import db_test_lib
+from grr.test_lib import hunt_test_lib
 
 
 @db_test_lib.DualDBTest
 class TestClientSearch(gui_test_lib.SearchClientTestBase,
-                       standard_test.StandardHuntTestMixin):
+                       hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(TestClientSearch, self).setUp()

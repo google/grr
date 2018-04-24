@@ -13,7 +13,6 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 
 from grr.server.aff4_objects import user_managers
-from grr.server.aff4_objects import user_managers_test
 from grr.server.hunts import implementation
 from grr.server.hunts import standard
 
@@ -191,7 +190,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
-          name=user_managers_test.AdminOnlyFlow.__name__)
+          name=flow_test_lib.AdminOnlyFlow.__name__)
 
   def testAdminsCanStartAdminOnlyFlow(self):
     client_id = self.SetupClient(0).Basename()
@@ -199,7 +198,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     self.api.Client(client_id).CreateFlow(
-        name=user_managers_test.AdminOnlyFlow.__name__)
+        name=flow_test_lib.AdminOnlyFlow.__name__)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     client_id = self.SetupClient(0).Basename()
@@ -207,14 +206,14 @@ class ApiCallRouterWithApprovalChecksE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
-          name=user_managers_test.ClientFlowWithoutCategory.__name__)
+          name=flow_test_lib.ClientFlowWithoutCategory.__name__)
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     client_id = self.SetupClient(0).Basename()
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     self.api.Client(client_id).CreateFlow(
-        name=user_managers_test.ClientFlowWithCategory.__name__)
+        name=flow_test_lib.ClientFlowWithCategory.__name__)
 
 
 def main(argv):

@@ -17,13 +17,13 @@ from grr.gui.api_plugins import vfs as api_vfs
 from grr.lib import flags
 
 from grr.server import access_control
-from grr.server.hunts import standard_test
 
+from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
-                                          standard_test.StandardHuntTestMixin):
+                                          hunt_test_lib.StandardHuntTestMixin):
   """Tests for an ApiCallRouterWithApprovalChecks."""
 
   # ACCESS_CHECKED_METHODS is used to identify the methods that are tested

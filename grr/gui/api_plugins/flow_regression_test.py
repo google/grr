@@ -20,7 +20,6 @@ from grr.server.flows.general import discovery
 from grr.server.flows.general import file_finder
 from grr.server.flows.general import processes
 from grr.server.flows.general import transfer
-from grr.server.hunts import standard_test
 from grr.server.output_plugins import email_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import client_test_lib
@@ -367,7 +366,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
   def Run(self):
     failing_descriptor = output_plugin.OutputPluginDescriptor(
-        plugin_name=standard_test.FailingDummyHuntOutputPlugin.__name__)
+        plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
