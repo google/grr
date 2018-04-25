@@ -12,7 +12,7 @@ describe('User desktop notifications directive', () => {
   let $interval;
   let $q;
   let $rootScope;
-  let $window;
+  let $location;
   let grrApiService;
 
 
@@ -21,21 +21,9 @@ describe('User desktop notifications directive', () => {
   beforeEach(module(userModule.name));
   beforeEach(module(testsModule.name));
 
-  beforeEach(() => {
-    $window = {
-      location: {
-        replace: jasmine.createSpy(),
-      },
-      focus: jasmine.createSpy(),
-    };
-
-    module(($provide) => {
-      $provide.value('$window', $window);
-    });
-  });
-
   beforeEach(inject(($injector) => {
     $q = $injector.get('$q');
+    $location = $injector.get('$location');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $interval = $injector.get('$interval');
@@ -142,6 +130,7 @@ describe('User desktop notifications directive', () => {
        }]);
 
        spyOn(grrApiService, 'delete');
+       spyOn($location, 'path');
 
        render();
        $interval.flush(FETCH_INTERVAL);
@@ -151,7 +140,7 @@ describe('User desktop notifications directive', () => {
        expect(grrApiService.delete)
            .toHaveBeenCalledWith('users/me/notifications/pending/42000000');
 
-       expect($window.location.href).toBe('#/clients/C.1000000000000000');
+       expect($location.path).toHaveBeenCalledWith('clients/C.1000000000000000');
      });
 
   it('fetches pending notifications and displays the last two of them as ' +

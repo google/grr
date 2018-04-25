@@ -1,10 +1,10 @@
 syntax = "proto2";
 
-import "grr_response_proto/flows.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
+import "grr_response_proto/user.proto";
 
 
 message ClientLabel {
@@ -166,7 +166,112 @@ message ApprovalGrant {
 }
 
 message PathInfo {
-  repeated string components = 1;
-  optional uint64 last_path_history_timestamp = 2 [(sem_type) = { type: "RDFDatetime" }];
-  optional bool directory = 3;
+  enum PathType {
+    UNSET = 0;
+    OS = 1;
+    TSK = 2;
+    REGISTRY = 3;
+  }
+  optional PathType path_type = 1;
+  repeated string components = 2;
+  optional uint64 last_path_history_timestamp = 3
+      [(sem_type) = { type: "RDFDatetime" }];
+  optional bool directory = 4;
+}
+
+message ObjectReference {
+  option (semantic) = {
+    union_field: "reference_type"
+  };
+
+  enum Type {
+    UNSET = 0;
+    CLIENT = 1;
+    HUNT = 2;
+    FLOW = 3;
+    CRON_JOB = 4;
+    VFS_FILE = 5;
+    CLIENT_APPROVAL_REQUEST = 6;
+    HUNT_APPROVAL_REQUEST = 7;
+    CRON_JOB_APPROVAL_REQUEST = 8;
+  }
+  optional Type reference_type = 1;
+
+  optional ClientReference client = 2;
+  optional HuntReference hunt = 3;
+  optional FlowReference flow = 4;
+  optional CronJobReference cron_job = 5;
+  optional VfsFileReference vfs_file = 6;
+  optional ApprovalRequestReference approval_request = 7;
+}
+
+message ClientReference {
+  optional string client_id = 1;
+}
+
+message HuntReference {
+  optional string hunt_id = 1;
+}
+
+message CronJobReference {
+  optional string cron_job_id = 1;
+}
+
+message FlowReference {
+  optional string flow_id = 1 [(sem_type) = {
+      description: "The session id of the referenced flow."
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id the referenced flow ran on."
+    }];
+}
+
+message VfsFileReference {
+  optional string client_id = 1;
+  repeated string vfs_path_components = 2;
+}
+
+message ApprovalRequestReference {
+  optional ApprovalRequest.ApprovalType approval_type = 1;
+  optional string approval_id = 2;
+  optional string subject_id = 3;
+}
+
+message UserNotification {
+  enum Type {
+    TYPE_UNSET = 0;
+    TYPE_CLIENT_INTERROGATED = 1;
+    TYPE_CLIENT_APPROVAL_REQUESTED = 2;
+    TYPE_HUNT_APPROVAL_REQUESTED = 3;
+    TYPE_CRON_JOB_APPROVAL_REQUESTED = 4;
+    TYPE_CLIENT_APPROVAL_GRANTED = 5;
+    TYPE_HUNT_APPROVAL_GRANTED = 6;
+    TYPE_CRON_JOB_APPROVAL_GRANTED = 7;
+    TYPE_VFS_FILE_COLLECTED = 8;
+    TYPE_VFS_FILE_COLLECTION_FAILED = 9;
+    TYPE_HUNT_STOPPED = 10;
+    TYPE_FILE_ARCHIVE_GENERATED = 11;
+    TYPE_FILE_ARCHIVE_GENERATION_FAILED = 12;
+    TYPE_FLOW_RUN_COMPLETED = 13;
+    TYPE_FLOW_RUN_FAILED = 14;
+    TYPE_VFS_LIST_DIRECTORY_COMPLETED = 15;
+    TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED = 16;
+  }
+
+  enum State {
+    STATE_UNSET = 0;
+    STATE_PENDING = 1;
+    STATE_NOT_PENDING = 2;
+  }
+
+  optional string username = 1;
+  optional Type notification_type = 2;
+  optional State state = 3;
+  optional uint64 timestamp = 4 [(sem_type) = {
+      type: "RDFDatetime"
+    }];
+
+  optional string message = 5;
+  optional ObjectReference reference = 6;
 }

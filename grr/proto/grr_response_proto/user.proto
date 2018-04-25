@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+import "grr_response_proto/semantic.proto";
+
+
+
+// Next field: 4
+message GUISettings {
+  option (semantic) = {
+    description: "User GUI settings and preferences."
+  };
+
+  enum UIMode {
+    BASIC = 0;
+    ADVANCED = 1;
+    DEBUG = 2;
+  }
+
+  optional UIMode mode = 1 [(sem_type) = {
+      description: "User interface mode.",
+    }, default=BASIC];
+
+  optional bool canary_mode = 3 [(sem_type) = {
+      description: "If true, show features that are being canaried."
+    }];
+}

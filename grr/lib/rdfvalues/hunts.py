@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """RDFValue implementations for hunts."""
 
-
 from grr import config
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client
-from grr.lib.rdfvalues import flows
+from grr.lib.rdfvalues import objects
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -32,33 +31,26 @@ class HuntContext(rdf_structs.RDFProtoStruct):
   ]
 
 
-class HuntReference(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.HuntReference
-
-  def ToHuntURN(self):
-    return rdfvalue.RDFURN("aff4:/hunts").Add(self.hunt_id)
-
-
 class FlowLikeObjectReference(rdf_structs.RDFProtoStruct):
   """A reference to a flow or a hunt."""
   protobuf = flows_pb2.FlowLikeObjectReference
   rdf_deps = [
-      flows.FlowReference,
-      HuntReference,
+      objects.FlowReference,
+      objects.HuntReference,
   ]
 
   @classmethod
   def FromHuntId(cls, hunt_id):
     res = FlowLikeObjectReference()
     res.object_type = "HUNT_REFERENCE"
-    res.hunt_reference = HuntReference(hunt_id=hunt_id)
+    res.hunt_reference = objects.HuntReference(hunt_id=hunt_id)
     return res
 
   @classmethod
   def FromFlowIdAndClientId(cls, flow_id, client_id):
     res = FlowLikeObjectReference()
     res.object_type = "FLOW_REFERENCE"
-    res.flow_reference = flows.FlowReference(
+    res.flow_reference = objects.FlowReference(
         flow_id=flow_id, client_id=client_id)
     return res
 

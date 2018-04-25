@@ -13,9 +13,18 @@ class DatabaseTestPathsMixin(object):
 
   def testWritePathInfosRawValidates(self):
     path = ["usr", "local"]
+    client_id = "C.bbbbbbbbbbbbbbbb"
     # Not a valid client_id
     with self.assertRaises(ValueError):
-      self.db.WritePathInfosRaw("", [objects.PathInfo(path)])
+      self.db.WritePathInfosRaw("", [
+          objects.PathInfo(
+              path_type=objects.PathInfo.PathType.OS,
+              components=path,
+          )
+      ])
+    # Missing path_type.
+    with self.assertRaises(ValueError):
+      self.db.WritePathInfosRaw(client_id, [objects.PathInfo(components=path)])
 
   def testWritePathInfos(self):
     path_1 = ["usr", "bin", "javac"]
@@ -25,17 +34,19 @@ class DatabaseTestPathsMixin(object):
     self.db.WritePathInfos(client_id, [
         objects.PathInfo(
             components=path_1,
+            path_type=objects.PathInfo.PathType.OS,
             last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2017-01-01")),
         objects.PathInfo(
             components=path_2,
+            path_type=objects.PathInfo.PathType.OS,
             last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
                 "2017-01-02")),
     ])
     # In addition to the 2 paths we put, we should also find the 2 shared parent
     # directories.
     results = self.db.FindPathInfosByPathIDs(
-        client_id,
+        client_id, objects.PathInfo.PathType.OS,
         map(objects.PathInfo.MakePathID,
             [path_1, path_2, ["usr"], ["usr", "bin"]]))
     self.assertEqual(
@@ -43,17 +54,25 @@ class DatabaseTestPathsMixin(object):
             objects.PathInfo.MakePathID(path_1):
                 objects.PathInfo(
                     components=path_1,
+                    path_type=objects.PathInfo.PathType.OS,
                     last_path_history_timestamp=rdfvalue.RDFDatetime.
                     FromHumanReadable("2017-01-01")),
             objects.PathInfo.MakePathID(path_2):
                 objects.PathInfo(
                     components=path_2,
+                    path_type=objects.PathInfo.PathType.OS,
                     last_path_history_timestamp=rdfvalue.RDFDatetime.
                     FromHumanReadable("2017-01-02")),
             objects.PathInfo.MakePathID(["usr"]):
-                objects.PathInfo(components=["usr"], directory=True),
+                objects.PathInfo(
+                    components=["usr"],
+                    path_type=objects.PathInfo.PathType.OS,
+                    directory=True),
             objects.PathInfo.MakePathID(["usr", "bin"]):
-                objects.PathInfo(components=["usr", "bin"], directory=True),
+                objects.PathInfo(
+                    components=["usr", "bin"],
+                    path_type=objects.PathInfo.PathType.OS,
+                    directory=True),
         })
 
   def testFindDescendentPathIDs(self):
@@ -66,14 +85,20 @@ class DatabaseTestPathsMixin(object):
         "calendar-creation.js"
     ]
     client_id = "C.bbbbbbbbbbbbbbbb"
-    self.db.WritePathInfos(
-        client_id, [
-            objects.PathInfo(components=path_1),
-            objects.PathInfo(components=path_2)
-        ])
+    self.db.WritePathInfos(client_id, [
+        objects.PathInfo(
+            components=path_1,
+            path_type=objects.PathInfo.PathType.OS,
+        ),
+        objects.PathInfo(
+            components=path_2,
+            path_type=objects.PathInfo.PathType.OS,
+        )
+    ])
     # Read everything.
     results = self.db.FindDescendentPathIDs(
-        client_id, objects.PathInfo.MakePathID(["usr", "lib", "lightning"]))
+        client_id, objects.PathInfo.PathType.OS,
+        objects.PathInfo.MakePathID(["usr", "lib", "lightning"]))
     results_set = set(results)
     self.assertEqual(len(results), len(results_set))
     self.assertIn(objects.PathInfo.MakePathID(path_1), results_set)
@@ -87,6 +112,7 @@ class DatabaseTestPathsMixin(object):
     # Read 2 levels.
     results = self.db.FindDescendentPathIDs(
         client_id,
+        objects.PathInfo.PathType.OS,
         objects.PathInfo.MakePathID(["usr", "lib", "lightning"]),
         max_depth=2)
     results_set = set(results)
@@ -108,3 +134,38 @@ class DatabaseTestPathsMixin(object):
         objects.PathInfo.MakePathID(
             ["usr", "lib", "lightning", "chrome", "calendar", "content"]),
         results_set)
+
+  def testPathTypeSeparates(self):
+    path_1 = ["usr", "bin", "javac"]
+    path_2 = ["usr", "bin", "gdb"]
+    client_id = "C.bbbbbbbbbbbbbbbb"
+
+    self.db.WritePathInfos(client_id, [
+        objects.PathInfo(
+            components=path_1,
+            path_type=objects.PathInfo.PathType.OS,
+            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2017-01-01")),
+        objects.PathInfo(
+            components=path_2,
+            path_type=objects.PathInfo.PathType.TSK,
+            last_path_history_timestamp=rdfvalue.RDFDatetime.FromHumanReadable(
+                "2017-01-02")),
+    ])
+
+    results = self.db.FindPathInfosByPathIDs(
+        client_id, objects.PathInfo.PathType.OS,
+        map(objects.PathInfo.MakePathID,
+            [path_1, path_2, ["usr"], ["usr", "bin"]]))
+    self.assertIn(objects.PathInfo.MakePathID(path_1), results)
+    self.assertNotIn(objects.PathInfo.MakePathID(path_2), results)
+
+    results = self.db.FindDescendentPathIDs(
+        client_id, objects.PathInfo.PathType.OS,
+        objects.PathInfo.MakePathID(["usr", "bin"]))
+    self.assertEqual(results, [objects.PathInfo.MakePathID(path_1)])
+
+    results = self.db.FindDescendentPathIDs(
+        client_id, objects.PathInfo.PathType.TSK,
+        objects.PathInfo.MakePathID(["usr", "bin"]))
+    self.assertEqual(results, [objects.PathInfo.MakePathID(path_2)])

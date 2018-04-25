@@ -519,12 +519,13 @@ class Database(object):
           yield snapshot
 
   @abc.abstractmethod
-  def FindPathInfosByPathIDs(self, client_id, path_ids):
+  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
     """Returns path info records for a client.
 
     Args:
       client_id: The client of interest.
-
+      path_type: path_type: The type of paths, indicated by an
+        objects.PathInfo.PathType enum.
       path_ids: A list of path_ids of interest. A path_id can be computed by
         db_path_utils.MakePathID.
 
@@ -550,11 +551,14 @@ class Database(object):
     """
 
   @abc.abstractmethod
-  def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
+  def FindDescendentPathIDs(self, client_id, path_type, path_id,
+                            max_depth=None):
     """Finds all path_ids seen on a client descendent from path_id.
 
     Args:
       client_id: The client of interest.
+      path_type: The type of path, indicated by an objects.PathInfo.PathType
+        enum.
       path_id: The path_id to find descendents of.
       max_depth: If set, the maximum number of generations to descend, otherwise
         unlimited.
@@ -578,5 +582,41 @@ class Database(object):
           info.components):
         if path_id not in infos_by_id:
           infos_by_id[path_id] = objects.PathInfo(
-              components=components, directory=True)
+              components=components, path_type=info.path_type, directory=True)
     self.WritePathInfosRaw(client_id, infos_by_id.values())
+
+  @abc.abstractmethod
+  def WriteUserNotification(self, notification):
+    """Writes a notification for a given user.
+
+    Args:
+      notification: objects.UserNotification object to be written.
+    """
+
+  @abc.abstractmethod
+  def ReadUserNotifications(self, username, timerange=None):
+    """Reads notifications scheduled for a user within a given timerange.
+
+    Args:
+      username: Username identifying the user.
+      timerange: Should be either a tuple of (from, to) or None.
+                 "from" and to" should be rdfvalue.RDFDatetime or None values
+                 (from==None means "all record up to 'to'", to==None means
+                 all records from 'from'). If both "to" and "from" are
+                 None or the timerange itself is None, all notifications
+                 are fetched. Note: "from" and "to" are inclusive:
+                 i.e. a from <= time <= to condition is applied.
+    Returns:
+      List of objects.UserNotification objects.
+    """
+
+  @abc.abstractmethod
+  def UpdateUserNotifications(self, username, timestamps, state=None):
+    """Updates existing user notification objects.
+
+    Args:
+      username: Username identifying the user.
+      timestamps: List of timestamps of the notifications to be updated.
+      state: objects.UserNotification.State enum value to be written into
+             the notifications objects.
+    """

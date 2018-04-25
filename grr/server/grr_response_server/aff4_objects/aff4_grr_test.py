@@ -15,6 +15,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import transfer
@@ -31,7 +32,7 @@ class MockChangeEvent(flow.EventListener):
 
   CHANGED_URNS = []
 
-  @flow.EventHandler(allow_client_access=True)
+  @events.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     _ = event
     if (message.auth_state !=

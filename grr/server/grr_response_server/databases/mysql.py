@@ -1058,3 +1058,81 @@ class MysqlDB(db_module.Database):
   def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
     """Finds all path_ids seen on a client descent from path_id."""
     raise NotImplementedError()
+
+  @WithTransaction()
+  def WriteUserNotification(self, notification, cursor=None):
+    """Writes a notification for a given user."""
+    if not isinstance(notification, objects.UserNotification):
+      raise ValueError(
+          "WriteUserNotification requires rdfvalues.objects.UserNotification, "
+          "got: %s" % type(notification))
+
+    # Copy the notification to ensure we don't modify the source object.
+    notification = notification.Copy()
+
+    if not notification.timestamp:
+      notification.timestamp = rdfvalue.RDFDatetime.Now()
+
+    query = ("INSERT INTO user_notification (username, timestamp, "
+             "notification_state, notification) "
+             "VALUES (%s, %s, %s, %s)")
+
+    args = [
+        notification.username,
+        _RDFDatetimeToMysqlString(notification.timestamp),
+        int(notification.state),
+        notification.SerializeToString()
+    ]
+    cursor.execute(query, args)
+
+  @WithTransaction(readonly=True)
+  def ReadUserNotifications(self, username, timerange=None, cursor=None):
+    """Reads notifications scheduled for a user within a given timerange."""
+
+    query = ("SELECT timestamp, notification_state, notification "
+             "FROM user_notification "
+             "WHERE username=%s ")
+    args = [username]
+
+    if timerange:
+      time_from, time_to = timerange  # pylint: disable=unpacking-non-sequence
+
+      if time_from is not None:
+        query += "AND timestamp >= %s "
+        args.append(_RDFDatetimeToMysqlString(time_from))
+
+      if time_to is not None:
+        query += "AND timestamp <= %s "
+        args.append(_RDFDatetimeToMysqlString(time_to))
+
+    query += "ORDER BY timestamp DESC "
+
+    ret = []
+    cursor.execute(query, args)
+
+    for timestamp, state, notification_ser in cursor.fetchall():
+      n = objects.UserNotification.FromSerializedString(notification_ser)
+      n.timestamp = _MysqlToRDFDatetime(timestamp)
+      n.state = state
+      ret.append(n)
+
+    return ret
+
+  @WithTransaction()
+  def UpdateUserNotifications(self,
+                              username,
+                              timestamps,
+                              state=None,
+                              cursor=None):
+    """Updates existing user notification objects."""
+
+    query = ("UPDATE user_notification n "
+             "SET n.notification_state = %s "
+             "WHERE n.username = %s AND n.timestamp IN ({})").format(", ".join(
+                 ["%s"] * len(timestamps)))
+
+    args = [
+        int(state),
+        username,
+    ] + [_RDFDatetimeToMysqlString(t) for t in timestamps]
+    cursor.execute(query, args)

@@ -5,6 +5,7 @@ import logging
 import time
 import grpc
 
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
@@ -96,6 +97,7 @@ def main(argv):
   server_startup.DropPrivileges()
 
   fleetspeak_connector.Init()
+
   fsd = GRRFSServer()
   fleetspeak_connector.CONN.Listen(fsd.Process)
 

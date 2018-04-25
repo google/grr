@@ -587,7 +587,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'> here </a> to access this machine.
 
   logline = "Nanny for client %s sent: %s"
 
-  @flow.EventHandler(allow_client_access=True)
+  @events.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
     _ = event
@@ -689,7 +689,7 @@ P.S. The state of the failing flow was:
 </body></html>""",
       autoescape=True)
 
-  @flow.EventHandler(allow_client_access=True)
+  @events.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
     _ = event
@@ -786,7 +786,7 @@ class ClientStartupHandler(flow.EventListener):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
-  @flow.EventHandler(allow_client_access=True, auth_required=False)
+  @events.EventHandler(allow_client_access=True, auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     """Handle a startup event."""
     _ = event

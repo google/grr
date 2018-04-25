@@ -233,9 +233,9 @@ class HuntRunner(object):
       try:
         method = getattr(self.hunt_obj, method)
       except AttributeError:
-        raise flow_runner.FlowRunnerError("Flow %s has no state method %s" %
-                                          (self.hunt_obj.__class__.__name__,
-                                           method))
+        raise flow_runner.FlowRunnerError(
+            "Flow %s has no state method %s" %
+            (self.hunt_obj.__class__.__name__, method))
 
       method(
           direct_response=direct_response, request=request, responses=responses)
@@ -575,8 +575,9 @@ class HuntRunner(object):
         # The status message is always in unicode
         status = format_str % args
       except TypeError:
-        logging.error("Tried to log a format string with the wrong number "
-                      "of arguments: %s", format_str)
+        logging.error(
+            "Tried to log a format string with the wrong number "
+            "of arguments: %s", format_str)
 
     logging.info("%s: %s", self.session_id, status)
 
@@ -832,8 +833,8 @@ class HuntRunner(object):
         if isinstance(payload, rdf_flows.GrrStatus):
           msg.type = rdf_flows.GrrMessage.Type.STATUS
       else:
-        raise flow_runner.FlowRunnerError("Bad message %s of type %s." %
-                                          (payload, type(payload)))
+        raise flow_runner.FlowRunnerError(
+            "Bad message %s of type %s." % (payload, type(payload)))
 
       self.QueueResponse(msg, timestamp=start_time)
 
@@ -1365,8 +1366,8 @@ class GRRHunt(flow.FlowBase):
 
     if client_id:
       # But we also create a symlink to it from the client's namespace.
-      hunt_link_urn = client_id.Add("flows").Add("%s:hunt" %
-                                                 (self.urn.Basename()))
+      hunt_link_urn = client_id.Add("flows").Add(
+          "%s:hunt" % (self.urn.Basename()))
 
       hunt_link = aff4.FACTORY.Create(
           hunt_link_urn, aff4.AFF4Symlink, token=self.token)
@@ -1423,8 +1424,9 @@ class GRRHunt(flow.FlowBase):
           args=plugin_descriptor.plugin_args,
           token=self.token)
 
-      state["%s_%d" % (plugin_descriptor.plugin_name,
-                       index)] = [plugin_descriptor, plugin_obj.state]
+      state["%s_%d" % (plugin_descriptor.plugin_name, index)] = [
+          plugin_descriptor, plugin_obj.state
+      ]
 
     return state
 
@@ -1442,11 +1444,6 @@ class GRRHunt(flow.FlowBase):
   def MarkClientDone(self, client_id):
     """Adds a client_id to the list of completed tasks."""
     self.RegisterCompletedClient(client_id)
-
-    if self.runner_args.notification_event:
-      status = rdf_hunts.HuntNotification(
-          session_id=self.session_id, client_id=client_id)
-      self.Publish(self.runner_args.notification_event, status)
 
   def LogClientError(self, client_id, log_message=None, backtrace=None):
     """Logs an error for a client."""

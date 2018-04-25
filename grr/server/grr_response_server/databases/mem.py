@@ -27,10 +27,12 @@ class InMemoryDB(db.Database):
     self.startup_history = {}
     self.crash_history = {}
     self.approvals_by_username = {}
-    # Maps each client_id to a dict mapping path_id to objects.PathInfo.
+    self.notifications_by_username = {}
+    # Maps tuples (client_id,path_type) to a dict mapping path_id to
+    # objects.PathInfo.
     self.path_info_map_by_client_id = {}
-    # Maps each client_id to a dict mapping path_id to a set of direct children
-    # of path_id.
+    # Maps tuples (client_id,path_type) to a dict mapping path_id to a set of
+    # direct children of path_id.
     self.path_child_map_by_client_id = {}
 
   def ClearTestDB(self):
@@ -68,6 +70,23 @@ class InMemoryDB(db.Database):
     if not isinstance(path_info, objects.PathInfo):
       raise ValueError(
           "Expected `rdfvalues.objects.PathInfo`, got: %s" % type(path_info))
+    if not path_info.path_type:
+      raise ValueError(
+          "Expected path_type to be set, got: %s" % str(path_info.path_type))
+
+  def _ValidateNotificationType(self, notification_type):
+    if notification_type is None:
+      raise ValueError("notification_type can't be None")
+
+    if notification_type == objects.UserNotification.Type.TYPE_UNSET:
+      raise ValueError("notification_type can't be TYPE_UNSET")
+
+  def _ValidateNotificationState(self, notification_state):
+    if notification_state is None:
+      raise ValueError("notification_state can't be None")
+
+    if notification_state == objects.UserNotification.State.STATE_UNSET:
+      raise ValueError("notification_state can't be STATE_UNSET")
 
   def _ParseTimeRange(self, timerange):
     """Parses a timerange argument and always returns non-None timerange."""
@@ -523,11 +542,11 @@ class InMemoryDB(db.Database):
       raise db.UnknownApprovalRequestError(
           "Can't find approval with id: %s" % approval_id)
 
-  def FindPathInfosByPathIDs(self, client_id, path_ids):
+  def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
     """Returns path info records for a client."""
     self._ValidateClientId(client_id)
     ret = {}
-    info_dict = self.path_info_map_by_client_id.get(client_id, {})
+    info_dict = self.path_info_map_by_client_id.get((client_id, path_type), {})
     for path_id in path_ids:
       if path_id in info_dict:
         ret[path_id] = info_dict[path_id]
@@ -539,9 +558,12 @@ class InMemoryDB(db.Database):
     for info in path_infos:
       self._ValidatePathInfo(info)
 
-    info_dict = self.path_info_map_by_client_id.setdefault(client_id, {})
-    child_dict = self.path_child_map_by_client_id.setdefault(client_id, {})
     for info in path_infos:
+      info_dict = self.path_info_map_by_client_id.setdefault(
+          (client_id, info.path_type), {})
+      child_dict = self.path_child_map_by_client_id.setdefault(
+          (client_id, info.path_type), {})
+
       if info.path_id in info_dict:
         info_dict.UpdateFrom(info)
       else:
@@ -551,10 +573,12 @@ class InMemoryDB(db.Database):
             objects.PathInfo.MakePathID(info.components[:-1]), set())
         siblings.add(info.path_id)
 
-  def FindDescendentPathIDs(self, client_id, path_id, max_depth=None):
+  def FindDescendentPathIDs(self, client_id, path_type, path_id,
+                            max_depth=None):
     """Finds all path_ids seen on a client descent from path_id."""
     self._ValidateClientId(client_id)
-    child_dict = self.path_child_map_by_client_id.setdefault(client_id, {})
+    child_dict = self.path_child_map_by_client_id.setdefault(
+        (client_id, path_type), {})
     children = list(child_dict.get(path_id, set()))
 
     next_depth = None
@@ -566,5 +590,41 @@ class InMemoryDB(db.Database):
     descendents = []
     for child_id in children:
       descendents += self.FindDescendentPathIDs(
-          client_id, child_id, max_depth=next_depth)
+          client_id, path_type, child_id, max_depth=next_depth)
     return children + descendents
+
+  def WriteUserNotification(self, notification):
+    """Writes a notification for a given user."""
+    self._ValidateUsername(notification.username)
+    self._ValidateNotificationType(notification.notification_type)
+    self._ValidateNotificationState(notification.state)
+
+    cloned_notification = notification.Copy()
+    if not cloned_notification.timestamp:
+      cloned_notification.timestamp = rdfvalue.RDFDatetime.Now()
+
+    self.notifications_by_username.setdefault(cloned_notification.username,
+                                              []).append(cloned_notification)
+
+  def ReadUserNotifications(self, username, timerange=None):
+    """Reads notifications scheduled for a user within a given timerange."""
+    self._ValidateUsername(username)
+    from_time, to_time = self._ParseTimeRange(timerange)
+
+    result = []
+    for n in self.notifications_by_username.get(username, []):
+      if from_time <= n.timestamp <= to_time:
+        result.append(n)
+
+    return result
+
+  def UpdateUserNotifications(self, username, timestamps, state=None):
+    """Updates existing user notification objects."""
+    self._ValidateNotificationState(state)
+
+    if not timestamps:
+      return
+
+    for n in self.notifications_by_username.get(username, []):
+      if n.timestamp in timestamps:
+        n.state = state

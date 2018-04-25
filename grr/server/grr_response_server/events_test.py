@@ -10,7 +10,6 @@ from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import maintenance_utils
 from grr.server.grr_response_server.flows.general import audit
-from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_test_lib
@@ -22,7 +21,7 @@ class NoClientListener(flow.EventListener):  # pylint: disable=unused-variable
 
   received_events = []
 
-  @flow.EventHandler(auth_required=True)
+  @events.EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     # Store the results for later inspection.
     self.__class__.received_events.append((message, event))
@@ -34,7 +33,7 @@ class ClientListener(flow.EventListener):
 
   received_events = []
 
-  @flow.EventHandler(auth_required=True, allow_client_access=True)
+  @events.EventHandler(auth_required=True, allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     # Store the results for later inspection.
     self.__class__.received_events.append((message, event))
@@ -46,7 +45,7 @@ class FlowDoneListener(flow.EventListener):
   EVENTS = ["Not used"]
   received_events = []
 
-  @flow.EventHandler(auth_required=True)
+  @events.EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     _ = event
     # Store the results for later inspection.
@@ -74,32 +73,6 @@ class EventsTest(flow_test_lib.FlowTestsBaseclass):
     self.assertRDFValuesEqual(ClientListener.received_events[0][0].payload,
                               event.payload)
     self.assertEqual(NoClientListener.received_events, [])
-
-  def testFlowNotification(self):
-    FlowDoneListener.received_events = []
-
-    # Run the flow in the simulated way
-    client_mock = action_mocks.ActionMock()
-    for _ in flow_test_lib.TestFlowHelper(
-        flow_test_lib.DummyLogFlow.__name__,
-        client_mock,
-        client_id=test_lib.TEST_CLIENT_ID,
-        notification_urn=rdfvalue.SessionID(
-            queue=rdfvalue.RDFURN("EV"), flow_name="FlowDone"),
-        token=self.token):
-      pass
-
-    # The event goes to an external queue so we need another worker.
-    worker = worker_test_lib.MockWorker(
-        queues=[rdfvalue.RDFURN("EV")], token=self.token)
-    worker.Simulate()
-
-    self.assertEqual(len(FlowDoneListener.received_events), 1)
-
-    flow_event = FlowDoneListener.received_events[0].payload
-    self.assertEqual(flow_event.flow_name, flow_test_lib.DummyLogFlow.__name__)
-    self.assertEqual(flow_event.client_id, "aff4:/C.1000000000000000")
-    self.assertEqual(flow_event.status, rdf_flows.FlowNotification.Status.OK)
 
   def testEventNotification(self):
     """Test that events are sent to listeners."""

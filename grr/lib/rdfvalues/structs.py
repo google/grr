@@ -409,10 +409,9 @@ class ProtoType(type_info.TypeInfoObject):
     return self.default
 
   def __str__(self):
-    return "<Field %s (%s) of %s: field_number: %s>" % (self.name,
-                                                        self.__class__.__name__,
-                                                        self.owner.__name__,
-                                                        self.field_number)
+    return "<Field %s (%s) of %s: field_number: %s>" % (
+        self.name, self.__class__.__name__, self.owner.__name__,
+        self.field_number)
 
   def SetOwner(self, owner):
     self.owner = owner
@@ -685,6 +684,13 @@ class EnumNamedValue(rdfvalue.RDFInteger):
   def __unicode__(self):
     return unicode(self.name)
 
+  def Copy(self):
+    v = super(EnumNamedValue, self).Copy()
+    v.name = self.name
+    v.description = self.description
+    v.labels = self.labels
+    return v
+
 
 class ProtoEnum(ProtoSignedInteger):
   """An enum native proto type.
@@ -903,16 +909,16 @@ class ProtoEmbedded(ProtoType):
 
   def Validate(self, value, **_):
     if isinstance(value, basestring):
-      raise type_info.TypeValueError("Field %s must be of type %s" %
-                                     (self.name, self.type.__name__))
+      raise type_info.TypeValueError(
+          "Field %s must be of type %s" % (self.name, self.type.__name__))
 
     # We may coerce it to the correct type.
     if value.__class__ is not self.type:
       try:
         value = self.type(value)
       except rdfvalue.InitializeError:
-        raise type_info.TypeValueError("Field %s must be of type %s" %
-                                       (self.name, self.type.__name__))
+        raise type_info.TypeValueError(
+            "Field %s must be of type %s" % (self.name, self.type.__name__))
 
     return value
 
@@ -1563,8 +1569,8 @@ class RDFStruct(rdfvalue.RDFValue):
               "Field %s refers to an as yet undefined Semantic Type." %
               self.late_bound_type_infos[arg])
 
-        raise AttributeError("Proto %s has no field %s" %
-                             (self.__class__.__name__, arg))
+        raise AttributeError(
+            "Proto %s has no field %s" % (self.__class__.__name__, arg))
 
       # Call setattr to allow the class to define @property psuedo fields which
       # can also be initialized.
@@ -1701,8 +1707,8 @@ class RDFStruct(rdfvalue.RDFValue):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format, type_descriptor) in sorted(
-        self.GetRawData().items()):
+    for k, (python_format, wire_format,
+            type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)
@@ -1849,9 +1855,8 @@ class RDFStruct(rdfvalue.RDFValue):
   @classmethod
   def AddDescriptor(cls, field_desc):
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError(
-          "%s field '%s' should be of type ProtoType" % (cls.__name__,
-                                                         field_desc.name))
+      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
+                                     % (cls.__name__, field_desc.name))
 
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
@@ -2180,9 +2185,8 @@ class RDFProtoStruct(RDFStruct):
   def AddDescriptor(cls, field_desc):
     """Register this descriptor with the Proto Struct."""
     if not isinstance(field_desc, ProtoType):
-      raise type_info.TypeValueError(
-          "%s field '%s' should be of type ProtoType" % (cls.__name__,
-                                                         field_desc.name))
+      raise type_info.TypeValueError("%s field '%s' should be of type ProtoType"
+                                     % (cls.__name__, field_desc.name))
 
     # Ensure the field descriptor knows the class that owns it.
     field_desc.SetOwner(cls)
@@ -2211,10 +2215,11 @@ class RDFProtoStruct(RDFStruct):
     if not hasattr(cls, field_desc.name):
       # This lambda is a class method so pylint: disable=protected-access
       # This is much faster than __setattr__/__getattr__
-      setattr(cls, field_desc.name,
-              property(lambda self: self.Get(field_desc.name),
-                       lambda self, x: self._Set(x, field_desc), None,
-                       field_desc.description))
+      setattr(
+          cls, field_desc.name,
+          property(lambda self: self.Get(field_desc.name),
+                   lambda self, x: self._Set(x, field_desc), None,
+                   field_desc.description))
 
   def UnionCast(self):
     union_field = getattr(self, self.union_field)

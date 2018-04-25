@@ -154,6 +154,16 @@ class PathInfoTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       objects.PathInfo(
           components=["usr", "local", "bin"],).UpdateFrom("/usr/local/bin")
+    # both must refer to the same path type
+    with self.assertRaises(ValueError):
+      objects.PathInfo(
+          components=["usr", "local", "bin"],
+          path_type=objects.PathInfo.PathType.OS,
+      ).UpdateFrom(
+          objects.PathInfo(
+              components=["usr", "local", "bin"],
+              path_type=objects.PathInfo.PathType.TSK,
+          ))
     # both must refer to the same path
     with self.assertRaises(ValueError):
       objects.PathInfo(components=["usr", "local", "bin"]).UpdateFrom(

@@ -55,7 +55,7 @@ class AuditEventListener(flow.EventListener):
       self.created_logs.add(log_urn)
     return log_urn
 
-  @flow.EventHandler(auth_required=False)
+  @events.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     _ = message
     log_urn = aff4.CurrentAuditLog()

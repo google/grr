@@ -247,6 +247,10 @@ class PathInfo(structs.RDFProtoStruct):
     """
     if not isinstance(src, PathInfo):
       raise ValueError("src is not a PathInfo")
+    if self.path_type != src.path_type:
+      raise ValueError(
+          "src [%s] does not represent the same path type as self [%s]" % (str(
+              src.path_type), str(self.path_type)))
     if self.components != src.components:
       raise ValueError("src [%s] does not represent the same path as self [%s]"
                        % (str(src.components), str(self.components)))
@@ -257,3 +261,61 @@ class PathInfo(structs.RDFProtoStruct):
       self.last_path_history_timestamp = src.last_path_history_timestamp
     if src.directory:
       self.directory = True
+
+
+class ClientReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ClientReference
+  rdf_deps = []
+
+
+class HuntReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.HuntReference
+  rdf_deps = []
+
+  def ToHuntURN(self):
+    return rdfvalue.RDFURN("aff4:/hunts").Add(self.hunt_id)
+
+
+class CronJobReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.CronJobReference
+  rdf_deps = []
+
+
+class FlowReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.FlowReference
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+  def ToFlowURN(self):
+    return self.client_id.Add("flows").Add(self.flow_id)
+
+
+class VfsFileReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.VfsFileReference
+  rdf_deps = []
+
+
+class ApprovalRequestReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ApprovalRequestReference
+  rdf_deps = []
+
+
+class ObjectReference(structs.RDFProtoStruct):
+  protobuf = objects_pb2.ObjectReference
+  rdf_deps = [
+      ClientReference,
+      HuntReference,
+      CronJobReference,
+      FlowReference,
+      VfsFileReference,
+      ApprovalRequestReference,
+  ]
+
+
+class UserNotification(structs.RDFProtoStruct):
+  protobuf = objects_pb2.UserNotification
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      ObjectReference,
+  ]

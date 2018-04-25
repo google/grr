@@ -172,6 +172,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testFindDescendentPathIDs(self):
     pass
 
+  def testPathTypeSeparates(self):
+    pass
+
 
 if __name__ == "__main__":
   unittest.main()

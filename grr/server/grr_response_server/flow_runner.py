@@ -200,8 +200,9 @@ class FlowRunner(object):
     output_plugins_states = []
     for plugin_descriptor in args.output_plugins:
       if not args.client_id:
-        self.Log("Not initializing output plugin %s as flow does not run on "
-                 "the client.", plugin_descriptor.plugin_name)
+        self.Log(
+            "Not initializing output plugin %s as flow does not run on "
+            "the client.", plugin_descriptor.plugin_name)
         continue
 
       output_base_urn = self.session_id.Add(OUTPUT_PLUGIN_BASE_SUFFIX)
@@ -334,8 +335,8 @@ class FlowRunner(object):
         if isinstance(payload, rdf_flows.GrrStatus):
           msg.type = rdf_flows.GrrMessage.Type.STATUS
       else:
-        raise FlowRunnerError("Bad message %s of type %s." % (payload,
-                                                              type(payload)))
+        raise FlowRunnerError(
+            "Bad message %s of type %s." % (payload, type(payload)))
 
       self.QueueResponse(msg, start_time)
 
@@ -709,15 +710,17 @@ class FlowRunner(object):
 
     cpu_usage = self.context.client_resources.cpu_usage
     if self.runner_args.cpu_limit:
-      msg.cpu_limit = max(self.runner_args.cpu_limit - cpu_usage.user_cpu_time -
-                          cpu_usage.system_cpu_time, 0)
+      msg.cpu_limit = max(
+          self.runner_args.cpu_limit - cpu_usage.user_cpu_time -
+          cpu_usage.system_cpu_time, 0)
 
       if msg.cpu_limit == 0:
         raise FlowRunnerError("CPU limit exceeded.")
 
     if self.runner_args.network_bytes_limit:
-      msg.network_bytes_limit = max(self.runner_args.network_bytes_limit -
-                                    self.context.network_bytes_sent, 0)
+      msg.network_bytes_limit = max(
+          self.runner_args.network_bytes_limit -
+          self.context.network_bytes_sent, 0)
       if msg.network_bytes_limit == 0:
         raise FlowRunnerError("Network limit exceeded.")
 
@@ -1105,8 +1108,9 @@ class FlowRunner(object):
         # The status message is always in unicode
         status = format_str % args
       except TypeError:
-        logging.error("Tried to log a format string with the wrong number "
-                      "of arguments: %s", format_str)
+        logging.error(
+            "Tried to log a format string with the wrong number "
+            "of arguments: %s", format_str)
 
     logging.info("%s: %s", self.session_id, status)
 
@@ -1182,22 +1186,3 @@ class FlowRunner(object):
 
       # Disable further notifications.
       self.context.user_notified = True
-
-    # Allow the flow to either specify an event name or an event handler URN.
-    notification_event = (
-        self.runner_args.notification_event or
-        self.runner_args.notification_urn)
-    if notification_event:
-      if self.context.state == rdf_flows.FlowContext.State.ERROR:
-        status = rdf_flows.FlowNotification.Status.ERROR
-
-      else:
-        status = rdf_flows.FlowNotification.Status.OK
-
-      event = rdf_flows.FlowNotification(
-          session_id=self.context.session_id,
-          flow_name=self.runner_args.flow_name,
-          client_id=self.runner_args.client_id,
-          status=status)
-
-      self.flow_obj.Publish(notification_event, message=event)

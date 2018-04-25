@@ -14,6 +14,7 @@ from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import flow_pb2
@@ -46,8 +47,8 @@ class ApiFlowId(rdfvalue.RDFString):
         try:
           rdfvalue.SessionID.ValidateID(component)
         except ValueError as e:
-          raise ValueError("Invalid flow id: %s (%s)" %
-                           (utils.SmartStr(self._value), e))
+          raise ValueError(
+              "Invalid flow id: %s (%s)" % (utils.SmartStr(self._value), e))
 
   def _FlowIdToUrn(self, flow_id, client_id):
     return client_id.ToClientURN().Add("flows").Add(flow_id)
@@ -448,9 +449,9 @@ class ApiGetFlowResultsExportCommandHandler(
   result_type = ApiGetFlowResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    output_fname = re.sub("[^0-9a-zA-Z]+", "_",
-                          "%s_%s" % (utils.SmartStr(args.client_id),
-                                     utils.SmartStr(args.flow_id)))
+    output_fname = re.sub(
+        "[^0-9a-zA-Z]+", "_", "%s_%s" % (utils.SmartStr(args.client_id),
+                                         utils.SmartStr(args.flow_id)))
     code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
                        """WriteToFile("./flow_results_%s.zip")""") % (
                            args.client_id, args.flow_id, output_fname)
@@ -516,17 +517,19 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       for item in generator.Generate(collection, token=token):
         yield item
 
-      user.Notify("ArchiveGenerationFinished", None,
-                  "Downloaded archive of flow %s from client %s (archived %d "
-                  "out of %d items, archive size is %d)" %
-                  (args.flow_id, args.client_id, generator.archived_files,
-                   generator.total_files,
-                   generator.output_size), self.__class__.__name__)
+      user.Notify(
+          "ArchiveGenerationFinished", None,
+          "Downloaded archive of flow %s from client %s (archived %d "
+          "out of %d items, archive size is %d)" %
+          (args.flow_id, args.client_id, generator.archived_files,
+           generator.total_files, generator.output_size),
+          self.__class__.__name__)
     except Exception as e:
-      user.Notify("Error", None,
-                  "Archive generation failed for flow %s on client %s: %s" %
-                  (args.flow_id, args.client_id,
-                   utils.SmartStr(e)), self.__class__.__name__)
+      user.Notify(
+          "Error", None,
+          "Archive generation failed for flow %s on client %s: %s" %
+          (args.flow_id, args.client_id, utils.SmartStr(e)),
+          self.__class__.__name__)
       raise
     finally:
       user.Close()
@@ -563,10 +566,10 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     flow_api_object = ApiFlow().InitFromAff4Object(
         flow_obj, flow_id=args.flow_id)
-    description = ("Files downloaded by flow %s (%s) that ran on client %s by "
-                   "user %s on %s" %
-                   (flow_api_object.name, args.flow_id, args.client_id,
-                    flow_api_object.creator, flow_api_object.started_at))
+    description = (
+        "Files downloaded by flow %s (%s) that ran on client %s by "
+        "user %s on %s" % (flow_api_object.name, args.flow_id, args.client_id,
+                           flow_api_object.creator, flow_api_object.started_at))
 
     target_file_prefix = "%s_flow_%s_%s" % (
         args.client_id, flow_obj.runner_args.flow_name,
@@ -684,8 +687,8 @@ class ApiListFlowOutputPluginLogsHandlerBase(
         break
 
     if not found_state:
-      raise RuntimeError("Flow %s doesn't have output plugin %s" %
-                         (flow_urn, args.plugin_id))
+      raise RuntimeError(
+          "Flow %s doesn't have output plugin %s" % (flow_urn, args.plugin_id))
 
     stop = None
     if args.count:
@@ -882,7 +885,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         exceptions="output_plugins")
 
     if args.original_flow:
-      args.flow.runner_args.original_flow = rdf_flows.FlowReference(
+      args.flow.runner_args.original_flow = rdf_objects.FlowReference(
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 

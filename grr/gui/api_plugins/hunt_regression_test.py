@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
+from grr.lib.rdfvalues import objects as rdf_objects
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import output_plugin
@@ -126,7 +127,7 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
     with test_lib.FakeTime(42):
       ref = rdf_hunts.FlowLikeObjectReference(
           object_type="HUNT_REFERENCE",
-          hunt_reference=rdf_hunts.HuntReference(hunt_id="H:332211"))
+          hunt_reference=rdf_objects.HuntReference(hunt_id="H:332211"))
       with self.CreateHunt(
           description="the hunt", original_object=ref) as hunt_obj:
         hunt_urn = hunt_obj.urn
@@ -152,7 +153,7 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
     with test_lib.FakeTime(42):
       ref = rdf_hunts.FlowLikeObjectReference(
           object_type="FLOW_REFERENCE",
-          flow_reference=rdf_flows.FlowReference(
+          flow_reference=rdf_objects.FlowReference(
               flow_id="F:332211", client_id="C.1111111111111111"))
       with self.CreateHunt(
           description="the hunt", original_object=ref) as hunt_obj:

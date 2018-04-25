@@ -292,6 +292,26 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertTrue(stat_entry.st_flags_linux & self.FS_NODUMP_FL)
       self.assertFalse(stat_entry.st_flags_linux & self.FS_UNRM_FL)
 
+  @unittest.skipIf(platform.system() != "Linux", "requires Linux")
+  def testFileFinderStatExtAttrs(self):
+    with test_lib.AutoTempFilePath() as temp_filepath:
+      if subprocess.call(["which", "setfattr"]) != 0:
+        raise unittest.SkipTest("`setfattr` command is not available")
+      subprocess.check_call(
+          ["setfattr", temp_filepath, "-n", "user.bar", "-v", "baz"])
+      subprocess.check_call(
+          ["setfattr", temp_filepath, "-n", "user.quux", "-v", "norf"])
+
+      action = rdf_file_finder.FileFinderAction.Stat()
+      results = self.RunFlow(action=action, paths=[temp_filepath])
+      self.assertEqual(len(results), 1)
+
+      stat_entry = results[0][1].stat_entry
+      self.assertItemsEqual(stat_entry.ext_attrs, [
+          rdf_client.ExtAttr(name="user.bar", value="baz"),
+          rdf_client.ExtAttr(name="user.quux", value="norf"),
+      ])
+
   def testFileFinderDownloadActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
         action=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,

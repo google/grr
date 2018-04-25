@@ -571,9 +571,6 @@ $('body').injector().get('$browser').notifyWhenNoOutstandingRequests(function() 
     registry._sources = self._original_registry_sources
     registry._dirty = True
     # pylint: enable=protected-access
-
-  def DoAfterTestCheck(self):
-    super(GRRSeleniumTest, self).DoAfterTestCheck()
     self.CheckJavascriptErrors()
 
   def WaitForNotification(self, user):

@@ -11,14 +11,14 @@ const {getLastPathComponent, stripAff4Prefix} = goog.require('grrUi.core.utils')
  * Opens the reference of a notification.
  *
  * @param {Object} notification
- * @param {!angular.$window} angularWindow
+ * @param {!angular.$location} $location
  * @return {boolean} Returns true if the location was changed.
  *
  * @export
  */
-exports.openReference = function(notification, angularWindow) {
+exports.openReference = function(notification, $location) {
   if (!notification['isFileDownload'] && notification['link']) {
-    angularWindow.location.href = '#/' + notification['link'];
+    $location.path(notification['link']);
     return true;
   } else {
     return false;
@@ -117,17 +117,17 @@ var getLink_ = function(notification) {
  * Controller for UserNotificationItemDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!angular.$window} $window
+ * @param {!angular.$location} $location
  * @constructor
  * @ngInject
  */
 const UserNotificationItemController =
-  function($scope, $window) {
+  function($scope, $location) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.$window} */
-  this.window_ = $window;
+  /** @private {!angular.$location} */
+  this.location_ = $location;
 
   this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
 };
@@ -151,7 +151,7 @@ UserNotificationItemController.prototype.onNotificationChanged_ = function(
  * @export
  */
 UserNotificationItemController.prototype.openReference = function() {
-  if (openReference(this.scope_['notification'], this.window_)) {
+  if (openReference(this.scope_['notification'], this.location_)) {
     this.scope_['close']();
   }
 };

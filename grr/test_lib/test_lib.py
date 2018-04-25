@@ -2,7 +2,6 @@
 """A library for tests."""
 
 import codecs
-import cProfile
 import datetime
 import email
 import functools
@@ -29,9 +28,7 @@ import unittest
 from grr import config
 
 from grr_response_client import comms
-from grr.lib import flags
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import utils
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -55,21 +52,6 @@ from grr.server.grr_response_server.hunts import results as hunts_results
 
 from grr.test_lib import testing_startup
 
-flags.DEFINE_list(
-    "tests",
-    None,
-    help=("Test module to run. If not specified we run"
-          "All modules in the test suite."))
-
-flags.DEFINE_list("labels", ["small"],
-                  "A list of test labels to run. (e.g. benchmarks,small).")
-
-flags.DEFINE_string(
-    "profile", "", "If set, the test is run using cProfile, storing the "
-    "resulting profile data in the given filename. Running multiple tests"
-    "will overwrite this file so --tests should be used to limit this to a"
-    "single test.")
-
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
 TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
 
@@ -80,11 +62,6 @@ class Error(Exception):
 
 class GRRBaseTest(unittest.TestCase):
   """This is the base class for all GRR tests."""
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  # The type of this test.
-  type = "normal"
 
   use_relational_reads = False
 
@@ -184,14 +161,6 @@ class GRRBaseTest(unittest.TestCase):
     except UnicodeError:
       pass
 
-  def shortDescription(self):  # pylint: disable=g-bad-name
-    doc = self._testMethodDoc or ""
-    doc = doc.split("\n")[0].strip()
-    # Write the suite and test name so it can be easily copied into the --tests
-    # parameter.
-    return "\n%s.%s - %s\n" % (self.__class__.__name__, self._testMethodName,
-                               doc)
-
   def _AssertRDFValuesEqual(self, x, y):
     x_has_lsf = hasattr(x, "ListSetFields")
     y_has_lsf = hasattr(y, "ListSetFields")
@@ -218,87 +187,6 @@ class GRRBaseTest(unittest.TestCase):
   def assertRDFValuesEqual(self, x, y):
     """Check that two RDFStructs are equal."""
     self._AssertRDFValuesEqual(x, y)
-
-  def DoAfterTestCheck(self):
-    """May be overridden by subclasses to perform checks after every test."""
-    pass
-
-  def run(self, result=None):  # pylint: disable=g-bad-name
-    """Run the test case.
-
-    This code is basically the same as the standard library, except that when
-    there is an exception, the --debug (NOTYPO) flag allows us to drop into the
-    raising function for interactive inspection of the test failure.
-
-    Args:
-      result: The testResult object that we will use.
-    """
-    if result is None:
-      result = self.defaultTestResult()
-    result.startTest(self)
-    testMethod = getattr(  # pylint: disable=g-bad-name
-        self, self._testMethodName)
-    try:
-      try:
-        self.setUp()
-      except unittest.SkipTest:
-        result.addSkip(self, sys.exc_info())
-        result.stopTest(self)
-        return
-      except:
-        # Break into interactive debugger on test failure.
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
-
-        result.addError(self, sys.exc_info())
-        # If the setup step failed we stop the entire test suite
-        # immediately. This helps catch errors in the setUp() function.
-        raise
-
-      ok = False
-      try:
-        profile_filename = flags.FLAGS.profile
-        if profile_filename:
-          cProfile.runctx("testMethod()", globals(), locals(), profile_filename)
-        else:
-          testMethod()
-          # After-test checks are performed only if the test succeeds.
-          self.DoAfterTestCheck()
-
-        ok = True
-      except self.failureException:
-        # Break into interactive debugger on test failure.
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
-
-        result.addFailure(self, sys.exc_info())
-      except KeyboardInterrupt:
-        raise
-      except unittest.SkipTest:
-        result.addSkip(self, sys.exc_info())
-      except Exception:  # pylint: disable=broad-except
-        # Break into interactive debugger on test failure.
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
-
-        result.addError(self, sys.exc_info())
-
-      try:
-        self.tearDown()
-      except KeyboardInterrupt:
-        raise
-      except Exception:  # pylint: disable=broad-except
-        # Break into interactive debugger on test failure.
-        if flags.FLAGS.debug:
-          pdb.post_mortem()
-
-        result.addError(self, sys.exc_info())
-        ok = False
-
-      if ok:
-        result.addSuccess(self)
-    finally:
-      result.stopTest(self)
 
   def _SetupClientImpl(self,
                        client_nr,

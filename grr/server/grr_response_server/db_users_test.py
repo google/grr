@@ -570,3 +570,183 @@ class DatabaseTestUsersMixin(object):
 
     self.assertEqual(len(approvals), 10)
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
+
+  def testNotificationCanBeWrittenAndRead(self):
+    d = self.db
+    username = "test"
+    d.WriteGRRUser(username)
+
+    n = objects.UserNotification(
+        username=username,
+        notification_type=objects.UserNotification.Type.
+        TYPE_CLIENT_INTERROGATED,
+        state=objects.UserNotification.State.STATE_PENDING,
+        timestamp=rdfvalue.RDFDatetime(42),
+        message="blah")
+    d.WriteUserNotification(n)
+
+    ns = d.ReadUserNotifications(username)
+    self.assertEqual(len(ns), 1)
+    self.assertEqual(ns[0], n)
+
+  def testMultipleNotificationsCanBeWrittenAndRead(self):
+    d = self.db
+    username = "test"
+    d.WriteGRRUser(username)
+
+    ns = [
+        objects.UserNotification(
+            username=username,
+            notification_type=objects.UserNotification.Type.
+            TYPE_CLIENT_INTERROGATED,
+            state=objects.UserNotification.State.STATE_PENDING,
+            timestamp=rdfvalue.RDFDatetime(42 + i),
+            message="blah%d" % i) for i in range(10)
+    ]
+    for n in ns:
+      d.WriteUserNotification(n)
+
+    read_ns = d.ReadUserNotifications(username)
+    self.assertEqual(len(read_ns), 10)
+    self.assertEqual(ns, sorted(read_ns, key=lambda x: x.timestamp))
+
+  def testNotificationTimestampIsGeneratedWhenNotExplicit(self):
+    d = self.db
+    username = "test"
+    d.WriteGRRUser(username)
+
+    n = objects.UserNotification(
+        username=username,
+        notification_type=objects.UserNotification.Type.
+        TYPE_CLIENT_INTERROGATED,
+        state=objects.UserNotification.State.STATE_PENDING,
+        message="blah")
+    d.WriteUserNotification(n)
+
+    ns = d.ReadUserNotifications(username)
+    self.assertEqual(len(ns), 1)
+    self.assertNotEqual(int(ns[0].timestamp), 0)
+
+    self.assertNotEqual(ns[0], n)
+    n.timestamp = ns[0].timestamp
+    self.assertEqual(ns[0], n)
+
+  def _SetupUserNotificationTimerangeTest(self):
+    d = self.db
+    username = "test"
+    d.WriteGRRUser(username)
+
+    ts = []
+
+    ts.append(rdfvalue.RDFDatetime.Now())
+
+    n = objects.UserNotification(
+        username=username,
+        notification_type=objects.UserNotification.Type.
+        TYPE_CLIENT_INTERROGATED,
+        state=objects.UserNotification.State.STATE_PENDING,
+        message="n0")
+    d.WriteUserNotification(n)
+
+    ts.append(rdfvalue.RDFDatetime.Now())
+
+    n = objects.UserNotification(
+        username=username,
+        notification_type=objects.UserNotification.Type.
+        TYPE_CLIENT_INTERROGATED,
+        state=objects.UserNotification.State.STATE_PENDING,
+        message="n1")
+    d.WriteUserNotification(n)
+
+    ts.append(rdfvalue.RDFDatetime.Now())
+
+    return ts
+
+  def testReadUserNotificationsWithEmptyTimerange(self):
+    d = self.db
+    username = "test"
+
+    self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(username, timerange=(None, None))
+    ns = sorted(ns, key=lambda x: x.message)
+    self.assertEqual(len(ns), 2)
+    self.assertEqual(ns[0].message, "n0")
+    self.assertEqual(ns[1].message, "n1")
+
+  def testReadUserNotificationsWithTimerangeWithBothFromTo(self):
+    d = self.db
+    username = "test"
+
+    ts = self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(username, timerange=(ts[0], ts[1]))
+    self.assertEqual(len(ns), 1)
+    self.assertEqual(ns[0].message, "n0")
+
+    ns = d.ReadUserNotifications(username, timerange=(ts[0], ts[2]))
+    ns = sorted(ns, key=lambda x: x.message)
+    self.assertEqual(len(ns), 2)
+    self.assertEqual(ns[0].message, "n0")
+    self.assertEqual(ns[1].message, "n1")
+
+  def testReadUserNotificationsWithTimerangeWithFromOnly(self):
+    d = self.db
+    username = "test"
+
+    ts = self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(username, timerange=(ts[1], None))
+    self.assertEqual(len(ns), 1)
+    self.assertEqual(ns[0].message, "n1")
+
+  def testReadUserNotificationsWithTimerangeWithToOnly(self):
+    d = self.db
+    username = "test"
+
+    ts = self._SetupUserNotificationTimerangeTest()
+
+    ns = d.ReadUserNotifications(username, timerange=(None, ts[1]))
+    self.assertEqual(len(ns), 1)
+    self.assertEqual(ns[0].message, "n0")
+
+  def testReadUserNotificationsWithTimerangeEdgeCases(self):
+    d = self.db
+    username = "test"
+
+    self._SetupUserNotificationTimerangeTest()
+    all_ns = d.ReadUserNotifications(username)
+    self.assertEqual(len(all_ns), 2)
+
+    for n in all_ns:
+      ns = d.ReadUserNotifications(
+          username, timerange=(n.timestamp, n.timestamp))
+      self.assertEqual(len(ns), 1)
+      self.assertEqual(ns[0], n)
+
+    v_from = min(all_ns[0].timestamp, all_ns[1].timestamp)
+    v_to = max(all_ns[0].timestamp, all_ns[1].timestamp)
+
+    ns = d.ReadUserNotifications(username, timerange=(v_from, v_to))
+    ns = sorted(ns, key=lambda x: x.message)
+    self.assertEqual(len(ns), 2)
+    self.assertEqual(ns[0].message, "n0")
+    self.assertEqual(ns[1].message, "n1")
+
+  def testUpdateUserNotificationsUpdatesState(self):
+    d = self.db
+    username = "test"
+
+    self._SetupUserNotificationTimerangeTest()
+    all_ns = d.ReadUserNotifications(username)
+    all_ns = sorted(all_ns, key=lambda x: x.message)
+
+    d.UpdateUserNotifications(
+        username, [all_ns[0].timestamp],
+        state=objects.UserNotification.State.STATE_NOT_PENDING)
+
+    ns = d.ReadUserNotifications(username)
+    ns = sorted(ns, key=lambda x: x.message)
+    self.assertEqual(ns[0].state,
+                     objects.UserNotification.State.STATE_NOT_PENDING)
+    self.assertEqual(ns[1].state, objects.UserNotification.State.STATE_PENDING)

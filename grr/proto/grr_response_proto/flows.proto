@@ -6,6 +6,7 @@ syntax = "proto2";
 
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
+import "grr_response_proto/objects.proto";
 import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
@@ -139,42 +140,6 @@ message ACLToken {
   optional bool is_emergency = 8;
 }
 
-// Next field: 4
-message GUISettings {
-  option (semantic) = {
-    description: "User GUI settings and preferences."
-  };
-
-  enum UIMode {
-    BASIC = 0;
-    ADVANCED = 1;
-    DEBUG = 2;
-  }
-
-  optional UIMode mode = 1 [(sem_type) = {
-      description: "User interface mode.",
-    }, default=BASIC];
-
-  optional bool canary_mode = 3 [(sem_type) = {
-      description: "If true, show features that are being canaried."
-    }];
-}
-
-message HuntReference {
-  optional string hunt_id = 1 [(sem_type) = {
-      description: "The hunt id."
-    }];
-}
-
-message FlowReference {
-  optional string flow_id = 1 [(sem_type) = {
-      description: "The session id of the referenced flow."
-    }];
-  optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
-      description: "The client id the referenced flow ran on."
-    }];
-}
 
 message FlowLikeObjectReference {
   option (semantic) = {
@@ -208,19 +173,11 @@ message FlowRunnerArgs {
       label: HIDDEN,
     }, default=true];
 
-  optional string notification_event = 4 [(sem_type) = {
-      description: "An event listener's event name. An "
-      "event will be published to this listener once the flow finishes.";
-      friendly_name: "Notification Event",
-      label: HIDDEN,
-    }];
+  // DEPRECATED
+  // optional string notification_event = 4;
 
-  optional string notification_urn = 14 [(sem_type) = {
-      type: "SessionID",
-      description: "The Session ID for the event listener to receive a "
-      "notification when this flow completes.",
-      label: HIDDEN,
-    }];
+  // DEPRECATED
+  // optional string notification_urn = 14;
 
   optional string client_id = 5 [(sem_type) = {
       type: "ClientURN",
@@ -333,12 +290,8 @@ message HuntRunnerArgs {
       label: ADVANCED,
     }, default=MEDIUM_PRIORITY];
 
-  optional string notification_event = 6 [(sem_type) = {
-      description: "An event name for an event listener. An "
-      "event will be published to this listener once the flow finishes.";
-      friendly_name: "Notification Event",
-      label: HIDDEN,
-    }];
+  // DEPRECATED
+  // optional string notification_event = 6;
 
   optional string queue = 7 [(sem_type) = {
       description: "The queue to use for the hunt.",

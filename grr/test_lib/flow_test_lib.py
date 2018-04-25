@@ -454,9 +454,9 @@ def CheckFlowErrors(total_flows, token=None):
     if flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
-      raise RuntimeError("Flow %s completed in state %s" %
-                         (flow_obj.runner_args.flow_name,
-                          flow_obj.context.state))
+      raise RuntimeError(
+          "Flow %s completed in state %s" % (flow_obj.runner_args.flow_name,
+                                             flow_obj.context.state))
 
 
 def TestFlowHelper(flow_urn_or_cls_name,
@@ -464,7 +464,6 @@ def TestFlowHelper(flow_urn_or_cls_name,
                    client_id=None,
                    check_flow_errors=True,
                    token=None,
-                   notification_event=None,
                    sync=True,
                    **kwargs):
   """Build a full test harness: client - worker + start flow.
@@ -478,8 +477,6 @@ def TestFlowHelper(flow_urn_or_cls_name,
     check_flow_errors: If True, TestFlowHelper will raise on errors during flow
                        execution.
     token: Security token.
-    notification_event: A well known flow session_id of an event listener. Event
-                        will be published once the flow finishes.
     sync: Whether StartFlow call should be synchronous or not.
     **kwargs: Arbitrary args that will be passed to flow.GRRFlow.StartFlow().
   Yields:
@@ -499,7 +496,6 @@ def TestFlowHelper(flow_urn_or_cls_name,
     session_id = flow.GRRFlow.StartFlow(
         client_id=client_id,
         flow_name=flow_urn_or_cls_name,
-        notification_event=notification_event,
         sync=sync,
         token=token,
         **kwargs)

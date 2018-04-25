@@ -16,6 +16,7 @@ from grr.server.grr_response_server import artifact
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
 from grr.server.grr_response_server import db
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -518,7 +519,7 @@ class EnrolmentInterrogateEvent(flow.EventListener):
         return False
     return source.Queue() == queues.ENROLLMENT
 
-  @flow.EventHandler(source_restriction=True)
+  @events.EventHandler(source_restriction=True)
   def ProcessMessage(self, message=None, event=None):
     _ = message
     flow.GRRFlow.StartFlow(

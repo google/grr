@@ -25,13 +25,14 @@ var MAX_DISPLAYED_NOTIFICATIONS = 2;
  * @param {!angular.Scope} $scope
  * @param {!angular.$interval} $interval
  * @param {!angular.$window} $window
+ * @param {!angular.$location} $location
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
  * @ngInject
  */
 const UserDesktopNotificationsController =
-    function($scope, $interval, $window, grrApiService, grrTimeService) {
+  function($scope, $interval, $window, $location, grrApiService, grrTimeService) {
 
   if (!Notification) {
     return;  // Nothing to do here..
@@ -45,6 +46,9 @@ const UserDesktopNotificationsController =
 
   /** @private {!angular.$window} */
   this.window_ = $window;
+
+  /** @private {!angular.$location} */
+  this.location_ = $location;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -141,7 +145,7 @@ UserDesktopNotificationsController.prototype.
         this.grrApiService_.delete('users/me/notifications/pending/' +
                                    item['value']['timestamp']['value']);
 
-        openReference(item, this.window_);
+        openReference(item, this.location_);
       }.bind(this));
     }
   }.bind(this));
@@ -176,5 +180,3 @@ var UserDesktopNotificationsDirective =
  */
 UserDesktopNotificationsDirective.
     directive_name = 'grrUserDesktopNotifications';
-
-

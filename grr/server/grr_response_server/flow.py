@@ -1187,64 +1187,6 @@ class WellKnownFlow(GRRFlow):
     pass
 
 
-def EventHandler(source_restriction=False,
-                 auth_required=True,
-                 allow_client_access=False):
-  """A convenience decorator for Event Handlers.
-
-  Args:
-
-    source_restriction: If this is set to True, each time a message is
-      received, its source is passed to the method "CheckSource" of
-      the event listener. If that method returns True, processing is
-      permitted. Otherwise, the message is rejected.
-
-    auth_required: Do we require messages to be authenticated? If the
-                message is not authenticated we raise.
-
-    allow_client_access: If True this event is allowed to handle published
-      events from clients.
-
-  Returns:
-    A decorator which injects the following keyword args to the handler:
-
-     message: The original raw message RDFValue (useful for checking the
-       source).
-     event: The decoded RDFValue.
-
-  """
-
-  def Decorator(f):
-    """Initialised Decorator."""
-
-    @functools.wraps(f)
-    def Decorated(self, msg):
-      """A decorator that assists in enforcing EventListener restrictions."""
-      if (auth_required and
-          msg.auth_state != msg.AuthorizationState.AUTHENTICATED):
-        raise RuntimeError("Message from %s not authenticated." % msg.source)
-
-      if (not allow_client_access and msg.source and
-          rdf_client.ClientURN.Validate(msg.source)):
-        raise RuntimeError("Event does not support clients.")
-
-      if source_restriction:
-        source_check_method = getattr(self, "CheckSource")
-        if not source_check_method:
-          raise RuntimeError("CheckSource method not found.")
-        if not source_check_method(msg.source):
-          raise RuntimeError("Message source invalid.")
-
-      stats.STATS.IncrementCounter("grr_worker_states_run")
-      rdf_msg = rdf_flows.GrrMessage(msg)
-      res = f(self, message=rdf_msg, event=rdf_msg.payload)
-      return res
-
-    return Decorated
-
-  return Decorator
-
-
 class EventListener(WellKnownFlow):
   """Base Class for all Event Listeners.
 
@@ -1259,7 +1201,7 @@ class EventListener(WellKnownFlow):
 
   __metaclass__ = registry.EventRegistry
 
-  @EventHandler(auth_required=True)
+  @events.EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     """Handler for the event.
 

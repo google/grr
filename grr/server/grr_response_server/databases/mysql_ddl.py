@@ -83,5 +83,13 @@ CREATE TABLE IF NOT EXISTS approval_grant(
     timestamp DATETIME(6),
     PRIMARY KEY (username, approval_id, grantor_username, timestamp),
     FOREIGN KEY (username) REFERENCES grr_users (username)
+)""", """
+CREATE TABLE IF NOT EXISTS user_notification(
+    username VARCHAR(128),
+    timestamp DATETIME(6),
+    notification_state INT UNSIGNED,
+    notification MEDIUMBLOB,
+    PRIMARY KEY (username, timestamp),
+    FOREIGN KEY (username) REFERENCES grr_users (username)
 )"""
 ]

@@ -17,6 +17,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import client_index
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.flows.general import discovery
 from grr.test_lib import action_mocks
@@ -34,7 +35,7 @@ class DiscoveryTestEventListener(flow.EventListener):
   # For this test we just write the event as a class attribute.
   event = None
 
-  @flow.EventHandler(auth_required=True)
+  @events.EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     _ = message
     DiscoveryTestEventListener.event = event

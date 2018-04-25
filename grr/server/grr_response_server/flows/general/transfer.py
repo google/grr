@@ -15,6 +15,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import server_stubs
 from grr.server.grr_response_server.aff4_objects import aff4_grr
@@ -741,7 +742,7 @@ class FileStoreCreateFile(flow.EventListener):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="FileStoreCreateFile")
 
-  @flow.EventHandler()
+  @events.EventHandler()
   def ProcessMessage(self, message=None, event=None):
     """Process the new file and add to the file store."""
     _ = event

@@ -8,6 +8,7 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.server.grr_response_server import aff4
+from grr.server.grr_response_server import events
 from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import foreman as rdf_foreman
 from grr.server.grr_response_server.hunts import implementation
@@ -25,7 +26,7 @@ class TestHuntListener(flow.EventListener):
 
   received_events = []
 
-  @flow.EventHandler(auth_required=True)
+  @events.EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     _ = event
     # Store the results for later inspection.
@@ -485,40 +486,6 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     self.assertEqual(errors, 5)
     # All of the clients that have the file should still finish eventually.
     self.assertEqual(finished, 5)
-
-  def testHuntNotifications(self):
-    """This tests the Hunt notification event."""
-    TestHuntListener.received_events = []
-
-    # Set up 10 clients.
-    client_ids = self.SetupClients(10)
-
-    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
-        rdf_foreman.ForemanClientRule(
-            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
-            regex=rdf_foreman.ForemanRegexClientRule(
-                field="CLIENT_NAME", attribute_regex="GRR"))
-    ])
-
-    with implementation.GRRHunt.StartHunt(
-        hunt_name=BrokenSampleHunt.__name__,
-        client_rule_set=client_rule_set,
-        client_rate=0,
-        notification_event="TestHuntDone",
-        token=self.token) as hunt:
-
-      hunt.GetRunner().Start()
-
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    for client_id in client_ids:
-      foreman.AssignTasksToClient(client_id.Basename())
-
-    # Run the hunt.
-    client_mock = hunt_test_lib.SampleHuntMock()
-    hunt_test_lib.TestHuntHelper(
-        client_mock, client_ids, check_flow_errors=False, token=self.token)
-
-    self.assertEqual(len(TestHuntListener.received_events), 5)
 
   def _RunRateLimitedHunt(self, client_ids, start_time):
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[

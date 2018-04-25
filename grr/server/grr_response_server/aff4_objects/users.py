@@ -9,8 +9,8 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import user_pb2
 from grr.server.grr_response_server import aff4
 
 
@@ -149,7 +149,7 @@ class CryptedPassword(rdfvalue.RDFString):
 
 
 class GUISettings(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.GUISettings
+  protobuf = user_pb2.GUISettings
 
 
 class GRRUser(aff4.AFF4Object):
