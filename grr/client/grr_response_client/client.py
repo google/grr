@@ -41,6 +41,11 @@ def main(unused_args):
   if errors and errors.keys() != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
 
+  if config.CONFIG["Client.fleetspeak_enabled"]:
+    raise ValueError(
+        "This is not a Fleetspeak client, yet 'Client.fleetspeak_enabled' is "
+        "set to 'True'.")
+
   enrollment_necessary = not config.CONFIG.Get("Client.private_key")
   # Instantiating the client will create a private_key so we need to use a flag.
   client = comms.GRRHTTPClient(

@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """Tests for the artifact libraries."""
 
-import copy
 import os
 
-from grr import config
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -13,32 +11,11 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import test_base as rdf_test_base
 from grr.server.grr_response_server import artifact_registry
 from grr.server.grr_response_server import artifact_utils
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
-
-  # FIXME(hanuszczak): So, this test class clears the artifact registry sources.
-  # This is a problem, because other test classes might depend on original
-  # artifacts and we do not want to have them wiped out completely (only
-  # temporarily). As a quick and dirty hack we just store the internal registry
-  # sources during the test class initialization and restore it later. This is
-  # far from nice solution and should be refactored in the future.
-
-  @classmethod
-  def setUpClass(cls):
-    super(ArtifactHandlingTest, cls).setUpClass()
-
-    registry = artifact_registry.REGISTRY
-    cls._original_registry_sources = copy.deepcopy(registry._sources)
-
-  @classmethod
-  def tearDownClass(cls):
-    super(ArtifactHandlingTest, cls).tearDownClass()
-
-    registry = artifact_registry.REGISTRY
-    registry._sources = cls._original_registry_sources
-    registry._dirty = True
 
   def setUp(self):
     super(ArtifactHandlingTest, self).setUp()
@@ -46,113 +23,105 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     self.test_artifacts_file = os.path.join(self.test_artifacts_dir,
                                             "test_artifacts.json")
 
-  def testArtifactsValidate(self):
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testArtifactsValidate(self, registry):
     """Check each artifact we have passes validation."""
+    registry.AddFileSource(self.test_artifacts_file)
 
-    for artifact in artifact_registry.REGISTRY.GetArtifacts():
+    for artifact in registry.GetArtifacts():
       artifact.Validate()
 
-    art_obj = artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+    art_obj = registry.GetArtifact("TestCmdArtifact")
     art_obj.labels.append("BadLabel")
 
     self.assertRaises(artifact_registry.ArtifactDefinitionError,
                       art_obj.Validate)
 
-  def testGetEmptyArtifacts(self):
-    artifact_registry.REGISTRY.ClearSources()
-    self.assertEqual(artifact_registry.REGISTRY.GetArtifacts(), set())
-
-  def testAddSources(self):
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
-    artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testAddFileSource(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
+    registry.GetArtifact("TestCmdArtifact")
     with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
-      artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
+      registry.GetArtifact("NonExistentArtifact")
 
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddDirSource(self.test_artifacts_dir)
-    artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testAddDirSource(self, registry):
+    registry.AddDirSource(self.test_artifacts_dir)
+    registry.GetArtifact("TestCmdArtifact")
     with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
-      artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
+      registry.GetArtifact("NonExistentArtifact")
 
-  def _LoadAllArtifacts(self):
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
-    artifact_registry.REGISTRY.AddDirSources(
-        config.CONFIG["Artifacts.artifact_dirs"])
+  @artifact_test_lib.PatchDefaultArtifactRegistry
+  def testGetArtifacts(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
 
-  def testGetArtifacts(self):
-    self._LoadAllArtifacts()
-
-    results = artifact_registry.REGISTRY.GetArtifacts(os_name="Windows")
+    results = registry.GetArtifacts(os_name="Windows")
     for result in results:
       self.assertTrue("Windows" in result.supported_os or
                       not result.supported_os)
 
-    results = artifact_registry.REGISTRY.GetArtifacts(
+    results = registry.GetArtifacts(
         os_name="Windows",
         name_list=["TestAggregationArtifact", "TestFileArtifact"])
 
     # TestFileArtifact doesn't match the OS criteria
-    self.assertItemsEqual([x.name
-                           for x in results], ["TestAggregationArtifact"])
+    self.assertItemsEqual([x.name for x in results],
+                          ["TestAggregationArtifact"])
     for result in results:
       self.assertTrue("Windows" in result.supported_os or
                       not result.supported_os)
 
-    results = artifact_registry.REGISTRY.GetArtifacts(
+    results = registry.GetArtifacts(
         os_name="Windows",
         source_type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
     # Check supported_os = [] matches any OS
-    results = artifact_registry.REGISTRY.GetArtifacts(
+    results = registry.GetArtifacts(
         os_name="Windows", name_list=["RekallPsList"])
     self.assertEqual(len(results), 1)
     self.assertEqual(results.pop().name, "RekallPsList")
 
-    results = artifact_registry.REGISTRY.GetArtifacts(
-        os_name="Windows", exclude_dependents=True)
+    results = registry.GetArtifacts(os_name="Windows", exclude_dependents=True)
     for result in results:
       self.assertFalse(result.GetArtifactPathDependencies())
 
     # Check provides filtering
-    results = artifact_registry.REGISTRY.GetArtifacts(
+    results = registry.GetArtifacts(
         os_name="Windows", provides=["users.homedir", "domain"])
     for result in results:
       # provides contains at least one of the filter strings
       self.assertTrue(
-          len(set(result.provides).union(set(["users.homedir", "domain"]))) >=
-          1)
+          len(set(result.provides).union(set(["users.homedir", "domain"]))) >= 1
+      )
 
-    results = artifact_registry.REGISTRY.GetArtifacts(
+    results = registry.GetArtifacts(
         os_name="Windows", provides=["nothingprovidesthis"])
     self.assertEqual(len(results), 0)
 
-  def testGetArtifactNames(self):
-    self._LoadAllArtifacts()
+  @artifact_test_lib.PatchDefaultArtifactRegistry
+  def testGetArtifactNames(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
 
-    result_objs = artifact_registry.REGISTRY.GetArtifacts(
+    result_objs = registry.GetArtifacts(
         os_name="Windows", provides=["users.homedir", "domain"])
 
-    results_names = artifact_registry.REGISTRY.GetArtifactNames(
+    results_names = registry.GetArtifactNames(
         os_name="Windows", provides=["users.homedir", "domain"])
 
     self.assertItemsEqual(set([a.name for a in result_objs]), results_names)
     self.assertTrue(len(results_names))
 
-    results_names = artifact_registry.REGISTRY.GetArtifactNames(
+    results_names = registry.GetArtifactNames(
         os_name="Darwin", provides=["users.username"])
     self.assertIn("MacOSUsers", results_names)
 
-  def testSearchDependencies(self):
-    # Just use the test artifacts to verify dependency correctness so we
-    # aren't subject to changing dependencies in the whole set
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testSearchDependencies(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
 
-    names, expansions = artifact_registry.REGISTRY.SearchDependencies(
+    names, expansions = registry.SearchDependencies(
         "Windows", [u"TestAggregationArtifactDeps", u"DepsParent"])
 
     # This list contains all artifacts that can provide the dependency, e.g.
@@ -170,23 +139,27 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     ])
 
     # None of these match the OS, so we should get an empty list.
-    names, expansions = artifact_registry.REGISTRY.SearchDependencies(
+    names, expansions = registry.SearchDependencies(
         "Darwin", [u"TestCmdArtifact", u"TestFileArtifact"])
     self.assertItemsEqual(names, [])
 
-  def testArtifactConversion(self):
-    for art_obj in artifact_registry.REGISTRY.GetArtifacts():
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testArtifactConversion(self, registry):
+    registry.AddFileSource(self.test_artifacts_file)
+
+    for art_obj in registry.GetArtifacts():
       # Exercise conversions to ensure we can move back and forth between the
       # different forms.
       art_json = art_obj.ToJson()
-      new_art_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(art_json)[0]
+      new_art_obj = registry.ArtifactsFromYaml(art_json)[0]
       self.assertEqual(new_art_obj.ToPrimitiveDict(), art_obj.ToPrimitiveDict())
 
-  def testArtifactsDependencies(self):
+  @artifact_test_lib.PatchCleanArtifactRegistry
+  def testArtifactsDependencies(self, registry):
     """Check artifact dependencies work."""
-    artifact_reg = artifact_registry.REGISTRY
+    registry.AddFileSource(self.test_artifacts_file)
 
-    art_obj = artifact_reg.GetArtifact("TestAggregationArtifactDeps")
+    art_obj = registry.GetArtifact("TestAggregationArtifactDeps")
     deps = art_obj.GetArtifactDependencies()
     self.assertItemsEqual(list(deps), ["TestAggregationArtifact"])
 
@@ -215,9 +188,10 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     kb = rdf_client.KnowledgeBase()
 
     # No users yet, this should raise
-    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError, list,
-                      artifact_utils.InterpolateKbAttributes(
-                          "test%%users.username%%test", kb))
+    self.assertRaises(
+        artifact_utils.KnowledgeBaseInterpolationError, list,
+        artifact_utils.InterpolateKbAttributes("test%%users.username%%test",
+                                               kb))
 
     # Now we have two users
     kb.users.Append(rdf_client.User(username="joe", uid=1))
@@ -235,20 +209,21 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     self.assertEqual(list(paths), ["c:\\programdata\\a"])
 
     # Check a bad attribute raises
-    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError, list,
-                      artifact_utils.InterpolateKbAttributes(
-                          "%%nonexistent%%\\a", kb))
+    self.assertRaises(
+        artifact_utils.KnowledgeBaseInterpolationError, list,
+        artifact_utils.InterpolateKbAttributes("%%nonexistent%%\\a", kb))
 
     # Empty values should also raise
     kb.Set("environ_allusersprofile", "")
-    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError, list,
-                      artifact_utils.InterpolateKbAttributes(
-                          "%%environ_allusersprofile%%\\a", kb))
+    self.assertRaises(
+        artifact_utils.KnowledgeBaseInterpolationError, list,
+        artifact_utils.InterpolateKbAttributes("%%environ_allusersprofile%%\\a",
+                                               kb))
 
     # No users have temp defined, so this should raise
-    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError, list,
-                      artifact_utils.InterpolateKbAttributes(
-                          "%%users.temp%%\\a", kb))
+    self.assertRaises(
+        artifact_utils.KnowledgeBaseInterpolationError, list,
+        artifact_utils.InterpolateKbAttributes("%%users.temp%%\\a", kb))
 
     # One user has users.temp defined, the others do not.  This is common on
     # windows where users have been created but have never logged in. We should
@@ -336,8 +311,9 @@ class UserMergeTest(test_lib.GRRBaseTest):
         rdf_client.User(username="newblake", desktop="/home/blakey/Desktop"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
-    self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",
-                                       u"/home/blakey/Desktop")])
+    self.assertItemsEqual(
+        conflicts,
+        [("desktop", u"/home/blake/Desktop", u"/home/blakey/Desktop")])
 
 
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -384,9 +360,9 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         urls=["http://blah"],
         sources=sources)
 
-    self.assertItemsEqual([
-        x["type"] for x in artifact.ToPrimitiveDict()["sources"]
-    ], ["REGISTRY_KEY", "WMI", "GREP"])
+    self.assertItemsEqual(
+        [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
+        ["REGISTRY_KEY", "WMI", "GREP"])
 
     class Parser1(object):
       knowledgebase_dependencies = ["appdata", "sid"]
@@ -483,19 +459,20 @@ class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):
 
     mapping = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
 
-    self.assertEqual(mapping, {
-        "allusersappdata": "the_allusersappdata",
-        "allusersprofile": "the_allusersprofile",
-        "path": "the_path",
-        "programdata": "the_allusersprofile",
-        "programfiles": "the_programfiles",
-        "programfiles(x86)": "the_programfilesx86",
-        "programw6432": "the_programfiles",
-        "systemdrive": "the_systemdrive",
-        "systemroot": "the_systemroot",
-        "temp": "the_temp",
-        "windir": "the_windir"
-    })
+    self.assertEqual(
+        mapping, {
+            "allusersappdata": "the_allusersappdata",
+            "allusersprofile": "the_allusersprofile",
+            "path": "the_path",
+            "programdata": "the_allusersprofile",
+            "programfiles": "the_programfiles",
+            "programfiles(x86)": "the_programfilesx86",
+            "programw6432": "the_programfiles",
+            "systemdrive": "the_systemdrive",
+            "systemroot": "the_systemroot",
+            "temp": "the_temp",
+            "windir": "the_windir"
+        })
 
   def testKnowlegeBaseUsersAttributesExpandIntoLists(self):
     kb = rdf_client.KnowledgeBase()
@@ -514,12 +491,13 @@ class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):
 
     mapping = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
 
-    self.assertEqual(mapping, {
-        "appdata": ["the_appdata_1", "the_appdata_2"],
-        "localappdata": ["the_localappdata_1", "the_localappdata_2"],
-        "userdomain": ["the_userdomain_1", "the_userdomain_2"],
-        "userprofile": ["the_userprofile_1", "the_userprofile_2"]
-    })
+    self.assertEqual(
+        mapping, {
+            "appdata": ["the_appdata_1", "the_appdata_2"],
+            "localappdata": ["the_localappdata_1", "the_localappdata_2"],
+            "userdomain": ["the_userdomain_1", "the_userdomain_2"],
+            "userprofile": ["the_userprofile_1", "the_userprofile_2"]
+        })
 
 
 def main(argv):

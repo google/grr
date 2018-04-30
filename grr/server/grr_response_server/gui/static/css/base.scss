@@ -1,0 +1,963 @@
+//
+// Base class for all styles.
+//
+// Recursively includes all files in ../angular-components. Files in angular-components must not depend on order
+// of inclusion.
+//
+
+@import 'grr/server/grr_response_server/gui/static/css/variables';
+@import 'grr/server/grr_response_server/gui/static/css/mixins';
+
+// Directive style includes
+@import 'grr/server/grr_response_server/gui/static/angular-components/acl/approval-info';
+@import 'grr/server/grr_response_server/gui/static/angular-components/acl/hunt-approval-view';
+@import 'grr/server/grr_response_server/gui/static/angular-components/acl/hunt-from-flow-copy-review';
+@import 'grr/server/grr_response_server/gui/static/angular-components/acl/hunt-from-hunt-copy-review';
+@import 'grr/server/grr_response_server/gui/static/angular-components/acl/request-approval-dialog';
+@import 'grr/server/grr_response_server/gui/static/angular-components/artifact/artifacts-list-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/artifact/artifact-name';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/download-collection-as';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/troggle';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/check-client-access';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/host-info';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/breadcrumbs';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/file-details';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/file-hex-view';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/file-text-view';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/file-table';
+@import 'grr/server/grr_response_server/gui/static/angular-components/client/virtual-file-system/file-timeline';
+@import 'grr/server/grr_response_server/gui/static/angular-components/config/binaries-list';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/download-collection-files';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/global-notifications';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/version-dropdown';
+@import 'grr/server/grr_response_server/gui/static/angular-components/core/wizard-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/flow/start-flow-view';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-condition-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-linux-picker-long';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-linux-picker-short';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/ext-flags-osx-picker';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/foreman-label-rule-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/forms/semantic-proto-union-form';
+@import 'grr/server/grr_response_server/gui/static/angular-components/hunt/hunt-graph';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/rekall/rekall';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-diff-annotated-proto';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/semantic-versioned-proto';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/stat-entry';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/stat-ext-flags-linux';
+@import 'grr/server/grr_response_server/gui/static/angular-components/semantic/stat-ext-flags-osx';
+@import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/client-summary';
+@import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/client-warnings';
+@import 'grr/server/grr_response_server/gui/static/angular-components/sidebar/navigator';
+@import 'grr/server/grr_response_server/gui/static/angular-components/stats/chart';
+@import 'grr/server/grr_response_server/gui/static/angular-components/stats/timeseries-graph';
+@import 'grr/server/grr_response_server/gui/static/angular-components/user/user-notification-item';
+@import 'grr/server/grr_response_server/gui/static/angular-components/user/user-settings-button';
+
+//
+//
+// General element styles
+//
+//
+
+a {
+  cursor:pointer;
+}
+
+label {
+  font-weight: normal;
+}
+
+table {
+  th,
+  td {
+    vertical-align: middle !important;
+  }
+
+  tr.row_selected td,
+  tr.row-selected td {
+    background-color: $color-table-row-selected !important;
+  }
+
+  tr.highlighted td {
+    background-color: $color-table-row-highlighted;
+  }
+
+  tr.config_modified {
+    color: $color-table-row-modified;
+  }
+
+  // Fixed layout
+  &.fixed-layout {
+    table-layout: fixed;
+  }
+
+  &.fixed-layout td {
+    word-wrap: break-word;
+  }
+}
+
+table.fixed-columns {
+  table-layout: fixed;
+
+  th {
+    word-wrap: break-word;
+    vertical-align: middle;
+  }
+}
+
+.table-row {
+  display: table-row;
+}
+
+td.data_area {
+  padding-left: 2ex;
+}
+
+td.slider_area {
+  padding-left: 2ex;
+  padding-right: 2ex;
+}
+
+button.btn,
+label.btn {
+  position: relative;
+
+  i {
+    padding: 2px;
+    font-size: 1.3em;
+
+    &.annotation {
+      position: absolute;
+      font-size: 1.0em;
+      bottom: 2px;
+      right: 4px;
+      color: $color-grr-blue;
+      opacity: .8;
+    }
+  }
+}
+
+.input-group.large {
+  input.form-control {
+    height: 32px;
+    line-height: 32px;
+  }
+}
+
+
+//
+//
+// Navbar styles
+//
+//
+
+.navbar {
+  margin-bottom: 0; // Bootstrap tweaks
+
+  .space-right {
+    margin-right: 10px;
+  }
+}
+
+.navbar.navbar-static-top {
+  min-width: 1024px;
+}
+
+.navbar.navbar-fixed-bottom {
+  position: absolute !important;
+  min-width: 1024px;
+}
+
+.navbar-brand {
+  font-size: 20px;
+  padding-left: 120px;
+}
+
+.grr-logo {
+  max-height: 41px;
+  position: absolute;
+  left: 0;
+}
+
+#notification_button {
+  width: 60px;
+}
+
+#notifications_and_settings {
+  margin-left: 10px;
+}
+
+.navbar-text p {
+  margin: 0;
+}
+
+
+
+//
+//
+// Content area
+//
+//
+
+div[ui-view] {
+  width: 100%;
+  height: 100%;
+
+  > * {
+    display: block;
+    height: 100%;
+  }
+}
+
+#content {
+  position: absolute;
+  left: 0;
+  top: 40px;
+  bottom: 40px;
+  right: 0;
+  min-width: 1024px;
+  min-height: 400px;
+}
+
+.breadcrumb {
+  margin: 0;
+  line-height: 25px;
+
+  .btn {
+    margin-right: 0 !important;
+  }
+
+  .btn-group {
+    margin-right: 6px !important;
+
+    > .btn:first-child {
+      margin-right: 0;
+    }
+  }
+}
+
+
+
+//
+//
+// Dialogs / Wizards
+//
+//
+
+.WizardPage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  .modal-body {
+    overflow: auto;
+
+    .rightPane {
+      overflow: auto;
+    }
+  }
+}
+
+.FormBody {
+  padding-top: 1em;
+  margin-left: 30px;
+}
+
+.modal-body {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.wide-modal > .modal-dialog {
+  width: 60%;
+}
+
+.wide-modal.high-modal {
+  .modal-header {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+
+  .modal-body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 82px;
+    bottom: 69px;
+    max-height: none;
+    padding: 0;
+    overflow: auto;
+  }
+
+  .modal-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: none;
+  }
+
+  > .modal-dialog {
+    width: 60%;
+    top: 5em;
+    bottom: 5em;
+    margin-left: 20%;
+    position: absolute;
+
+    > .modal-content {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+    }
+  }
+}
+
+@media (max-width: 1440px) {
+  .wide-modal > .modal-dialog {
+    width: 90%;
+  }
+
+  .wide-modal.high-modal > .modal-dialog {
+    width: 90%;
+    top: 5em;
+    bottom: 5em;
+    margin-left: 5%;
+    position: absolute;
+  }
+}
+
+.high-modal > .modal-dialog {
+  max-height: 600px
+}
+
+
+
+//
+//
+// Controls
+//
+//
+
+.controls {
+  margin-left: 180px;
+  margin-right: 1em;
+
+  input,
+  select,
+  div.input-group {
+    width: 206px;
+  }
+
+  input {
+    &[type=checkbox],
+    &.hasDatepicker {
+      width: auto;
+    }
+
+    &.pickerIcon {
+      width: 0;
+    }
+  }
+
+  span.glyphicon.form-control-feedback {
+    left: 177px;
+  }
+}
+
+.control-label {
+  float: left;
+  width: 160px;
+  padding-top: 5px;
+  text-align: right;
+}
+
+input.pickerIcon {
+  width: 0;
+  visibility: hidden;
+}
+
+input.unset,
+select.unset {
+  background-color: $color-pristine;
+}
+
+
+
+//
+//
+// GRR-specific splitter css
+//
+//
+div[grr-splitter] {
+  height: 100%;
+}
+
+#content_leftPane {
+  width: 224px;
+}
+
+.leftPane {
+  float: left;
+  width: 15%;
+  height: 100%;
+  background: $color-default-background;
+  overflow: auto;
+  position: relative;
+}
+
+.rightPane {
+  float: right;
+  width: 85%;
+  height: 100%;
+  background: $color-default-background;
+  overflow: auto;
+  position: absolute;
+  right: 0;
+}
+
+.rightSplitterContainer {
+  width: 100%;
+  height: 100%;
+  background: $color-default-background;
+  overflow: hidden;
+}
+
+.rightTopPane {
+  width: 100%;
+  height: 50%;
+  background: $color-default-background;
+  overflow: auto;
+  position: relative;
+}
+
+.rightBottomPane {
+  width: 100%;
+  background: $color-default-background;
+  overflow: auto;
+  position: relative;
+}
+
+
+
+//
+//
+// GRR-specific jstree cs
+//
+//
+
+i.jstree-icon.file {
+  background-position: -4px -4px;
+  background-image: url('/static/third-party/jstree/themes/default/32px.png');
+}
+
+span.tree_branch {
+  background-image: url('/static/images/jstree_icon_set.png');
+  background-repeat: no-repeat;
+  background-color: transparent;
+  background-position: 72px 0;
+  display: block;
+  float: left;
+  padding: 9px;
+}
+
+tr td span.tree_leaf {
+  background-image: url('/static/images/jstree_icon_set.png');
+  background-repeat: no-repeat;
+  background-color: transparent;
+  background-position: 18px 0;
+  display: block;
+  float: left;
+  padding: 9px;
+}
+
+td span.tree_opened {
+  background-position: -72px 0;
+}
+
+td span.tree_closed {
+  background-position: 0 0;
+}
+
+tr.tree_hidden {
+  display: none;
+}
+
+
+
+//
+//
+// Proto tables styling
+//
+//
+
+.proto_header,
+.proto_key,
+.proto_value {
+  padding: 0;
+  word-wrap: break-word;
+}
+
+.proto_header {
+  font-weight:bold;
+}
+
+.proto_key {
+  width: 20ex;
+}
+
+.proto_table,
+.proto-table {
+  width: 100%;
+  border: 1px solid $color-proto-table-border;
+  background: $color-proto-background;
+
+  // Make sure nested tables don't have explicit background set.
+  .proto_table,
+  proto-table {
+    background: none;
+  }
+
+  td {
+    border: 1px solid $color-proto-border;
+  }
+
+  &.no-cell-border td {
+    border: 0;
+  }
+}
+
+.proto_separator {
+  height: 0;
+}
+
+.proto_error {
+  color: $color-proto-error;
+}
+
+
+
+//
+//
+// Documentation
+//
+//
+
+.doc-toc {
+  position: fixed;
+  min-width: 15em;
+  max-width: 20em;
+}
+
+.doc-item {
+  margin-bottom: 2em;
+
+  p.lead {
+    margin-bottom: .25em;
+  }
+
+  .query-parameters {
+    margin-top: 1em;
+  }
+
+  .json {
+    white-space: pre-wrap;
+    font-family: $font-json;
+    background-color: $color-doc-json;
+  }
+
+  .example {
+    th {
+      font-weight: normal;
+    }
+
+    .request-payload {
+      padding-right: 30em;
+      padding-bottom: 1em;
+
+      .method-label {
+        font-size: 90%;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+
+
+//
+//
+// Common styles
+//
+//
+
+.client-checkbox {
+  margin-top: 6px !important;
+}
+
+.nested-icon,
+.advanced-icon {
+  margin-top: 6px;
+}
+
+.advanced-controls {
+  border-left: 5px solid $color-advanced-controls-border;
+}
+
+.toolbar-search-box {
+  position: absolute;
+  right: 0;
+  width: 300px
+}
+
+.form-horizontal .form-group {
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.context-help {
+  width: 15px;
+  position: absolute;
+  right: 10px;
+  top: 0;
+}
+
+.tab-content {
+  margin-top: 1em;
+}
+
+dd.histogram {
+  margin-top: 1em;
+
+  > div {
+    width: 800px;
+    height: 300px;
+  }
+}
+
+.indicator-label {
+  padding-left: 1em;
+  vertical-align: middle;
+}
+
+.toolbar_icon,
+.toolbar-icon {
+  height: 20px;
+}
+
+.no-margin {
+  margin: 0 !important;
+}
+
+.no-bottom-margin {
+  margin-bottom: 0;
+}
+
+.no-right-padding {
+  padding-right: 0 !important;
+}
+
+.padded {
+  padding: 1em;
+}
+
+.horizontally-padded {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+.vertically-padded {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.half-transparent {
+  opacity: .5;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.full-width-height {
+  width: 100%;
+  height: 100%;
+}
+
+.fill-parent {
+  position: absolute;
+  left: 1em;
+  right: 1em;
+  top: 1em;
+  bottom: 1em;
+
+  &.no-top-margin {
+    top: 0;
+  }
+
+  &.no-margins {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+
+  &.toolbar-margin {
+    top: 48px !important;
+  }
+}
+
+.no-overflow {
+  overflow: hidden !important;
+}
+
+.toolbar {
+  border-bottom: 1px solid $color-proto-border;
+  height: 48px;
+  box-sizing: content-box;
+  overflow: visible;
+  z-index: 1025; // Toolbar should be below the modal background (1050) but above everything else.
+}
+
+.fill-parent-with-toolbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 49px;
+  bottom: 0;
+  overflow-y: auto;
+}
+
+.monospace {
+  font-family: $font-monospace;
+  font-size: 13px;
+  color: $color-monospace-color;
+  padding: 0;
+  margin: 0;
+}
+
+.panel {
+  @include border-radius(6px);
+  @include box-shadow(0, 3, 7, $color-panel-box-shadow);
+  background-color: $color-panel-background;
+  border: 1px solid $color-panel-border;
+}
+
+.details-right-panel {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  left: 150px;
+}
+
+.ajax_spinner {
+  min-width: 16px;
+  min-height: 16px;
+  display: inline-block;
+}
+
+.grr-icon {
+  width: 18px;
+  vertical-align: text-top;
+}
+
+.grr-icon-small {
+  width: 14px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.vertical_aligned {
+  vertical-align: middle;
+}
+
+.centered {
+  text-align: center;
+}
+
+.headline {
+  font-size: 14px;
+  color: $color-headline-color;
+  font-weight: bold;
+  margin-bottom: 7px;
+  margin-top: 3px;
+}
+
+.infoline {
+  color: $color-infoline-color;
+}
+
+td.leased {
+  background-color: $color-table-row-leased !important;
+}
+
+td.lease_available {
+  background-color: $color-table-row-lease-available !important;
+}
+
+.historical_view {
+  display: none;
+}
+
+.non-breaking {
+  white-space: nowrap;
+}
+
+.preserve-linebreaks {
+  white-space: pre-line;
+}
+
+.preserve-whitespace {
+  white-space: pre;
+}
+
+.grr_aff4_type_header {
+  text-align: center;
+  font-size: +2ex;
+}
+
+.grr_graph {
+  position: absolute;
+  left: 1em;
+  right: 1em;
+  bottom: 1em;
+  top: 8em;
+  overflow: hidden;
+}
+
+div.hexview {
+  position: relative;
+  height: 100%;
+}
+
+table.hextable {
+  margin-left: 30px;
+}
+
+div.asc,
+div.desc {
+  padding: 10px;
+  font-size: 2ex;
+}
+
+div.sort-dialog div.filter {
+  @include box-shadow(0, 2px, 4px, $color-sort-dialog-filter-box-shadow);
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-top: 6px;
+  border: 1px solid $color-sort-dialog-filter-border;
+}
+
+pre.inline {
+  display: inline;
+  font-family: $font-monospace
+}
+
+select.artifact_list {
+  height: 300px;
+}
+
+table.artifact_table {
+  vertical-align: top;
+  border-spacing: 5px;
+  border-collapse: separate;
+}
+
+td.artifact_table {
+  vertical-align: top !important;
+}
+
+abbr[title] {
+  cursor: pointer;
+}
+
+.dl-group {
+  margin-bottom: 1em;
+}
+
+
+//
+//
+// Graphs: wrapper around jQuery Flot to provide graph title and axis labels
+//
+//
+
+table.grr_flot_graph {
+  width: 100%;
+
+  .title {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .axis-x,
+  .axis-y {
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .axis-y {
+    transform: rotate(-90deg);
+    width: 40px;
+  }
+
+  .graph-wrapper {
+    position: relative;
+  }
+
+  td.legendColorBox {
+    padding-right: 3px;
+  }
+}
+
+
+
+//
+//
+// Overwrite jQuery UI styles
+//
+//
+
+.ui-autocomplete {
+  max-height: 100px;
+  max-width: 400px;
+  overflow-y: auto;
+  overflow-x: hidden; // prevent horizontal scrollbar
+  z-index: 1100 !important; // ensure autocomplete is always shown above other UI elements
+  background-color: $color-default-background;
+  border: 1px solid $color-proto-border;
+}
+
+* html .ui-autocomplete {
+  // IE 6 doesn't support max-height
+  // we use height instead, but this forces the menu to always be this tall
+  height: 100px;
+}
+
+
+
+//
+//
+// Overwrite Angular UI styles
+//
+//
+
+.modal.fade {
+  opacity: 1; // turn off Angular UI modal animations
+}
+
+.modal.fade .modal-dialog,
+.modal.in .modal-dialog {
+  // turn off Angular UI modal animations
+  -webkit-transform: translate(0, 0);
+  -ms-transform: translate(0, 0);
+  transform: translate(0, 0);
+}

@@ -12,7 +12,7 @@ import "grr_response_proto/sysinfo.proto";
 // Entities.
 //
 
-// Next id: 20
+// Next id: 21
 message ApiClient {
   optional string client_id = 18 [(sem_type) = {
       type: "ApiClientId",
@@ -24,6 +24,7 @@ message ApiClient {
       description: "Client URN."
     }];
 
+  optional bool fleetspeak_enabled = 20;
   optional ClientInformation agent_info = 2;
   optional HardwareInfo hardware_info = 3;
   optional Uname os_info = 4;

@@ -11,7 +11,7 @@ from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_cmd_parser
 from grr.server.grr_response_server import artifact
-from grr.server.grr_response_server import artifact_registry
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
@@ -68,7 +68,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
     software = {
         o.name: o.version
-        for o in out if isinstance(o, rdf_client.SoftwarePackage)
+        for o in out
+        if isinstance(o, rdf_client.SoftwarePackage)
     }
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
     self.assertEqual(7, len(software))
@@ -180,11 +181,12 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     args.insert(0, "ps")
     self.assertEquals(args, process.cmdline)
 
-  def testPsCmdParserValidation(self):
+  @artifact_test_lib.PatchDefaultArtifactRegistry
+  def testPsCmdParserValidation(self, registry):
     """Test the PsCmdParser pass Validation() method."""
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
-    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+    registry.AddFileSource(test_artifacts_file)
 
     parser = linux_cmd_parser.PsCmdParser
 

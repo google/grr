@@ -240,7 +240,8 @@ VSVersionInfo\(
 """)
 
 config_lib.DEFINE_bytes(
-    "PyInstaller.icon", "%(%(grr/gui/static/images/grr.ico|resource)|file)",
+    "PyInstaller.icon", "%(%(grr/server/grr_response_server/gui/"
+    "static/images/grr.ico|resource)|file)",
     "The icon file contents to use for building the client.")
 
 config_lib.DEFINE_string(

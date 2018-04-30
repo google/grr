@@ -142,9 +142,7 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
           artifact_list=[artifact_name],
           knowledge_base=self.state.knowledge_base,
           next_state="ProcessBase",
-          request_data={
-              "artifact_name": artifact_name
-          })
+          request_data={"artifact_name": artifact_name})
 
   def _ScheduleCollection(self):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
@@ -214,9 +212,9 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
           raise flow.FlowError(
               "KnowledgeBase initialization failed as the "
               "following artifacts had dependencies that could"
-              " not be fulfilled %s. Missing: %s" %
-              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts],
-               missing_deps))
+              " not be fulfilled %s. Missing: %s" % ([
+                  utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts
+              ], missing_deps))
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts "
                    "had dependencies that could not be fulfilled %s. "
@@ -244,8 +242,9 @@ class KnowledgeBaseInitializationFlow(flow.GRRFlow):
             self.state.knowledge_base.MergeOrAddUser(response))
         provided.update(attrs_provided)
         for key, old_val, val in merge_conflicts:
-          self.Log("User merge conflict in %s. Old value: %s, "
-                   "Newly written value: %s", key, old_val, val)
+          self.Log(
+              "User merge conflict in %s. Old value: %s, "
+              "Newly written value: %s", key, old_val, val)
 
       else:
         artifact_provides = artifact_obj.provides
@@ -516,8 +515,4 @@ class ArtifactLoader(registry.InitHook):
   pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
-    for path in config.CONFIG["Artifacts.artifact_dirs"]:
-      artifact_registry.REGISTRY.AddDirSource(path)
-
-    artifact_registry.REGISTRY.AddDatastoreSources(
-        [aff4.ROOT_URN.Add("artifact_store")])
+    artifact_registry.REGISTRY.AddDefaultSources()

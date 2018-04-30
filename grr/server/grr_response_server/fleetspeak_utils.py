@@ -5,6 +5,7 @@ import binascii
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server.grr_response_server import aff4
 from grr.server.grr_response_server import data_store
@@ -47,3 +48,8 @@ def FleetspeakIDToGRRID(fs_id):
 def GRRIDToFleetspeakID(grr_id):
   # Strip the 'C.' prefix and convert to binary.
   return binascii.unhexlify(grr_id[2:])
+
+
+def TSToRDFDatetime(ts):
+  """Convert a protobuf.Timestamp to an RDFDatetime."""
+  return rdfvalue.RDFDatetime(ts.seconds * 1000 + ts.nanos / 1000000)

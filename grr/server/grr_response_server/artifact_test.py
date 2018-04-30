@@ -29,6 +29,7 @@ from grr.server.grr_response_server.aff4_objects import aff4_grr
 from grr.server.grr_response_server.flows.general import collectors
 from grr.server.grr_response_server.flows.general import filesystem
 from grr.test_lib import action_mocks
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import rekall_test_lib
@@ -72,9 +73,10 @@ WMI_SAMPLE = [
 # framework is properly set up.
 #
 # Class of this name is clashing with other `TestCmdProcessor` (declared in
-# `//grr/gui/selenium_tests/artifact_view_test.py`) and breaks
-# the test class register. This should be fixed when the test class register
-# is gone and new test discovery (`pytest`) is deployed.
+# `//grr/server/grr_response_server/gui/selenium_tests/
+# artifact_view_test.py`) and breaks the test class register. This should be
+# fixed when the test class register is gone and new test discovery (`pytest`)
+# is deployed.
 class CmdProcessor(parsers.CommandParser):
 
   output_types = ["SoftwarePackage"]
@@ -161,6 +163,13 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         standard.StatFile,
         standard.TransferBuffer,
     )
+
+    self._artifact_patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._artifact_patcher.start()
+
+  def tearDown(self):
+    self._artifact_patcher.stop()
+    super(ArtifactTest, self).tearDown()
 
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""

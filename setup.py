@@ -36,10 +36,13 @@ def run_make_files(make_ui_files=True, sync_artifacts=True):
     subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
 
   if make_ui_files:
-    subprocess.check_call(["npm", "install"], cwd="grr/gui/static")
     subprocess.check_call(
-        ["npm", "install", "-g", "gulp"], cwd="grr/gui/static")
-    subprocess.check_call(["gulp", "compile"], cwd="grr/gui/static")
+        ["npm", "install"], cwd="grr/server/grr_response_server/gui/static")
+    subprocess.check_call(
+        ["npm", "install", "-g", "gulp"],
+        cwd="grr/server/grr_response_server/gui/static")
+    subprocess.check_call(
+        ["gulp", "compile"], cwd="grr/server/grr_response_server/gui/static")
 
 
 def get_config():
@@ -86,9 +89,10 @@ data_files = (
     find_data_files("executables") + find_data_files("install_data") +
     find_data_files("scripts") + find_data_files("grr/artifacts") +
     find_data_files("grr/checks") + find_data_files(
-        "grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
-            "grr/gui/local/static", ignore_dirs=IGNORE_GUI_DIRS) +
-    ["version.ini"])
+        "grr/server/grr_response_server/gui/static",
+        ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
+            "grr/server/grr_response_server/gui/local/static",
+            ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
   print "*****************************************************"

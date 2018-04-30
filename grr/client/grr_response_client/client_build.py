@@ -12,9 +12,8 @@ import sys
 
 
 from grr import config as grr_config
-
 from grr_response_client import client_startup
-
+from grr.config import contexts
 from grr.lib import build
 from grr.lib import builders
 from grr.lib import config_lib
@@ -202,7 +201,7 @@ class TemplateBuilder(object):
     # Platform context has common platform settings, Target has template build
     # specific stuff.
     self.platform = platform.system()
-    context.extend(["Platform:%s" % self.platform, "Target:%s" % self.platform])
+    context.append("Target:%s" % self.platform)
     if "Target:Linux" in context:
       context.append(self.GetPackageFormat())
 
@@ -284,6 +283,7 @@ class MultiTemplateRepacker(object):
     """Call repacker in a subprocess."""
     pool = multiprocessing.Pool(processes=10)
     results = []
+    bulk_sign_installers = False
     for repack_config in repack_configs:
       for template in templates:
         repack_args = ["grr_client_build"]
@@ -300,7 +300,6 @@ class MultiTemplateRepacker(object):
         # try to ask for signing.
         passwd = None
 
-        bulk_sign_installers = False
         if sign:
           if template.endswith(".exe.zip"):
             # This is for osslsigncode only.
@@ -379,6 +378,9 @@ def GetClientConfig(filename):
 
 def main(_):
   """Launch the appropriate builder."""
+
+  grr_config.CONFIG.AddContext(contexts.CLIENT_BUILD_CONTEXT)
+
   args = flags.FLAGS
   if args.subparser_name == "generate_client_config":
     # We don't need a full init to just build a config.
@@ -388,7 +390,8 @@ def main(_):
   # We deliberately use args.context because client_startup.py pollutes
   # grr_config.CONFIG.context with the running system context.
   context = args.context
-  context.append("ClientBuilder Context")
+  context.append(contexts.CLIENT_BUILD_CONTEXT)
+  context.append("Platform:%s" % platform.system())
   client_startup.ClientInit()
 
   # Use basic console output logging so we can see what is happening.

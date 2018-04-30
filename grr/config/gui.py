@@ -7,32 +7,37 @@ from grr.lib.rdfvalues import config as rdf_config
 # The Admin UI web application.
 config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
 
-config_lib.DEFINE_integer("AdminUI.port_max", None,
-                          "If set and AdminUI.port is in use, attempt to "
-                          "use ports between AdminUI.port and "
-                          "AdminUI.port_max.")
+config_lib.DEFINE_integer(
+    "AdminUI.port_max", None, "If set and AdminUI.port is in use, attempt to "
+    "use ports between AdminUI.port and "
+    "AdminUI.port_max.")
 
 # Override this if you want to access admin ui extenally. Make sure it is
 # secured (i.e. AdminUI.webauth_manager is not NullWebAuthManager)!
 config_lib.DEFINE_string("AdminUI.bind", "127.0.0.1", "interface to bind to.")
 
-config_lib.DEFINE_string("AdminUI.document_root", "%(grr/gui/static|resource)",
-                         "The main path to the static HTML pages.")
+config_lib.DEFINE_string(
+    "AdminUI.document_root",
+    "%(grr/server/grr_response_server/gui/static|resource)",
+    "The main path to the static HTML pages.")
 
-config_lib.DEFINE_string("AdminUI.template_root",
-                         "%(grr/gui/templates|resource)",
-                         "The main path to the templates.")
+config_lib.DEFINE_string(
+    "AdminUI.template_root",
+    "%(grr/server/grr_response_server/gui/templates|resource)",
+    "The main path to the templates.")
 
 config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",
     "The web auth manager for controlling access to the UI.")
 
-config_lib.DEFINE_string("AdminUI.remote_user_header", "X-Remote-User",
-                         "Header containing authenticated user's username. "
-                         "Used by RemoteUserWebAuthManager.")
-config_lib.DEFINE_list("AdminUI.remote_user_trusted_ips", ["127.0.0.1"],
-                       "Only requests coming from these IPs will be processed "
-                       "by RemoteUserWebAuthManager.")
+config_lib.DEFINE_string(
+    "AdminUI.remote_user_header", "X-Remote-User",
+    "Header containing authenticated user's username. "
+    "Used by RemoteUserWebAuthManager.")
+config_lib.DEFINE_list(
+    "AdminUI.remote_user_trusted_ips", ["127.0.0.1"],
+    "Only requests coming from these IPs will be processed "
+    "by RemoteUserWebAuthManager.")
 
 config_lib.DEFINE_string("AdminUI.firebase_api_key", None,
                          "Firebase API key. Used by FirebaseWebAuthManager.")
@@ -67,14 +72,15 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
                          "The direct external URL for the user interface.")
 
-config_lib.DEFINE_bool("AdminUI.use_precompiled_js", False,
-                       "If True - use Closure-compiled JS bundle. This flag "
-                       "is experimental and is not properly supported yet.")
+config_lib.DEFINE_bool(
+    "AdminUI.use_precompiled_js", False,
+    "If True - use Closure-compiled JS bundle. This flag "
+    "is experimental and is not properly supported yet.")
 
-config_lib.DEFINE_string("AdminUI.export_command", "/usr/bin/grr_api_shell "
-                         "'%(AdminUI.url)'",
-                         "Command to show in the fileview for downloading the "
-                         "files from the command line.")
+config_lib.DEFINE_string(
+    "AdminUI.export_command", "/usr/bin/grr_api_shell "
+    "'%(AdminUI.url)'", "Command to show in the fileview for downloading the "
+    "files from the command line.")
 
 config_lib.DEFINE_string("AdminUI.heading", "",
                          "Dashboard heading displayed in the Admin UI.")
@@ -92,9 +98,10 @@ config_lib.DEFINE_string(
     "%(Source.version_minor).%(Source.version_revision)",
     "Base path for GRR documentation. ")
 
-config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin", None,
-                         "Output plugin that will be added by default in the "
-                         "'New Hunt' wizard output plugins selection page.")
+config_lib.DEFINE_string(
+    "AdminUI.new_hunt_wizard.default_output_plugin", None,
+    "Output plugin that will be added by default in the "
+    "'New Hunt' wizard output plugins selection page.")
 
 config_lib.DEFINE_semantic_struct(
     rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",

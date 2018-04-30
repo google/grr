@@ -62,13 +62,20 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     entry_points={
         "console_scripts": [
-            "grr_console = grr.server.distro_entry:Console",
-            "grr_config_updater = grr.server.distro_entry:ConfigUpdater",
-            "grr_frontend = grr.server.distro_entry:GrrFrontend",
-            "grr_server = grr.server.distro_entry:GrrServer",
-            "grr_worker = grr.server.distro_entry:Worker",
-            "grr_admin_ui = grr.server.distro_entry:AdminUI",
-            "grr_fuse = grr.server.distro_entry:GRRFuse",
+            "grr_console = "
+            "grr.server.grr_response_server.distro_entry:Console",
+            "grr_config_updater = "
+            "grr.server.grr_response_server.distro_entry:ConfigUpdater",
+            "grr_frontend = "
+            "grr.server.grr_response_server.distro_entry:GrrFrontend",
+            "grr_server = "
+            "grr.server.grr_response_server.distro_entry:GrrServer",
+            "grr_worker = "
+            "grr.server.grr_response_server.distro_entry:Worker",
+            "grr_admin_ui = "
+            "grr.server.grr_response_server.distro_entry:AdminUI",
+            "grr_fuse = "
+            "grr.server.grr_response_server.distro_entry:GRRFuse",
         ]
     },
     install_requires=[

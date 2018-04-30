@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """System cron flows tests."""
 
+from grr import config
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
@@ -52,12 +53,14 @@ class SystemCronFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     # There should be counts[2] instances in 14 day actives.
     self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
-    self.assertEqual(histogram[2][0].label, "GRR Monitor 123")
+    self.assertEqual(histogram[2][0].label,
+                     "GRR Monitor %s" % config.CONFIG["Source.version_numeric"])
     self.assertEqual(histogram[2][0].y_value, counts[2])
 
     # There should be counts[3] instances in 30 day actives.
     self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
-    self.assertEqual(histogram[3][0].label, "GRR Monitor 123")
+    self.assertEqual(histogram[3][0].label,
+                     "GRR Monitor %s" % config.CONFIG["Source.version_numeric"])
     self.assertEqual(histogram[3][0].y_value, counts[3])
 
   def testGRRVersionBreakDown(self):

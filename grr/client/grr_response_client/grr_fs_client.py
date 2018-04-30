@@ -32,6 +32,11 @@ def main(unused_args):
   if flags.FLAGS.install:
     installer.RunInstaller()
 
+  if not config.CONFIG["Client.fleetspeak_enabled"]:
+    raise ValueError(
+        "This is a Fleetspeak client, yet 'Client.fleetspeak_enabled' is "
+        "'False'.")
+
   if flags.FLAGS.break_on_start:
     pdb.set_trace()
   else:

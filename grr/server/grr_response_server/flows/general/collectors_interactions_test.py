@@ -22,6 +22,7 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server.flows.general import collectors
 from grr.server.grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -36,9 +37,17 @@ class TestArtifactCollectorsInteractions(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestArtifactCollectorsInteractions, self).setUp()
+
+    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._patcher.start()
+
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+  def tearDown(self):
+    self._patcher.stop()
+    super(TestArtifactCollectorsInteractions, self).tearDown()
 
   def testNewArtifactLoaded(self):
     """Simulate a new artifact being loaded into the store via the UI."""

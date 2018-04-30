@@ -24,6 +24,7 @@ from grr.server.grr_response_server import flow
 from grr.server.grr_response_server import sequential_collection
 from grr.server.grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -40,6 +41,10 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     """Make sure things are initialized."""
     super(TestArtifactCollectors, self).setUp()
+
+    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._patcher.start()
+
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
@@ -58,12 +63,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
       fd.Set(kb)
 
   def tearDown(self):
+    self._patcher.stop()
     super(TestArtifactCollectors, self).tearDown()
-    self.fakeartifact.sources = []  # Reset any ArtifactSources
-    self.fakeartifact.conditions = []  # Reset any Conditions
-
-    self.fakeartifact2.sources = []  # Reset any ArtifactSources
-    self.fakeartifact2.conditions = []  # Reset any Conditions
 
   def testInterpolateArgs(self):
     collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
@@ -91,9 +92,8 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
     # We should be using an array since users.username will expand to multiple
     # values.
-    self.assertRaises(ValueError, collect_flow.InterpolateDict, {
-        "bad": "%%users.username%%"
-    })
+    self.assertRaises(ValueError, collect_flow.InterpolateDict,
+                      {"bad": "%%users.username%%"})
 
     list_args = collect_flow.InterpolateList(
         ["%%users.username%%", r"%%users.username%%\aa"])
@@ -170,9 +170,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
     file_path = os.path.join(self.base_path, "test_img.dd")
     coll1 = artifact_registry.ArtifactSource(
         type=artifact_registry.ArtifactSource.SourceType.FILE,
-        attributes={
-            "paths": [file_path]
-        })
+        attributes={"paths": [file_path]})
     self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
@@ -227,9 +225,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={
-              "client_action": standard.ListProcesses.__name__
-          })
+          attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
       for s in flow_test_lib.TestFlowHelper(
@@ -254,9 +250,7 @@ class TestArtifactCollectors(flow_test_lib.FlowTestsBaseclass):
 
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={
-              "client_action": standard.ListProcesses.__name__
-          })
+          attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]

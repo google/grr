@@ -79,6 +79,6 @@ def GRRFuse():
 
 
 def AdminUI():
-  from grr.gui import admin_ui
+  from grr.server.grr_response_server.gui import admin_ui
   SetConfigOptions()
   flags.StartMain(admin_ui.main)

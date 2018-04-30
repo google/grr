@@ -128,7 +128,23 @@ class CopyToSystemDir(installer.Installer):
     logging.info("Installing binaries %s -> %s", executable_directory,
                  config.CONFIG["Client.install_path"])
     if os.path.exists(install_path):
-      shutil.rmtree(install_path)
+      attempts = 0
+      while True:
+        try:
+          shutil.rmtree(install_path)
+          break
+        except OSError as e:
+          attempts += 1
+          if e.errno == errno.EACCES and attempts < 10:
+            # The currently installed GRR process may stick around for a few
+            # seconds after the service is terminated (keeping the contents of
+            # the installation directory locked).
+            logging.warn(
+                "Encountered permission-denied error while trying to empty out "
+                "'%s'. Retrying...", install_path)
+            time.sleep(3)
+          else:
+            raise e
     os.makedirs(install_path)
 
     fleetspeak_unsigned_config_path = os.path.join(

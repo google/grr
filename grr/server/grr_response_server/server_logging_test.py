@@ -7,12 +7,12 @@ import time
 
 from werkzeug import wrappers as werkzeug_wrappers
 
-from grr.gui import wsgiapp
 from grr.lib import flags
 from grr.lib import stats
 from grr.lib import utils
 from grr_response_proto import jobs_pb2
 from grr.server.grr_response_server import server_logging
+from grr.server.grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
 
 
@@ -58,8 +58,10 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
 
     response = werkzeug_wrappers.Response(
         status=202,
-        headers={"X-GRR-Reason": "foo/test1234",
-                 "X-API-Method": "TestMethod"})
+        headers={
+            "X-GRR-Reason": "foo/test1234",
+            "X-API-Method": "TestMethod"
+        })
 
     self.l.LogHttpAdminUIAccess(request, response)
     self.assertIn("foo/test1234", self.log)

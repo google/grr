@@ -24,6 +24,7 @@ from grr.server.grr_response_server.flows.general import artifact_fallbacks
 # pylint: enable=unused-import
 from grr.server.grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
@@ -35,9 +36,17 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     """Add test artifacts to existing registry."""
     super(TestArtifactCollectorsRealArtifacts, self).setUp()
+
+    self._patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
+    self._patcher.start()
+
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+  def tearDown(self):
+    self._patcher.stop()
+    super(TestArtifactCollectorsRealArtifacts, self).tearDown()
 
   def _CheckDriveAndRoot(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")

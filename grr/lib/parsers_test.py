@@ -10,17 +10,17 @@ from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.parsers import registry_init
 # pylint: enable=unused-import
-from grr.server.grr_response_server import artifact_registry
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
 class ArtifactParserTests(test_lib.GRRBaseTest):
   """Test parsers validate."""
 
-  def ValidateParser(self, parser):
+  def ValidateParser(self, parser, registry):
     """Validate a parser is well defined."""
     for artifact_to_parse in parser.supported_artifacts:
-      art_obj = artifact_registry.REGISTRY.GetArtifact(artifact_to_parse)
+      art_obj = registry.GetArtifact(artifact_to_parse)
       if art_obj is None:
         raise parsers.ParserDefinitionError(
             "Artifact parser %s has an invalid artifact"
@@ -41,15 +41,16 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
     # Additional, parser specific validation.
     parser.Validate()
 
-  def testValidation(self):
+  @artifact_test_lib.PatchDefaultArtifactRegistry
+  def testValidation(self, registry):
     """Ensure all parsers pass validation."""
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
-    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+    registry.AddFileSource(test_artifacts_file)
 
     for p_cls in parsers.Parser.classes:
       parser = parsers.Parser.classes[p_cls]
-      self.ValidateParser(parser)
+      self.ValidateParser(parser, registry)
 
 
 def main(argv):

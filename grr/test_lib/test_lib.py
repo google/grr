@@ -333,7 +333,7 @@ class GRRBaseTest(unittest.TestCase):
   def _TestClientInfo(self):
     return rdf_client.ClientInformation(
         client_name="GRR Monitor",
-        client_version="123",
+        client_version=config.CONFIG["Source.version_numeric"],
         build_time="1980-01-01",
         labels=["label1", "label2"])
 

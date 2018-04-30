@@ -10,8 +10,8 @@ To use this entry point you must run "grr_config_updater initialize" first.
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.gui import admin_ui
 from grr.lib import flags
+from grr.server.grr_response_server.gui import admin_ui
 from grr.tools import frontend
 from grr.worker import worker
 
