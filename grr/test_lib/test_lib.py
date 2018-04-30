@@ -104,7 +104,10 @@ class GRRBaseTest(unittest.TestCase):
     self.last_start_time = time.time()
 
     data_store.DB.ClearTestDB()
-    data_store.REL_DB.ClearTestDB()
+    # Each datastore is wrapped with DatabaseValidationWrapper, so we have
+    # to access the delegate directly (assuming it's an InMemoryDB
+    # implementation).
+    data_store.REL_DB.delegate.ClearTestDB()
 
     aff4.FACTORY.Flush()
 

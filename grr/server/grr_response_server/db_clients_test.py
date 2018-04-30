@@ -151,7 +151,7 @@ class DatabaseTestClientsMixin(object):
   def testClientMetadataValidatesIP(self):
     d = self.db
     client_id = "C.fc413187fefa1dcf"
-    with self.assertRaises(ValueError):
+    with self.assertRaises(TypeError):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
 
@@ -573,7 +573,7 @@ class DatabaseTestClientsMixin(object):
     # Write some metadata so the client write would otherwise succeed.
     client_id = "C.fc413187fefa1dcf"
     d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
-    with self.assertRaises(ValueError):
+    with self.assertRaises(TypeError):
       d.WriteClientSnapshot("test1235.examples.com")
 
   def testClientKeywords(self):

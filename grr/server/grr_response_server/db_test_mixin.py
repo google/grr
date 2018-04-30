@@ -36,7 +36,8 @@ class DatabaseTestMixin(
 
   def setUp(self):
     super(DatabaseTestMixin, self).setUp()
-    self.db, self.cleanup = self.CreateDatabase()
+    db_obj, self.cleanup = self.CreateDatabase()
+    self.db = db.DatabaseValidationWrapper(db_obj)
 
   def tearDown(self):
     if self.cleanup:

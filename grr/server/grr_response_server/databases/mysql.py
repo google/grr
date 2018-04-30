@@ -18,7 +18,6 @@ import MySQLdb
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import objects
 from grr.server.grr_response_server import db as db_module
 from grr.server.grr_response_server import db_utils
@@ -319,9 +318,6 @@ class MysqlDB(db_module.Database):
     values = [_ClientIDToInt(client_id)]
     if certificate:
       columns.append("certificate")
-      if not isinstance(certificate, rdf_crypto.RDFX509Cert):
-        raise ValueError("certificate must be rdf_crypto.RDFX509Cert, got: %s" %
-                         type(certificate))
       values.append(certificate.SerializeToString())
     if fleetspeak_enabled is not None:
       columns.append("fleetspeak_enabled")
@@ -337,9 +333,6 @@ class MysqlDB(db_module.Database):
       values.append(_RDFDatetimeToMysqlString(last_clock))
     if last_ip:
       columns.append("last_ip")
-      if not isinstance(last_ip, rdf_client.NetworkAddress):
-        raise ValueError(
-            "last_ip must be client.NetworkAddress, got: %s" % type(last_ip))
       values.append(last_ip.SerializeToString())
     if last_foreman:
       columns.append("last_foreman")
@@ -385,12 +378,6 @@ class MysqlDB(db_module.Database):
   @WithTransaction()
   def WriteClientSnapshot(self, client, cursor=None):
     """Write new client snapshot."""
-
-    if not isinstance(client, objects.ClientSnapshot):
-      raise ValueError(
-          "WriteClient requires rdfvalues.objects.ClientSnapshot, got: %s" %
-          type(client))
-
     startup_info = client.startup_info
     client.startup_info = None
 
@@ -485,8 +472,6 @@ class MysqlDB(db_module.Database):
 
   @WithTransaction()
   def WriteClientSnapshotHistory(self, clients, cursor=None):
-    super(MysqlDB, self).WriteClientSnapshotHistory(clients)
-
     cid = _ClientIDToInt(clients[0].client_id)
     latest_timestamp = None
 
@@ -528,11 +513,6 @@ class MysqlDB(db_module.Database):
   @WithTransaction()
   def WriteClientStartupInfo(self, client_id, startup_info, cursor=None):
     """Writes a new client startup record."""
-    if not isinstance(startup_info, rdf_client.StartupInfo):
-      raise ValueError(
-          "WriteClientStartupInfo requires rdf_client.StartupInfo, got: %s" %
-          type(startup_info))
-
     cid = _ClientIDToInt(client_id)
     now = _RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
 
@@ -718,9 +698,6 @@ class MysqlDB(db_module.Database):
     """Lists the clients associated with keywords."""
     keywords = set(keywords)
     keyword_mapping = {utils.SmartUnicode(kw): kw for kw in keywords}
-    if len(keyword_mapping) != len(keywords):
-      raise ValueError("Multiple keywords map to the same unicode "
-                       "representation.")
 
     result = {}
     for kw in keyword_mapping.values():
@@ -799,12 +776,6 @@ class MysqlDB(db_module.Database):
   @WithTransaction()
   def WriteClientCrashInfo(self, client_id, crash_info, cursor=None):
     """Writes a new client crash record."""
-
-    if not isinstance(crash_info, rdf_client.ClientCrash):
-      raise ValueError(
-          "WriteClientCrashInfo requires rdf_client.ClientCrash, got: %s" %
-          type(crash_info))
-
     cid = _ClientIDToInt(client_id)
     now = _RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
     try:
@@ -923,12 +894,6 @@ class MysqlDB(db_module.Database):
   @WithTransaction()
   def WriteApprovalRequest(self, approval_request, cursor=None):
     """Writes an approval request object."""
-
-    if not isinstance(approval_request, objects.ApprovalRequest):
-      raise ValueError(
-          "WriteApprovalRequest requires rdfvalues.objects.ApprovalRequest, "
-          "got: %s" % type(approval_request))
-
     # Copy the approval_request to ensure we don't modify the source object.
     approval_request = approval_request.Copy()
     # Generate random approval id.
@@ -1062,11 +1027,6 @@ class MysqlDB(db_module.Database):
   @WithTransaction()
   def WriteUserNotification(self, notification, cursor=None):
     """Writes a notification for a given user."""
-    if not isinstance(notification, objects.UserNotification):
-      raise ValueError(
-          "WriteUserNotification requires rdfvalues.objects.UserNotification, "
-          "got: %s" % type(notification))
-
     # Copy the notification to ensure we don't modify the source object.
     notification = notification.Copy()
 

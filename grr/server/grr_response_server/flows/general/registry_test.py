@@ -4,6 +4,7 @@
 
 import os
 
+from grr import config
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
@@ -313,6 +314,11 @@ class TestRegistryFlows(RegistryFlowTest):
     client = aff4.FACTORY.Open(client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Set(client.Schema.OS_VERSION("6.2"))
+
+    client_info = client.Get(client.Schema.CLIENT_INFO)
+    client_info.client_version = config.CONFIG["Source.version_numeric"]
+    client.Set(client.Schema.CLIENT_INFO, client_info)
+
     client.Flush()
 
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,

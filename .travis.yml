@@ -29,7 +29,7 @@ matrix:
         - travis/install.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
-        - pytest grr/ --ignore grr/gui/selenium_tests/
+        - pytest grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/
         - (cd grr/gui/static/ && gulp test)
         - travis/build_templates.sh
         - travis/deploy_to_gcs.sh

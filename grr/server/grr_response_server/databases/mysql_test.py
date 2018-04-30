@@ -93,18 +93,19 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     db_utils.DBMetricsInit().RunOnce()
 
   def testRunInTransaction(self):
-
-    self.db._RunInTransaction(
+    self.db.delegate._RunInTransaction(
         lambda con: self.AddUser(con, "AzureDiamond", "hunter2"))
 
-    users = self.db._RunInTransaction(self.ListUsers, readonly=True)
+    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users, ((u"AzureDiamond", "hunter2"),))
 
   def testRunInTransactionDeadlock(self):
     """A deadlock error should be retried."""
 
-    self.db._RunInTransaction(lambda con: self.AddUser(con, "user1", "pw1"))
-    self.db._RunInTransaction(lambda con: self.AddUser(con, "user2", "pw2"))
+    self.db.delegate._RunInTransaction(
+        lambda con: self.AddUser(con, "user1", "pw1"))
+    self.db.delegate._RunInTransaction(
+        lambda con: self.AddUser(con, "user2", "pw2"))
 
     # We'll start two transactions which read/modify rows in different orders.
     # This should force (at least) one to fail with a deadlock, which should be
@@ -138,9 +139,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       cursor.close()
 
     thread_1 = threading.Thread(
-        target=lambda: self.db._RunInTransaction(Transaction1))
+        target=lambda: self.db.delegate._RunInTransaction(Transaction1))
     thread_2 = threading.Thread(
-        target=lambda: self.db._RunInTransaction(Transaction2))
+        target=lambda: self.db.delegate._RunInTransaction(Transaction2))
 
     thread_1.start()
     thread_2.start()
@@ -149,7 +150,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     thread_2.join()
 
     # Both transaction should have succeeded
-    users = self.db._RunInTransaction(self.ListUsers, readonly=True)
+    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users, ((u"user1", "pw1-updated"),
                              (u"user2", "pw2-updated")))
 

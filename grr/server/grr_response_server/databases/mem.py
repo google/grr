@@ -38,69 +38,10 @@ class InMemoryDB(db.Database):
   def ClearTestDB(self):
     self._Init()
 
-  def _ValidateStringId(self, id_type, id_value):
-    if not isinstance(id_value, basestring):
-      raise ValueError(
-          "Expected %s as a string, got %s" % (id_type, type(id_value)))
-
-    if not id_value:
-      raise ValueError("Expected %s to be non-empty." % id_type)
-
-  def _ValidateClientId(self, client_id):
-    self._ValidateStringId("client_id", client_id)
-
-  def _ValidateHuntId(self, hunt_id):
-    self._ValidateStringId("hunt_id", hunt_id)
-
-  def _ValidateCronJobId(self, cron_job_id):
-    self._ValidateStringId("cron_job_id", cron_job_id)
-
-  def _ValidateApprovalId(self, approval_id):
-    self._ValidateStringId("approval_id", approval_id)
-
-  def _ValidateApprovalType(self, approval_type):
-    if (approval_type == objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_NONE
-       ):
-      raise ValueError("Unexpected approval type: %s" % approval_type)
-
-  def _ValidateUsername(self, username):
-    self._ValidateStringId("username", username)
-
-  def _ValidatePathInfo(self, path_info):
-    if not isinstance(path_info, objects.PathInfo):
-      raise ValueError(
-          "Expected `rdfvalues.objects.PathInfo`, got: %s" % type(path_info))
-    if not path_info.path_type:
-      raise ValueError(
-          "Expected path_type to be set, got: %s" % str(path_info.path_type))
-
-  def _ValidateNotificationType(self, notification_type):
-    if notification_type is None:
-      raise ValueError("notification_type can't be None")
-
-    if notification_type == objects.UserNotification.Type.TYPE_UNSET:
-      raise ValueError("notification_type can't be TYPE_UNSET")
-
-  def _ValidateNotificationState(self, notification_state):
-    if notification_state is None:
-      raise ValueError("notification_state can't be None")
-
-    if notification_state == objects.UserNotification.State.STATE_UNSET:
-      raise ValueError("notification_state can't be STATE_UNSET")
-
   def _ParseTimeRange(self, timerange):
     """Parses a timerange argument and always returns non-None timerange."""
-
     if timerange is None:
       timerange = (None, None)
-    else:
-      if len(timerange) != 2:
-        raise ValueError("Timerange should be a sequence with 2 items.")
-
-      for i in timerange:
-        if not (i is None or isinstance(i, rdfvalue.RDFDatetime)):
-          raise ValueError(
-              "Timerange items should be None or rdfvalue.RDFDatetime")
 
     from_time, to_time = timerange
     if not from_time:
@@ -120,8 +61,6 @@ class InMemoryDB(db.Database):
                           last_clock=None,
                           last_ip=None,
                           last_foreman=None):
-    self._ValidateClientId(client_id)
-
     md = {}
     if certificate is not None:
       md["certificate"] = certificate
@@ -139,9 +78,6 @@ class InMemoryDB(db.Database):
       md["clock"] = last_clock
 
     if last_ip is not None:
-      if not isinstance(last_ip, rdf_client.NetworkAddress):
-        raise ValueError(
-            "last_ip must be client.NetworkAddress, got: %s" % type(last_ip))
       md["ip"] = last_ip
 
     if last_foreman is not None:
@@ -156,7 +92,6 @@ class InMemoryDB(db.Database):
     """Reads ClientMetadata records for a list of clients."""
     res = {}
     for client_id in client_ids:
-      self._ValidateClientId(client_id)
       md = self.metadatas.get(client_id, {})
       res[client_id] = objects.ClientMetadata(
           certificate=md.get("certificate"),
@@ -173,12 +108,7 @@ class InMemoryDB(db.Database):
 
   def WriteClientSnapshot(self, client):
     """Writes new client snapshot."""
-    if not isinstance(client, objects.ClientSnapshot):
-      raise ValueError(
-          "Expected `rdfvalues.objects.ClientSnapshot`, got: %s" % type(client))
-
     client_id = client.client_id
-    self._ValidateClientId(client_id)
 
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
@@ -199,7 +129,6 @@ class InMemoryDB(db.Database):
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
-      self._ValidateClientId(client_id)
       history = self.clients.get(client_id, None)
       if not history:
         res[client_id] = None
@@ -216,7 +145,6 @@ class InMemoryDB(db.Database):
   def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
     res = {}
     for client_id in client_ids:
-      self._ValidateClientId(client_id)
       md = self.ReadClientMetadata(client_id)
       if md and min_last_ping and md.ping < min_last_ping:
         continue
@@ -231,8 +159,6 @@ class InMemoryDB(db.Database):
     return self.metadatas.keys()
 
   def WriteClientSnapshotHistory(self, clients):
-    super(InMemoryDB, self).WriteClientSnapshotHistory(clients)
-
     if clients[0].client_id not in self.metadatas:
       raise db.UnknownClientError(clients[0].client_id)
 
@@ -250,7 +176,6 @@ class InMemoryDB(db.Database):
 
   def ReadClientSnapshotHistory(self, client_id, timerange=None):
     """Reads the full history for a particular client."""
-    self._ValidateClientId(client_id)
     from_time, to_time = self._ParseTimeRange(timerange)
 
     history = self.clients.get(client_id)
@@ -269,8 +194,6 @@ class InMemoryDB(db.Database):
     return res
 
   def AddClientKeywords(self, client_id, keywords):
-    self._ValidateClientId(client_id)
-
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
@@ -282,10 +205,6 @@ class InMemoryDB(db.Database):
   def ListClientsForKeywords(self, keywords, start_time=None):
     keywords = set(keywords)
     keyword_mapping = {utils.SmartStr(kw): kw for kw in keywords}
-
-    if start_time and not isinstance(start_time, rdfvalue.RDFDatetime):
-      raise ValueError(
-          "Time value must be rdfvalue.RDFDatetime, got: %s" % type(start_time))
 
     res = {}
     for k in keyword_mapping:
@@ -299,17 +218,10 @@ class InMemoryDB(db.Database):
     return res
 
   def RemoveClientKeyword(self, client_id, keyword):
-    self._ValidateClientId(client_id)
-
     if keyword in self.keywords and client_id in self.keywords[keyword]:
       del self.keywords[keyword][client_id]
 
   def AddClientLabels(self, client_id, owner, labels):
-    self._ValidateClientId(client_id)
-
-    if isinstance(labels, basestring):
-      raise ValueError("Expected iterable, got string.")
-
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
@@ -320,8 +232,6 @@ class InMemoryDB(db.Database):
   def MultiReadClientLabels(self, client_ids):
     res = {}
     for client_id in client_ids:
-      self._ValidateClientId(client_id)
-
       res[client_id] = []
       owner_dict = self.labels.get(client_id, {})
       for owner, labels in owner_dict.items():
@@ -331,11 +241,6 @@ class InMemoryDB(db.Database):
     return res
 
   def RemoveClientLabels(self, client_id, owner, labels):
-    self._ValidateClientId(client_id)
-
-    if isinstance(labels, basestring):
-      raise ValueError("Expected iterable, got string.")
-
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
       labelset.discard(utils.SmartUnicode(l))
@@ -355,8 +260,6 @@ class InMemoryDB(db.Database):
                    ui_mode=None,
                    canary_mode=None,
                    user_type=None):
-    self._ValidateUsername(username)
-
     u = self.users.setdefault(username, {"username": username})
     if password is not None:
       u["password"] = password
@@ -389,13 +292,6 @@ class InMemoryDB(db.Database):
           user_type=u.get("user_type"))
 
   def WriteClientStartupInfo(self, client_id, startup_info):
-    if not isinstance(startup_info, rdf_client.StartupInfo):
-      raise ValueError(
-          "WriteClientStartupInfo requires rdf_client.StartupInfo, got: %s" %
-          type(startup_info))
-
-    self._ValidateClientId(client_id)
-
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
@@ -405,7 +301,6 @@ class InMemoryDB(db.Database):
     history[ts] = startup_info.SerializeToString()
 
   def ReadClientStartupInfo(self, client_id):
-    self._ValidateClientId(client_id)
     history = self.startup_history.get(client_id, None)
     if not history:
       return None
@@ -416,7 +311,6 @@ class InMemoryDB(db.Database):
     return res
 
   def ReadClientStartupInfoHistory(self, client_id, timerange=None):
-    self._ValidateClientId(client_id)
     from_time, to_time = self._ParseTimeRange(timerange)
 
     history = self.startup_history.get(client_id)
@@ -433,14 +327,6 @@ class InMemoryDB(db.Database):
     return res
 
   def WriteClientCrashInfo(self, client_id, crash_info):
-
-    if not isinstance(crash_info, rdf_client.ClientCrash):
-      raise ValueError(
-          "WriteClientCrashInfo requires rdf_client.ClientCrash, got: %s" %
-          type(crash_info))
-
-    self._ValidateClientId(client_id)
-
     if client_id not in self.metadatas:
       raise db.UnknownClientError()
 
@@ -450,7 +336,6 @@ class InMemoryDB(db.Database):
     history[ts] = crash_info.SerializeToString()
 
   def ReadClientCrashInfo(self, client_id):
-    self._ValidateClientId(client_id)
     history = self.crash_history.get(client_id, None)
     if not history:
       return None
@@ -461,8 +346,6 @@ class InMemoryDB(db.Database):
     return res
 
   def ReadClientCrashInfoHistory(self, client_id):
-    self._ValidateClientId(client_id)
-
     history = self.crash_history.get(client_id)
     if not history:
       return []
@@ -474,13 +357,6 @@ class InMemoryDB(db.Database):
     return res
 
   def WriteApprovalRequest(self, approval_request):
-    if not isinstance(approval_request, objects.ApprovalRequest):
-      raise ValueError("ApprovalRequest object expected, got %s",
-                       type(approval_request))
-
-    self._ValidateUsername(approval_request.requestor_username)
-    self._ValidateApprovalType(approval_request.approval_type)
-
     approvals = self.approvals_by_username.setdefault(
         approval_request.requestor_username, {})
 
@@ -493,9 +369,6 @@ class InMemoryDB(db.Database):
     return approval_id
 
   def ReadApprovalRequest(self, requestor_username, approval_id):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalId(approval_id)
-
     try:
       return self.approvals_by_username[requestor_username][approval_id]
     except KeyError:
@@ -507,12 +380,6 @@ class InMemoryDB(db.Database):
                            approval_type,
                            subject_id=None,
                            include_expired=False):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalType(approval_type)
-
-    if subject_id:
-      self._ValidateStringId("approval subject id", subject_id)
-
     now = rdfvalue.RDFDatetime.Now()
     for approval in self.approvals_by_username.get(requestor_username,
                                                    {}).values():
@@ -528,10 +395,6 @@ class InMemoryDB(db.Database):
       yield approval
 
   def GrantApproval(self, requestor_username, approval_id, grantor_username):
-    self._ValidateUsername(requestor_username)
-    self._ValidateApprovalId(approval_id)
-    self._ValidateUsername(grantor_username)
-
     try:
       approval = self.approvals_by_username[requestor_username][approval_id]
       approval.grants.append(
@@ -544,7 +407,6 @@ class InMemoryDB(db.Database):
 
   def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
     """Returns path info records for a client."""
-    self._ValidateClientId(client_id)
     ret = {}
     info_dict = self.path_info_map_by_client_id.get((client_id, path_type), {})
     for path_id in path_ids:
@@ -554,10 +416,6 @@ class InMemoryDB(db.Database):
 
   def WritePathInfosRaw(self, client_id, path_infos):
     """Writes a collection of path_info records for a client."""
-    self._ValidateClientId(client_id)
-    for info in path_infos:
-      self._ValidatePathInfo(info)
-
     for info in path_infos:
       info_dict = self.path_info_map_by_client_id.setdefault(
           (client_id, info.path_type), {})
@@ -576,7 +434,6 @@ class InMemoryDB(db.Database):
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
     """Finds all path_ids seen on a client descent from path_id."""
-    self._ValidateClientId(client_id)
     child_dict = self.path_child_map_by_client_id.setdefault(
         (client_id, path_type), {})
     children = list(child_dict.get(path_id, set()))
@@ -595,10 +452,6 @@ class InMemoryDB(db.Database):
 
   def WriteUserNotification(self, notification):
     """Writes a notification for a given user."""
-    self._ValidateUsername(notification.username)
-    self._ValidateNotificationType(notification.notification_type)
-    self._ValidateNotificationState(notification.state)
-
     cloned_notification = notification.Copy()
     if not cloned_notification.timestamp:
       cloned_notification.timestamp = rdfvalue.RDFDatetime.Now()
@@ -608,7 +461,6 @@ class InMemoryDB(db.Database):
 
   def ReadUserNotifications(self, username, timerange=None):
     """Reads notifications scheduled for a user within a given timerange."""
-    self._ValidateUsername(username)
     from_time, to_time = self._ParseTimeRange(timerange)
 
     result = []
@@ -620,8 +472,6 @@ class InMemoryDB(db.Database):
 
   def UpdateUserNotifications(self, username, timestamps, state=None):
     """Updates existing user notification objects."""
-    self._ValidateNotificationState(state)
-
     if not timestamps:
       return
 

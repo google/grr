@@ -55,6 +55,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server.grr_response_server import access_control
 from grr.server.grr_response_server import blob_store
+from grr.server.grr_response_server import db
 from grr.server.grr_response_server import stats_values
 from grr.server.grr_response_server.databases import registry_init
 
@@ -226,8 +227,8 @@ class MutationPool(object):
     self.Flush()
 
   def Size(self):
-    return (len(self.delete_subject_requests) + len(self.set_requests) +
-            len(self.delete_attributes_requests))
+    return (len(self.delete_subject_requests) + len(self.set_requests) + len(
+        self.delete_attributes_requests))
 
   # Notification handling
   def CreateNotifications(self, queue, notifications):
@@ -437,8 +438,8 @@ class MutationPool(object):
         if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
           stats.STATS.IncrementCounter("grr_task_retransmission_count")
 
-        serialized_tasks_dict.setdefault(predicate, []).append(
-            task.SerializeToString())
+        serialized_tasks_dict.setdefault(predicate,
+                                         []).append(task.SerializeToString())
         tasks.append(task)
         if len(tasks) >= limit:
           break
@@ -1011,8 +1012,9 @@ class DataStore(object):
         notification = rdf_flows.GrrNotification.FromSerializedString(
             serialized_notification)
       except Exception:  # pylint: disable=broad-except
-        logging.exception("Can't unserialize notification, deleting it: "
-                          "predicate=%s, ts=%d", predicate, ts)
+        logging.exception(
+            "Can't unserialize notification, deleting it: "
+            "predicate=%s, ts=%d", predicate, ts)
         self.DeleteAttributes(
             queue_shard,
             [predicate],
@@ -1704,7 +1706,7 @@ class DataStoreInit(registry.InitHook):
     try:
       cls = registry_init.REGISTRY[rel_db_name]
       logging.info("Using database implementation %s", rel_db_name)
-      REL_DB = cls()
+      REL_DB = db.DatabaseValidationWrapper(cls())
     except KeyError:
       raise ValueError("Database %s not found." % rel_db_name)
 

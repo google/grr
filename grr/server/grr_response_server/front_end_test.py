@@ -1328,7 +1328,7 @@ class RelationalHTTPClientTests(HTTPClientTests):
         private_key=self.server_private_key)
 
   def _ClearClient(self):
-    del data_store.REL_DB.metadatas[self.client_id]
+    del data_store.REL_DB.delegate.metadatas[self.client_id]
 
 
 def main(args):
