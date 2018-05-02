@@ -351,12 +351,16 @@ class MultiTemplateRepacker(object):
           elif f.endswith(".rpm"):
             to_sign.setdefault("rpm", []).append(os.path.join(root, f))
       if to_sign.get("windows"):
-        signer = repacking.TemplateRepacker().GetSigner(
-            ["ClientBuilder Context", "Target:Windows"])
+        signer = repacking.TemplateRepacker().GetSigner([
+            "ClientBuilder Context",
+            "Platform:%s" % platform.system(), "Target:Windows"
+        ])
         signer.SignFiles(to_sign.get("windows"))
       if to_sign.get("rpm"):
-        signer = repacking.TemplateRepacker().GetSigner(
-            ["ClientBuilder Context", "Target:Linux", "Target:LinuxRpm"])
+        signer = repacking.TemplateRepacker().GetSigner([
+            "ClientBuilder Context",
+            "Platform:%s" % platform.system(), "Target:Linux", "Target:LinuxRpm"
+        ])
         signer.AddSignatureToRPMs(to_sign.get("rpm"))
 
 

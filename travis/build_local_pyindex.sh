@@ -30,8 +30,8 @@ function download_packages() {
     rm -rf local_pypi
   fi
 
-  pip download --dest=local_pypi sdists/grr-response-proto-*.zip
-  pip download --dest=local_pypi sdists/grr-response-core-*.zip
+  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-proto-*.zip
+  pip download --find-links=sdists --dest=local_pypi sdists/grr-response-core-*.zip
   pip download --find-links=sdists --dest=local_pypi sdists/grr-response-client-*.zip
   pip download --find-links=sdists --dest=local_pypi sdists/grr-api-client-*.zip
   pip download --find-links=sdists --dest=local_pypi sdists/grr-response-server-*.zip
